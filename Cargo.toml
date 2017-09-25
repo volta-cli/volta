@@ -1,0 +1,8 @@
+[package]
+name = "nemo-cli"
+version = "0.1.0"
+authors = ["David Herman <dherman@dherman-mn1.linkedin.biz>"]
+license = "Apache-2.0"
+repository = "https://github.com/dherman/nemo"
+
+[dependencies]
