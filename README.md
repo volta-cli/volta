@@ -1,6 +1,6 @@
 # Nemo
 
-Here's the setup (currentl manual until we implement installation scripts) for the initial demo:
+Here's the setup (currently manual until we implement installation scripts) for the initial demo:
 
 ```
 $ cargo build --release
