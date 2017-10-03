@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="10F5B6C9-7D75-411E-8686-3964129D022A"
+           Name="nodeup"
+           Manufacturer="The nodeup community"
+           UpgradeCode="42A39E14-335A-4464-AA37-17FDA38FA377"
+           Language="1033"
+           Codepage="1252"
+           Version="0.1.0">
+    <Package Id="*"
+             Keywords="Installer"
+             Description="nodeup installer"
+             Manufacturer="The nodeup community"
+             InstallerVersion="200"
+             Platform="x64"
+             Languages="1033"
+             SummaryCodepage="1252"
+             Compressed="yes"/>
+    <MajorUpgrade AllowDowngrades="yes"/>
+    <Media Id="1"
+           Cabinet="Nodeup.cab"
+           EmbedCab="yes"/>
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder" Name="PFiles">
+        <Directory Id="INSTALLDIR" Name="nodeup">
+          <Component Id="MainExecutable"
+                     Guid="F1FBF564-E557-47A8-96D3-EBD4ED39AF95"
+                     Win64="yes">
+            <File Id="NodeupEXE"
+                  Name="nodeup.exe"
+                  DiskId="1"
+                  Source="target\release\nodeup.exe"
+                  KeyPath="yes">
+            </File>
+          </Component>
+        </Directory>
+      </Directory>
+    </Directory>
+
+    <Feature Id="Complete">
+      <ComponentRef Id='MainExecutable'/>
+    </Feature>
+  </Product>
+</Wix>
