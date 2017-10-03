@@ -5,7 +5,7 @@ use std::io::Read;
 
 use toml::Value;
 
-const CONFIG_FILENAME: &'static str = ".nemo.toml";
+const CONFIG_FILENAME: &'static str = ".nodeup.toml";
 const PUBLIC_NODE_SERVER_ROOT: &'static str = "https://nodejs.org/dist/";
 
 pub fn public_node_url(version: &str, os: &str, arch: &str) -> String {
@@ -48,21 +48,21 @@ pub fn find() -> Option<PathBuf> {
     local_config().or_else(|| home_config())
 }
 
-pub fn nemo_home() -> Option<PathBuf> {
+pub fn nodeup_home() -> Option<PathBuf> {
     env::home_dir().map(|home| {
-        home.join(".nemo")
+        home.join(".nodeup")
     })
 }
 
-pub fn nemo_bin() -> Option<PathBuf> {
-    nemo_home().map(|home| {
+pub fn nodeup_bin() -> Option<PathBuf> {
+    nodeup_home().map(|home| {
         home.join("bin")
     })
 }
 
 pub fn node_install_root() -> Option<PathBuf> {
-    nemo_home().map(|nemo| {
-        nemo.join("versions").join("node")
+    nodeup_home().map(|nodeup| {
+        nodeup.join("versions").join("node")
     })
 }
 

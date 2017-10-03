@@ -161,11 +161,6 @@ pub fn by_version(dest: &Path, version: &str) {
         .map(|cl| **cl)
         .unwrap_or(0);
 
-    /*
-    let compressed_len: u64 = 14_001_361;
-    let response = ::std::fs::File::open("/home/dherman/Sources/Linux/nemo/node-v6.11.3-linux-x64.tar.gz").unwrap();
-    */
-
     let bar = progress_bar(
         &format!("Installing v{}", version),
         uncompressed_len.unwrap_or(compressed_len));

@@ -1,16 +1,16 @@
 [package]
-name = "nemo-cli"
+name = "nodeup"
 version = "0.1.0"
 authors = ["David Herman <david.herman@gmail.com>"]
 license = "Apache-2.0"
-repository = "https://github.com/dherman/nemo"
+repository = "https://github.com/dherman/nodeup"
 
 [[bin]]
 name = "proxy"
 path = "src/proxy.rs"
 
 [[bin]]
-name = "nemo"
+name = "nodeup"
 path = "src/main.rs"
 
 [dependencies]

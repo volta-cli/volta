@@ -18,44 +18,44 @@ use clap::{Arg, App, SubCommand};
 use config::{Config, Version};
 
 fn main() {
-    let app = App::new("Nemo")
+    let app = App::new("nodeup")
         .version("0.1")
         .about("The Node toolchain manager")
 
-        // nemo install [version]
+        // nodeup install [version]
         .subcommand(SubCommand::with_name("install")
             .about("install a toolchain to the local machine")
             .arg(Arg::with_name("version")
                 .help("Node.js version specifier")
                 .required(true)))
 
-        // nemo uninstall version
+        // nodeup uninstall version
         .subcommand(SubCommand::with_name("uninstall")
             .about("uninstall a toolchain from the local machine")
             .arg(Arg::with_name("version")
                 .help("Node.js version specifier")
                 .required(true)))
 
-        // nemo use [version]
+        // nodeup use [version]
         .subcommand(SubCommand::with_name("use")
             .about("activate a particular toolchain version")
             .arg(Arg::with_name("version")
                 .help("Node.js version specifier")
                 .required(false)))
 
-        // nemo local
+        // nodeup local
         .subcommand(SubCommand::with_name("local")
             .about("display the toolchain version associated with the local project"))
 
-        // nemo current
+        // nodeup current
         .subcommand(SubCommand::with_name("current")
             .about("display the current activated toolchain version"))
 
-        // nemo version
+        // nodeup version
         .subcommand(SubCommand::with_name("version")
-            .about("display the Nemo version"))
+            .about("display the nodeup version"))
 
-        // nemo help
+        // nodeup help
         .subcommand(SubCommand::with_name("help")
             .about("display help information"));
 
