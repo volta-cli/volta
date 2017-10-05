@@ -1,2 +1,4 @@
 # This is your default nodeup configuration.
 
+[node]
+version = "latest"

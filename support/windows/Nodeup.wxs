@@ -1,30 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
   <Product Id="10F5B6C9-7D75-411E-8686-3964129D022A"
-           Name="nodeup"
-           Manufacturer="The nodeup community"
+           Name="Nodeup"
+           Manufacturer="The Nodeup Maintainers"
            UpgradeCode="42A39E14-335A-4464-AA37-17FDA38FA377"
            Language="1033"
            Codepage="1252"
            Version="0.1.0">
     <Package Id="*"
              Keywords="Installer"
-             Description="nodeup installer"
-             Manufacturer="The nodeup community"
+             Description="Nodeup installer"
+             Manufacturer="The Nodeup Maintainers"
              InstallerVersion="200"
+             InstallScope="perUser"
              Platform="x64"
              Languages="1033"
              SummaryCodepage="1252"
              Compressed="yes"/>
-    <MajorUpgrade AllowDowngrades="yes"/>
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Nodeup is already installed." />
     <Media Id="1"
            Cabinet="Nodeup.cab"
            EmbedCab="yes"/>
 
+    <!--
+    https://stackoverflow.com/questions/38370417/windows-installer-not-deleting-all-files-on-uninstall
+    https://pkisensee.wordpress.com/2015/10/06/windows-installer-removing-folders/
+    -->
+    <!--
+    <DirectoryRef Id='INSTALLDIR'>
+      <Component Id="RemoveOptBinDir" Guid="*">
+        <RegistryKey Root="HKCU" Key="Software\Nodeup">
+          <RegistryValue Name="Location"
+                         Type="string"
+                         Value="[OptBinDir]"
+                         Action="write"
+                         KeyPath="yes" />
+        </RegistryKey>
+        <CreateFolder Directory="OptBinDir" />
+        <util:RemoveFolderEx Property="FINDOPTBINDIR" On="uninstall" />
+        <RemoveFolder Id="OptBinDir" Directory="OptBinDir" On="uninstall" />
+      </Component>
+    </DirectoryRef>
+    -->
+
+    <!--
+    Secure = "yes": https://stackoverflow.com/questions/25011050/wix-removefolderex-not-working
+    -->
+    <!--
+    <Property Id="FINDOPTBINDIR" Secure="yes">
+      <RegistrySearch Id="Registry" Type="raw" Root="HKCU" Key="Software\Nodeup" Name="Location" />
+    </Property>
+    -->
+
     <Directory Id="TARGETDIR" Name="SourceDir">
-      <!--
-      <Directory Id="LocalAppDataFolder" Name="AppData">
-        <Directory Id="NodeupUserDataFolder" Name="nodeup">
+      <Directory Id="LocalAppDataFolder" Name="ADLocal">
+        <Directory Id="INSTALLDIR" Name="Nodeup">
+          <Directory Id="NodeupBin" Name="bin">
+            <Component Id="MainExecutable"
+                       Guid="F1FBF564-E557-47A8-96D3-EBD4ED39AF95"
+                       Win64="yes">
+              <File Id="NodeupEXE"
+                    Name="nodeup.exe"
+                    DiskId="1"
+                    Source="target\release\nodeup.exe"
+                    KeyPath="yes">
+              </File>
+              <RemoveFolder Id="RemoveNodeupBin" Directory="NodeupBin" On="uninstall" />
+            </Component>
+          </Directory>
+
+          <Directory Id="OptDir" Name="opt">
+            <Directory Id="OptBinDir" Name="bin">
+              <Component Id="ProxyExecutable"
+                         Guid="83786F85-45AF-4F3F-ACA2-8D6A83C21729"
+                         Win64="yes">
+                <File Id="ProxyEXE"
+                      Name="proxy.exe"
+                      DiskId="1"
+                      Source="target\release\proxy.exe"
+                      KeyPath="yes">
+                </File>
+                <RemoveFile Id="RemoveNode" Directory="OptBinDir" Name="node.exe" On="uninstall" />
+                <RemoveFolder Id="RemoveOptBinDir" Directory="OptBinDir" On="uninstall" />
+                <RemoveFolder Id="RemoveOptDir" Directory="OptDir" On="uninstall" />
+              </Component>
+            </Directory>
+          </Directory>
+
           <Component Id="UserConfigToml"
                      Guid="051CBA00-D65B-44AD-B2F2-76C75D28EF04"
                      Win64="yes">
@@ -34,60 +97,34 @@
                   Source="support\windows\config.toml"
                   KeyPath="yes">
             </File>
+            <RemoveFolder Id="RemoveINSTALLDIR" Directory="INSTALLDIR" On="uninstall" />
           </Component>
-        </Directory>
-      </Directory>
-      -->
-
-      <Directory Id="ProgramFiles64Folder" Name="PFiles">
-        <Directory Id="INSTALLDIR" Name="nodeup">
-          <Component Id="MainExecutable"
-                     Guid="F1FBF564-E557-47A8-96D3-EBD4ED39AF95"
-                     Win64="yes">
-            <File Id="NodeupEXE"
-                  Name="nodeup.exe"
-                  DiskId="1"
-                  Source="target\release\nodeup.exe"
-                  KeyPath="yes">
-            </File>
-          </Component>
-
-          <Directory Id="ProxyDir" Name="proxy">
-            <Component Id="ProxyExecutable"
-                       Guid="83786F85-45AF-4F3F-ACA2-8D6A83C21729"
-                       Win64="yes">
-              <File Id="ProxyEXE"
-                    Name="proxy.exe"
-                    DiskId="1"
-                    Source="target\release\proxy.exe"
-                    KeyPath="yes">
-              </File>
-            </Component>
-          </Directory>
         </Directory>
       </Directory>
     </Directory>
 
     <CustomAction Id="MakeSymlink_set"
                   Property="MakeSymlink"
-                  Value='"[SystemFolder]cmd.exe" /C mklink "[ProgramFiles64Folder]nodeup\node.exe" "[ProgramFiles64Folder]nodeup\proxy\proxy.exe"'
+                  Value='"[SystemFolder]cmd.exe" /C mklink "[LocalAppDataFolder]Nodeup\opt\bin\node.exe" "[LocalAppDataFolder]Nodeup\opt\bin\proxy.exe"'
                   Execute='immediate' />
     <CustomAction Id="MakeSymlink"
                   BinaryKey="WixCA"
                   DllEntry="WixQuietExec"
                   Execute="deferred"
                   Return="ignore"
-                  Impersonate="no" />
+                  Impersonate="yes" />
 
     <InstallExecuteSequence>
-      <Custom Action="MakeSymlink_set" After="InstallFiles" />
-      <Custom Action="MakeSymlink" After="MakeSymlink_set" />
+      <!-- conditions: https://stackoverflow.com/questions/537584/how-to-execute-custom-action-only-in-install-not-uninstall -->
+      <Custom Action="MakeSymlink_set" After="InstallFiles">NOT REMOVE</Custom>
+      <Custom Action="MakeSymlink" After="MakeSymlink_set">NOT REMOVE</Custom>
     </InstallExecuteSequence>
 
     <Feature Id="Complete">
       <ComponentRef Id='MainExecutable'/>
       <ComponentRef Id='ProxyExecutable'/>
       <ComponentRef Id='UserConfigToml'/>
+      <!--<ComponentRef Id="RemoveOptBinDir"/>-->
     </Feature>
   </Product>
 </Wix>

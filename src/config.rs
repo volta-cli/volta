@@ -40,62 +40,44 @@ fn local_config() -> Option<PathBuf> {
     }
 }
 
-// Unix directory structure:
-// - nodeup_bin:      ~/.nodeup/bin
-// - nodeup_proxies:  ~/.nodeup/opt/bin
-// - nodeup_versions: ~/.nodeup/versions/
+// nodeup_home:
+// - unix:    ~/.nodeup
+// - windows: %LOCALAPPDATA%\nodeup
 
-// Windows directory structure:
-// - nodeup_bin:      %PROGRAMFILES64%\nodeup
-// - nodeup_proxies:  %LOCALAPPDATA%\nodeup\bin
-// - nodeup_versions: %LOCALAPPDATA%\nodeup\versions
-
-#[cfg(windows)]
-fn user_config() -> Option<PathBuf> {
-    Some(Path::new(&windows::get_local_app_data_path())
-        .join("nodeup")
-        .join("config.toml"))
-}
+// directories:
+// - nodeup_bin:      ${nodeup_home}/bin
+// - nodeup_proxies:  ${nodeup_home}/opt/bin
+// - nodeup_versions: ${nodeup_home}/versions
 
 #[cfg(not(windows))]
-fn user_config() -> Option<PathBuf> {
+fn nodeup_home() -> Option<PathBuf> {
     env::home_dir().and_then(|home| {
-        home.join("config.toml")
+        home.join(".nodeup")
     })
 }
 
-pub fn find() -> Option<PathBuf> {
-    local_config().or_else(|| user_config())
-}
-
 #[cfg(windows)]
-pub fn nodeup_proxies() -> Option<PathBuf> {
+fn nodeup_home() -> Option<PathBuf> {
     Some(Path::new(&windows::get_local_app_data_path())
-        .join("nodeup")
-        .join("bin"))
+        .join("nodeup"))
 }
 
-#[cfg(windows)]
-pub fn nodeup_versions() -> Option<PathBuf> {
-    Some(Path::new(&windows::get_local_app_data_path())
-        .join("nodeup")
-        .join("versions"))
-}
-
-#[cfg(not(windows))]
-pub fn nodeup_proxies() -> Option<PathBuf> {
-    env::home_dir().map(|home| {
-        home.join(".nodeup")
-            .join("opt")
-            .join("bin")
+fn user_config() -> Option<PathBuf> {
+    nodeup_home().and_then(|nodeup| {
+        nodeup.join("config.toml")
     })
 }
 
-#[cfg(not(windows))]
+pub fn nodeup_proxies() -> Option<PathBuf> {
+    nodeup_home().and_then(|nodeup| {
+        nodeup.join("opt")
+              .join("bin")
+    })
+}
+
 pub fn nodeup_versions() -> Option<PathBuf> {
-    env::home_dir().map(|home| {
-        home.join(".nodeup")
-            .join("versions")
+    nodeup_home().and_then(|nodeup| {
+        nodeup.join("versions")
     })
 }
 
@@ -109,6 +91,10 @@ pub fn node_version_root(version: &str) -> Option<PathBuf> {
     node_install_root().map(|root| {
         root.join(&format!("v{}", version))
     })
+}
+
+pub fn find() -> Option<PathBuf> {
+    local_config().or_else(|| user_config())
 }
 
 pub enum Version {
