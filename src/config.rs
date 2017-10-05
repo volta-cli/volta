@@ -5,7 +5,9 @@ use std::io::Read;
 
 use toml::Value;
 
-const CONFIG_FILENAME: &'static str = ".nodeup.toml";
+#[cfg(windows)]
+use windows;
+
 const PUBLIC_NODE_SERVER_ROOT: &'static str = "https://nodejs.org/dist/";
 
 pub fn public_node_url(version: &str, os: &str, arch: &str) -> String {
@@ -14,7 +16,7 @@ pub fn public_node_url(version: &str, os: &str, arch: &str) -> String {
 }
 
 fn directory_config(dir: &Path) -> Option<PathBuf> {
-    let config_path = dir.join(CONFIG_FILENAME);
+    let config_path = dir.join(".nodeup.toml");
     if config_path.is_file() {
         Some(config_path)
     } else {
@@ -38,31 +40,68 @@ fn local_config() -> Option<PathBuf> {
     }
 }
 
-fn home_config() -> Option<PathBuf> {
+// Unix directory structure:
+// - nodeup_bin:      ~/.nodeup/bin
+// - nodeup_proxies:  ~/.nodeup/opt/bin
+// - nodeup_versions: ~/.nodeup/versions/
+
+// Windows directory structure:
+// - nodeup_bin:      %PROGRAMFILES64%\nodeup
+// - nodeup_proxies:  %LOCALAPPDATA%\nodeup\bin
+// - nodeup_versions: %LOCALAPPDATA%\nodeup\versions
+
+#[cfg(windows)]
+fn user_config() -> Option<PathBuf> {
+    Some(Path::new(&windows::get_local_app_data_path())
+        .join("nodeup")
+        .join("config.toml"))
+}
+
+#[cfg(not(windows))]
+fn user_config() -> Option<PathBuf> {
     env::home_dir().and_then(|home| {
-        directory_config(&home)
+        home.join("config.toml")
     })
 }
 
 pub fn find() -> Option<PathBuf> {
-    local_config().or_else(|| home_config())
+    local_config().or_else(|| user_config())
 }
 
-pub fn nodeup_home() -> Option<PathBuf> {
+#[cfg(windows)]
+pub fn nodeup_proxies() -> Option<PathBuf> {
+    Some(Path::new(&windows::get_local_app_data_path())
+        .join("nodeup")
+        .join("bin"))
+}
+
+#[cfg(windows)]
+pub fn nodeup_versions() -> Option<PathBuf> {
+    Some(Path::new(&windows::get_local_app_data_path())
+        .join("nodeup")
+        .join("versions"))
+}
+
+#[cfg(not(windows))]
+pub fn nodeup_proxies() -> Option<PathBuf> {
     env::home_dir().map(|home| {
         home.join(".nodeup")
+            .join("opt")
+            .join("bin")
     })
 }
 
-pub fn nodeup_bin() -> Option<PathBuf> {
-    nodeup_home().map(|home| {
-        home.join("bin")
+#[cfg(not(windows))]
+pub fn nodeup_versions() -> Option<PathBuf> {
+    env::home_dir().map(|home| {
+        home.join(".nodeup")
+            .join("versions")
     })
 }
 
 pub fn node_install_root() -> Option<PathBuf> {
-    nodeup_home().map(|nodeup| {
-        nodeup.join("versions").join("node")
+    nodeup_versions().map(|versions| {
+        versions.join("node")
     })
 }
 

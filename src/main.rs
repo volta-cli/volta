@@ -6,6 +6,18 @@ extern crate term_size;
 extern crate reqwest;
 extern crate toml;
 
+#[cfg(windows)]
+extern crate winapi;
+
+#[cfg(windows)]
+extern crate shell32;
+
+#[cfg(windows)]
+extern crate ole32;
+
+#[cfg(windows)]
+mod windows;
+
 mod config;
 mod provision;
 mod install;

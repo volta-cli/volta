@@ -1,2 +1,6 @@
 /target/
 **/*.rs.bk
+Nodeup.msi
+Nodeup.log
+Nodeup.wixobj
+Nodeup.wixpdb

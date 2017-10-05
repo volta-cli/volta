@@ -22,6 +22,23 @@
            EmbedCab="yes"/>
 
     <Directory Id="TARGETDIR" Name="SourceDir">
+      <!--
+      <Directory Id="LocalAppDataFolder" Name="AppData">
+        <Directory Id="NodeupUserDataFolder" Name="nodeup">
+          <Component Id="UserConfigToml"
+                     Guid="051CBA00-D65B-44AD-B2F2-76C75D28EF04"
+                     Win64="yes">
+            <File Id="ConfigToml"
+                  Name="config.toml"
+                  DiskId="1"
+                  Source="support\windows\config.toml"
+                  KeyPath="yes">
+            </File>
+          </Component>
+        </Directory>
+      </Directory>
+      -->
+
       <Directory Id="ProgramFiles64Folder" Name="PFiles">
         <Directory Id="INSTALLDIR" Name="nodeup">
           <Component Id="MainExecutable"
@@ -34,12 +51,43 @@
                   KeyPath="yes">
             </File>
           </Component>
+
+          <Directory Id="ProxyDir" Name="proxy">
+            <Component Id="ProxyExecutable"
+                       Guid="83786F85-45AF-4F3F-ACA2-8D6A83C21729"
+                       Win64="yes">
+              <File Id="ProxyEXE"
+                    Name="proxy.exe"
+                    DiskId="1"
+                    Source="target\release\proxy.exe"
+                    KeyPath="yes">
+              </File>
+            </Component>
+          </Directory>
         </Directory>
       </Directory>
     </Directory>
 
+    <CustomAction Id="MakeSymlink_set"
+                  Property="MakeSymlink"
+                  Value='"[SystemFolder]cmd.exe" /C mklink "[ProgramFiles64Folder]nodeup\node.exe" "[ProgramFiles64Folder]nodeup\proxy\proxy.exe"'
+                  Execute='immediate' />
+    <CustomAction Id="MakeSymlink"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <InstallExecuteSequence>
+      <Custom Action="MakeSymlink_set" After="InstallFiles" />
+      <Custom Action="MakeSymlink" After="MakeSymlink_set" />
+    </InstallExecuteSequence>
+
     <Feature Id="Complete">
       <ComponentRef Id='MainExecutable'/>
+      <ComponentRef Id='ProxyExecutable'/>
+      <ComponentRef Id='UserConfigToml'/>
     </Feature>
   </Product>
 </Wix>

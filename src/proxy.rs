@@ -13,6 +13,18 @@ use std::path::PathBuf;
 use std::iter::Extend;
 use std::process::Command;
 
+#[cfg(windows)]
+extern crate winapi;
+
+#[cfg(windows)]
+extern crate shell32;
+
+#[cfg(windows)]
+extern crate ole32;
+
+#[cfg(windows)]
+mod windows;
+
 mod config;
 mod provision;
 mod install;
@@ -35,7 +47,7 @@ fn command_and_args() -> Option<(OsString, ArgsOs)> {
  * version of Node instead of in the nodeup proxy directory.
  */
 fn instantiate_path<T: AsRef<OsStr>>(current: &T, version: &str) -> OsString {
-    let nodeup_bin = &config::nodeup_bin().unwrap();
+    let nodeup_bin = &config::nodeup_proxies().unwrap();
     let split = env::split_paths(current).filter(|s| { s != nodeup_bin });
     let mut path_vec: Vec<PathBuf> = Vec::new();
     path_vec.push(config::node_version_root(version).map(|root| root.join("bin")).unwrap());
