@@ -145,7 +145,7 @@
     -->
     <CustomAction Id="MakeHardLink_set"
                   Property="MakeHardLink"
-                  Value='"[SystemFolder]cmd.exe" /C mklink /H "[LocalAppDataFolder]Nodeup\opt\bin\node.exe" "[LocalAppDataFolder]Nodeup\binstub\binstub.exe"'
+                  Value='"[SystemFolder]cmd.exe" /C FOR %G IN (node.exe npm.exe npx.exe) DO mklink /H "[LocalAppDataFolder]Nodeup\opt\bin\%G" "[LocalAppDataFolder]Nodeup\binstub\binstub.exe"'
                   Execute='immediate' />
     <CustomAction Id="MakeHardLink"
                   BinaryKey="WixCA"
