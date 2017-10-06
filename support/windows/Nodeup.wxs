@@ -49,7 +49,7 @@
     <DirectoryRef Id='INSTALLDIR'>
       <Component Id="RemoveOptBinDir" Guid="*">
         <RegistryKey Root="HKCU" Key="Software\Nodeup">
-          <RegistryValue Name="Location"
+          <RegistryValue Name="Binstubs"
                          Type="string"
                          Value="[OptBinDir]"
                          Action="write"
@@ -65,7 +65,7 @@
     Secure = "yes": https://stackoverflow.com/questions/25011050/wix-removefolderex-not-working
     -->
     <Property Id="FINDOPTBINDIR" Secure="yes">
-      <RegistrySearch Id="Registry" Type="raw" Root="HKCU" Key="Software\Nodeup" Name="Location" />
+      <RegistrySearch Id="RegistrySearchBinstubs" Type="raw" Root="HKCU" Key="Software\Nodeup" Name="Binstubs" />
     </Property>
 
     <!-- creating empty directories: https://www.packtpub.com/mapt/book/application_development/9781849513722/2/ch02lvl1sec21/creating-an-empty-folder -->
@@ -77,6 +77,44 @@
         <!--<RemoveFile Id="RemoveNode" Directory="OptBinDir" Name="node.exe" On="uninstall" />-->
         <!--<RemoveFolder Id="RemoveOptBinDir" Directory="OptBinDir" On="uninstall" />-->
         <RemoveFolder Id="RemoveOptDir" Directory="OptDir" On="uninstall" />
+      </Component>
+    </DirectoryRef>
+
+    <!--
+    https://stackoverflow.com/questions/38370417/windows-installer-not-deleting-all-files-on-uninstall
+    https://pkisensee.wordpress.com/2015/10/06/windows-installer-removing-folders/
+    -->
+    <DirectoryRef Id='INSTALLDIR'>
+      <Component Id="RemoveVersionsNodeDir" Guid="*">
+        <RegistryKey Root="HKCU" Key="Software\Nodeup">
+          <RegistryValue Name="NodeVersions"
+                         Type="string"
+                         Value="[VersionsNodeDir]"
+                         Action="write"
+                         KeyPath="yes" />
+        </RegistryKey>
+        <CreateFolder Directory="VersionsNodeDir" />
+        <util:RemoveFolderEx Property="FINDVERSIONSNODEDIR" On="uninstall" />
+        <RemoveFolder Id="VersionsNodeDir" Directory="VersionsNodeDir" On="uninstall" />
+      </Component>
+    </DirectoryRef>
+
+    <!--
+    Secure = "yes": https://stackoverflow.com/questions/25011050/wix-removefolderex-not-working
+    -->
+    <Property Id="FINDVERSIONSNODEDIR" Secure="yes">
+      <RegistrySearch Id="RegistrySearchNodeVersions" Type="raw" Root="HKCU" Key="Software\Nodeup" Name="NodeVersions" />
+    </Property>
+
+    <!-- creating empty directories: https://www.packtpub.com/mapt/book/application_development/9781849513722/2/ch02lvl1sec21/creating-an-empty-folder -->
+    <DirectoryRef Id="VersionsNodeDir">
+      <Component Id="CreateVersionsNodeDir"
+                 Guid="D142AE24-C7AB-43C3-81B4-62AC4FCB26D1"
+                 KeyPath="yes">
+        <CreateFolder />
+        <!--<RemoveFile Id="RemoveNode" Directory="OptBinDir" Name="node.exe" On="uninstall" />-->
+        <!--<RemoveFolder Id="RemoveOptBinDir" Directory="OptBinDir" On="uninstall" />-->
+        <RemoveFolder Id="RemoveVersionsDir" Directory="VersionsDir" On="uninstall" />
       </Component>
     </DirectoryRef>
 
@@ -126,6 +164,10 @@
           <Directory Id="OptDir" Name="opt">
             <Directory Id="OptBinDir" Name="bin" />
           </Directory>
+
+          <Directory Id="VersionsDir" Name="versions">
+            <Directory Id="VersionsNodeDir" Name="node" />
+          </Directory>
         </Directory>
       </Directory>
     </Directory>
@@ -134,11 +176,11 @@
     deferred semantics: https://www.symantec.com/connect/blogs/basic-differences-execute-immediate-and-execute-deferred-ca
     quiet execution: http://wixtoolset.org/documentation/manual/v3/customactions/qtexec.html
     -->
-    <CustomAction Id="MakeSymlink_set"
-                  Property="MakeSymlink"
+    <CustomAction Id="MakeHardLink_set"
+                  Property="MakeHardLink"
                   Value='"[SystemFolder]cmd.exe" /C mklink /H "[LocalAppDataFolder]Nodeup\opt\bin\node.exe" "[LocalAppDataFolder]Nodeup\binstub\binstub.exe"'
                   Execute='immediate' />
-    <CustomAction Id="MakeSymlink"
+    <CustomAction Id="MakeHardLink"
                   BinaryKey="WixCA"
                   DllEntry="WixQuietExec"
                   Execute="deferred"
@@ -147,8 +189,8 @@
 
     <InstallExecuteSequence>
       <!-- conditions: https://stackoverflow.com/questions/537584/how-to-execute-custom-action-only-in-install-not-uninstall -->
-      <Custom Action="MakeSymlink_set" After="InstallFiles">NOT REMOVE</Custom>
-      <Custom Action="MakeSymlink" After="MakeSymlink_set">NOT REMOVE</Custom>
+      <Custom Action="MakeHardLink_set" After="InstallFiles">NOT REMOVE</Custom>
+      <Custom Action="MakeHardLink" After="MakeHardLink_set">NOT REMOVE</Custom>
     </InstallExecuteSequence>
 
     <Feature Id="Complete">
@@ -157,6 +199,8 @@
       <ComponentRef Id='UserConfigToml'/>
       <ComponentRef Id='CreateOptBinDir'/>
       <ComponentRef Id="RemoveOptBinDir"/>
+      <ComponentRef Id='CreateVersionsNodeDir'/>
+      <ComponentRef Id='RemoveVersionsNodeDir'/>
     </Feature>
   </Product>
 </Wix>
