@@ -43,6 +43,8 @@
                  Guid="56E719E4-78BB-4841-8912-D471ADE84159"
                  KeyPath="yes">
         <CreateFolder />
+        <!-- env vars: https://stackoverflow.com/questions/1931586/can-anyone-give-me-a-example-of-modifying-windows-environment-system-variables-i -->
+        <Environment Id="PATH" Name="PATH" Value="[LocalAppDataFolder]Nodeup\opt\bin;[LocalAppDataFolder]Nodeup\bin" Permanent="no" Part="first" Action="set" System="no" />
         <RemoveFile Id="RemoveNode" Directory="OptBinDir" Name="*.exe" On="uninstall" />
         <RemoveFolder Id="RemoveOptBinDir" Directory="OptBinDir" On="uninstall" />
         <RemoveFolder Id="RemoveOptDir" Directory="OptDir" On="uninstall" />
