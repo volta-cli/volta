@@ -46,7 +46,7 @@ fn local_config() -> Option<PathBuf> {
 
 // directories:
 // - nodeup_bin:      ${nodeup_home}/bin
-// - nodeup_proxies:  ${nodeup_home}/opt/bin
+// - nodeup_binstubs: ${nodeup_home}/opt/bin
 // - nodeup_versions: ${nodeup_home}/versions
 
 #[cfg(not(windows))]
@@ -63,20 +63,20 @@ fn nodeup_home() -> Option<PathBuf> {
 }
 
 fn user_config() -> Option<PathBuf> {
-    nodeup_home().and_then(|nodeup| {
+    nodeup_home().map(|nodeup| {
         nodeup.join("config.toml")
     })
 }
 
-pub fn nodeup_proxies() -> Option<PathBuf> {
-    nodeup_home().and_then(|nodeup| {
+pub fn nodeup_binstubs() -> Option<PathBuf> {
+    nodeup_home().map(|nodeup| {
         nodeup.join("opt")
               .join("bin")
     })
 }
 
 pub fn nodeup_versions() -> Option<PathBuf> {
-    nodeup_home().and_then(|nodeup| {
+    nodeup_home().map(|nodeup| {
         nodeup.join("versions")
     })
 }

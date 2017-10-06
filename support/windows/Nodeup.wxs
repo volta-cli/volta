@@ -57,7 +57,7 @@
       <Directory Id="LocalAppDataFolder" Name="ADLocal">
         <Directory Id="INSTALLDIR" Name="Nodeup">
           <Directory Id="NodeupBin" Name="bin">
-            <Component Id="MainExecutable"
+            <Component Id="NodeupExecutable"
                        Guid="F1FBF564-E557-47A8-96D3-EBD4ED39AF95"
                        Win64="yes">
               <File Id="NodeupEXE"
@@ -72,13 +72,13 @@
 
           <Directory Id="OptDir" Name="opt">
             <Directory Id="OptBinDir" Name="bin">
-              <Component Id="ProxyExecutable"
+              <Component Id="BinstubExecutable"
                          Guid="83786F85-45AF-4F3F-ACA2-8D6A83C21729"
                          Win64="yes">
-                <File Id="ProxyEXE"
-                      Name="proxy.exe"
+                <File Id="BinstubEXE"
+                      Name="binstub.exe"
                       DiskId="1"
-                      Source="target\release\proxy.exe"
+                      Source="target\release\binstub.exe"
                       KeyPath="yes">
                 </File>
                 <RemoveFile Id="RemoveNode" Directory="OptBinDir" Name="node.exe" On="uninstall" />
@@ -105,7 +105,7 @@
 
     <CustomAction Id="MakeSymlink_set"
                   Property="MakeSymlink"
-                  Value='"[SystemFolder]cmd.exe" /C mklink "[LocalAppDataFolder]Nodeup\opt\bin\node.exe" "[LocalAppDataFolder]Nodeup\opt\bin\proxy.exe"'
+                  Value='"[SystemFolder]cmd.exe" /C mklink "[LocalAppDataFolder]Nodeup\opt\bin\node.exe" "[LocalAppDataFolder]Nodeup\opt\bin\binstub.exe"'
                   Execute='immediate' />
     <CustomAction Id="MakeSymlink"
                   BinaryKey="WixCA"
@@ -121,8 +121,8 @@
     </InstallExecuteSequence>
 
     <Feature Id="Complete">
-      <ComponentRef Id='MainExecutable'/>
-      <ComponentRef Id='ProxyExecutable'/>
+      <ComponentRef Id='NodeupExecutable'/>
+      <ComponentRef Id='BinstubExecutable'/>
       <ComponentRef Id='UserConfigToml'/>
       <!--<ComponentRef Id="RemoveOptBinDir"/>-->
     </Feature>

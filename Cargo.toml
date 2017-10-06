@@ -6,8 +6,8 @@ license = "Apache-2.0"
 repository = "https://github.com/dherman/nodeup"
 
 [[bin]]
-name = "proxy"
-path = "src/proxy.rs"
+name = "binstub"
+path = "src/binstub.rs"
 
 [[bin]]
 name = "nodeup"

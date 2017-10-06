@@ -44,10 +44,10 @@ fn command_and_args() -> Option<(OsString, ArgsOs)> {
 /**
  * Produce a modified version of the current `PATH` environment varible that
  * will find Node.js executables in the installation directory for the given
- * version of Node instead of in the nodeup proxy directory.
+ * version of Node instead of in the nodeup binstubs directory.
  */
 fn instantiate_path<T: AsRef<OsStr>>(current: &T, version: &str) -> OsString {
-    let nodeup_bin = &config::nodeup_proxies().unwrap();
+    let nodeup_bin = &config::nodeup_binstubs().unwrap();
     let split = env::split_paths(current).filter(|s| { s != nodeup_bin });
     let mut path_vec: Vec<PathBuf> = Vec::new();
     path_vec.push(config::node_version_root(version).map(|root| root.join("bin")).unwrap());
