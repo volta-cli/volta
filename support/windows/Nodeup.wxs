@@ -13,6 +13,15 @@
            Language="1033"
            Codepage="1252"
            Version="0.1.0">
+
+    <!--
+    suppress ICE errors for per-user installers:
+    https://stackoverflow.com/questions/30999861/wix-per-user-installation-does-every-file-need-to-have-a-registry-value-associa
+    https://blogs.msdn.microsoft.com/astebner/2007/11/18/using-wix-3-0-to-create-a-per-user-msi-that-does-not-prompt-for-elevation-on-windows-vista/
+
+    per-user scope:
+    https://www.joyofsetup.com/2008/04/01/new-wix-feature-setting-package-installation-scope/
+    -->
     <Package Id="*"
              Keywords="Installer"
              Description="Nodeup installer"
@@ -123,6 +132,7 @@
 
     <!--
     deferred semantics: https://www.symantec.com/connect/blogs/basic-differences-execute-immediate-and-execute-deferred-ca
+    quiet execution: http://wixtoolset.org/documentation/manual/v3/customactions/qtexec.html
     -->
     <CustomAction Id="MakeSymlink_set"
                   Property="MakeSymlink"
