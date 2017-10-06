@@ -37,7 +37,6 @@
     https://stackoverflow.com/questions/38370417/windows-installer-not-deleting-all-files-on-uninstall
     https://pkisensee.wordpress.com/2015/10/06/windows-installer-removing-folders/
     -->
-    <!--
     <DirectoryRef Id='INSTALLDIR'>
       <Component Id="RemoveOptBinDir" Guid="*">
         <RegistryKey Root="HKCU" Key="Software\Nodeup">
@@ -52,16 +51,13 @@
         <RemoveFolder Id="OptBinDir" Directory="OptBinDir" On="uninstall" />
       </Component>
     </DirectoryRef>
-    -->
 
     <!--
     Secure = "yes": https://stackoverflow.com/questions/25011050/wix-removefolderex-not-working
     -->
-    <!--
     <Property Id="FINDOPTBINDIR" Secure="yes">
       <RegistrySearch Id="Registry" Type="raw" Root="HKCU" Key="Software\Nodeup" Name="Location" />
     </Property>
-    -->
 
     <!-- creating empty directories: https://www.packtpub.com/mapt/book/application_development/9781849513722/2/ch02lvl1sec21/creating-an-empty-folder -->
     <DirectoryRef Id="OptBinDir">
@@ -69,8 +65,8 @@
                  Guid="56E719E4-78BB-4841-8912-D471ADE84159"
                  KeyPath="yes">
         <CreateFolder />
-        <RemoveFile Id="RemoveNode" Directory="OptBinDir" Name="node.exe" On="uninstall" />
-        <RemoveFolder Id="RemoveOptBinDir" Directory="OptBinDir" On="uninstall" />
+        <!--<RemoveFile Id="RemoveNode" Directory="OptBinDir" Name="node.exe" On="uninstall" />-->
+        <!--<RemoveFolder Id="RemoveOptBinDir" Directory="OptBinDir" On="uninstall" />-->
         <RemoveFolder Id="RemoveOptDir" Directory="OptDir" On="uninstall" />
       </Component>
     </DirectoryRef>
@@ -150,7 +146,7 @@
       <ComponentRef Id='BinstubExecutable'/>
       <ComponentRef Id='UserConfigToml'/>
       <ComponentRef Id='CreateOptBinDir'/>
-      <!--<ComponentRef Id="RemoveOptBinDir"/>-->
+      <ComponentRef Id="RemoveOptBinDir"/>
     </Feature>
   </Product>
 </Wix>
