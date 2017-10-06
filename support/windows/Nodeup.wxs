@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
      xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+
+  <!--
+  all built-in variables: http://wixtoolset.org/documentation/manual/v3/bundle/bundle_built_in_variables.html
+  -->
+
   <Product Id="10F5B6C9-7D75-411E-8686-3964129D022A"
            Name="Nodeup"
            Manufacturer="The Nodeup Maintainers"
@@ -22,6 +27,8 @@
     <Media Id="1"
            Cabinet="Nodeup.cab"
            EmbedCab="yes"/>
+
+    <!--<Property Id="ALLUSERS"><![CDATA[1]]></Property>-->
 
     <!--
     https://stackoverflow.com/questions/38370417/windows-installer-not-deleting-all-files-on-uninstall
@@ -53,9 +60,32 @@
     </Property>
     -->
 
+    <DirectoryRef Id="OptBinDir">
+      <Component Id="CreateOptBinDir"
+                 Guid="56E719E4-78BB-4841-8912-D471ADE84159"
+                 KeyPath="yes">
+        <CreateFolder />
+        <RemoveFile Id="RemoveNode" Directory="OptBinDir" Name="node.exe" On="uninstall" />
+        <RemoveFolder Id="RemoveOptBinDir" Directory="OptBinDir" On="uninstall" />
+        <RemoveFolder Id="RemoveOptDir" Directory="OptDir" On="uninstall" />
+      </Component>
+    </DirectoryRef>
+
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="LocalAppDataFolder" Name="ADLocal">
         <Directory Id="INSTALLDIR" Name="Nodeup">
+          <Component Id="UserConfigToml"
+                     Guid="051CBA00-D65B-44AD-B2F2-76C75D28EF04"
+                     Win64="yes">
+            <File Id="ConfigToml"
+                  Name="config.toml"
+                  DiskId="1"
+                  Source="support\windows\config.toml"
+                  KeyPath="yes">
+            </File>
+            <RemoveFolder Id="RemoveINSTALLDIR" Directory="INSTALLDIR" On="uninstall" />
+          </Component>
+
           <Directory Id="NodeupBin" Name="bin">
             <Component Id="NodeupExecutable"
                        Guid="F1FBF564-E557-47A8-96D3-EBD4ED39AF95"
@@ -70,42 +100,33 @@
             </Component>
           </Directory>
 
-          <Directory Id="OptDir" Name="opt">
-            <Directory Id="OptBinDir" Name="bin">
-              <Component Id="BinstubExecutable"
-                         Guid="83786F85-45AF-4F3F-ACA2-8D6A83C21729"
-                         Win64="yes">
-                <File Id="BinstubEXE"
-                      Name="binstub.exe"
-                      DiskId="1"
-                      Source="target\release\binstub.exe"
-                      KeyPath="yes">
-                </File>
-                <RemoveFile Id="RemoveNode" Directory="OptBinDir" Name="node.exe" On="uninstall" />
-                <RemoveFolder Id="RemoveOptBinDir" Directory="OptBinDir" On="uninstall" />
-                <RemoveFolder Id="RemoveOptDir" Directory="OptDir" On="uninstall" />
-              </Component>
-            </Directory>
+          <Directory Id="BinstubDataDir" Name="binstub">
+            <Component Id="BinstubExecutable"
+                       Guid="83786F85-45AF-4F3F-ACA2-8D6A83C21729"
+                       Win64="yes">
+              <File Id="BinstubEXE"
+                    Name="binstub.exe"
+                    DiskId="1"
+                    Source="target\release\binstub.exe"
+                    KeyPath="yes">
+              </File>
+              <RemoveFolder Id="RemoveBinstubDataDir" Directory="BinstubDataDir" On="uninstall" />
+            </Component>
           </Directory>
 
-          <Component Id="UserConfigToml"
-                     Guid="051CBA00-D65B-44AD-B2F2-76C75D28EF04"
-                     Win64="yes">
-            <File Id="ConfigToml"
-                  Name="config.toml"
-                  DiskId="1"
-                  Source="support\windows\config.toml"
-                  KeyPath="yes">
-            </File>
-            <RemoveFolder Id="RemoveINSTALLDIR" Directory="INSTALLDIR" On="uninstall" />
-          </Component>
+          <Directory Id="OptDir" Name="opt">
+            <Directory Id="OptBinDir" Name="bin" />
+          </Directory>
         </Directory>
       </Directory>
     </Directory>
 
+    <!--
+    deferred semantics: https://www.symantec.com/connect/blogs/basic-differences-execute-immediate-and-execute-deferred-ca
+    -->
     <CustomAction Id="MakeSymlink_set"
                   Property="MakeSymlink"
-                  Value='"[SystemFolder]cmd.exe" /C mklink "[LocalAppDataFolder]Nodeup\opt\bin\node.exe" "[LocalAppDataFolder]Nodeup\opt\bin\binstub.exe"'
+                  Value='"[SystemFolder]cmd.exe" /C mklink /H "[LocalAppDataFolder]Nodeup\opt\bin\node.exe" "[LocalAppDataFolder]Nodeup\binstub\binstub.exe"'
                   Execute='immediate' />
     <CustomAction Id="MakeSymlink"
                   BinaryKey="WixCA"
@@ -124,6 +145,7 @@
       <ComponentRef Id='NodeupExecutable'/>
       <ComponentRef Id='BinstubExecutable'/>
       <ComponentRef Id='UserConfigToml'/>
+      <ComponentRef Id='CreateOptBinDir'/>
       <!--<ComponentRef Id="RemoveOptBinDir"/>-->
     </Feature>
   </Product>
