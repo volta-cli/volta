@@ -28,7 +28,10 @@
            Cabinet="Nodeup.cab"
            EmbedCab="yes"/>
 
-    <!--<Property Id="ALLUSERS"><![CDATA[1]]></Property>-->
+    <!--
+    ALLUSERS as low-level per-user scope attribute: https://corengen.wordpress.com/2009/09/29/wix-allusers1/
+    <Property Id="ALLUSERS"><![CDATA[1]]></Property>
+    -->
 
     <!--
     https://stackoverflow.com/questions/38370417/windows-installer-not-deleting-all-files-on-uninstall
@@ -60,6 +63,7 @@
     </Property>
     -->
 
+    <!-- creating empty directories: https://www.packtpub.com/mapt/book/application_development/9781849513722/2/ch02lvl1sec21/creating-an-empty-folder -->
     <DirectoryRef Id="OptBinDir">
       <Component Id="CreateOptBinDir"
                  Guid="56E719E4-78BB-4841-8912-D471ADE84159"
