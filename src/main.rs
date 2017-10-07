@@ -1,24 +1,11 @@
 extern crate clap;
-extern crate flate2;
-extern crate tar;
-extern crate indicatif;
-extern crate term_size;
-extern crate reqwest;
-extern crate toml;
-
-#[cfg(windows)]
-extern crate winfolder;
-
-mod config;
-mod provision;
-mod install;
-mod uninstall;
+extern crate nodeup_core;
 
 use std::io::Write;
 
 use clap::{Arg, App, SubCommand};
 
-use config::{Config, Version};
+use nodeup_core::config::{Config, Version};
 
 fn main() {
     let app = App::new("nodeup")
@@ -70,15 +57,15 @@ fn main() {
         Some("install")   => {
             let submatches = matches.subcommand_matches("install").unwrap();
             let version = submatches.value_of("version").unwrap();
-            install::by_version(&version);
+            nodeup_core::install::by_version(&version);
         }
         Some("uninstall") => {
             let submatches = matches.subcommand_matches("uninstall").unwrap();
             let version = submatches.value_of("version").unwrap();
-            uninstall::by_version(&version);
+            nodeup_core::uninstall::by_version(&version);
         }
         Some("local")     => {
-            let Config { node: Version::Public(version) } = config::read().unwrap();
+            let Config { node: Version::Public(version) } = nodeup_core::config::read().unwrap();
             println!("v{}", version);
         }
         Some("use")       => { not_yet_implemented("use"); }

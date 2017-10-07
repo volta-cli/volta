@@ -15,19 +15,6 @@ path = "src/main.rs"
 
 [dependencies]
 clap = "2.26.2"
-toml = "0.4"
-flate2 = "0.2.20"
-reqwest = "0.7.3"
-tar = "0.4.13"
-term_size = "0.3.0"
-indicatif = "0.7.0"
-console = "0.5.0"
-
-[target.'cfg(windows)'.dependencies]
-winapi = "0.2.8"
-shell32-sys = "0.1.1"
-ole32-sys = "0.2.0"
-winfolder = { path = "crates/winfolder" }
-guid = { path = "crates/guid" }
+nodeup-core = { path = "crates/nodeup-core" }
 
 [workspace]
