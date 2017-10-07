@@ -4,7 +4,7 @@ use config;
 
 // FIXME: should return Option<Result<...>>
 pub fn by_version(version: &str) -> Option<()> {
-    let home = config::node_version_root(version).unwrap();
+    let home = config::node_version_dir(version).unwrap();
 
     if !home.is_dir() {
         return None;

@@ -5,8 +5,17 @@ use std::io::Read;
 
 use toml::Value;
 
+#[cfg(not(windows))]
+mod unix;
+
+#[cfg(not(windows))]
+pub use self::unix::*;
+
 #[cfg(windows)]
-use winfolder;
+mod windows;
+
+#[cfg(windows)]
+pub use self::windows::*;
 
 const PUBLIC_NODE_SERVER_ROOT: &'static str = "https://nodejs.org/dist/";
 
@@ -24,7 +33,7 @@ fn directory_config(dir: &Path) -> Option<PathBuf> {
     }
 }
 
-fn local_config() -> Option<PathBuf> {
+fn project_config_file() -> Option<PathBuf> {
     let mut dir_opt = env::current_dir().ok();
     loop {
         match dir_opt {
@@ -40,61 +49,8 @@ fn local_config() -> Option<PathBuf> {
     }
 }
 
-// nodeup_home:
-// - unix:    ~/.nodeup
-// - windows: %LOCALAPPDATA%\nodeup
-
-// directories:
-// - nodeup_bin:      ${nodeup_home}/bin
-// - nodeup_binstubs: ${nodeup_home}/opt/bin
-// - nodeup_versions: ${nodeup_home}/versions
-
-#[cfg(not(windows))]
-fn nodeup_home() -> Option<PathBuf> {
-    env::home_dir().and_then(|home| {
-        home.join(".nodeup")
-    })
-}
-
-#[cfg(windows)]
-fn nodeup_home() -> Option<PathBuf> {
-    Some(Path::new(&winfolder::known_path(&winfolder::id::LOCAL_APP_DATA))
-        .join("nodeup"))
-}
-
-fn user_config() -> Option<PathBuf> {
-    nodeup_home().map(|nodeup| {
-        nodeup.join("config.toml")
-    })
-}
-
-pub fn nodeup_binstubs() -> Option<PathBuf> {
-    nodeup_home().map(|nodeup| {
-        nodeup.join("opt")
-              .join("bin")
-    })
-}
-
-pub fn nodeup_versions() -> Option<PathBuf> {
-    nodeup_home().map(|nodeup| {
-        nodeup.join("versions")
-    })
-}
-
-pub fn node_install_root() -> Option<PathBuf> {
-    nodeup_versions().map(|versions| {
-        versions.join("node")
-    })
-}
-
-pub fn node_version_root(version: &str) -> Option<PathBuf> {
-    node_install_root().map(|root| {
-        root.join(&format!("v{}", version))
-    })
-}
-
-pub fn find() -> Option<PathBuf> {
-    local_config().or_else(|| user_config())
+fn find() -> Option<PathBuf> {
+    project_config_file().or_else(|| user_config_file())
 }
 
 pub enum Version {

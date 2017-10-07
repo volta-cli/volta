@@ -26,10 +26,10 @@ fn command_and_args() -> Option<(OsString, ArgsOs)> {
  * version of Node instead of in the nodeup binstubs directory.
  */
 fn instantiate_path<T: AsRef<OsStr>>(current: &T, version: &str) -> OsString {
-    let nodeup_bin = &nodeup_core::config::nodeup_binstubs().unwrap();
-    let split = env::split_paths(current).filter(|s| { s != nodeup_bin });
+    let toolchain_dir = &nodeup_core::config::toolchain_dir().unwrap();
+    let split = env::split_paths(current).filter(|s| { s != toolchain_dir });
     let mut path_vec: Vec<PathBuf> = Vec::new();
-    path_vec.push(nodeup_core::config::node_version_root(version).map(|root| root.join("bin")).unwrap());
+    path_vec.push(nodeup_core::config::node_version_dir(version).map(|root| root.join("bin")).unwrap());
     path_vec.extend(split);
     env::join_paths(path_vec.iter()).unwrap()
 }
