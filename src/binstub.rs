@@ -14,16 +14,7 @@ use std::iter::Extend;
 use std::process::Command;
 
 #[cfg(windows)]
-extern crate winapi;
-
-#[cfg(windows)]
-extern crate shell32;
-
-#[cfg(windows)]
-extern crate ole32;
-
-#[cfg(windows)]
-mod windows;
+extern crate winfolder;
 
 mod config;
 mod provision;
@@ -56,6 +47,14 @@ fn instantiate_path<T: AsRef<OsStr>>(current: &T, version: &str) -> OsString {
 }
 
 fn main() {
+    println!("{:?}", winfolder::known_path(&winfolder::id::LOCAL_APP_DATA));
+    println!("{:?}", winfolder::known_path(&winfolder::id::PROGRAM_DATA));
+    println!("{:?}", winfolder::known_path(&winfolder::id::PROGRAM_FILES));
+    println!("{:?}", winfolder::known_path(&winfolder::id::PROGRAM_FILES_X64));
+    println!("{:?}", winfolder::known_path(&winfolder::id::PROGRAM_FILES_X86));
+
+    panic!("poopnuggets");
+
     // FIXME: handle None
     let Config { node: Version::Public(version) } = config::read().unwrap();
 

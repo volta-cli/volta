@@ -6,7 +6,7 @@ use std::io::Read;
 use toml::Value;
 
 #[cfg(windows)]
-use windows;
+use winfolder;
 
 const PUBLIC_NODE_SERVER_ROOT: &'static str = "https://nodejs.org/dist/";
 
@@ -58,7 +58,7 @@ fn nodeup_home() -> Option<PathBuf> {
 
 #[cfg(windows)]
 fn nodeup_home() -> Option<PathBuf> {
-    Some(Path::new(&windows::get_local_app_data_path())
+    Some(Path::new(&winfolder::known_path(&winfolder::id::LOCAL_APP_DATA))
         .join("nodeup"))
 }
 

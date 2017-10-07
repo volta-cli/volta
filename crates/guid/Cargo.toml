@@ -1,0 +1,9 @@
+[package]
+name = "guid"
+version = "0.1.0"
+authors = ["David Herman <david.herman@gmail.com>"]
+
+[dependencies]
+
+[target.'cfg(windows)'.dependencies]
+winapi = "0.2.8"

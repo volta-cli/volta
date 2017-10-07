@@ -1,0 +1,12 @@
+[package]
+name = "winfolder"
+version = "0.1.0"
+authors = ["David Herman <david.herman@gmail.com>"]
+
+[dependencies]
+
+[target.'cfg(windows)'.dependencies]
+guid = { path = "../guid" }
+winapi = "0.2.8"
+shell32-sys = "0.1.1"
+ole32-sys = "0.2.0"
