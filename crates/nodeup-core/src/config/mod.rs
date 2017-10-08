@@ -1,7 +1,8 @@
 use std::env;
 use std::path::{Path, PathBuf};
-use std::fs::File;
-use std::io::Read;
+use std::fs::{File, create_dir_all};
+use std::io;
+use std::io::{Read, Write};
 
 use toml::Value;
 
@@ -24,7 +25,7 @@ pub fn public_node_url(version: &str, os: &str, arch: &str) -> String {
     format!("{}/v{}/{}.tar.gz", PUBLIC_NODE_SERVER_ROOT, version, verbose_root)
 }
 
-fn directory_config(dir: &Path) -> Option<PathBuf> {
+fn local_config(dir: &Path) -> Option<PathBuf> {
     let config_path = dir.join(".nodeup.toml");
     if config_path.is_file() {
         Some(config_path)
@@ -38,7 +39,7 @@ fn project_config_file() -> Option<PathBuf> {
     loop {
         match dir_opt {
             Some(dir) => {
-                if let config @ Some(_) = directory_config(&dir) {
+                if let config @ Some(_) = local_config(&dir) {
                     return config;
                 } else {
                     dir_opt = dir.parent().map(|path| path.to_path_buf());
@@ -49,8 +50,25 @@ fn project_config_file() -> Option<PathBuf> {
     }
 }
 
-fn find() -> Option<PathBuf> {
-    project_config_file().or_else(|| user_config_file())
+fn ensure_config_exists(path: &Path) -> io::Result<File> {
+    if !path.is_file() {
+        let basedir = path.parent().unwrap();
+        create_dir_all(basedir)?;
+        let mut file = File::create(path)?;
+        file.write_all(b"[node]\nversion = \"latest\"\n")?;
+        file.sync_all()?;
+    }
+    File::open(path)
+}
+
+fn open() -> io::Result<File> {
+    if let Some(path) = project_config_file() {
+        return File::open(path);
+    }
+    if let Some(path) = user_config_file() {
+        return ensure_config_exists(&path);
+    }
+    Err(io::Error::new(io::ErrorKind::NotFound, "could not determine location of user config"))
 }
 
 pub enum Version {
@@ -62,12 +80,7 @@ pub struct Config {
 }
 
 pub fn read() -> Option<Config> {
-    let cfg = match find() {
-        Some(cfg) => cfg,
-        None => { return None; }
-    };
-
-    let mut cfg_file = match File::open(cfg) {
+    let mut cfg_file = match open() {
         Ok(file) => file,
         Err(_) => { return None; }
     };
