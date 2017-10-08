@@ -71,8 +71,7 @@ pub fn binstub_file() -> Option<PathBuf> {
 //                 ...
 
 fn program_files_root() -> Option<PathBuf> {
-    // FIXME: choose between X86/X64 based on target arch
-    Some(Path::new(&winfolder::known_path(&winfolder::id::PROGRAM_FILES))
+    Some(Path::new(&winfolder::known_path(&winfolder::id::PROGRAM_FILES_X64))
         .join("Nodeup"))
 }
 

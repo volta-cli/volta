@@ -15,11 +15,7 @@
            Version="0.1.0">
 
     <!--
-    suppress ICE errors for per-user installers:
-    https://stackoverflow.com/questions/30999861/wix-per-user-installation-does-every-file-need-to-have-a-registry-value-associa
-    https://blogs.msdn.microsoft.com/astebner/2007/11/18/using-wix-3-0-to-create-a-per-user-msi-that-does-not-prompt-for-elevation-on-windows-vista/
-
-    per-user scope:
+    per-machine scope:
     https://www.joyofsetup.com/2008/04/01/new-wix-feature-setting-package-installation-scope/
     -->
     <Package Id="*"
@@ -27,7 +23,7 @@
              Description="Nodeup installer"
              Manufacturer="The Nodeup Maintainers"
              InstallerVersion="200"
-             InstallScope="perUser"
+             InstallScope="perMachine"
              Platform="x64"
              Languages="1033"
              SummaryCodepage="1252"
@@ -38,16 +34,16 @@
            EmbedCab="yes"/>
 
     <!-- creating empty directories: https://www.packtpub.com/mapt/book/application_development/9781849513722/2/ch02lvl1sec21/creating-an-empty-folder -->
-    <DirectoryRef Id="OptBinDir">
-      <Component Id="CreateOptBinDir"
+    <DirectoryRef Id="ToolchainDir">
+      <Component Id="CreateToolchainDir"
                  Guid="56E719E4-78BB-4841-8912-D471ADE84159"
+                 Win64="yes"
                  KeyPath="yes">
         <CreateFolder />
         <!-- env vars: https://stackoverflow.com/questions/1931586/can-anyone-give-me-a-example-of-modifying-windows-environment-system-variables-i -->
-        <Environment Id="PATH" Name="PATH" Value="[LocalAppDataFolder]Nodeup\opt\bin;[LocalAppDataFolder]Nodeup\bin" Permanent="no" Part="first" Action="set" System="no" />
-        <RemoveFile Id="RemoveNode" Directory="OptBinDir" Name="*.exe" On="uninstall" />
-        <RemoveFolder Id="RemoveOptBinDir" Directory="OptBinDir" On="uninstall" />
-        <RemoveFolder Id="RemoveOptDir" Directory="OptDir" On="uninstall" />
+        <Environment Id="PATH" Name="PATH" Value="[ProgramFiles64Folder]Nodeup;[ProgramFiles64Folder]Nodeup\toolchain" Permanent="no" Part="first" Action="set" System="yes" />
+        <RemoveFile Id="RemoveToolchainHardLinks" Directory="ToolchainDir" Name="*.exe" On="uninstall" />
+        <RemoveFolder Id="RemoveToolchainDir" Directory="ToolchainDir" On="uninstall" />
       </Component>
     </DirectoryRef>
 
@@ -55,9 +51,11 @@
     https://stackoverflow.com/questions/38370417/windows-installer-not-deleting-all-files-on-uninstall
     https://pkisensee.wordpress.com/2015/10/06/windows-installer-removing-folders/
     -->
-    <DirectoryRef Id='INSTALLDIR'>
-      <Component Id="RemoveVersionsNodeDir" Guid="*">
-        <RegistryKey Root="HKCU" Key="Software\Nodeup">
+    <DirectoryRef Id='DataDir'>
+      <Component Id="RemoveVersionsNodeDir"
+                 Guid="*"
+                 Win64="yes">
+        <RegistryKey Root="HKLM" Key="Software\Nodeup">
           <RegistryValue Name="NodeVersions"
                          Type="string"
                          Value="[VersionsNodeDir]"
@@ -74,13 +72,14 @@
     Secure = "yes": https://stackoverflow.com/questions/25011050/wix-removefolderex-not-working
     -->
     <Property Id="FINDVERSIONSNODEDIR" Secure="yes">
-      <RegistrySearch Id="RegistrySearchNodeVersions" Type="raw" Root="HKCU" Key="Software\Nodeup" Name="NodeVersions" />
+      <RegistrySearch Id="RegistrySearchNodeVersions" Type="raw" Root="HKLM" Key="Software\Nodeup" Name="NodeVersions" />
     </Property>
 
     <!-- creating empty directories: https://www.packtpub.com/mapt/book/application_development/9781849513722/2/ch02lvl1sec21/creating-an-empty-folder -->
     <DirectoryRef Id="VersionsNodeDir">
       <Component Id="CreateVersionsNodeDir"
                  Guid="D142AE24-C7AB-43C3-81B4-62AC4FCB26D1"
+                 Win64="yes"
                  KeyPath="yes">
         <CreateFolder />
         <RemoveFolder Id="RemoveVersionsDir" Directory="VersionsDir" On="uninstall" />
@@ -88,51 +87,37 @@
     </DirectoryRef>
 
     <Directory Id="TARGETDIR" Name="SourceDir">
-      <Directory Id="LocalAppDataFolder" Name="ADLocal">
+      <Directory Id="ProgramFiles64Folder" Name="PFiles">
         <Directory Id="INSTALLDIR" Name="Nodeup">
-          <Component Id="UserConfigToml"
-                     Guid="051CBA00-D65B-44AD-B2F2-76C75D28EF04"
+          <Component Id="NodeupExecutable"
+                     Guid="F1FBF564-E557-47A8-96D3-EBD4ED39AF95"
                      Win64="yes">
-            <File Id="ConfigToml"
-                  Name="config.toml"
+            <File Id="NodeupEXE"
+                  Name="nodeup.exe"
                   DiskId="1"
-                  Source="support\windows\config.toml"
+                  Source="target\release\nodeup.exe"
                   KeyPath="yes">
             </File>
-            <RemoveFolder Id="RemoveINSTALLDIR" Directory="INSTALLDIR" On="uninstall" />
+            <RemoveFolder Id="RemoveInstallDir" Directory="INSTALLDIR" On="uninstall" />
           </Component>
 
-          <Directory Id="NodeupBin" Name="bin">
-            <Component Id="NodeupExecutable"
-                       Guid="F1FBF564-E557-47A8-96D3-EBD4ED39AF95"
-                       Win64="yes">
-              <File Id="NodeupEXE"
-                    Name="nodeup.exe"
-                    DiskId="1"
-                    Source="target\release\nodeup.exe"
-                    KeyPath="yes">
-              </File>
-              <RemoveFolder Id="RemoveNodeupBin" Directory="NodeupBin" On="uninstall" />
-            </Component>
-          </Directory>
+          <Directory Id="ToolchainDir" Name="toolchain" />
+        </Directory>
+      </Directory>
 
-          <Directory Id="BinstubDataDir" Name="binstub">
-            <Component Id="BinstubExecutable"
-                       Guid="83786F85-45AF-4F3F-ACA2-8D6A83C21729"
-                       Win64="yes">
-              <File Id="BinstubEXE"
-                    Name="binstub.exe"
-                    DiskId="1"
-                    Source="target\release\binstub.exe"
-                    KeyPath="yes">
-              </File>
-              <RemoveFolder Id="RemoveBinstubDataDir" Directory="BinstubDataDir" On="uninstall" />
-            </Component>
-          </Directory>
-
-          <Directory Id="OptDir" Name="opt">
-            <Directory Id="OptBinDir" Name="bin" />
-          </Directory>
+      <Directory Id="CommonAppDataFolder" Name="PData">
+        <Directory Id="DataDir" Name="Nodeup">
+          <Component Id="BinstubExecutable"
+                     Guid="83786F85-45AF-4F3F-ACA2-8D6A83C21729"
+                     Win64="yes">
+            <File Id="BinstubEXE"
+                  Name="binstub.exe"
+                  DiskId="1"
+                  Source="target\release\binstub.exe"
+                  KeyPath="yes">
+            </File>
+            <RemoveFolder Id="RemoveDataDir" Directory="DataDir" On="uninstall" />
+          </Component>
 
           <Directory Id="VersionsDir" Name="versions">
             <Directory Id="VersionsNodeDir" Name="node" />
@@ -147,14 +132,14 @@
     -->
     <CustomAction Id="MakeHardLink_set"
                   Property="MakeHardLink"
-                  Value='"[SystemFolder]cmd.exe" /C FOR %G IN (node.exe npm.exe npx.exe) DO mklink /H "[LocalAppDataFolder]Nodeup\opt\bin\%G" "[LocalAppDataFolder]Nodeup\binstub\binstub.exe"'
+                  Value='"[SystemFolder]cmd.exe" /C FOR %G IN (node.exe npm.exe npx.exe) DO mklink /H "[ProgramFiles64Folder]Nodeup\toolchain\%G" "[CommonAppDataFolder]Nodeup\binstub.exe"'
                   Execute='immediate' />
     <CustomAction Id="MakeHardLink"
                   BinaryKey="WixCA"
                   DllEntry="WixQuietExec"
                   Execute="deferred"
                   Return="ignore"
-                  Impersonate="yes" />
+                  Impersonate="no" />
 
     <InstallExecuteSequence>
       <!-- conditions: https://stackoverflow.com/questions/537584/how-to-execute-custom-action-only-in-install-not-uninstall -->
@@ -165,8 +150,7 @@
     <Feature Id="Complete">
       <ComponentRef Id='NodeupExecutable'/>
       <ComponentRef Id='BinstubExecutable'/>
-      <ComponentRef Id='UserConfigToml'/>
-      <ComponentRef Id='CreateOptBinDir'/>
+      <ComponentRef Id='CreateToolchainDir'/>
       <ComponentRef Id='CreateVersionsNodeDir'/>
       <ComponentRef Id='RemoveVersionsNodeDir'/>
     </Feature>
