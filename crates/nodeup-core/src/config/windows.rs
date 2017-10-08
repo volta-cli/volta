@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use winfolder;
 
@@ -20,8 +20,9 @@ use winfolder;
 //             binstub.exe                             binstub_file
 
 fn program_data_root() -> Option<PathBuf> {
-    Some(Path::new(&winfolder::known_path(&winfolder::id::PROGRAM_DATA))
-        .join("Nodeup"))
+    winfolder::known_path(&winfolder::id::PROGRAM_DATA).map(|pd| {
+        pd.join("Nodeup")
+    })
 }
 
 pub fn cache_dir() -> Option<PathBuf> {
@@ -71,8 +72,9 @@ pub fn binstub_file() -> Option<PathBuf> {
 //                 ...
 
 fn program_files_root() -> Option<PathBuf> {
-    Some(Path::new(&winfolder::known_path(&winfolder::id::PROGRAM_FILES_X64))
-        .join("Nodeup"))
+    winfolder::known_path(&winfolder::id::PROGRAM_FILES_X64).map(|pf| {
+        pf.join("Nodeup")
+    })
 }
 
 pub fn bin_dir() -> Option<PathBuf> {
@@ -106,8 +108,9 @@ pub fn toolchain_file(toolname: &str) -> Option<PathBuf> {
 //                         config.toml                 user_config_file
 
 fn local_data_root() -> Option<PathBuf> {
-    Some(Path::new(&winfolder::known_path(&winfolder::id::LOCAL_APP_DATA))
-        .join("Nodeup"))
+    winfolder::known_path(&winfolder::id::LOCAL_APP_DATA).map(|adl| {
+        adl.join("Nodeup")
+    })
 }
 
 pub fn user_config_file() -> Option<PathBuf> {

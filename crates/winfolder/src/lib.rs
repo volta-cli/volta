@@ -14,6 +14,7 @@ use std::mem;
 use std::ffi::OsString;
 use std::slice;
 use std::os::windows::ffi::OsStringExt;
+use std::path::{Path, PathBuf};
 
 use winapi::winnt::PWSTR;
 use winapi::minwindef::MAX_PATH;
@@ -29,16 +30,17 @@ unsafe fn os_string_from_trusted_api(mut p: PWSTR) -> OsString {
     s
 }
 
-// FIXME: safely handle errors
-pub fn known_path(guid: &guid::GUID) -> OsString {
+pub fn known_path(guid: &guid::GUID) -> Option<PathBuf> {
     let string: OsString;
     unsafe {
         let mut path: PWSTR = null_mut();
-        SHGetKnownFolderPath(guid, 0, null_mut(), mem::transmute(&mut path));
+        if SHGetKnownFolderPath(guid, 0, null_mut(), mem::transmute(&mut path)) != 0 {
+            return None;
+        }
         string = os_string_from_trusted_api(path);
         CoTaskMemFree(mem::transmute(path));
     }
-    string
+    Some(Path::new(&string).to_path_buf())
 }
 
 
