@@ -20,9 +20,16 @@ pub use self::windows::*;
 
 const PUBLIC_NODE_SERVER_ROOT: &'static str = "https://nodejs.org/dist/";
 
-pub fn public_node_url(version: &str, os: &str, arch: &str) -> String {
-    let verbose_root = format!("node-v{}-{}-{}", version, os, arch);
-    format!("{}/v{}/{}.tar.gz", PUBLIC_NODE_SERVER_ROOT, version, verbose_root)
+pub fn archive_file(version: &str) -> String {
+    format!("{}.{}", archive_root_dir(version), archive_extension())
+}
+
+pub fn archive_root_dir(version: &str) -> String {
+    format!("node-v{}-{}-{}", version, OS, ARCH)
+}
+
+pub fn public_node_url(version: &str, archive: &str) -> String {
+    format!("{}v{}/{}", PUBLIC_NODE_SERVER_ROOT, version, archive)
 }
 
 fn local_config(dir: &Path) -> Option<PathBuf> {

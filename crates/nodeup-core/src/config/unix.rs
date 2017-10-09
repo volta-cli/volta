@@ -1,11 +1,25 @@
 use std::env;
 use std::path::PathBuf;
 
+// FIXME: make the case analysis here complete and rigorous
+
+#[cfg(target_os = "macos")]
+pub const OS: &'static str = "darwin";
+
+#[cfg(target_os = "linux")]
+pub const OS: &'static str = "linux";
+
+#[cfg(target_arch = "x86")]
+pub const ARCH: &'static str = "x86";
+
+#[cfg(target_arch = "x86_64")]
+pub const ARCH: &'static str = "x64";
+
 // ~/
 //     .nodeup/
 //         cache/                                          cache_dir
 //             node/                                       node_cache_dir
-//                 node-dist-v4.8.4-linux-x64.tar.gz
+//                 node-dist-v4.8.4-linux-x64.tar.gz       archive_file("4.8.4")
 //                 node-dist-v6.11.3-linux-x64.tar.gz
 //                 node-dist-v8.6.0-linux-x64.tar.gz
 //                 ...

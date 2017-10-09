@@ -1,0 +1,15 @@
+- caching logic
+  - just do it by file name for now
+  - create cache dir in installer
+- NodeArchive abstraction
+- zip support for windows
+- add UI to windows installer
+- unix bash install script
+- appveyor tests
+- appveyor deploy script:
+  - generate msi with wix toolset
+    - `candle -ext WixUtilExtension support\windows\Nodeup.wxs`
+    - `light -ext WixUtilExtension Nodeup.wixobj`
+  - publish to GitHub release
+- travis tests
+- travis deploy script

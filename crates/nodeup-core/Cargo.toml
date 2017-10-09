@@ -5,12 +5,15 @@ authors = ["David Herman <david.herman@gmail.com>"]
 
 [dependencies]
 toml = "0.4"
-flate2 = "0.2.20"
+flate2 = "0.2.20" # FIXME: move this to [target.'cfg(not(windows))'.dependencies]
 reqwest = "0.7.3"
 tar = "0.4.13"
 term_size = "0.3.0"
 indicatif = "0.7.0"
 console = "0.5.0"
+tee = "0.1.0"
 
 [target.'cfg(windows)'.dependencies]
+zip = "0.2.6"
 winfolder = { path = "../winfolder" }
+# node-archive = { path = "../node-archive" }

@@ -12,23 +12,6 @@ use term_size;
 
 use config;
 
-// FIXME: make the case analysis here complete and rigorous
-
-#[cfg(target_os = "macos")]
-const OS: &'static str = "darwin";
-
-#[cfg(target_os = "linux")]
-const OS: &'static str = "linux";
-
-#[cfg(target_os = "windows")]
-const OS: &'static str = "win";
-
-#[cfg(target_arch = "x86")]
-const ARCH: &'static str = "x86";
-
-#[cfg(target_arch = "x86_64")]
-const ARCH: &'static str = "x64";
-
 struct ProgressRead<R: Read, T, F: FnMut(&T, usize) -> T> {
     source: R,
     accumulator: T,
@@ -142,25 +125,40 @@ fn progress_bar(msg: &str, len: u64) -> ProgressBar {
 
 // FIXME: return Result
 pub fn by_version(dest: &Path, version: &str) {
-    let verbose_root = format!("node-v{}-{}-{}", version, OS, ARCH);
-    let concise_root = format!("v{}", version);
+    let archive_file = config::archive_file(version);
 
-    let url = config::public_node_url(version, OS, ARCH);
+    let cache_file = config::node_cache_dir().unwrap().join(&archive_file);
 
-    let uncompressed_len = gunzipped_content_length(&url);
+    if cache_file.is_file() {
+        // FIXME:
+        // - get the compressed len from stat
+        // - get the uncompressed len from last few bytes of file
+        // - load from file as a reader
+        unimplemented!();
+    } else {
+        let url = config::public_node_url(version, &archive_file);
 
-    // FIXME: propagate Result
-    let response = reqwest::get(&url).unwrap();
+        let uncompressed_len = gunzipped_content_length(&url);
 
-    // FIXME: propagate Result
-    if !response.status().is_success() {
-        panic!("failed response: {:?}", response.status());
+        // FIXME: propagate Result
+        let response = reqwest::get(&url).unwrap();
+
+        // FIXME: propagate Result
+        if !response.status().is_success() {
+            panic!("failed response: {:?}", response.status());
+        }
+
+        let compressed_len = response.headers().get::<ContentLength>()
+            .map(|cl| **cl)
+            .unwrap_or(0);
+
+        // FIXME: tee the response to a cache file
+
+        by_reader(dest, version, response, uncompressed_len, compressed_len);
     }
+}
 
-    let compressed_len = response.headers().get::<ContentLength>()
-        .map(|cl| **cl)
-        .unwrap_or(0);
-
+fn by_reader<T: Read>(dest: &Path, version: &str, source: T, uncompressed_len: Option<u64>, compressed_len: u64) {
     let bar = progress_bar(
         &format!("Installing v{}", version),
         uncompressed_len.unwrap_or(compressed_len));
@@ -168,21 +166,24 @@ pub fn by_version(dest: &Path, version: &str) {
     // FIXME: propagate Result
     if uncompressed_len.is_some() {
         //println!("computing progress as fraction of uncompressed tarball");
-        let tarball = GzDecoder::new(response).unwrap();
+        let tarball = GzDecoder::new(source).unwrap();
         let mut archive = Archive::new(ProgressRead::new(tarball, (), |_, read| {
             bar.inc(read as u64);
+
         }));
         archive.unpack(dest).unwrap();
     } else {
         //println!("computing progress as fraction of compressed tarball");
-        let tarball = GzDecoder::new(ProgressRead::new(response, (), |_, read| {
+        let tarball = GzDecoder::new(ProgressRead::new(source, (), |_, read| {
             bar.inc(read as u64);
         })).unwrap();
         let mut archive = Archive::new(tarball);
         archive.unpack(dest).unwrap();
     }
 
-    rename(dest.join(&verbose_root), dest.join(&concise_root)).unwrap();
+    rename(dest.join(config::archive_root_dir(version)),
+           config::node_version_dir(version).unwrap())
+        .unwrap();
 
     bar.finish_and_clear();
 }

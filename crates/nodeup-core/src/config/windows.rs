@@ -2,14 +2,19 @@ use std::path::PathBuf;
 
 use winfolder;
 
+pub const OS: &'static str = "win";
+
+// FIXME: also add support for 32-bit or refuse to build for 32-bit target_arch
+pub const ARCH: &'static str = "x64";
+
 // C:\
 //     ProgramData\
 //         Nodeup\
 //             cache\                                  cache_dir
 //                 node\                               node_cache_dir
-//                     node-v4.8.4-win64.tar.gz
-//                     node-v6.11.3-win64.tar.gz
-//                     node-v8.6.0-win64.tar.gz
+//                     node-v4.8.4-win-x64.zip         archive_file("4.8.4")
+//                     node-v6.11.3-win-x64.zip
+//                     node-v8.6.0-win-x64.zip
 //                     ...
 //             versions\                               versions_dir
 //                 node\                               node_versions_dir
@@ -35,6 +40,10 @@ pub fn node_cache_dir() -> Option<PathBuf> {
     cache_dir().map(|cache| {
         cache.join("node")
     })
+}
+
+pub fn archive_extension() -> String {
+    String::from("zip")
 }
 
 pub fn versions_dir() -> Option<PathBuf> {
