@@ -1,9 +1,7 @@
 - zip support for windows
   - prefetch the file to disk since zip-rs doesn't currently support non-seekable streaming
   - try to get zip-rs to land https://github.com/mvdnes/zip-rs/pull/37
-- caching logic
-  - just do it by file name for now
-  - create cache dir in installer
+- caching logic for windows
 - figure out how we want to combine io::Error and reqwest::Error
   - just use io::Error and wrap reqwest errors with io::Error::new()?
   - or look into error-chain?

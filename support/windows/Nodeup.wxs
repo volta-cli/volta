@@ -86,6 +86,18 @@
       </Component>
     </DirectoryRef>
 
+    <DirectoryRef Id="CacheNodeDir">
+      <Component Id="CreateCacheNodeDir"
+                 Guid="4AAE1940-E00E-425C-ACDF-983BBDC1A4CA"
+                 Win64="yes"
+                 KeyPath="yes">
+        <CreateFolder />
+        <RemoveFile Id="RemoveCacheEntries" Directory="CacheNodeDir" Name="*.zip" On="uninstall" />
+        <RemoveFolder Id="RemoveCacheNodeDir" Directory="CacheNodeDir" On="uninstall" />
+        <RemoveFolder Id="RemoveCacheDir" Directory="CacheDir" On="uninstall" />
+      </Component>
+    </DirectoryRef>
+
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFiles64Folder" Name="PFiles">
         <Directory Id="INSTALLDIR" Name="Nodeup">
@@ -122,6 +134,10 @@
           <Directory Id="VersionsDir" Name="versions">
             <Directory Id="VersionsNodeDir" Name="node" />
           </Directory>
+
+          <Directory Id="CacheDir" Name="cache">
+            <Directory Id="CacheNodeDir" Name="node" />
+          </Directory>
         </Directory>
       </Directory>
     </Directory>
@@ -152,6 +168,7 @@
       <ComponentRef Id='BinstubExecutable'/>
       <ComponentRef Id='CreateToolchainDir'/>
       <ComponentRef Id='CreateVersionsNodeDir'/>
+      <ComponentRef Id='CreateCacheNodeDir'/>
       <ComponentRef Id='RemoveVersionsNodeDir'/>
     </Feature>
   </Product>
