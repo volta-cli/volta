@@ -4,6 +4,9 @@
 - caching logic
   - just do it by file name for now
   - create cache dir in installer
+- figure out how we want to combine io::Error and reqwest::Error
+  - just use io::Error and wrap reqwest errors with io::Error::new()?
+  - or look into error-chain?
 - unix bash install script
 - add UI to windows installer
 - appveyor tests

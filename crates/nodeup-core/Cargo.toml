@@ -8,7 +8,6 @@ toml = "0.4"
 term_size = "0.3.0"
 indicatif = "0.7.0"
 console = "0.5.0"
-tee = "0.1.0"
 node-archive = { path = "../node-archive" }
 
 [target.'cfg(windows)'.dependencies]

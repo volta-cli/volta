@@ -2,6 +2,7 @@ extern crate tar;
 extern crate flate2;
 extern crate zip;
 extern crate reqwest;
+extern crate tee;
 extern crate progress_read;
 
 use std::io;

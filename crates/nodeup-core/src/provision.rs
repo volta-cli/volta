@@ -42,7 +42,7 @@ pub fn by_version(dest: &Path, version: &str) {
     } else {
         let url = config::public_node_url(version, &archive_file);
         // FIXME: pass the cache file path too so it can be tee'ed as it's fetched
-        let source = tarball::Public::fetch(&url).unwrap().unwrap();
+        let source = tarball::Public::fetch(&url, &cache_file).unwrap().unwrap();
         by_source(dest, version, source);
     }
 }

@@ -10,6 +10,7 @@ use reqwest::header::{AcceptRanges, ContentLength, Range, RangeUnit, ByteRangeSp
 use reqwest::Response;
 use reqwest;
 use tar;
+use tee::TeeReader;
 use progress_read::ProgressRead;
 
 pub struct Cached {
@@ -51,23 +52,28 @@ impl Source for Cached {
 pub struct Public {
     uncompressed_size: Option<u64>,
     compressed_size: u64,
-    source: reqwest::Response
+    source: TeeReader<reqwest::Response, File>
 }
 
 impl Public {
-    pub fn fetch(url: &str) -> reqwest::Result<Option<Public>> {
+    pub fn fetch(url: &str, cache_file: &Path) -> reqwest::Result<Option<Public>> {
         let uncompressed_size = fetch_uncompressed_size(url);
 
-        let source = reqwest::get(url)?;
+        let response = reqwest::get(url)?;
 
-        if !source.status().is_success() {
+        if !response.status().is_success() {
             return Ok(None);
         }
 
-        let compressed_size = match source.headers().get::<ContentLength>() {
+        let compressed_size = match response.headers().get::<ContentLength>() {
             Some(cl) => **cl,
             None => { return Ok(None); }
         };
+
+        // FIXME: propagate errors
+        let file = File::create(cache_file).unwrap();
+
+        let source = TeeReader::new(response, file);
 
         Ok(Some(Public {
             uncompressed_size,
@@ -124,14 +130,13 @@ impl<S: Source, F: FnMut(&(), usize)> Read for ProgressSource<S, F> {
 }
 
 pub struct Tarball<S: Source, F: FnMut(&(), usize)> {
-    archive: tar::Archive<ProgressSource<S, F>> //tar::Archive<GzDecoder<S>>
+    archive: tar::Archive<ProgressSource<S, F>>
 }
 
 impl<S: Source, F: FnMut(&(), usize)> Tarball<S, F> {
     pub fn new(source: S, callback: F) -> io::Result<Tarball<S, F>> {
         Ok(Tarball {
             archive: tar::Archive::new(ProgressSource::new(source, callback)?)
-            //archive: tar::Archive::new(GzDecoder::new(source)?)
         })
     }
 }
