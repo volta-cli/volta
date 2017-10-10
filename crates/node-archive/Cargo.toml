@@ -1,0 +1,11 @@
+[package]
+name = "node-archive"
+version = "0.1.0"
+authors = ["David Herman <david.herman@gmail.com>"]
+
+[dependencies]
+flate2 = "0.2.20"
+tar = "0.4.13"
+zip = "0.2.6"
+reqwest = "0.7.3"
+progress-read = { path = "../progress-read" }

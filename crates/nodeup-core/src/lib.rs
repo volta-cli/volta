@@ -4,6 +4,7 @@ extern crate indicatif;
 extern crate term_size;
 extern crate reqwest;
 extern crate toml;
+extern crate node_archive;
 
 #[cfg(windows)]
 extern crate winfolder;

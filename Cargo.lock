@@ -485,6 +485,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "node-archive"
+version = "0.1.0"
+dependencies = [
+ "flate2 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "progress-read 0.1.0",
+ "reqwest 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tar 0.4.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "zip 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "nodeup"
 version = "0.1.0"
 dependencies = [
@@ -499,6 +510,7 @@ dependencies = [
  "console 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "flate2 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "indicatif 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "node-archive 0.1.0",
  "reqwest 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "tar 0.4.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "tee 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -596,6 +608,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "podio"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "progress-read"
+version = "0.1.0"
 
 [[package]]
 name = "rand"
