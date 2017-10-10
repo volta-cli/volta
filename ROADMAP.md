@@ -1,10 +1,11 @@
+- zip support for windows
+  - prefetch the file to disk since zip-rs doesn't currently support non-seekable streaming
+  - try to get zip-rs to land https://github.com/mvdnes/zip-rs/pull/37
 - caching logic
   - just do it by file name for now
   - create cache dir in installer
-- NodeArchive abstraction
-- zip support for windows
-- add UI to windows installer
 - unix bash install script
+- add UI to windows installer
 - appveyor tests
 - appveyor deploy script:
   - generate msi with wix toolset

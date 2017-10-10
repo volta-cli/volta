@@ -1,8 +1,5 @@
-extern crate flate2;
-extern crate tar;
 extern crate indicatif;
 extern crate term_size;
-extern crate reqwest;
 extern crate toml;
 extern crate node_archive;
 

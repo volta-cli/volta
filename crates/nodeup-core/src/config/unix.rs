@@ -57,6 +57,10 @@ pub fn node_cache_dir() -> Option<PathBuf> {
     })
 }
 
+pub fn archive_extension() -> String {
+    String::from("tar.gz")
+}
+
 pub fn versions_dir() -> Option<PathBuf> {
     nodeup_home().map(|root| {
         root.join("versions")
@@ -76,7 +80,9 @@ pub fn node_version_dir(version: &str) -> Option<PathBuf> {
 }
 
 pub fn bin_dir() -> Option<PathBuf> {
-    program_files_root()
+    nodeup_home().map(|root| {
+        root.join("bin")
+    })
 }
 
 pub fn nodeup_file() -> Option<PathBuf> {
@@ -104,7 +110,7 @@ pub fn binstub_file() -> Option<PathBuf> {
 }
 
 pub fn user_config_file() -> Option<PathBuf> {
-    local_data_root().map(|root| {
+    nodeup_home().map(|root| {
         root.join("config.toml")
     })
 }

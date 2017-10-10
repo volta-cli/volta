@@ -41,6 +41,7 @@ pub fn by_version(dest: &Path, version: &str) {
         by_source(dest, version, source);
     } else {
         let url = config::public_node_url(version, &archive_file);
+        // FIXME: pass the cache file path too so it can be tee'ed as it's fetched
         let source = tarball::Public::fetch(&url).unwrap().unwrap();
         by_source(dest, version, source);
     }
