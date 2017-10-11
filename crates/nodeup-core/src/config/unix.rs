@@ -26,6 +26,7 @@ pub const ARCH: &'static str = "x64";
 //         versions/                                       versions_dir
 //             node/                                       node_versions_dir
 //                 4.8.4/                                  node_version_dir("4.8.4")
+//                   bin/                                  node_version_bin_dir("4.8.4")
 //                 6.11.3/
 //                 8.6.0/
 //                 ...
@@ -76,6 +77,12 @@ pub fn node_versions_dir() -> Option<PathBuf> {
 pub fn node_version_dir(version: &str) -> Option<PathBuf> {
     node_versions_dir().map(|node| {
         node.join(version)
+    })
+}
+
+pub fn node_version_bin_dir(version: &str) -> Option<PathBuf> {
+    node_version_dir(version).map(|node| {
+        node.join("bin")
     })
 }
 

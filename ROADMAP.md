@@ -1,5 +1,6 @@
 - windows needs to find the executables in a different location than unix
 - windows: need to differentiate .exe and .cmd -- two different binstub executables
+- windows installer isn't killing the node installation directories
 - figure out how we want to combine io::Error and reqwest::Error and ZipError
   - just use io::Error and wrap reqwest errors with io::Error::new()?
   - or look into error-chain?
