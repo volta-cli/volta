@@ -38,6 +38,7 @@ pub const ARCH: &'static str = "x64";
 //             npx
 //             ...
 //         binstub                                         binstub_file
+//         scriptstub                                      scriptstub_file
 //         config.toml                                     user_config_file
 
 fn nodeup_home() -> Option<PathBuf> {
@@ -113,6 +114,12 @@ pub fn toolchain_file(toolname: &str) -> Option<PathBuf> {
 pub fn binstub_file() -> Option<PathBuf> {
     nodeup_home().map(|root| {
         root.join("binstub")
+    })
+}
+
+pub fn scriptstub_file() -> Option<PathBuf> {
+    nodeup_home().map(|root| {
+        root.join("scriptstub")
     })
 }
 

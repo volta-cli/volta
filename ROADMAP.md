@@ -1,5 +1,5 @@
-- windows needs to find the executables in a different location than unix
 - windows: need to differentiate .exe and .cmd -- two different binstub executables
+  - call .cmd files with `cmd.exe /C` (see https://github.com/rust-lang/rust/issues/42791)
 - windows installer isn't killing the node installation directories
 - figure out how we want to combine io::Error and reqwest::Error and ZipError
   - just use io::Error and wrap reqwest errors with io::Error::new()?
@@ -14,5 +14,10 @@
   - publish to GitHub release
 - travis tests
 - travis deploy script
-- try to get zip-rs to land https://github.com/mvdnes/zip-rs/pull/37
+- windows UX:
+  - try to get zip-rs to land https://github.com/mvdnes/zip-rs/pull/37
+  - or maybe just show a spinner while downloading the zip
 - proper behavior for executable-not-found
+- diagnostics (look for other node installs that could be conflicting)
+- proper grammar for node version specifiers
+- add npx to the set of {bin,script}stubs

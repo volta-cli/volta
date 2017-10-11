@@ -119,7 +119,7 @@
 
       <Directory Id="CommonAppDataFolder" Name="PData">
         <Directory Id="DataDir" Name="Nodeup">
-          <Component Id="BinstubExecutable"
+          <Component Id="StubExecutables"
                      Guid="83786F85-45AF-4F3F-ACA2-8D6A83C21729"
                      Win64="yes">
             <File Id="BinstubEXE"
@@ -127,6 +127,12 @@
                   DiskId="1"
                   Source="target\release\binstub.exe"
                   KeyPath="yes">
+            </File>
+            <File Id="ScriptstubEXE"
+                  Name="scriptstub.exe"
+                  DiskId="1"
+                  Source="target\release\scriptstub.exe"
+                  KeyPath="no">
             </File>
             <RemoveFolder Id="RemoveDataDir" Directory="DataDir" On="uninstall" />
           </Component>
@@ -146,11 +152,22 @@
     deferred semantics: https://www.symantec.com/connect/blogs/basic-differences-execute-immediate-and-execute-deferred-ca
     quiet execution: http://wixtoolset.org/documentation/manual/v3/customactions/qtexec.html
     -->
-    <CustomAction Id="MakeHardLink_set"
-                  Property="MakeHardLink"
-                  Value='"[SystemFolder]cmd.exe" /C FOR %G IN (node.exe npm.exe npx.exe) DO mklink /H "[ProgramFiles64Folder]Nodeup\toolchain\%G" "[CommonAppDataFolder]Nodeup\binstub.exe"'
+    <CustomAction Id="MakeBinstubs_set"
+                  Property="MakeBinstubs"
+                  Value='"[SystemFolder]cmd.exe" /C mklink /H "[ProgramFiles64Folder]Nodeup\toolchain\node.exe" "[CommonAppDataFolder]Nodeup\binstub.exe"'
                   Execute='immediate' />
-    <CustomAction Id="MakeHardLink"
+    <CustomAction Id="MakeBinstubs"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <CustomAction Id="MakeScriptstubs_set"
+                  Property="MakeScriptstubs"
+                  Value='"[SystemFolder]cmd.exe" /C mklink /H "[ProgramFiles64Folder]Nodeup\toolchain\npm.exe" "[CommonAppDataFolder]Nodeup\scriptstub.exe"'
+                  Execute='immediate' />
+    <CustomAction Id="MakeScriptstubs"
                   BinaryKey="WixCA"
                   DllEntry="WixQuietExec"
                   Execute="deferred"
@@ -159,13 +176,15 @@
 
     <InstallExecuteSequence>
       <!-- conditions: https://stackoverflow.com/questions/537584/how-to-execute-custom-action-only-in-install-not-uninstall -->
-      <Custom Action="MakeHardLink_set" After="InstallFiles">NOT REMOVE</Custom>
-      <Custom Action="MakeHardLink" After="MakeHardLink_set">NOT REMOVE</Custom>
+      <Custom Action="MakeBinstubs_set" After="InstallFiles">NOT REMOVE</Custom>
+      <Custom Action="MakeBinstubs" After="MakeBinstubs_set">NOT REMOVE</Custom>
+      <Custom Action="MakeScriptstubs_set" After="MakeBinstubs">NOT REMOVE</Custom>
+      <Custom Action="MakeScriptstubs" After="MakeScriptstubs_set">NOT REMOVE</Custom>
     </InstallExecuteSequence>
 
     <Feature Id="Complete">
       <ComponentRef Id='NodeupExecutable'/>
-      <ComponentRef Id='BinstubExecutable'/>
+      <ComponentRef Id='StubExecutables'/>
       <ComponentRef Id='CreateToolchainDir'/>
       <ComponentRef Id='CreateVersionsNodeDir'/>
       <ComponentRef Id='CreateCacheNodeDir'/>
