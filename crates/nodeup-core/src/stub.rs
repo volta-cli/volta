@@ -41,6 +41,7 @@ pub fn exe(path_var: &OsStr) -> Command {
 pub fn script(path_var: &OsStr) -> Command {
     let (exe, args) = split_command();
 
+    // See: https://github.com/rust-lang/rust/issues/42791
     let mut command = Command::new("cmd.exe");
     command.arg("/C");
     command.arg(exe);
