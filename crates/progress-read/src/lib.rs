@@ -1,4 +1,4 @@
-use std::io::{self, Read};
+use std::io::{self, Read, Seek, SeekFrom};
 
 pub struct ProgressRead<R: Read, T, F: FnMut(&T, usize) -> T> {
     source: R,
@@ -21,5 +21,11 @@ impl<R: Read, T, F: FnMut(&T, usize) -> T> Read for ProgressRead<R, T, F> {
 impl<R: Read, T, F: FnMut(&T, usize) -> T> ProgressRead<R, T, F> {
     pub fn new(source: R, init: T, progress: F) -> ProgressRead<R, T, F> {
         ProgressRead { source, accumulator: init, progress }
+    }
+}
+
+impl<R: Read + Seek, T, F: FnMut(&T, usize) -> T> Seek for ProgressRead<R, T, F> {
+    fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
+        self.source.seek(pos)
     }
 }

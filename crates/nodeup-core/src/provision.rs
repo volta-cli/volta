@@ -5,7 +5,18 @@ use term_size;
 
 use config;
 use node_archive::{Archive, Source};
-use node_archive::tarball::{self, Tarball};
+
+#[cfg(not(windows))]
+use node_archive::tarball::{self as archive, Tarball as ArchiveFormat};
+
+#[cfg(not(windows))]
+use std::io::{Read as Streaming};
+
+#[cfg(windows)]
+use node_archive::zip::{self as archive, Zip as ArchiveFormat};
+
+#[cfg(windows)]
+use std::io::{Seek as Streaming};
 
 fn progress_bar(msg: &str, len: u64) -> ProgressBar {
     let display_width = term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
@@ -34,25 +45,24 @@ pub fn by_version(dest: &Path, version: &str) {
 
     let cache_file = config::node_cache_dir().unwrap().join(&archive_file);
 
-    // FIXME: choose tarball vs zip based on cfg
     if cache_file.is_file() {
         let file = File::open(cache_file).unwrap();
-        let source = tarball::Cached::load(file).unwrap();
+        let source = archive::Cached::load(file).unwrap();
         by_source(dest, version, source);
     } else {
         let url = config::public_node_url(version, &archive_file);
         // FIXME: pass the cache file path too so it can be tee'ed as it's fetched
-        let source = tarball::Public::fetch(&url, &cache_file).unwrap().unwrap();
+        let source = archive::Public::fetch(&url, &cache_file).unwrap().unwrap();
         by_source(dest, version, source);
     }
 }
 
-fn by_source<S: Source>(dest: &Path, version: &str, source: S) {
+fn by_source<S: Source + Streaming>(dest: &Path, version: &str, source: S) {
     let bar = progress_bar(
         &format!("Installing v{}", version),
         source.uncompressed_size().unwrap_or(source.compressed_size()));
 
-    let archive = Tarball::new(source, |_, read| {
+    let archive = ArchiveFormat::new(source, |_, read| {
         bar.inc(read as u64);
     }).unwrap();
 

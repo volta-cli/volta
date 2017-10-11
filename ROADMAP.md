@@ -1,8 +1,6 @@
-- zip support for windows
-  - prefetch the file to disk since zip-rs doesn't currently support non-seekable streaming
-  - try to get zip-rs to land https://github.com/mvdnes/zip-rs/pull/37
-- caching logic for windows
-- figure out how we want to combine io::Error and reqwest::Error
+- windows needs to find the executables in a different location than unix
+- windows: need to differentiate .exe and .cmd -- two different binstub executables
+- figure out how we want to combine io::Error and reqwest::Error and ZipError
   - just use io::Error and wrap reqwest errors with io::Error::new()?
   - or look into error-chain?
 - unix bash install script
@@ -15,3 +13,5 @@
   - publish to GitHub release
 - travis tests
 - travis deploy script
+- try to get zip-rs to land https://github.com/mvdnes/zip-rs/pull/37
+- proper behavior for executable-not-found

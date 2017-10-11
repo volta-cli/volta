@@ -39,6 +39,7 @@ impl Read for Cached {
     }
 
 }
+
 impl Source for Cached {
     fn uncompressed_size(&self) -> Option<u64> {
         Some(self.uncompressed_size)
