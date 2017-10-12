@@ -119,19 +119,19 @@
 
       <Directory Id="CommonAppDataFolder" Name="PData">
         <Directory Id="DataDir" Name="Nodeup">
-          <Component Id="StubExecutables"
+          <Component Id="Launchers"
                      Guid="83786F85-45AF-4F3F-ACA2-8D6A83C21729"
                      Win64="yes">
-            <File Id="BinstubEXE"
-                  Name="binstub.exe"
+            <File Id="LaunchbinEXE"
+                  Name="launchbin.exe"
                   DiskId="1"
-                  Source="target\release\binstub.exe"
+                  Source="target\release\launchbin.exe"
                   KeyPath="yes">
             </File>
-            <File Id="ScriptstubEXE"
-                  Name="scriptstub.exe"
+            <File Id="LaunchscriptEXE"
+                  Name="launchscript.exe"
                   DiskId="1"
-                  Source="target\release\scriptstub.exe"
+                  Source="target\release\launchscript.exe"
                   KeyPath="no">
             </File>
             <RemoveFolder Id="RemoveDataDir" Directory="DataDir" On="uninstall" />
@@ -152,22 +152,22 @@
     deferred semantics: https://www.symantec.com/connect/blogs/basic-differences-execute-immediate-and-execute-deferred-ca
     quiet execution: http://wixtoolset.org/documentation/manual/v3/customactions/qtexec.html
     -->
-    <CustomAction Id="MakeBinstubs_set"
-                  Property="MakeBinstubs"
-                  Value='"[SystemFolder]cmd.exe" /C mklink /H "[ProgramFiles64Folder]Nodeup\toolchain\node.exe" "[CommonAppDataFolder]Nodeup\binstub.exe"'
+    <CustomAction Id="MakeBinLaunchers_set"
+                  Property="MakeBinLaunchers"
+                  Value='"[SystemFolder]cmd.exe" /C mklink /H "[ProgramFiles64Folder]Nodeup\toolchain\node.exe" "[CommonAppDataFolder]Nodeup\launchbin.exe"'
                   Execute='immediate' />
-    <CustomAction Id="MakeBinstubs"
+    <CustomAction Id="MakeBinLaunchers"
                   BinaryKey="WixCA"
                   DllEntry="WixQuietExec"
                   Execute="deferred"
                   Return="ignore"
                   Impersonate="no" />
 
-    <CustomAction Id="MakeScriptstubs_set"
-                  Property="MakeScriptstubs"
-                  Value='"[SystemFolder]cmd.exe" /C mklink /H "[ProgramFiles64Folder]Nodeup\toolchain\npm.exe" "[CommonAppDataFolder]Nodeup\scriptstub.exe"'
+    <CustomAction Id="MakeScriptLaunchers_set"
+                  Property="MakeScriptLaunchers"
+                  Value='"[SystemFolder]cmd.exe" /C mklink /H "[ProgramFiles64Folder]Nodeup\toolchain\npm.exe" "[CommonAppDataFolder]Nodeup\launchscript.exe"'
                   Execute='immediate' />
-    <CustomAction Id="MakeScriptstubs"
+    <CustomAction Id="MakeScriptLaunchers"
                   BinaryKey="WixCA"
                   DllEntry="WixQuietExec"
                   Execute="deferred"
@@ -176,15 +176,15 @@
 
     <InstallExecuteSequence>
       <!-- conditions: https://stackoverflow.com/questions/537584/how-to-execute-custom-action-only-in-install-not-uninstall -->
-      <Custom Action="MakeBinstubs_set" After="InstallFiles">NOT REMOVE</Custom>
-      <Custom Action="MakeBinstubs" After="MakeBinstubs_set">NOT REMOVE</Custom>
-      <Custom Action="MakeScriptstubs_set" After="MakeBinstubs">NOT REMOVE</Custom>
-      <Custom Action="MakeScriptstubs" After="MakeScriptstubs_set">NOT REMOVE</Custom>
+      <Custom Action="MakeBinLaunchers_set" After="InstallFiles">NOT REMOVE</Custom>
+      <Custom Action="MakeBinLaunchers" After="MakeBinLaunchers_set">NOT REMOVE</Custom>
+      <Custom Action="MakeScriptLaunchers_set" After="MakeBinLaunchers">NOT REMOVE</Custom>
+      <Custom Action="MakeScriptLaunchers" After="MakeScriptLaunchers_set">NOT REMOVE</Custom>
     </InstallExecuteSequence>
 
     <Feature Id="Complete">
       <ComponentRef Id='NodeupExecutable'/>
-      <ComponentRef Id='StubExecutables'/>
+      <ComponentRef Id='Launchers'/>
       <ComponentRef Id='CreateToolchainDir'/>
       <ComponentRef Id='CreateVersionsNodeDir'/>
       <ComponentRef Id='CreateCacheNodeDir'/>

@@ -37,8 +37,8 @@ pub const ARCH: &'static str = "x64";
 //             npm
 //             npx
 //             ...
-//         binstub                                         binstub_file
-//         scriptstub                                      scriptstub_file
+//         launchbin                                       launchbin_file
+//         launchscript                                    launchscript_file
 //         config.toml                                     user_config_file
 
 fn nodeup_home() -> Option<PathBuf> {
@@ -111,15 +111,15 @@ pub fn toolchain_file(toolname: &str) -> Option<PathBuf> {
     })
 }
 
-pub fn binstub_file() -> Option<PathBuf> {
+pub fn launchbin_file() -> Option<PathBuf> {
     nodeup_home().map(|root| {
-        root.join("binstub")
+        root.join("launchbin")
     })
 }
 
-pub fn scriptstub_file() -> Option<PathBuf> {
+pub fn launchscript_file() -> Option<PathBuf> {
     nodeup_home().map(|root| {
-        root.join("scriptstub")
+        root.join("launchscript")
     })
 }
 

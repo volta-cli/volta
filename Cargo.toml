@@ -10,12 +10,12 @@ name = "nodeup"
 path = "src/main.rs"
 
 [[bin]]
-name = "binstub"
-path = "src/binstub.rs"
+name = "launchbin"
+path = "src/launchbin.rs"
 
 [[bin]]
-name = "scriptstub"
-path = "src/scriptstub.rs"
+name = "launchscript"
+path = "src/launchscript.rs"
 
 [dependencies]
 clap = "2.26.2"

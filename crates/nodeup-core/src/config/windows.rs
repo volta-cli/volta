@@ -23,8 +23,8 @@ pub const ARCH: &'static str = "x64";
 //                     6.11.3\
 //                     8.6.0\
 //                     ...
-//             binstub.exe                             binstub_file
-//             scriptstub.exe                          scriptstub_file
+//             launchbin.exe                           launchbin_file
+//             launchscript.exe                        launchscript_file
 
 fn program_data_root() -> Option<PathBuf> {
     winfolder::known_path(&winfolder::id::PROGRAM_DATA).map(|pd| {
@@ -70,15 +70,15 @@ pub fn node_version_bin_dir(version: &str) -> Option<PathBuf> {
     node_version_dir(version)
 }
 
-pub fn binstub_file() -> Option<PathBuf> {
+pub fn launchbin_file() -> Option<PathBuf> {
     program_data_root().map(|root| {
-        root.join("binstub.exe")
+        root.join("launchbin.exe")
     })
 }
 
-pub fn scriptstub_file() -> Option<PathBuf> {
+pub fn launchscript_file() -> Option<PathBuf> {
     program_data_root().map(|root| {
-        root.join("scriptstub.exe")
+        root.join("launchscript.exe")
     })
 }
 

@@ -27,7 +27,7 @@ fn split_command() -> (OsString, ArgsOs) {
     (arg0, args)
 }
 
-pub fn exe(path_var: &OsStr) -> Command {
+pub fn binary(path_var: &OsStr) -> Command {
     let (exe, args) = split_command();
 
     // FIXME: at least in unix, use exec instead

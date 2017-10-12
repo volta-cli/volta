@@ -7,7 +7,7 @@ use config;
 /**
  * Produce a modified version of the current `PATH` environment varible that
  * will find Node.js executables in the installation directory for the given
- * version of Node instead of in the nodeup binstubs directory.
+ * version of Node instead of in the nodeup toolchain directory.
  */
 pub fn for_version(version: &str) -> OsString {
     let current = env::var_os("PATH").unwrap_or(OsString::new());

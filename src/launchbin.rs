@@ -1,10 +1,10 @@
 extern crate nodeup_core;
 
-use nodeup_core::stub;
+use nodeup_core::launch;
 
 fn main() {
-    let path_var = stub::prepare();
-    let status = stub::exe(&path_var)
+    let path_var = launch::prepare();
+    let status = launch::binary(&path_var)
         .status()
         .unwrap();
     println!("process exited with {}", status);

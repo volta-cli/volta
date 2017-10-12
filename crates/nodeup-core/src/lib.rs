@@ -11,7 +11,7 @@ pub mod provision;
 pub mod install;
 pub mod uninstall;
 pub mod path;
-pub mod stub;
+pub mod launch;
 
 /*
 #[cfg(test)]
