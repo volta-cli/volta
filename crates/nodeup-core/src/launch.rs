@@ -1,20 +1,41 @@
 use std::env;
 use std::env::ArgsOs;
 use std::ffi::{OsString, OsStr};
-use std::process::Command;
+use std::process::{Command, ExitStatus, exit};
 
 use config::{self, Config};
 use version::Version;
 use install;
 use path;
 
-pub fn prepare() -> OsString {
-    // FIXME: handle None
-    let Config { node: Version::Public(version) } = config::read().unwrap();
+fn exec_with<F: FnOnce() -> ::Result<Command>>(get_command: F) -> ::Result<ExitStatus> {
+    let mut command = get_command()?;
+    let status = command.status()?;
+    Ok(status)
+}
 
-    install::by_version(&version);
+fn exec<F: FnOnce() -> ::Result<Command>>(get_command: F) -> ! {
+    match exec_with(get_command) {
+        Ok(status) if status.success() => {
+            exit(0);
+        }
+        Ok(status) => {
+            // FIXME: if None, in unix, find out the signal
+            exit(status.code().unwrap_or(1));
+        }
+        Err(err) => {
+            ::display_error(err);
+            exit(1);
+        }
+    }
+}
 
-    path::for_version(&version)
+pub fn prepare() -> ::Result<OsString> {
+    let Config { node: Version::Public(version) } = config::read()?;
+
+    install::by_version(&version)?;
+
+    Ok(path::for_version(&version))
 }
 
 /**
@@ -24,11 +45,12 @@ pub fn prepare() -> OsString {
  */
 fn split_command() -> (OsString, ArgsOs) {
     let mut args = env::args_os();
+    // FIXME: make an error kind for this case
     let arg0 = args.next().unwrap();
     (arg0, args)
 }
 
-pub fn binary(path_var: &OsStr) -> Command {
+fn binary_command(path_var: &OsStr) -> Command {
     let (exe, args) = split_command();
 
     // FIXME: at least in unix, use exec instead
@@ -39,7 +61,7 @@ pub fn binary(path_var: &OsStr) -> Command {
 }
 
 #[cfg(windows)]
-pub fn script(path_var: &OsStr) -> Command {
+fn script_command(path_var: &OsStr) -> Command {
     let (exe, args) = split_command();
 
     // See: https://github.com/rust-lang/rust/issues/42791
@@ -52,6 +74,14 @@ pub fn script(path_var: &OsStr) -> Command {
 }
 
 #[cfg(not(windows))]
-pub fn script(path_var: &OsStr) -> Command {
+fn script_command(path_var: &OsStr) -> Command {
     unimplemented!()
+}
+
+pub fn binary() -> ! {
+    exec(|| { Ok(binary_command(&prepare()?)) })
+}
+
+pub fn script() -> ! {
+    exec(|| { Ok(script_command(&prepare()?)) })
 }

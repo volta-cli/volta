@@ -20,7 +20,7 @@ pub struct Cached {
 }
 
 impl Cached {
-    pub fn load(mut source: File) -> io::Result<Cached> {
+    pub fn load(mut source: File) -> ::Result<Cached> {
         let uncompressed_size = load_uncompressed_size(&mut source)?;
 
         let compressed_size = source.metadata()?.len();
@@ -57,30 +57,27 @@ pub struct Public {
 }
 
 impl Public {
-    pub fn fetch(url: &str, cache_file: &Path) -> reqwest::Result<Option<Public>> {
+    pub fn fetch(url: &str, cache_file: &Path) -> ::Result<Public> {
         let uncompressed_size = fetch_uncompressed_size(url);
 
         let response = reqwest::get(url)?;
 
         if !response.status().is_success() {
-            return Ok(None);
+            bail!(::ErrorKind::HttpFailure(response.status()));
         }
 
-        let compressed_size = match response.headers().get::<ContentLength>() {
-            Some(cl) => **cl,
-            None => { return Ok(None); }
-        };
+        // FIXME: make compressed_size an Option
+        let compressed_size = response.headers().get::<ContentLength>().map_or(0, |cl| **cl);
 
-        // FIXME: propagate errors
-        let file = File::create(cache_file).unwrap();
+        let file = File::create(cache_file)?;
 
         let source = TeeReader::new(response, file);
 
-        Ok(Some(Public {
+        Ok(Public {
             uncompressed_size,
             compressed_size,
             source
-        }))
+        })
     }
 }
 
@@ -135,7 +132,7 @@ pub struct Tarball<S: Source, F: FnMut(&(), usize)> {
 }
 
 impl<S: Source, F: FnMut(&(), usize)> Tarball<S, F> {
-    pub fn new(source: S, callback: F) -> io::Result<Tarball<S, F>> {
+    pub fn new(source: S, callback: F) -> ::Result<Tarball<S, F>> {
         Ok(Tarball {
             archive: tar::Archive::new(ProgressSource::new(source, callback)?)
         })
@@ -143,8 +140,9 @@ impl<S: Source, F: FnMut(&(), usize)> Tarball<S, F> {
 }
 
 impl<S: Source, F: FnMut(&(), usize)> Archive for Tarball<S, F> {
-    fn unpack(mut self, dest: &Path) -> io::Result<()> {
-        self.archive.unpack(dest)
+    fn unpack(mut self, dest: &Path) -> ::Result<()> {
+        self.archive.unpack(dest)?;
+        Ok(())
     }
 }
 

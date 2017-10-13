@@ -26,60 +26,46 @@ pub const ARCH: &'static str = "x64";
 //             launchbin.exe                           launchbin_file
 //             launchscript.exe                        launchscript_file
 
-fn program_data_root() -> Option<PathBuf> {
-    winfolder::known_path(&winfolder::id::PROGRAM_DATA).map(|pd| {
-        pd.join("Nodeup")
-    })
+fn program_data_root() -> ::Result<PathBuf> {
+    let pd = winfolder::known_path(&winfolder::id::PROGRAM_DATA)
+        .ok_or_else(|| { ::ErrorKind::UnknownSystemFolder(String::from("PROGRAM_DATA")) })?;
+    Ok(pd.join("Nodeup"))
 }
 
-pub fn cache_dir() -> Option<PathBuf> {
-    program_data_root().map(|root| {
-        root.join("cache")
-    })
+pub fn cache_dir() -> ::Result<PathBuf> {
+    Ok(program_data_root()?.join("cache"))
 }
 
-pub fn node_cache_dir() -> Option<PathBuf> {
-    cache_dir().map(|cache| {
-        cache.join("node")
-    })
+pub fn node_cache_dir() -> ::Result<PathBuf> {
+    Ok(cache_dir()?.join("node"))
 }
 
 pub fn archive_extension() -> String {
     String::from("zip")
 }
 
-pub fn versions_dir() -> Option<PathBuf> {
-    program_data_root().map(|root| {
-        root.join("versions")
-    })
+pub fn versions_dir() -> ::Result<PathBuf> {
+    Ok(program_data_root()?.join("versions"))
 }
 
-pub fn node_versions_dir() -> Option<PathBuf> {
-    versions_dir().map(|versions| {
-        versions.join("node")
-    })
+pub fn node_versions_dir() -> ::Result<PathBuf> {
+    Ok(versions_dir()?.join("node"))
 }
 
-pub fn node_version_dir(version: &str) -> Option<PathBuf> {
-    node_versions_dir().map(|node| {
-        node.join(version)
-    })
+pub fn node_version_dir(version: &str) -> ::Result<PathBuf> {
+    Ok(node_versions_dir()?.join(version))
 }
 
-pub fn node_version_bin_dir(version: &str) -> Option<PathBuf> {
+pub fn node_version_bin_dir(version: &str) -> ::Result<PathBuf> {
     node_version_dir(version)
 }
 
-pub fn launchbin_file() -> Option<PathBuf> {
-    program_data_root().map(|root| {
-        root.join("launchbin.exe")
-    })
+pub fn launchbin_file() -> ::Result<PathBuf> {
+    Ok(program_data_root()?.join("launchbin.exe"))
 }
 
-pub fn launchscript_file() -> Option<PathBuf> {
-    program_data_root().map(|root| {
-        root.join("launchscript.exe")
-    })
+pub fn launchscript_file() -> ::Result<PathBuf> {
+    Ok(program_data_root()?.join("launchscript.exe"))
 }
 
 // C:\
@@ -92,32 +78,26 @@ pub fn launchscript_file() -> Option<PathBuf> {
 //                 npx.exe
 //                 ...
 
-fn program_files_root() -> Option<PathBuf> {
-    winfolder::known_path(&winfolder::id::PROGRAM_FILES_X64).map(|pf| {
-        pf.join("Nodeup")
-    })
+fn program_files_root() -> ::Result<PathBuf> {
+    let pf = winfolder::known_path(&winfolder::id::PROGRAM_FILES_X64)
+        .ok_or_else(|| { ::ErrorKind::UnknownSystemFolder(String::from("PROGRAM_FILES_X64")) })?;
+    Ok(pf.join("Nodeup"))
 }
 
-pub fn bin_dir() -> Option<PathBuf> {
+pub fn bin_dir() -> ::Result<PathBuf> {
     program_files_root()
 }
 
-pub fn nodeup_file() -> Option<PathBuf> {
-    bin_dir().map(|bin| {
-        bin.join("nodeup.exe")
-    })
+pub fn nodeup_file() -> ::Result<PathBuf> {
+    Ok(bin_dir()?.join("nodeup.exe"))
 }
 
-pub fn toolchain_dir() -> Option<PathBuf> {
-    program_files_root().map(|root| {
-        root.join("toolchain")
-    })
+pub fn toolchain_dir() -> ::Result<PathBuf> {
+    Ok(program_files_root()?.join("toolchain"))
 }
 
-pub fn toolchain_file(toolname: &str) -> Option<PathBuf> {
-    toolchain_dir().map(|toolchain| {
-        toolchain.join(&format!("{}.exe", toolname))
-    })
+pub fn toolchain_file(toolname: &str) -> ::Result<PathBuf> {
+    Ok(toolchain_dir()?.join(&format!("{}.exe", toolname)))
 }
 
 // C:\
@@ -128,14 +108,12 @@ pub fn toolchain_file(toolname: &str) -> Option<PathBuf> {
 //                     Nodeup\
 //                         config.toml                 user_config_file
 
-fn local_data_root() -> Option<PathBuf> {
-    winfolder::known_path(&winfolder::id::LOCAL_APP_DATA).map(|adl| {
-        adl.join("Nodeup")
-    })
+fn local_data_root() -> ::Result<PathBuf> {
+    let adl = winfolder::known_path(&winfolder::id::LOCAL_APP_DATA)
+        .ok_or_else(|| { ::ErrorKind::UnknownSystemFolder(String::from("LOCAL_APP_DATA")) })?;
+    Ok(adl.join("Nodeup"))
 }
 
-pub fn user_config_file() -> Option<PathBuf> {
-    local_data_root().map(|root| {
-        root.join("config.toml")
-    })
+pub fn user_config_file() -> ::Result<PathBuf> {
+    Ok(local_data_root()?.join("config.toml"))
 }

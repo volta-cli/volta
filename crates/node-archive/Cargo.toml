@@ -9,4 +9,5 @@ tar = "0.4.13"
 zip = "0.2.6"
 reqwest = "0.7.3"
 tee = "0.1.0"
+error-chain = "0.11.0"
 progress-read = { path = "../progress-read" }

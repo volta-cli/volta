@@ -1,15 +1,17 @@
 use std::fs::remove_dir_all;
+use std::io;
 
 use config;
 
-// FIXME: should return Option<Result<...>>
-pub fn by_version(version: &str) -> Option<()> {
-    let home = config::node_version_dir(version).unwrap();
+pub fn by_version(version: &str) -> ::Result<()> {
+    let home = config::node_version_dir(version)?;
 
     if !home.is_dir() {
-        return None;
+        bail!(io::Error::new(
+            io::ErrorKind::NotFound,
+            format!("{} is not a directory", home.to_string_lossy())));
     }
 
-    remove_dir_all(home).unwrap();
-    Some(())
+    remove_dir_all(home)?;
+    Ok(())
 }

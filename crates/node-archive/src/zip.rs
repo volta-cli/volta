@@ -7,7 +7,6 @@ use std::fs::{File, create_dir_all};
 use reqwest;
 use progress_read::ProgressRead;
 use zip_rs::ZipArchive;
-use zip_rs::result::ZipResult;
 
 pub struct Cached {
     compressed_size: u64,
@@ -53,23 +52,21 @@ pub struct Public {
 }
 
 impl Public {
-    pub fn fetch(url: &str, cache_file: &Path) -> reqwest::Result<Option<Public>> {
+    pub fn fetch(url: &str, cache_file: &Path) -> ::Result<Public> {
         let mut response = reqwest::get(url)?;
 
         if !response.status().is_success() {
-            return Ok(None);
+            bail!(::ErrorKind::HttpFailure(response.status()));
         }
 
         {
-            // FIXME: propagate errors
-            let mut file = File::create(cache_file).unwrap();
-
-            copy(&mut response, &mut file).unwrap();
+            let mut file = File::create(cache_file)?;
+            copy(&mut response, &mut file)?;
         }
 
-        Ok(Some(Public {
-            cached: Cached::load(File::open(cache_file).unwrap()).unwrap()
-        }))
+        Ok(Public {
+            cached: Cached::load(File::open(cache_file)?)?
+        })
     }
 }
 
@@ -100,8 +97,7 @@ pub struct Zip<S: Source + Seek, F: FnMut(&(), usize)> {
 }
 
 impl<S: Source + Seek, F: FnMut(&(), usize)> Zip<S, F> {
-    // FIXME: align the exception type with Tarball::new so we don't have to unwrap
-    pub fn new(source: S, callback: F) -> ZipResult<Zip<S, F>> {
+    pub fn new(source: S, callback: F) -> ::Result<Zip<S, F>> {
         Ok(Zip {
             archive: ZipArchive::new(ProgressRead::new(source, (), callback))?
         })
@@ -109,11 +105,10 @@ impl<S: Source + Seek, F: FnMut(&(), usize)> Zip<S, F> {
 }
 
 impl<S: Source + Seek, F: FnMut(&(), usize)> Archive for Zip<S, F> {
-    fn unpack(self, dest: &Path) -> io::Result<()> {
+    fn unpack(self, dest: &Path) -> ::Result<()> {
         let mut zip = self.archive;
         for i in 0..zip.len() {
-            // FIXME: propagate errors
-            let mut entry = zip.by_index(i).unwrap();
+            let mut entry = zip.by_index(i)?;
             //println!("name: {:?}", entry.name());
             if entry.name().ends_with('/') {
                 create_dir_all(dest.join(Path::new(entry.name())))?;

@@ -70,45 +70,41 @@ fn ensure_config_exists(path: &Path) -> io::Result<File> {
     File::open(path)
 }
 
-fn open() -> io::Result<File> {
+fn open() -> ::Result<File> {
     if let Some(path) = project_config_file() {
-        return File::open(path);
+        let file = File::open(path)?;
+        return Ok(file);
     }
-    if let Some(path) = user_config_file() {
-        return ensure_config_exists(&path);
-    }
-    Err(io::Error::new(io::ErrorKind::NotFound, "could not determine location of user config"))
+    let path = user_config_file()?;
+    let file = ensure_config_exists(&path)?;
+    Ok(file)
 }
 
 pub struct Config {
     pub node: Version
 }
 
-pub fn read() -> Option<Config> {
-    let mut cfg_file = match open() {
-        Ok(file) => file,
-        Err(_) => { return None; }
-    };
+pub fn read() -> ::Result<Config> {
+    let mut cfg_file = open()?;
 
     let mut cfg_contents = String::new();
-    if cfg_file.read_to_string(&mut cfg_contents).is_err() {
-        return None;
-    }
+    cfg_file.read_to_string(&mut cfg_contents)?;
 
-    let cfg_toml = match cfg_contents.parse::<Value>() {
-        Ok(toml) => toml,
-        Err(_) => { return None; }
-    };
+    let cfg_toml = cfg_contents.parse::<Value>()?;
 
     if let Value::Table(mut root) = cfg_toml {
         if let Some(Value::Table(mut node)) = root.remove("node") {
             if let Some(Value::String(version)) = node.remove("version") {
-                return Some(Config {
+                return Ok(Config {
                     node: Version::Public(version)
                 });
+            } else {
+                bail!(::ErrorKind::ConfigError(String::from("node.version")));
             }
+        } else {
+            bail!(::ErrorKind::ConfigError(String::from("node")));
         }
+    } else {
+        bail!(::ErrorKind::ConfigError(String::from("<root>")));
     }
-
-    return None;
 }

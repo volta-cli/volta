@@ -41,90 +41,63 @@ pub const ARCH: &'static str = "x64";
 //         launchscript                                    launchscript_file
 //         config.toml                                     user_config_file
 
-fn nodeup_home() -> Option<PathBuf> {
-    env::home_dir().map(|home| {
-        home.join(".nodeup")
-    })
+fn nodeup_home() -> ::Result<PathBuf> {
+    let home = env::home_dir().ok_or_else(|| { ::ErrorKind::UnknownSystemFolder(String::from("HOME")) })?;
+    Ok(home.join(".nodeup"))
 }
 
-pub fn cache_dir() -> Option<PathBuf> {
-    nodeup_home().map(|root| {
-        root.join("cache")
-    })
+pub fn cache_dir() -> ::Result<PathBuf> {
+    Ok(nodeup_home()?.join("cache"))
 }
 
-pub fn node_cache_dir() -> Option<PathBuf> {
-    cache_dir().map(|cache| {
-        cache.join("node")
-    })
+pub fn node_cache_dir() -> ::Result<PathBuf> {
+    Ok(cache_dir()?.join("node"))
 }
 
 pub fn archive_extension() -> String {
     String::from("tar.gz")
 }
 
-pub fn versions_dir() -> Option<PathBuf> {
-    nodeup_home().map(|root| {
-        root.join("versions")
-    })
+pub fn versions_dir() -> ::Result<PathBuf> {
+    Ok(nodeup_home()?.join("versions"))
 }
 
-pub fn node_versions_dir() -> Option<PathBuf> {
-    versions_dir().map(|versions| {
-        versions.join("node")
-    })
+pub fn node_versions_dir() -> ::Result<PathBuf> {
+    Ok(versions_dir()?.join("node"))
 }
 
-pub fn node_version_dir(version: &str) -> Option<PathBuf> {
-    node_versions_dir().map(|node| {
-        node.join(version)
-    })
+pub fn node_version_dir(version: &str) -> ::Result<PathBuf> {
+    Ok(node_versions_dir()?.join(version))
 }
 
-pub fn node_version_bin_dir(version: &str) -> Option<PathBuf> {
-    node_version_dir(version).map(|node| {
-        node.join("bin")
-    })
+pub fn node_version_bin_dir(version: &str) -> ::Result<PathBuf> {
+    Ok(node_version_dir(version)?.join("bin"))
 }
 
-pub fn bin_dir() -> Option<PathBuf> {
-    nodeup_home().map(|root| {
-        root.join("bin")
-    })
+pub fn bin_dir() -> ::Result<PathBuf> {
+    Ok(nodeup_home()?.join("bin"))
 }
 
-pub fn nodeup_file() -> Option<PathBuf> {
-    bin_dir().map(|bin| {
-        bin.join("nodeup")
-    })
+pub fn nodeup_file() -> ::Result<PathBuf> {
+    Ok(bin_dir()?.join("nodeup"))
 }
 
-pub fn toolchain_dir() -> Option<PathBuf> {
-    nodeup_home().map(|root| {
-        root.join("toolchain")
-    })
+pub fn toolchain_dir() -> ::Result<PathBuf> {
+    Ok(nodeup_home()?.join("toolchain"))
 }
 
-pub fn toolchain_file(toolname: &str) -> Option<PathBuf> {
-    toolchain_dir().map(|toolchain| {
-        toolchain.join(toolname)
-    })
+pub fn toolchain_file(toolname: &str) -> ::Result<PathBuf> {
+    Ok(toolchain_dir()?.join(toolname))
 }
 
-pub fn launchbin_file() -> Option<PathBuf> {
-    nodeup_home().map(|root| {
-        root.join("launchbin")
-    })
+pub fn launchbin_file() -> ::Result<PathBuf> {
+    Ok(nodeup_home()?.join("launchbin"))
 }
 
-pub fn launchscript_file() -> Option<PathBuf> {
-    nodeup_home().map(|root| {
-        root.join("launchscript")
-    })
+pub fn launchscript_file() -> ::Result<PathBuf> {
+    Ok(nodeup_home()?.join("launchscript"))
 }
 
-pub fn user_config_file() -> Option<PathBuf> {
-    nodeup_home().map(|root| {
-        root.join("config.toml")
-    })
+pub fn user_config_file() -> ::Result<PathBuf> {
+    Ok(nodeup_home()?.join("config.toml"))
 }

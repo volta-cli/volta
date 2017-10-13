@@ -1,14 +1,11 @@
 # Demo blockers
 
-- unix script launchers
 - user-global state (`nodeup current` et al)
+- unix script launchers
 - pedagogy/PR: how should we talk about this approach?
   - terminology for the basic technique (as well as the alternatives)
   - what is the high-level intuition without diving deep into how it all works?
 - windows installer isn't killing the node installation directories
-- figure out how we want to combine io::Error and reqwest::Error and ZipError
-  - just use io::Error and wrap reqwest errors with io::Error::new()?
-  - or look into error-chain?
 - unix bash install script
 
 # Basic functionality

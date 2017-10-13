@@ -39,38 +39,38 @@ fn progress_bar(msg: &str, len: u64) -> ProgressBar {
     bar
 }
 
-// FIXME: return Result
-pub fn by_version(dest: &Path, version: &str) {
+pub fn by_version(dest: &Path, version: &str) -> ::Result<()> {
     let archive_file = config::archive_file(version);
 
-    let cache_file = config::node_cache_dir().unwrap().join(&archive_file);
+    let cache_file = config::node_cache_dir()?.join(&archive_file);
 
     if cache_file.is_file() {
-        let file = File::open(cache_file).unwrap();
-        let source = archive::Cached::load(file).unwrap();
-        by_source(dest, version, source);
+        let file = File::open(cache_file)?;
+        let source = archive::Cached::load(file)?;
+        by_source(dest, version, source)?;
     } else {
         let url = config::public_node_url(version, &archive_file);
         // FIXME: pass the cache file path too so it can be tee'ed as it's fetched
-        let source = archive::Public::fetch(&url, &cache_file).unwrap().unwrap();
-        by_source(dest, version, source);
+        let source = archive::Public::fetch(&url, &cache_file)?;
+        by_source(dest, version, source)?;
     }
+    Ok(())
 }
 
-fn by_source<S: Source + Streaming>(dest: &Path, version: &str, source: S) {
+fn by_source<S: Source + Streaming>(dest: &Path, version: &str, source: S) -> ::Result<()> {
     let bar = progress_bar(
         &format!("Installing v{}", version),
         source.uncompressed_size().unwrap_or(source.compressed_size()));
 
     let archive = ArchiveFormat::new(source, |_, read| {
         bar.inc(read as u64);
-    }).unwrap();
+    })?;
 
-    archive.unpack(dest).unwrap();
+    archive.unpack(dest)?;
 
     rename(dest.join(config::archive_root_dir(version)),
-           config::node_version_dir(version).unwrap())
-        .unwrap();
+           config::node_version_dir(version)?)?;
 
     bar.finish_and_clear();
+    Ok(())
 }

@@ -1,13 +1,17 @@
 use provision;
 use config;
 
-// FIXME: should return Option<Result<...>>
-pub fn by_version(version: &str) -> Option<()> {
-    if config::node_version_dir(version).unwrap().is_dir() {
-        return None;
-    }
+pub enum Installed {
+    Previously,
+    Now
+}
 
-    let dest = config::node_versions_dir().unwrap();
-    provision::by_version(&dest, version);
-    Some(())
+pub fn by_version(version: &str) -> ::Result<Installed> {
+    if config::node_version_dir(version)?.is_dir() {
+        Ok(Installed::Previously)
+    } else {
+        let dest = config::node_versions_dir()?;
+        provision::by_version(&dest, version)?;
+        Ok(Installed::Now)
+    }
 }

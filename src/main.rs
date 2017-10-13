@@ -2,6 +2,7 @@ extern crate clap;
 extern crate nodeup_core;
 
 use std::io::Write;
+use std::process::exit;
 
 use clap::{Arg, App, SubCommand};
 
@@ -58,12 +59,18 @@ fn main() {
         Some("install")   => {
             let submatches = matches.subcommand_matches("install").unwrap();
             let version = submatches.value_of("version").unwrap();
-            nodeup_core::install::by_version(&version);
+            if let Err(err) = nodeup_core::install::by_version(&version) {
+                nodeup_core::display_error(err);
+                exit(1);
+            }
         }
         Some("uninstall") => {
             let submatches = matches.subcommand_matches("uninstall").unwrap();
             let version = submatches.value_of("version").unwrap();
-            nodeup_core::uninstall::by_version(&version);
+            if let Err(err) = nodeup_core::uninstall::by_version(&version) {
+                nodeup_core::display_error(err);
+                exit(1);
+            }
         }
         Some("local")     => {
             let Config { node: Version::Public(version) } = nodeup_core::config::read().unwrap();
