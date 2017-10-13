@@ -4,10 +4,9 @@ extern crate nodeup_core;
 use std::io::Write;
 use std::process::exit;
 
-use clap::{Arg, App, SubCommand};
+use clap::{Arg, ArgGroup, App, SubCommand};
 
-use nodeup_core::config::Config;
-use nodeup_core::version::Version;
+use nodeup_core::current;
 
 fn main() {
     let app = App::new("nodeup")
@@ -35,13 +34,27 @@ fn main() {
                 .help("Node.js version specifier")
                 .required(false)))
 
-        // nodeup local
-        .subcommand(SubCommand::with_name("local")
-            .about("display the toolchain version associated with the local project"))
-
         // nodeup current
         .subcommand(SubCommand::with_name("current")
-            .about("display the current activated toolchain version"))
+            .about("display the currently activated toolchain version")
+            .arg(Arg::with_name("local")
+                .short("l")
+                .long("local")
+                .help("")
+                .required(false))
+            .arg(Arg::with_name("global")
+                .short("g")
+                .long("global")
+                .help("")
+                .required(false))
+            .arg(Arg::with_name("system")
+                .short("s")
+                .long("system")
+                .help("")
+                .required(false))
+            .group(ArgGroup::with_name("current_kind")
+                .args(&["local", "global", "system"])
+                .required(false)))
 
         // nodeup version
         .subcommand(SubCommand::with_name("version")
@@ -72,12 +85,27 @@ fn main() {
                 exit(1);
             }
         }
-        Some("local")     => {
-            let Config { node: Version::Public(version) } = nodeup_core::config::read().unwrap();
-            println!("v{}", version);
-        }
         Some("use")       => { not_yet_implemented("use"); }
-        Some("current")   => { not_yet_implemented("current"); }
+        Some("current")   => {
+            let submatches = matches.subcommand_matches("current").unwrap();
+            let which = if submatches.is_present("local") {
+                Some(current::Which::Local)
+            } else if submatches.is_present("global") {
+                Some(current::Which::Global)
+            } else if submatches.is_present("system") {
+                Some(current::Which::System)
+            } else {
+                None
+            };
+
+            match current::get(which) {
+                Ok(version) => { println!("v{}", version); }
+                Err(err) => {
+                    nodeup_core::display_error(err);
+                    exit(1);
+                }
+            }
+        }
         Some("version")   => { not_yet_implemented("version"); }
         Some("help")      => { help(&help_bytes); }
         Some(_)           => { panic!("internal error (command parser)"); }

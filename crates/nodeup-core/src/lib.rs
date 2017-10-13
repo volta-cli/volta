@@ -19,6 +19,7 @@ pub mod uninstall;
 pub mod path;
 pub mod launch;
 pub mod version;
+pub mod current;
 
 mod errors {
     use node_archive;
