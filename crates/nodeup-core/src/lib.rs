@@ -12,6 +12,7 @@ pub mod install;
 pub mod uninstall;
 pub mod path;
 pub mod launch;
+pub mod version;
 
 /*
 #[cfg(test)]

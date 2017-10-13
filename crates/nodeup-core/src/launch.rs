@@ -3,7 +3,8 @@ use std::env::ArgsOs;
 use std::ffi::{OsString, OsStr};
 use std::process::Command;
 
-use config::{self, Config, Version};
+use config::{self, Config};
+use version::Version;
 use install;
 use path;
 

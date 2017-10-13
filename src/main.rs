@@ -5,7 +5,8 @@ use std::io::Write;
 
 use clap::{Arg, App, SubCommand};
 
-use nodeup_core::config::{Config, Version};
+use nodeup_core::config::Config;
+use nodeup_core::version::Version;
 
 fn main() {
     let app = App::new("nodeup")

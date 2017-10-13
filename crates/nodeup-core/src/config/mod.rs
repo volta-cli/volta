@@ -6,6 +6,8 @@ use std::io::{Read, Write};
 
 use toml::Value;
 
+use version::Version;
+
 #[cfg(not(windows))]
 mod unix;
 
@@ -76,10 +78,6 @@ fn open() -> io::Result<File> {
         return ensure_config_exists(&path);
     }
     Err(io::Error::new(io::ErrorKind::NotFound, "could not determine location of user config"))
-}
-
-pub enum Version {
-    Public(String)
 }
 
 pub struct Config {
