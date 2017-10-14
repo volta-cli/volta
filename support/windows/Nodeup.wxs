@@ -107,7 +107,7 @@
             <File Id="NodeupEXE"
                   Name="nodeup.exe"
                   DiskId="1"
-                  Source="target\release\nodeup.exe"
+                  Source="$(var.NodeupProjectRoot)target\release\nodeup.exe"
                   KeyPath="yes">
             </File>
             <RemoveFolder Id="RemoveInstallDir" Directory="INSTALLDIR" On="uninstall" />
@@ -125,13 +125,13 @@
             <File Id="LaunchbinEXE"
                   Name="launchbin.exe"
                   DiskId="1"
-                  Source="target\release\launchbin.exe"
+                  Source="$(var.NodeupProjectRoot)target\release\launchbin.exe"
                   KeyPath="yes">
             </File>
             <File Id="LaunchscriptEXE"
                   Name="launchscript.exe"
                   DiskId="1"
-                  Source="target\release\launchscript.exe"
+                  Source="$(var.NodeupProjectRoot)target\release\launchscript.exe"
                   KeyPath="no">
             </File>
             <RemoveFolder Id="RemoveDataDir" Directory="DataDir" On="uninstall" />
