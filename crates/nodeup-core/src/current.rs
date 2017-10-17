@@ -7,14 +7,14 @@ pub enum Which {
     System
 }
 
-pub fn get(which: Option<Which>) -> ::Result<String> {
+pub fn get(which: Option<Which>) -> ::Result<Option<String>> {
     match which {
         Some(Which::Local) => {
-            let Config { node: Version::Public(version) } = config::read()?;
-            Ok(version)
+            Ok(config::read_local()?.map(|Config { node: Version::Public(version) }| version))
         }
         Some(Which::Global) => {
-            unimplemented!()
+            let Config { node: Version::Public(version) } = config::read_global()?;
+            Ok(Some(version))
         }
         Some(Which::System) => {
             unimplemented!()

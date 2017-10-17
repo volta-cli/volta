@@ -1,6 +1,7 @@
 # Demo blockers
 
-- user-global state (`nodeup current` et al)
+- `nodeup current --local` shouldn't be calling `config::read()`
+- user-global state (`nodeup current --global` et al)
 - unix script launchers
 - pedagogy/PR: how should we talk about this approach?
   - terminology for the basic technique (as well as the alternatives)
@@ -29,3 +30,5 @@
   - or maybe just show a spinner while downloading the zip
 - diagnostics (look for other node installs that could be conflicting)
 - proper grammar for node version specifiers
+- apt, homebrew, chocolatey releases
+- `nodeup selfupdate`

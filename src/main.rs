@@ -98,9 +98,20 @@ fn main() {
                 None
             };
 
-            match current::get(which) {
-                Ok(version) => { println!("v{}", version); }
-                Err(err) => {
+            match (which.is_some(), current::get(which)) {
+                (true, Ok(Some(version))) => {
+                    println!("v{}", version);
+                }
+                (true, Ok(None)) => {
+                    exit(1);
+                }
+                (false, Ok(_)) => {
+                    // FIXME: report on all three:
+                    //   vx.y.z (local)
+                    //   va.b.c (global)
+                    unimplemented!()
+                }
+                (_, Err(err)) => {
                     nodeup_core::display_error(err);
                     exit(1);
                 }

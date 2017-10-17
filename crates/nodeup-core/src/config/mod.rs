@@ -71,10 +71,22 @@ fn ensure_config_exists(path: &Path) -> io::Result<File> {
 }
 
 fn open() -> ::Result<File> {
-    if let Some(path) = project_config_file() {
-        let file = File::open(path)?;
-        return Ok(file);
+    if let Some(file) = open_local()? {
+        Ok(file)
+    } else {
+        open_global()
     }
+}
+
+fn open_local() -> ::Result<Option<File>> {
+    if let Some(path) = project_config_file() {
+        Ok(Some(File::open(path)?))
+    } else {
+        Ok(None)
+    }
+}
+
+fn open_global() -> ::Result<File> {
     let path = user_config_file()?;
     let file = ensure_config_exists(&path)?;
     Ok(file)
@@ -84,15 +96,10 @@ pub struct Config {
     pub node: Version
 }
 
-pub fn read() -> ::Result<Config> {
-    let mut cfg_file = open()?;
+fn parse(src: &str) -> ::Result<Config> {
+    let toml = src.parse::<Value>()?;
 
-    let mut cfg_contents = String::new();
-    cfg_file.read_to_string(&mut cfg_contents)?;
-
-    let cfg_toml = cfg_contents.parse::<Value>()?;
-
-    if let Value::Table(mut root) = cfg_toml {
+    if let Value::Table(mut root) = toml {
         if let Some(Value::Table(mut node)) = root.remove("node") {
             if let Some(Value::String(version)) = node.remove("version") {
                 return Ok(Config {
@@ -107,4 +114,26 @@ pub fn read() -> ::Result<Config> {
     } else {
         bail!(::ErrorKind::ConfigError(String::from("<root>")));
     }
+}
+
+fn parse_file(mut file: File) -> ::Result<Config> {
+    let mut source = String::new();
+    file.read_to_string(&mut source)?;
+    parse(&source)
+}
+
+pub fn read() -> ::Result<Config> {
+    parse_file(open()?)
+}
+
+pub fn read_local() -> ::Result<Option<Config>> {
+    if let Some(file) = open_local()? {
+        Ok(Some(parse_file(file)?))
+    } else {
+        Ok(None)
+    }
+}
+
+pub fn read_global() -> ::Result<Config> {
+    parse_file(open_global()?)
 }
