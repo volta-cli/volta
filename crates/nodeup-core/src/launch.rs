@@ -1,12 +1,11 @@
-use std::env;
-use std::env::ArgsOs;
+use std::env::{args_os, ArgsOs};
 use std::ffi::{OsString, OsStr};
 use std::process::{Command, ExitStatus, exit};
 
 use config::{self, Config};
 use version::Version;
 use install;
-use path;
+use env;
 
 fn exec_with<F: FnOnce() -> ::Result<Command>>(get_command: F) -> ::Result<ExitStatus> {
     let mut command = get_command()?;
@@ -35,7 +34,7 @@ pub fn prepare() -> ::Result<OsString> {
 
     install::by_version(&version)?;
 
-    Ok(path::for_version(&version))
+    Ok(env::path_for(&version))
 }
 
 /**
@@ -44,7 +43,7 @@ pub fn prepare() -> ::Result<OsString> {
  * of `argv`).
  */
 fn split_command() -> (OsString, ArgsOs) {
-    let mut args = env::args_os();
+    let mut args = args_os();
     // FIXME: make an error kind for this case
     let arg0 = args.next().unwrap();
     (arg0, args)

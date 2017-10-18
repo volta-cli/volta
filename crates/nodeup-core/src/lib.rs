@@ -17,7 +17,7 @@ pub mod config;
 pub mod provision;
 pub mod install;
 pub mod uninstall;
-pub mod path;
+pub mod env;
 pub mod launch;
 pub mod version;
 pub mod current;
