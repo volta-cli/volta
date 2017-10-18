@@ -22,6 +22,8 @@ pub mod launch;
 pub mod version;
 pub mod current;
 pub mod project;
+pub mod manifest;
+pub mod lockfile;
 
 mod errors {
     use node_archive;
@@ -47,9 +49,17 @@ mod errors {
                 description("unknown system folder")
                 display("unknown system folder: '{}'", name)
             }
+            VersionParseError(src: String) {
+                description("invalid version specifier")
+                display("invalid version specifier: {}", src)
+            }
             ManifestError(msg: String) {
                 description("manifest error")
                 display("invalid manifest: {}", msg)
+            }
+            LockfileError(msg: String) {
+                description("lockfile error")
+                display("invalid lockfile: {}", msg)
             }
         }
     }
