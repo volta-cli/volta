@@ -5,6 +5,7 @@ extern crate indicatif;
 extern crate term_size;
 extern crate toml;
 extern crate node_archive;
+extern crate serde_json;
 
 #[macro_use]
 extern crate error_chain;
@@ -20,6 +21,7 @@ pub mod path;
 pub mod launch;
 pub mod version;
 pub mod current;
+pub mod project;
 
 mod errors {
     use node_archive;
@@ -33,6 +35,7 @@ mod errors {
         foreign_links {
             Toml(toml::de::Error);
             Io(::std::io::Error);
+            Json(::serde_json::error::Error);
         }
 
         errors {
@@ -43,6 +46,10 @@ mod errors {
             UnknownSystemFolder(name: String) {
                 description("unknown system folder")
                 display("unknown system folder: '{}'", name)
+            }
+            ManifestError(msg: String) {
+                description("manifest error")
+                display("invalid manifest: {}", msg)
             }
         }
     }

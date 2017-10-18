@@ -1,0 +1,9 @@
+{
+  "nodeup-env": {
+    "node": "stable",
+    "yarn": "1.2",
+    "dependencies": {
+      "ember": "ember-cli"
+    }
+}
+

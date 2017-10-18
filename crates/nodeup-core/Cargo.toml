@@ -9,6 +9,7 @@ term_size = "0.3.0"
 indicatif = "0.7.0"
 console = "0.5.0"
 error-chain = "0.11.0"
+serde_json = "1.0.3"
 node-archive = { path = "../node-archive" }
 
 [target.'cfg(windows)'.dependencies]
