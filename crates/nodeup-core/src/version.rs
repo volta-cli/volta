@@ -1,16 +1,26 @@
 use std::path::PathBuf;
 use std::str::FromStr;
-
-// const LATEST_URL: &'static str = "http://nodejs.org/dist/latest/SHASUMS256.txt";
+use std::fmt::{Display, Formatter};
 
 pub enum Version {
     Public(String)
 }
 
+#[derive(Clone)]
 pub enum VersionSpec {
     Latest,
     Path(PathBuf),
     Specific(String)
+}
+
+impl Display for VersionSpec {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), ::std::fmt::Error> {
+        match *self {
+            VersionSpec::Latest => f.write_str("latest"),
+            VersionSpec::Path(ref path) => path.to_string_lossy().fmt(f),
+            VersionSpec::Specific(ref spec) => f.write_str(spec)
+        }
+    }
 }
 
 impl FromStr for VersionSpec {

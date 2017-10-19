@@ -7,32 +7,7 @@ use std::io::{Read, Write};
 use toml::Value;
 
 use version::Version;
-
-#[cfg(not(windows))]
-mod unix;
-
-#[cfg(not(windows))]
-pub use self::unix::*;
-
-#[cfg(windows)]
-mod windows;
-
-#[cfg(windows)]
-pub use self::windows::*;
-
-const PUBLIC_NODE_SERVER_ROOT: &'static str = "https://nodejs.org/dist/";
-
-pub fn archive_file(version: &str) -> String {
-    format!("{}.{}", archive_root_dir(version), archive_extension())
-}
-
-pub fn archive_root_dir(version: &str) -> String {
-    format!("node-v{}-{}-{}", version, OS, ARCH)
-}
-
-pub fn public_node_url(version: &str, archive: &str) -> String {
-    format!("{}v{}/{}", PUBLIC_NODE_SERVER_ROOT, version, archive)
-}
+use path::user_config_file;
 
 fn local_config(dir: &Path) -> Option<PathBuf> {
     let config_path = dir.join(".nodeup.toml");

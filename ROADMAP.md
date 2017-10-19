@@ -1,5 +1,9 @@
 # Demo blockers
 
+- lockfile logic
+  * s/config/global/
+  * `read_config` becomes `read_global`
+  * global state queries go in global
 - `nodeup current --local` shouldn't be calling `config::read()`
 - user-global state (`nodeup current --global` et al)
 - unix script launchers
@@ -13,15 +17,14 @@
 
 - add npx to the set of {bin,script}stubs
 - proper behavior for executable-not-found
+- acceptance test harness
 
 # Quality improvements
 
 - add UI to windows installer
 - appveyor tests
 - appveyor deploy script:
-  - generate msi with wix toolset
-    - `candle -ext WixUtilExtension support\windows\Nodeup.wxs`
-    - `light -ext WixUtilExtension Nodeup.wixobj`
+  - generate msi
   - publish to GitHub release
 - travis tests
 - travis deploy script
@@ -32,3 +35,5 @@
 - proper grammar for node version specifiers
 - apt, homebrew, chocolatey releases
 - `nodeup selfupdate`
+- hooks for corporate metrics
+- offline support

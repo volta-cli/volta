@@ -1,10 +1,9 @@
-use std::fs::File;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
+use std::env;
 
-use serde_json;
-
-use manifest::{Manifest, parse};
+use manifest::{self, Manifest};
+use lockfile::{self, Lockfile};
 
 fn is_node_root(dir: &Path) -> bool {
     dir.join("package.json").is_file()
@@ -18,27 +17,51 @@ fn is_dependency(dir: &Path) -> bool {
     dir.parent().map_or(false, |parent| is_node_modules(parent))
 }
 
-pub fn is_project_root(dir: &Path) -> bool {
+fn is_project_root(dir: &Path) -> bool {
     is_node_root(dir) && !is_dependency(dir)
 }
 
-pub fn find_project_root(mut dir: &Path) -> Option<&Path> {
-    while !is_project_root(dir) {
-        dir = match dir.parent() {
-            Some(parent) => parent,
-            None => { return None; }
-        }
-    }
-    return Some(dir);
+pub struct Project {
+    root: PathBuf,
+    manifest: Manifest,
+    lockfile: Option<Lockfile>
 }
 
-pub fn find_manifest(dir: &Path) -> ::Result<Option<Manifest>> {
-    let root = match find_project_root(dir) {
-        Some(root) => root,
-        None => { return Ok(None); }
-    };
+impl Project {
+    pub fn for_current_dir() -> ::Result<Option<Project>> {
+        let mut dir: &Path = &env::current_dir()?;
 
-    let file = File::open(root.join("package.json"))?;
+        while !is_project_root(dir) {
+            dir = match dir.parent() {
+                Some(parent) => parent,
+                None => { return Ok(None); }
+            }
+        }
 
-    parse(serde_json::de::from_reader(file)?)
+        let manifest = match manifest::read(&dir)? {
+            Some(manifest) => manifest,
+            None => { return Ok(None); }
+        };
+
+        Ok(Some(Project {
+            root: dir.to_path_buf(),
+            manifest: manifest,
+            lockfile: None
+        }))
+    }
+
+    pub fn manifest(&self) -> &Manifest {
+        &self.manifest
+    }
+
+    pub fn lockfile(&mut self) -> ::Result<&Lockfile> {
+        self.lockfile = Some(if !lockfile::exists(&self.root) {
+            let lockfile = self.manifest.resolve()?;
+            lockfile.save(&self.root)?;
+            lockfile
+        } else {
+            lockfile::read(&self.root)?
+        });
+        Ok(self.lockfile.as_ref().unwrap())
+    }
 }

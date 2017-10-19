@@ -13,7 +13,7 @@ extern crate error_chain;
 #[cfg(windows)]
 extern crate winfolder;
 
-pub mod config;
+pub mod path;
 pub mod provision;
 pub mod install;
 pub mod uninstall;
@@ -24,6 +24,7 @@ pub mod current;
 pub mod project;
 pub mod manifest;
 pub mod lockfile;
+pub mod config;
 
 mod errors {
     use node_archive;

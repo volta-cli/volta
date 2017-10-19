@@ -1,12 +1,15 @@
 use std::collections::HashMap;
+use std::path::Path;
+use std::fs::File;
+use std::io::{Read, Write};
 
 use toml::value::{Value, Table};
 
 use version::VersionSpec;
 
 pub struct Entry {
-    specifier: VersionSpec,
-    version: String
+    pub specifier: VersionSpec,
+    pub version: String
 }
 
 /*
@@ -26,6 +29,17 @@ pub struct Lockfile {
     pub node: Entry,
     pub yarn: Option<Entry>,
     pub dependencies: HashMap<String, String>
+}
+
+impl Lockfile {
+    pub fn save(&self, project_root: &Path) -> ::Result<()> {
+        let mut file = File::create(project_root.join(".nodeup.lock"))?;
+        file.write_all(b"[node]\n")?;
+        file.write_fmt(format_args!("specifier = \"{}\"\n", self.node.specifier))?;
+        file.write_fmt(format_args!("version = \"{}\"\n", self.node.version))?;
+        // FIXME: serialize the rest
+        Ok(())
+    }
 }
 
 trait ParseToml {
@@ -74,4 +88,15 @@ pub fn parse(src: &str) -> ::Result<Lockfile> {
         yarn: None,
         dependencies: HashMap::new()
     })
+}
+
+pub fn read(project_root: &Path) -> ::Result<Lockfile> {
+    let mut file = File::open(project_root.join(".nodeup.lock"))?;
+    let mut source = String::new();
+    file.read_to_string(&mut source)?;
+    parse(&source)
+}
+
+pub fn exists(project_root: &Path) -> bool {
+    project_root.join(".nodeup.lock").exists()
 }

@@ -1,13 +1,52 @@
 use std::collections::HashMap;
+use std::path::Path;
+use std::fs::File;
 
+use serde_json;
 use serde_json::value::Value;
 
 use version::{Version, VersionSpec};
+use lockfile::{self, Lockfile};
 
 pub struct Manifest {
     pub node: VersionSpec,
     pub yarn: Option<Version>,
     pub dependencies: HashMap<String, String>
+}
+
+// const LATEST_URL: &'static str = "http://nodejs.org/dist/latest/SHASUMS256.txt";
+
+fn resolve_node(spec: &VersionSpec) -> ::Result<lockfile::Entry> {
+    let version = match *spec {
+        VersionSpec::Latest => {
+            unimplemented!()
+        }
+        VersionSpec::Path(_) => {
+            unimplemented!()
+        }
+        VersionSpec::Specific(ref version) => {
+            version.clone()
+        }
+    };
+    Ok(lockfile::Entry {
+        specifier: spec.clone(),
+        version: version
+    })
+}
+
+impl Manifest {
+    pub fn resolve(&self) -> ::Result<Lockfile> {
+        Ok(Lockfile {
+            node: resolve_node(&self.node)?,
+            yarn: None,
+            dependencies: HashMap::new()
+        })
+    }
+}
+
+pub fn read(project_root: &Path) -> ::Result<Option<Manifest>> {
+    let file = File::open(project_root.join("package.json"))?;
+    parse(serde_json::de::from_reader(file)?)
 }
 
 pub fn parse(value: Value) -> ::Result<Option<Manifest>> {

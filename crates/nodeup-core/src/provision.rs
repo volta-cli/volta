@@ -3,7 +3,7 @@ use std::fs::{File, rename};
 use indicatif::{ProgressBar, ProgressStyle};
 use term_size;
 
-use config;
+use path;
 use node_archive::{Archive, Source};
 
 #[cfg(not(windows))]
@@ -17,6 +17,12 @@ use node_archive::zip::{self as archive, Zip as ArchiveFormat};
 
 #[cfg(windows)]
 use std::io::{Seek as Streaming};
+
+const PUBLIC_NODE_SERVER_ROOT: &'static str = "https://nodejs.org/dist/";
+
+fn public_node_url(version: &str, archive: &str) -> String {
+    format!("{}v{}/{}", PUBLIC_NODE_SERVER_ROOT, version, archive)
+}
 
 fn progress_bar(msg: &str, len: u64) -> ProgressBar {
     let display_width = term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
@@ -40,16 +46,16 @@ fn progress_bar(msg: &str, len: u64) -> ProgressBar {
 }
 
 pub fn by_version(dest: &Path, version: &str) -> ::Result<()> {
-    let archive_file = config::archive_file(version);
+    let archive_file = path::archive_file(version);
 
-    let cache_file = config::node_cache_dir()?.join(&archive_file);
+    let cache_file = path::node_cache_dir()?.join(&archive_file);
 
     if cache_file.is_file() {
         let file = File::open(cache_file)?;
         let source = archive::Cached::load(file)?;
         by_source(dest, version, source)?;
     } else {
-        let url = config::public_node_url(version, &archive_file);
+        let url = public_node_url(version, &archive_file);
         // FIXME: pass the cache file path too so it can be tee'ed as it's fetched
         let source = archive::Public::fetch(&url, &cache_file)?;
         by_source(dest, version, source)?;
@@ -68,8 +74,8 @@ fn by_source<S: Source + Streaming>(dest: &Path, version: &str, source: S) -> ::
 
     archive.unpack(dest)?;
 
-    rename(dest.join(config::archive_root_dir(version)),
-           config::node_version_dir(version)?)?;
+    rename(dest.join(path::archive_root_dir(version)),
+           path::node_version_dir(version)?)?;
 
     bar.finish_and_clear();
     Ok(())

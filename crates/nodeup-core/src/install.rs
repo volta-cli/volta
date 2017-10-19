@@ -1,5 +1,5 @@
 use provision;
-use config;
+use path;
 
 pub enum Installed {
     Previously,
@@ -7,10 +7,10 @@ pub enum Installed {
 }
 
 pub fn by_version(version: &str) -> ::Result<Installed> {
-    if config::node_version_dir(version)?.is_dir() {
+    if path::node_version_dir(version)?.is_dir() {
         Ok(Installed::Previously)
     } else {
-        let dest = config::node_versions_dir()?;
+        let dest = path::node_versions_dir()?;
         provision::by_version(&dest, version)?;
         Ok(Installed::Now)
     }

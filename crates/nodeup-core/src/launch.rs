@@ -2,7 +2,7 @@ use std::env::{args_os, ArgsOs};
 use std::ffi::{OsString, OsStr};
 use std::process::{Command, ExitStatus, exit};
 
-use config::{self, Config};
+use project::Project;
 use version::Version;
 use install;
 use env;
@@ -30,11 +30,11 @@ fn exec<F: FnOnce() -> ::Result<Command>>(get_command: F) -> ! {
 }
 
 pub fn prepare() -> ::Result<OsString> {
-    let Config { node: Version::Public(version) } = config::read()?;
-
-    install::by_version(&version)?;
-
-    Ok(env::path_for(&version))
+    let mut project = Project::for_current_dir()?.unwrap();
+    let lockfile = project.lockfile()?;
+    let version = &lockfile.node.version;
+    install::by_version(version)?;
+    Ok(env::path_for(version))
 }
 
 /**

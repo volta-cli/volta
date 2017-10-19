@@ -1,10 +1,10 @@
 use std::fs::remove_dir_all;
 use std::io;
 
-use config;
+use path;
 
 pub fn by_version(version: &str) -> ::Result<()> {
-    let home = config::node_version_dir(version)?;
+    let home = path::node_version_dir(version)?;
 
     if !home.is_dir() {
         bail!(io::Error::new(
