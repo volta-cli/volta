@@ -5,12 +5,12 @@
   * `read_config` becomes `read_global`
   * global state queries go in global
   * `nodeup current --local` shouldn't be calling `config::read()`
+- windows installer isn't killing the node installation directories
 - unix script launchers
+- unix bash install script
 - pedagogy/PR: how should we talk about this approach?
   - terminology for the basic technique (as well as the alternatives)
   - what is the high-level intuition without diving deep into how it all works?
-- windows installer isn't killing the node installation directories
-- unix bash install script
 
 # Basic functionality
 
