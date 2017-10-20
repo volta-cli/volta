@@ -1,6 +1,5 @@
 # Demo blockers
 
-- UI to set global state: `nodeup use --global 8.6.0`
 - bug: windows path length bugs when unpacking node 8.5
 - windows installer isn't killing the node installation directories
 - unix script launchers
@@ -14,6 +13,7 @@
 - add npx to the set of {bin,script}stubs
 - proper behavior for executable-not-found
 - acceptance test harness
+- complete version parsing (e.g. "8" because "8.latest" and "8.5" becomes "8.5.latest")
 
 # Quality improvements
 
