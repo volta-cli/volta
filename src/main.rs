@@ -6,7 +6,7 @@ use std::process::exit;
 
 use clap::{Arg, ArgGroup, App, SubCommand};
 
-use nodeup_core::current;
+use nodeup_core::{current, die};
 
 fn main() {
     let app = App::new("nodeup")
@@ -88,32 +88,34 @@ fn main() {
         Some("use")       => { not_yet_implemented("use"); }
         Some("current")   => {
             let submatches = matches.subcommand_matches("current").unwrap();
-            let which = if submatches.is_present("local") {
-                Some(current::Which::Local)
+            // FIXME: abstract the bodies here
+            if submatches.is_present("local") {
+                match current::local() {
+                    Ok(Some(version)) => { println!("v{}", version); }
+                    Ok(None)          => { exit(1); }
+                    Err(err)          => { die(err); }
+                }
             } else if submatches.is_present("global") {
-                Some(current::Which::Global)
-            } else if submatches.is_present("system") {
-                Some(current::Which::System)
+                match current::global() {
+                    Ok(Some(version)) => { println!("v{}", version); }
+                    Ok(None)          => { exit(1); }
+                    Err(err)          => { die(err); }
+                }
             } else {
-                None
-            };
-
-            match (which.is_some(), current::get(which)) {
-                (true, Ok(Some(version))) => {
-                    println!("v{}", version);
-                }
-                (true, Ok(None)) => {
-                    exit(1);
-                }
-                (false, Ok(_)) => {
-                    // FIXME: report on all three:
-                    //   vx.y.z (local)
-                    //   va.b.c (global)
-                    unimplemented!()
-                }
-                (_, Err(err)) => {
-                    nodeup_core::display_error(err);
-                    exit(1);
+                match current::both() {
+                    Ok((local, global)) => {
+                        // FIXME: abstract this
+                        for version in local {
+                            println!("v{} (local)", version);
+                        }
+                        for version in global {
+                            println!("v{} (global)", version);
+                        }
+                        if local.is_none() && global.is_none() {
+                            exit(1);
+                        }
+                    }
+                    Err(err) => { die(err); }
                 }
             }
         }

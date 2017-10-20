@@ -1,29 +1,22 @@
 //use config::{self, Config};
 use version::Version;
+use global::{self, State};
+use project::Project;
 
-pub enum Which {
-    Local,
-    Global,
-    System
+pub fn local() -> ::Result<Option<String>> {
+    match Project::for_current_dir()? {
+        Some(mut project) => {
+            Ok(Some(project.lockfile()?.node.version.clone()))
+        }
+        None => Ok(None)
+    }
 }
 
-pub fn get(which: Option<Which>) -> ::Result<Option<String>> {
-    match which {
-        Some(Which::Local) => {
-            //Ok(config::read_local()?.map(|Config { node: Version::Public(version) }| version))
-            unimplemented!()
-        }
-        Some(Which::Global) => {
-            //let Config { node: Version::Public(version) } = config::read_global()?;
-            //Ok(Some(version))
-            unimplemented!()
-        }
-        Some(Which::System) => {
-            unimplemented!()
-        }
-        None => {
-            // FIXME: print out all three
-            unimplemented!()
-        }
-    }
+pub fn global() -> ::Result<Option<String>> {
+    let state = global::state()?;
+    Ok(state.node.map(|Version::Public(version)| version))
+}
+
+pub fn both() -> ::Result<(Option<String>, Option<String>)> {
+    Ok((local()?, global()?))
 }

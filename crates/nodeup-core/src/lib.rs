@@ -24,7 +24,10 @@ pub mod current;
 pub mod project;
 pub mod manifest;
 pub mod lockfile;
-pub mod config;
+pub mod global;
+mod untoml;
+
+use std::process::exit;
 
 mod errors {
     use node_archive;
@@ -79,6 +82,11 @@ pub fn display_error(err: ::Error) {
     if let Some(backtrace) = err.backtrace() {
         eprintln!("backtrace: {:?}", backtrace);
     }
+}
+
+pub fn die(err: ::Error) -> ! {
+    display_error(err);
+    exit(1);
 }
 
 /*

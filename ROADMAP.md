@@ -1,10 +1,7 @@
 # Demo blockers
 
-- user-global state (`nodeup current --global` et al)
-  * s/config/global/
-  * `read_config` becomes `read_global`
-  * global state queries go in global
-  * `nodeup current --local` shouldn't be calling `config::read()`
+- UI to set global state: `nodeup use --global 8.6.0`
+- bug: windows path length bugs when unpacking node 8.5
 - windows installer isn't killing the node installation directories
 - unix script launchers
 - unix bash install script
