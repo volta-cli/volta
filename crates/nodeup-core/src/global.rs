@@ -9,6 +9,8 @@ use toml::value::{Value, Table};
 use version::Version;
 use path::user_config_file;
 use untoml::{ParseToml, Extract};
+use install;
+
 use ::ErrorKind::ConfigError as CE;
 
 pub struct State {
@@ -26,10 +28,35 @@ fn ensure_config_exists(path: &Path) -> io::Result<File> {
 
 pub fn state() -> ::Result<State> {
     let path = user_config_file()?;
-    let mut file = ensure_config_exists(&path)?;
+    load(&path)
+}
+
+fn load(path: &Path) -> ::Result<State> {
+    let mut file = ensure_config_exists(path)?;
     let mut source = String::new();
     file.read_to_string(&mut source)?;
     parse(&source)
+}
+
+fn save(path: &Path, state: &State) -> ::Result<()> {
+    let mut file = File::create(path)?;
+    if let Some(Version::Public(ref version)) = state.node {
+        file.write_all(b"[node]\n")?;
+        file.write_fmt(format_args!("version = \"{}\"\n", version))?;
+    }
+    Ok(())
+}
+
+pub fn set(version: Version) -> ::Result<()> {
+    {
+        let &Version::Public(ref version) = &version;
+        install::by_version(version)?;
+    }
+    let path = user_config_file()?;
+    let mut state = load(&path)?;
+    state.node = Some(version);
+    save(&path, &state)?;
+    Ok(())
 }
 
 fn parse_node_version(root: &mut Table) -> ::Result<Option<Version>> {

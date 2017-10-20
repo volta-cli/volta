@@ -7,6 +7,8 @@ use std::process::exit;
 use clap::{Arg, ArgGroup, App, SubCommand};
 
 use nodeup_core::{current, die};
+use nodeup_core::global;
+use nodeup_core::version::Version;
 
 fn main() {
     let app = App::new("nodeup")
@@ -30,6 +32,11 @@ fn main() {
         // nodeup use [version]
         .subcommand(SubCommand::with_name("use")
             .about("activate a particular toolchain version")
+            .arg(Arg::with_name("global")
+                .short("g")
+                .long("global")
+                .help("")
+                .required(false))
             .arg(Arg::with_name("version")
                 .help("Node.js version specifier")
                 .required(false)))
@@ -85,7 +92,18 @@ fn main() {
                 exit(1);
             }
         }
-        Some("use")       => { not_yet_implemented("use"); }
+        Some("use")       => {
+            let submatches = matches.subcommand_matches("use").unwrap();
+            if submatches.is_present("global") {
+                match global::set(Version::Public(String::from(submatches.value_of("version").unwrap()))) {
+                    Ok(_) => { }
+                    Err(err) => { die(err); }
+                }
+            } else {
+                println!("not yet implemented; in the meantime you can modify your package.json.");
+                exit(1);
+            }
+        }
         Some("current")   => {
             let submatches = matches.subcommand_matches("current").unwrap();
             // FIXME: abstract the bodies here
@@ -104,14 +122,16 @@ fn main() {
             } else {
                 match current::both() {
                     Ok((local, global)) => {
+                        let global_active = local.is_none() && global.is_some();
+                        let none = local.is_none() && global.is_none();
                         // FIXME: abstract this
                         for version in local {
-                            println!("v{} (local)", version);
+                            println!("local: v{} (active)", version);
                         }
                         for version in global {
-                            println!("v{} (global)", version);
+                            println!("global: v{}{}", version, if global_active { " (active)" } else { "" });
                         }
-                        if local.is_none() && global.is_none() {
+                        if none {
                             exit(1);
                         }
                     }
