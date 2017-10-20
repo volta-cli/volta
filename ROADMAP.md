@@ -1,11 +1,10 @@
 # Demo blockers
 
-- lockfile logic
+- user-global state (`nodeup current --global` et al)
   * s/config/global/
   * `read_config` becomes `read_global`
   * global state queries go in global
-- `nodeup current --local` shouldn't be calling `config::read()`
-- user-global state (`nodeup current --global` et al)
+  * `nodeup current --local` shouldn't be calling `config::read()`
 - unix script launchers
 - pedagogy/PR: how should we talk about this approach?
   - terminology for the basic technique (as well as the alternatives)
