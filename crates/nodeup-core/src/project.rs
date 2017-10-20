@@ -60,7 +60,12 @@ impl Project {
             lockfile.save(&self.root)?;
             lockfile
         } else {
-            lockfile::read(&self.root)?
+            let mut lockfile = lockfile::read(&self.root)?;
+            if !self.manifest.matches(&lockfile) {
+                lockfile = self.manifest.resolve()?;
+                lockfile.save(&self.root)?;
+            }
+            lockfile
         });
         Ok(self.lockfile.as_ref().unwrap())
     }

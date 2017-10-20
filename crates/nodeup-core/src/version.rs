@@ -2,11 +2,12 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::fmt::{Display, Formatter};
 
+#[derive(Eq, PartialEq)]
 pub enum Version {
     Public(String)
 }
 
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq)]
 pub enum VersionSpec {
     Latest,
     Path(PathBuf),

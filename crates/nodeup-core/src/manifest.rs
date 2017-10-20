@@ -42,6 +42,11 @@ impl Manifest {
             dependencies: HashMap::new()
         })
     }
+
+    pub fn matches(&self, lockfile: &Lockfile) -> bool {
+        // FIXME: && compare the others too
+        self.node == lockfile.node.specifier
+    }
 }
 
 pub fn read(project_root: &Path) -> ::Result<Option<Manifest>> {
