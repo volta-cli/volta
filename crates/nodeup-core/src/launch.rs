@@ -1,6 +1,7 @@
 use std::env::{args_os, ArgsOs};
 use std::ffi::{OsString, OsStr};
 use std::process::{Command, ExitStatus, exit};
+use std::path::Path;
 
 use project::Project;
 use version::Version;
@@ -45,7 +46,7 @@ pub fn prepare() -> ::Result<OsString> {
 fn split_command() -> (OsString, ArgsOs) {
     let mut args = args_os();
     // FIXME: make an error kind for this case
-    let arg0 = args.next().unwrap();
+    let arg0 = Path::new(&args.next().unwrap()).file_name().unwrap().to_os_string();
     (arg0, args)
 }
 
