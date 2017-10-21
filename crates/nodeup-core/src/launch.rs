@@ -4,6 +4,8 @@ use std::process::{Command, ExitStatus, exit};
 use std::path::Path;
 
 use project::Project;
+use global::{self, State};
+use version::Version;
 use install;
 use env;
 
@@ -30,11 +32,17 @@ fn exec<F: FnOnce() -> ::Result<Command>>(get_command: F) -> ! {
 }
 
 pub fn prepare() -> ::Result<OsString> {
-    let mut project = Project::for_current_dir()?.unwrap();
-    let lockfile = project.lockfile()?;
-    let version = &lockfile.node.version;
-    install::by_version(version)?;
-    Ok(env::path_for(version))
+    if let Some(mut project) = Project::for_current_dir()? {
+        let version = &project.lockfile()?.node.version;
+        install::by_version(version)?;
+        Ok(env::path_for(version))
+    } else if let State { node: Some(Version::Public(ref version)) } = global::state()? {
+        install::by_version(version)?;
+        Ok(env::path_for(version))
+    } else {
+        eprintln!("error: no current node version");
+        exit(1);
+    }
 }
 
 /**
