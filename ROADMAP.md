@@ -10,6 +10,7 @@
 # Basic functionality
 
 - add npx to the set of {bin,script}stubs
+- package executables
 - proper behavior for executable-not-found
 - acceptance test harness
 - complete version parsing (e.g. "8" because "8.latest" and "8.5" becomes "8.5.latest")
