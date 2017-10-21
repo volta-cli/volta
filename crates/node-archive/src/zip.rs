@@ -7,6 +7,7 @@ use std::fs::{File, create_dir_all};
 use reqwest;
 use progress_read::ProgressRead;
 use zip_rs::ZipArchive;
+use untss;
 
 pub struct Cached {
     compressed_size: u64,
@@ -106,19 +107,33 @@ impl<S: Source + Seek, F: FnMut(&(), usize)> Zip<S, F> {
 
 impl<S: Source + Seek, F: FnMut(&(), usize)> Archive for Zip<S, F> {
     fn unpack(self, dest: &Path) -> ::Result<()> {
+        // On Windows, use a verbatim path to avoid the legacy 260 byte path limit.
+        #[cfg(windows)]
+        let dest: &Path = &untss::untss(dest);
+
         let mut zip = self.archive;
         for i in 0..zip.len() {
             let mut entry = zip.by_index(i)?;
-            //println!("name: {:?}", entry.name());
-            if entry.name().ends_with('/') {
-                create_dir_all(dest.join(Path::new(entry.name())))?;
+
+            let (is_dir, subpath) = {
+                let name = entry.name();
+
+                (name.ends_with('/'), if cfg!(windows) {
+                    // Verbatim paths aren't preprocessed so we have to use correct r"\" separators.
+                    Path::new(&name.replace('/', r"\")).to_path_buf()
+                } else {
+                    Path::new(name).to_path_buf()
+                })
+            };
+
+            if is_dir {
+                create_dir_all(dest.join(subpath))?;
             } else {
                 let mut file = {
-                    let path = Path::new(entry.name());
-                    if let Some(basedir) = path.parent() {
+                    if let Some(basedir) = subpath.parent() {
                         create_dir_all(dest.join(basedir))?;
                     }
-                    File::create(dest.join(path))?
+                    File::create(dest.join(subpath))?
                 };
                 copy(&mut entry, &mut file)?;
             }

@@ -7,6 +7,7 @@ extern crate zip as zip_rs;
 extern crate reqwest;
 extern crate tee;
 extern crate progress_read;
+extern crate untss;
 
 #[macro_use]
 extern crate error_chain;

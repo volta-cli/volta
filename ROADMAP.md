@@ -1,6 +1,5 @@
 # Demo blockers
 
-- bug: windows path length bugs when unpacking node 8.5
 - windows installer isn't killing the node installation directories
 - unix script launchers
 - unix bash install script
