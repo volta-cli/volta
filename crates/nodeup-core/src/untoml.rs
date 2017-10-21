@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-use std::path::Path;
-
 use toml::value::{Value, Table};
 
 pub trait ParseToml {

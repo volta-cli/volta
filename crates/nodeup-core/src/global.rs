@@ -1,5 +1,4 @@
-use std::env;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::fs::{File, create_dir_all};
 use std::io;
 use std::io::{Read, Write};
@@ -21,7 +20,7 @@ fn ensure_config_exists(path: &Path) -> io::Result<File> {
     if !path.is_file() {
         let basedir = path.parent().unwrap();
         create_dir_all(basedir)?;
-        let mut file = File::create(path)?;
+        File::create(path)?;
     }
     File::open(path)
 }

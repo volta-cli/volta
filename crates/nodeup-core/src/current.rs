@@ -1,6 +1,5 @@
-//use config::{self, Config};
+use global;
 use version::Version;
-use global::{self, State};
 use project::Project;
 
 pub fn local() -> ::Result<Option<String>> {

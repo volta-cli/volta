@@ -4,7 +4,6 @@ use std::process::{Command, ExitStatus, exit};
 use std::path::Path;
 
 use project::Project;
-use version::Version;
 use install;
 use env;
 

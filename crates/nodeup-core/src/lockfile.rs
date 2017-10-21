@@ -3,7 +3,7 @@ use std::path::Path;
 use std::fs::File;
 use std::io::{Read, Write};
 
-use toml::value::{Value, Table};
+use toml::Value;
 
 use version::VersionSpec;
 use untoml::{ParseToml, Extract};
