@@ -9,7 +9,7 @@ pub const ARCH: &'static str = "x64";
 
 // C:\
 //     ProgramData\
-//         Nodeup\
+//         Standup\
 //             cache\                                  cache_dir
 //                 node\                               node_cache_dir
 //                     node-v4.8.4-win-x64.zip         archive_file("4.8.4")
@@ -29,7 +29,7 @@ pub const ARCH: &'static str = "x64";
 fn program_data_root() -> ::Result<PathBuf> {
     let pd = winfolder::known_path(&winfolder::id::PROGRAM_DATA)
         .ok_or_else(|| { ::ErrorKind::UnknownSystemFolder(String::from("PROGRAM_DATA")) })?;
-    Ok(pd.join("Nodeup"))
+    Ok(pd.join("Standup"))
 }
 
 pub fn cache_dir() -> ::Result<PathBuf> {
@@ -70,8 +70,8 @@ pub fn launchscript_file() -> ::Result<PathBuf> {
 
 // C:\
 //     Program Files\
-//         Nodeup\                                     bin_dir
-//             nodeup.exe                              nodeup_file
+//         Standup\                                    bin_dir
+//             standup.exe                             standup_file
 //             toolchain\                              toolchain_dir
 //                 node.exe                            toolchain_file("node")
 //                 npm.exe
@@ -81,15 +81,15 @@ pub fn launchscript_file() -> ::Result<PathBuf> {
 fn program_files_root() -> ::Result<PathBuf> {
     let pf = winfolder::known_path(&winfolder::id::PROGRAM_FILES_X64)
         .ok_or_else(|| { ::ErrorKind::UnknownSystemFolder(String::from("PROGRAM_FILES_X64")) })?;
-    Ok(pf.join("Nodeup"))
+    Ok(pf.join("Standup"))
 }
 
 pub fn bin_dir() -> ::Result<PathBuf> {
     program_files_root()
 }
 
-pub fn nodeup_file() -> ::Result<PathBuf> {
-    Ok(bin_dir()?.join("nodeup.exe"))
+pub fn standup_file() -> ::Result<PathBuf> {
+    Ok(bin_dir()?.join("standup.exe"))
 }
 
 pub fn toolchain_dir() -> ::Result<PathBuf> {
@@ -105,13 +105,13 @@ pub fn toolchain_file(toolname: &str) -> ::Result<PathBuf> {
 //         dherman\
 //             AppData\
 //                 Local\
-//                     Nodeup\
+//                     Standup\
 //                         config.toml                 user_config_file
 
 fn local_data_root() -> ::Result<PathBuf> {
     let adl = winfolder::known_path(&winfolder::id::LOCAL_APP_DATA)
         .ok_or_else(|| { ::ErrorKind::UnknownSystemFolder(String::from("LOCAL_APP_DATA")) })?;
-    Ok(adl.join("Nodeup"))
+    Ok(adl.join("Standup"))
 }
 
 pub fn user_config_file() -> ::Result<PathBuf> {

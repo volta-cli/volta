@@ -1,6 +1,6 @@
-extern crate nodeup_core;
+extern crate standup_core;
 
-use nodeup_core::launch;
+use standup_core::launch;
 
 fn main() {
     launch::script();

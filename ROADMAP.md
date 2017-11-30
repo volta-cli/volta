@@ -30,6 +30,6 @@
 - diagnostics (look for other node installs that could be conflicting)
 - proper grammar for node version specifiers
 - apt, homebrew, chocolatey releases
-- `nodeup selfupdate`
+- `standup selfupdate`
 - hooks for corporate metrics
 - offline support

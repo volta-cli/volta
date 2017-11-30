@@ -3,5 +3,5 @@
 SET dirname=%~dp0
 cd %dirname:~0,-1%
 
-candle -dNodeupProjectRoot=..\..\ -ext WixUtilExtension Nodeup.wxs
-light -ext WixUtilExtension Nodeup.wixobj
+candle -dStandupProjectRoot=..\..\ -ext WixUtilExtension Standup.wxs
+light -ext WixUtilExtension Standup.wixobj

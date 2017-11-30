@@ -1,6 +1,6 @@
 /target/
 **/*.rs.bk
-Nodeup.msi
+Standup.msi
 support/windows/*.log
-support/windows/Nodeup.wixobj
-support/windows/Nodeup.wixpdb
+support/windows/Standup.wixobj
+support/windows/Standup.wixpdb
