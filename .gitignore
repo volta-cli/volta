@@ -1,6 +1,6 @@
 /target/
 **/*.rs.bk
-Standup.msi
+Notion.msi
 support/windows/*.log
-support/windows/Standup.wixobj
-support/windows/Standup.wixpdb
+support/windows/Notion.wixobj
+support/windows/Notion.wixpdb

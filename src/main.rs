@@ -1,35 +1,35 @@
 extern crate clap;
-extern crate standup_core;
+extern crate notion_core;
 
 use std::io::Write;
 use std::process::exit;
 
 use clap::{Arg, ArgGroup, App, SubCommand};
 
-use standup_core::{current, die};
-use standup_core::global;
-use standup_core::version::Version;
+use notion_core::{current, die};
+use notion_core::global;
+use notion_core::version::Version;
 
 fn main() {
-    let app = App::new("standup")
+    let app = App::new("notion")
         .version("0.1")
-        .about("The Node toolchain manager")
+        .about("The hassle-free Node.js manager")
 
-        // standup install [version]
+        // notion install [version]
         .subcommand(SubCommand::with_name("install")
             .about("install a toolchain to the local machine")
             .arg(Arg::with_name("version")
                 .help("Node.js version specifier")
                 .required(true)))
 
-        // standup uninstall version
+        // notion uninstall version
         .subcommand(SubCommand::with_name("uninstall")
             .about("uninstall a toolchain from the local machine")
             .arg(Arg::with_name("version")
                 .help("Node.js version specifier")
                 .required(true)))
 
-        // standup use [version]
+        // notion use [version]
         .subcommand(SubCommand::with_name("use")
             .about("activate a particular toolchain version")
             .arg(Arg::with_name("global")
@@ -41,7 +41,7 @@ fn main() {
                 .help("Node.js version specifier")
                 .required(false)))
 
-        // standup current
+        // notion current
         .subcommand(SubCommand::with_name("current")
             .about("display the currently activated toolchain version")
             .arg(Arg::with_name("local")
@@ -63,11 +63,11 @@ fn main() {
                 .args(&["local", "global", "system"])
                 .required(false)))
 
-        // standup version
+        // notion version
         .subcommand(SubCommand::with_name("version")
-            .about("display the standup version"))
+            .about("display the notion version"))
 
-        // standup help
+        // notion help
         .subcommand(SubCommand::with_name("help")
             .about("display help information"));
 
@@ -79,16 +79,16 @@ fn main() {
         Some("install")   => {
             let submatches = matches.subcommand_matches("install").unwrap();
             let version = submatches.value_of("version").unwrap();
-            if let Err(err) = standup_core::install::by_version(&version) {
-                standup_core::display_error(err);
+            if let Err(err) = notion_core::install::by_version(&version) {
+                notion_core::display_error(err);
                 exit(1);
             }
         }
         Some("uninstall") => {
             let submatches = matches.subcommand_matches("uninstall").unwrap();
             let version = submatches.value_of("version").unwrap();
-            if let Err(err) = standup_core::uninstall::by_version(&version) {
-                standup_core::display_error(err);
+            if let Err(err) = notion_core::uninstall::by_version(&version) {
+                notion_core::display_error(err);
                 exit(1);
             }
         }

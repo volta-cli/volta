@@ -1,5 +1,5 @@
 {
-  "standup": {
+  "notion": {
     "node": "6.11.3",
     "yarn": "1.2",
     "dependencies": {

@@ -7,7 +7,7 @@ use path;
 /**
  * Produce a modified version of the current `PATH` environment varible that
  * will find Node.js executables in the installation directory for the given
- * version of Node instead of in the standup toolchain directory.
+ * version of Node instead of in the notion toolchain directory.
  */
 pub fn path_for(version: &str) -> OsString {
     let current = env::var_os("PATH").unwrap_or(OsString::new());

@@ -36,7 +36,7 @@ pub struct Lockfile {
 
 impl Lockfile {
     pub fn save(&self, project_root: &Path) -> ::Result<()> {
-        let mut file = File::create(project_root.join(".standup.lock"))?;
+        let mut file = File::create(project_root.join(".notion.lock"))?;
         file.write_all(b"[node]\n")?;
         file.write_fmt(format_args!("specifier = \"{}\"\n", self.node.specifier))?;
         file.write_fmt(format_args!("version = \"{}\"\n", self.node.version))?;
@@ -61,12 +61,12 @@ pub fn parse(src: &str) -> ::Result<Lockfile> {
 }
 
 pub fn read(project_root: &Path) -> ::Result<Lockfile> {
-    let mut file = File::open(project_root.join(".standup.lock"))?;
+    let mut file = File::open(project_root.join(".notion.lock"))?;
     let mut source = String::new();
     file.read_to_string(&mut source)?;
     parse(&source)
 }
 
 pub fn exists(project_root: &Path) -> bool {
-    project_root.join(".standup.lock").exists()
+    project_root.join(".notion.lock").exists()
 }

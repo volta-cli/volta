@@ -1,6 +1,6 @@
-extern crate standup_core;
+extern crate notion_core;
 
-use standup_core::launch;
+use notion_core::launch;
 
 fn main() {
     launch::binary();

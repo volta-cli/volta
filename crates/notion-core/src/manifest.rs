@@ -56,14 +56,14 @@ pub fn read(project_root: &Path) -> ::Result<Option<Manifest>> {
 
 pub fn parse(value: Value) -> ::Result<Option<Manifest>> {
     if let Value::Object(mut props) = value {
-        if let Some(standup_config) = props.remove("standup") {
-            return parse_standup_config(standup_config);
+        if let Some(notion_config) = props.remove("notion") {
+            return parse_notion_config(notion_config);
         }
     }
     Ok(None)
 }
 
-fn parse_standup_config(config: Value) -> ::Result<Option<Manifest>> {
+fn parse_notion_config(config: Value) -> ::Result<Option<Manifest>> {
     if let Value::Object(mut props) = config {
         let node = parse_node_version(props.remove("node")
             .ok_or(::ErrorKind::ManifestError(String::from("no node version specified")))?)?;
@@ -71,7 +71,7 @@ fn parse_standup_config(config: Value) -> ::Result<Option<Manifest>> {
         let dependencies = props.remove("dependencies").map_or(Ok(HashMap::new()), parse_dependencies)?;
         Ok(Some(Manifest { node, yarn: None, dependencies }))
     } else {
-        bail!(::ErrorKind::ManifestError(String::from("key 'standup' is not an object")));
+        bail!(::ErrorKind::ManifestError(String::from("key 'notion' is not an object")));
     }
 }
 

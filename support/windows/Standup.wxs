@@ -7,8 +7,8 @@
   -->
 
   <Product Id="10F5B6C9-7D75-411E-8686-3964129D022A"
-           Name="Standup"
-           Manufacturer="The Standup Maintainers"
+           Name="Notion"
+           Manufacturer="The Notion Maintainers"
            UpgradeCode="42A39E14-335A-4464-AA37-17FDA38FA377"
            Language="1033"
            Codepage="1252"
@@ -20,17 +20,17 @@
     -->
     <Package Id="*"
              Keywords="Installer"
-             Description="Standup installer"
-             Manufacturer="The Standup Maintainers"
+             Description="Notion installer"
+             Manufacturer="The Notion Maintainers"
              InstallerVersion="200"
              InstallScope="perMachine"
              Platform="x64"
              Languages="1033"
              SummaryCodepage="1252"
              Compressed="yes"/>
-    <MajorUpgrade DowngradeErrorMessage="A newer version of Standup is already installed." />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Notion is already installed." />
     <Media Id="1"
-           Cabinet="Standup.cab"
+           Cabinet="Notion.cab"
            EmbedCab="yes"/>
 
     <!-- creating empty directories: https://www.packtpub.com/mapt/book/application_development/9781849513722/2/ch02lvl1sec21/creating-an-empty-folder -->
@@ -41,7 +41,7 @@
                  KeyPath="yes">
         <CreateFolder />
         <!-- env vars: https://stackoverflow.com/questions/1931586/can-anyone-give-me-a-example-of-modifying-windows-environment-system-variables-i -->
-        <Environment Id="PATH" Name="PATH" Value="[ProgramFiles64Folder]Standup;[ProgramFiles64Folder]Standup\toolchain" Permanent="no" Part="first" Action="set" System="yes" />
+        <Environment Id="PATH" Name="PATH" Value="[ProgramFiles64Folder]Notion;[ProgramFiles64Folder]Notion\toolchain" Permanent="no" Part="first" Action="set" System="yes" />
         <RemoveFile Id="RemoveToolchainHardLinks" Directory="ToolchainDir" Name="*.exe" On="uninstall" />
         <RemoveFolder Id="RemoveToolchainDir" Directory="ToolchainDir" On="uninstall" />
       </Component>
@@ -55,7 +55,7 @@
       <Component Id="RemoveVersionsNodeDir"
                  Guid="*"
                  Win64="yes">
-        <RegistryKey Root="HKLM" Key="Software\Standup">
+        <RegistryKey Root="HKLM" Key="Software\Notion">
           <RegistryValue Name="NodeVersions"
                          Type="string"
                          Value="[VersionsNodeDir]"
@@ -72,7 +72,7 @@
     Secure = "yes": https://stackoverflow.com/questions/25011050/wix-removefolderex-not-working
     -->
     <Property Id="FINDVERSIONSNODEDIR" Secure="yes">
-      <RegistrySearch Id="RegistrySearchNodeVersions" Type="raw" Root="HKLM" Key="Software\Standup" Name="NodeVersions" />
+      <RegistrySearch Id="RegistrySearchNodeVersions" Type="raw" Root="HKLM" Key="Software\Notion" Name="NodeVersions" />
     </Property>
 
     <!-- creating empty directories: https://www.packtpub.com/mapt/book/application_development/9781849513722/2/ch02lvl1sec21/creating-an-empty-folder -->
@@ -100,14 +100,14 @@
 
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFiles64Folder" Name="PFiles">
-        <Directory Id="INSTALLDIR" Name="Standup">
-          <Component Id="StandupExecutable"
+        <Directory Id="INSTALLDIR" Name="Notion">
+          <Component Id="NotionExecutable"
                      Guid="F1FBF564-E557-47A8-96D3-EBD4ED39AF95"
                      Win64="yes">
-            <File Id="StandupEXE"
-                  Name="standup.exe"
+            <File Id="NotionEXE"
+                  Name="notion.exe"
                   DiskId="1"
-                  Source="$(var.StandupProjectRoot)target\release\standup.exe"
+                  Source="$(var.NotionProjectRoot)target\release\notion.exe"
                   KeyPath="yes">
             </File>
             <RemoveFolder Id="RemoveInstallDir" Directory="INSTALLDIR" On="uninstall" />
@@ -118,20 +118,20 @@
       </Directory>
 
       <Directory Id="CommonAppDataFolder" Name="PData">
-        <Directory Id="DataDir" Name="Standup">
+        <Directory Id="DataDir" Name="Notion">
           <Component Id="Launchers"
                      Guid="83786F85-45AF-4F3F-ACA2-8D6A83C21729"
                      Win64="yes">
             <File Id="LaunchbinEXE"
                   Name="launchbin.exe"
                   DiskId="1"
-                  Source="$(var.StandupProjectRoot)target\release\launchbin.exe"
+                  Source="$(var.NotionProjectRoot)target\release\launchbin.exe"
                   KeyPath="yes">
             </File>
             <File Id="LaunchscriptEXE"
                   Name="launchscript.exe"
                   DiskId="1"
-                  Source="$(var.StandupProjectRoot)target\release\launchscript.exe"
+                  Source="$(var.NotionProjectRoot)target\release\launchscript.exe"
                   KeyPath="no">
             </File>
             <RemoveFolder Id="RemoveDataDir" Directory="DataDir" On="uninstall" />
@@ -154,7 +154,7 @@
     -->
     <CustomAction Id="MakeBinLaunchers_set"
                   Property="MakeBinLaunchers"
-                  Value='"[SystemFolder]cmd.exe" /C mklink /H "[ProgramFiles64Folder]Standup\toolchain\node.exe" "[CommonAppDataFolder]Standup\launchbin.exe"'
+                  Value='"[SystemFolder]cmd.exe" /C mklink /H "[ProgramFiles64Folder]Notion\toolchain\node.exe" "[CommonAppDataFolder]Notion\launchbin.exe"'
                   Execute='immediate' />
     <CustomAction Id="MakeBinLaunchers"
                   BinaryKey="WixCA"
@@ -165,7 +165,7 @@
 
     <CustomAction Id="MakeScriptLaunchers_set"
                   Property="MakeScriptLaunchers"
-                  Value='"[SystemFolder]cmd.exe" /C mklink /H "[ProgramFiles64Folder]Standup\toolchain\npm.exe" "[CommonAppDataFolder]Standup\launchscript.exe"'
+                  Value='"[SystemFolder]cmd.exe" /C mklink /H "[ProgramFiles64Folder]Notion\toolchain\npm.exe" "[CommonAppDataFolder]Notion\launchscript.exe"'
                   Execute='immediate' />
     <CustomAction Id="MakeScriptLaunchers"
                   BinaryKey="WixCA"
@@ -183,7 +183,7 @@
     </InstallExecuteSequence>
 
     <Feature Id="Complete">
-      <ComponentRef Id='StandupExecutable'/>
+      <ComponentRef Id='NotionExecutable'/>
       <ComponentRef Id='Launchers'/>
       <ComponentRef Id='CreateToolchainDir'/>
       <ComponentRef Id='CreateVersionsNodeDir'/>

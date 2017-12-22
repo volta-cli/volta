@@ -16,7 +16,7 @@ pub const ARCH: &'static str = "x86";
 pub const ARCH: &'static str = "x64";
 
 // ~/
-//     .standup/
+//     .notion/
 //         cache/                                          cache_dir
 //             node/                                       node_cache_dir
 //                 node-dist-v4.8.4-linux-x64.tar.gz       archive_file("4.8.4")
@@ -31,7 +31,7 @@ pub const ARCH: &'static str = "x64";
 //                 8.6.0/
 //                 ...
 //         bin/                                            bin_dir
-//             standup                                     standup_file
+//             notion                                      notion_file
 //         toolchain/                                      toolchain_dir
 //             node                                        toolchain_file("node")
 //             npm
@@ -41,13 +41,13 @@ pub const ARCH: &'static str = "x64";
 //         launchscript                                    launchscript_file
 //         config.toml                                     user_config_file
 
-fn standup_home() -> ::Result<PathBuf> {
+fn notion_home() -> ::Result<PathBuf> {
     let home = env::home_dir().ok_or_else(|| { ::ErrorKind::UnknownSystemFolder(String::from("HOME")) })?;
-    Ok(home.join(".standup"))
+    Ok(home.join(".notion"))
 }
 
 pub fn cache_dir() -> ::Result<PathBuf> {
-    Ok(standup_home()?.join("cache"))
+    Ok(notion_home()?.join("cache"))
 }
 
 pub fn node_cache_dir() -> ::Result<PathBuf> {
@@ -59,7 +59,7 @@ pub fn archive_extension() -> String {
 }
 
 pub fn versions_dir() -> ::Result<PathBuf> {
-    Ok(standup_home()?.join("versions"))
+    Ok(notion_home()?.join("versions"))
 }
 
 pub fn node_versions_dir() -> ::Result<PathBuf> {
@@ -75,15 +75,15 @@ pub fn node_version_bin_dir(version: &str) -> ::Result<PathBuf> {
 }
 
 pub fn bin_dir() -> ::Result<PathBuf> {
-    Ok(standup_home()?.join("bin"))
+    Ok(notion_home()?.join("bin"))
 }
 
-pub fn standup_file() -> ::Result<PathBuf> {
-    Ok(bin_dir()?.join("standup"))
+pub fn notion_file() -> ::Result<PathBuf> {
+    Ok(bin_dir()?.join("notion"))
 }
 
 pub fn toolchain_dir() -> ::Result<PathBuf> {
-    Ok(standup_home()?.join("toolchain"))
+    Ok(notion_home()?.join("toolchain"))
 }
 
 pub fn toolchain_file(toolname: &str) -> ::Result<PathBuf> {
@@ -91,13 +91,13 @@ pub fn toolchain_file(toolname: &str) -> ::Result<PathBuf> {
 }
 
 pub fn launchbin_file() -> ::Result<PathBuf> {
-    Ok(standup_home()?.join("launchbin"))
+    Ok(notion_home()?.join("launchbin"))
 }
 
 pub fn launchscript_file() -> ::Result<PathBuf> {
-    Ok(standup_home()?.join("launchscript"))
+    Ok(notion_home()?.join("launchscript"))
 }
 
 pub fn user_config_file() -> ::Result<PathBuf> {
-    Ok(standup_home()?.join("config.toml"))
+    Ok(notion_home()?.join("config.toml"))
 }
