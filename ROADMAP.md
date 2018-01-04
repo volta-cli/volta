@@ -27,9 +27,10 @@
 - windows UX:
   - try to get zip-rs to land https://github.com/mvdnes/zip-rs/pull/37
   - or maybe just show a spinner while downloading the zip
-- diagnostics (look for other node installs that could be conflicting)
 - proper grammar for node version specifiers
 - apt, homebrew, chocolatey releases
 - `notion selfupdate`
 - hooks for corporate metrics
 - offline support
+- installer should check for existing global packages and install them
+- `npm install -g` should be intercepted and install global package shims
