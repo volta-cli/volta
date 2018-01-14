@@ -1,17 +1,14 @@
 # Demo blockers
 
-- windows installer isn't killing the node installation directories
 - unix script launchers
 - unix bash install script
-- pedagogy/PR: how should we talk about this approach?
-  - terminology for the basic technique (as well as the alternatives)
-  - what is the high-level intuition without diving deep into how it all works?
+- pedagogy/PR: work out how to explain the shims approach
 
 # Basic functionality
 
-- add npx to the set of {bin,script}stubs
+- windows installer isn't killing the node installation directories
+- add npx to the set of shims
 - package executables
-- proper behavior for executable-not-found
 - acceptance test harness
 - complete version parsing (e.g. "8" because "8.latest" and "8.5" becomes "8.5.latest")
 
