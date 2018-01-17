@@ -18,7 +18,10 @@ name = "launchscript"
 path = "src/launchscript.rs"
 
 [dependencies]
-clap = "2.26.2"
+docopt = "0.8"
 notion-core = { path = "crates/notion-core" }
+serde = "1.0"
+serde_derive = "1.0"
+console = "0.5"
 
 [workspace]

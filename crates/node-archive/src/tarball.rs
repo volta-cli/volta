@@ -106,13 +106,13 @@ impl<S: Source, F: FnMut(&(), usize)> ProgressSource<S, F> {
     fn new(source: S, callback: F) -> io::Result<ProgressSource<S, F>> {
         match source.uncompressed_size() {
             Some(size) => {
-                let decoded = GzDecoder::new(source)?;
+                let decoded = GzDecoder::new(source);
                 Ok(ProgressSource::Uncompressed(size, ProgressRead::new(decoded, (), callback)))
             }
             None => {
                 let size = source.compressed_size();
                 let progress = ProgressRead::new(source, (), callback);
-                Ok(ProgressSource::Compressed(size, GzDecoder::new(progress)?))
+                Ok(ProgressSource::Compressed(size, GzDecoder::new(progress)))
             }
         }
     }
