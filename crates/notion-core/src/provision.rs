@@ -6,6 +6,8 @@ use term_size;
 use path;
 use node_archive::{Archive, Source};
 
+use failure;
+
 #[cfg(not(windows))]
 use node_archive::tarball::{self as archive, Tarball as ArchiveFormat};
 
@@ -45,7 +47,7 @@ fn progress_bar(msg: &str, len: u64) -> ProgressBar {
     bar
 }
 
-pub fn by_version(dest: &Path, version: &str) -> ::Result<()> {
+pub fn by_version(dest: &Path, version: &str) -> Result<(), failure::Error> {
     let archive_file = path::archive_file(version);
 
     let cache_file = path::node_cache_dir()?.join(&archive_file);
@@ -63,7 +65,7 @@ pub fn by_version(dest: &Path, version: &str) -> ::Result<()> {
     Ok(())
 }
 
-fn by_source<S: Source + Streaming>(dest: &Path, version: &str, source: S) -> ::Result<()> {
+fn by_source<S: Source + Streaming>(dest: &Path, version: &str, source: S) -> Result<(), failure::Error> {
     let bar = progress_bar(
         &format!("Installing v{}", version),
         source.uncompressed_size().unwrap_or(source.compressed_size()));

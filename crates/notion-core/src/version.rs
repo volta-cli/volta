@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::fmt::{Display, Formatter};
+use failure;
 
 #[derive(Eq, PartialEq)]
 pub enum Version {
@@ -25,7 +26,7 @@ impl Display for VersionSpec {
 }
 
 impl FromStr for VersionSpec {
-    type Err = ::errors::ErrorKind;
+    type Err = failure::Error;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
         Ok(match src {

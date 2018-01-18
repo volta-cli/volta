@@ -1,6 +1,10 @@
 use std::env;
 use std::path::PathBuf;
 
+use failure;
+
+use ::UnknownSystemFolderError;
+
 // FIXME: make the case analysis here complete and rigorous
 
 #[cfg(target_os = "macos")]
@@ -41,16 +45,20 @@ pub const ARCH: &'static str = "x64";
 //         launchscript                                    launchscript_file
 //         config.toml                                     user_config_file
 
-fn notion_home() -> ::Result<PathBuf> {
-    let home = env::home_dir().ok_or_else(|| { ::ErrorKind::UnknownSystemFolder(String::from("HOME")) })?;
+fn notion_home() -> Result<PathBuf, failure::Error> {
+    let home = env::home_dir().ok_or_else(|| {
+        UnknownSystemFolderError {
+            name: String::from("HOME")
+        }
+    })?;
     Ok(home.join(".notion"))
 }
 
-pub fn cache_dir() -> ::Result<PathBuf> {
+pub fn cache_dir() -> Result<PathBuf, failure::Error> {
     Ok(notion_home()?.join("cache"))
 }
 
-pub fn node_cache_dir() -> ::Result<PathBuf> {
+pub fn node_cache_dir() -> Result<PathBuf, failure::Error> {
     Ok(cache_dir()?.join("node"))
 }
 
@@ -58,46 +66,46 @@ pub fn archive_extension() -> String {
     String::from("tar.gz")
 }
 
-pub fn versions_dir() -> ::Result<PathBuf> {
+pub fn versions_dir() -> Result<PathBuf, failure::Error> {
     Ok(notion_home()?.join("versions"))
 }
 
-pub fn node_versions_dir() -> ::Result<PathBuf> {
+pub fn node_versions_dir() -> Result<PathBuf, failure::Error> {
     Ok(versions_dir()?.join("node"))
 }
 
-pub fn node_version_dir(version: &str) -> ::Result<PathBuf> {
+pub fn node_version_dir(version: &str) -> Result<PathBuf, failure::Error> {
     Ok(node_versions_dir()?.join(version))
 }
 
-pub fn node_version_bin_dir(version: &str) -> ::Result<PathBuf> {
+pub fn node_version_bin_dir(version: &str) -> Result<PathBuf, failure::Error> {
     Ok(node_version_dir(version)?.join("bin"))
 }
 
-pub fn bin_dir() -> ::Result<PathBuf> {
+pub fn bin_dir() -> Result<PathBuf, failure::Error> {
     Ok(notion_home()?.join("bin"))
 }
 
-pub fn notion_file() -> ::Result<PathBuf> {
+pub fn notion_file() -> Result<PathBuf, failure::Error> {
     Ok(bin_dir()?.join("notion"))
 }
 
-pub fn toolchain_dir() -> ::Result<PathBuf> {
+pub fn toolchain_dir() -> Result<PathBuf, failure::Error> {
     Ok(notion_home()?.join("toolchain"))
 }
 
-pub fn toolchain_file(toolname: &str) -> ::Result<PathBuf> {
+pub fn toolchain_file(toolname: &str) -> Result<PathBuf, failure::Error> {
     Ok(toolchain_dir()?.join(toolname))
 }
 
-pub fn launchbin_file() -> ::Result<PathBuf> {
+pub fn launchbin_file() -> Result<PathBuf, failure::Error> {
     Ok(notion_home()?.join("launchbin"))
 }
 
-pub fn launchscript_file() -> ::Result<PathBuf> {
+pub fn launchscript_file() -> Result<PathBuf, failure::Error> {
     Ok(notion_home()?.join("launchscript"))
 }
 
-pub fn user_config_file() -> ::Result<PathBuf> {
+pub fn user_config_file() -> Result<PathBuf, failure::Error> {
     Ok(notion_home()?.join("config.toml"))
 }

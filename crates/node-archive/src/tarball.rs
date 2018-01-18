@@ -12,6 +12,7 @@ use reqwest;
 use tar;
 use tee::TeeReader;
 use progress_read::ProgressRead;
+use failure;
 
 pub struct Cached {
     uncompressed_size: u64,
@@ -20,7 +21,7 @@ pub struct Cached {
 }
 
 impl Cached {
-    pub fn load(mut source: File) -> ::Result<Cached> {
+    pub fn load(mut source: File) -> Result<Cached, failure::Error> {
         let uncompressed_size = load_uncompressed_size(&mut source)?;
 
         let compressed_size = source.metadata()?.len();
@@ -57,13 +58,13 @@ pub struct Public {
 }
 
 impl Public {
-    pub fn fetch(url: &str, cache_file: &Path) -> ::Result<Public> {
+    pub fn fetch(url: &str, cache_file: &Path) -> Result<Public, failure::Error> {
         let uncompressed_size = fetch_uncompressed_size(url);
 
         let response = reqwest::get(url)?;
 
         if !response.status().is_success() {
-            bail!(::ErrorKind::HttpFailure(response.status()));
+            Err(super::HttpError { code: response.status() })?;
         }
 
         // FIXME: make compressed_size an Option
@@ -132,7 +133,7 @@ pub struct Tarball<S: Source, F: FnMut(&(), usize)> {
 }
 
 impl<S: Source, F: FnMut(&(), usize)> Tarball<S, F> {
-    pub fn new(source: S, callback: F) -> ::Result<Tarball<S, F>> {
+    pub fn new(source: S, callback: F) -> Result<Tarball<S, F>, failure::Error> {
         Ok(Tarball {
             archive: tar::Archive::new(ProgressSource::new(source, callback)?)
         })
@@ -140,7 +141,7 @@ impl<S: Source, F: FnMut(&(), usize)> Tarball<S, F> {
 }
 
 impl<S: Source, F: FnMut(&(), usize)> Archive for Tarball<S, F> {
-    fn unpack(mut self, dest: &Path) -> ::Result<()> {
+    fn unpack(mut self, dest: &Path) -> Result<(), failure::Error> {
         self.archive.unpack(dest)?;
         Ok(())
     }

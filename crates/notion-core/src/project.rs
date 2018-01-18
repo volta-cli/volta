@@ -2,6 +2,8 @@ use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
 use std::env;
 
+use failure;
+
 use manifest::{self, Manifest};
 use lockfile::{self, Lockfile};
 
@@ -28,7 +30,7 @@ pub struct Project {
 }
 
 impl Project {
-    pub fn for_current_dir() -> ::Result<Option<Project>> {
+    pub fn for_current_dir() -> Result<Option<Project>, failure::Error> {
         let mut dir: &Path = &env::current_dir()?;
 
         while !is_project_root(dir) {
@@ -54,7 +56,7 @@ impl Project {
         &self.manifest
     }
 
-    pub fn lockfile(&mut self) -> ::Result<&Lockfile> {
+    pub fn lockfile(&mut self) -> Result<&Lockfile, failure::Error> {
         self.lockfile = Some(if !lockfile::exists(&self.root) {
             let lockfile = self.manifest.resolve()?;
             lockfile.save(&self.root)?;

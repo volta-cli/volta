@@ -1,16 +1,16 @@
-// needed for `error_chain!` macro
-#![recursion_limit = "1024"]
-
 extern crate tar;
 extern crate flate2;
 extern crate zip as zip_rs;
 extern crate reqwest;
 extern crate tee;
 extern crate progress_read;
+
+#[cfg(windows)]
 extern crate untss;
 
 #[macro_use]
-extern crate error_chain;
+extern crate failure_derive;
+extern crate failure;
 
 use std::io::Read;
 use std::path::Path;
@@ -18,24 +18,11 @@ use std::path::Path;
 pub mod tarball;
 pub mod zip;
 
-mod errors {
-    error_chain! {
-        foreign_links {
-            Reqwest(::reqwest::Error);
-            Io(::std::io::Error);
-            Zip(::zip_rs::result::ZipError);
-        }
-
-        errors {
-            HttpFailure(code: ::reqwest::StatusCode) {
-                description("HTTP failure"),
-                display("HTTP failure ({})", code)
-            }
-        }
-    }
+#[derive(Fail, Debug)]
+#[fail(display = "HTTP failure ({})", code)]
+pub struct HttpError {
+    code: ::reqwest::StatusCode
 }
-
-pub use errors::*;
 
 pub trait Source: Read {
     fn uncompressed_size(&self) -> Option<u64>;
@@ -43,5 +30,5 @@ pub trait Source: Read {
 }
 
 pub trait Archive {
-    fn unpack(self, dest: &Path) -> ::Result<()>;
+    fn unpack(self, dest: &Path) -> Result<(), failure::Error>;
 }

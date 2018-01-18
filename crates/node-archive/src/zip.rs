@@ -7,7 +7,11 @@ use std::fs::{File, create_dir_all};
 use reqwest;
 use progress_read::ProgressRead;
 use zip_rs::ZipArchive;
+
+#[cfg(windows)]
 use untss;
+
+use failure;
 
 pub struct Cached {
     compressed_size: u64,
@@ -53,11 +57,11 @@ pub struct Public {
 }
 
 impl Public {
-    pub fn fetch(url: &str, cache_file: &Path) -> ::Result<Public> {
+    pub fn fetch(url: &str, cache_file: &Path) -> Result<Public, failure::Error> {
         let mut response = reqwest::get(url)?;
 
         if !response.status().is_success() {
-            bail!(::ErrorKind::HttpFailure(response.status()));
+            Err(super::HttpError { code: response.status() })?;
         }
 
         {
@@ -98,7 +102,7 @@ pub struct Zip<S: Source + Seek, F: FnMut(&(), usize)> {
 }
 
 impl<S: Source + Seek, F: FnMut(&(), usize)> Zip<S, F> {
-    pub fn new(source: S, callback: F) -> ::Result<Zip<S, F>> {
+    pub fn new(source: S, callback: F) -> Result<Zip<S, F>, failure::Error> {
         Ok(Zip {
             archive: ZipArchive::new(ProgressRead::new(source, (), callback))?
         })
@@ -106,7 +110,7 @@ impl<S: Source + Seek, F: FnMut(&(), usize)> Zip<S, F> {
 }
 
 impl<S: Source + Seek, F: FnMut(&(), usize)> Archive for Zip<S, F> {
-    fn unpack(self, dest: &Path) -> ::Result<()> {
+    fn unpack(self, dest: &Path) -> Result<(), failure::Error> {
         // On Windows, use a verbatim path to avoid the legacy 260 byte path limit.
         #[cfg(windows)]
         let dest: &Path = &untss::untss(dest);

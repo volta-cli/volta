@@ -8,14 +8,19 @@ use global::{self, State};
 use version::Version;
 use install;
 use env;
+use failure;
 
-fn exec_with<F: FnOnce() -> ::Result<Command>>(get_command: F) -> ::Result<ExitStatus> {
+fn exec_with<F>(get_command: F) -> Result<ExitStatus, failure::Error>
+  where F: FnOnce() -> Result<Command, failure::Error>
+{
     let mut command = get_command()?;
     let status = command.status()?;
     Ok(status)
 }
 
-fn exec<F: FnOnce() -> ::Result<Command>>(get_command: F) -> ! {
+fn exec<F>(get_command: F) -> !
+  where F: FnOnce() -> Result<Command, failure::Error>
+{
     match exec_with(get_command) {
         Ok(status) if status.success() => {
             exit(0);
@@ -25,13 +30,13 @@ fn exec<F: FnOnce() -> ::Result<Command>>(get_command: F) -> ! {
             exit(status.code().unwrap_or(1));
         }
         Err(err) => {
-            ::display_error(err);
+            super::display_error(err);
             exit(1);
         }
     }
 }
 
-pub fn prepare() -> ::Result<OsString> {
+pub fn prepare() -> Result<OsString, failure::Error> {
     if let Some(mut project) = Project::for_current_dir()? {
         let version = &project.lockfile()?.node.version;
         install::by_version(version)?;
@@ -40,6 +45,7 @@ pub fn prepare() -> ::Result<OsString> {
         install::by_version(version)?;
         Ok(env::path_for(version))
     } else {
+        // FIXME: proper error reporting
         eprintln!("error: no current node version");
         exit(1);
     }
@@ -81,7 +87,7 @@ fn script_command(path_var: &OsStr) -> Command {
 }
 
 #[cfg(not(windows))]
-fn script_command(path_var: &OsStr) -> Command {
+fn script_command(_path_var: &OsStr) -> Command {
     unimplemented!()
 }
 

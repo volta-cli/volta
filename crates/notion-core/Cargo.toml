@@ -8,9 +8,10 @@ toml = "0.4"
 term_size = "0.3.0"
 indicatif = "0.7.0"
 console = "0.5.0"
-error-chain = "0.11.0"
 serde_json = "1.0.3"
 node-archive = { path = "../node-archive" }
+failure = "0.1.1"
+failure_derive = "0.1.1"
 
 [target.'cfg(windows)'.dependencies]
 zip = "0.2.6"

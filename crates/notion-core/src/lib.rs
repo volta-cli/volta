@@ -1,14 +1,9 @@
-// needed for `error_chain!` macro
-#![recursion_limit = "1024"]
-
 extern crate indicatif;
 extern crate term_size;
 extern crate toml;
 extern crate node_archive;
 extern crate serde_json;
-
-#[macro_use]
-extern crate error_chain;
+extern crate console;
 
 #[cfg(windows)]
 extern crate winfolder;
@@ -27,8 +22,44 @@ pub mod lockfile;
 pub mod global;
 mod untoml;
 
-use std::process::exit;
+#[macro_use]
+extern crate failure_derive;
+extern crate failure;
 
+use std::process::exit;
+use console::style;
+
+#[derive(Fail, Debug)]
+#[fail(display = "Error in configuration key '{}'", key)]
+pub struct ConfigError {
+    key: String
+}
+
+#[derive(Fail, Debug)]
+#[fail(display = "Unknown system folder: '{}'", name)]
+pub struct UnknownSystemFolderError {
+    name: String
+}
+
+#[derive(Fail, Debug)]
+#[fail(display = "Invalid version specifier: '{}'", src)]
+pub struct VersionParseError {
+    src: String
+}
+
+#[derive(Fail, Debug)]
+#[fail(display = "Invalid manifest: {}", msg)]
+pub struct ManifestError {
+    msg: String
+}
+
+#[derive(Fail, Debug)]
+#[fail(display = "Invalid lockfile: {}", msg)]
+pub struct LockfileError {
+    msg: String
+}
+
+/*
 mod errors {
     use node_archive;
     use toml;
@@ -85,6 +116,16 @@ pub fn display_error(err: ::Error) {
 }
 
 pub fn die(err: ::Error) -> ! {
+    display_error(err);
+    exit(1);
+}
+*/
+
+pub fn display_error(err: failure::Error) {
+    eprintln!("{} {}", style("error:").red().bold(), err);
+}
+
+pub fn die(err: failure::Error) -> ! {
     display_error(err);
     exit(1);
 }
