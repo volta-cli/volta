@@ -117,13 +117,15 @@ notion_info() {
 }
 
 notion_error() {
-  command printf '\033[1;31mError:\033[0m ' 1>&2
+  command printf '\033[1;31mError\033[0m: ' 1>&2
   notion_eprintf "$1"
+  notion_eprintf ''
 }
 
 notion_warning() {
-  command printf '\033[1;33mWarning:\033[0m ' 1>&2
+  command printf '\033[1;33mWarning\033[0m: ' 1>&2
   notion_eprintf "$1"
+  notion_eprintf ''
 }
 
 notion_exit() {
@@ -134,7 +136,6 @@ notion_exit() {
 notion_install() {
   if [ -n "${NOTION_HOME-}" ] && ! [ -d "${NOTION_HOME}" ]; then
     notion_error "\$NOTION_HOME is set but is not a directory (${NOTION_HOME})."
-    notion_eprintf ''
     notion_eprintf "Please check your profile scripts and environment."
     notion_exit 1
   fi
@@ -159,12 +160,9 @@ notion_install() {
       TRIED_PROFILE="${NOTION_PROFILE} (as defined in \$PROFILE), "
     fi
     notion_error "No user profile found."
-    notion_eprintf ''
     notion_eprintf "Tried ${TRIED_PROFILE-}~/.bashrc, ~/.bash_profile, ~/.zshrc, and ~/.profile."
     notion_eprintf ''
-    notion_eprintf "Create one of these files and run this script again,"
-    notion_eprintf "OR"
-    notion_eprintf "Append the following lines to the appropriate file manually:"
+    notion_eprintf "You can either create one of these and try again or add this to the appropriate file:"
     notion_eprintf "${PATH_STR}"
     notion_exit 1
   else
@@ -175,7 +173,7 @@ notion_install() {
     fi
   fi
 
-  notion_info "Finished" 'installation. Open a new terminal to use notion.'
+  notion_info "Finished" 'installation. Open a new terminal to start using notion!'
   notion_exit 0
 }
 
