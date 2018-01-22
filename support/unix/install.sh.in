@@ -1,0 +1,190 @@
+#!/usr/bin/env bash
+
+# FIXME: we should rename `toolchain` to `shims` (needs change in rust code and windows installer too)
+
+{
+
+notion_unpack_notion() {
+  base64 --decode <<'END_BINARY_PAYLOAD'
+%%PLACEHOLDER_NOTION_PAYLOAD%%
+END_BINARY_PAYLOAD
+}
+
+notion_unpack_launchbin() {
+  base64 --decode <<'END_BINARY_PAYLOAD'
+%%PLACEHOLDER_LAUNCHBIN_PAYLOAD%%
+END_BINARY_PAYLOAD
+}
+
+notion_unpack_launchscript() {
+  base64 --decode <<'END_BINARY_PAYLOAD'
+%%PLACEHOLDER_LAUNCHSCRIPT_PAYLOAD%%
+END_BINARY_PAYLOAD
+}
+
+notion_install_dir() {
+  printf %s "${NOTION_HOME:-"$HOME/.notion"}"
+}
+
+notion_create_tree() {
+  local INSTALL_DIR
+
+  INSTALL_DIR="$(notion_install_dir)"
+
+  mkdir -p "${INSTALL_DIR}"
+
+  # ~/
+  #     .notion/
+  #         cache/
+  #             node/
+  #         versions/
+  #             node/
+  #         bin/
+  #         toolchain/
+
+  mkdir -p "${INSTALL_DIR}"/cache/node
+  mkdir -p "${INSTALL_DIR}"/versions/node
+  mkdir -p "${INSTALL_DIR}"/bin
+  mkdir -p "${INSTALL_DIR}"/toolchain
+}
+
+notion_create_binaries() {
+  local INSTALL_DIR
+
+  INSTALL_DIR="$(notion_install_dir)"
+
+  notion_unpack_notion       > "${INSTALL_DIR}"/bin/notion
+  notion_unpack_launchscript > "${INSTALL_DIR}"/launchscript
+  notion_unpack_launchbin    > "${INSTALL_DIR}"/launchbin
+
+  ln -s "${INSTALL_DIR}"/launchbin    "${INSTALL_DIR}"/toolchain/node
+  ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/toolchain/npm
+  ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/toolchain/npx
+  ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/toolchain/yarn
+
+  chmod 755 "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}/toolchain"/* "${INSTALL_DIR}"/launch*
+}
+
+notion_try_profile() {
+  if [ -z "${1-}" ] || [ ! -f "${1}" ]; then
+    return 1
+  fi
+  echo "${1}"
+}
+
+notion_detect_profile() {
+  if [ -n "${PROFILE}" ] && [ -f "${PROFILE}" ]; then
+    echo "${PROFILE}"
+    return
+  fi
+
+  local DETECTED_PROFILE
+  DETECTED_PROFILE=''
+  local SHELLTYPE="$(basename "/$SHELL")"
+
+  if [ "$SHELLTYPE" = "bash" ]; then
+    if [ -f "$HOME/.bashrc" ]; then
+      DETECTED_PROFILE="$HOME/.bashrc"
+    elif [ -f "$HOME/.bash_profile" ]; then
+      DETECTED_PROFILE="$HOME/.bash_profile"
+    fi
+  elif [ "$SHELLTYPE" = "zsh" ]; then
+    DETECTED_PROFILE="$HOME/.zshrc"
+  fi
+
+  if [ -z "$DETECTED_PROFILE" ]; then
+    for EACH_PROFILE in ".profile" ".bashrc" ".bash_profile" ".zshrc"
+    do
+      if DETECTED_PROFILE="$(notion_try_profile "${HOME}/${EACH_PROFILE}")"; then
+        break
+      fi
+    done
+  fi
+
+  if [ ! -z "$DETECTED_PROFILE" ]; then
+    echo "$DETECTED_PROFILE"
+  fi
+}
+
+notion_eprintf() {
+  command printf "$1\n" 1>&2
+}
+
+notion_info() {
+  local ACTION
+  local DETAILS
+  ACTION="$1"
+  DETAILS="$2"
+  command printf '\033[1;32m%12s\033[0m %s\n' "${ACTION}" "${DETAILS}" 1>&2
+}
+
+notion_error() {
+  command printf '\033[1;31mError:\033[0m ' 1>&2
+  notion_eprintf "$1"
+}
+
+notion_warning() {
+  command printf '\033[1;33mWarning:\033[0m ' 1>&2
+  notion_eprintf "$1"
+}
+
+notion_install() {
+  if [ -n "${NOTION_HOME-}" ] && ! [ -d "${NOTION_HOME}" ]; then
+    notion_error "\$NOTION_HOME is set but is not a directory (${NOTION_HOME})."
+    notion_eprintf ''
+    notion_eprintf "Please check your profile scripts and environment."
+    # FIXME: all early exits should call notion_cleanup
+    exit 1
+  fi
+
+  notion_info 'Creating' "notion directory tree ($(notion_install_dir))"
+  notion_create_tree
+
+  notion_info 'Unpacking' "notion executable and shims"
+  notion_create_binaries
+
+  notion_info 'Editing' "user profile"
+  local NOTION_PROFILE
+  NOTION_PROFILE="$(notion_detect_profile)"
+  local PROFILE_INSTALL_DIR
+  PROFILE_INSTALL_DIR=$(notion_install_dir | sed "s:^$HOME:\$HOME:")
+  local PATH_STR
+  PATH_STR="\\nexport NOTION_HOME=\"${PROFILE_INSTALL_DIR}\"\\nexport PATH=\"\${NOTION_HOME}/bin:\${NOTION_HOME}/toolchain:\$PATH\""
+
+  if [ -z "${NOTION_PROFILE-}" ] ; then
+    local TRIED_PROFILE
+    if [ -n "${PROFILE}" ]; then
+      TRIED_PROFILE="${NOTION_PROFILE} (as defined in \$PROFILE), "
+    fi
+    notion_error "No user profile found."
+    notion_eprintf ''
+    notion_eprintf "Tried ${TRIED_PROFILE-}~/.bashrc, ~/.bash_profile, ~/.zshrc, and ~/.profile."
+    notion_eprintf ''
+    notion_eprintf "Create one of these files and run this script again,"
+    notion_eprintf "OR"
+    notion_eprintf "Append the following lines to the appropriate file manually:"
+    notion_eprintf "${PATH_STR}"
+    exit 1
+  else
+    if ! command grep -qc 'NOTION_HOME' "$NOTION_PROFILE"; then
+      command printf "${PATH_STR}" >> "$NOTION_PROFILE"
+    else
+      notion_warning "Your profile (${NOTION_PROFILE}) already mentions notion and has not been changed."
+    fi
+  fi
+
+  # FIXME: just go ahead and export NOTION_HOME and PATH in this shell too!
+  notion_info "Finished" 'installation. Close and reopen your terminal to use notion.'
+  notion_cleanup
+}
+
+notion_cleanup() {
+  unset -f notion_unpack_notion notion_unpack_launchbin notion_unpack_launchscript \
+    notion_install_dir notion_create_tree notion_create_binaries notion_try_profile notion_detect_profile \
+    notion_eprintf notion_info notion_error notion_warning \
+    notion_install notion_cleanup
+}
+
+notion_install
+
+}

@@ -4,3 +4,4 @@ Notion.msi
 support/windows/*.log
 support/windows/Notion.wixobj
 support/windows/Notion.wixpdb
+support/unix/install.sh
