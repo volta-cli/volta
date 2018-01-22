@@ -80,8 +80,8 @@ pub fn launchscript_file() -> Result<PathBuf, failure::Error> {
 //     Program Files\
 //         Notion\                                     bin_dir
 //             notion.exe                              notion_file
-//             toolchain\                              toolchain_dir
-//                 node.exe                            toolchain_file("node")
+//             shim\                                   shim_dir
+//                 node.exe                            shim_file("node")
 //                 npm.exe
 //                 npx.exe
 //                 ...
@@ -104,12 +104,12 @@ pub fn notion_file() -> Result<PathBuf, failure::Error> {
     Ok(bin_dir()?.join("notion.exe"))
 }
 
-pub fn toolchain_dir() -> Result<PathBuf, failure::Error> {
-    Ok(program_files_root()?.join("toolchain"))
+pub fn shim_dir() -> Result<PathBuf, failure::Error> {
+    Ok(program_files_root()?.join("shim"))
 }
 
-pub fn toolchain_file(toolname: &str) -> Result<PathBuf, failure::Error> {
-    Ok(toolchain_dir()?.join(&format!("{}.exe", toolname)))
+pub fn shim_file(toolname: &str) -> Result<PathBuf, failure::Error> {
+    Ok(shim_dir()?.join(&format!("{}.exe", toolname)))
 }
 
 // C:\

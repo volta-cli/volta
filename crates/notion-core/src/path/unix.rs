@@ -36,8 +36,8 @@ pub const ARCH: &'static str = "x64";
 //                 ...
 //         bin/                                            bin_dir
 //             notion                                      notion_file
-//         toolchain/                                      toolchain_dir
-//             node                                        toolchain_file("node")
+//         shim/                                           shim_dir
+//             node                                        shim_file("node")
 //             npm
 //             npx
 //             ...
@@ -90,12 +90,12 @@ pub fn notion_file() -> Result<PathBuf, failure::Error> {
     Ok(bin_dir()?.join("notion"))
 }
 
-pub fn toolchain_dir() -> Result<PathBuf, failure::Error> {
-    Ok(notion_home()?.join("toolchain"))
+pub fn shim_dir() -> Result<PathBuf, failure::Error> {
+    Ok(notion_home()?.join("shim"))
 }
 
-pub fn toolchain_file(toolname: &str) -> Result<PathBuf, failure::Error> {
-    Ok(toolchain_dir()?.join(toolname))
+pub fn shim_file(toolname: &str) -> Result<PathBuf, failure::Error> {
+    Ok(shim_dir()?.join(toolname))
 }
 
 pub fn launchbin_file() -> Result<PathBuf, failure::Error> {

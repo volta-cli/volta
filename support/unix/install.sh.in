@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-# FIXME: we should rename `toolchain` to `shims` (needs change in rust code and windows installer too)
-
 {
 
 notion_unpack_notion() {
@@ -40,12 +38,12 @@ notion_create_tree() {
   #         versions/
   #             node/
   #         bin/
-  #         toolchain/
+  #         shim/
 
   mkdir -p "${INSTALL_DIR}"/cache/node
   mkdir -p "${INSTALL_DIR}"/versions/node
   mkdir -p "${INSTALL_DIR}"/bin
-  mkdir -p "${INSTALL_DIR}"/toolchain
+  mkdir -p "${INSTALL_DIR}"/shim
 }
 
 notion_create_binaries() {
@@ -57,12 +55,12 @@ notion_create_binaries() {
   notion_unpack_launchscript > "${INSTALL_DIR}"/launchscript
   notion_unpack_launchbin    > "${INSTALL_DIR}"/launchbin
 
-  ln -s "${INSTALL_DIR}"/launchbin    "${INSTALL_DIR}"/toolchain/node
-  ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/toolchain/npm
-  ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/toolchain/npx
-  ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/toolchain/yarn
+  ln -s "${INSTALL_DIR}"/launchbin    "${INSTALL_DIR}"/shim/node
+  ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/shim/npm
+  ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/shim/npx
+  ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/shim/yarn
 
-  chmod 755 "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}/toolchain"/* "${INSTALL_DIR}"/launch*
+  chmod 755 "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}/shim"/* "${INSTALL_DIR}"/launch*
 }
 
 notion_try_profile() {
@@ -149,7 +147,7 @@ notion_install() {
   local PROFILE_INSTALL_DIR
   PROFILE_INSTALL_DIR=$(notion_install_dir | sed "s:^$HOME:\$HOME:")
   local PATH_STR
-  PATH_STR="\\nexport NOTION_HOME=\"${PROFILE_INSTALL_DIR}\"\\nexport PATH=\"\${NOTION_HOME}/bin:\${NOTION_HOME}/toolchain:\$PATH\""
+  PATH_STR="\\nexport NOTION_HOME=\"${PROFILE_INSTALL_DIR}\"\\nexport PATH=\"\${NOTION_HOME}/bin:\${NOTION_HOME}/shim:\$PATH\""
 
   if [ -z "${NOTION_PROFILE-}" ] ; then
     local TRIED_PROFILE

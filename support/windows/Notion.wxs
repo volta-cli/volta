@@ -34,16 +34,16 @@
            EmbedCab="yes"/>
 
     <!-- creating empty directories: https://www.packtpub.com/mapt/book/application_development/9781849513722/2/ch02lvl1sec21/creating-an-empty-folder -->
-    <DirectoryRef Id="ToolchainDir">
-      <Component Id="CreateToolchainDir"
+    <DirectoryRef Id="ShimDir">
+      <Component Id="CreateShimDir"
                  Guid="56E719E4-78BB-4841-8912-D471ADE84159"
                  Win64="yes"
                  KeyPath="yes">
         <CreateFolder />
         <!-- env vars: https://stackoverflow.com/questions/1931586/can-anyone-give-me-a-example-of-modifying-windows-environment-system-variables-i -->
-        <Environment Id="PATH" Name="PATH" Value="[ProgramFiles64Folder]Notion;[ProgramFiles64Folder]Notion\toolchain" Permanent="no" Part="first" Action="set" System="yes" />
-        <RemoveFile Id="RemoveToolchainHardLinks" Directory="ToolchainDir" Name="*.exe" On="uninstall" />
-        <RemoveFolder Id="RemoveToolchainDir" Directory="ToolchainDir" On="uninstall" />
+        <Environment Id="PATH" Name="PATH" Value="[ProgramFiles64Folder]Notion;[ProgramFiles64Folder]Notion\shim" Permanent="no" Part="first" Action="set" System="yes" />
+        <RemoveFile Id="RemoveShimHardLinks" Directory="ShimDir" Name="*.exe" On="uninstall" />
+        <RemoveFolder Id="RemoveShimDir" Directory="ShimDir" On="uninstall" />
       </Component>
     </DirectoryRef>
 
@@ -113,7 +113,7 @@
             <RemoveFolder Id="RemoveInstallDir" Directory="INSTALLDIR" On="uninstall" />
           </Component>
 
-          <Directory Id="ToolchainDir" Name="toolchain" />
+          <Directory Id="ShimDir" Name="shim" />
         </Directory>
       </Directory>
 
@@ -154,7 +154,7 @@
     -->
     <CustomAction Id="MakeBinLaunchers_set"
                   Property="MakeBinLaunchers"
-                  Value='"[SystemFolder]cmd.exe" /C mklink /H "[ProgramFiles64Folder]Notion\toolchain\node.exe" "[CommonAppDataFolder]Notion\launchbin.exe"'
+                  Value='"[SystemFolder]cmd.exe" /C mklink /H "[ProgramFiles64Folder]Notion\shim\node.exe" "[CommonAppDataFolder]Notion\launchbin.exe"'
                   Execute='immediate' />
     <CustomAction Id="MakeBinLaunchers"
                   BinaryKey="WixCA"
@@ -165,7 +165,7 @@
 
     <CustomAction Id="MakeScriptLaunchers_set"
                   Property="MakeScriptLaunchers"
-                  Value='"[SystemFolder]cmd.exe" /C mklink /H "[ProgramFiles64Folder]Notion\toolchain\npm.exe" "[CommonAppDataFolder]Notion\launchscript.exe"'
+                  Value='"[SystemFolder]cmd.exe" /C mklink /H "[ProgramFiles64Folder]Notion\shim\npm.exe" "[CommonAppDataFolder]Notion\launchscript.exe"'
                   Execute='immediate' />
     <CustomAction Id="MakeScriptLaunchers"
                   BinaryKey="WixCA"
@@ -185,7 +185,7 @@
     <Feature Id="Complete">
       <ComponentRef Id='NotionExecutable'/>
       <ComponentRef Id='Launchers'/>
-      <ComponentRef Id='CreateToolchainDir'/>
+      <ComponentRef Id='CreateShimDir'/>
       <ComponentRef Id='CreateVersionsNodeDir'/>
       <ComponentRef Id='CreateCacheNodeDir'/>
       <ComponentRef Id='RemoveVersionsNodeDir'/>
