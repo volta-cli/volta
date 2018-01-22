@@ -175,8 +175,7 @@ notion_install() {
     fi
   fi
 
-  # FIXME: just go ahead and export NOTION_HOME and PATH in this shell too!
-  notion_info "Finished" 'installation. Close and reopen your terminal to use notion.'
+  notion_info "Finished" 'installation. Open a new terminal to use notion.'
   notion_exit 0
 }
 
