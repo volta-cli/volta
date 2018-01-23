@@ -44,6 +44,7 @@ pub const ARCH: &'static str = "x64";
 //         launchbin                                       launchbin_file
 //         launchscript                                    launchscript_file
 //         config.toml                                     user_config_file
+//         state.toml                                      user_state_file
 
 fn notion_home() -> Result<PathBuf, failure::Error> {
     let home = env::home_dir().ok_or_else(|| {

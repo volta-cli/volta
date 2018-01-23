@@ -119,6 +119,7 @@ pub fn shim_file(toolname: &str) -> Result<PathBuf, failure::Error> {
 //                 Local\
 //                     Notion\
 //                         config.toml                 user_config_file
+//                         state.toml                  user_state_file
 
 fn local_data_root() -> Result<PathBuf, failure::Error> {
     let adl = winfolder::known_path(&winfolder::id::LOCAL_APP_DATA)

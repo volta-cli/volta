@@ -36,6 +36,12 @@ pub struct ConfigError {
 }
 
 #[derive(Fail, Debug)]
+#[fail(display = "Notion has encountered an internal error ('{}')", msg)]
+pub struct StateError {
+    msg: String
+}
+
+#[derive(Fail, Debug)]
 #[fail(display = "Unknown system folder: '{}'", name)]
 pub struct UnknownSystemFolderError {
     name: String
