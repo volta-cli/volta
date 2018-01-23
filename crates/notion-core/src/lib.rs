@@ -59,68 +59,6 @@ pub struct LockfileError {
     msg: String
 }
 
-/*
-mod errors {
-    use node_archive;
-    use toml;
-
-    error_chain! {
-        links {
-            Archive(node_archive::Error, node_archive::ErrorKind);
-        }
-
-        foreign_links {
-            Toml(toml::de::Error);
-            Io(::std::io::Error);
-            Json(::serde_json::error::Error);
-        }
-
-        errors {
-            ConfigError(key: String) {
-                description("error in configuration")
-                display("error in configuration key '{}'", key)
-            }
-            UnknownSystemFolder(name: String) {
-                description("unknown system folder")
-                display("unknown system folder: '{}'", name)
-            }
-            VersionParseError(src: String) {
-                description("invalid version specifier")
-                display("invalid version specifier: {}", src)
-            }
-            ManifestError(msg: String) {
-                description("manifest error")
-                display("invalid manifest: {}", msg)
-            }
-            LockfileError(msg: String) {
-                description("lockfile error")
-                display("invalid lockfile: {}", msg)
-            }
-        }
-    }
-}
-
-pub use errors::*;
-
-pub fn display_error(err: ::Error) {
-    // FIXME: polish the error reporting
-    eprintln!("error: {}", err);
-
-    for err in err.iter().skip(1) {
-        eprintln!("\tcaused by: {}", err);
-    }
-
-    if let Some(backtrace) = err.backtrace() {
-        eprintln!("backtrace: {:?}", backtrace);
-    }
-}
-
-pub fn die(err: ::Error) -> ! {
-    display_error(err);
-    exit(1);
-}
-*/
-
 pub fn display_error(err: failure::Error) {
     eprintln!("{} {}", style("error:").red().bold(), err);
 }
