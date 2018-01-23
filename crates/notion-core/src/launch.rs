@@ -87,8 +87,8 @@ fn script_command(path_var: &OsStr) -> Command {
 }
 
 #[cfg(not(windows))]
-fn script_command(_path_var: &OsStr) -> Command {
-    unimplemented!()
+fn script_command(path_var: &OsStr) -> Command {
+    binary_command(path_var)
 }
 
 pub fn binary() -> ! {
