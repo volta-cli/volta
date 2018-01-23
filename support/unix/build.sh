@@ -18,35 +18,16 @@ if [ "$#" -ne 3 ]; then
   exit 1
 fi
 
-instantiate_template() {
-  local notion
-  local launchbin
-  local launchscript
-
-  notion=$(cat $1 | base64 -)
-  launchbin=$(cat $2 | base64 -)
-  launchscript=$(cat $3 | base64 -)
-
-  sed -e "s|%%PLACEHOLDER_NOTION_PAYLOAD%%|$notion|" -e "s|%%PLACEHOLDER_LAUNCHBIN_PAYLOAD%%|$launchbin|" -e "s|%%PLACEHOLDER_LAUNCHSCRIPT_PAYLOAD%%|$launchscript|"
+encode_base64_sed_command() {
+  command printf "s|<PLACEHOLDER_$2_PAYLOAD>|" > $1.base64.txt
+  cat $3 | base64 - | tr -d '\n' >> $1.base64.txt
+  command printf "|\n" >> $1.base64.txt
 }
 
-cat install.sh.in | instantiate_template $1 $2 $3
+encode_base64_sed_command notion NOTION $1
+encode_base64_sed_command launchbin LAUNCHBIN $2
+encode_base64_sed_command launchscript LAUNCHSCRIPT $3
 
-# # base64-encode the `notion` executable
-# encoded=$(cat $1 | base64 -)
+sed -f notion.base64.txt -f launchbin.base64.txt -f launchscript.base64.txt < install.sh.in > install.sh
 
-# # find the line in the install script template containing the placeholder string
-# placeholder_line=$(grep -n "^%%PLACEHOLDER_NOTION_PAYLOAD%%" install.sh.in | cut -d ':' -f 1)
-# before_placeholder=$[${placeholder_line} - 1]
-# after_placeholder=$[${placeholder_line} + 1]
-
-# # generate the install script by replacing the placeholder with the base64-encoded binary
-# head -n ${before_placeholder} install.sh.in > install.sh
-# echo $encoded >> install.sh
-# tail -n +${after_placeholder} install.sh.in >> install.sh
-
-# # make the script executable
-# chmod 755 ./install.sh
-
-#
-# echo "Installation script generated at ./install.sh." >&2
+rm *.base64.txt
