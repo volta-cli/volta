@@ -134,3 +134,7 @@ fn local_data_root() -> Result<PathBuf, failure::Error> {
 pub fn user_config_file() -> Result<PathBuf, failure::Error> {
     Ok(local_data_root()?.join("config.toml"))
 }
+
+pub fn user_state_file() -> Result<PathBuf, failure::Error> {
+    Ok(local_data_root()?.join("state.toml"))
+}

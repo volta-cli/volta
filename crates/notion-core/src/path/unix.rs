@@ -110,3 +110,7 @@ pub fn launchscript_file() -> Result<PathBuf, failure::Error> {
 pub fn user_config_file() -> Result<PathBuf, failure::Error> {
     Ok(notion_home()?.join("config.toml"))
 }
+
+pub fn user_state_file() -> Result<PathBuf, failure::Error> {
+    Ok(notion_home()?.join("state.toml"))
+}
