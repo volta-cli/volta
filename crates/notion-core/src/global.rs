@@ -1,13 +1,13 @@
 use std::path::Path;
-use std::fs::{File, create_dir_all};
-use std::io;
-use std::io::{Read, Write};
+use std::fs::File;
+use std::io::Write;
+use std::str::FromStr;
 
 use toml::value::{Value, Table};
 
 use version::Version;
 use path::user_state_file;
-use untoml::{ParseToml, Extract};
+use untoml::{ParseToml, Extract, load};
 use install;
 use failure;
 
@@ -23,25 +23,9 @@ pub struct State {
     pub node: Option<Version>
 }
 
-fn ensure_state_file_exists(path: &Path) -> io::Result<File> {
-    if !path.is_file() {
-        let basedir = path.parent().unwrap();
-        create_dir_all(basedir)?;
-        File::create(path)?;
-    }
-    File::open(path)
-}
-
 pub fn state() -> Result<State, failure::Error> {
     let path = user_state_file()?;
     load(&path)
-}
-
-fn load(path: &Path) -> Result<State, failure::Error> {
-    let mut file = ensure_state_file_exists(path)?;
-    let mut source = String::new();
-    file.read_to_string(&mut source)?;
-    parse(&source)
 }
 
 fn save(path: &Path, state: &State) -> Result<(), failure::Error> {
@@ -59,7 +43,7 @@ pub fn set(version: Version) -> Result<(), failure::Error> {
         install::by_version(version)?;
     }
     let path = user_state_file()?;
-    let mut state = load(&path)?;
+    let mut state: State = load(&path)?;
     state.node = Some(version);
     save(&path, &state)?;
     Ok(())
@@ -77,9 +61,13 @@ fn parse_node_version(root: &mut Table) -> Result<Option<Version>, failure::Erro
     Ok(Some(Version::Public(version)))
 }
 
-fn parse(src: &str) -> Result<State, failure::Error> {
-    let toml = src.parse::<Value>()?;
-    let mut root = toml.table("<root>", toml_error)?;
-    let node = parse_node_version(&mut root)?;
-    Ok(State { node })
+impl FromStr for State {
+    type Err = failure::Error;
+
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        let toml = src.parse::<Value>()?;
+        let mut root = toml.table("<root>", toml_error)?;
+        let node = parse_node_version(&mut root)?;
+        Ok(State { node })
+    }
 }
