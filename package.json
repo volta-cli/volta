@@ -1,9 +1,14 @@
 {
+  "name": "example",
+  "version": "1.0",
+  "description": "an example Node project using notion",
+  "author": "Dave Herman <david.herman@gmail.com>",
+  "main": "lib/index.js",
+  "devDependencies": {
+    "ember-cli": "2.18.1"
+  },
   "notion": {
     "node": "6.11.3",
-    "yarn": "1.2",
-    "dependencies": {
-      "ember": "ember-cli"
-    }
+    "yarn": "1.2"
   }
 }
