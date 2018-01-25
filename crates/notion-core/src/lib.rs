@@ -28,6 +28,7 @@ extern crate failure_derive;
 extern crate failure;
 
 use std::process::exit;
+use std::convert::Into;
 use console::style;
 
 #[derive(Fail, Debug)]
@@ -66,8 +67,8 @@ pub struct LockfileError {
     msg: String
 }
 
-pub fn display_error(err: failure::Error) {
-    eprintln!("{} {}", style("error:").red().bold(), err);
+pub fn display_error<E: Into<failure::Error>>(err: E) {
+    eprintln!("{} {}", style("error:").red().bold(), err.into());
 }
 
 pub fn die(err: failure::Error) -> ! {
