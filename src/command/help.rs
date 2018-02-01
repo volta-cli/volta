@@ -18,6 +18,10 @@ struct Args {
     arg_command: Option<String>
 }
 
+pub fn throw<T>(usage: &str) -> Result<T, docopt::Error> {
+    Err(docopt::Error::WithProgramUsage(Box::new(docopt::Error::Help), String::from(usage.trim())))
+}
+
 pub fn run(mut args: Vec<String>) -> Result<(), docopt::Error> {
     let mut argv = vec![String::from("notion"), String::from("help")];
     argv.append(&mut args);
@@ -28,29 +32,28 @@ pub fn run(mut args: Vec<String>) -> Result<(), docopt::Error> {
     let command = match args.arg_command {
         Some(command) => command,
         None => {
-            super::throw_help(super::USAGE)?;
-            panic!("can't happen")
+            return throw(super::USAGE)?;
         }
     };
 
     match &command[..] {
         "use" => {
-            super::throw_help(super::activate::USAGE)?;
+            throw(super::activate::USAGE)?;
         }
         "current" => {
-            super::throw_help(super::current::USAGE)?;
+            throw(super::current::USAGE)?;
         }
         "help" => {
-            super::throw_help(USAGE)?;
+            throw(USAGE)?;
         }
         "version" => {
-            super::throw_help(super::version::USAGE)?;
+            throw(super::version::USAGE)?;
         }
         "install" => {
-            super::throw_help(super::install::USAGE)?;
+            throw(super::install::USAGE)?;
         }
         "uninstall" => {
-            super::throw_help(super::uninstall::USAGE)?;
+            throw(super::uninstall::USAGE)?;
         }
         _ => {
             eprintln!("{} Unknown subcommand: '{}'", style("error:").red().bold(), command);

@@ -85,17 +85,13 @@ fn exit_with(e: docopt::Error) -> ! {
     e.exit()
 }
 
-pub fn throw_help(usage: &str) -> Result<(), docopt::Error> {
-    Err(docopt::Error::WithProgramUsage(Box::new(docopt::Error::Help), String::from(usage.trim())))
-}
-
 pub fn run() {
     Docopt::new(USAGE)
         .and_then(|d| d.options_first(true).version(Some(String::from(VERSION))).deserialize())
         .and_then(|args: Args| {
             match args.arg_command {
                 None => {
-                    throw_help(USAGE)
+                    help::throw(USAGE)
                 }
                 Some(Command::Install) => {
                     install::run(args.arg_args, args.flag_verbose)
