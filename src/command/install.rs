@@ -1,5 +1,4 @@
 use docopt::Docopt;
-use std::process::exit;
 use notion_core;
 use failure;
 
@@ -26,10 +25,7 @@ pub fn run(mut args: Vec<String>, _verbose: bool) -> Result<(), failure::Error> 
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.argv(argv).deserialize())?;
 
-    if let Err(err) = notion_core::install::by_version(&args.arg_version) {
-        notion_core::style::display_error(err);
-        exit(1);
-    }
+    notion_core::install::by_version(&args.arg_version)?;
 
     Ok(())
 }
