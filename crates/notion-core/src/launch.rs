@@ -84,7 +84,7 @@ impl Tool for Script {
         Script(command)
     }
 
-    fn command(self) {
+    fn command(self) -> Command {
         let Script(command) = self;
         command
     }
