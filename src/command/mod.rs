@@ -44,7 +44,7 @@ struct Args {
     flag_verbose: bool
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone, Copy)]
 enum Command {
     Install,
     Uninstall,
