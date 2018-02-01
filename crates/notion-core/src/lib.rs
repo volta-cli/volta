@@ -28,8 +28,6 @@ mod untoml;
 extern crate failure_derive;
 extern crate failure;
 
-use std::process::exit;
-
 #[derive(Fail, Debug)]
 #[fail(display = "Error in configuration key '{}'", key)]
 pub struct ConfigError {
@@ -64,11 +62,6 @@ pub struct ManifestError {
 #[fail(display = "Invalid lockfile: {}", msg)]
 pub struct LockfileError {
     msg: String
-}
-
-pub fn die(err: failure::Error) -> ! {
-    style::display_error(err);
-    exit(1);
 }
 
 /*
