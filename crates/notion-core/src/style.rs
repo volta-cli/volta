@@ -4,5 +4,10 @@ use console::style;
 use failure;
 
 pub fn display_error<E: Into<failure::Error>>(err: E) {
-    eprintln!("{} {}", style("error:").red().bold(), err.into());
+    display_error_prefix();
+    eprintln!("{}", err.into());
+}
+
+pub fn display_error_prefix() {
+    eprint!("{} ", style("error:").red().bold());
 }

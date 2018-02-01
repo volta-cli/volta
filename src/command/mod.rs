@@ -8,6 +8,8 @@ pub mod version;
 use docopt::{self, Docopt};
 use console::style;
 use std::process::exit;
+use notion_core::style::{display_error, display_error_prefix};
+use failure;
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -76,20 +78,37 @@ impl Usage for docopt::Error {
 
 }
 
-fn exit_with(e: docopt::Error) -> ! {
-    // Docopt prints help messages to stdout but stderr is more traditional.
-    if let Some(usage) = e.usage() {
-        eprintln!("{}", usage);
-        exit(0);
+trait Die {
+    fn die(self) -> !;
+}
+
+impl Die for docopt::Error {
+
+    fn die(self) -> ! {
+        // Docopt prints help messages to stdout but stderr is more traditional.
+        if let Some(usage) = self.usage() {
+            eprintln!("{}", usage);
+            exit(0);
+        }
+
+        // Prefix fatal errors with a red, bold "error: " prefix.
+        if self.fatal() {
+            display_error_prefix();
+        }
+
+        // Now let docopt do the rest.
+        self.exit()
     }
 
-    // Prefix fatal errors with a red, bold "error: " prefix.
-    if e.fatal() {
-        eprint!("{} ", style("error:").red().bold());
+}
+
+impl Die for failure::Error {
+
+    fn die(self) -> ! {
+        display_error(self);
+        exit(1);
     }
 
-    // Now let docopt do the rest.
-    e.exit()
 }
 
 impl Args {
@@ -111,7 +130,7 @@ impl Args {
                     }
                 }
             })
-            .unwrap_or_else(|e| exit_with(e))
+            .unwrap_or_else(|e| e.die())
     }
 
     fn run(self) -> Result<(), docopt::Error> {
@@ -145,7 +164,7 @@ impl Args {
 pub fn run() -> ! {
     Args::new()
         .run()
-        .unwrap_or_else(|e| exit_with(e));
+        .unwrap_or_else(|e| e.die());
 
     exit(0);
 }
