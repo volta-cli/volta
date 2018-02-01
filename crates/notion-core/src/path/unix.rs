@@ -44,7 +44,7 @@ pub const ARCH: &'static str = "x64";
 //         launchbin                                       launchbin_file
 //         launchscript                                    launchscript_file
 //         config.toml                                     user_config_file
-//         state.toml                                      user_state_file
+//         catalog.toml                                    user_catalog_file
 
 fn notion_home() -> Result<PathBuf, failure::Error> {
     let home = env::home_dir().ok_or_else(|| {
@@ -111,6 +111,6 @@ pub fn user_config_file() -> Result<PathBuf, failure::Error> {
     Ok(notion_home()?.join("config.toml"))
 }
 
-pub fn user_state_file() -> Result<PathBuf, failure::Error> {
-    Ok(notion_home()?.join("state.toml"))
+pub fn user_catalog_file() -> Result<PathBuf, failure::Error> {
+    Ok(notion_home()?.join("catalog.toml"))
 }

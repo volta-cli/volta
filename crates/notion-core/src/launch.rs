@@ -6,7 +6,7 @@ use std::cell::{RefCell, Ref};
 use std::marker::Sized;
 
 use project::Project;
-use global::{self, State};
+use catalog::{self, Catalog};
 use version::Version;
 use install;
 use env;
@@ -15,7 +15,7 @@ use config::{self, Config};
 use style;
 
 pub enum Location {
-    Global(State),
+    Global(Catalog),
     Local(Project)
 }
 
@@ -25,16 +25,16 @@ impl Location {
         Ok(if let Some(project) = Project::for_current_dir()? {
             Location::Local(project)
         } else {
-            Location::Global(global::state()?)
+            Location::Global(catalog::catalog()?)
         })
     }
 
     pub fn version(&self) -> Result<Option<String>, failure::Error> {
         match self {
-            &Location::Global(State { node: None }) => {
+            &Location::Global(Catalog { node: None }) => {
                 Ok(None)
             }
-            &Location::Global(State { node: Some(Version::Public(ref version))}) => {
+            &Location::Global(Catalog { node: Some(Version::Public(ref version))}) => {
                 Ok(Some(version.clone()))
             }
             &Location::Local(ref project) => {

@@ -6,31 +6,31 @@ use std::str::FromStr;
 use toml::value::{Value, Table};
 
 use version::Version;
-use path::user_state_file;
+use path::user_catalog_file;
 use untoml::{ParseToml, Extract, load};
 use install;
 use failure;
 
-use super::StateError;
+use super::CatalogError;
 
-fn toml_error(key: String) -> StateError {
-    StateError {
-        msg: format!("invalid state file at key '{}'", key)
+fn toml_error(key: String) -> CatalogError {
+    CatalogError {
+        msg: format!("invalid catalog file at key '{}'", key)
     }
 }
 
-pub struct State {
+pub struct Catalog {
     pub node: Option<Version>
 }
 
-pub fn state() -> Result<State, failure::Error> {
-    let path = user_state_file()?;
+pub fn catalog() -> Result<Catalog, failure::Error> {
+    let path = user_catalog_file()?;
     load(&path)
 }
 
-fn save(path: &Path, state: &State) -> Result<(), failure::Error> {
+fn save(path: &Path, catalog: &Catalog) -> Result<(), failure::Error> {
     let mut file = File::create(path)?;
-    if let Some(Version::Public(ref version)) = state.node {
+    if let Some(Version::Public(ref version)) = catalog.node {
         file.write_all(b"[node]\n")?;
         file.write_fmt(format_args!("version = \"{}\"\n", version))?;
     }
@@ -42,10 +42,10 @@ pub fn set(version: Version) -> Result<(), failure::Error> {
         let &Version::Public(ref version) = &version;
         install::by_version(version)?;
     }
-    let path = user_state_file()?;
-    let mut state: State = load(&path)?;
-    state.node = Some(version);
-    save(&path, &state)?;
+    let path = user_catalog_file()?;
+    let mut catalog: Catalog = load(&path)?;
+    catalog.node = Some(version);
+    save(&path, &catalog)?;
     Ok(())
 }
 
@@ -61,13 +61,13 @@ fn parse_node_version(root: &mut Table) -> Result<Option<Version>, failure::Erro
     Ok(Some(Version::Public(version)))
 }
 
-impl FromStr for State {
+impl FromStr for Catalog {
     type Err = failure::Error;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
         let toml = src.parse::<Value>()?;
         let mut root = toml.table("<root>", toml_error)?;
         let node = parse_node_version(&mut root)?;
-        Ok(State { node })
+        Ok(Catalog { node })
     }
 }

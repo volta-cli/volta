@@ -1,4 +1,4 @@
-use global;
+use catalog;
 use version::Version;
 use project::Project;
 use failure;
@@ -13,8 +13,8 @@ pub fn local() -> Result<Option<String>, failure::Error> {
 }
 
 pub fn global() -> Result<Option<String>, failure::Error> {
-    let state = global::state()?;
-    Ok(state.node.map(|Version::Public(version)| version))
+    let catalog = catalog::catalog()?;
+    Ok(catalog.node.map(|Version::Public(version)| version))
 }
 
 pub fn both() -> Result<(Option<String>, Option<String>), failure::Error> {

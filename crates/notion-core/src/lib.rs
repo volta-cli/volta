@@ -20,7 +20,7 @@ pub mod current;
 pub mod project;
 pub mod manifest;
 pub mod lockfile;
-pub mod global;
+pub mod catalog;
 pub mod style;
 mod untoml;
 
@@ -36,7 +36,7 @@ pub struct ConfigError {
 
 #[derive(Fail, Debug)]
 #[fail(display = "Notion has encountered an internal error ('{}')", msg)]
-pub struct StateError {
+pub struct CatalogError {
     msg: String
 }
 
