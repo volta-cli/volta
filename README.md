@@ -3,18 +3,30 @@
 
 **This project is just getting started.**
 
-Here's the setup (currently manual until we implement installation scripts) for the initial demo:
+## Unix installation
 
+First-time setup (this will get automated more):
 ```
 $ cargo build --release
-$ mkdir -p ~/.notion/bin
-$ ln -s $(pwd)/target/release/proxy ~/.notion/bin/node
-$ ln -s $(pwd)/target/release/proxy ~/.notion/bin/npm
-$ ln -s $(pwd)/target/release/notion ~/.notion/bin/notion
-$ export PATH="~/.notion/bin:$PATH"
+$ cd support/unix
+$ ./build.sh ../../target/release/notion ../../target/release/launchbin ../../target/release/launchscript
+$ ./install.sh
 ```
+The first time you install, you'll need to open a new terminal to start using Notion.
 
-Then here's the demo:
+To reinstall an updated build, first remove everything from `~/.notion` except for the configuration file (again, this will get automated!):
+```
+$ rm -rf ~/.notion/bin ~/.notion/cache ~/.notion/state.toml ~/.notion/launch* ~/.notion/shim ~/.notion/versions
+```
+and then follow the setup steps above.
+
+## Windows installation
+
+Working on it!
+
+## Demo
+
+There's a sample `package.json` in this repo so just cd into the repo and run:
 
 ```
 $ node -e 'console.log(`this project uses node v${process.version}`)'
