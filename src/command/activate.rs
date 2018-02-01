@@ -1,7 +1,8 @@
-use docopt::{self, Docopt};
+use docopt::Docopt;
 use notion_core::{global, die};
 use notion_core::version::Version;
 use std::process::exit;
+use failure;
 
 pub const USAGE: &'static str = "
 Activate a particular toolchain version
@@ -20,8 +21,8 @@ struct Args {
     arg_version: Option<String>,
     flag_global: bool
 }
- 
-pub fn run(mut args: Vec<String>, _verbose: bool) -> Result<(), docopt::Error> {
+
+pub fn run(mut args: Vec<String>, _verbose: bool) -> Result<(), failure::Error> {
     let mut argv = vec![String::from("notion"), String::from("use")];
     argv.append(&mut args);
 

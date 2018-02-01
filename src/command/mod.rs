@@ -6,7 +6,6 @@ pub mod help;
 pub mod version;
 
 use docopt::{self, Docopt};
-use console::style;
 use std::process::exit;
 use notion_core::style::{display_error, display_error_prefix};
 use failure;
@@ -125,6 +124,10 @@ impl Args {
                         help::run(args.arg_args)?;
                         exit(0);
                     }
+                    Some(Command::Version) => {
+                        version::run(args.arg_args)?;
+                        exit(0);
+                    }
                     _ => {
                         Ok(args)
                     }
@@ -133,7 +136,7 @@ impl Args {
             .unwrap_or_else(|e| e.die())
     }
 
-    fn run(self) -> Result<(), docopt::Error> {
+    fn run(self) -> Result<(), failure::Error> {
         match self.arg_command {
             Some(Command::Install) => {
                 install::run(self.arg_args, self.flag_verbose)
@@ -147,14 +150,14 @@ impl Args {
             Some(Command::Current) => {
                 current::run(self.arg_args)
             }
-            Some(Command::Version) => {
-                version::run(self.arg_args)
-            }
             // This is a bit unpleasant but it's because docopt needs the
             // Command enum to be flat and parallel the set of subcommand,
-            // even though it has special functionality for help commands.
-            // So we already handled both the None and Some(Command::Help)
-            // cases in Args::new(), but we can't prove that in the types.
+            // even though it has special built-in functionality for help
+            // and version commands.
+            //
+            // So we already handled the None, Some(Comand::Version), and
+            // Some(Command::Help) cases in Args::new(), but the types do
+            // not prove this.
             _ => { panic!("can't happen") }
         }
     }

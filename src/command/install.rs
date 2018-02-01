@@ -1,6 +1,7 @@
-use docopt::{self, Docopt};
+use docopt::Docopt;
 use std::process::exit;
 use notion_core;
+use failure;
 
 pub const USAGE: &'static str = "
 Install a toolchain to the local machine
@@ -18,7 +19,7 @@ struct Args {
     arg_version: String
 }
 
-pub fn run(mut args: Vec<String>, _verbose: bool) -> Result<(), docopt::Error> {
+pub fn run(mut args: Vec<String>, _verbose: bool) -> Result<(), failure::Error> {
     let mut argv = vec![String::from("notion"), String::from("install")];
     argv.append(&mut args);
 

@@ -1,6 +1,7 @@
-use docopt::{self, Docopt};
+use docopt::Docopt;
 use std::process::exit;
 use notion_core::{current, die};
+use failure;
 
 pub const USAGE: &'static str = "
 Display the currently activated toolchain
@@ -19,8 +20,8 @@ struct Args {
     flag_local: bool,
     flag_global: bool
 }
- 
-pub fn run(mut args: Vec<String>) -> Result<(), docopt::Error> {
+
+pub fn run(mut args: Vec<String>) -> Result<(), failure::Error> {
     let mut argv = vec![String::from("notion"), String::from("current")];
     argv.append(&mut args);
 
