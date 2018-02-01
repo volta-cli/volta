@@ -21,6 +21,7 @@ pub mod project;
 pub mod manifest;
 pub mod lockfile;
 pub mod global;
+pub mod style;
 mod untoml;
 
 #[macro_use]
@@ -28,8 +29,6 @@ extern crate failure_derive;
 extern crate failure;
 
 use std::process::exit;
-use std::convert::Into;
-use console::style;
 
 #[derive(Fail, Debug)]
 #[fail(display = "Error in configuration key '{}'", key)]
@@ -67,12 +66,8 @@ pub struct LockfileError {
     msg: String
 }
 
-pub fn display_error<E: Into<failure::Error>>(err: E) {
-    eprintln!("{} {}", style("error:").red().bold(), err.into());
-}
-
 pub fn die(err: failure::Error) -> ! {
-    display_error(err);
+    style::display_error(err);
     exit(1);
 }
 

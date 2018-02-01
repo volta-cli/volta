@@ -23,5 +23,6 @@ notion-core = { path = "crates/notion-core" }
 serde = "1.0"
 serde_derive = "1.0"
 console = "0.6.1"
+failure = "0.1.1"
 
 [workspace]

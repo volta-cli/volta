@@ -26,7 +26,7 @@ pub fn run(mut args: Vec<String>, _verbose: bool) -> Result<(), docopt::Error> {
         .and_then(|d| d.argv(argv).deserialize())?;
 
     if let Err(err) = notion_core::uninstall::by_version(&args.arg_version) {
-        notion_core::display_error(err);
+        notion_core::style::display_error(err);
         exit(1);
     }
 

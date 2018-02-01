@@ -12,6 +12,7 @@ use install;
 use env;
 use failure;
 use config::{self, Config};
+use style;
 
 pub enum Location {
     Global(State),
@@ -61,7 +62,7 @@ pub trait Tool: Sized {
                 exit(status.code().unwrap_or(1));
             }
             Err(err) => {
-                super::display_error(err);
+                style::display_error(err);
                 exit(1);
             }
         }
@@ -173,7 +174,7 @@ pub fn launch<T: Tool>() -> ! {
     match prepare::<T>() {
         Ok(tool) => tool.launch(),
         Err(e) => {
-            super::display_error(e);
+            style::display_error(e);
             exit(1);
         }
     }
