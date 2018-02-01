@@ -1,4 +1,5 @@
 # Notion: the hassle-free node.js manager
+[![Build Status](https://travis-ci.org/notion-cli/notion.svg?branch=master)](https://travis-ci.org/notion-cli/notion)
 
 **This project is just getting started.**
 
