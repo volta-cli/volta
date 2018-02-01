@@ -2,9 +2,4 @@ sudo: required
 language: rust
 rust:
   - stable
-  - beta
-  - nightly
 cache: cargo
-matrix:
-  allow_failures:
-    - rust: nightly
