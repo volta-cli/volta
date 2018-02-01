@@ -16,7 +16,7 @@ pub const USAGE: &'static str = "
 Notion: the hassle-free Node.js manager
 
 Usage:
-    notion [-v | --verbose] <command> [<args> ...]
+    notion [-v | --verbose] [<command> <args> ...]
     notion -h | --help
     notion -V | --version
 
