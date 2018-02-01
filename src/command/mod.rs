@@ -53,25 +53,32 @@ enum Command {
     Version
 }
 
-fn docopt_help_error(e: &docopt::Error) -> Option<&str> {
-    match e {
-        &docopt::Error::WithProgramUsage(ref err, ref usage) => {
-            if let &docopt::Error::Help = &**err {
-                Some(usage)
-            } else {
-                None
+trait Usage {
+    fn usage(&self) -> Option<&str>;
+}
+
+impl Usage for docopt::Error {
+
+    fn usage(&self) -> Option<&str> {
+        match *self {
+            docopt::Error::WithProgramUsage(ref cause, ref usage) => {
+                match **cause {
+                    docopt::Error::Help => Some(usage),
+                    _ => None
+                }
             }
+            docopt::Error::Help => {
+                Some(USAGE)
+            }
+            _ => None
         }
-        &docopt::Error::Help => {
-            Some(USAGE)
-        }
-        _ => None
     }
+
 }
 
 fn exit_with(e: docopt::Error) -> ! {
     // Docopt prints help messages to stdout but stderr is more traditional.
-    if let Some(usage) = docopt_help_error(&e) {
+    if let Some(usage) = e.usage() {
         eprintln!("{}", usage);
         exit(0);
     }
