@@ -6,8 +6,8 @@ authors = ["David Herman <david.herman@gmail.com>"]
 [dependencies]
 toml = "0.4"
 term_size = "0.3.0"
-indicatif = "0.7.0"
-console = "0.5.0"
+indicatif = "0.9.0"
+console = "0.6.1"
 serde_json = "1.0.3"
 node-archive = { path = "../node-archive" }
 failure = "0.1.1"
