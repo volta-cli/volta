@@ -30,4 +30,6 @@ encode_base64_sed_command launchscript LAUNCHSCRIPT $3
 
 sed -f notion.base64.txt -f launchbin.base64.txt -f launchscript.base64.txt < install.sh.in > install.sh
 
+chmod 755 install.sh
+
 rm *.base64.txt
