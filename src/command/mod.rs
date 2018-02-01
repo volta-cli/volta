@@ -85,34 +85,60 @@ fn exit_with(e: docopt::Error) -> ! {
     e.exit()
 }
 
-pub fn run() {
-    Docopt::new(USAGE)
-        .and_then(|d| d.options_first(true).version(Some(String::from(VERSION))).deserialize())
-        .and_then(|args: Args| {
-            match args.arg_command {
-                None => {
-                    help::throw(USAGE)
+impl Args {
+
+    fn new() -> Args {
+        Docopt::new(USAGE)
+            .and_then(|d| d.options_first(true).version(Some(String::from(VERSION))).deserialize())
+            .and_then(|args: Args| -> Result<Args, docopt::Error> {
+                match args.arg_command {
+                    None => {
+                        return help::throw(USAGE);
+                    }
+                    Some(Command::Help) => {
+                        help::run(args.arg_args)?;
+                        exit(0);
+                    }
+                    _ => {
+                        Ok(args)
+                    }
                 }
-                Some(Command::Install) => {
-                    install::run(args.arg_args, args.flag_verbose)
-                }
-                Some(Command::Uninstall) => {
-                    uninstall::run(args.arg_args, args.flag_verbose)
-                }
-                Some(Command::Use) => {
-                    activate::run(args.arg_args, args.flag_verbose)
-                }
-                Some(Command::Current) => {
-                    current::run(args.arg_args)
-                }
-                Some(Command::Help) => {
-                    help::run(args.arg_args)
-                }
-                Some(Command::Version) => {
-                    version::run(args.arg_args)
-                }
+            })
+            .unwrap_or_else(|e| exit_with(e))
+    }
+
+    fn run(self) -> Result<(), docopt::Error> {
+        match self.arg_command {
+            Some(Command::Install) => {
+                install::run(self.arg_args, self.flag_verbose)
             }
-        })
+            Some(Command::Uninstall) => {
+                uninstall::run(self.arg_args, self.flag_verbose)
+            }
+            Some(Command::Use) => {
+                activate::run(self.arg_args, self.flag_verbose)
+            }
+            Some(Command::Current) => {
+                current::run(self.arg_args)
+            }
+            Some(Command::Version) => {
+                version::run(self.arg_args)
+            }
+            // This is a bit unpleasant but it's because docopt needs the
+            // Command enum to be flat and parallel the set of subcommand,
+            // even though it has special functionality for help commands.
+            // So we already handled both the None and Some(Command::Help)
+            // cases in Args::new(), but we can't prove that in the types.
+            _ => { panic!("can't happen") }
+        }
+    }
+
+}
+
+pub fn run() -> ! {
+    Args::new()
+        .run()
         .unwrap_or_else(|e| exit_with(e));
 
+    exit(0);
 }
