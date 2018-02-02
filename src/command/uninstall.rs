@@ -1,5 +1,5 @@
 use docopt::Docopt;
-use notion_core;
+use notion_core::catalog::Catalog;
 use failure;
 
 pub const USAGE: &'static str = "
@@ -25,7 +25,7 @@ pub fn run(mut args: Vec<String>, _verbose: bool) -> Result<(), failure::Error> 
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.argv(argv).deserialize())?;
 
-    notion_core::uninstall::by_version(&args.arg_version)?;
+    Catalog::current()?.uninstall(&args.arg_version)?;
 
     Ok(())
 }

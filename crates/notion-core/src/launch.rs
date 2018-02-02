@@ -6,9 +6,8 @@ use std::cell::{RefCell, Ref};
 use std::marker::Sized;
 
 use project::Project;
-use catalog::{self, Catalog};
+use catalog::Catalog;
 use version::Version;
-use install;
 use env;
 use failure;
 use config::{self, Config};
@@ -25,7 +24,7 @@ impl Location {
         Ok(if let Some(project) = Project::for_current_dir()? {
             Location::Local(project)
         } else {
-            Location::Global(catalog::catalog()?)
+            Location::Global(Catalog::current()?)
         })
     }
 
@@ -165,7 +164,7 @@ fn prepare<T: Tool>() -> Result<T, failure::Error> {
     let exe = Path::new(&args.next().unwrap()).file_name().unwrap().to_os_string();
     // FIXME: make an error kind for this case
     let version = context.location.version()?.unwrap();
-    install::by_version(&version)?;
+    Catalog::current()?.install(&version)?;
     let path_var = env::path_for(&version);
     Ok(T::new(&exe, args, &path_var))
 }

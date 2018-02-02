@@ -1,5 +1,5 @@
 use docopt::Docopt;
-use notion_core::catalog;
+use notion_core::catalog::Catalog;
 use notion_core::version::Version;
 use std::process::exit;
 use failure;
@@ -32,7 +32,7 @@ pub fn run(mut args: Vec<String>, _verbose: bool) -> Result<(), failure::Error> 
     if args.flag_global {
         // FIXME: compute the default
         let version = args.arg_version.unwrap();
-        catalog::set(Version::Public(version))?;
+        Catalog::current()?.set_version(Version::Public(version))?;
     } else {
         println!("not yet implemented; in the meantime you can modify your package.json.");
         exit(1);
