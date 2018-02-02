@@ -1,7 +1,7 @@
 extern crate notion_core;
 
-use notion_core::launch::{launch, Binary};
+use notion_core::tool::{Tool, Binary};
 
 fn main() {
-    launch::<Binary>()
+    Binary::launch()
 }

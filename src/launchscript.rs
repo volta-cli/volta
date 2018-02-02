@@ -1,7 +1,7 @@
 extern crate notion_core;
 
-use notion_core::launch::{launch, Script};
+use notion_core::tool::{Tool, Script};
 
 fn main() {
-    launch::<Script>()
+    Script::launch()
 }

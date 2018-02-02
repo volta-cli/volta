@@ -13,7 +13,7 @@ pub mod path;
 pub mod provision;
 pub mod env;
 pub mod config;
-pub mod launch;
+pub mod tool;
 pub mod version;
 pub mod project;
 pub mod manifest;
