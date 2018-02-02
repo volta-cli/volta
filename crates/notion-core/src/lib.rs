@@ -4,6 +4,7 @@ extern crate toml;
 extern crate node_archive;
 extern crate serde_json;
 extern crate console;
+extern crate lazycell;
 
 #[cfg(windows)]
 extern crate winfolder;
@@ -18,6 +19,7 @@ pub mod project;
 pub mod manifest;
 pub mod lockfile;
 pub mod catalog;
+pub mod session;
 pub mod style;
 mod untoml;
 

@@ -2,47 +2,13 @@ use std::env::{args_os, ArgsOs};
 use std::ffi::OsStr;
 use std::process::{Command, exit};
 use std::path::Path;
-use std::cell::{RefCell, Ref};
 use std::marker::Sized;
 
-use project::Project;
 use catalog::Catalog;
-use version::Version;
+use session::Session;
 use env;
 use failure;
-use config::{self, Config};
 use style;
-
-pub enum Location {
-    Global(Catalog),
-    Local(Project)
-}
-
-impl Location {
-
-    pub fn current() -> Result<Location, failure::Error> {
-        Ok(if let Some(project) = Project::for_current_dir()? {
-            Location::Local(project)
-        } else {
-            Location::Global(Catalog::current()?)
-        })
-    }
-
-    pub fn version(&self) -> Result<Option<String>, failure::Error> {
-        match self {
-            &Location::Global(Catalog { node: None }) => {
-                Ok(None)
-            }
-            &Location::Global(Catalog { node: Some(Version::Public(ref version))}) => {
-                Ok(Some(version.clone()))
-            }
-            &Location::Local(ref project) => {
-                Ok(Some(project.lockfile()?.node.version.clone()))
-            }
-        }
-    }
-
-}
 
 pub trait Tool: Sized {
     fn new(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self;
@@ -121,49 +87,13 @@ impl Tool for Binary {
     }
 }
 
-pub struct Context {
-    config: RefCell<Option<Config>>,
-    location: Location
-}
-
-impl Context {
-
-    pub fn new() -> Result<Context, failure::Error> {
-        let location = Location::current()?;
-        Ok(Context {
-            config: RefCell::new(None),
-            location: location
-        })
-    }
-
-    pub fn config(&self) -> Result<Ref<Config>, failure::Error> {
-        // Create a new scope to contain the lifetime of the dynamic borrow.
-        {
-            let cfg: Ref<Option<Config>> = self.config.borrow();
-            if cfg.is_some() {
-                return Ok(Ref::map(cfg, |opt| opt.as_ref().unwrap()));
-            }
-        }
-
-        // Create a new scope to contain the lifetime of the dynamic borrow.
-        {
-            let mut cfg = self.config.borrow_mut();
-            *cfg = Some(config::config()?);
-        }
-
-        // Now try again recursively, outside the scope of the previous borrows.
-        self.config()
-    }
-
-}
-
 fn prepare<T: Tool>() -> Result<T, failure::Error> {
-    let context = Context::new()?;
+    let session = Session::new()?;
     let mut args = args_os();
     // FIXME: make an error kind for this case
     let exe = Path::new(&args.next().unwrap()).file_name().unwrap().to_os_string();
     // FIXME: make an error kind for this case
-    let version = context.location.version()?.unwrap();
+    let version = session.node_version()?.unwrap();
     Catalog::current()?.install(&version)?;
     let path_var = env::path_for(&version);
     Ok(T::new(&exe, args, &path_var))
