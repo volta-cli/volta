@@ -25,6 +25,10 @@ impl Session {
         self.catalog.try_borrow_with(|| Catalog::current())
     }
 
+    pub fn catalog_mut(&mut self) -> Result<&mut Catalog, failure::Error> {
+        self.catalog.try_borrow_mut_with(|| Catalog::current())
+    }
+
     pub fn config(&self) -> Result<&Config, failure::Error> {
         self.config.try_borrow_with(|| config::config())
     }

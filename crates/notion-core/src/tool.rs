@@ -4,7 +4,6 @@ use std::process::{Command, exit};
 use std::path::Path;
 use std::marker::Sized;
 
-use catalog::Catalog;
 use session::Session;
 use env;
 use failure;
@@ -22,13 +21,13 @@ pub trait Tool: Sized {
     }
 
     fn new() -> Result<Self, failure::Error> {
-        let session = Session::new()?;
+        let mut session = Session::new()?;
         let mut args = args_os();
         // FIXME: make an error kind for this case
         let exe = Path::new(&args.next().unwrap()).file_name().unwrap().to_os_string();
         // FIXME: make an error kind for this case
         let version = session.node_version()?.unwrap();
-        Catalog::current()?.install(&version)?;
+        session.catalog_mut()?.install(&version)?;
         let path_var = env::path_for(&version);
         Ok(Self::from_components(&exe, args, &path_var))
     }

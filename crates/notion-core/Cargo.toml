@@ -12,7 +12,7 @@ serde_json = "1.0.3"
 node-archive = { path = "../node-archive" }
 failure = "0.1.1"
 failure_derive = "0.1.1"
-lazycell = "0.6.0"
+lazycell = { "git" = "https://github.com/dherman/lazycell", "branch" = "borrow_mut_with" }
 
 [target.'cfg(windows)'.dependencies]
 zip = "0.2.6"
