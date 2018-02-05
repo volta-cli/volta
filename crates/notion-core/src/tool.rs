@@ -20,17 +20,7 @@ pub trait Tool: Sized {
         }
     }
 
-    fn new() -> Result<Self, failure::Error> {
-        let mut session = Session::new()?;
-        let mut args = args_os();
-        // FIXME: make an error kind for this case
-        let exe = Path::new(&args.next().unwrap()).file_name().unwrap().to_os_string();
-        // FIXME: make an error kind for this case
-        let version = session.node_version()?.unwrap();
-        session.catalog_mut()?.install(&version)?;
-        let path_var = env::path_for(&version);
-        Ok(Self::from_components(&exe, args, &path_var))
-    }
+    fn new() -> Result<Self, failure::Error>;
 
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self;
 
@@ -59,8 +49,14 @@ pub struct Script(Command);
 
 pub struct Binary(Command);
 
+pub struct Node(Command);
+
 #[cfg(windows)]
 impl Tool for Script {
+    fn new() -> Result<Self, failure::Error> {
+        unimplemented!()
+    }
+
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
         // See: https://github.com/rust-lang/rust/issues/42791
         let mut command = Command::new("cmd.exe");
@@ -71,10 +67,7 @@ impl Tool for Script {
         Script(command)
     }
 
-    fn command(self) -> Command {
-        let Script(command) = self;
-        command
-    }
+    fn command(self) -> Command { self.0 }
 }
 
 fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
@@ -87,23 +80,45 @@ fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
 
 #[cfg(not(windows))]
 impl Tool for Script {
+    fn new() -> Result<Self, failure::Error> {
+        unimplemented!()
+    }
+
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
         Script(command_for(exe, args, path_var))
     }
 
-    fn command(self) -> Command {
-        let Script(command) = self;
-        command
-    }
+    fn command(self) -> Command { self.0 }
 }
 
 impl Tool for Binary {
+    fn new() -> Result<Self, failure::Error> {
+        unimplemented!()
+    }
+
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
         Binary(command_for(exe, args, path_var))
     }
 
-    fn command(self) -> Command {
-        let Binary(command) = self;
-        command
+    fn command(self) -> Command { self.0 }
+}
+
+impl Tool for Node {
+    fn new() -> Result<Self, failure::Error> {
+        let mut session = Session::new()?;
+        let mut args = args_os();
+        // FIXME: make an error kind for this case
+        let exe = Path::new(&args.next().unwrap()).file_name().unwrap().to_os_string();
+        // FIXME: make an error kind for this case
+        let version = session.node_version()?.unwrap();
+        session.catalog_mut()?.install(&version)?;
+        let path_var = env::path_for(&version);
+        Ok(Self::from_components(&exe, args, &path_var))
     }
+
+    fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
+        Node(command_for(exe, args, path_var))
+    }
+
+    fn command(self) -> Command { self.0 }
 }

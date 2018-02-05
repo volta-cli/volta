@@ -10,6 +10,10 @@ name = "notion"
 path = "src/main.rs"
 
 [[bin]]
+name = "node"
+path = "src/node.rs"
+
+[[bin]]
 name = "launchbin"
 path = "src/launchbin.rs"
 

@@ -3,11 +3,13 @@ use super::super::catalog;
 use std::string::ToString;
 use std::collections::BTreeSet;
 use std::iter::FromIterator;
+use std::default::Default;
 
 use semver::{Version, SemVerError};
 
 #[derive(Serialize, Deserialize)]
 pub struct Catalog {
+    #[serde(default)]
     node: NodeCatalog
 }
 
@@ -16,6 +18,15 @@ pub struct Catalog {
 pub struct NodeCatalog {
     current: Option<String>,
     versions: Vec<String>
+}
+
+impl Default for NodeCatalog {
+    fn default() -> Self {
+        NodeCatalog {
+            current: None,
+            versions: vec![]
+        }
+    }
 }
 
 impl Catalog {
