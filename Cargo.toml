@@ -7,7 +7,7 @@ repository = "https://github.com/notion-cli/notion"
 
 [[bin]]
 name = "notion"
-path = "src/main.rs"
+path = "src/notion.rs"
 
 [[bin]]
 name = "node"
