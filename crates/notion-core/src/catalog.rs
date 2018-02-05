@@ -12,7 +12,7 @@ use path::{self, user_catalog_file};
 use untoml::touch;
 use provision;
 use failure;
-use semver::Version;
+use semver::{Version, VersionReq};
 use serial;
 
 pub struct Catalog {
@@ -85,6 +85,19 @@ impl Catalog {
         // FIXME: update the data structure and self.save()
 
         Ok(())
+    }
+
+}
+
+impl NodeCatalog {
+
+    pub fn resolve_local(&self, req: VersionReq) -> Option<Version> {
+        self.versions
+            .iter()
+            .rev()
+            .skip_while(|v| !req.matches(&v))
+            .next()
+            .map(|v| v.clone())
     }
 
 }
