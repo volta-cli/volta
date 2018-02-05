@@ -3,6 +3,7 @@ use catalog::Catalog;
 use project::Project;
 use failure;
 use lazycell::LazyCell;
+use semver::{Version, VersionReq};
 
 pub struct Session {
     config: LazyCell<Config>,
@@ -39,6 +40,21 @@ impl Session {
         }
 
         Ok(self.catalog()?.node.current.clone().map(|v| v.to_string()))
+    }
+
+    pub fn node(&mut self) -> Result<Option<Version>, failure::Error> {
+        if let Some(ref project) = self.project {
+            let req: &VersionReq = unimplemented!(); //project.manifest.node_req();
+            let catalog = self.catalog()?;
+            let available = catalog.node.resolve_local(req);
+
+            if available.is_some() {
+                return Ok(available);
+            }
+
+        }
+
+        unimplemented!()
     }
 
 }

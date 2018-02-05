@@ -91,7 +91,7 @@ impl Catalog {
 
 impl NodeCatalog {
 
-    pub fn resolve_local(&self, req: VersionReq) -> Option<Version> {
+    pub fn resolve_local(&self, req: &VersionReq) -> Option<Version> {
         self.versions
             .iter()
             .rev()
