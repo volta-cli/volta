@@ -4,6 +4,7 @@ use std::fs::File;
 
 use serde_json;
 use serde_json::value::Value;
+use semver::VersionReq;
 
 use version::{Version, VersionSpec};
 use lockfile::{self, Lockfile};
@@ -37,6 +38,16 @@ fn resolve_node(spec: &VersionSpec) -> Result<lockfile::Entry, failure::Error> {
 }
 
 impl Manifest {
+    // FIXME: change to return &VersionReq after we stop using the version crate
+    pub fn node_req(&self) -> VersionReq {
+        match self.node {
+            VersionSpec::Specific(ref version) => {
+                VersionReq::parse(version).unwrap()
+            }
+            _ => { unimplemented!() }
+        }
+    }
+
     pub fn resolve(&self) -> Result<Lockfile, failure::Error> {
         Ok(Lockfile {
             node: resolve_node(&self.node)?,

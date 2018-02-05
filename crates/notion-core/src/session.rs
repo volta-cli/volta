@@ -43,18 +43,20 @@ impl Session {
     }
 
     pub fn node(&mut self) -> Result<Option<Version>, failure::Error> {
+        let catalog = self.catalog()?;
+
         if let Some(ref project) = self.project {
-            let req: &VersionReq = unimplemented!(); //project.manifest.node_req();
-            let catalog = self.catalog()?;
-            let available = catalog.node.resolve_local(req);
+            let req: VersionReq = project.manifest().node_req();
+            let available = catalog.node.resolve_local(&req);
 
             if available.is_some() {
                 return Ok(available);
             }
 
+            unimplemented!()
         }
 
-        unimplemented!()
+        Ok(catalog.node.current.clone())
     }
 
 }
