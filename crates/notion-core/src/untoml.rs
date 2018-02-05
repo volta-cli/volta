@@ -1,7 +1,6 @@
 use std::path::Path;
 use std::fs::{File, create_dir_all};
-use std::io::{self, Read};
-use std::str::FromStr;
+use std::io;
 use std::convert::From;
 
 use toml::value::{Value, Table};
@@ -14,15 +13,6 @@ pub fn touch(path: &Path) -> io::Result<File> {
         File::create(path)?;
     }
     File::open(path)
-}
-
-pub fn load<T: FromStr>(path: &Path) -> Result<T, T::Err>
-  where T::Err: From<io::Error>
-{
-    let mut file = touch(path)?;
-    let mut source = String::new();
-    file.read_to_string(&mut source)?;
-    source.parse()
 }
 
 pub trait ParseToml {

@@ -8,6 +8,7 @@ use readext::ReadExt;
 use toml;
 
 use path::{self, user_catalog_file};
+use untoml::touch;
 use provision;
 use failure;
 use semver::Version;
@@ -31,7 +32,7 @@ impl Catalog {
 
     pub fn current() -> Result<Catalog, failure::Error> {
         let path = user_catalog_file()?;
-        let src = File::open(path)?.read_into_string()?;
+        let src = touch(&path)?.read_into_string()?;
         src.parse()
     }
 
