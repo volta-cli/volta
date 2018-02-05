@@ -1,6 +1,8 @@
 use super::super::catalog;
 
 use std::string::ToString;
+use std::collections::BTreeSet;
+use std::iter::FromIterator;
 
 use semver::{Version, SemVerError};
 
@@ -37,7 +39,7 @@ impl NodeCatalog {
 
         Ok(catalog::NodeCatalog {
             current: current,
-            versions: versions?
+            versions: BTreeSet::from_iter(versions?)
         })
     }
 }

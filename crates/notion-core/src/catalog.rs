@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::collections::BTreeSet;
 use std::fs::{File, remove_dir_all};
 use std::io::{self, Write};
 use std::str::FromStr;
@@ -20,7 +21,9 @@ pub struct Catalog {
 
 pub struct NodeCatalog {
     pub current: Option<Version>,
-    pub versions: Vec<Version>
+
+    // A sorted collection of the available versions in the catalog.
+    pub versions: BTreeSet<Version>
 }
 
 pub enum Installed {
