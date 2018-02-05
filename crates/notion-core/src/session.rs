@@ -1,7 +1,6 @@
 use config::{self, Config};
 use catalog::Catalog;
 use project::Project;
-use version::Version;
 use failure;
 use lazycell::LazyCell;
 
@@ -33,19 +32,13 @@ impl Session {
         self.config.try_borrow_with(|| config::config())
     }
 
+    // FIXME: should return Version once we kill lockfile
     pub fn node_version(&self) -> Result<Option<String>, failure::Error> {
         if let Some(ref project) = self.project {
             return Ok(Some(project.lockfile()?.node.version.clone()));
         }
 
-        match self.catalog()?.node {
-            Some(Version::Public(ref version)) => {
-                Ok(Some(version.clone()))
-            }
-            None => {
-                Ok(None)
-            }
-        }
+        Ok(self.catalog()?.node.current.clone().map(|v| v.to_string()))
     }
 
 }

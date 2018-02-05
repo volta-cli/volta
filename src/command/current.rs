@@ -1,8 +1,8 @@
 use docopt::Docopt;
 use std::process::exit;
+use std::string::ToString;
 use notion_core::catalog::Catalog;
 use notion_core::project::Project;
-use notion_core::version::Version;
 use failure;
 
 pub const USAGE: &'static str = "
@@ -34,7 +34,7 @@ pub fn local() -> Result<Option<String>, failure::Error> {
 
 pub fn global() -> Result<Option<String>, failure::Error> {
     let catalog = Catalog::current()?;
-    Ok(catalog.node.map(|Version::Public(version)| version))
+    Ok(catalog.node.current.clone().map(|v| v.to_string()))
 }
 
 pub fn run(mut args: Vec<String>) -> Result<(), failure::Error> {

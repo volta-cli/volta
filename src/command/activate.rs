@@ -1,8 +1,8 @@
 use docopt::Docopt;
 use notion_core::catalog::Catalog;
-use notion_core::version::Version;
 use std::process::exit;
 use failure;
+use semver::Version;
 
 pub const USAGE: &'static str = "
 Activate a particular toolchain version
@@ -32,7 +32,8 @@ pub fn run(mut args: Vec<String>, _verbose: bool) -> Result<(), failure::Error> 
     if args.flag_global {
         // FIXME: compute the default
         let version = args.arg_version.unwrap();
-        Catalog::current()?.set_version(Version::Public(version))?;
+        let version = Version::parse(&version)?;
+        Catalog::current()?.set_version(version)?;
     } else {
         println!("not yet implemented; in the meantime you can modify your package.json.");
         exit(1);

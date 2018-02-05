@@ -5,6 +5,12 @@ extern crate node_archive;
 extern crate serde_json;
 extern crate console;
 extern crate lazycell;
+extern crate readext;
+extern crate semver;
+
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
 
 #[cfg(windows)]
 extern crate winfolder;
@@ -22,6 +28,7 @@ pub mod catalog;
 pub mod session;
 pub mod style;
 mod untoml;
+mod serial;
 
 #[macro_use]
 extern crate failure_derive;
