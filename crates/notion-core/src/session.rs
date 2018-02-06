@@ -1,4 +1,4 @@
-use config::{self, Config};
+use config::{self, Config, NodeConfig, Plugin};
 use catalog::Catalog;
 use project::Project;
 use failure;
@@ -60,13 +60,19 @@ impl Session {
     }
 
     fn resolve_remote_node(&self, req: &VersionReq) -> Result<Version, failure::Error> {
-        if let Some(ref node) = self.config()?.node {
-            if let Some(ref resolve) = node.resolve {
-                panic!("there's a plugin");
+        let config = self.config()?;
+
+        match config.node {
+            Some(NodeConfig { resolve: Some(Plugin::Url(_)), .. }) => {
+                unimplemented!()
+            }
+            Some(NodeConfig { resolve: Some(Plugin::Bin(ref bin)), .. }) => {
+                panic!("there's a bin plugin")
+            }
+            _ => {
+                panic!("there's no plugin")
             }
         }
-
-        panic!("there's no plugin")
     }
 
 }
