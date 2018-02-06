@@ -110,9 +110,8 @@ impl Tool for Node {
         // FIXME: make an error kind for this case
         let exe = Path::new(&args.next().unwrap()).file_name().unwrap().to_os_string();
         // FIXME: make an error kind for this case
-        let version = session.node_version()?.unwrap();
-        session.catalog_mut()?.install(&version)?;
-        let path_var = env::path_for(&version);
+        let version = session.node()?.unwrap();
+        let path_var = env::path_for(&version.to_string());
         Ok(Self::from_components(&exe, args, &path_var))
     }
 

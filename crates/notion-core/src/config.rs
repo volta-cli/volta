@@ -15,17 +15,17 @@ pub struct Config {
 #[derive(Serialize, Deserialize)]
 #[serde(rename = "node")]
 pub struct NodeConfig {
-    pub resolve: Option<PluginConfig>,
+    pub resolve: Option<Plugin>,
 
     #[serde(rename = "ls-remote")]
-    pub ls_remote: Option<PluginConfig>
+    pub ls_remote: Option<Plugin>
 }
 
 #[derive(Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum PluginConfig {
-    Url(String),
-    Bin(String)
+#[serde(untagged)]
+pub enum Plugin {
+    Url { url: String },
+    Bin { bin: String }
 }
 
 pub fn config() -> Result<Config, failure::Error> {

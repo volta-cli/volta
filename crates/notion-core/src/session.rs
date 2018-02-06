@@ -49,14 +49,24 @@ impl Session {
             let req: VersionReq = project.manifest().node_req();
             let available = catalog.node.resolve_local(&req);
 
-            if available.is_some() {
-                return Ok(available);
+            return if available.is_some() {
+                Ok(available)
+            } else {
+                self.resolve_remote_node(&req).map(Some)
             }
-
-            unimplemented!()
         }
 
         Ok(catalog.node.current.clone())
+    }
+
+    fn resolve_remote_node(&self, req: &VersionReq) -> Result<Version, failure::Error> {
+        if let Some(ref node) = self.config()?.node {
+            if let Some(ref resolve) = node.resolve {
+                panic!("there's a plugin");
+            }
+        }
+
+        panic!("there's no plugin")
     }
 
 }
