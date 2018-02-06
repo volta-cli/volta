@@ -32,6 +32,8 @@ mod serial;
 
 #[macro_use]
 extern crate failure_derive;
+
+#[macro_use]
 extern crate failure;
 
 #[derive(Fail, Debug)]

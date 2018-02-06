@@ -6,26 +6,21 @@ use path::user_config_file;
 use failure;
 use readext::ReadExt;
 use untoml::touch;
+use serial;
 
-#[derive(Serialize, Deserialize)]
 pub struct Config {
     pub node: Option<NodeConfig>
 }
 
-#[derive(Serialize, Deserialize)]
-#[serde(rename = "node")]
 pub struct NodeConfig {
     pub resolve: Option<Plugin>,
 
-    #[serde(rename = "ls-remote")]
     pub ls_remote: Option<Plugin>
 }
 
-#[derive(Serialize, Deserialize)]
-#[serde(untagged)]
 pub enum Plugin {
-    Url { url: String },
-    Bin { bin: String }
+    Url(String),
+    Bin(String)
 }
 
 pub fn config() -> Result<Config, failure::Error> {
@@ -38,6 +33,7 @@ impl FromStr for Config {
     type Err = failure::Error;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
-        Ok(toml::from_str(src)?)
+        let serial: serial::config::Config = toml::from_str(src)?;
+        Ok(serial.into_config()?)
     }
 }
