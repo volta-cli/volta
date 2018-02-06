@@ -110,6 +110,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "cmdline_words_parser"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "console"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -543,6 +548,7 @@ dependencies = [
 name = "notion-core"
 version = "0.1.0"
 dependencies = [
+ "cmdline_words_parser 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "console 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure_derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1203,6 +1209,7 @@ dependencies = [
 "checksum cc 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "deaf9ec656256bb25b404c51ef50097207b9cbb29c933d31f92cae5a8a0ffee0"
 "checksum cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "d4c819a1287eb618df47cc647173c5c4c66ba19d888a6e50d605672aed3140de"
 "checksum clicolors-control 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1f84dec9bc083ce2503908cd305af98bd363da6f54bf8d4bf0ac14ee749ad5d1"
+"checksum cmdline_words_parser 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "346b10598869bcdcd53cd166ecfb04ff8a4d5d7bb33e4ef4acbdb2a447ac3c73"
 "checksum console 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7649ca90478264b9686aac8d269fcb014f14c2bed7c79a7e51b9f6afd4d783eb"
 "checksum core-foundation 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "25bfd746d203017f7d5cbd31ee5d8e17f94b6521c7af77ece6c9e4b2d4b16c67"
 "checksum core-foundation-sys 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "065a5d7ffdcbc8fa145d6f0746f3555025b9097a9e9cda59f7467abae670c78d"

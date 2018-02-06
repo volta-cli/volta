@@ -4,6 +4,8 @@ use project::Project;
 use failure;
 use lazycell::LazyCell;
 use semver::{Version, VersionReq};
+use cmdline_words_parser::StrExt;
+use std::string::ToString;
 
 pub struct Session {
     config: LazyCell<Config>,
@@ -67,6 +69,10 @@ impl Session {
                 unimplemented!()
             }
             Some(NodeConfig { resolve: Some(Plugin::Bin(ref bin)), .. }) => {
+                let mut bin = bin.trim().to_string();
+                for chunk in bin.parse_cmdline_words() {
+                    eprintln!("chunk: {:?}", chunk);
+                }
                 panic!("there's a bin plugin")
             }
             _ => {
