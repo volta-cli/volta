@@ -51,14 +51,14 @@ impl Source for Cached {
     }
 }
 
-pub struct Public {
+pub struct Remote {
     uncompressed_size: Option<u64>,
     compressed_size: u64,
     source: TeeReader<reqwest::Response, File>
 }
 
-impl Public {
-    pub fn fetch(url: &str, cache_file: &Path) -> Result<Public, failure::Error> {
+impl Remote {
+    pub fn fetch(url: &str, cache_file: &Path) -> Result<Remote, failure::Error> {
         let uncompressed_size = fetch_uncompressed_size(url);
 
         let response = reqwest::get(url)?;
@@ -74,7 +74,7 @@ impl Public {
 
         let source = TeeReader::new(response, file);
 
-        Ok(Public {
+        Ok(Remote {
             uncompressed_size,
             compressed_size,
             source
@@ -82,13 +82,13 @@ impl Public {
     }
 }
 
-impl Read for Public {
+impl Read for Remote {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         self.source.read(buf)
     }
 }
 
-impl Source for Public {
+impl Source for Remote {
     fn uncompressed_size(&self) -> Option<u64> {
         self.uncompressed_size
     }

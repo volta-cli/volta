@@ -59,7 +59,7 @@ pub fn by_version(dest: &Path, version: &str) -> Result<(), failure::Error> {
     } else {
         let url = public_node_url(version, &archive_file);
         // FIXME: pass the cache file path too so it can be tee'ed as it's fetched
-        let source = archive::Public::fetch(&url, &cache_file)?;
+        let source = archive::Remote::fetch(&url, &cache_file)?;
         by_source(dest, version, source)?;
     }
     Ok(())
