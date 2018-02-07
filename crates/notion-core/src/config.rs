@@ -7,20 +7,15 @@ use failure;
 use readext::ReadExt;
 use untoml::touch;
 use serial;
+use plugin;
 
 pub struct Config {
     pub node: Option<NodeConfig>
 }
 
 pub struct NodeConfig {
-    pub resolve: Option<Plugin>,
-
-    pub ls_remote: Option<Plugin>
-}
-
-pub enum Plugin {
-    Url(String),
-    Bin(String)
+    pub resolve: Option<plugin::Resolve>,
+    pub ls_remote: Option<plugin::LsRemote>
 }
 
 pub fn config() -> Result<Config, failure::Error> {

@@ -30,6 +30,7 @@ pub mod session;
 pub mod style;
 mod untoml;
 mod serial;
+mod plugin;
 
 #[macro_use]
 extern crate failure_derive;
