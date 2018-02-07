@@ -52,12 +52,12 @@ impl Source for Cached {
     }
 }
 
-pub struct Public {
+pub struct Remote {
     cached: Cached
 }
 
-impl Public {
-    pub fn fetch(url: &str, cache_file: &Path) -> Result<Public, failure::Error> {
+impl Remote {
+    pub fn fetch(url: &str, cache_file: &Path) -> Result<Remote, failure::Error> {
         let mut response = reqwest::get(url)?;
 
         if !response.status().is_success() {
@@ -69,25 +69,25 @@ impl Public {
             copy(&mut response, &mut file)?;
         }
 
-        Ok(Public {
+        Ok(Remote {
             cached: Cached::load(File::open(cache_file)?)?
         })
     }
 }
 
-impl Read for Public {
+impl Read for Remote {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         self.cached.read(buf)
     }
 }
 
-impl Seek for Public {
+impl Seek for Remote {
     fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
         self.cached.seek(pos)
     }
 }
 
-impl Source for Public {
+impl Source for Remote {
     fn uncompressed_size(&self) -> Option<u64> {
         None
     }
