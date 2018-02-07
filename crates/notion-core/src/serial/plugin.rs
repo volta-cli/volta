@@ -49,15 +49,29 @@ impl Plugin {
 
 #[derive(Serialize, Deserialize)]
 pub struct ResolveResponse {
-    url: String,
-    version: String
+    version: String,
+    url: Option<String>,
+    stream: Option<bool>
 }
 
 impl ResolveResponse {
     pub fn into_resolve_response(self) -> Result<plugin::ResolveResponse, failure::Error> {
-        Ok(plugin::ResolveResponse::Url {
-            url: self.url,
-            version: Version::parse(&self.version)?
-        })
+        match self {
+            ResolveResponse { url: Some(_), stream: Some(_), .. } => {
+                Err(format_err!("response cannot contain both 'url' and 'stream' fields"))
+            }
+            ResolveResponse { url: None, stream: None, .. } => {
+                Err(format_err!("response must contain either 'url' or 'stream' field"))
+            }
+            ResolveResponse { url: None, stream: Some(false), .. } => {
+                Err(format_err!("'stream' field must be 'true' if present"))
+            }
+            ResolveResponse { url: Some(url), stream: None, version } => {
+                Ok(plugin::ResolveResponse::Url { url, version: Version::parse(&version)? })
+            }
+            ResolveResponse { url: None, stream: Some(true), version } => {
+                Ok(plugin::ResolveResponse::Stream { version: Version::parse(&version)? })
+            }
+        }
     }
 }

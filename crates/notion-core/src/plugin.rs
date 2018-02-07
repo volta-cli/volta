@@ -48,7 +48,8 @@ impl Resolve {
 
 #[derive(Debug)]
 pub enum ResolveResponse {
-    Url { url: String, version: Version }
+    Url { url: String, version: Version },
+    Stream { version: Version }
 }
 
 impl ResolveResponse {
