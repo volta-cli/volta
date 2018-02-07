@@ -6,13 +6,8 @@ use failure;
 
 use lazycell::LazyCell;
 use semver::{Version, VersionReq};
-use cmdline_words_parser::StrExt;
-use readext::ReadExt;
-use serde_json;
 
 use std::string::ToString;
-use std::process::{Command, Stdio};
-use std::ffi::OsString;
 
 pub struct Session {
     config: LazyCell<Config>,
@@ -72,29 +67,8 @@ impl Session {
         let config = self.config()?;
 
         match config.node {
-            Some(NodeConfig { resolve: Some(plugin::Resolve::Url(_)), .. }) => {
-                unimplemented!()
-            }
-            Some(NodeConfig { resolve: Some(plugin::Resolve::Bin(ref bin)), .. }) => {
-                let mut bin = bin.trim().to_string();
-                let mut words = bin.parse_cmdline_words();
-                // FIXME: error for not having any commands
-                let cmd = words.next().unwrap();
-                let args: Vec<OsString> = words.map(|s| {
-                    let mut os = OsString::new();
-                    os.push(s);
-                    os
-                }).collect();
-                let child = Command::new(cmd)
-                    .args(&args)
-                    .stdin(Stdio::null())
-                    .stdout(Stdio::piped())
-                    .stderr(Stdio::piped())
-                    .spawn()
-                    .unwrap(); // FIXME: error for failed spawn
-                let response = ResolveResponse::from_reader(child.stdout.unwrap())?;
-                eprintln!("response: {:?}", response);
-                panic!("there's a bin plugin")
+            Some(NodeConfig { resolve: Some(ref plugin), .. }) => {
+                plugin.resolve(req)
             }
             _ => {
                 panic!("there's no plugin")
