@@ -47,7 +47,8 @@ fn progress_bar(msg: &str, len: u64) -> ProgressBar {
     bar
 }
 
-pub fn by_version(dest: &Path, version: &str) -> Result<(), failure::Error> {
+pub fn by_version(version: &str) -> Result<(), failure::Error> {
+    let dest = path::node_versions_dir()?;
     let archive_file = path::archive_file(version);
 
     let cache_file = path::node_cache_dir()?.join(&archive_file);
@@ -55,12 +56,12 @@ pub fn by_version(dest: &Path, version: &str) -> Result<(), failure::Error> {
     if cache_file.is_file() {
         let file = File::open(cache_file)?;
         let source = archive::Cached::load(file)?;
-        by_source(dest, version, source)?;
+        by_source(&dest, version, source)?;
     } else {
         let url = public_node_url(version, &archive_file);
         // FIXME: pass the cache file path too so it can be tee'ed as it's fetched
         let source = archive::Remote::fetch(&url, &cache_file)?;
-        by_source(dest, version, source)?;
+        by_source(&dest, version, source)?;
     }
     Ok(())
 }

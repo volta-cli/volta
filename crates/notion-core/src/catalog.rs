@@ -62,8 +62,7 @@ impl Catalog {
         if path::node_version_dir(version)?.is_dir() {
             Ok(Installed::Already)
         } else {
-            let dest = path::node_versions_dir()?;
-            provision::by_version(&dest, version)?;
+            provision::by_version(version)?;
             // FIXME: update the data structure and self.save()
             Ok(Installed::Now)
         }
