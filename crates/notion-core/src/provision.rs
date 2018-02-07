@@ -2,22 +2,10 @@ use std::path::Path;
 use std::fs::{File, rename};
 
 use path;
-use node_archive::{Archive, Source};
+use node_archive::{Archive, Source, Cached, Remote};
 use style::progress_bar;
 
 use failure;
-
-#[cfg(not(windows))]
-use node_archive::tarball::{self as archive, Tarball as ArchiveFormat};
-
-#[cfg(not(windows))]
-use std::io::{Read as Streaming};
-
-#[cfg(windows)]
-use node_archive::zip::{self as archive, Zip as ArchiveFormat};
-
-#[cfg(windows)]
-use std::io::{Seek as Streaming};
 
 const PUBLIC_NODE_SERVER_ROOT: &'static str = "https://nodejs.org/dist/";
 
@@ -33,23 +21,23 @@ pub fn by_version(version: &str) -> Result<(), failure::Error> {
 
     if cache_file.is_file() {
         let file = File::open(cache_file)?;
-        let source = archive::Cached::load(file)?;
+        let source = Cached::load(file)?;
         by_source(&dest, version, source)?;
     } else {
         let url = public_node_url(version, &archive_file);
         // FIXME: pass the cache file path too so it can be tee'ed as it's fetched
-        let source = archive::Remote::fetch(&url, &cache_file)?;
+        let source = Remote::fetch(&url, &cache_file)?;
         by_source(&dest, version, source)?;
     }
     Ok(())
 }
 
-fn by_source<S: Source + Streaming>(dest: &Path, version: &str, source: S) -> Result<(), failure::Error> {
+fn by_source<S: Source>(dest: &Path, version: &str, source: S) -> Result<(), failure::Error> {
     let bar = progress_bar(
         &format!("Installing v{}", version),
         source.uncompressed_size().unwrap_or(source.compressed_size()));
 
-    let archive = ArchiveFormat::new(source, |_, read| {
+    let archive = Archive::new(source, |_, read| {
         bar.inc(read as u64);
     })?;
 

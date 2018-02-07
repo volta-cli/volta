@@ -1,4 +1,4 @@
-use super::{Archive, Source};
+use super::Source;
 
 use std::io::{Read, Seek, SeekFrom};
 use std::io;
@@ -128,20 +128,20 @@ impl<S: Source, F: FnMut(&(), usize)> Read for ProgressSource<S, F> {
     }
 }
 
-pub struct Tarball<S: Source, F: FnMut(&(), usize)> {
+pub struct Archive<S: Source, F: FnMut(&(), usize)> {
     archive: tar::Archive<ProgressSource<S, F>>
 }
 
-impl<S: Source, F: FnMut(&(), usize)> Tarball<S, F> {
-    pub fn new(source: S, callback: F) -> Result<Tarball<S, F>, failure::Error> {
-        Ok(Tarball {
+impl<S: Source, F: FnMut(&(), usize)> Archive<S, F> {
+    pub fn new(source: S, callback: F) -> Result<Archive<S, F>, failure::Error> {
+        Ok(Archive {
             archive: tar::Archive::new(ProgressSource::new(source, callback)?)
         })
     }
 }
 
-impl<S: Source, F: FnMut(&(), usize)> Archive for Tarball<S, F> {
-    fn unpack(mut self, dest: &Path) -> Result<(), failure::Error> {
+impl<S: Source, F: FnMut(&(), usize)> Archive<S, F> {
+    pub fn unpack(mut self, dest: &Path) -> Result<(), failure::Error> {
         self.archive.unpack(dest)?;
         Ok(())
     }

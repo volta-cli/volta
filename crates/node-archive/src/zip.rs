@@ -1,4 +1,4 @@
-use super::{Archive, Source};
+use super::Source;
 
 use std::io::{self, Read, Seek, SeekFrom, copy};
 use std::path::Path;
@@ -7,8 +7,6 @@ use std::fs::{File, create_dir_all};
 use reqwest;
 use progress_read::ProgressRead;
 use zip_rs::ZipArchive;
-
-#[cfg(windows)]
 use untss;
 
 use failure;
@@ -97,22 +95,21 @@ impl Source for Remote {
     }
 }
 
-pub struct Zip<S: Source + Seek, F: FnMut(&(), usize)> {
+pub struct Archive<S: Source + Seek, F: FnMut(&(), usize)> {
     archive: ZipArchive<ProgressRead<S, (), F>>
 }
 
-impl<S: Source + Seek, F: FnMut(&(), usize)> Zip<S, F> {
-    pub fn new(source: S, callback: F) -> Result<Zip<S, F>, failure::Error> {
-        Ok(Zip {
+impl<S: Source + Seek, F: FnMut(&(), usize)> Archive<S, F> {
+    pub fn new(source: S, callback: F) -> Result<Archive<S, F>, failure::Error> {
+        Ok(Archive {
             archive: ZipArchive::new(ProgressRead::new(source, (), callback))?
         })
     }
 }
 
-impl<S: Source + Seek, F: FnMut(&(), usize)> Archive for Zip<S, F> {
-    fn unpack(self, dest: &Path) -> Result<(), failure::Error> {
-        // On Windows, use a verbatim path to avoid the legacy 260 byte path limit.
-        #[cfg(windows)]
+impl<S: Source + Seek, F: FnMut(&(), usize)> Archive<S, F> {
+    pub fn unpack(self, dest: &Path) -> Result<(), failure::Error> {
+        // Use a verbatim path to avoid the legacy Windows 260 byte path limit.
         let dest: &Path = &untss::untss(dest);
 
         let mut zip = self.archive;
@@ -122,12 +119,8 @@ impl<S: Source + Seek, F: FnMut(&(), usize)> Archive for Zip<S, F> {
             let (is_dir, subpath) = {
                 let name = entry.name();
 
-                (name.ends_with('/'), if cfg!(windows) {
-                    // Verbatim paths aren't preprocessed so we have to use correct r"\" separators.
-                    Path::new(&name.replace('/', r"\")).to_path_buf()
-                } else {
-                    Path::new(name).to_path_buf()
-                })
+                // Verbatim paths aren't preprocessed so we have to use correct r"\" separators.
+                (name.ends_with('/'), Path::new(&name.replace('/', r"\")).to_path_buf())
             };
 
             if is_dir {
