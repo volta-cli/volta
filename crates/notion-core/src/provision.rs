@@ -1,10 +1,9 @@
 use std::path::Path;
 use std::fs::{File, rename};
-use indicatif::{ProgressBar, ProgressStyle};
-use term_size;
 
 use path;
 use node_archive::{Archive, Source};
+use style::progress_bar;
 
 use failure;
 
@@ -24,27 +23,6 @@ const PUBLIC_NODE_SERVER_ROOT: &'static str = "https://nodejs.org/dist/";
 
 fn public_node_url(version: &str, archive: &str) -> String {
     format!("{}v{}/{}", PUBLIC_NODE_SERVER_ROOT, version, archive)
-}
-
-fn progress_bar(msg: &str, len: u64) -> ProgressBar {
-    let display_width = term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
-    let msg_width = msg.len();
-
-    // Installing v1.23.4  [====================>                   ]  50%
-    // |----------------|   |--------------------------------------|  |-|
-    //         msg                           bar                   percentage
-    let available_width = display_width - 2 - msg_width - 2 - 2 - 1 - 3 - 1;
-    let bar_width = ::std::cmp::min(available_width, 40);
-
-    let bar = ProgressBar::new(len);
-
-    bar.set_message(msg);
-    bar.set_style(ProgressStyle::default_bar()
-        // FIXME: instead of fixed 40 compute based on console size
-        .template(&format!("{{msg}}  [{{bar:{}.cyan/blue}}] {{percent:>3}}%", bar_width))
-        .progress_chars("=> "));
-
-    bar
 }
 
 pub fn by_version(version: &str) -> Result<(), failure::Error> {
