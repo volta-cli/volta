@@ -31,6 +31,7 @@ pub mod style;
 mod untoml;
 mod serial;
 mod plugin;
+mod installer;
 
 #[macro_use]
 extern crate failure_derive;

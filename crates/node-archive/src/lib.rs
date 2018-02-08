@@ -26,7 +26,7 @@ pub struct HttpError {
     code: ::reqwest::StatusCode
 }
 
-use std::io::Read;
+use std::io::{self, Read};
 
 #[cfg(not(windows))]
 pub use std::io::{Read as StreamingMode};
@@ -44,3 +44,13 @@ pub use tarball::{Archive, Cached, Remote};
 
 #[cfg(windows)]
 pub use zip::{Archive, Cached, Remote};
+
+impl Source for Box<Source> {
+    fn uncompressed_size(&self) -> Option<u64> {
+        (**self).uncompressed_size()
+    }
+
+    fn compressed_size(&self) -> u64 {
+        (**self).compressed_size()
+    }
+}

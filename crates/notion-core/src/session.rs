@@ -3,6 +3,7 @@ use plugin::{self, ResolveResponse};
 use catalog::Catalog;
 use project::Project;
 use failure;
+use installer::node::Installer;
 
 use lazycell::LazyCell;
 use semver::{Version, VersionReq};
@@ -47,23 +48,31 @@ impl Session {
     }
 
     pub fn node(&mut self) -> Result<Option<Version>, failure::Error> {
-        let catalog = self.catalog()?;
+        let req = if let Some(ref project) = self.project {
+            Some(project.manifest().node_req())
+        } else {
+            None
+        };
 
-        if let Some(ref project) = self.project {
-            let req: VersionReq = project.manifest().node_req();
-            let available = catalog.node.resolve_local(&req);
+        if let Some(req) = req {
+            //let req: VersionReq = project.manifest().node_req();
+            let available = self.catalog()?.node.resolve_local(&req);
 
             return if available.is_some() {
                 Ok(available)
             } else {
-                self.resolve_remote_node(&req).map(Some)
+                let installer = self.resolve_remote_node(&req)?;
+                let version = installer.install()?;
+                self.catalog_mut()?.node.versions.insert(version.clone());
+                self.catalog()?.save()?;
+                Ok(Some(version))
             }
         }
 
-        Ok(catalog.node.current.clone())
+        Ok(self.catalog()?.node.current.clone())
     }
 
-    fn resolve_remote_node(&self, req: &VersionReq) -> Result<Version, failure::Error> {
+    fn resolve_remote_node(&self, req: &VersionReq) -> Result<Installer, failure::Error> {
         let config = self.config()?;
 
         match config.node {

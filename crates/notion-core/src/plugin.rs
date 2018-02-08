@@ -3,6 +3,7 @@ use std::process::{Command, Stdio};
 use std::ffi::OsString;
 
 use serial;
+use installer::node::Installer;
 
 use failure;
 use semver::{Version, VersionReq};
@@ -15,7 +16,7 @@ pub enum Resolve {
 }
 
 impl Resolve {
-    pub fn resolve(&self, req: &VersionReq) -> Result<Version, failure::Error> {
+    pub fn resolve(&self, req: &VersionReq) -> Result<Installer, failure::Error> {
         match self {
             &Resolve::Url(_) => {
                 unimplemented!()
@@ -39,8 +40,14 @@ impl Resolve {
                     .spawn()
                     .unwrap(); // FIXME: error for failed spawn
                 let response = ResolveResponse::from_reader(child.stdout.unwrap())?;
-                eprintln!("response: {:?}", response);
-                panic!("there's a bin plugin")
+                match response {
+                    ResolveResponse::Url { version, url } => {
+                        Installer::remote(version, &url)
+                    }
+                    ResolveResponse::Stream { version } => {
+                        panic!("bin plugin produced a stream")
+                    }
+                }
             }
         }
     }
@@ -48,7 +55,7 @@ impl Resolve {
 
 #[derive(Debug)]
 pub enum ResolveResponse {
-    Url { url: String, version: Version },
+    Url { version: Version, url: String },
     Stream { version: Version }
 }
 

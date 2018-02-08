@@ -43,8 +43,9 @@ impl Catalog {
         toml::to_string_pretty(&self.to_serial()).unwrap()
     }
 
-    fn save(&self, path: &Path) -> Result<(), failure::Error> {
-        let mut file = File::create(path)?;
+    pub fn save(&self) -> Result<(), failure::Error> {
+        let path = user_catalog_file()?;
+        let mut file = File::create(&path)?;
         file.write_all(self.to_string().as_bytes())?;
         Ok(())
     }
@@ -52,7 +53,7 @@ impl Catalog {
     pub fn set_version(&mut self, version: Version) -> Result<(), failure::Error> {
         self.install(&version.to_string())?;
         self.node.current = Some(version);
-        self.save(&user_catalog_file()?)?;
+        self.save()?;
         Ok(())
     }
 
