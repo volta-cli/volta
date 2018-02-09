@@ -8,6 +8,7 @@ extern crate lazycell;
 extern crate readext;
 extern crate semver;
 extern crate cmdline_words_parser;
+extern crate reqwest;
 
 #[macro_use]
 extern crate serde_derive;

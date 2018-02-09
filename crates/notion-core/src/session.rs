@@ -4,11 +4,17 @@ use catalog::Catalog;
 use project::Project;
 use failure;
 use installer::node::Installer;
+use serial;
 
 use lazycell::LazyCell;
 use semver::{Version, VersionReq};
+use reqwest;
 
 use std::string::ToString;
+use std::collections::{HashSet, BTreeMap};
+use std::cmp::{Ord, PartialOrd, Ordering};
+
+const PUBLIC_NODE_VERSION_INDEX: &'static str = "https://nodejs.org/dist/index.json";
 
 pub struct Session {
     config: LazyCell<Config>,
@@ -80,9 +86,34 @@ impl Session {
                 plugin.resolve(req)
             }
             _ => {
-                panic!("there's no plugin")
+                self.resolve_public_node(req)
             }
         }
     }
 
+    fn resolve_public_node(&self, req: &VersionReq) -> Result<Installer, failure::Error> {
+        let serial: serial::index::Index = reqwest::get(PUBLIC_NODE_VERSION_INDEX)?.json()?;
+        let index = serial.into_index()?;
+        let version = index.entries.iter()
+            .rev()
+            // FIXME: also make sure this OS is available for this version
+            .skip_while(|&(ref k, _)| !req.matches(k))
+            .next()
+            .map(|(k, _)| k.clone());
+        if let Some(version) = version {
+            Installer::public(version)
+        } else {
+            // FIXME: throw an error there
+            panic!("no version {}", req)
+        }
+    }
+
+}
+
+pub struct Index {
+    pub entries: BTreeMap<Version, VersionData>
+}
+
+pub struct VersionData {
+    pub files: HashSet<String>
 }
