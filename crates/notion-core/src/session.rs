@@ -1,19 +1,12 @@
-use config::{self, Config, NodeConfig, LazyConfig};
-use plugin::{self, ResolveResponse};
+use config::{Config, LazyConfig};
 use catalog::{Catalog, LazyCatalog};
 use project::Project;
 use failure;
-use installer::node::Installer;
-use serial;
 
-use semver::{Version, VersionReq};
-use reqwest;
+use semver::Version;
 
 use std::string::ToString;
 use std::collections::{HashSet, BTreeMap};
-use std::cmp::{Ord, PartialOrd, Ordering};
-
-const PUBLIC_NODE_VERSION_INDEX: &'static str = "https://nodejs.org/dist/index.json";
 
 pub struct Session {
     config: LazyConfig,
@@ -53,57 +46,21 @@ impl Session {
     }
 
     pub fn node(&mut self) -> Result<Option<Version>, failure::Error> {
-        let req = if let Some(ref project) = self.project {
-            Some(project.manifest().node_req())
-        } else {
-            None
-        };
+        if let Some(ref project) = self.project {
+            let req = project.manifest().node_req();
+            let catalog = self.catalog.get_mut()?;
+            let config = self.config.get()?;
 
-        if let Some(req) = req {
-            let available = self.catalog()?.node.resolve_local(&req);
-
-            return if available.is_some() {
-                Ok(available)
-            } else {
-                let installer = self.resolve_remote_node(&req)?;
-                let version = installer.install()?;
-                self.catalog_mut()?.node.versions.insert(version.clone());
-                self.catalog()?.save()?;
-                Ok(Some(version))
+            let available = catalog.node.resolve_local(&req);
+            if available.is_some() {
+                return Ok(available);
             }
+
+            let version = catalog.install_req(&req, config)?;
+            return Ok(Some(version));
         }
 
         Ok(self.catalog()?.node.current.clone())
-    }
-
-    fn resolve_remote_node(&self, req: &VersionReq) -> Result<Installer, failure::Error> {
-        let config = self.config()?;
-
-        match config.node {
-            Some(NodeConfig { resolve: Some(ref plugin), .. }) => {
-                plugin.resolve(req)
-            }
-            _ => {
-                self.resolve_public_node(req)
-            }
-        }
-    }
-
-    fn resolve_public_node(&self, req: &VersionReq) -> Result<Installer, failure::Error> {
-        let serial: serial::index::Index = reqwest::get(PUBLIC_NODE_VERSION_INDEX)?.json()?;
-        let index = serial.into_index()?;
-        let version = index.entries.iter()
-            .rev()
-            // FIXME: also make sure this OS is available for this version
-            .skip_while(|&(ref k, _)| !req.matches(k))
-            .next()
-            .map(|(k, _)| k.clone());
-        if let Some(version) = version {
-            Installer::public(version)
-        } else {
-            // FIXME: throw an error there
-            panic!("no version {}", req)
-        }
     }
 
 }

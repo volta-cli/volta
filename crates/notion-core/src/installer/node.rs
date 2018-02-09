@@ -1,4 +1,3 @@
-use std::path::Path;
 use std::fs::{File, rename};
 use std::string::ToString;
 

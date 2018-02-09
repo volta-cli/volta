@@ -1,4 +1,3 @@
-use std::path::Path;
 use std::collections::BTreeSet;
 use std::fs::{File, remove_dir_all};
 use std::io::{self, Write};
@@ -7,6 +6,7 @@ use std::string::ToString;
 
 use lazycell::LazyCell;
 use readext::ReadExt;
+use reqwest;
 use toml;
 
 use path::{self, user_catalog_file};
@@ -14,7 +14,11 @@ use untoml::touch;
 use provision;
 use failure;
 use semver::{Version, VersionReq};
+use installer::node::Installer;
 use serial;
+use config::{Config, NodeConfig};
+
+const PUBLIC_NODE_VERSION_INDEX: &'static str = "https://nodejs.org/dist/index.json";
 
 pub struct LazyCatalog {
     catalog: LazyCell<Catalog>
@@ -78,6 +82,14 @@ impl Catalog {
         Ok(())
     }
 
+    pub fn install_req(&mut self, req: &VersionReq, config: &Config) -> Result<Version, failure::Error> {
+        let installer = self.node.resolve_remote(&req, config)?;
+        let version = installer.install()?;
+        self.node.versions.insert(version.clone());
+        self.save()?;
+        Ok(version)
+    }
+
     // FIXME: this should take semver::Version instead
     pub fn install(&mut self, version: &str) -> Result<Installed, failure::Error> {
         // FIXME: this should be based on the data structure instead
@@ -111,6 +123,34 @@ impl Catalog {
 }
 
 impl NodeCatalog {
+
+    fn resolve_remote(&self, req: &VersionReq, config: &Config) -> Result<Installer, failure::Error> {
+        match config.node {
+            Some(NodeConfig { resolve: Some(ref plugin), .. }) => {
+                plugin.resolve(req)
+            }
+            _ => {
+                self.resolve_public(req)
+            }
+        }
+    }
+
+    fn resolve_public(&self, req: &VersionReq) -> Result<Installer, failure::Error> {
+        let serial: serial::index::Index = reqwest::get(PUBLIC_NODE_VERSION_INDEX)?.json()?;
+        let index = serial.into_index()?;
+        let version = index.entries.iter()
+            .rev()
+            // FIXME: also make sure this OS is available for this version
+            .skip_while(|&(ref k, _)| !req.matches(k))
+            .next()
+            .map(|(k, _)| k.clone());
+        if let Some(version) = version {
+            Installer::public(version)
+        } else {
+            // FIXME: throw an error there
+            panic!("no version {}", req)
+        }
+    }
 
     pub fn resolve_local(&self, req: &VersionReq) -> Option<Version> {
         self.versions
