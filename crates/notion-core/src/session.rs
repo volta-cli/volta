@@ -1,12 +1,11 @@
-use config::{self, Config, NodeConfig};
+use config::{self, Config, NodeConfig, LazyConfig};
 use plugin::{self, ResolveResponse};
-use catalog::Catalog;
+use catalog::{Catalog, LazyCatalog};
 use project::Project;
 use failure;
 use installer::node::Installer;
 use serial;
 
-use lazycell::LazyCell;
 use semver::{Version, VersionReq};
 use reqwest;
 
@@ -17,8 +16,8 @@ use std::cmp::{Ord, PartialOrd, Ordering};
 const PUBLIC_NODE_VERSION_INDEX: &'static str = "https://nodejs.org/dist/index.json";
 
 pub struct Session {
-    config: LazyCell<Config>,
-    catalog: LazyCell<Catalog>,
+    config: LazyConfig,
+    catalog: LazyCatalog,
     project: Option<Project>
 }
 
@@ -26,22 +25,22 @@ impl Session {
 
     pub fn new() -> Result<Session, failure::Error> {
         Ok(Session {
-            config: LazyCell::new(),
-            catalog: LazyCell::new(),
+            config: LazyConfig::new(),
+            catalog: LazyCatalog::new(),
             project: Project::for_current_dir()?
         })
     }
 
     pub fn catalog(&self) -> Result<&Catalog, failure::Error> {
-        self.catalog.try_borrow_with(|| Catalog::current())
+        self.catalog.get()
     }
 
     pub fn catalog_mut(&mut self) -> Result<&mut Catalog, failure::Error> {
-        self.catalog.try_borrow_mut_with(|| Catalog::current())
+        self.catalog.get_mut()
     }
 
     pub fn config(&self) -> Result<&Config, failure::Error> {
-        self.config.try_borrow_with(|| config::config())
+        self.config.get()
     }
 
     // FIXME: should return Version once we kill lockfile
@@ -61,7 +60,6 @@ impl Session {
         };
 
         if let Some(req) = req {
-            //let req: VersionReq = project.manifest().node_req();
             let available = self.catalog()?.node.resolve_local(&req);
 
             return if available.is_some() {

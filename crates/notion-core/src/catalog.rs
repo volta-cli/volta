@@ -5,6 +5,7 @@ use std::io::{self, Write};
 use std::str::FromStr;
 use std::string::ToString;
 
+use lazycell::LazyCell;
 use readext::ReadExt;
 use toml;
 
@@ -14,6 +15,26 @@ use provision;
 use failure;
 use semver::{Version, VersionReq};
 use serial;
+
+pub struct LazyCatalog {
+    catalog: LazyCell<Catalog>
+}
+
+impl LazyCatalog {
+    pub fn new() -> LazyCatalog {
+        LazyCatalog {
+            catalog: LazyCell::new()
+        }
+    }
+
+    pub fn get(&self) -> Result<&Catalog, failure::Error> {
+        self.catalog.try_borrow_with(|| Catalog::current())
+    }
+
+    pub fn get_mut(&mut self) -> Result<&mut Catalog, failure::Error> {
+        self.catalog.try_borrow_mut_with(|| Catalog::current())
+    }
+}
 
 pub struct Catalog {
     pub node: NodeCatalog
