@@ -42,7 +42,14 @@ impl Manifest {
     pub fn node_req(&self) -> VersionReq {
         match self.node {
             VersionSpec::Specific(ref version) => {
-                VersionReq::parse(version).unwrap()
+                let version = &version[..];
+                let src = version.trim();
+                if src.len() > 0 && src.chars().next().unwrap().is_digit(10) {
+                    let defaulted = format!("={}", src);
+                    VersionReq::parse(&defaulted).unwrap()
+                } else {
+                    VersionReq::parse(src).unwrap()
+                }
             }
             _ => { unimplemented!() }
         }
