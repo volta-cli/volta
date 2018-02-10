@@ -138,7 +138,7 @@ impl NodeCatalog {
         let index = serial.into_index()?;
         let version = index.entries.iter()
             .rev()
-            // FIXME: also make sure this OS is available for this version
+            // ISSUE #34: also make sure this OS is available for this version
             .skip_while(|&(ref k, _)| !req.matches(k))
             .next()
             .map(|(k, _)| k.clone());
