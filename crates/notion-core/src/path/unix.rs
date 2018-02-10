@@ -5,19 +5,29 @@ use failure;
 
 use ::UnknownSystemFolderError;
 
-// FIXME: make the case analysis here complete and rigorous
+// These are taken from: https://nodejs.org/dist/index.json and are used
+// by `path::archive_root_dir` to determine the root directory of the
+// contents of a Node installer archive.
 
-#[cfg(target_os = "macos")]
-pub const OS: &'static str = "darwin";
+cfg_if! {
+    if #[cfg(target_os = "macos")] {
+        pub const OS: &'static str = "darwin";
+    } else if #[cfg(target_os = "linux")] {
+        pub const OS: &'static str = "linux";
+    } else {
+        compile_error!("Unsupported target_os variant of unix (expected 'macos' or 'linux').");
+    }
+}
 
-#[cfg(target_os = "linux")]
-pub const OS: &'static str = "linux";
-
-#[cfg(target_arch = "x86")]
-pub const ARCH: &'static str = "x86";
-
-#[cfg(target_arch = "x86_64")]
-pub const ARCH: &'static str = "x64";
+cfg_if! {
+    if #[cfg(target_arch = "x86")] {
+        pub const ARCH: &'static str = "x86";
+    } else if #[cfg(target_arch = "x86_64")] {
+        pub const ARCH: &'static str = "x64";
+    } else {
+        compile_error!("Unsupported target_arch variant of unix (expected 'x86' or 'x64').")
+    }
+}
 
 // ~/
 //     .notion/

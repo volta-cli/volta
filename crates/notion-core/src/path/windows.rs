@@ -6,10 +6,21 @@ use failure;
 
 use ::UnknownSystemFolderError;
 
+// These are taken from: https://nodejs.org/dist/index.json and are used
+// by `path::archive_root_dir` to determine the root directory of the
+// contents of a Node installer archive.
+
 pub const OS: &'static str = "win";
 
-// FIXME: also add support for 32-bit or refuse to build for 32-bit target_arch
-pub const ARCH: &'static str = "x64";
+cfg_if! {
+    if #[cfg(target_arch = "x86")] {
+        pub const ARCH: &'static str = "x86";
+    } else if #[cfg(target_arch = "x86_64")] {
+        pub const ARCH: &'static str = "x64";
+    } else {
+        compile_error!("Unsupported target_arch variant of Windows (expected 'x86' or 'x64').")
+    }
+}
 
 // C:\
 //     ProgramData\

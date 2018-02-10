@@ -36,6 +36,9 @@ extern crate failure_derive;
 #[macro_use]
 extern crate failure;
 
+#[macro_use]
+extern crate cfg_if;
+
 #[derive(Fail, Debug)]
 #[fail(display = "Error in configuration key '{}'", key)]
 pub struct ConfigError {
