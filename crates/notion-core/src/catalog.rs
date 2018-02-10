@@ -75,13 +75,15 @@ impl Catalog {
         Ok(())
     }
 
-    pub fn set_version(&mut self, version: Version) -> Result<(), failure::Error> {
-        self.install(&version.to_string())?;
+    // FIXME: belongs in NodeCatalog
+    pub fn set_version(&mut self, req: &VersionReq, config: &Config) -> Result<(), failure::Error> {
+        let version = self.install_req(req, config)?;
         self.node.current = Some(version);
         self.save()?;
         Ok(())
     }
 
+    // FIXME: belongs in NodeCatalog
     pub fn install_req(&mut self, req: &VersionReq, config: &Config) -> Result<Version, failure::Error> {
         let installer = self.node.resolve_remote(&req, config)?;
         let version = installer.install()?;
@@ -90,32 +92,22 @@ impl Catalog {
         Ok(version)
     }
 
-    // FIXME: this should take semver::Version instead
-    pub fn install(&mut self, version: &str) -> Result<Installed, failure::Error> {
-        // FIXME: this should be based on the data structure instead
-        if path::node_version_dir(version)?.is_dir() {
-            Ok(Installed::Already)
-        } else {
-            provision::by_version(version)?;
-            // FIXME: update the data structure and self.save()
-            Ok(Installed::Now)
+    pub fn uninstall(&mut self, version: &Version) -> Result<(), failure::Error> {
+        if self.node.versions.contains(version) {
+            let home = path::node_version_dir(&version.to_string())?;
+
+            if !home.is_dir() {
+                Err(io::Error::new(
+                    io::ErrorKind::NotFound,
+                    format!("{} is not a directory", home.to_string_lossy())))?;
+            }
+
+            remove_dir_all(home)?;
+
+            self.node.versions.remove(version);
+
+            self.save()?;
         }
-    }
-
-    // FIXME: this should take semver::Version instead
-    pub fn uninstall(&mut self, version: &str) -> Result<(), failure::Error> {
-        let home = path::node_version_dir(version)?;
-
-        // FIXME: this should be based on the data structure instead
-        if !home.is_dir() {
-            Err(io::Error::new(
-                io::ErrorKind::NotFound,
-                format!("{} is not a directory", home.to_string_lossy())))?;
-        }
-
-        remove_dir_all(home)?;
-
-        // FIXME: update the data structure and self.save()
 
         Ok(())
     }

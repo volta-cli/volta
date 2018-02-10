@@ -1,5 +1,6 @@
 use docopt::Docopt;
-use notion_core::catalog::Catalog;
+use notion_core::session::Session;
+use semver::Version;
 use failure;
 
 pub const USAGE: &'static str = "
@@ -25,7 +26,7 @@ pub fn run(mut args: Vec<String>, _verbose: bool) -> Result<(), failure::Error> 
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.argv(argv).deserialize())?;
 
-    Catalog::current()?.uninstall(&args.arg_version)?;
-
-    Ok(())
+    let version = Version::parse(&args.arg_version)?;
+    let mut session = Session::new()?;
+    session.catalog_mut()?.uninstall(&version)
 }

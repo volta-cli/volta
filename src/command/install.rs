@@ -1,6 +1,8 @@
 use docopt::Docopt;
 use notion_core::catalog::Catalog;
+use notion_core::session::Session;
 use failure;
+use semver::VersionReq;
 
 pub const USAGE: &'static str = "
 Install a toolchain to the local machine
@@ -25,7 +27,8 @@ pub fn run(mut args: Vec<String>, _verbose: bool) -> Result<(), failure::Error> 
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.argv(argv).deserialize())?;
 
-    Catalog::current()?.install(&args.arg_version)?;
+    let mut session = Session::new()?;
+    session.install_node(&VersionReq::parse(&args.arg_version)?)?;
 
     Ok(())
 }

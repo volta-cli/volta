@@ -3,9 +3,8 @@ use catalog::{Catalog, LazyCatalog};
 use project::Project;
 use failure;
 
-use semver::Version;
+use semver::{Version, VersionReq};
 
-use std::string::ToString;
 use std::collections::{HashSet, BTreeMap};
 
 pub struct Session {
@@ -59,6 +58,17 @@ impl Session {
         Ok(self.catalog()?.node.current.clone())
     }
 
+    pub fn install_node(&mut self, req: &VersionReq) -> Result<Version, failure::Error> {
+        let catalog = self.catalog.get_mut()?;
+        let config = self.config.get()?;
+        catalog.install_req(req, config)
+    }
+
+    pub fn set_node_version(&mut self, req: &VersionReq) -> Result<(), failure::Error> {
+        let catalog = self.catalog.get_mut()?;
+        let config = self.config.get()?;
+        catalog.set_version(req, config)
+    }
 }
 
 pub struct Index {
