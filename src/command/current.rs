@@ -1,8 +1,7 @@
 use docopt::Docopt;
 use std::process::exit;
 use std::string::ToString;
-use notion_core::catalog::Catalog;
-use notion_core::project::Project;
+use notion_core::session::Session;
 use failure;
 
 pub const USAGE: &'static str = "
@@ -23,17 +22,20 @@ struct Args {
     flag_global: bool
 }
 
-pub fn local() -> Result<Option<String>, failure::Error> {
-    match Project::for_current_dir()? {
-        Some(project) => {
-            Ok(Some(project.lockfile()?.node.version.clone()))
-        }
-        None => Ok(None)
-    }
+pub fn local(session: &Session) -> Result<Option<String>, failure::Error> {
+    let project = session.project();
+    let project = match project {
+        Some(ref project) => project,
+        None => { return Ok(None); }
+    };
+
+    let req = project.manifest().node_req();
+    let catalog = session.catalog()?;
+    Ok(catalog.node.resolve_local(&req).map(|v| v.to_string()))
 }
 
-pub fn global() -> Result<Option<String>, failure::Error> {
-    let catalog = Catalog::current()?;
+pub fn global(session: &Session) -> Result<Option<String>, failure::Error> {
+    let catalog = session.catalog()?;
     Ok(catalog.node.current.clone().map(|v| v.to_string()))
 }
 
@@ -44,18 +46,20 @@ pub fn run(mut args: Vec<String>) -> Result<(), failure::Error> {
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.argv(argv).deserialize())?;
 
+    let session = Session::new()?;
+
     if args.flag_local && !args.flag_global {
-        match local()? {
+        match local(&session)? {
             Some(version) => { println!("v{}", version); }
             None          => { exit(1); }
         }
     } else if args.flag_global && !args.flag_local {
-        match global()? {
+        match global(&session)? {
             Some(version) => { println!("v{}", version); }
             None          => { exit(1); }
         }
     } else {
-        let (local, global) = (local()?, global()?);
+        let (local, global) = (local(&session)?, global(&session)?);
         let global_active = local.is_none() && global.is_some();
         let none = local.is_none() && global.is_none();
         // FIXME: abstract this
