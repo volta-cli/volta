@@ -70,9 +70,8 @@ impl Catalog {
         Ok(())
     }
 
-    // FIXME: belongs in NodeCatalog
-    pub fn set_version(&mut self, req: &VersionReq, config: &Config) -> Result<(), failure::Error> {
-        let installed = self.install_req(req, config)?;
+    pub fn set_node_version(&mut self, req: &VersionReq, config: &Config) -> Result<(), failure::Error> {
+        let installed = self.install_node_req(req, config)?;
         let version = Some(installed.into_version());
 
         if self.node.current != version {
@@ -83,8 +82,7 @@ impl Catalog {
         Ok(())
     }
 
-    // FIXME: belongs in NodeCatalog
-    pub fn install_req(&mut self, req: &VersionReq, config: &Config) -> Result<Installed, failure::Error> {
+    pub fn install_node_req(&mut self, req: &VersionReq, config: &Config) -> Result<Installed, failure::Error> {
         let installer = self.node.resolve_remote(&req, config)?;
         let installed = installer.install(&self.node)?;
 
@@ -96,7 +94,7 @@ impl Catalog {
         Ok(installed)
     }
 
-    pub fn uninstall(&mut self, version: &Version) -> Result<(), failure::Error> {
+    pub fn uninstall_node(&mut self, version: &Version) -> Result<(), failure::Error> {
         if self.node.contains(version) {
             let home = path::node_version_dir(&version.to_string())?;
 

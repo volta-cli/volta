@@ -51,7 +51,7 @@ impl Session {
             }
 
             let config = self.config.get()?;
-            let installed = catalog.install_req(&req, config)?;
+            let installed = catalog.install_node_req(&req, config)?;
 
             return Ok(Some(installed.into_version()));
         }
@@ -62,13 +62,13 @@ impl Session {
     pub fn install_node(&mut self, req: &VersionReq) -> Result<Installed, failure::Error> {
         let catalog = self.catalog.get_mut()?;
         let config = self.config.get()?;
-        catalog.install_req(req, config)
+        catalog.install_node_req(req, config)
     }
 
     pub fn set_node_version(&mut self, req: &VersionReq) -> Result<(), failure::Error> {
         let catalog = self.catalog.get_mut()?;
         let config = self.config.get()?;
-        catalog.set_version(req, config)
+        catalog.set_node_version(req, config)
     }
 }
 

@@ -28,5 +28,5 @@ pub fn run(mut args: Vec<String>, _verbose: bool) -> Result<(), failure::Error> 
 
     let version = Version::parse(&args.arg_version)?;
     let mut session = Session::new()?;
-    session.catalog_mut()?.uninstall(&version)
+    session.catalog_mut()?.uninstall_node(&version)
 }
