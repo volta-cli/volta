@@ -18,7 +18,6 @@ extern crate serde;
 extern crate winfolder;
 
 pub mod path;
-pub mod provision;
 pub mod env;
 pub mod config;
 pub mod tool;
