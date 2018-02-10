@@ -1,8 +1,9 @@
 use config::{Config, LazyConfig};
 use catalog::{Catalog, LazyCatalog};
 use project::Project;
-use failure;
+use installer::Installed;
 
+use failure;
 use semver::{Version, VersionReq};
 
 use std::collections::{HashSet, BTreeMap};
@@ -50,15 +51,15 @@ impl Session {
             }
 
             let config = self.config.get()?;
-            let version = catalog.install_req(&req, config)?;
+            let installed = catalog.install_req(&req, config)?;
 
-            return Ok(Some(version));
+            return Ok(Some(installed.into_version()));
         }
 
         Ok(self.catalog()?.node.current.clone())
     }
 
-    pub fn install_node(&mut self, req: &VersionReq) -> Result<Version, failure::Error> {
+    pub fn install_node(&mut self, req: &VersionReq) -> Result<Installed, failure::Error> {
         let catalog = self.catalog.get_mut()?;
         let config = self.config.get()?;
         catalog.install_req(req, config)

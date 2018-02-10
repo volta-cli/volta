@@ -13,6 +13,7 @@ use path::{self, user_catalog_file};
 use serial::touch;
 use failure;
 use semver::{Version, VersionReq};
+use installer::Installed;
 use installer::node::Installer;
 use serial;
 use config::{Config, NodeConfig};
@@ -50,11 +51,6 @@ pub struct NodeCatalog {
     pub versions: BTreeSet<Version>
 }
 
-pub enum Installed {
-    Already,
-    Now
-}
-
 impl Catalog {
 
     pub fn current() -> Result<Catalog, failure::Error> {
@@ -76,24 +72,27 @@ impl Catalog {
 
     // FIXME: belongs in NodeCatalog
     pub fn set_version(&mut self, req: &VersionReq, config: &Config) -> Result<(), failure::Error> {
-        let version = self.install_req(req, config)?;
-        self.node.current = Some(version);
+        let installed = self.install_req(req, config)?;
+        self.node.current = Some(installed.into_version());
         self.save()?;
         Ok(())
     }
 
     // FIXME: belongs in NodeCatalog
-    pub fn install_req(&mut self, req: &VersionReq, config: &Config) -> Result<Version, failure::Error> {
-        // FIXME: should get version from installer, not installer.install(), and don't install if it's already installed
+    pub fn install_req(&mut self, req: &VersionReq, config: &Config) -> Result<Installed, failure::Error> {
         let installer = self.node.resolve_remote(&req, config)?;
-        let version = installer.install()?;
-        self.node.versions.insert(version.clone());
-        self.save()?;
-        Ok(version)
+        let installed = installer.install(&self.node)?;
+
+        if let &Installed::Now(ref version) = &installed {
+            self.node.versions.insert(version.clone());
+            self.save()?;
+        }
+
+        Ok(installed)
     }
 
     pub fn uninstall(&mut self, version: &Version) -> Result<(), failure::Error> {
-        if self.node.versions.contains(version) {
+        if self.node.contains(version) {
             let home = path::node_version_dir(&version.to_string())?;
 
             if !home.is_dir() {
@@ -115,6 +114,10 @@ impl Catalog {
 }
 
 impl NodeCatalog {
+
+    pub fn contains(&self, version: &Version) -> bool {
+        self.versions.contains(version)
+    }
 
     fn resolve_remote(&self, req: &VersionReq, config: &Config) -> Result<Installer, failure::Error> {
         match config.node {

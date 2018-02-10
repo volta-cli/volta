@@ -4,6 +4,8 @@ use std::string::ToString;
 use path;
 use node_archive::{Archive, Cached, Remote, Source};
 use style::progress_bar;
+use catalog::NodeCatalog;
+use super::Installed;
 
 use failure;
 use semver::Version;
@@ -44,7 +46,15 @@ impl Installer {
         })
     }
 
-    pub fn install(self) -> Result<Version, failure::Error> {
+    pub fn version(&self) -> &Version {
+        &self.version
+    }
+
+    pub fn install(self, catalog: &NodeCatalog) -> Result<Installed, failure::Error> {
+        if catalog.contains(&self.version) {
+            return Ok(Installed::Already(self.version));
+        }
+
         let dest = path::node_versions_dir()?;
         let bar = progress_bar(
             "Installing",
@@ -62,6 +72,6 @@ impl Installer {
             path::node_version_dir(&version_string)?)?;
 
         bar.finish_and_clear();
-        Ok(self.version)
+        Ok(Installed::Now(self.version))
     }
 }
