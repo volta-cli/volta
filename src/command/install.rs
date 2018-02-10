@@ -1,5 +1,4 @@
 use docopt::Docopt;
-use notion_core::catalog::Catalog;
 use notion_core::session::Session;
 use failure;
 use semver::VersionReq;

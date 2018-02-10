@@ -1,12 +1,10 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::ffi::OsStr;
 use std::env;
-use std::cell::{RefCell, Ref};
 
 use failure;
 
 use manifest::{self, Manifest};
-use lockfile::{self, Lockfile};
 
 fn is_node_root(dir: &Path) -> bool {
     dir.join("package.json").is_file()
@@ -25,9 +23,7 @@ fn is_project_root(dir: &Path) -> bool {
 }
 
 pub struct Project {
-    root: PathBuf,
-    manifest: Manifest,
-    lockfile: RefCell<Option<Lockfile>>
+    manifest: Manifest
 }
 
 impl Project {
@@ -47,60 +43,11 @@ impl Project {
         };
 
         Ok(Some(Project {
-            root: dir.to_path_buf(),
-            manifest: manifest,
-            lockfile: RefCell::new(None)
+            manifest: manifest
         }))
     }
 
     pub fn manifest(&self) -> &Manifest {
         &self.manifest
     }
-
-    pub fn lockfile<'a>(&'a self) -> Result<Ref<'a, Lockfile>, failure::Error> {
-        // Create a new scope to contain the lifetime of the dynamic borrow.
-        {
-            let lockfile: Ref<Option<Lockfile>> = self.lockfile.borrow();
-            if lockfile.is_some() {
-                return Ok(Ref::map(lockfile, |opt| opt.as_ref().unwrap()));
-            }
-        }
-
-        // Create a new scope to contain the lifetime of the dynamic borrow.
-        {
-            let mut lockfile = self.lockfile.borrow_mut();
-            *lockfile = Some(if !lockfile::exists(&self.root) {
-                let lockfile = self.manifest.resolve()?;
-                lockfile.save(&self.root)?;
-                lockfile
-            } else {
-                let mut lockfile = lockfile::read(&self.root)?;
-                if !self.manifest.matches(&lockfile) {
-                    lockfile = self.manifest.resolve()?;
-                    lockfile.save(&self.root)?;
-                }
-                lockfile
-            });
-        }
-
-        // Now try again recursively, outside the scope of the previous borrows.
-        self.lockfile()
-    }
-
-/*
-        self.lockfile = Some(if !lockfile::exists(&self.root) {
-            let lockfile = self.manifest.resolve()?;
-            lockfile.save(&self.root)?;
-            lockfile
-        } else {
-            let mut lockfile = lockfile::read(&self.root)?;
-            if !self.manifest.matches(&lockfile) {
-                lockfile = self.manifest.resolve()?;
-                lockfile.save(&self.root)?;
-            }
-            lockfile
-        });
-        Ok(self.lockfile.as_ref().unwrap())
-    }
-*/
 }

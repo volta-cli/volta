@@ -25,7 +25,6 @@ pub mod tool;
 pub mod version;
 pub mod project;
 pub mod manifest;
-pub mod lockfile;
 pub mod catalog;
 pub mod session;
 pub mod style;

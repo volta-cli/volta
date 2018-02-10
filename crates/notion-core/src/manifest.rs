@@ -7,7 +7,6 @@ use serde_json::value::Value;
 use semver::VersionReq;
 
 use version::{Version, VersionSpec};
-use lockfile::{self, Lockfile};
 
 use failure;
 
@@ -18,24 +17,6 @@ pub struct Manifest {
 }
 
 // const LATEST_URL: &'static str = "http://nodejs.org/dist/latest/SHASUMS256.txt";
-
-fn resolve_node(spec: &VersionSpec) -> Result<lockfile::Entry, failure::Error> {
-    let version = match *spec {
-        VersionSpec::Latest => {
-            unimplemented!()
-        }
-        VersionSpec::Path(_) => {
-            unimplemented!()
-        }
-        VersionSpec::Specific(ref version) => {
-            version.clone()
-        }
-    };
-    Ok(lockfile::Entry {
-        specifier: spec.clone(),
-        version: version
-    })
-}
 
 impl Manifest {
     // FIXME: change to return &VersionReq after we stop using the version crate
@@ -53,19 +34,6 @@ impl Manifest {
             }
             _ => { unimplemented!() }
         }
-    }
-
-    pub fn resolve(&self) -> Result<Lockfile, failure::Error> {
-        Ok(Lockfile {
-            node: resolve_node(&self.node)?,
-            yarn: None,
-            dependencies: HashMap::new()
-        })
-    }
-
-    pub fn matches(&self, lockfile: &Lockfile) -> bool {
-        // FIXME: && compare the others too
-        self.node == lockfile.node.specifier
     }
 }
 

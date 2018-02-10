@@ -11,7 +11,6 @@ use toml;
 
 use path::{self, user_catalog_file};
 use untoml::touch;
-use provision;
 use failure;
 use semver::{Version, VersionReq};
 use installer::node::Installer;
