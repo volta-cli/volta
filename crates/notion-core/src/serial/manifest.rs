@@ -1,6 +1,7 @@
 use super::super::manifest;
 
 use failure;
+use semver::VersionReq;
 
 use std::collections::HashMap;
 
@@ -31,9 +32,9 @@ impl Manifest {
     pub fn into_manifest(self) -> Result<Option<manifest::Manifest>, failure::Error> {
         if let Some(notion) = self.notion {
             return Ok(Some(manifest::Manifest {
-                node: notion.node.parse()?,
+                node: parse_version_req(&notion.node)?,
                 yarn: if let Some(yarn) = notion.yarn {
-                    Some(yarn.parse()?)
+                    Some(parse_version_req(&yarn)?)
                 } else {
                     None
                 },
@@ -43,4 +44,14 @@ impl Manifest {
 
         Ok(None)
     }
+}
+
+fn parse_version_req(src: &str) -> Result<VersionReq, failure::Error> {
+    let src = src.trim();
+    Ok(if src.len() > 0 && src.chars().next().unwrap().is_digit(10) {
+        let defaulted = format!("={}", src);
+        VersionReq::parse(&defaulted)?
+    } else {
+        VersionReq::parse(src)?
+    })
 }

@@ -4,7 +4,7 @@ use std::env;
 
 use failure;
 
-use manifest::{self, Manifest};
+use manifest::Manifest;
 
 fn is_node_root(dir: &Path) -> bool {
     dir.join("package.json").is_file()
@@ -37,7 +37,7 @@ impl Project {
             }
         }
 
-        let manifest = match manifest::read(&dir)? {
+        let manifest = match Manifest::for_dir(&dir)? {
             Some(manifest) => manifest,
             None => { return Ok(None); }
         };

@@ -29,7 +29,7 @@ pub fn local(session: &Session) -> Result<Option<String>, failure::Error> {
         None => { return Ok(None); }
     };
 
-    let req = project.manifest().node_req();
+    let req = &project.manifest().node;
     let catalog = session.catalog()?;
     Ok(catalog.node.resolve_local(&req).map(|v| v.to_string()))
 }

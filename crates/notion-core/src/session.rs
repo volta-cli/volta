@@ -41,7 +41,7 @@ impl Session {
 
     pub fn node(&mut self) -> Result<Option<Version>, failure::Error> {
         if let Some(ref project) = self.project {
-            let req = project.manifest().node_req();
+            let req = &project.manifest().node;
             let catalog = self.catalog.get_mut()?;
             let available = catalog.node.resolve_local(&req);
 

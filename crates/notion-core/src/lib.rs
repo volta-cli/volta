@@ -22,7 +22,6 @@ pub mod provision;
 pub mod env;
 pub mod config;
 pub mod tool;
-pub mod version;
 pub mod project;
 pub mod manifest;
 pub mod catalog;
