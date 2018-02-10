@@ -9,6 +9,7 @@ use readext::ReadExt;
 use reqwest;
 use toml;
 
+use super::NoNodeVersionFoundError;
 use path::{self, user_catalog_file};
 use serial::touch;
 use failure;
@@ -145,8 +146,7 @@ impl NodeCatalog {
         if let Some(version) = version {
             Installer::public(version)
         } else {
-            // FIXME: throw an error there
-            panic!("no version {}", req)
+            Err(NoNodeVersionFoundError { req: req.clone() }.into())
         }
     }
 

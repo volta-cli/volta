@@ -39,6 +39,14 @@ extern crate failure;
 #[macro_use]
 extern crate cfg_if;
 
+use semver::VersionReq;
+
+#[derive(Fail, Debug)]
+#[fail(display = "No Node version found for {}", req)]
+pub struct NoNodeVersionFoundError {
+    req: VersionReq
+}
+
 #[derive(Fail, Debug)]
 #[fail(display = "Error in configuration key '{}'", key)]
 pub struct ConfigError {
