@@ -37,15 +37,10 @@ pub struct NodeConfig {
 
 impl Config {
     pub fn current() -> Result<Config, failure::Error> {
-        config()
+        let path = user_config_file()?;
+        let src = touch(&path)?.read_into_string()?;
+        src.parse()
     }
-}
-
-// FIXME: delete this once its dependents get deleted, and fold it into Config::current()
-pub fn config() -> Result<Config, failure::Error> {
-    let path = user_config_file()?;
-    let src = touch(&path)?.read_into_string()?;
-    src.parse()
 }
 
 impl FromStr for Config {
