@@ -85,6 +85,7 @@ impl Catalog {
 
     // FIXME: belongs in NodeCatalog
     pub fn install_req(&mut self, req: &VersionReq, config: &Config) -> Result<Version, failure::Error> {
+        // FIXME: should get version from installer, not installer.install(), and don't install if it's already installed
         let installer = self.node.resolve_remote(&req, config)?;
         let version = installer.install()?;
         self.node.versions.insert(version.clone());
