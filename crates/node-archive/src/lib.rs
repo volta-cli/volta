@@ -26,7 +26,24 @@ pub struct HttpError {
     code: ::reqwest::StatusCode
 }
 
-use std::io::{self, Read};
+#[derive(Fail, Debug)]
+#[fail(display = "HTTP header '{}' not found", header)]
+pub struct MissingHeaderError {
+    header: String
+}
+
+#[derive(Fail, Debug)]
+#[fail(display = "HTTP server does not accept byte range requests")]
+pub struct ByteRangesNotAcceptedError;
+
+
+#[derive(Fail, Debug)]
+#[fail(display = "unexpected content length in HTTP response: {}", length)]
+pub struct UnexpectedContentLengthError {
+    length: u64
+}
+
+use std::io::Read;
 
 #[cfg(not(windows))]
 pub use std::io::{Read as StreamingMode};

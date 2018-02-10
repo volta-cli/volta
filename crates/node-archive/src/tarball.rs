@@ -1,7 +1,6 @@
 use super::Source;
 
-use std::io::{Read, Seek, SeekFrom};
-use std::io;
+use std::io::{self, Read, Seek, SeekFrom};
 use std::path::Path;
 use std::fs::File;
 
@@ -23,7 +22,6 @@ pub struct Cached {
 impl Cached {
     pub fn load(mut source: File) -> Result<Cached, failure::Error> {
         let uncompressed_size = load_uncompressed_size(&mut source)?;
-
         let compressed_size = source.metadata()?.len();
 
         Ok(Cached {
@@ -52,26 +50,31 @@ impl Source for Cached {
 }
 
 pub struct Remote {
-    uncompressed_size: Option<u64>,
+    uncompressed_size: u64,
     compressed_size: u64,
     source: TeeReader<reqwest::Response, File>
 }
 
+fn content_length(response: &Response) -> Result<u64, failure::Error> {
+    Ok(match response.headers().get::<ContentLength>() {
+        Some(content_length) => **content_length,
+        None => {
+            return Err(super::MissingHeaderError { header: String::from("Content-Length") }.into());
+        }
+    })
+}
+
 impl Remote {
     pub fn fetch(url: &str, cache_file: &Path) -> Result<Remote, failure::Error> {
-        let uncompressed_size = fetch_uncompressed_size(url);
-
+        let uncompressed_size = fetch_uncompressed_size(url)?;
         let response = reqwest::get(url)?;
 
         if !response.status().is_success() {
             Err(super::HttpError { code: response.status() })?;
         }
 
-        // FIXME: make compressed_size an Option
-        let compressed_size = response.headers().get::<ContentLength>().map_or(0, |cl| **cl);
-
+        let compressed_size = content_length(&response)?;
         let file = File::create(cache_file)?;
-
         let source = TeeReader::new(response, file);
 
         Ok(Remote {
@@ -90,7 +93,7 @@ impl Read for Remote {
 
 impl Source for Remote {
     fn uncompressed_size(&self) -> Option<u64> {
-        self.uncompressed_size
+        Some(self.uncompressed_size)
     }
 
     fn compressed_size(&self) -> u64 {
@@ -147,15 +150,13 @@ impl<S: Source, F: FnMut(&(), usize)> Archive<S, F> {
     }
 }
 
-fn headers_only(url: &str) -> reqwest::Result<Option<Response>> {
+fn headers_only(url: &str) -> Result<Response, failure::Error> {
     let client = reqwest::Client::new()?;
-    let response = client.head(url)?
-        .send()?;
-    if response.status().is_success() {
-        Ok(Some(response))
-    } else {
-        Ok(None)
+    let response = client.head(url)?.send()?;
+    if !response.status().is_success() {
+        Err(super::HttpError { code: response.status() })?;
     }
+    Ok(response)
 }
 
 // From http://www.gzip.org/zlib/rfc-gzip.html#member-format
@@ -178,7 +179,7 @@ fn unpack_isize(packed: [u8; 4]) -> u64 {
     unpacked32 as u64
 }
 
-fn fetch_isize(url: &str, len: u64) -> reqwest::Result<Option<[u8; 4]>> {
+fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], failure::Error> {
     let client = reqwest::Client::new()?;
     let mut response = client.get(url)?
         .header(Range::Bytes(
@@ -186,20 +187,22 @@ fn fetch_isize(url: &str, len: u64) -> reqwest::Result<Option<[u8; 4]>> {
         ))
         .send()?;
 
-    // FIXME: propagate Error
-    if response.status().is_success() {
-        if response.headers().get::<ContentLength>().map(|cl| **cl) == Some(4) {
-            let mut buf = [0; 4];
-            if response.read_exact(&mut buf).is_ok() {
-                return Ok(Some(buf));
-            }
-        }
+    if !response.status().is_success() {
+        Err(super::HttpError { code: response.status() })?;
     }
 
-    Ok(None)
+    let actual_length = content_length(&response)?;
+
+    if actual_length != 4 {
+        Err(super::UnexpectedContentLengthError { length: actual_length })?;
+    }
+
+    let mut buf = [0; 4];
+    response.read_exact(&mut buf)?;
+    Ok(buf)
 }
 
-fn load_isize(file: &mut File) -> io::Result<[u8; 4]> {
+fn load_isize(file: &mut File) -> Result<[u8; 4], failure::Error> {
     file.seek(SeekFrom::End(-4))?;
     let mut buf = [0; 4];
     file.read_exact(&mut buf)?;
@@ -207,28 +210,21 @@ fn load_isize(file: &mut File) -> io::Result<[u8; 4]> {
     Ok(buf)
 }
 
-fn fetch_uncompressed_size(url: &str) -> Option<u64> {
-    let response = match headers_only(url) {
-        Ok(Some(response)) => response,
-        _ => { return None; }
-    };
+fn fetch_uncompressed_size(url: &str) -> Result<u64, failure::Error> {
+    let response = headers_only(url)?;
 
     if !response.headers().get::<AcceptRanges>()
         .map(|v| v.iter().any(|unit| *unit == RangeUnit::Bytes))
         .unwrap_or(false) {
-        return None;
+        Err(super::ByteRangesNotAcceptedError)?;
     }
 
-    if let Some(len) = response.headers().get::<ContentLength>().map(|cl| **cl) {
-        if let Ok(Some(packed)) = fetch_isize(url, len) {
-            return Some(unpack_isize(packed));
-        }
-    }
-
-    None
+    let len = content_length(&response)?;
+    let packed = fetch_isize(url, len)?;
+    Ok(unpack_isize(packed))
 }
 
-fn load_uncompressed_size(file: &mut File) -> io::Result<u64> {
+fn load_uncompressed_size(file: &mut File) -> Result<u64, failure::Error> {
     let packed = load_isize(file)?;
     Ok(unpack_isize(packed))
 }
