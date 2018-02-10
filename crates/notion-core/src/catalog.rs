@@ -73,8 +73,13 @@ impl Catalog {
     // FIXME: belongs in NodeCatalog
     pub fn set_version(&mut self, req: &VersionReq, config: &Config) -> Result<(), failure::Error> {
         let installed = self.install_req(req, config)?;
-        self.node.current = Some(installed.into_version());
-        self.save()?;
+        let version = Some(installed.into_version());
+
+        if self.node.current != version {
+            self.node.current = version;
+            self.save()?;
+        }
+
         Ok(())
     }
 
