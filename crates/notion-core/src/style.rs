@@ -28,7 +28,7 @@ pub fn progress_bar(action: &str, details: &str, len: u64) -> ProgressBar {
 
     bar.set_message(&format!("{: >12} {}", style(action).green().bold(), details));
     bar.set_style(ProgressStyle::default_bar()
-        // FIXME: instead of fixed 40 compute based on console size
+        // ISSUE (#35): instead of fixed 40 compute based on console size
         .template(&format!("{{msg}}  [{{bar:{}.cyan/blue}}] {{percent:>3}}%", bar_width))
         .progress_chars("=> "));
 
