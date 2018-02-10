@@ -47,7 +47,8 @@ impl Installer {
     pub fn install(self) -> Result<Version, failure::Error> {
         let dest = path::node_versions_dir()?;
         let bar = progress_bar(
-            &format!("Installing v{}", self.version),
+            "Installing",
+            &format!("v{}", self.version),
             self.source.uncompressed_size().unwrap_or(self.source.compressed_size()));
 
         let archive = Archive::new(self.source, |_, read| {
