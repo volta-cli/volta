@@ -28,7 +28,6 @@ pub mod manifest;
 pub mod catalog;
 pub mod session;
 pub mod style;
-mod untoml;
 mod serial;
 mod plugin;
 mod installer;

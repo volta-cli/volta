@@ -10,7 +10,7 @@ use reqwest;
 use toml;
 
 use path::{self, user_catalog_file};
-use untoml::touch;
+use serial::touch;
 use failure;
 use semver::{Version, VersionReq};
 use installer::node::Installer;

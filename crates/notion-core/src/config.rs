@@ -6,7 +6,7 @@ use lazycell::LazyCell;
 use path::user_config_file;
 use failure;
 use readext::ReadExt;
-use untoml::touch;
+use serial::touch;
 use serial;
 use plugin;
 
