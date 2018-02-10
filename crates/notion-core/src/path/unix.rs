@@ -25,7 +25,7 @@ cfg_if! {
     } else if #[cfg(target_arch = "x86_64")] {
         pub const ARCH: &'static str = "x64";
     } else {
-        compile_error!("Unsupported target_arch variant of unix (expected 'x86' or 'x64').")
+        compile_error!("Unsupported target_arch variant of unix (expected 'x86' or 'x64').");
     }
 }
 
