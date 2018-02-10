@@ -15,6 +15,12 @@ pub enum Resolve {
     Bin(String)
 }
 
+#[derive(Fail, Debug)]
+#[fail(display = "Invalid plugin command: '{}'", command)]
+pub struct InvalidCommandError {
+    command: String
+}
+
 impl Resolve {
     pub fn resolve(&self, req: &VersionReq) -> Result<Installer, failure::Error> {
         match self {
@@ -23,10 +29,15 @@ impl Resolve {
             }
 
             &Resolve::Bin(ref bin) => {
-                let mut bin = bin.trim().to_string();
-                let mut words = bin.parse_cmdline_words();
-                // FIXME: error for not having any commands
-                let cmd = words.next().unwrap();
+                let mut trimmed = bin.trim().to_string();
+                let mut words = trimmed.parse_cmdline_words();
+                let cmd = if let Some(word) = words.next() {
+                    word
+                } else {
+                    return Err(InvalidCommandError {
+                        command: String::from(bin.trim())
+                    }.into());
+                };
                 let args: Vec<OsString> = words.map(|s| {
                     let mut os = OsString::new();
                     os.push(s);
@@ -37,8 +48,7 @@ impl Resolve {
                     .stdin(Stdio::null())
                     .stdout(Stdio::piped())
                     .stderr(Stdio::piped())
-                    .spawn()
-                    .unwrap(); // FIXME: error for failed spawn
+                    .spawn()?;
                 let response = ResolveResponse::from_reader(child.stdout.unwrap())?;
                 match response {
                     ResolveResponse::Url { version, url } => {
