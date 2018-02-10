@@ -1,8 +1,8 @@
 use docopt::Docopt;
 use notion_core::session::Session;
+use notion_core::serial::version::parse_req;
 use std::process::exit;
 use failure;
-use semver::VersionReq;
 
 pub const USAGE: &'static str = "
 Activate a particular toolchain version
@@ -32,7 +32,7 @@ pub fn run(mut args: Vec<String>, _verbose: bool) -> Result<(), failure::Error> 
     if args.flag_global {
         // FIXME: compute the default
         let version = args.arg_version.unwrap();
-        let req = VersionReq::parse(&version)?;
+        let req = parse_req(&version)?;
         let mut session = Session::new()?;
         session.set_node_version(&req)?;
     } else {

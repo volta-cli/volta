@@ -3,6 +3,7 @@ pub mod manifest;
 pub mod config;
 pub mod plugin;
 pub mod index;
+pub mod version;
 
 use std::path::Path;
 use std::io;

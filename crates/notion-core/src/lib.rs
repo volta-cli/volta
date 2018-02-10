@@ -26,7 +26,7 @@ pub mod manifest;
 pub mod catalog;
 pub mod session;
 pub mod style;
-mod serial;
+pub mod serial;
 mod plugin;
 mod installer;
 
