@@ -34,7 +34,7 @@ pub trait Tool: Sized {
                 exit(0);
             }
             Ok(status) => {
-                // FIXME: if None, in unix, find out the signal
+                // ISSUE (#36): if None, in unix, find out the signal
                 exit(status.code().unwrap_or(1));
             }
             Err(err) => {
