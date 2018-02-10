@@ -9,19 +9,20 @@ pub struct Plugin {
     bin: Option<String>
 }
 
-// FIXME: should abstract this
-
 impl Plugin {
-    pub fn into_resolve(self) -> Result<plugin::Resolve, failure::Error> {
+    fn into_plugin<T, U, B>(self, to_url: U, to_bin: B) -> Result<T, failure::Error>
+      where U: FnOnce(String) -> T,
+            B: FnOnce(String) -> T
+    {
         match self {
             Plugin { url: Some(_), bin: Some(_) } => {
                 Err(format_err!("plugin contains both 'url' and 'bin' field"))
             }
             Plugin { url: Some(url), bin: None } => {
-                Ok(plugin::Resolve::Url(url))
+                Ok(to_url(url))
             }
             Plugin { url: None, bin: Some(bin) } => {
-                Ok(plugin::Resolve::Bin(bin))
+                Ok(to_bin(bin))
             }
             Plugin { url: None, bin: None } => {
                 Err(format_err!("plugin must contain either a 'url' or 'bin' field"))
@@ -29,21 +30,12 @@ impl Plugin {
         }
     }
 
+    pub fn into_resolve(self) -> Result<plugin::Resolve, failure::Error> {
+        self.into_plugin(plugin::Resolve::Url, plugin::Resolve::Bin)
+    }
+
     pub fn into_ls_remote(self) -> Result<plugin::LsRemote, failure::Error> {
-        match self {
-            Plugin { url: Some(_), bin: Some(_) } => {
-                Err(format_err!("plugin contains both 'url' and 'bin' field"))
-            }
-            Plugin { url: Some(url), bin: None } => {
-                Ok(plugin::LsRemote::Url(url))
-            }
-            Plugin { url: None, bin: Some(bin) } => {
-                Ok(plugin::LsRemote::Bin(bin))
-            }
-            Plugin { url: None, bin: None } => {
-                Err(format_err!("plugin must contain either a 'url' or 'bin' field"))
-            }
-        }
+        self.into_plugin(plugin::LsRemote::Url, plugin::LsRemote::Bin)
     }
 }
 
