@@ -30,7 +30,7 @@ impl Installer {
             return Installer::cached(version, File::open(cache_file)?);
         }
 
-        // FIXME: save the cache file path too so it can be tee'ed as it's fetched
+        // ISSUE #32: tee the input source and save to the cache file as it's fetched
         Ok(Installer {
             source: Box::new(Remote::fetch(url, &cache_file)?),
             version: version
