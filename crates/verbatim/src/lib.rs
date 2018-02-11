@@ -10,7 +10,6 @@ impl PathExt for Path {
         match components.next() {
             Some(Component::Prefix(prefix)) => {
                 let new_prefix = match prefix.kind() {
-                    // FIXME: fill out all these cases
                     Prefix::Verbatim(_str) => { unimplemented!() }
                     Prefix::VerbatimUNC(_hostname, _sharename) => { unimplemented!() }
                     Prefix::VerbatimDisk(_letter) => { unimplemented!() }
@@ -28,8 +27,7 @@ impl PathExt for Path {
                 Path::new(r"\\?\").join(Path::new(&other)).join(components)
             }
             None => {
-                // FIXME: handle this
-                panic!("corner case");
+                unimplemented!()
             }
         }
     }
