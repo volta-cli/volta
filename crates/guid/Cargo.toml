@@ -1,6 +1,7 @@
 [package]
 name = "guid"
 version = "0.1.0"
+description = "A convenient macro for creating Windows GUIDs."
 authors = ["David Herman <david.herman@gmail.com>"]
 
 [dependencies]

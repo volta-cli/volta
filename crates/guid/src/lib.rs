@@ -1,5 +1,21 @@
 #![cfg(windows)]
 
+//! A macro for defining Windows GUIDs with syntax similar to the one used
+//! conventionally, e.g. in tools like Visual Studio's `guidgen.exe`.
+//! 
+//! # Example
+//! 
+//! ```
+//! #[macro_use]
+//! extern crate guid;
+//! extern crate winapi;
+//! 
+//! use winapi::guiddef::GUID;
+//! 
+//! /// The GUID for the `%windir%\system32` folder (`{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}`).
+//! pub const SYSTEM32_FOLDER: GUID = guid!(0x1AC14E77, 0x02E7, 0x4E5D, 0xB744, 0x2EB1AE5198B7);
+//! ```
+
 extern crate winapi;
 
 pub use winapi::guiddef::GUID;
@@ -26,12 +42,19 @@ macro_rules! guid {
     }
 }
 
-
-/*
 #[cfg(test)]
 mod tests {
+    use winapi::guiddef::GUID;
+
     #[test]
-    fn it_works() {
+    fn system32_folder() {
+        assert_eq!(GUID {
+            Data1: 0x1AC14E77,
+            Data2: 0x02E7,
+            Data3: 0x4E5D,
+            Data4: [0xB744, 0x2EB1, 0xAE51, 0x98B7]
+        },
+        guid!(0x1AC14E77, 0x02E7, 0x4E5D, 0xB744, 0x2EB1AE5198B7),
+        "FOLDERID_system GUID");
     }
 }
-*/
