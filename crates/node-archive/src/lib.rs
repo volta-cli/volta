@@ -8,7 +8,7 @@ mod tarball;
 #[cfg(windows)]
 extern crate zip as zip_rs;
 #[cfg(windows)]
-extern crate untss;
+extern crate verbatim;
 #[cfg(windows)]
 mod zip;
 
