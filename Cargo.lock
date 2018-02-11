@@ -527,7 +527,7 @@ dependencies = [
  "reqwest 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "tar 0.4.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "tee 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "untss 0.1.0",
+ "verbatim 0.1.0",
  "zip 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1094,10 +1094,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "untss"
-version = "0.1.0"
-
-[[package]]
 name = "url"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1116,6 +1112,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "vcpkg"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "verbatim"
+version = "0.1.0"
 
 [[package]]
 name = "version_check"

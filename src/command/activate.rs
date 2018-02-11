@@ -18,7 +18,7 @@ Options:
 
 #[derive(Debug, Deserialize)]
 struct Args {
-    arg_version: Option<String>,
+    arg_version: String,
     flag_global: bool
 }
 
@@ -30,8 +30,7 @@ pub fn run(mut args: Vec<String>, _verbose: bool) -> Result<(), failure::Error> 
         .and_then(|d| d.argv(argv).deserialize())?;
 
     if args.flag_global {
-        // FIXME: compute the default
-        let version = args.arg_version.unwrap();
+        let version = args.arg_version;
         let req = parse_req(&version)?;
         let mut session = Session::new()?;
         session.set_node_version(&req)?;
