@@ -1,10 +1,5 @@
 use guid::GUID;
 
-// FIXME: rustdoc all of these with their GUID and MSDN link
-
-// FIXME: complete the set from:
-//   https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457.aspx
-
 // https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457.aspx#folderid_localappdata
 // {F1B32785-6FBA-4FCF-9D55-7B8E7F157091}
 pub const LOCAL_APP_DATA: GUID = guid!(0xF1B32785, 0x6FBA, 0x4FCF, 0x9D55, 0x7B8E7F157091);
