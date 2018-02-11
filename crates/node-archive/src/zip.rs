@@ -110,7 +110,7 @@ impl<S: Source + Seek, F: FnMut(&(), usize)> Archive<S, F> {
 impl<S: Source + Seek, F: FnMut(&(), usize)> Archive<S, F> {
     pub fn unpack(self, dest: &Path) -> Result<(), failure::Error> {
         // Use a verbatim path to avoid the legacy Windows 260 byte path limit.
-        let dest: &Path = dest.to_verbatim();
+        let dest: &Path = &dest.to_verbatim();
 
         let mut zip = self.archive;
         for i in 0..zip.len() {
