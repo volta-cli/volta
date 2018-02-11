@@ -58,7 +58,12 @@ impl Tool for Script {
     }
 
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
-        // See: https://github.com/rust-lang/rust/issues/42791
+        // The best way to launch a script in Windows is to use `cmd.exe`
+        // as the executable and pass `"/C"` followed by the name of the
+        // script and then its arguments. Unfortunately, the docs aren't
+        // super clear about this, but see the discussion at:
+        //
+        //     https://github.com/rust-lang/rust/issues/42791
         let mut command = Command::new("cmd.exe");
         command.arg("/C");
         command.arg(exe);
@@ -71,7 +76,6 @@ impl Tool for Script {
 }
 
 fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
-    // FIXME: at least in unix, use exec instead
     let mut command = Command::new(exe);
     command.args(args);
     command.env("PATH", path_var);
