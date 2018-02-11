@@ -62,7 +62,6 @@ pub fn run(mut args: Vec<String>) -> Result<(), failure::Error> {
         let (local, global) = (local(&session)?, global(&session)?);
         let global_active = local.is_none() && global.is_some();
         let none = local.is_none() && global.is_none();
-        // FIXME: abstract this
         for version in local {
             println!("local: v{} (active)", version);
         }
