@@ -7,7 +7,7 @@ use std::fs::{File, create_dir_all};
 use reqwest;
 use progress_read::ProgressRead;
 use zip_rs::ZipArchive;
-use untss;
+use verbatim::PathExt;
 
 use failure;
 
@@ -110,7 +110,7 @@ impl<S: Source + Seek, F: FnMut(&(), usize)> Archive<S, F> {
 impl<S: Source + Seek, F: FnMut(&(), usize)> Archive<S, F> {
     pub fn unpack(self, dest: &Path) -> Result<(), failure::Error> {
         // Use a verbatim path to avoid the legacy Windows 260 byte path limit.
-        let dest: &Path = &untss::untss(dest);
+        let dest: &Path = dest.to_verbatim();
 
         let mut zip = self.archive;
         for i in 0..zip.len() {
@@ -119,7 +119,7 @@ impl<S: Source + Seek, F: FnMut(&(), usize)> Archive<S, F> {
             let (is_dir, subpath) = {
                 let name = entry.name();
 
-                // Verbatim paths aren't preprocessed so we have to use correct r"\" separators.
+                // Verbatim paths aren't normalized so we have to use correct r"\" separators.
                 (name.ends_with('/'), Path::new(&name.replace('/', r"\")).to_path_buf())
             };
 
