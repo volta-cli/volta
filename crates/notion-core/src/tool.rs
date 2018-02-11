@@ -1,5 +1,5 @@
 use std::env::{args_os, ArgsOs};
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::process::{Command, exit};
 use std::path::Path;
 use std::marker::Sized;
@@ -107,14 +107,36 @@ impl Tool for Binary {
     fn command(self) -> Command { self.0 }
 }
 
+#[derive(Fail, Debug)]
+#[fail(display = "Internal error: tool name could not be determined")]
+pub struct NoArg0Error;
+
+fn arg0(args: &mut ArgsOs) -> Result<OsString, failure::Error> {
+    let opt = args.next()
+        .and_then(|arg0| Path::new(&arg0)
+            .file_name()
+            .map(|file_name| file_name.to_os_string()));
+    if let Some(file_name) = opt {
+        Ok(file_name)
+    } else {
+        Err(NoArg0Error.into())
+    }
+}
+
+#[derive(Fail, Debug)]
+#[fail(display = "No Node version selected")]
+pub struct NoGlobalError;
+
 impl Tool for Node {
     fn new() -> Result<Self, failure::Error> {
         let mut session = Session::new()?;
         let mut args = args_os();
-        // FIXME: make an error kind for this case
-        let exe = Path::new(&args.next().unwrap()).file_name().unwrap().to_os_string();
-        // FIXME: make an error kind for this case
-        let version = session.node()?.unwrap();
+        let exe = arg0(&mut args)?;
+        let version = if let Some(version) = session.node()? {
+            version
+        } else {
+            return Err(NoGlobalError.into());
+        };
         let path_var = env::path_for(&version.to_string());
         Ok(Self::from_components(&exe, args, &path_var))
     }
