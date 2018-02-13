@@ -11,7 +11,7 @@
 //!
 //! # fn main() {
 //! # let _ =
-//! known_path(PROGRAM_FILES_X86)
+//! known_path(&PROGRAM_FILES_X86)
 //! # ;
 //! # }
 //! ```
@@ -73,10 +73,11 @@ pub fn known_path(guid: &guid::GUID) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::known_path;
-    use super::super::id;
+    use super::id;
+    use std::path::Path;
 
     #[test]
     fn it_works() {
-        assert_eq!(known_path(id::PROGRAM_FILES_X86), Some(Path::new(r"C:\\Program Files")));
+        assert_eq!(known_path(&id::PROGRAM_FILES_X86), Some(Path::new(r"C:\Program Files (x86)").to_path_buf()));
     }
 }
