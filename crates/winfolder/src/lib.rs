@@ -1,3 +1,21 @@
+//! This crate provides access to Windows API's for querying the location of standard
+//! Windows folders on the current system.
+//!
+//! # Example
+//!
+//! ```
+//! extern crate winfolder;
+//!
+//! use winfolder::id::PROGRAM_FILES_X86;
+//! use winfolder::known_path;
+//!
+//! # fn main() {
+//! # let _ =
+//! known_path(PROGRAM_FILES_X86)
+//! # ;
+//! # }
+//! ```
+
 #![cfg(windows)]
 
 extern crate winapi;
@@ -21,6 +39,9 @@ use winapi::minwindef::MAX_PATH;
 use shell32::SHGetKnownFolderPath;
 use ole32::CoTaskMemFree;
 
+// Construct an `OsString` from a pointer to a wide-character string.
+// This is marked as unsafe because it can only be safely used on a
+// string that is known to come from a trusted API.
 unsafe fn os_string_from_trusted_api(mut p: PWSTR) -> OsString {
     let mut s: OsString = OsString::with_capacity(MAX_PATH + 1);
     while *p != 0 {
@@ -30,6 +51,12 @@ unsafe fn os_string_from_trusted_api(mut p: PWSTR) -> OsString {
     s
 }
 
+/// Returns the path for a standard Windows folder based on that
+/// folder's GUID. Some standard folder GUIDs can be found in
+/// the `winfolder::id` module.
+///
+/// If the GUID does not represent a standard folder, this function
+/// produces `None`.
 pub fn known_path(guid: &guid::GUID) -> Option<PathBuf> {
     let string: OsString;
     unsafe {
@@ -43,12 +70,13 @@ pub fn known_path(guid: &guid::GUID) -> Option<PathBuf> {
     Some(Path::new(&string).to_path_buf())
 }
 
-
-/*
 #[cfg(test)]
 mod tests {
+    use super::known_path;
+    use super::super::id;
+
     #[test]
     fn it_works() {
+        assert_eq!(known_path(id::PROGRAM_FILES_X86), Some(Path::new(r"C:\\Program Files")));
     }
 }
-*/
