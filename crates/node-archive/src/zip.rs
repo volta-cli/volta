@@ -103,11 +103,11 @@ impl Source for Remote {
 }
 
 /// A Node installation zip archive.
-pub struct Archive<S: Source + Seek, F: FnMut(&(), usize)> {
+pub struct Archive<S: Source, F: FnMut(&(), usize)> {
     archive: ZipArchive<ProgressRead<S, (), F>>
 }
 
-impl<S: Source + Seek, F: FnMut(&(), usize)> Archive<S, F> {
+impl<S: Source, F: FnMut(&(), usize)> Archive<S, F> {
 
     /// Constructs a new `Archive` from the specified data source and with the
     /// specified progress callback.
@@ -119,7 +119,7 @@ impl<S: Source + Seek, F: FnMut(&(), usize)> Archive<S, F> {
 
 }
 
-impl<S: Source + Seek, F: FnMut(&(), usize)> Archive<S, F> {
+impl<S: Source, F: FnMut(&(), usize)> Archive<S, F> {
 
     /// Unpacks the zip archive to the specified destination folder.
     pub fn unpack(self, dest: &Path) -> Result<(), failure::Error> {
