@@ -8,6 +8,7 @@ extern crate semver;
 
 mod command;
 
-fn main() {
+/// The entry point for the `notion` CLI.
+pub fn main() {
     command::run();
 }
