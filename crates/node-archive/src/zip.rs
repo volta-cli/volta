@@ -11,12 +11,15 @@ use verbatim::PathExt;
 
 use failure;
 
+/// A data source for a Node zip archive that has been cached to the filesystem.
 pub struct Cached {
     compressed_size: u64,
     source: File
 }
 
 impl Cached {
+
+    /// Loads a cached Node zip archive from the specified file.
     pub fn load(source: File) -> io::Result<Cached> {
         let compressed_size = source.metadata()?.len();
 
@@ -50,11 +53,15 @@ impl Source for Cached {
     }
 }
 
+/// A data source for fetching a Node zip archive from a remote server.
 pub struct Remote {
     cached: Cached
 }
 
 impl Remote {
+
+    /// Initiate fetching of a Node zip archive from the given URL, returning
+    /// a `Remote` data source.
     pub fn fetch(url: &str, cache_file: &Path) -> Result<Remote, failure::Error> {
         let mut response = reqwest::get(url)?;
 
@@ -95,19 +102,26 @@ impl Source for Remote {
     }
 }
 
+/// A Node installation zip archive.
 pub struct Archive<S: Source + Seek, F: FnMut(&(), usize)> {
     archive: ZipArchive<ProgressRead<S, (), F>>
 }
 
 impl<S: Source + Seek, F: FnMut(&(), usize)> Archive<S, F> {
+
+    /// Constructs a new `Archive` from the specified data source and with the
+    /// specified progress callback.
     pub fn new(source: S, callback: F) -> Result<Archive<S, F>, failure::Error> {
         Ok(Archive {
             archive: ZipArchive::new(ProgressRead::new(source, (), callback))?
         })
     }
+
 }
 
 impl<S: Source + Seek, F: FnMut(&(), usize)> Archive<S, F> {
+
+    /// Unpacks the zip archive to the specified destination folder.
     pub fn unpack(self, dest: &Path) -> Result<(), failure::Error> {
         // Use a verbatim path to avoid the legacy Windows 260 byte path limit.
         let dest: &Path = &dest.to_verbatim();
@@ -137,4 +151,5 @@ impl<S: Source + Seek, F: FnMut(&(), usize)> Archive<S, F> {
         }
         Ok(())
     }
+
 }

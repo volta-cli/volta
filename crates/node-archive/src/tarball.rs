@@ -22,7 +22,7 @@ pub struct Cached {
 
 impl Cached {
 
-    /// Loads a cached Node tarball from the given file.
+    /// Loads a cached Node tarball from the specified file.
     pub fn load(mut source: File) -> Result<Cached, failure::Error> {
         let uncompressed_size = load_uncompressed_size(&mut source)?;
         let compressed_size = source.metadata()?.len();
