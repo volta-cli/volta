@@ -31,24 +31,29 @@ pub(crate) struct HttpError {
 
 use std::io::Read;
 
+macro_rules! define_source_trait {
+    { $name:ident : $supertypes:tt } => {
+        /// A data source for fetching a Node archive. In Windows, this is required to
+        /// implement `std::io::Seek` (required to be able to traverse the contents of
+        /// zip archives) as well as `std::io::Read`; on other platforms it only needs
+        /// to implement `Read`.
+        pub trait $name: $supertypes {
+            /// Produces the uncompressed size of the archive in bytes, when available.
+            /// In Windows, this is never available and always produces `None`. In other
+            /// platforms, this is always available and always produces a `Some` value.
+            fn uncompressed_size(&self) -> Option<u64>;
+
+            /// Produces the compressed size of the archive in bytes.
+            fn compressed_size(&self) -> u64;
+        }
+    }
+}
+
 #[cfg(not(windows))]
-pub use std::io::{Read as StreamingMode};
+define_source_trait! { Source: Read }
 
 #[cfg(windows)]
-pub use std::io::{Seek as StreamingMode};
-
-/// A data source for fetching a Node archive. In Windows, this is required to
-/// implement `std::io::Seek` (required to be able to traverse the contents of
-/// zip archives) as well as `std::io::Read`; on other platforms it only needs
-/// to implement `Read`.
-pub trait Source: Read + StreamingMode {
-    /// Produces the uncompressed size of the archive in bytes, when available.
-    /// In Windows, this is never available and always produces `None`.
-    fn uncompressed_size(&self) -> Option<u64>;
-
-    /// Produces the compressed size of the archive in bytes.
-    fn compressed_size(&self) -> u64;
-}
+define_source_trait! { Source: Read + ::std::io::Seek }
 
 #[cfg(not(windows))]
 pub use tarball::{Archive, Cached, Remote};
