@@ -1,3 +1,7 @@
+//! Provides the `Session` type, which represents the user's state during an
+//! execution of a Notion tool, including their configuration, their current
+//! directory, and the state of the local tool catalog.
+
 use config::{Config, LazyConfig};
 use catalog::{Catalog, LazyCatalog};
 use project::Project;

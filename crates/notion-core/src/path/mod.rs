@@ -1,3 +1,6 @@
+//! Provides functions for determining the paths in the filesystem for
+//! directories and files required in a Notion installation.
+
 #[cfg(not(windows))]
 mod unix;
 
@@ -9,6 +12,12 @@ mod windows;
 
 #[cfg(windows)]
 pub use self::windows::*;
+
+#[derive(Fail, Debug)]
+#[fail(display = "Unknown system folder: '{}'", name)]
+pub(crate) struct UnknownSystemFolderError {
+    name: String
+}
 
 pub fn archive_file(version: &str) -> String {
     format!("{}.{}", archive_root_dir(version), archive_extension())

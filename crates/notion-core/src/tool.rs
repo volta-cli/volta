@@ -1,3 +1,5 @@
+//! Traits and types for executing command-line tools.
+
 use std::env::{args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
 use std::process::{Command, exit};
@@ -109,7 +111,7 @@ impl Tool for Binary {
 
 #[derive(Fail, Debug)]
 #[fail(display = "Internal error: tool name could not be determined")]
-pub struct NoArg0Error;
+struct NoArg0Error;
 
 fn arg0(args: &mut ArgsOs) -> Result<OsString, failure::Error> {
     let opt = args.next()
@@ -125,7 +127,7 @@ fn arg0(args: &mut ArgsOs) -> Result<OsString, failure::Error> {
 
 #[derive(Fail, Debug)]
 #[fail(display = "No Node version selected")]
-pub struct NoGlobalError;
+struct NoGlobalError;
 
 impl Tool for Node {
     fn new() -> Result<Self, failure::Error> {

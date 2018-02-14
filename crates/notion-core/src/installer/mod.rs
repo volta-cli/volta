@@ -1,3 +1,5 @@
+//! Provides types and traits for installing tools into the Notion catalog.
+
 pub mod node;
 
 use semver::Version;

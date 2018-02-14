@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use failure;
 
-use ::UnknownSystemFolderError;
+use super::UnknownSystemFolderError;
 
 // These are taken from: https://nodejs.org/dist/index.json and are used
 // by `path::archive_root_dir` to determine the root directory of the

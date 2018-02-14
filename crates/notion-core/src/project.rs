@@ -1,3 +1,6 @@
+//! Provides the `Project` type, which represents a Node project tree in
+//! the filesystem.
+
 use std::path::Path;
 use std::ffi::OsStr;
 use std::env;

@@ -1,3 +1,5 @@
+//! Types representing Notion plugins.
+
 use std::io::Read;
 use std::process::{Command, Stdio};
 use std::ffi::OsString;
@@ -22,7 +24,7 @@ pub struct InvalidCommandError {
 }
 
 impl Resolve {
-    pub fn resolve(&self, req: &VersionReq) -> Result<Installer, failure::Error> {
+    pub fn resolve(&self, _req: &VersionReq) -> Result<Installer, failure::Error> {
         match self {
             &Resolve::Url(_) => {
                 unimplemented!()
@@ -54,8 +56,8 @@ impl Resolve {
                     ResolveResponse::Url { version, url } => {
                         Installer::remote(version, &url)
                     }
-                    ResolveResponse::Stream { version } => {
-                        panic!("bin plugin produced a stream")
+                    ResolveResponse::Stream { version: _version } => {
+                        unimplemented!("bin plugin produced a stream")
                     }
                 }
             }

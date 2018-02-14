@@ -1,3 +1,5 @@
+//! Provides types for working with Notion configuration files.
+
 use std::str::FromStr;
 
 use toml;

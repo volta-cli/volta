@@ -1,3 +1,5 @@
+//! Provides utilities for serializing and deserializing file formats.
+
 pub mod catalog;
 pub mod manifest;
 pub mod config;

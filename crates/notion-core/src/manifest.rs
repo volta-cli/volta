@@ -1,3 +1,5 @@
+//! Provides the `Manifest` type, which represents a Node manifest file (`package.json`).
+
 use std::collections::HashMap;
 use std::path::Path;
 use std::fs::File;
@@ -13,8 +15,6 @@ pub struct Manifest {
     pub yarn: Option<VersionReq>,
     pub dependencies: HashMap<String, String>
 }
-
-// const LATEST_URL: &'static str = "http://nodejs.org/dist/latest/SHASUMS256.txt";
 
 impl Manifest {
     pub fn for_dir(project_root: &Path) -> Result<Option<Manifest>, failure::Error> {

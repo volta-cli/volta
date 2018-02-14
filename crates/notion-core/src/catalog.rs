@@ -1,3 +1,6 @@
+//! Provides types for working with Notion's local _catalog_, the local repository
+//! of available tool versions.
+
 use std::collections::BTreeSet;
 use std::fs::{File, remove_dir_all};
 use std::io::{self, Write};
@@ -9,7 +12,6 @@ use readext::ReadExt;
 use reqwest;
 use toml;
 
-use super::NoNodeVersionFoundError;
 use path::{self, user_catalog_file};
 use serial::touch;
 use failure;
@@ -115,6 +117,12 @@ impl Catalog {
         Ok(())
     }
 
+}
+
+#[derive(Fail, Debug)]
+#[fail(display = "No Node version found for {}", req)]
+struct NoNodeVersionFoundError {
+    req: VersionReq
 }
 
 impl NodeCatalog {

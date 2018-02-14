@@ -1,3 +1,5 @@
+//! The main implementation crate for the core of Notion.
+
 extern crate indicatif;
 extern crate term_size;
 extern crate toml;
@@ -33,61 +35,8 @@ mod installer;
 #[macro_use]
 extern crate failure_derive;
 
-#[macro_use]
+#[macro_use(format_err)]
 extern crate failure;
 
 #[macro_use]
 extern crate cfg_if;
-
-use semver::VersionReq;
-
-#[derive(Fail, Debug)]
-#[fail(display = "No Node version found for {}", req)]
-pub struct NoNodeVersionFoundError {
-    req: VersionReq
-}
-
-#[derive(Fail, Debug)]
-#[fail(display = "Error in configuration key '{}'", key)]
-pub struct ConfigError {
-    key: String
-}
-
-#[derive(Fail, Debug)]
-#[fail(display = "Notion has encountered an internal error ('{}')", msg)]
-pub struct CatalogError {
-    msg: String
-}
-
-#[derive(Fail, Debug)]
-#[fail(display = "Unknown system folder: '{}'", name)]
-pub struct UnknownSystemFolderError {
-    name: String
-}
-
-#[derive(Fail, Debug)]
-#[fail(display = "Invalid version specifier: '{}'", src)]
-pub struct VersionParseError {
-    src: String
-}
-
-#[derive(Fail, Debug)]
-#[fail(display = "Invalid manifest: {}", msg)]
-pub struct ManifestError {
-    msg: String
-}
-
-#[derive(Fail, Debug)]
-#[fail(display = "Invalid lockfile: {}", msg)]
-pub struct LockfileError {
-    msg: String
-}
-
-/*
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-    }
-}
-*/

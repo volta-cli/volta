@@ -1,3 +1,5 @@
+//! The view layer of Notion, with utilities for styling command-line output.
+
 use std::convert::Into;
 
 use console::style;
