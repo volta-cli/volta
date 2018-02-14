@@ -13,6 +13,7 @@ use tee::TeeReader;
 use progress_read::ProgressRead;
 use failure;
 
+/// A data source for a Node tarball that has been cached to the filesystem.
 pub struct Cached {
     uncompressed_size: u64,
     compressed_size: u64,
@@ -20,6 +21,8 @@ pub struct Cached {
 }
 
 impl Cached {
+
+    /// Loads a cached Node tarball from the given file.
     pub fn load(mut source: File) -> Result<Cached, failure::Error> {
         let uncompressed_size = load_uncompressed_size(&mut source)?;
         let compressed_size = source.metadata()?.len();
@@ -30,6 +33,7 @@ impl Cached {
             source
         })
     }
+
 }
 
 impl Read for Cached {
@@ -49,22 +53,34 @@ impl Source for Cached {
     }
 }
 
+/// A data source for fetching a Node tarball from a remote server.
 pub struct Remote {
     uncompressed_size: u64,
     compressed_size: u64,
     source: TeeReader<reqwest::Response, File>
 }
 
+#[derive(Fail, Debug)]
+#[fail(display = "HTTP header '{}' not found", header)]
+struct MissingHeaderError {
+    header: String
+}
+
+/// Determines the length of an HTTP response's content in bytes, using
+/// the HTTP `"Content-Length"` header.
 fn content_length(response: &Response) -> Result<u64, failure::Error> {
     Ok(match response.headers().get::<ContentLength>() {
         Some(content_length) => **content_length,
         None => {
-            return Err(super::MissingHeaderError { header: String::from("Content-Length") }.into());
+            return Err(MissingHeaderError { header: String::from("Content-Length") }.into());
         }
     })
 }
 
 impl Remote {
+
+    /// Initiate fetching of a Node tarball from the given URL, returning
+    /// a `Remote` data source.
     pub fn fetch(url: &str, cache_file: &Path) -> Result<Remote, failure::Error> {
         let uncompressed_size = fetch_uncompressed_size(url)?;
         let response = reqwest::get(url)?;
@@ -83,6 +99,7 @@ impl Remote {
             source
         })
     }
+
 }
 
 impl Read for Remote {
@@ -101,55 +118,35 @@ impl Source for Remote {
     }
 }
 
-enum ProgressSource<S: Source, F: FnMut(&(), usize)> {
-    Uncompressed(u64, ProgressRead<GzDecoder<S>, (), F>),
-    Compressed(u64, GzDecoder<ProgressRead<S, (), F>>)
-}
-
-impl<S: Source, F: FnMut(&(), usize)> ProgressSource<S, F> {
-    fn new(source: S, callback: F) -> io::Result<ProgressSource<S, F>> {
-        match source.uncompressed_size() {
-            Some(size) => {
-                let decoded = GzDecoder::new(source);
-                Ok(ProgressSource::Uncompressed(size, ProgressRead::new(decoded, (), callback)))
-            }
-            None => {
-                let size = source.compressed_size();
-                let progress = ProgressRead::new(source, (), callback);
-                Ok(ProgressSource::Compressed(size, GzDecoder::new(progress)))
-            }
-        }
-    }
-}
-
-impl<S: Source, F: FnMut(&(), usize)> Read for ProgressSource<S, F> {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        match *self {
-            ProgressSource::Uncompressed(_, ref mut source) => source.read(buf),
-            ProgressSource::Compressed(_, ref mut source) => source.read(buf)
-        }
-    }
-}
-
+/// A Node installation tarball.
 pub struct Archive<S: Source, F: FnMut(&(), usize)> {
-    archive: tar::Archive<ProgressSource<S, F>>
+    archive: tar::Archive<ProgressRead<GzDecoder<S>, (), F>>
 }
 
 impl<S: Source, F: FnMut(&(), usize)> Archive<S, F> {
+
+    /// Constructs a new `Archive` from the specified data source and with the
+    /// specified progress callback.
     pub fn new(source: S, callback: F) -> Result<Archive<S, F>, failure::Error> {
+        let decoded = GzDecoder::new(source);
         Ok(Archive {
-            archive: tar::Archive::new(ProgressSource::new(source, callback)?)
+            archive: tar::Archive::new(ProgressRead::new(decoded, (), callback))
         })
     }
+
 }
 
 impl<S: Source, F: FnMut(&(), usize)> Archive<S, F> {
+
+    /// Unpacks the tarball to the specified destination folder.
     pub fn unpack(mut self, dest: &Path) -> Result<(), failure::Error> {
         self.archive.unpack(dest)?;
         Ok(())
     }
+
 }
 
+/// Fetches just the headers of a URL.
 fn headers_only(url: &str) -> Result<Response, failure::Error> {
     let client = reqwest::Client::new()?;
     let response = client.head(url)?.send()?;
@@ -169,6 +166,7 @@ fn headers_only(url: &str) -> Result<Response, failure::Error> {
 // ISIZE (Input SIZE)
 //    This contains the size of the original (uncompressed) input data modulo 2^32.
 
+/// Unpacks the `isize` field from a gzip payload as a 64-bit integer.
 fn unpack_isize(packed: [u8; 4]) -> u64 {
     let unpacked32: u32 =
         ((packed[0] as u32)      ) +
@@ -179,6 +177,16 @@ fn unpack_isize(packed: [u8; 4]) -> u64 {
     unpacked32 as u64
 }
 
+#[derive(Fail, Debug)]
+#[fail(display = "unexpected content length in HTTP response: {}", length)]
+struct UnexpectedContentLengthError {
+    length: u64
+}
+
+/// Fetches just the `isize` field (the field that indicates the uncompressed size)
+/// of a gzip file from a URL. This makes two round-trips to the server but avoids
+/// downloading the entire gzip file. For very small files it's unlikely to be
+/// more efficient than simply downloading the entire file up front.
 fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], failure::Error> {
     let client = reqwest::Client::new()?;
     let mut response = client.get(url)?
@@ -194,7 +202,7 @@ fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], failure::Error> {
     let actual_length = content_length(&response)?;
 
     if actual_length != 4 {
-        Err(super::UnexpectedContentLengthError { length: actual_length })?;
+        Err(UnexpectedContentLengthError { length: actual_length })?;
     }
 
     let mut buf = [0; 4];
@@ -202,6 +210,8 @@ fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], failure::Error> {
     Ok(buf)
 }
 
+/// Loads the `isize` field (the field that indicates the uncompressed size)
+/// of a gzip file from disk.
 fn load_isize(file: &mut File) -> Result<[u8; 4], failure::Error> {
     file.seek(SeekFrom::End(-4))?;
     let mut buf = [0; 4];
@@ -210,13 +220,22 @@ fn load_isize(file: &mut File) -> Result<[u8; 4], failure::Error> {
     Ok(buf)
 }
 
+#[derive(Fail, Debug)]
+#[fail(display = "HTTP server does not accept byte range requests")]
+struct ByteRangesNotAcceptedError;
+
+/// Determines the uncompressed size of a gzip file hosted at the specified
+/// URL by fetching just the metadata associated with the file. This makes
+/// two round-trips to the server, so it is only more efficient than simply
+/// downloading the file if the file is large enough that downloading it is
+/// slower than the extra round trips.
 fn fetch_uncompressed_size(url: &str) -> Result<u64, failure::Error> {
     let response = headers_only(url)?;
 
     if !response.headers().get::<AcceptRanges>()
         .map(|v| v.iter().any(|unit| *unit == RangeUnit::Bytes))
         .unwrap_or(false) {
-        Err(super::ByteRangesNotAcceptedError)?;
+        Err(ByteRangesNotAcceptedError)?;
     }
 
     let len = content_length(&response)?;
@@ -224,6 +243,7 @@ fn fetch_uncompressed_size(url: &str) -> Result<u64, failure::Error> {
     Ok(unpack_isize(packed))
 }
 
+/// Determines the uncompressed size of the specified gzip file on disk.
 fn load_uncompressed_size(file: &mut File) -> Result<u64, failure::Error> {
     let packed = load_isize(file)?;
     Ok(unpack_isize(packed))

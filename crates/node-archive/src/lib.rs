@@ -1,3 +1,6 @@
+//! This crate provides types for fetching and unpacking Node distribution
+//! archives, which is a tarball for Unixes and a zipfile for Windows.
+
 #[cfg(not(windows))]
 extern crate tar;
 #[cfg(not(windows))]
@@ -22,25 +25,8 @@ extern crate failure;
 
 #[derive(Fail, Debug)]
 #[fail(display = "HTTP failure ({})", code)]
-pub struct HttpError {
+pub(crate) struct HttpError {
     code: ::reqwest::StatusCode
-}
-
-#[derive(Fail, Debug)]
-#[fail(display = "HTTP header '{}' not found", header)]
-pub struct MissingHeaderError {
-    header: String
-}
-
-#[derive(Fail, Debug)]
-#[fail(display = "HTTP server does not accept byte range requests")]
-pub struct ByteRangesNotAcceptedError;
-
-
-#[derive(Fail, Debug)]
-#[fail(display = "unexpected content length in HTTP response: {}", length)]
-pub struct UnexpectedContentLengthError {
-    length: u64
 }
 
 use std::io::Read;
@@ -51,8 +37,16 @@ pub use std::io::{Read as StreamingMode};
 #[cfg(windows)]
 pub use std::io::{Seek as StreamingMode};
 
+/// A data source for fetching a Node archive. In Windows, this is required to
+/// implement `std::io::Seek` (required to be able to traverse the contents of
+/// zip archives) as well as `std::io::Read`; on other platforms it only needs
+/// to implement `Read`.
 pub trait Source: Read + StreamingMode {
+    /// Produces the uncompressed size of the archive in bytes, when available.
+    /// In Windows, this is never available and always produces `None`.
     fn uncompressed_size(&self) -> Option<u64>;
+
+    /// Produces the compressed size of the archive in bytes.
     fn compressed_size(&self) -> u64;
 }
 
