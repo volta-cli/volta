@@ -24,7 +24,7 @@ pub struct InvalidCommandError {
 }
 
 impl Resolve {
-    pub fn resolve(&self, _req: &VersionReq) -> Result<Installer, failure::Error> {
+    pub fn resolve(&self, _matching: &VersionReq) -> Result<Installer, failure::Error> {
         match self {
             &Resolve::Url(_) => {
                 unimplemented!()

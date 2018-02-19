@@ -1,4 +1,4 @@
-use super::super::session;
+use super::super::catalog;
 
 use std::collections::{HashSet, BTreeMap};
 use std::iter::FromIterator;
@@ -16,10 +16,10 @@ pub struct Entry {
 }
 
 impl Index {
-    pub fn into_index(self) -> Result<session::Index, failure::Error> {
+    pub fn into_index(self) -> Result<catalog::Index, failure::Error> {
         let mut entries = BTreeMap::new();
         for entry in self.0 {
-            let data = session::VersionData {
+            let data = catalog::VersionData {
                 files: HashSet::from_iter(entry.files.into_iter())
             };
             let mut version = &entry.version[..];
@@ -29,6 +29,6 @@ impl Index {
             }
             entries.insert(Version::parse(version)?, data);
         }
-        Ok(session::Index { entries })
+        Ok(catalog::Index { entries })
     }
 }

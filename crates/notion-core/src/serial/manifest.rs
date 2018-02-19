@@ -1,5 +1,5 @@
 use super::super::manifest;
-use super::version::parse_req;
+use super::version::parse_requirements;
 
 use failure;
 
@@ -32,9 +32,9 @@ impl Manifest {
     pub fn into_manifest(self) -> Result<Option<manifest::Manifest>, failure::Error> {
         if let Some(notion) = self.notion {
             return Ok(Some(manifest::Manifest {
-                node: parse_req(&notion.node)?,
+                node: parse_requirements(&notion.node)?,
                 yarn: if let Some(yarn) = notion.yarn {
-                    Some(parse_req(&yarn)?)
+                    Some(parse_requirements(&yarn)?)
                 } else {
                     None
                 },

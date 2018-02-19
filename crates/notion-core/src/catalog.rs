@@ -1,7 +1,7 @@
 //! Provides types for working with Notion's local _catalog_, the local repository
 //! of available tool versions.
 
-use std::collections::BTreeSet;
+use std::collections::{HashSet, BTreeSet, BTreeMap};
 use std::fs::{File, remove_dir_all};
 use std::io::{self, Write};
 use std::str::FromStr;
@@ -73,8 +73,8 @@ impl Catalog {
         Ok(())
     }
 
-    pub fn set_node_version(&mut self, req: &VersionReq, config: &Config) -> Result<(), failure::Error> {
-        let installed = self.install_node_req(req, config)?;
+    pub fn activate_node(&mut self, matching: &VersionReq, config: &Config) -> Result<(), failure::Error> {
+        let installed = self.install_node(matching, config)?;
         let version = Some(installed.into_version());
 
         if self.node.current != version {
@@ -85,8 +85,8 @@ impl Catalog {
         Ok(())
     }
 
-    pub fn install_node_req(&mut self, req: &VersionReq, config: &Config) -> Result<Installed, failure::Error> {
-        let installer = self.node.resolve_remote(&req, config)?;
+    pub fn install_node(&mut self, matching: &VersionReq, config: &Config) -> Result<Installed, failure::Error> {
+        let installer = self.node.resolve_remote(&matching, config)?;
         let installed = installer.install(&self.node)?;
 
         if let &Installed::Now(ref version) = &installed {
@@ -120,9 +120,9 @@ impl Catalog {
 }
 
 #[derive(Fail, Debug)]
-#[fail(display = "No Node version found for {}", req)]
+#[fail(display = "No Node version found for {}", matching)]
 struct NoNodeVersionFoundError {
-    req: VersionReq
+    matching: VersionReq
 }
 
 impl NodeCatalog {
@@ -131,30 +131,30 @@ impl NodeCatalog {
         self.versions.contains(version)
     }
 
-    fn resolve_remote(&self, req: &VersionReq, config: &Config) -> Result<Installer, failure::Error> {
+    fn resolve_remote(&self, matching: &VersionReq, config: &Config) -> Result<Installer, failure::Error> {
         match config.node {
             Some(NodeConfig { resolve: Some(ref plugin), .. }) => {
-                plugin.resolve(req)
+                plugin.resolve(matching)
             }
             _ => {
-                self.resolve_public(req)
+                self.resolve_public(matching)
             }
         }
     }
 
-    fn resolve_public(&self, req: &VersionReq) -> Result<Installer, failure::Error> {
+    fn resolve_public(&self, matching: &VersionReq) -> Result<Installer, failure::Error> {
         let serial: serial::index::Index = reqwest::get(PUBLIC_NODE_VERSION_INDEX)?.json()?;
         let index = serial.into_index()?;
         let version = index.entries.iter()
             .rev()
             // ISSUE #34: also make sure this OS is available for this version
-            .skip_while(|&(ref k, _)| !req.matches(k))
+            .skip_while(|&(ref k, _)| !matching.matches(k))
             .next()
             .map(|(k, _)| k.clone());
         if let Some(version) = version {
             Installer::public(version)
         } else {
-            Err(NoNodeVersionFoundError { req: req.clone() }.into())
+            Err(NoNodeVersionFoundError { matching: matching.clone() }.into())
         }
     }
 
@@ -167,6 +167,14 @@ impl NodeCatalog {
             .map(|v| v.clone())
     }
 
+}
+
+pub struct Index {
+    pub entries: BTreeMap<Version, VersionData>
+}
+
+pub struct VersionData {
+    pub files: HashSet<String>
 }
 
 impl FromStr for Catalog {

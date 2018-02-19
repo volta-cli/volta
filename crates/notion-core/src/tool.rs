@@ -11,6 +11,7 @@ use env;
 use failure;
 use style;
 
+/// Represents a command-line tool that Notion shims delegate to.
 pub trait Tool: Sized {
     fn launch() -> ! {
         match Self::new() {
@@ -22,12 +23,16 @@ pub trait Tool: Sized {
         }
     }
 
+    /// Constructs a new instance.
     fn new() -> Result<Self, failure::Error>;
 
+    /// Constructs a new instance, using the specified command-line and `PATH` variable.
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self;
 
+    /// Extracts the `Command` from this tool.
     fn command(self) -> Command;
 
+    /// Delegates the current process to this tool.
     fn exec(self) -> ! {
         let mut command = self.command();
         let status = command.status();
@@ -47,10 +52,13 @@ pub trait Tool: Sized {
     }
 }
 
+/// Represents a delegated script.
 pub struct Script(Command);
 
+/// Represents a delegated binary executable.
 pub struct Binary(Command);
 
+/// Represents a Node executable.
 pub struct Node(Command);
 
 #[cfg(windows)]
@@ -134,7 +142,7 @@ impl Tool for Node {
         let mut session = Session::new()?;
         let mut args = args_os();
         let exe = arg0(&mut args)?;
-        let version = if let Some(version) = session.node()? {
+        let version = if let Some(version) = session.current_node()? {
             version
         } else {
             return Err(NoGlobalError.into());

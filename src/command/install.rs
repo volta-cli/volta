@@ -1,6 +1,6 @@
 use docopt::Docopt;
 use notion_core::session::Session;
-use notion_core::serial::version::parse_req;
+use notion_core::serial::version::parse_requirements;
 use failure;
 
 pub const USAGE: &'static str = "
@@ -27,7 +27,7 @@ pub fn run(mut args: Vec<String>, _verbose: bool) -> Result<(), failure::Error> 
         .and_then(|d| d.argv(argv).deserialize())?;
 
     let mut session = Session::new()?;
-    session.install_node(&parse_req(&args.arg_version)?)?;
+    session.install_node(&parse_requirements(&args.arg_version)?)?;
 
     Ok(())
 }
