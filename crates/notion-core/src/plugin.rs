@@ -12,8 +12,14 @@ use semver::{Version, VersionReq};
 use serde_json;
 use cmdline_words_parser::StrExt;
 
+/// A Node version resolution plugin.
 pub enum Resolve {
+    /// Resolves a Node version by sending it to a URL and receiving the
+    /// resolution in the response.
     Url(String),
+
+    /// Resolves a Node version by passing it to an executable and
+    /// receiving the resolution in the process's stdout stream.
     Bin(String)
 }
 
@@ -24,6 +30,9 @@ pub struct InvalidCommandError {
 }
 
 impl Resolve {
+
+    /// Performs resolution of a Node version based on the given semantic
+    /// versioning requirements.
     pub fn resolve(&self, _matching: &VersionReq) -> Result<Installer, failure::Error> {
         match self {
             &Resolve::Url(_) => {
@@ -65,19 +74,29 @@ impl Resolve {
     }
 }
 
+/// A response from the Node version resolution plugin.
 #[derive(Debug)]
 pub enum ResolveResponse {
+    /// A plugin response indicating that the Node installer for the resolved version
+    /// can be downloaded from the specified URL.
     Url { version: Version, url: String },
+
+    /// A plugin response indicating that the Node installer for the resolved version
+    /// is being delivered via the stderr stream of the plugin process.
     Stream { version: Version }
 }
 
 impl ResolveResponse {
+
+    /// Reads and parses a response from a Node version resolution plugin.
     pub fn from_reader<R: Read>(reader: R) -> Result<Self, failure::Error> {
         let serial: serial::plugin::ResolveResponse = serde_json::from_reader(reader)?;
         Ok(serial.into_resolve_response()?)
     }
+
 }
 
+/// A plugin listing the available versions of Node.
 pub enum LsRemote {
     Url(String),
     Bin(String)
