@@ -25,11 +25,15 @@ fn is_project_root(dir: &Path) -> bool {
     is_node_root(dir) && !is_dependency(dir)
 }
 
+/// A Node project tree in the filesystem.
 pub struct Project {
     manifest: Manifest
 }
 
 impl Project {
+
+    /// Returns the Node project containing the current working directory,
+    /// if any.
     pub fn for_current_dir() -> Result<Option<Project>, failure::Error> {
         let mut dir: &Path = &env::current_dir()?;
 
@@ -50,6 +54,7 @@ impl Project {
         }))
     }
 
+    /// Returns the project manifest (`package.json`) for this project.
     pub fn manifest(&self) -> &Manifest {
         &self.manifest
     }
