@@ -36,7 +36,7 @@ pub fn local(session: &Session) -> Result<Option<String>, failure::Error> {
 
 pub fn global(session: &Session) -> Result<Option<String>, failure::Error> {
     let catalog = session.catalog()?;
-    Ok(catalog.node.current.clone().map(|v| v.to_string()))
+    Ok(catalog.node.activated.clone().map(|v| v.to_string()))
 }
 
 pub fn run(mut args: Vec<String>) -> Result<(), failure::Error> {

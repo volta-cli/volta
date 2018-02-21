@@ -23,32 +23,41 @@ use config::{Config, NodeConfig};
 
 const PUBLIC_NODE_VERSION_INDEX: &'static str = "https://nodejs.org/dist/index.json";
 
+/// Lazily loaded tool catalog.
 pub struct LazyCatalog {
     catalog: LazyCell<Catalog>
 }
 
 impl LazyCatalog {
+
+    /// Constructs a new `LazyCatalog`.
     pub fn new() -> LazyCatalog {
         LazyCatalog {
             catalog: LazyCell::new()
         }
     }
 
+    /// Forces the loading of the catalog and returns an immutable reference to it.
     pub fn get(&self) -> Result<&Catalog, failure::Error> {
         self.catalog.try_borrow_with(|| Catalog::current())
     }
 
+    /// Forces the loading of the catalog and returns a mutable reference to it.
     pub fn get_mut(&mut self) -> Result<&mut Catalog, failure::Error> {
         self.catalog.try_borrow_mut_with(|| Catalog::current())
     }
+
 }
 
+/// The catalog of tool versions available locally.
 pub struct Catalog {
     pub node: NodeCatalog
 }
 
+/// The catalog of Node versions available locally.
 pub struct NodeCatalog {
-    pub current: Option<Version>,
+    /// The currently activated Node version, if any.
+    pub activated: Option<Version>,
 
     // A sorted collection of the available versions in the catalog.
     pub versions: BTreeSet<Version>
@@ -56,16 +65,19 @@ pub struct NodeCatalog {
 
 impl Catalog {
 
-    pub fn current() -> Result<Catalog, failure::Error> {
+    /// Returns the current tool catalog.
+    fn current() -> Result<Catalog, failure::Error> {
         let path = user_catalog_file()?;
         let src = touch(&path)?.read_into_string()?;
         src.parse()
     }
 
+    /// Returns a pretty-printed TOML representation of the contents of the catalog.
     pub fn to_string(&self) -> String {
         toml::to_string_pretty(&self.to_serial()).unwrap()
     }
 
+    /// Saves the contents of the catalog to the user's catalog file.
     pub fn save(&self) -> Result<(), failure::Error> {
         let path = user_catalog_file()?;
         let mut file = File::create(&path)?;
@@ -73,18 +85,20 @@ impl Catalog {
         Ok(())
     }
 
+    /// Activates a Node version matching the specified semantic versioning requirements.
     pub fn activate_node(&mut self, matching: &VersionReq, config: &Config) -> Result<(), failure::Error> {
         let installed = self.install_node(matching, config)?;
         let version = Some(installed.into_version());
 
-        if self.node.current != version {
-            self.node.current = version;
+        if self.node.activated != version {
+            self.node.activated = version;
             self.save()?;
         }
 
         Ok(())
     }
 
+    /// Installs a Node version matching the specified semantic versioning requirements.
     pub fn install_node(&mut self, matching: &VersionReq, config: &Config) -> Result<Installed, failure::Error> {
         let installer = self.node.resolve_remote(&matching, config)?;
         let installed = installer.install(&self.node)?;
@@ -97,6 +111,7 @@ impl Catalog {
         Ok(installed)
     }
 
+    /// Uninstalls a specific Node version from the local catalog.
     pub fn uninstall_node(&mut self, version: &Version) -> Result<(), failure::Error> {
         if self.node.contains(version) {
             let home = path::node_version_dir(&version.to_string())?;
@@ -127,10 +142,12 @@ struct NoNodeVersionFoundError {
 
 impl NodeCatalog {
 
+    /// Tests whether this Node catalog contains the specified Node version.
     pub fn contains(&self, version: &Version) -> bool {
         self.versions.contains(version)
     }
 
+    /// Resolves the specified semantic versioning requirements from a remote distributor.
     fn resolve_remote(&self, matching: &VersionReq, config: &Config) -> Result<Installer, failure::Error> {
         match config.node {
             Some(NodeConfig { resolve: Some(ref plugin), .. }) => {
@@ -142,6 +159,7 @@ impl NodeCatalog {
         }
     }
 
+    /// Resolves the specified semantic versioning requirements from the public distributor (`https://nodejs.org`).
     fn resolve_public(&self, matching: &VersionReq) -> Result<Installer, failure::Error> {
         let serial: serial::index::Index = reqwest::get(PUBLIC_NODE_VERSION_INDEX)?.json()?;
         let index = serial.into_index()?;
@@ -158,6 +176,7 @@ impl NodeCatalog {
         }
     }
 
+    /// Resolves the specified semantic versioning requirements from the local catalog.
     pub fn resolve_local(&self, req: &VersionReq) -> Option<Version> {
         self.versions
             .iter()
@@ -169,10 +188,12 @@ impl NodeCatalog {
 
 }
 
+/// The index of the public Node server.
 pub struct Index {
     pub entries: BTreeMap<Version, VersionData>
 }
 
+/// The set of available files on the public Node server for a given Node version.
 pub struct VersionData {
     pub files: HashSet<String>
 }

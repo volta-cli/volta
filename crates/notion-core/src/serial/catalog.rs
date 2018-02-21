@@ -16,14 +16,14 @@ pub struct Catalog {
 #[derive(Serialize, Deserialize)]
 #[serde(rename = "node")]
 pub struct NodeCatalog {
-    current: Option<String>,
+    activated: Option<String>,
     versions: Vec<String>
 }
 
 impl Default for NodeCatalog {
     fn default() -> Self {
         NodeCatalog {
-            current: None,
+            activated: None,
             versions: vec![]
         }
     }
@@ -39,7 +39,7 @@ impl Catalog {
 
 impl NodeCatalog {
     fn into_node_catalog(self) -> Result<catalog::NodeCatalog, SemVerError> {
-        let current = match self.current {
+        let activated = match self.activated {
             Some(v) => Some(Version::parse(&v[..])?),
             None => None
         };
@@ -49,7 +49,7 @@ impl NodeCatalog {
         }).collect();
 
         Ok(catalog::NodeCatalog {
-            current: current,
+            activated: activated,
             versions: BTreeSet::from_iter(versions?)
         })
     }
@@ -67,7 +67,7 @@ impl catalog::Catalog {
 impl catalog::NodeCatalog {
     fn to_serial(&self) -> NodeCatalog {
         NodeCatalog {
-            current: self.current.clone().map(|v| v.to_string()),
+            activated: self.activated.clone().map(|v| v.to_string()),
             versions: self.versions.iter().map(|v| v.to_string()).collect()
         }
     }

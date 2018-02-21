@@ -75,7 +75,7 @@ impl Session {
             return Ok(Some(installed.into_version()));
         }
 
-        Ok(self.catalog()?.node.current.clone())
+        Ok(self.catalog()?.node.activated.clone())
     }
 
     /// Installs a version of Node matching the specified semantic verisoning
