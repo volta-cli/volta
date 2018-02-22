@@ -1,15 +1,20 @@
-//! Provides types and traits for installing tools into the Notion catalog.
+//! Provides types for installing tools into the Notion catalog.
 
 pub mod node;
 
 use semver::Version;
 
+/// The result of a requested installation.
 pub enum Installed {
+    /// Indicates that the given tool was already installed.
     Already(Version),
+    /// Indicates that the given tool was not already installed but has now been installed.
     Now(Version)
 }
 
 impl Installed {
+
+    /// Consumes this value and produces the installed version.
     pub fn into_version(self) -> Version {
         match self {
               Installed::Already(version)
@@ -17,6 +22,7 @@ impl Installed {
         }
     }
 
+    /// Produces a reference to the installed version.
     pub fn version(&self) -> &Version {
         match self {
               &Installed::Already(ref version)

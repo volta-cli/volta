@@ -1,3 +1,5 @@
+//! Provides the `Installer` type, which represents a provisioned Node installer.
+
 use std::fs::{File, rename};
 use std::string::ToString;
 
@@ -12,18 +14,22 @@ use semver::Version;
 
 const PUBLIC_NODE_SERVER_ROOT: &'static str = "https://nodejs.org/dist/";
 
+/// A provisioned Node installer.
 pub struct Installer {
     source: Box<Source>,
     version: Version
 }
 
 impl Installer {
+
+    /// Provision an `Installer` from the public Node distributor (`https://nodejs.org`).
     pub fn public(version: Version) -> Result<Self, failure::Error> {
         let archive_file = path::archive_file(&version.to_string());
         let url = format!("{}v{}/{}", PUBLIC_NODE_SERVER_ROOT, version, &archive_file);
         Installer::remote(version, &url)
     }
 
+    /// Provision an `Installer` from a remote distributor.
     pub fn remote(version: Version, url: &str) -> Result<Self, failure::Error> {
         let archive_file = path::archive_file(&version.to_string());
         let cache_file = path::node_cache_dir()?.join(&archive_file);
@@ -39,6 +45,7 @@ impl Installer {
         })
     }
 
+    /// Provision an `Installer` from the filesystem.
     pub fn cached(version: Version, file: File) -> Result<Self, failure::Error> {
         Ok(Installer {
             source: Box::new(Cached::load(file)?),
@@ -46,10 +53,13 @@ impl Installer {
         })
     }
 
+    /// Produces a reference to this installer's Node version.
     pub fn version(&self) -> &Version {
         &self.version
     }
 
+    /// Installs this version of Node. (It is left to the responsibility of the `NodeCatalog`
+    /// to update its state after installation succeeds.)
     pub fn install(self, catalog: &NodeCatalog) -> Result<Installed, failure::Error> {
         if catalog.contains(&self.version) {
             return Ok(Installed::Already(self.version));
