@@ -29,6 +29,7 @@ pub mod catalog;
 pub mod session;
 pub mod style;
 pub mod serial;
+pub mod error;
 mod plugin;
 mod installer;
 
