@@ -1,7 +1,7 @@
 use std::env;
 use std::path::PathBuf;
 
-use failure;
+use error::{Fallible, FailExt};
 
 use super::UnknownSystemFolderError;
 
@@ -56,20 +56,20 @@ cfg_if! {
 //         config.toml                                     user_config_file
 //         catalog.toml                                    user_catalog_file
 
-fn notion_home() -> Result<PathBuf, failure::Error> {
+fn notion_home() -> Fallible<PathBuf> {
     let home = env::home_dir().ok_or_else(|| {
         UnknownSystemFolderError {
-            name: String::from("HOME")
-        }
+            name: "HOME"
+        }.unknown()
     })?;
     Ok(home.join(".notion"))
 }
 
-pub fn cache_dir() -> Result<PathBuf, failure::Error> {
+pub fn cache_dir() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("cache"))
 }
 
-pub fn node_cache_dir() -> Result<PathBuf, failure::Error> {
+pub fn node_cache_dir() -> Fallible<PathBuf> {
     Ok(cache_dir()?.join("node"))
 }
 
@@ -77,50 +77,50 @@ pub fn archive_extension() -> String {
     String::from("tar.gz")
 }
 
-pub fn versions_dir() -> Result<PathBuf, failure::Error> {
+pub fn versions_dir() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("versions"))
 }
 
-pub fn node_versions_dir() -> Result<PathBuf, failure::Error> {
+pub fn node_versions_dir() -> Fallible<PathBuf> {
     Ok(versions_dir()?.join("node"))
 }
 
-pub fn node_version_dir(version: &str) -> Result<PathBuf, failure::Error> {
+pub fn node_version_dir(version: &str) -> Fallible<PathBuf> {
     Ok(node_versions_dir()?.join(version))
 }
 
-pub fn node_version_bin_dir(version: &str) -> Result<PathBuf, failure::Error> {
+pub fn node_version_bin_dir(version: &str) -> Fallible<PathBuf> {
     Ok(node_version_dir(version)?.join("bin"))
 }
 
-pub fn bin_dir() -> Result<PathBuf, failure::Error> {
+pub fn bin_dir() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("bin"))
 }
 
-pub fn notion_file() -> Result<PathBuf, failure::Error> {
+pub fn notion_file() -> Fallible<PathBuf> {
     Ok(bin_dir()?.join("notion"))
 }
 
-pub fn shim_dir() -> Result<PathBuf, failure::Error> {
+pub fn shim_dir() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("shim"))
 }
 
-pub fn shim_file(toolname: &str) -> Result<PathBuf, failure::Error> {
+pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
     Ok(shim_dir()?.join(toolname))
 }
 
-pub fn launchbin_file() -> Result<PathBuf, failure::Error> {
+pub fn launchbin_file() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("launchbin"))
 }
 
-pub fn launchscript_file() -> Result<PathBuf, failure::Error> {
+pub fn launchscript_file() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("launchscript"))
 }
 
-pub fn user_config_file() -> Result<PathBuf, failure::Error> {
+pub fn user_config_file() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("config.toml"))
 }
 
-pub fn user_catalog_file() -> Result<PathBuf, failure::Error> {
+pub fn user_catalog_file() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("catalog.toml"))
 }

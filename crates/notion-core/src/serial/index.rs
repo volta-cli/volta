@@ -4,7 +4,7 @@ use std::collections::{HashSet, BTreeMap};
 use std::iter::FromIterator;
 
 use semver::Version;
-use failure;
+use error::{Fallible, ResultExt};
 
 #[derive(Serialize, Deserialize)]
 pub struct Index(Vec<Entry>);
@@ -16,7 +16,7 @@ pub struct Entry {
 }
 
 impl Index {
-    pub fn into_index(self) -> Result<catalog::Index, failure::Error> {
+    pub fn into_index(self) -> Fallible<catalog::Index> {
         let mut entries = BTreeMap::new();
         for entry in self.0 {
             let data = catalog::VersionData {
@@ -27,7 +27,7 @@ impl Index {
             if version.starts_with('v') {
                 version = &version[1..];
             }
-            entries.insert(Version::parse(version)?, data);
+            entries.insert(Version::parse(version).unknown()?, data);
         }
         Ok(catalog::Index { entries })
     }

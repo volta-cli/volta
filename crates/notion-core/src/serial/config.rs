@@ -2,7 +2,7 @@ use super::super::config;
 
 use super::plugin::Plugin;
 
-use failure;
+use error::Fallible;
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
@@ -19,7 +19,7 @@ pub struct NodeConfig {
 }
 
 impl Config {
-    pub fn into_config(self) -> Result<config::Config, failure::Error> {
+    pub fn into_config(self) -> Fallible<config::Config> {
         Ok(config::Config {
             node: if let Some(n) = self.node {
                 Some(n.into_node_config()?)
@@ -31,7 +31,7 @@ impl Config {
 }
 
 impl NodeConfig {
-    pub fn into_node_config(self) -> Result<config::NodeConfig, failure::Error> {
+    pub fn into_node_config(self) -> Fallible<config::NodeConfig> {
         Ok(config::NodeConfig {
             resolve: if let Some(p) = self.resolve {
                 Some(p.into_resolve()?)

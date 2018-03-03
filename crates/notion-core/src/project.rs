@@ -5,7 +5,7 @@ use std::path::Path;
 use std::ffi::OsStr;
 use std::env;
 
-use failure;
+use error::{Fallible, ResultExt};
 
 use manifest::Manifest;
 
@@ -34,8 +34,8 @@ impl Project {
 
     /// Returns the Node project containing the current working directory,
     /// if any.
-    pub fn for_current_dir() -> Result<Option<Project>, failure::Error> {
-        let mut dir: &Path = &env::current_dir()?;
+    pub fn for_current_dir() -> Fallible<Option<Project>> {
+        let mut dir: &Path = &env::current_dir().unknown()?;
 
         while !is_project_root(dir) {
             dir = match dir.parent() {

@@ -6,7 +6,7 @@ use std::fs::File;
 
 use serde_json;
 use semver::VersionReq;
-use failure;
+use error::{Fallible, ResultExt};
 
 use serial;
 
@@ -23,9 +23,9 @@ pub struct Manifest {
 impl Manifest {
 
     /// Loads and parses a Node manifest for the project rooted at the specified path.
-    pub fn for_dir(project_root: &Path) -> Result<Option<Manifest>, failure::Error> {
-        let file = File::open(project_root.join("package.json"))?;
-        let serial: serial::manifest::Manifest = serde_json::de::from_reader(file)?;
+    pub fn for_dir(project_root: &Path) -> Fallible<Option<Manifest>> {
+        let file = File::open(project_root.join("package.json")).unknown()?;
+        let serial: serial::manifest::Manifest = serde_json::de::from_reader(file).unknown()?;
         serial.into_manifest()
     }
 

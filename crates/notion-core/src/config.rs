@@ -6,7 +6,7 @@ use toml;
 use lazycell::LazyCell;
 
 use path::user_config_file;
-use failure;
+use error::{Fallible, NotionError, ResultExt};
 use readext::ReadExt;
 use serial::touch;
 use serial;
@@ -27,7 +27,7 @@ impl LazyConfig {
     }
 
     /// Forces the loading of the configuration settings.
-    pub fn get(&self) -> Result<&Config, failure::Error> {
+    pub fn get(&self) -> Fallible<&Config> {
         self.config.try_borrow_with(|| Config::current())
     }
 }
@@ -48,19 +48,19 @@ pub struct NodeConfig {
 impl Config {
 
     /// Returns the current configuration settings, loaded from the filesystem.
-    fn current() -> Result<Config, failure::Error> {
+    fn current() -> Fallible<Config> {
         let path = user_config_file()?;
-        let src = touch(&path)?.read_into_string()?;
+        let src = touch(&path)?.read_into_string().unknown()?;
         src.parse()
     }
 
 }
 
 impl FromStr for Config {
-    type Err = failure::Error;
+    type Err = NotionError;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
-        let serial: serial::config::Config = toml::from_str(src)?;
+        let serial: serial::config::Config = toml::from_str(src).unknown()?;
         Ok(serial.into_config()?)
     }
 }

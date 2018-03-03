@@ -1,7 +1,7 @@
 use super::super::manifest;
 use super::version::parse_requirements;
 
-use failure;
+use error::Fallible;
 
 use std::collections::HashMap;
 
@@ -29,7 +29,7 @@ pub struct NotionManifest {
 }
 
 impl Manifest {
-    pub fn into_manifest(self) -> Result<Option<manifest::Manifest>, failure::Error> {
+    pub fn into_manifest(self) -> Fallible<Option<manifest::Manifest>> {
         if let Some(notion) = self.notion {
             return Ok(Some(manifest::Manifest {
                 node: parse_requirements(&notion.node)?,

@@ -7,7 +7,7 @@ use std::ffi::OsString;
 use serial;
 use installer::node::Installer;
 
-use failure;
+use error::{Fallible, FailExt, ResultExt};
 use semver::{Version, VersionReq};
 use serde_json;
 use cmdline_words_parser::StrExt;
@@ -33,7 +33,7 @@ impl Resolve {
 
     /// Performs resolution of a Node version based on the given semantic
     /// versioning requirements.
-    pub fn resolve(&self, _matching: &VersionReq) -> Result<Installer, failure::Error> {
+    pub fn resolve(&self, _matching: &VersionReq) -> Fallible<Installer> {
         match self {
             &Resolve::Url(_) => {
                 unimplemented!()
@@ -47,7 +47,7 @@ impl Resolve {
                 } else {
                     return Err(InvalidCommandError {
                         command: String::from(bin.trim())
-                    }.into());
+                    }.unknown());
                 };
                 let args: Vec<OsString> = words.map(|s| {
                     let mut os = OsString::new();
@@ -59,7 +59,7 @@ impl Resolve {
                     .stdin(Stdio::null())
                     .stdout(Stdio::piped())
                     .stderr(Stdio::piped())
-                    .spawn()?;
+                    .spawn().unknown()?;
                 let response = ResolveResponse::from_reader(child.stdout.unwrap())?;
                 match response {
                     ResolveResponse::Url { version, url } => {
@@ -89,8 +89,8 @@ pub enum ResolveResponse {
 impl ResolveResponse {
 
     /// Reads and parses a response from a Node version resolution plugin.
-    pub fn from_reader<R: Read>(reader: R) -> Result<Self, failure::Error> {
-        let serial: serial::plugin::ResolveResponse = serde_json::from_reader(reader)?;
+    pub fn from_reader<R: Read>(reader: R) -> Fallible<Self> {
+        let serial: serial::plugin::ResolveResponse = serde_json::from_reader(reader).unknown()?;
         Ok(serial.into_resolve_response()?)
     }
 

@@ -16,7 +16,7 @@ pub use self::windows::*;
 #[derive(Fail, Debug)]
 #[fail(display = "Unknown system folder: '{}'", name)]
 pub(crate) struct UnknownSystemFolderError {
-    name: String
+    name: &'static str
 }
 
 pub fn archive_file(version: &str) -> String {

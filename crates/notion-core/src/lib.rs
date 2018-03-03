@@ -35,8 +35,6 @@ mod installer;
 
 #[macro_use]
 extern crate failure_derive;
-
-#[macro_use(format_err)]
 extern crate failure;
 
 #[macro_use]
