@@ -4,7 +4,7 @@ use std::collections::{HashSet, BTreeMap};
 use std::iter::FromIterator;
 
 use semver::Version;
-use error::{Fallible, ResultExt};
+use notion_fail::{Fallible, ResultExt};
 
 #[derive(Serialize, Deserialize)]
 pub struct Index(Vec<Entry>);

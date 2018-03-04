@@ -7,7 +7,7 @@ use std::path::Path;
 use std::marker::Sized;
 
 use session::Session;
-use error::{NotionFail, FailExt, Fallible};
+use notion_fail::{NotionFail, FailExt, Fallible};
 use env;
 use style;
 
@@ -150,7 +150,7 @@ impl Tool for Node {
         let version = if let Some(version) = session.current_node()? {
             version
         } else {
-            return Err(NoGlobalError.unknown());
+            throw!(NoGlobalError.unknown());
         };
         let path_var = env::path_for(&version.to_string());
         Ok(Self::from_components(&exe, args, &path_var))

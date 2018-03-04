@@ -29,13 +29,14 @@ pub mod catalog;
 pub mod session;
 pub mod style;
 pub mod serial;
-pub mod error;
 mod plugin;
 mod installer;
 
 #[macro_use]
 extern crate failure_derive;
 extern crate failure;
+#[macro_use]
+extern crate notion_fail;
 
 #[macro_use]
 extern crate cfg_if;

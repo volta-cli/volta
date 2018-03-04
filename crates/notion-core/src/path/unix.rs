@@ -1,7 +1,7 @@
 use std::env;
 use std::path::PathBuf;
 
-use error::{Fallible, FailExt};
+use notion_fail::{Fallible, FailExt};
 
 use super::UnknownSystemFolderError;
 

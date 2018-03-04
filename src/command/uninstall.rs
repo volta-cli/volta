@@ -1,5 +1,5 @@
 use notion_core::session::Session;
-use notion_core::error::{Fallible, ResultExt};
+use notion_fail::{Fallible, ResultExt};
 use semver::Version;
 
 use ::Notion;

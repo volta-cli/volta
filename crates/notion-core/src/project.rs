@@ -5,7 +5,7 @@ use std::path::Path;
 use std::ffi::OsStr;
 use std::env;
 
-use error::{Fallible, ResultExt};
+use notion_fail::{Fallible, ResultExt};
 
 use manifest::Manifest;
 

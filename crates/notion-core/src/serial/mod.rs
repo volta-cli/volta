@@ -10,7 +10,7 @@ pub mod version;
 use std::path::Path;
 use std::fs::{File, create_dir_all};
 
-use error::{Fallible, ResultExt};
+use notion_fail::{Fallible, ResultExt};
 
 pub fn touch(path: &Path) -> Fallible<File> {
     if !path.is_file() {

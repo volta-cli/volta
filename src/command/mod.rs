@@ -15,7 +15,7 @@ pub(crate) use self::version::Version;
 use docopt::Docopt;
 use serde::de::DeserializeOwned;
 
-use notion_core::error::{FailExt, Fallible};
+use notion_fail::{FailExt, Fallible};
 
 use {Notion, DocoptExt, CliParseError};
 
@@ -57,7 +57,7 @@ impl FromStr for CommandName {
             "help"      => CommandName::Help,
             "version"   => CommandName::Version,
             _ => {
-                return Err(());
+                throw!(());
             }
         })
     }

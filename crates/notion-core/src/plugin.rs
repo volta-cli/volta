@@ -7,7 +7,7 @@ use std::ffi::OsString;
 use serial;
 use installer::node::Installer;
 
-use error::{Fallible, FailExt, ResultExt};
+use notion_fail::{Fallible, FailExt, ResultExt};
 use semver::{Version, VersionReq};
 use serde_json;
 use cmdline_words_parser::StrExt;
@@ -45,7 +45,7 @@ impl Resolve {
                 let cmd = if let Some(word) = words.next() {
                     word
                 } else {
-                    return Err(InvalidCommandError {
+                    throw!(InvalidCommandError {
                         command: String::from(bin.trim())
                     }.unknown());
                 };

@@ -1,6 +1,6 @@
 use super::super::plugin;
 
-use error::{Fallible, FailExt, ResultExt};
+use notion_fail::{Fallible, FailExt, ResultExt};
 use semver::Version;
 
 #[derive(Serialize, Deserialize)]

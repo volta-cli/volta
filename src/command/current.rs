@@ -1,7 +1,7 @@
 use std::string::ToString;
 
 use notion_core::session::Session;
-use notion_core::error::Fallible;
+use notion_fail::Fallible;
 
 use ::Notion;
 use command::{Command, CommandName, Help};

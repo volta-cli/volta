@@ -9,7 +9,7 @@ use style::progress_bar;
 use catalog::NodeCatalog;
 use super::Installed;
 
-use error::{Fallible, ResultExt};
+use notion_fail::{Fallible, ResultExt};
 use semver::Version;
 
 const PUBLIC_NODE_SERVER_ROOT: &'static str = "https://nodejs.org/dist/";

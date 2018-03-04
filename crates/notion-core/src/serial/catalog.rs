@@ -5,7 +5,7 @@ use std::collections::BTreeSet;
 use std::iter::FromIterator;
 use std::default::Default;
 
-use error::{Fallible, ResultExt};
+use notion_fail::{Fallible, ResultExt};
 
 use semver::{Version, SemVerError};
 

@@ -6,7 +6,7 @@ use std::fs::File;
 
 use serde_json;
 use semver::VersionReq;
-use error::{Fallible, ResultExt};
+use notion_fail::{Fallible, ResultExt};
 
 use serial;
 

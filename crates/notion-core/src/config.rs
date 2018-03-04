@@ -6,7 +6,7 @@ use toml;
 use lazycell::LazyCell;
 
 use path::user_config_file;
-use error::{Fallible, NotionError, ResultExt};
+use notion_fail::{Fallible, NotionError, ResultExt};
 use readext::ReadExt;
 use serial::touch;
 use serial;

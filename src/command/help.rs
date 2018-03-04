@@ -1,4 +1,4 @@
-use notion_core::error::Fallible;
+use notion_fail::Fallible;
 
 use {Notion, CliParseError};
 use command::{Command, CommandName, Use, Version, Current, Install, Uninstall};
@@ -37,10 +37,10 @@ Options:
                 if let Ok(name) = command.parse() {
                     Help::Command(name)
                 } else {
-                    return Err(CliParseError {
+                    throw!(CliParseError {
                         usage: None,
                         error: format!("no such command: `{}`", command)
-                    }.into());
+                    });
                 }
             }
         })

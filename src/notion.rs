@@ -1,13 +1,14 @@
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;
-#[macro_use]
 extern crate notion_core;
 extern crate docopt;
 extern crate console;
+extern crate failure;
 #[macro_use]
 extern crate failure_derive;
-extern crate failure;
+#[macro_use]
+extern crate notion_fail;
 extern crate semver;
 
 mod command;
@@ -19,7 +20,7 @@ use std::string::ToString;
 use docopt::Docopt;
 
 use notion_core::style::{display_error, display_unknown_error};
-use notion_core::error::{FailExt, Fallible};
+use notion_fail::{FailExt, Fallible};
 
 use command::{Command, CommandName, Use, Help, Version, Current, Install, Uninstall};
 use error::{CliParseError, DocoptExt, NotionErrorExt};
@@ -138,14 +139,14 @@ See 'notion help <command>' for more information on a specific command.
                 // the command name is not one of the expected set, we get
                 // an Error::Deserialize.
                 else if let docopt::Error::Deserialize(_) = err {
-                    return Err(CliParseError {
+                    throw!(CliParseError {
                         usage: None,
                         error: if let Some(command) = command_string {
                             format!("no such command: `{}`", command)
                         } else {
                             format!("invalid command")
                         }
-                    }.into());
+                    });
                 }
 
                 // Otherwise the other docopt error messages are pretty

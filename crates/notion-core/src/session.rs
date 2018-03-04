@@ -7,7 +7,7 @@ use catalog::{Catalog, LazyCatalog};
 use project::Project;
 use installer::Installed;
 
-use error::Fallible;
+use notion_fail::Fallible;
 use semver::{Version, VersionReq};
 
 /// Represents the user's state during an execution of a Notion tool. The session

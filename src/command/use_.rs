@@ -6,7 +6,7 @@ use semver::VersionReq;
 
 use notion_core::session::Session;
 use notion_core::serial::version::parse_requirements;
-use notion_core::error::Fallible;
+use notion_fail::Fallible;
 
 use ::Notion;
 use command::{Command, CommandName, Help};

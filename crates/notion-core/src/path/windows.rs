@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use winfolder;
 
-use error::{Fallible, FailExt};
+use notion_fail::{Fallible, FailExt};
 
 use super::UnknownSystemFolderError;
 

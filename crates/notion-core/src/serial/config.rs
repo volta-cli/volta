@@ -2,7 +2,7 @@ use super::super::config;
 
 use super::plugin::Plugin;
 
-use error::Fallible;
+use notion_fail::Fallible;
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {

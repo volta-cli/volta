@@ -1,7 +1,7 @@
 use super::super::manifest;
 use super::version::parse_requirements;
 
-use error::Fallible;
+use notion_fail::Fallible;
 
 use std::collections::HashMap;
 

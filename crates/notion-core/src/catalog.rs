@@ -14,7 +14,7 @@ use toml;
 
 use path::{self, user_catalog_file};
 use serial::touch;
-use error::{Fallible, NotionError, FailExt, ResultExt};
+use notion_fail::{Fallible, NotionError, FailExt, ResultExt};
 use semver::{Version, VersionReq};
 use installer::Installed;
 use installer::node::Installer;

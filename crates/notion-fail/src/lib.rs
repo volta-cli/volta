@@ -2,10 +2,14 @@
 //! crate's `Fail` trait that manages the distinction between user-facing and internal
 //! error messages, as well as the interface between errors and process exit codes.
 
+extern crate failure;
+#[macro_use]
+extern crate failure_derive;
+
 use std::convert::{From, Into};
 use std::fmt::{self, Display};
 
-use failure::{self, Fail, Backtrace};
+use failure::{Fail, Backtrace};
 
 /// A temporary polyfill for `throw!` until the new `failure` library includes it.
 #[macro_export]
