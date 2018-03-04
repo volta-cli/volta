@@ -80,7 +80,7 @@ Options:
 
 }
 
-pub fn local(session: &Session) -> Fallible<Option<String>> {
+fn local(session: &Session) -> Fallible<Option<String>> {
     let project = session.project();
     let project = match project {
         Some(ref project) => project,
@@ -92,7 +92,7 @@ pub fn local(session: &Session) -> Fallible<Option<String>> {
     Ok(catalog.node.resolve_local(&req).map(|v| v.to_string()))
 }
 
-pub fn global(session: &Session) -> Fallible<Option<String>> {
+fn global(session: &Session) -> Fallible<Option<String>> {
     let catalog = session.catalog()?;
     Ok(catalog.node.activated.clone().map(|v| v.to_string()))
 }
