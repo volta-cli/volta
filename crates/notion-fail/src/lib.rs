@@ -24,7 +24,7 @@ pub trait NotionFail: Fail {
     /// Indicates whether this error has a message suitable for reporting to an end-user.
     fn is_user_friendly(&self) -> bool;
 
-    /// Indicates the process exit code that should be returned if the process exits with this error.
+    /// Returns the process exit code that should be returned if the process exits with this error.
     fn exit_code(&self) -> i32;
 }
 
@@ -32,8 +32,13 @@ pub trait NotionFail: Fail {
 #[derive(Fail, Debug)]
 #[fail(display = "{}", error)]
 pub struct NotionError {
+    /// The underlying error.
     error: failure::Error,
+
+    /// The result of `error.is_user_friendly()`.
     user_friendly: bool,
+
+    /// The result of `error.exit_code()`.
     exit_code: i32
 }
 
@@ -62,7 +67,10 @@ impl NotionError {
         self.error.downcast_mut()
     }
 
+    /// Indicates whether this error has a message suitable for reporting to an end-user.
     pub fn is_user_friendly(&self) -> bool { self.user_friendly }
+
+    /// Returns the process exit code that should be returned if the process exits with this error.
     pub fn exit_code(&self) -> i32 { self.exit_code }
 }
 
@@ -88,6 +96,8 @@ pub trait FailExt {
               D: NotionFail;
 }
 
+/// An extension trait for `Result` values, allowing conversion of third-party errors
+/// into `NotionError`s as unknown internal errors.
 pub trait ResultExt<T> {
     fn unknown(self) -> Result<T, NotionError>;
 }
@@ -153,4 +163,5 @@ impl<D: NotionFail> NotionFail for failure::Context<D> {
     }
 }
 
+/// A convenient shorthand for `Result` types that produce `NotionError`s.
 pub type Fallible<T> = Result<T, NotionError>;
