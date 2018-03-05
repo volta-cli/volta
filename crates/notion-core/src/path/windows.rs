@@ -1,10 +1,11 @@
+//! Provides functions for determining the paths of files and directories
+//! in a standard Notion layout in Windows operating systems.
+
 use std::path::PathBuf;
 
-use winfolder;
+use winfolder::Folder;
 
-use notion_fail::{Fallible, FailExt};
-
-use super::UnknownSystemFolderError;
+use notion_fail::Fallible;
 
 // These are taken from: https://nodejs.org/dist/index.json and are used
 // by `path::archive_root_dir` to determine the root directory of the
@@ -42,13 +43,7 @@ cfg_if! {
 //             launchscript.exe                        launchscript_file
 
 fn program_data_root() -> Fallible<PathBuf> {
-    let pd = winfolder::known_path(&winfolder::id::PROGRAM_DATA)
-        .ok_or_else(|| {
-            UnknownSystemFolderError {
-                name: "PROGRAM_DATA"
-            }.unknown()
-        })?;
-    Ok(pd.join("Notion"))
+    Ok(Folder::ProgramData.path().join("Notion"))
 }
 
 pub fn cache_dir() -> Fallible<PathBuf> {
@@ -98,13 +93,7 @@ pub fn launchscript_file() -> Fallible<PathBuf> {
 //                 ...
 
 fn program_files_root() -> Fallible<PathBuf> {
-    let pf = winfolder::known_path(&winfolder::id::PROGRAM_FILES_X64)
-        .ok_or_else(|| {
-            UnknownSystemFolderError {
-                name: "PROGRAM_FILES_X64"
-            }
-        })?;
-    Ok(pf.join("Notion"))
+    Ok(Folder::ProgramFilesX64.path().join("Notion"))
 }
 
 pub fn bin_dir() -> Fallible<PathBuf> {
@@ -133,13 +122,7 @@ pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
 //                         catalog.toml                user_catalog_file
 
 fn local_data_root() -> Fallible<PathBuf> {
-    let adl = winfolder::known_path(&winfolder::id::LOCAL_APP_DATA)
-        .ok_or_else(|| {
-            UnknownSystemFolderError {
-                name: "LOCAL_APP_DATA"
-            }
-        })?;
-    Ok(adl.join("Notion"))
+    Ok(Folder::LocalAppData.path().join("Notion"))
 }
 
 pub fn user_config_file() -> Fallible<PathBuf> {

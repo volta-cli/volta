@@ -1,9 +1,19 @@
+//! Provides functions for determining the paths of files and directories
+//! in a standard Notion layout in Unix-based operating systems.
+
 use std::env;
 use std::path::PathBuf;
 
-use notion_fail::{Fallible, FailExt};
+use notion_fail::{Fallible, NotionFail};
 
-use super::UnknownSystemFolderError;
+#[derive(Fail, Debug)]
+#[fail(display = "environment variable 'HOME' is not set")]
+pub(crate) struct NoHomeEnvVar;
+
+impl NotionFail for NoHomeEnvVar {
+    fn is_user_friendly(&self) -> bool { true }
+    fn exit_code(&self) -> i32 { 4 }
+}
 
 // These are taken from: https://nodejs.org/dist/index.json and are used
 // by `path::archive_root_dir` to determine the root directory of the
@@ -11,8 +21,10 @@ use super::UnknownSystemFolderError;
 
 cfg_if! {
     if #[cfg(target_os = "macos")] {
+        /// The OS component of a Node distribution tarball's name.
         pub const OS: &'static str = "darwin";
     } else if #[cfg(target_os = "linux")] {
+        /// The OS component of a Node distribution tarball's name.
         pub const OS: &'static str = "linux";
     } else {
         compile_error!("Unsupported target_os variant of unix (expected 'macos' or 'linux').");
@@ -21,8 +33,10 @@ cfg_if! {
 
 cfg_if! {
     if #[cfg(target_arch = "x86")] {
+        /// The system architecture component of a Node distribution tarball's name.
         pub const ARCH: &'static str = "x86";
     } else if #[cfg(target_arch = "x86_64")] {
+        /// The system architecture component of a Node distribution tarball's name.
         pub const ARCH: &'static str = "x64";
     } else {
         compile_error!("Unsupported target_arch variant of unix (expected 'x86' or 'x64').");
@@ -57,11 +71,7 @@ cfg_if! {
 //         catalog.toml                                    user_catalog_file
 
 fn notion_home() -> Fallible<PathBuf> {
-    let home = env::home_dir().ok_or_else(|| {
-        UnknownSystemFolderError {
-            name: "HOME"
-        }.unknown()
-    })?;
+    let home = env::home_dir().ok_or(NoHomeEnvVar)?;
     Ok(home.join(".notion"))
 }
 

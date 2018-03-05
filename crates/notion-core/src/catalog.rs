@@ -21,6 +21,7 @@ use installer::node::Installer;
 use serial;
 use config::{Config, NodeConfig};
 
+/// URL of the index of available Node versions on the public Node server.
 const PUBLIC_NODE_VERSION_INDEX: &'static str = "https://nodejs.org/dist/index.json";
 
 /// Lazily loaded tool catalog.
@@ -134,6 +135,7 @@ impl Catalog {
 
 }
 
+/// Thrown when there is no Node version matching a requested semver specifier.
 #[derive(Fail, Debug)]
 #[fail(display = "No Node version found for {}", matching)]
 struct NoNodeVersionFoundError {
@@ -174,7 +176,7 @@ impl NodeCatalog {
         if let Some(version) = version {
             Installer::public(version)
         } else {
-            Err(NoNodeVersionFoundError { matching: matching.clone() }.unknown())
+            throw!(NoNodeVersionFoundError { matching: matching.clone() }.unknown());
         }
     }
 
