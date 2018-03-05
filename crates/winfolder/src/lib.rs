@@ -105,7 +105,7 @@ impl Folder {
 
     /// Returns the Windows GUID associated with this known folder.
     pub fn id(self) -> guid::GUID {
-        match *self {
+        match self {
             Folder::LocalAppData    => LOCAL_APP_DATA,
             Folder::ProgramData     => PROGRAM_DATA,
             Folder::ProgramFiles    => PROGRAM_FILES,
