@@ -22,6 +22,7 @@ use {Notion, DocoptExt, CliParseError};
 use std::fmt::{self, Display};
 use std::str::FromStr;
 
+/// Represents the set of Notion command names.
 #[derive(Debug, Deserialize, Clone, Copy)]
 pub(crate) enum CommandName {
     Install,
@@ -63,17 +64,29 @@ impl FromStr for CommandName {
     }
 }
 
+/// A Notion command.
 pub(crate) trait Command: Sized {
+    /// The intermediate type Docopt should deserialize the parsed command into.
     type Args: DeserializeOwned;
 
+    /// The full usage documentation for this command. This can contain leading and trailing
+    /// whitespace, which will be trimmed before printing to the console.
     const USAGE: &'static str;
 
+    /// Produces a variant of this type representing the `notion <command> --help`
+    /// option.
     fn help() -> Self;
 
+    /// Parses the intermediate deserialized arguments into the full command.
     fn parse(notion: Notion, args: Self::Args) -> Fallible<Self>;
 
+    /// Executes the command. Returns `Ok(true)` if the process should return 0,
+    /// `Ok(false)` if the process should return 1, and `Err(e)` if the process
+    /// should return `e.exit_code()`.
     fn run(self) -> Fallible<bool>;
 
+    /// Top-level convenience method for taking a Notion invocation and executing
+    /// this command with the arguments taken from the Notion invocation.
     fn go(notion: Notion) -> Fallible<bool> {
         let argv = notion.full_argv();
         let args = Docopt::new(Self::USAGE)
