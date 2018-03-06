@@ -1,10 +1,28 @@
-use docopt::Docopt;
-use std::process::exit;
 use std::string::ToString;
-use notion_core::session::Session;
-use failure;
 
-pub const USAGE: &'static str = "
+use notion_core::session::Session;
+use notion_fail::Fallible;
+
+use ::Notion;
+use command::{Command, CommandName, Help};
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct Args {
+    flag_local: bool,
+    flag_global: bool
+}
+
+pub(crate) enum Current {
+    Help,
+    Local,
+    Global,
+    All
+}
+
+impl Command for Current {
+    type Args = Args;
+
+    const USAGE: &'static str = "
 Display the currently activated toolchain
 
 Usage:
@@ -16,13 +34,53 @@ Options:
     -g, --global   Display global toolchain
 ";
 
-#[derive(Debug, Deserialize)]
-struct Args {
-    flag_local: bool,
-    flag_global: bool
+    fn help() -> Self { Current::Help }
+
+    fn parse(_: Notion, Args { flag_local, flag_global }: Args) -> Fallible<Current> {
+        Ok(if !flag_local && flag_global {
+            Current::Local
+        } else if flag_local && !flag_global {
+            Current::Global
+        } else {
+            Current::All
+        })
+    }
+
+    fn run(self) -> Fallible<bool> {
+        let session = Session::new()?;
+
+        match self {
+            Current::Help => {
+                Help::Command(CommandName::Current).run()
+            }
+            Current::Local => {
+                Ok(local(&session)?
+                    .map(|version| { println!("v{}", version); })
+                    .is_some())
+            }
+            Current::Global => {
+                Ok(global(&session)?
+                    .map(|version| { println!("v{}", version); })
+                    .is_some())
+            }
+            Current::All => {
+                let (local, global) = (local(&session)?, global(&session)?);
+                let global_active = local.is_none() && global.is_some();
+                let any = local.is_some() || global.is_some();
+                for version in local {
+                    println!("local: v{} (active)", version);
+                }
+                for version in global {
+                    println!("global: v{}{}", version, if global_active { " (active)" } else { "" });
+                }
+                Ok(any)
+            }
+        }
+    }
+
 }
 
-pub fn local(session: &Session) -> Result<Option<String>, failure::Error> {
+fn local(session: &Session) -> Fallible<Option<String>> {
     let project = session.project();
     let project = match project {
         Some(ref project) => project,
@@ -34,44 +92,7 @@ pub fn local(session: &Session) -> Result<Option<String>, failure::Error> {
     Ok(catalog.node.resolve_local(&req).map(|v| v.to_string()))
 }
 
-pub fn global(session: &Session) -> Result<Option<String>, failure::Error> {
+fn global(session: &Session) -> Fallible<Option<String>> {
     let catalog = session.catalog()?;
     Ok(catalog.node.activated.clone().map(|v| v.to_string()))
-}
-
-pub fn run(mut args: Vec<String>) -> Result<(), failure::Error> {
-    let mut argv = vec![String::from("notion"), String::from("current")];
-    argv.append(&mut args);
-
-    let args: Args = Docopt::new(USAGE)
-        .and_then(|d| d.argv(argv).deserialize())?;
-
-    let session = Session::new()?;
-
-    if args.flag_local && !args.flag_global {
-        match local(&session)? {
-            Some(version) => { println!("v{}", version); }
-            None          => { exit(1); }
-        }
-    } else if args.flag_global && !args.flag_local {
-        match global(&session)? {
-            Some(version) => { println!("v{}", version); }
-            None          => { exit(1); }
-        }
-    } else {
-        let (local, global) = (local(&session)?, global(&session)?);
-        let global_active = local.is_none() && global.is_some();
-        let none = local.is_none() && global.is_none();
-        for version in local {
-            println!("local: v{} (active)", version);
-        }
-        for version in global {
-            println!("global: v{}{}", version, if global_active { " (active)" } else { "" });
-        }
-        if none {
-            exit(1);
-        }
-    }
-
-    Ok(())
 }

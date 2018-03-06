@@ -7,8 +7,8 @@ use std::path::Path;
 use std::marker::Sized;
 
 use session::Session;
+use notion_fail::{NotionFail, FailExt, Fallible};
 use env;
-use failure;
 use style;
 
 /// Represents a command-line tool that Notion shims delegate to.
@@ -17,14 +17,14 @@ pub trait Tool: Sized {
         match Self::new() {
             Ok(tool) => tool.exec(),
             Err(e) => {
-                style::display_error(e);
+                style::display_error(&e);
                 exit(1);
             }
         }
     }
 
     /// Constructs a new instance.
-    fn new() -> Result<Self, failure::Error>;
+    fn new() -> Fallible<Self>;
 
     /// Constructs a new instance, using the specified command-line and `PATH` variable.
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self;
@@ -45,7 +45,7 @@ pub trait Tool: Sized {
                 exit(status.code().unwrap_or(1));
             }
             Err(err) => {
-                style::display_error(err);
+                style::display_error(&err);
                 exit(1);
             }
         }
@@ -63,7 +63,7 @@ pub struct Node(Command);
 
 #[cfg(windows)]
 impl Tool for Script {
-    fn new() -> Result<Self, failure::Error> {
+    fn new() -> Fallible<Self> {
         unimplemented!()
     }
 
@@ -94,7 +94,7 @@ fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
 
 #[cfg(not(windows))]
 impl Tool for Script {
-    fn new() -> Result<Self, failure::Error> {
+    fn new() -> Fallible<Self> {
         unimplemented!()
     }
 
@@ -106,7 +106,7 @@ impl Tool for Script {
 }
 
 impl Tool for Binary {
-    fn new() -> Result<Self, failure::Error> {
+    fn new() -> Fallible<Self> {
         unimplemented!()
     }
 
@@ -118,10 +118,10 @@ impl Tool for Binary {
 }
 
 #[derive(Fail, Debug)]
-#[fail(display = "Internal error: tool name could not be determined")]
+#[fail(display = "Tool name could not be determined")]
 struct NoArg0Error;
 
-fn arg0(args: &mut ArgsOs) -> Result<OsString, failure::Error> {
+fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
     let opt = args.next()
         .and_then(|arg0| Path::new(&arg0)
             .file_name()
@@ -129,7 +129,7 @@ fn arg0(args: &mut ArgsOs) -> Result<OsString, failure::Error> {
     if let Some(file_name) = opt {
         Ok(file_name)
     } else {
-        Err(NoArg0Error.into())
+        Err(NoArg0Error.unknown())
     }
 }
 
@@ -137,15 +137,20 @@ fn arg0(args: &mut ArgsOs) -> Result<OsString, failure::Error> {
 #[fail(display = "No Node version selected")]
 struct NoGlobalError;
 
+impl NotionFail for NoGlobalError {
+    fn is_user_friendly(&self) -> bool { true }
+    fn exit_code(&self) -> i32 { 2 }
+}
+
 impl Tool for Node {
-    fn new() -> Result<Self, failure::Error> {
+    fn new() -> Fallible<Self> {
         let mut session = Session::new()?;
         let mut args = args_os();
         let exe = arg0(&mut args)?;
         let version = if let Some(version) = session.current_node()? {
             version
         } else {
-            return Err(NoGlobalError.into());
+            throw!(NoGlobalError.unknown());
         };
         let path_var = env::path_for(&version.to_string());
         Ok(Self::from_components(&exe, args, &path_var))

@@ -1,8 +1,23 @@
-use docopt::{self, Docopt};
-use std::process::exit;
-use console::style;
+use notion_fail::Fallible;
 
-const USAGE: &'static str = "
+use {Notion, CliParseError};
+use command::{Command, CommandName, Use, Version, Current, Install, Uninstall};
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct Args {
+    arg_command: Option<String>
+}
+
+pub(crate) enum Help {
+    Notion,
+    Command(CommandName)
+}
+
+impl Command for Help {
+
+    type Args = Args;
+
+    const USAGE: &'static str = "
 Get some help with a notion command
 
 Usage:
@@ -13,53 +28,34 @@ Options:
     -h, --help     Display this message
 ";
 
-#[derive(Debug, Deserialize)]
-struct Args {
-    arg_command: Option<String>
-}
+    fn help() -> Self { Help::Command(CommandName::Help) }
 
-pub fn throw<T>(usage: &str) -> Result<T, docopt::Error> {
-    Err(docopt::Error::WithProgramUsage(Box::new(docopt::Error::Help), String::from(usage.trim())))
-}
-
-pub fn run(mut args: Vec<String>) -> Result<(), docopt::Error> {
-    let mut argv = vec![String::from("notion"), String::from("help")];
-    argv.append(&mut args);
-
-    let args: Args = Docopt::new(USAGE)
-        .and_then(|d| d.argv(argv).deserialize())?;
-
-    let command = match args.arg_command {
-        Some(command) => command,
-        None => {
-            return throw(super::USAGE)?;
-        }
-    };
-
-    match &command[..] {
-        "use" => {
-            throw(super::activate::USAGE)?;
-        }
-        "current" => {
-            throw(super::current::USAGE)?;
-        }
-        "help" => {
-            throw(USAGE)?;
-        }
-        "version" => {
-            throw(super::version::USAGE)?;
-        }
-        "install" => {
-            throw(super::install::USAGE)?;
-        }
-        "uninstall" => {
-            throw(super::uninstall::USAGE)?;
-        }
-        _ => {
-            eprintln!("{} Unknown subcommand: '{}'", style("error:").red().bold(), command);
-            exit(1);
-        }
+    fn parse(_: Notion, Args { arg_command }: Args) -> Fallible<Help> {
+        Ok(match arg_command {
+            None => Help::Notion,
+            Some(command) => {
+                if let Ok(name) = command.parse() {
+                    Help::Command(name)
+                } else {
+                    throw!(CliParseError {
+                        usage: None,
+                        error: format!("no such command: `{}`", command)
+                    });
+                }
+            }
+        })
     }
 
-    Ok(())
+    fn run(self) -> Fallible<bool> {
+        eprintln!("{}", match self {
+            Help::Notion                          => Notion::USAGE,
+            Help::Command(CommandName::Use)       => Use::USAGE,
+            Help::Command(CommandName::Current)   => Current::USAGE,
+            Help::Command(CommandName::Help)      => Help::USAGE,
+            Help::Command(CommandName::Version)   => Version::USAGE,
+            Help::Command(CommandName::Install)   => Install::USAGE,
+            Help::Command(CommandName::Uninstall) => Uninstall::USAGE
+        });
+        Ok(true)
+    }
 }

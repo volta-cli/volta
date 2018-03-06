@@ -1,6 +1,20 @@
-use docopt::{self, Docopt};
+use notion_fail::Fallible;
 
-pub const USAGE: &'static str = "
+use ::Notion;
+use command::{Command, CommandName, Help};
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct Args;
+
+pub(crate) enum Version {
+    Help,
+    Default
+}
+
+impl Command for Version {
+    type Args = Args;
+
+    const USAGE: &'static str = "
 Display version information
 
 Usage:
@@ -11,15 +25,19 @@ Options:
     -h, --help     Display this message
 ";
 
-#[derive(Debug, Deserialize)]
-struct Args;
+    fn help() -> Self { Version::Help }
 
-pub fn run(mut args: Vec<String>) -> Result<(), docopt::Error> {
-    let mut argv = vec![String::from("notion"), String::from("version")];
-    argv.append(&mut args);
+    fn parse(_: Notion, _: Args) -> Fallible<Version> { Ok(Version::Default) }
 
-    let _: Args = Docopt::new(USAGE)
-        .and_then(|d| d.argv(argv).deserialize())?;
-
-    return Err(docopt::Error::Version(String::from(super::VERSION)));
+    fn run(self) -> Fallible<bool> {
+        match self {
+            Version::Help => {
+                Help::Command(CommandName::Version).run()
+            }
+            Version::Default => {
+                println!("{}", ::VERSION);
+                Ok(true)
+            }
+        }
+    }
 }

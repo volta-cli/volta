@@ -1,21 +1,34 @@
 //! The view layer of Notion, with utilities for styling command-line output.
 
-use std::convert::Into;
+use std::fmt::Display;
 
 use console::style;
-use failure;
 use indicatif::{ProgressBar, ProgressStyle};
 use term_size;
 
 /// Displays an error to stderr.
-pub fn display_error<E: Into<failure::Error>>(err: E) {
+pub fn display_error<E: Display>(err: &E) {
     display_error_prefix();
-    eprintln!("{}", err.into());
+    eprintln!("{}", err);
 }
 
 /// Displays an error to stderr with a styled `"error:"` prefix.
 pub fn display_error_prefix() {
     eprint!("{} ", style("error:").red().bold());
+}
+
+/// Displays a generic message for internal errors to stderr.
+pub fn display_unknown_error() {
+    display_error_prefix();
+    eprintln!("an internal error occurred in Notion");
+    eprintln!();
+    eprintln!("Notion is still a pre-alpha project, so we expect to run into some bugs,");
+    eprintln!("but we'd love to hear about them so we can fix them!");
+    eprintln!();
+    eprintln!("Please feel free to reach out to us at {} on Twitter or file an issue at:", style("@notionjs").cyan().bold());
+    eprintln!();
+    eprintln!("    {}", style("https://github.com/notion-cli/notion/issues").bold());
+    eprintln!();
 }
 
 /// Constructs a command-line progress bar with the specified "action" string
