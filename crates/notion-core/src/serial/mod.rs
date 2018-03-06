@@ -8,14 +8,15 @@ pub mod index;
 pub mod version;
 
 use std::path::Path;
-use std::io;
 use std::fs::{File, create_dir_all};
 
-pub fn touch(path: &Path) -> io::Result<File> {
+use notion_fail::{Fallible, ResultExt};
+
+pub fn touch(path: &Path) -> Fallible<File> {
     if !path.is_file() {
         let basedir = path.parent().unwrap();
-        create_dir_all(basedir)?;
-        File::create(path)?;
+        create_dir_all(basedir).unknown()?;
+        File::create(path).unknown()?;
     }
-    File::open(path)
+    File::open(path).unknown()
 }

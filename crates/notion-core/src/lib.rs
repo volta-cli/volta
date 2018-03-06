@@ -34,9 +34,9 @@ mod installer;
 
 #[macro_use]
 extern crate failure_derive;
-
-#[macro_use(format_err)]
 extern crate failure;
+#[macro_use]
+extern crate notion_fail;
 
 #[macro_use]
 extern crate cfg_if;

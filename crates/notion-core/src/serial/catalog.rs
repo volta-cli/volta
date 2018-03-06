@@ -5,6 +5,8 @@ use std::collections::BTreeSet;
 use std::iter::FromIterator;
 use std::default::Default;
 
+use notion_fail::{Fallible, ResultExt};
+
 use semver::{Version, SemVerError};
 
 #[derive(Serialize, Deserialize)]
@@ -30,17 +32,17 @@ impl Default for NodeCatalog {
 }
 
 impl Catalog {
-    pub fn into_catalog(self) -> Result<catalog::Catalog, SemVerError> {
+    pub fn into_catalog(self) -> Fallible<catalog::Catalog> {
         Ok(catalog::Catalog {
-            node: self.node.into_node_catalog()?
+            node: self.node.into_node_catalog().unknown()?
         })
     }
 }
 
 impl NodeCatalog {
-    fn into_node_catalog(self) -> Result<catalog::NodeCatalog, SemVerError> {
+    fn into_node_catalog(self) -> Fallible<catalog::NodeCatalog> {
         let activated = match self.activated {
-            Some(v) => Some(Version::parse(&v[..])?),
+            Some(v) => Some(Version::parse(&v[..]).unknown()?),
             None => None
         };
 
@@ -50,7 +52,7 @@ impl NodeCatalog {
 
         Ok(catalog::NodeCatalog {
             activated: activated,
-            versions: BTreeSet::from_iter(versions?)
+            versions: BTreeSet::from_iter(versions.unknown()?)
         })
     }
 }

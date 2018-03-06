@@ -7,7 +7,7 @@ use catalog::{Catalog, LazyCatalog};
 use project::Project;
 use installer::Installed;
 
-use failure;
+use notion_fail::Fallible;
 use semver::{Version, VersionReq};
 
 /// Represents the user's state during an execution of a Notion tool. The session
@@ -26,7 +26,7 @@ pub struct Session {
 impl Session {
 
     /// Constructs a new `Session`.
-    pub fn new() -> Result<Session, failure::Error> {
+    pub fn new() -> Fallible<Session> {
         Ok(Session {
             config: LazyConfig::new(),
             catalog: LazyCatalog::new(),
@@ -40,17 +40,17 @@ impl Session {
     }
 
     /// Produces a reference to the current tool catalog.
-    pub fn catalog(&self) -> Result<&Catalog, failure::Error> {
+    pub fn catalog(&self) -> Fallible<&Catalog> {
         self.catalog.get()
     }
 
     /// Produces a mutable reference to the current tool catalog.
-    pub fn catalog_mut(&mut self) -> Result<&mut Catalog, failure::Error> {
+    pub fn catalog_mut(&mut self) -> Fallible<&mut Catalog> {
         self.catalog.get_mut()
     }
 
     /// Produces a reference to the configuration.
-    pub fn config(&self) -> Result<&Config, failure::Error> {
+    pub fn config(&self) -> Fallible<&Config> {
         self.config.get()
     }
 
@@ -59,7 +59,7 @@ impl Session {
     /// version of Node is installed before returning. If there is no active
     /// project with Notion settings, this produces the global version, which
     /// may be `None`.
-    pub fn current_node(&mut self) -> Result<Option<Version>, failure::Error> {
+    pub fn current_node(&mut self) -> Fallible<Option<Version>> {
         if let Some(ref project) = self.project {
             let requirements = &project.manifest().node;
             let catalog = self.catalog.get_mut()?;
@@ -80,7 +80,7 @@ impl Session {
 
     /// Installs a version of Node matching the specified semantic verisoning
     /// requirements.
-    pub fn install_node(&mut self, matching: &VersionReq) -> Result<Installed, failure::Error> {
+    pub fn install_node(&mut self, matching: &VersionReq) -> Fallible<Installed> {
         let catalog = self.catalog.get_mut()?;
         let config = self.config.get()?;
         catalog.install_node(matching, config)
@@ -88,7 +88,7 @@ impl Session {
 
     /// Activates a version of Node matching the specified semantic versioning
     /// requirements.
-    pub fn activate_node(&mut self, matching: &VersionReq) -> Result<(), failure::Error> {
+    pub fn activate_node(&mut self, matching: &VersionReq) -> Fallible<()> {
         let catalog = self.catalog.get_mut()?;
         let config = self.config.get()?;
         catalog.activate_node(matching, config)

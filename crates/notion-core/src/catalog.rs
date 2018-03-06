@@ -14,13 +14,14 @@ use toml;
 
 use path::{self, user_catalog_file};
 use serial::touch;
-use failure;
+use notion_fail::{Fallible, NotionError, FailExt, ResultExt};
 use semver::{Version, VersionReq};
 use installer::Installed;
 use installer::node::Installer;
 use serial;
 use config::{Config, NodeConfig};
 
+/// URL of the index of available Node versions on the public Node server.
 const PUBLIC_NODE_VERSION_INDEX: &'static str = "https://nodejs.org/dist/index.json";
 
 /// Lazily loaded tool catalog.
@@ -38,12 +39,12 @@ impl LazyCatalog {
     }
 
     /// Forces the loading of the catalog and returns an immutable reference to it.
-    pub fn get(&self) -> Result<&Catalog, failure::Error> {
+    pub fn get(&self) -> Fallible<&Catalog> {
         self.catalog.try_borrow_with(|| Catalog::current())
     }
 
     /// Forces the loading of the catalog and returns a mutable reference to it.
-    pub fn get_mut(&mut self) -> Result<&mut Catalog, failure::Error> {
+    pub fn get_mut(&mut self) -> Fallible<&mut Catalog> {
         self.catalog.try_borrow_mut_with(|| Catalog::current())
     }
 
@@ -66,9 +67,9 @@ pub struct NodeCatalog {
 impl Catalog {
 
     /// Returns the current tool catalog.
-    fn current() -> Result<Catalog, failure::Error> {
+    fn current() -> Fallible<Catalog> {
         let path = user_catalog_file()?;
-        let src = touch(&path)?.read_into_string()?;
+        let src = touch(&path)?.read_into_string().unknown()?;
         src.parse()
     }
 
@@ -78,15 +79,15 @@ impl Catalog {
     }
 
     /// Saves the contents of the catalog to the user's catalog file.
-    pub fn save(&self) -> Result<(), failure::Error> {
+    pub fn save(&self) -> Fallible<()> {
         let path = user_catalog_file()?;
-        let mut file = File::create(&path)?;
-        file.write_all(self.to_string().as_bytes())?;
+        let mut file = File::create(&path).unknown()?;
+        file.write_all(self.to_string().as_bytes()).unknown()?;
         Ok(())
     }
 
     /// Activates a Node version matching the specified semantic versioning requirements.
-    pub fn activate_node(&mut self, matching: &VersionReq, config: &Config) -> Result<(), failure::Error> {
+    pub fn activate_node(&mut self, matching: &VersionReq, config: &Config) -> Fallible<()> {
         let installed = self.install_node(matching, config)?;
         let version = Some(installed.into_version());
 
@@ -99,9 +100,9 @@ impl Catalog {
     }
 
     /// Installs a Node version matching the specified semantic versioning requirements.
-    pub fn install_node(&mut self, matching: &VersionReq, config: &Config) -> Result<Installed, failure::Error> {
+    pub fn install_node(&mut self, matching: &VersionReq, config: &Config) -> Fallible<Installed> {
         let installer = self.node.resolve_remote(&matching, config)?;
-        let installed = installer.install(&self.node)?;
+        let installed = installer.install(&self.node).unknown()?;
 
         if let &Installed::Now(ref version) = &installed {
             self.node.versions.insert(version.clone());
@@ -112,17 +113,17 @@ impl Catalog {
     }
 
     /// Uninstalls a specific Node version from the local catalog.
-    pub fn uninstall_node(&mut self, version: &Version) -> Result<(), failure::Error> {
+    pub fn uninstall_node(&mut self, version: &Version) -> Fallible<()> {
         if self.node.contains(version) {
             let home = path::node_version_dir(&version.to_string())?;
 
             if !home.is_dir() {
                 Err(io::Error::new(
                     io::ErrorKind::NotFound,
-                    format!("{} is not a directory", home.to_string_lossy())))?;
+                    format!("{} is not a directory", home.to_string_lossy()))).unknown()?;
             }
 
-            remove_dir_all(home)?;
+            remove_dir_all(home).unknown()?;
 
             self.node.versions.remove(version);
 
@@ -134,6 +135,7 @@ impl Catalog {
 
 }
 
+/// Thrown when there is no Node version matching a requested semver specifier.
 #[derive(Fail, Debug)]
 #[fail(display = "No Node version found for {}", matching)]
 struct NoNodeVersionFoundError {
@@ -148,7 +150,7 @@ impl NodeCatalog {
     }
 
     /// Resolves the specified semantic versioning requirements from a remote distributor.
-    fn resolve_remote(&self, matching: &VersionReq, config: &Config) -> Result<Installer, failure::Error> {
+    fn resolve_remote(&self, matching: &VersionReq, config: &Config) -> Fallible<Installer> {
         match config.node {
             Some(NodeConfig { resolve: Some(ref plugin), .. }) => {
                 plugin.resolve(matching)
@@ -160,8 +162,10 @@ impl NodeCatalog {
     }
 
     /// Resolves the specified semantic versioning requirements from the public distributor (`https://nodejs.org`).
-    fn resolve_public(&self, matching: &VersionReq) -> Result<Installer, failure::Error> {
-        let serial: serial::index::Index = reqwest::get(PUBLIC_NODE_VERSION_INDEX)?.json()?;
+    fn resolve_public(&self, matching: &VersionReq) -> Fallible<Installer> {
+        let serial: serial::index::Index =
+            reqwest::get(PUBLIC_NODE_VERSION_INDEX).unknown()?
+                .json().unknown()?;
         let index = serial.into_index()?;
         let version = index.entries.iter()
             .rev()
@@ -172,7 +176,7 @@ impl NodeCatalog {
         if let Some(version) = version {
             Installer::public(version)
         } else {
-            Err(NoNodeVersionFoundError { matching: matching.clone() }.into())
+            throw!(NoNodeVersionFoundError { matching: matching.clone() }.unknown());
         }
     }
 
@@ -199,10 +203,10 @@ pub struct VersionData {
 }
 
 impl FromStr for Catalog {
-    type Err = failure::Error;
+    type Err = NotionError;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
-        let serial: serial::catalog::Catalog = toml::from_str(src)?;
+        let serial: serial::catalog::Catalog = toml::from_str(src).unknown()?;
         Ok(serial.into_catalog()?)
     }
 }
