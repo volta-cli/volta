@@ -1,5 +1,7 @@
 //! The main implementation crate for the core of Notion.
 
+#![cfg_attr(feature = "universal-docs", feature(doc_cfg))]
+
 extern crate indicatif;
 extern crate term_size;
 extern crate toml;

@@ -5,6 +5,9 @@ authors = ["David Herman <david.herman@gmail.com>"]
 license = "BSD-2-Clause"
 repository = "https://github.com/notion-cli/notion"
 
+[features]
+universal-docs = ["notion-core/universal-docs"]
+
 [[bin]]
 name = "notion"
 path = "src/notion.rs"

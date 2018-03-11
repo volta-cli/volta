@@ -3,6 +3,9 @@ name = "notion-core"
 version = "0.1.0"
 authors = ["David Herman <david.herman@gmail.com>"]
 
+[features]
+universal-docs = []
+
 [dependencies]
 toml = "0.4"
 term_size = "0.3.0"

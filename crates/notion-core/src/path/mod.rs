@@ -1,13 +1,15 @@
 //! Provides functions for determining the paths of files and directories
 //! in a standard Notion layout.
 
-#[cfg(not(windows))]
+#[cfg(any(not(windows), feature = "universal-docs"))]
+#[cfg_attr(feature = "universal-docs", doc(cfg(not(windows))))]
 mod unix;
 
 #[cfg(not(windows))]
 pub use self::unix::*;
 
-#[cfg(windows)]
+#[cfg(any(windows, feature = "universal-docs"))]
+#[cfg_attr(feature = "universal-docs", doc(cfg(windows)))]
 mod windows;
 
 #[cfg(windows)]
