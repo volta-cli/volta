@@ -14,4 +14,4 @@ failure_derive = "0.1.1"
 progress-read = { path = "../progress-read" }
 
 [target.'cfg(windows)'.dependencies]
-verbatim = { path = "../verbatim" }
+verbatim = "0.1"
