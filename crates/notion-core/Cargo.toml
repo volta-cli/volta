@@ -24,4 +24,4 @@ cfg-if = "0.1"
 
 [target.'cfg(windows)'.dependencies]
 zip = "0.2.6"
-winfolder = { path = "../winfolder" }
+winfolder = "0.1"
