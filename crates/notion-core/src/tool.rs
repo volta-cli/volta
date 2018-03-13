@@ -92,7 +92,7 @@ fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
     command
 }
 
-#[cfg(not(windows))]
+#[cfg(unix)]
 impl Tool for Script {
     fn new() -> Fallible<Self> {
         unimplemented!()
