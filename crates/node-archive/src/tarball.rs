@@ -1,4 +1,5 @@
-use super::Source;
+//! Provides types and functions for fetching and unpacking a Node installation
+//! tarball in Unix operating systems.
 
 use std::io::{self, Read, Seek, SeekFrom};
 use std::path::Path;
@@ -12,6 +13,8 @@ use tar;
 use tee::TeeReader;
 use progress_read::ProgressRead;
 use failure;
+
+define_source_trait! { Source: Read }
 
 /// A data source for a Node tarball that has been cached to the filesystem.
 pub struct Cached {

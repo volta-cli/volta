@@ -1,4 +1,5 @@
-use super::Source;
+//! Provides types and functions for fetching and unpacking a Node installation
+//! zip file in Windows operating systems.
 
 use std::io::{self, Read, Seek, SeekFrom, copy};
 use std::path::Path;
@@ -10,6 +11,8 @@ use zip_rs::ZipArchive;
 use verbatim::PathExt;
 
 use failure;
+
+define_source_trait! { Source: Read + Seek }
 
 /// A data source for a Node zip archive that has been cached to the filesystem.
 pub struct Cached {

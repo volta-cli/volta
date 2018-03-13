@@ -18,7 +18,6 @@ extern crate reqwest;
 extern crate serde_derive;
 extern crate serde;
 
-#[cfg(windows)]
 extern crate winfolder;
 
 pub mod path;

@@ -3,8 +3,7 @@
 
 use std::path::PathBuf;
 
-#[cfg(windows)]
-use winfolder::Folder;
+use winfolder;
 
 use notion_fail::Fallible;
 
@@ -45,9 +44,9 @@ cfg_if! {
 
 fn program_data_root() -> Fallible<PathBuf> {
     #[cfg(windows)]
-    return Ok(Folder::ProgramData.path().join("Notion"));
+    return Ok(winfolder::Folder::ProgramData.path().join("Notion"));
 
-    #[cfg(not(windows))]
+    #[cfg(feature = "universal-docs")]
     unimplemented!()
 }
 
@@ -99,9 +98,9 @@ pub fn launchscript_file() -> Fallible<PathBuf> {
 
 fn program_files_root() -> Fallible<PathBuf> {
     #[cfg(windows)]
-    return Ok(Folder::ProgramFilesX64.path().join("Notion"));
+    return Ok(winfolder::Folder::ProgramFilesX64.path().join("Notion"));
 
-    #[cfg(not(windows))]
+    #[cfg(feature = "universal-docs")]
     unimplemented!()
 }
 
@@ -132,9 +131,9 @@ pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
 
 fn local_data_root() -> Fallible<PathBuf> {
     #[cfg(windows)]
-    return Ok(Folder::LocalAppData.path().join("Notion"));
+    return Ok(winfolder::Folder::LocalAppData.path().join("Notion"));
 
-    #[cfg(not(windows))]
+    #[cfg(feature = "universal-docs")]
     unimplemented!()
 }
 

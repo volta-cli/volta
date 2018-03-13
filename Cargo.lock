@@ -618,6 +618,7 @@ dependencies = [
 name = "node-archive"
 version = "0.1.0"
 dependencies = [
+ "cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure_derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "flate2 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -666,7 +667,6 @@ dependencies = [
  "term_size 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "toml 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "winfolder 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "zip 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
