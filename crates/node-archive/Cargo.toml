@@ -3,6 +3,9 @@ name = "node-archive"
 version = "0.1.0"
 authors = ["David Herman <david.herman@gmail.com>"]
 
+[features]
+universal-docs = []
+
 [dependencies]
 flate2 = "1.0"
 tar = "0.4.13"
@@ -12,6 +15,5 @@ tee = "0.1.0"
 failure = "0.1.1"
 failure_derive = "0.1.1"
 progress-read = { path = "../progress-read" }
-
-[target.'cfg(windows)'.dependencies]
 verbatim = "0.1"
+cfg-if = "0.1"

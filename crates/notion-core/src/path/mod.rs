@@ -1,17 +1,23 @@
 //! Provides functions for determining the paths of files and directories
 //! in a standard Notion layout.
 
-#[cfg(not(windows))]
-mod unix;
+cfg_if! {
+    if #[cfg(feature = "universal-docs")] {
+        #[doc(cfg(unix))]
+        mod unix;
 
-#[cfg(not(windows))]
-pub use self::unix::*;
+        #[doc(cfg(windows))]
+        mod windows;
 
-#[cfg(windows)]
-mod windows;
-
-#[cfg(windows)]
-pub use self::windows::*;
+        pub use self::unix::*;
+    } else if #[cfg(unix)] {
+        mod unix;
+        pub use self::unix::*;
+    } else {
+        mod windows;
+        pub use self::windows::*;
+    }
+}
 
 pub fn archive_file(version: &str) -> String {
     format!("{}.{}", archive_root_dir(version), archive_extension())

@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 
-use winfolder::Folder;
+use winfolder;
 
 use notion_fail::Fallible;
 
@@ -43,7 +43,11 @@ cfg_if! {
 //             launchscript.exe                        launchscript_file
 
 fn program_data_root() -> Fallible<PathBuf> {
-    Ok(Folder::ProgramData.path().join("Notion"))
+    #[cfg(windows)]
+    return Ok(winfolder::Folder::ProgramData.path().join("Notion"));
+
+    #[cfg(feature = "universal-docs")]
+    unimplemented!()
 }
 
 pub fn cache_dir() -> Fallible<PathBuf> {
@@ -93,7 +97,11 @@ pub fn launchscript_file() -> Fallible<PathBuf> {
 //                 ...
 
 fn program_files_root() -> Fallible<PathBuf> {
-    Ok(Folder::ProgramFilesX64.path().join("Notion"))
+    #[cfg(windows)]
+    return Ok(winfolder::Folder::ProgramFilesX64.path().join("Notion"));
+
+    #[cfg(feature = "universal-docs")]
+    unimplemented!()
 }
 
 pub fn bin_dir() -> Fallible<PathBuf> {
@@ -122,7 +130,11 @@ pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
 //                         catalog.toml                user_catalog_file
 
 fn local_data_root() -> Fallible<PathBuf> {
-    Ok(Folder::LocalAppData.path().join("Notion"))
+    #[cfg(windows)]
+    return Ok(winfolder::Folder::LocalAppData.path().join("Notion"));
+
+    #[cfg(feature = "universal-docs")]
+    unimplemented!()
 }
 
 pub fn user_config_file() -> Fallible<PathBuf> {

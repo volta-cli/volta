@@ -1,5 +1,7 @@
 //! The main implementation crate for the core of Notion.
 
+#![cfg_attr(feature = "universal-docs", feature(doc_cfg))]
+
 extern crate indicatif;
 extern crate term_size;
 extern crate toml;
@@ -16,7 +18,6 @@ extern crate reqwest;
 extern crate serde_derive;
 extern crate serde;
 
-#[cfg(windows)]
 extern crate winfolder;
 
 pub mod path;

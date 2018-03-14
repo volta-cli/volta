@@ -1,19 +1,48 @@
 //! This crate provides types for fetching and unpacking Node distribution
 //! archives, which is a tarball for Unixes and a zipfile for Windows.
+//!
+//! These docs show the top-level exports of this crate as re-exported of
+//! the `tarball` module (due to limitations of rustdoc); the top-level
+//! exports are re-exported from `tarball` on Unix operating systems and
+//! from `zip` on Windows operating systems.
 
-#[cfg(not(windows))]
-extern crate tar;
-#[cfg(not(windows))]
-extern crate flate2;
-#[cfg(not(windows))]
-mod tarball;
+#![cfg_attr(feature = "universal-docs", feature(doc_cfg))]
 
-#[cfg(windows)]
-extern crate zip as zip_rs;
-#[cfg(windows)]
-extern crate verbatim;
-#[cfg(windows)]
-mod zip;
+// This has to be included here before the `tarball` and `zip` modules are added,
+// so that they can use the `define_source_trait!` macro.
+#[macro_use]
+mod source;
+
+#[macro_use]
+extern crate cfg_if;
+
+cfg_if! {
+    if #[cfg(feature = "universal-docs")] {
+        extern crate tar;
+        extern crate flate2;
+
+        #[doc(cfg(unix))]
+        mod tarball;
+
+        extern crate zip as zip_rs;
+        extern crate verbatim;
+
+        #[doc(cfg(windows))]
+        mod zip;
+    } else if #[cfg(unix)] {
+        extern crate tar;
+        extern crate flate2;
+
+        mod tarball;
+    } else if #[cfg(windows)] {
+        extern crate zip as zip_rs;
+        extern crate verbatim;
+
+        mod zip;
+    } else {
+        compile_error!("Unsupported OS (expected 'unix' or 'windows').");
+    }
+}
 
 extern crate reqwest;
 extern crate tee;
@@ -29,40 +58,15 @@ pub(crate) struct HttpError {
     code: ::reqwest::StatusCode
 }
 
-use std::io::Read;
-
-#[cfg(windows)]
-use std::io::Seek;
-
-macro_rules! define_source_trait {
-    { $name:ident : $($supertypes:tt)* } => {
-        /// A data source for fetching a Node archive. In Windows, this is required to
-        /// implement `std::io::Seek` (required to be able to traverse the contents of
-        /// zip archives) as well as `std::io::Read`; on other platforms it only needs
-        /// to implement `Read`.
-        pub trait $name: $($supertypes)* {
-            /// Produces the uncompressed size of the archive in bytes, when available.
-            /// In Windows, this is never available and always produces `None`. In other
-            /// platforms, this is always available and always produces a `Some` value.
-            fn uncompressed_size(&self) -> Option<u64>;
-
-            /// Produces the compressed size of the archive in bytes.
-            fn compressed_size(&self) -> u64;
-        }
+cfg_if! {
+    if #[cfg(unix)] {
+        pub use tarball::{Archive, Cached, Remote, Source};
+    } else if #[cfg(windows)] {
+        pub use zip::{Archive, Cached, Remote, Source};
+    } else {
+        compile_error!("Unsupported OS (expected 'unix' or 'windows').");
     }
 }
-
-#[cfg(not(windows))]
-define_source_trait! { Source: Read }
-
-#[cfg(windows)]
-define_source_trait! { Source: Read + Seek }
-
-#[cfg(not(windows))]
-pub use tarball::{Archive, Cached, Remote};
-
-#[cfg(windows)]
-pub use zip::{Archive, Cached, Remote};
 
 impl Source for Box<Source> {
     fn uncompressed_size(&self) -> Option<u64> {
