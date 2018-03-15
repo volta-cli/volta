@@ -12,14 +12,16 @@ jobs:
       script: |
         cargo test
     - stage: deploy
+      if: (branch = master) AND (type = push)
       rust: nightly
       env:
         - RUSTDOCFLAGS=--document-private-items
       script: |
         cargo doc --features universal-docs --all --no-deps
-      if: (branch = master) AND (type = push)
-      provider: pages
-      github-token: $GITHUB_TOKEN
-      local-dir: target/doc
-      on:
-        branch: master
+      deploy:
+        provider: pages
+        skip-cleanup: true
+        github-token: $GITHUB_TOKEN
+        local-dir: target/doc
+        on:
+          branch: master
