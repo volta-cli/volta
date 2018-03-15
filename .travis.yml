@@ -1,18 +1,17 @@
 sudo: required
 language: rust
-rust:
-  - stable
 cache: cargo
 env:
   global:
     secure: d3i3rx5JPLBYtVITyb66y/Gh6VKRZNaKqNFFG38HJTUJOMskeg6mMWpTADKQAumXrsTVYoZn8l7TTOyvacKw66LMVq8I7IWO4ee8ftB5eXWI2G8T3dYHJh8ns/p7EoR2AgRFvFCANuQAmnOCgEwCiK+F4FRYtdZ2FiYOSWFDhgXbLxENFlIOBbeRcRCTaYYZP3DwgMtQf47eG2qiQPFv88iUVgf6LZgwOhiuq6P+1WOSVHNIsFsX59LMsBX1DMSAj/4J+f8fHVFUuz72+a6ZZUs9Ec/ADdYA5zKb++0Rr0Y+7c4HHj6Z6hX24jU35Hxn1l677ui4gm87IQn+5xbOakUWVao05NPYSZmqujs2pnzZpqFuLAZRrx86SHbB9Jq7W8b17MoHDchPly6e+YxfhccKT0qTboaiis44sMMbIRt8gBlvYFwOMHS0RXmLL0ZddsVvuzBojlQZn1wXO7uJ5RrvLF7WrIfccW2vP9BCZmLGBG5nWlD9jpY58kIhBeEmpzmIBTcGaJlv7+d/YyaCfZ639zqGSx+YdlPdncagKE89gHejM3wqPagV7PUXq0j+EKTEJ5VTAzKmyLgrfAWtjBsBte32QmQP7RLK8oPILDgy2cUZuuYCtZo3iTxFkkJBISMipvrTqSG4VuNIrFa9JL+cHknA6JcQIvmgKga1SH0=
 
-script: |
-  cargo test
-
 jobs:
   include:
-    - stage: publish
+    - stage: test
+      rust: stable
+      script: |
+        cargo test
+    - stage: deploy
       rust: nightly
       env:
         - RUSTDOCFLAGS=--document-private-items
