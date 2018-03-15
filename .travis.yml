@@ -1,27 +1,40 @@
 sudo: required
 language: rust
 cache: cargo
+
+# Encrypted environment variables: https://docs.travis-ci.com/user/environment-variables#Defining-encrypted-variables-in-.travis.yml
+# Generated from a GitHub personal access token (https://github.com/settings/tokens).
 env:
   global:
     secure: d3i3rx5JPLBYtVITyb66y/Gh6VKRZNaKqNFFG38HJTUJOMskeg6mMWpTADKQAumXrsTVYoZn8l7TTOyvacKw66LMVq8I7IWO4ee8ftB5eXWI2G8T3dYHJh8ns/p7EoR2AgRFvFCANuQAmnOCgEwCiK+F4FRYtdZ2FiYOSWFDhgXbLxENFlIOBbeRcRCTaYYZP3DwgMtQf47eG2qiQPFv88iUVgf6LZgwOhiuq6P+1WOSVHNIsFsX59LMsBX1DMSAj/4J+f8fHVFUuz72+a6ZZUs9Ec/ADdYA5zKb++0Rr0Y+7c4HHj6Z6hX24jU35Hxn1l677ui4gm87IQn+5xbOakUWVao05NPYSZmqujs2pnzZpqFuLAZRrx86SHbB9Jq7W8b17MoHDchPly6e+YxfhccKT0qTboaiis44sMMbIRt8gBlvYFwOMHS0RXmLL0ZddsVvuzBojlQZn1wXO7uJ5RrvLF7WrIfccW2vP9BCZmLGBG5nWlD9jpY58kIhBeEmpzmIBTcGaJlv7+d/YyaCfZ639zqGSx+YdlPdncagKE89gHejM3wqPagV7PUXq0j+EKTEJ5VTAzKmyLgrfAWtjBsBte32QmQP7RLK8oPILDgy2cUZuuYCtZo3iTxFkkJBISMipvrTqSG4VuNIrFa9JL+cHknA6JcQIvmgKga1SH0=
 
+# Build stages: https://docs.travis-ci.com/user/build-stages/
 jobs:
   include:
     - stage: test
       rust: stable
       script: |
         cargo test
-    - stage: deploy
+    - stage: publish
+      # Conditional builds: https://docs.travis-ci.com/user/conditional-builds-stages-jobs/
       if: (branch = master) AND (type = push)
+      # Cross-platform rustdoc builds require nightly Rust.
       rust: nightly
+      # This lets us use `cargo doc` but still ask rustdoc to document private definitions.
       env:
         - RUSTDOCFLAGS=--document-private-items
+      # The `universal-docs` feature is used in the codebase to provide cross-platform API docs.
       script: |
-        cargo doc --features universal-docs --all --no-deps
+        cargo doc --features universal-docs --all --no-deps &&
+        mkdir -p publish &&
+        mv target/doc publish/master &&
+        echo '<!doctype html><a href="notion">notion</a>' > publish/master/index.html &&
+        echo '<!doctype html><a href="master">master</a>' > publish/index.html
+      # GitHub deployment: https://docs.travis-ci.com/user/deployment/pages/
       deploy:
         provider: pages
         skip-cleanup: true
         github-token: $GITHUB_TOKEN
-        local-dir: target/doc
+        local-dir: publish
         on:
           branch: master
