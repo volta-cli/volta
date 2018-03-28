@@ -5,7 +5,7 @@ use std::string::ToString;
 
 use path;
 use node_archive::{Archive, Cached, Remote, Source};
-use style::progress_bar;
+use style::{progress_bar, Action};
 use catalog::NodeCatalog;
 use super::Installed;
 
@@ -67,7 +67,7 @@ impl Installer {
 
         let dest = path::node_versions_dir()?;
         let bar = progress_bar(
-            "Installing",
+            Action::Installing,
             &format!("v{}", self.version),
             self.source.uncompressed_size().unwrap_or(self.source.compressed_size()));
 
