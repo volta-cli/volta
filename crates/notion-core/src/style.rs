@@ -68,7 +68,6 @@ pub fn progress_bar(action: Action, details: &str, len: u64) -> ProgressBar {
     // Action::MAX_WIDTH = 12
     bar.set_message(&format!("{: >12} {}", style(action.to_string()).green().bold(), details));
     bar.set_style(ProgressStyle::default_bar()
-        // ISSUE (#35): instead of fixed 40 compute based on console size
         .template(&format!("{{msg}}  [{{bar:{}.cyan/blue}}] {{percent:>3}}%", bar_width))
         .progress_chars("=> "));
 
