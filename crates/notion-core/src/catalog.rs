@@ -20,6 +20,7 @@ use installer::Installed;
 use installer::node::Installer;
 use serial;
 use config::{Config, NodeConfig};
+use style::progress_spinner;
 
 /// URL of the index of available Node versions on the public Node server.
 const PUBLIC_NODE_VERSION_INDEX: &'static str = "https://nodejs.org/dist/index.json";
@@ -163,9 +164,11 @@ impl NodeCatalog {
 
     /// Resolves the specified semantic versioning requirements from the public distributor (`https://nodejs.org`).
     fn resolve_public(&self, matching: &VersionReq) -> Fallible<Installer> {
+        let spinner = progress_spinner(&format!("Fetching public registry: {}", PUBLIC_NODE_VERSION_INDEX));
         let serial: serial::index::Index =
             reqwest::get(PUBLIC_NODE_VERSION_INDEX).unknown()?
                 .json().unknown()?;
+        spinner.finish_and_clear();
         let index = serial.into_index()?;
         let version = index.entries.iter()
             .rev()
