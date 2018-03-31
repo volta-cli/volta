@@ -72,3 +72,17 @@ pub fn progress_bar(action: Action, details: &str, len: u64) -> ProgressBar {
 
     bar
 }
+
+/// Constructs a command-line progress spinner with the specified "message"
+/// string. The spinner is ticked by default every 20ms.
+pub fn progress_spinner(message: &str) -> ProgressBar {
+    // ⠋ Fetching public registry: https://nodejs.org/dist/index.json
+    let spinner = ProgressBar::new_spinner();
+
+    spinner.set_message(message);
+    spinner.set_style(ProgressStyle::default_spinner()
+        .template("{spinner} {msg}"));
+    spinner.enable_steady_tick(20); // tick the spinner every 20ms
+
+    spinner
+}
