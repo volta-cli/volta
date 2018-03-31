@@ -49,8 +49,8 @@ impl Display for Action {
     }
 }
 
-/// Constructs a command-line progress bar with the specified "action" string
-/// (e.g., `"Installing"`), details string (e.g., `"v1.23.4"`), and logical
+/// Constructs a command-line progress bar with the specified Action enum
+/// (e.g., `Action::Installing`), details string (e.g., `"v1.23.4"`), and logical
 /// length (i.e., the number of logical progress steps in the process being
 /// visualized by the progress bar).
 pub fn progress_bar(action: Action, details: &str, len: u64) -> ProgressBar {
@@ -65,8 +65,7 @@ pub fn progress_bar(action: Action, details: &str, len: u64) -> ProgressBar {
 
     let bar = ProgressBar::new(len);
 
-    // Action::MAX_WIDTH = 12
-    bar.set_message(&format!("{: >12} {}", style(action.to_string()).green().bold(), details));
+    bar.set_message(&format!("{: >width$} {}", style(action.to_string()).green().bold(), details, width = Action::MAX_WIDTH));
     bar.set_style(ProgressStyle::default_bar()
         // ISSUE (#35): instead of fixed 40 compute based on console size
         .template(&format!("{{msg}}  [{{bar:{}.cyan/blue}}] {{percent:>3}}%", bar_width))
