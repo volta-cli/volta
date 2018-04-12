@@ -23,7 +23,9 @@ and then follow the setup steps above.
 
 ## Windows installation
 
-Working on it!
+One of Notion's primary goals is to have first-class Windows support out of the box. Several contributors to Notion use Windows as our primary development machines, and this is very important to us.
+
+We haven't written real installers for any platform yet, and our current status on Windows is that we've learned how to create Windows installers and solved the major design questions that we've identified. If you'd like to help with a Windows installer, please get in touch!
 
 ## Demo
 
@@ -42,6 +44,10 @@ this project uses node v6.11.3
 ```
 
 # Development
+
+## Community
+
+We use [Discord](https://discordapp.com/) for community discussion. You can use this [permanent invite](https://discord.gg/hgPTz9A) to join our Discord server!
 
 ## Requirements
 
