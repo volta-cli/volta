@@ -1,7 +1,7 @@
 //! Provides types and functions for fetching and unpacking a Node installation
 //! zip file in Windows operating systems.
 
-use std::io::{self, Read, Seek, SeekFrom, copy};
+use std::io::{self, Read, Seek, copy};
 use std::path::Path;
 use std::fs::{File, create_dir_all};
 
@@ -11,6 +11,8 @@ use zip_rs::ZipArchive;
 use verbatim::PathExt;
 
 use failure;
+
+use super::Archive;
 
 pub struct Zip<S: Read + Seek> {
     compressed_size: u64,
@@ -55,9 +57,9 @@ impl Zip<File> {
 }
 
 impl<S: Read + Seek> Archive for Zip<S> {
-
-    /// Unpacks the zip archive to the specified destination folder.
-    pub fn unpack(self: Box<Self>, dest: &Path, progress: &mut FnMut(&(), usize)) -> Result<(), failure::Error> {
+    fn compressed_size(&self) -> u64 { self.compressed_size }
+    fn uncompressed_size(&self) -> Option<u64> { None }
+    fn unpack(self: Box<Self>, dest: &Path, progress: &mut FnMut(&(), usize)) -> Result<(), failure::Error> {
         // Use a verbatim path to avoid the legacy Windows 260 byte path limit.
         let dest: &Path = &dest.to_verbatim();
 

@@ -69,6 +69,8 @@ use std::fs::File;
 pub trait Archive {
     fn compressed_size(&self) -> u64;
     fn uncompressed_size(&self) -> Option<u64>;
+
+    /// Unpacks the zip archive to the specified destination folder.
     fn unpack(self: Box<Self>, dest: &Path, progress: &mut FnMut(&(), usize)) -> Result<(), failure::Error>;
 }
 
