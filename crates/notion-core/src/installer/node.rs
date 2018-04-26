@@ -16,7 +16,7 @@ const PUBLIC_NODE_SERVER_ROOT: &'static str = "https://nodejs.org/dist/";
 
 /// A provisioned Node installer.
 pub struct Installer {
-    source: Box<Archive>,
+    archive: Box<Archive>,
     version: Version
 }
 
@@ -39,7 +39,7 @@ impl Installer {
         }
 
         Ok(Installer {
-            source: node_archive::fetch(url, &cache_file).unknown()?,
+            archive: node_archive::fetch(url, &cache_file).unknown()?,
             version: version
         })
     }
@@ -47,7 +47,7 @@ impl Installer {
     /// Provision an `Installer` from the filesystem.
     pub fn cached(version: Version, file: File) -> Fallible<Self> {
         Ok(Installer {
-            source: node_archive::load(file).unknown()?,
+            archive: node_archive::load(file).unknown()?,
             version: version
         })
     }
@@ -68,9 +68,9 @@ impl Installer {
         let bar = progress_bar(
             Action::Installing,
             &format!("v{}", self.version),
-            self.source.uncompressed_size().unwrap_or(self.source.compressed_size()));
+            self.archive.uncompressed_size().unwrap_or(self.archive.compressed_size()));
 
-        self.source.unpack(&dest, &mut |_, read| {
+        self.archive.unpack(&dest, &mut |_, read| {
             bar.inc(read as u64);
         }).unknown()?;
 
