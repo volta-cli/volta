@@ -4,7 +4,7 @@ use std::fs::{File, rename};
 use std::string::ToString;
 
 use path;
-use node_archive::{Archive, Cached, Remote, Source};
+use node_archive::{self, Archive};
 use style::{progress_bar, Action};
 use catalog::NodeCatalog;
 use super::Installed;
@@ -16,7 +16,7 @@ const PUBLIC_NODE_SERVER_ROOT: &'static str = "https://nodejs.org/dist/";
 
 /// A provisioned Node installer.
 pub struct Installer {
-    source: Box<Source>,
+    source: Box<Archive>,
     version: Version
 }
 
@@ -38,9 +38,8 @@ impl Installer {
             return Installer::cached(version, File::open(cache_file).unknown()?);
         }
 
-        // ISSUE #32: tee the input source and save to the cache file as it's fetched
         Ok(Installer {
-            source: Box::new(Remote::fetch(url, &cache_file).unknown()?),
+            source: node_archive::fetch(url, &cache_file).unknown()?,
             version: version
         })
     }
@@ -48,7 +47,7 @@ impl Installer {
     /// Provision an `Installer` from the filesystem.
     pub fn cached(version: Version, file: File) -> Fallible<Self> {
         Ok(Installer {
-            source: Box::new(Cached::load(file).unknown()?),
+            source: node_archive::load(file).unknown()?,
             version: version
         })
     }
@@ -71,11 +70,9 @@ impl Installer {
             &format!("v{}", self.version),
             self.source.uncompressed_size().unwrap_or(self.source.compressed_size()));
 
-        let archive = Archive::new(self.source, |_, read| {
+        self.source.unpack(&dest, &mut |_, read| {
             bar.inc(read as u64);
         }).unknown()?;
-
-        archive.unpack(&dest).unknown()?;
 
         let version_string = self.version.to_string();
         rename(dest.join(path::archive_root_dir(&version_string)),

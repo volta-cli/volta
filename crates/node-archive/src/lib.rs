@@ -8,11 +8,6 @@
 
 #![cfg_attr(feature = "universal-docs", feature(doc_cfg))]
 
-// This has to be included here before the `tarball` and `zip` modules are added,
-// so that they can use the `define_source_trait!` macro.
-#[macro_use]
-mod source;
-
 #[macro_use]
 extern crate cfg_if;
 
@@ -60,20 +55,41 @@ pub(crate) struct HttpError {
 
 cfg_if! {
     if #[cfg(unix)] {
-        pub use tarball::{Archive, Cached, Remote, Source};
+        pub use tarball::Tarball;
     } else if #[cfg(windows)] {
-        pub use zip::{Archive, Cached, Remote, Source};
+        pub use zip::Zip;
     } else {
         compile_error!("Unsupported OS (expected 'unix' or 'windows').");
     }
 }
 
-impl Source for Box<Source> {
-    fn uncompressed_size(&self) -> Option<u64> {
-        (**self).uncompressed_size()
-    }
+use std::path::Path;
+use std::fs::File;
 
-    fn compressed_size(&self) -> u64 {
-        (**self).compressed_size()
+pub trait Archive {
+    fn compressed_size(&self) -> u64;
+    fn uncompressed_size(&self) -> Option<u64>;
+    fn unpack(self: Box<Self>, dest: &Path, progress: &mut FnMut(&(), usize)) -> Result<(), failure::Error>;
+}
+
+cfg_if! {
+    if #[cfg(unix)] {
+        pub fn load(source: File) -> Result<Box<Archive>, failure::Error> {
+            Ok(Box::new(Tarball::load(source)?))
+        }
+
+        pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<Archive>, failure::Error> {
+            Ok(Box::new(Tarball::fetch(url, cache_file)?))
+        }
+    } else if #[cfg(windows)] {
+        pub fn load(source: File) -> Result<Box<Archive>, failure::Error> {
+            Ok(Box::new(Zip::load(source)?))
+        }
+
+        pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<Archive>, failure::Error> {
+            Ok(Box::new(Zip::fetch(url, cache_file)?))
+        }
+    } else {
+        compile_error!("Unsupported OS (expected 'unix' or 'windows').");
     }
 }
