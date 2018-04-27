@@ -4,19 +4,16 @@ usage() {
   cat <<'END_USAGE'
 build.sh: generate notion's generic unix installation script
 
-usage: build.sh <notion> <launchbin> <launchscript>
-  <notion>        path to the binary `notion` executable
-  <node>          path to the binary `node` executable
-  <launchbin>     path to the binary `launchbin` executable
-  <launchscript>  path to the binary `launchscript` executable
+usage: build.sh [target]
+  [target]   build artifacts to use ('release' or 'debug', defaults to 'release')
 
 The output file is saved as ./install.sh.
 END_USAGE
 }
 
-if [ "$#" -ne 4 ]; then
-  usage >&2
-  exit 1
+target_dir='release'
+if [ -n "$1" ]; then
+  target_dir="$1"
 fi
 
 encode_base64_sed_command() {
@@ -25,17 +22,23 @@ encode_base64_sed_command() {
   command printf "|\n" >> $1.base64.txt
 }
 
-encode_base64_sed_command notion NOTION $1
-encode_base64_sed_command node NODE $2
-encode_base64_sed_command launchbin LAUNCHBIN $3
-encode_base64_sed_command launchscript LAUNCHSCRIPT $4
+script_dir="$(dirname "$0")"
+build_dir="$script_dir/../../target/$target_dir"
+
+encode_base64_sed_command notion NOTION "$build_dir/notion"
+encode_base64_sed_command node NODE "$build_dir/node"
+encode_base64_sed_command launchbin LAUNCHBIN "$build_dir/launchbin"
+encode_base64_sed_command launchscript LAUNCHSCRIPT "$build_dir/launchscript"
 
 sed -f notion.base64.txt \
     -f node.base64.txt \
     -f launchbin.base64.txt \
     -f launchscript.base64.txt \
-    < install.sh.in > install.sh
+    < "$script_dir/install.sh.in" > "$script_dir/install.sh"
 
-chmod 755 install.sh
+chmod 755 "$script_dir/install.sh"
 
-rm *.base64.txt
+rm notion.base64.txt \
+   node.base64.txt \
+   launchbin.base64.txt \
+   launchscript.base64.txt
