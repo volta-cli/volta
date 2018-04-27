@@ -1,18 +1,23 @@
 #!/usr/bin/env bash
 
+script_dir="$(dirname "$0")"
+
 usage() {
-  cat <<'END_USAGE'
+  cat <<END_USAGE
 build.sh: generate notion's generic unix installation script
 
 usage: build.sh [target]
   [target]   build artifacts to use ('release' or 'debug', defaults to 'release')
 
-The output file is saved as ./install.sh.
+The output file is saved as $script_dir/install.sh.
 END_USAGE
 }
 
 target_dir='release'
-if [ -n "$1" ]; then
+if [ "$#" -gt 1 ] || ! [[ "$1" =~ (debug|release) ]]; then
+  usage
+  exit 1
+elif [ -n "$1" ]; then
   target_dir="$1"
 fi
 
@@ -22,7 +27,6 @@ encode_base64_sed_command() {
   command printf "|\n" >> $1.base64.txt
 }
 
-script_dir="$(dirname "$0")"
 build_dir="$script_dir/../../target/$target_dir"
 
 encode_base64_sed_command notion NOTION "$build_dir/notion"
