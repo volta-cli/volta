@@ -75,7 +75,18 @@ pub trait Archive {
 }
 
 cfg_if! {
-    if #[cfg(unix)] {
+    if #[cfg(feature = "universal-docs")] {
+        /// Load a cached Node archive from the specified file.
+        pub fn load(source: File) -> Result<Box<Archive>, failure::Error> {
+            unimplemented!()
+        }
+
+        /// Fetch a remote Node archive from the given URL and cache its results
+        /// at the given file path.
+        pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<Archive>, failure::Error> {
+            unimplemented!()
+        }
+    } else if #[cfg(unix)] {
         pub fn load(source: File) -> Result<Box<Archive>, failure::Error> {
             Ok(Box::new(Tarball::load(source)?))
         }
