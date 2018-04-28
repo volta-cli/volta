@@ -1,7 +1,7 @@
 //! Provides types and functions for fetching and unpacking a Node installation
 //! tarball in Unix operating systems.
 
-use std::io::{self, Read, Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 use std::fs::File;
 
@@ -14,53 +14,28 @@ use tee::TeeReader;
 use progress_read::ProgressRead;
 use failure;
 
-define_source_trait! { Source: Read }
+use super::Archive;
 
-/// A data source for a Node tarball that has been cached to the filesystem.
-pub struct Cached {
-    uncompressed_size: u64,
+/// A Node installation tarball.
+pub struct Tarball<S: Read> {
     compressed_size: u64,
-    source: File
+    uncompressed_size: u64,
+    data: S
 }
 
-impl Cached {
+impl Tarball<File> {
 
     /// Loads a cached Node tarball from the specified file.
-    pub fn load(mut source: File) -> Result<Cached, failure::Error> {
+    pub fn load(mut source: File) -> Result<Self, failure::Error> {
         let uncompressed_size = load_uncompressed_size(&mut source)?;
         let compressed_size = source.metadata()?.len();
-
-        Ok(Cached {
+        Ok(Tarball {
             uncompressed_size,
             compressed_size,
-            source
+            data: source
         })
     }
 
-}
-
-impl Read for Cached {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.source.read(buf)
-    }
-
-}
-
-impl Source for Cached {
-    fn uncompressed_size(&self) -> Option<u64> {
-        Some(self.uncompressed_size)
-    }
-
-    fn compressed_size(&self) -> u64 {
-        self.compressed_size
-    }
-}
-
-/// A data source for fetching a Node tarball from a remote server.
-pub struct Remote {
-    uncompressed_size: u64,
-    compressed_size: u64,
-    source: TeeReader<reqwest::Response, File>
 }
 
 #[derive(Fail, Debug)]
@@ -80,11 +55,12 @@ fn content_length(response: &Response) -> Result<u64, failure::Error> {
     })
 }
 
-impl Remote {
+impl Tarball<TeeReader<reqwest::Response, File>> {
 
     /// Initiate fetching of a Node tarball from the given URL, returning
-    /// a `Remote` data source.
-    pub fn fetch(url: &str, cache_file: &Path) -> Result<Remote, failure::Error> {
+    /// a tarball that can be streamed (and that tees its data to a cache
+    /// file as it streams).
+    pub fn fetch(url: &str, cache_file: &Path) -> Result<Self, failure::Error> {
         let uncompressed_size = fetch_uncompressed_size(url)?;
         let response = reqwest::get(url)?;
 
@@ -94,59 +70,26 @@ impl Remote {
 
         let compressed_size = content_length(&response)?;
         let file = File::create(cache_file)?;
-        let source = TeeReader::new(response, file);
+        let data = TeeReader::new(response, file);
 
-        Ok(Remote {
+        Ok(Tarball {
             uncompressed_size,
             compressed_size,
-            source
+            data
         })
     }
 
 }
 
-impl Read for Remote {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.source.read(buf)
-    }
-}
-
-impl Source for Remote {
-    fn uncompressed_size(&self) -> Option<u64> {
-        Some(self.uncompressed_size)
-    }
-
-    fn compressed_size(&self) -> u64 {
-        self.compressed_size
-    }
-}
-
-/// A Node installation tarball.
-pub struct Archive<S: Source, F: FnMut(&(), usize)> {
-    archive: tar::Archive<ProgressRead<GzDecoder<S>, (), F>>
-}
-
-impl<S: Source, F: FnMut(&(), usize)> Archive<S, F> {
-
-    /// Constructs a new `Archive` from the specified data source and with the
-    /// specified progress callback.
-    pub fn new(source: S, callback: F) -> Result<Archive<S, F>, failure::Error> {
-        let decoded = GzDecoder::new(source);
-        Ok(Archive {
-            archive: tar::Archive::new(ProgressRead::new(decoded, (), callback))
-        })
-    }
-
-}
-
-impl<S: Source, F: FnMut(&(), usize)> Archive<S, F> {
-
-    /// Unpacks the tarball to the specified destination folder.
-    pub fn unpack(mut self, dest: &Path) -> Result<(), failure::Error> {
-        self.archive.unpack(dest)?;
+impl<S: Read> Archive for Tarball<S> {
+    fn compressed_size(&self) -> u64 { self.compressed_size }
+    fn uncompressed_size(&self) -> Option<u64> { Some(self.uncompressed_size) }
+    fn unpack(self: Box<Self>, dest: &Path, progress: &mut FnMut(&(), usize)) -> Result<(), failure::Error> {
+        let decoded = GzDecoder::new(self.data);
+        let mut tarball = tar::Archive::new(ProgressRead::new(decoded, (), progress));
+        tarball.unpack(dest)?;
         Ok(())
     }
-
 }
 
 /// Fetches just the headers of a URL.
