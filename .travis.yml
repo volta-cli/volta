@@ -25,7 +25,11 @@ jobs:
         - RUSTDOCFLAGS=--document-private-items
       # The `universal-docs` feature is used in the codebase to provide cross-platform API docs.
       script: |
-        cargo doc --features universal-docs --all --no-deps &&
+        cargo doc -p progress-read --no-deps &&
+        cargo doc -p notion-fail --no-deps &&
+        cargo doc --features universal-docs -p node-archive --no-deps &&
+        cargo doc --features universal-docs -p notion-core --no-deps &&
+        cargo doc --features universal-docs --no-deps &&
         mkdir -p publish &&
         mv target/doc publish/master &&
         echo '<!doctype html><a href="notion">notion</a>' > publish/master/index.html &&
