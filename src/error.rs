@@ -1,12 +1,12 @@
 use docopt;
 use failure::Context;
-use notion_fail::{NotionFail, NotionError};
+use notion_fail::{NotionError, NotionFail};
 
 #[derive(Fail, Debug)]
 #[fail(display = "{}", error)]
 pub(crate) struct CliParseError {
     pub(crate) usage: Option<String>,
-    pub(crate) error: String
+    pub(crate) error: String,
 }
 
 impl CliParseError {
@@ -14,20 +14,24 @@ impl CliParseError {
         if let &docopt::Error::WithProgramUsage(ref real_error, ref usage) = error {
             CliParseError {
                 usage: Some(usage.clone()),
-                error: real_error.to_string()
+                error: real_error.to_string(),
             }
         } else {
             CliParseError {
                 usage: None,
-                error: error.to_string()
+                error: error.to_string(),
             }
         }
     }
 }
 
 impl NotionFail for CliParseError {
-    fn is_user_friendly(&self) -> bool { true }
-    fn exit_code(&self) -> i32 { 3 }
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        3
+    }
 }
 
 pub(crate) trait DocoptExt {
@@ -40,7 +44,7 @@ impl DocoptExt for docopt::Error {
         match self {
             &docopt::Error::Help => true,
             &docopt::Error::WithProgramUsage(ref error, _) => error.is_help(),
-            _ => false
+            _ => false,
         }
     }
 
@@ -48,7 +52,7 @@ impl DocoptExt for docopt::Error {
         match self {
             &docopt::Error::Version(_) => true,
             &docopt::Error::WithProgramUsage(ref error, _) => error.is_version(),
-            _ => false
+            _ => false,
         }
     }
 }

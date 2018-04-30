@@ -4,17 +4,17 @@ use notion_core::session::Session;
 use notion_core::serial::version::parse_requirements;
 use notion_fail::Fallible;
 
-use ::Notion;
+use Notion;
 use command::{Command, CommandName, Help};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
-    arg_version: String
+    arg_version: String,
 }
 
 pub(crate) enum Install {
     Help,
-    Default(VersionReq)
+    Default(VersionReq),
 }
 
 impl Command for Install {
@@ -31,7 +31,9 @@ Options:
     -h, --help     Display this message
 ";
 
-    fn help() -> Self { Install::Help }
+    fn help() -> Self {
+        Install::Help
+    }
 
     fn parse(_: Notion, Args { arg_version }: Args) -> Fallible<Self> {
         let version = parse_requirements(&arg_version)?;
@@ -40,9 +42,7 @@ Options:
 
     fn run(self) -> Fallible<bool> {
         match self {
-            Install::Help => {
-                Help::Command(CommandName::Install).run()
-            }
+            Install::Help => Help::Command(CommandName::Install).run(),
             Install::Default(version) => {
                 let mut session = Session::new()?;
 

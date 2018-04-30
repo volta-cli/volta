@@ -1,6 +1,6 @@
 use super::super::catalog;
 
-use std::collections::{HashSet, BTreeMap};
+use std::collections::{BTreeMap, HashSet};
 use std::iter::FromIterator;
 
 use semver::Version;
@@ -12,7 +12,7 @@ pub struct Index(Vec<Entry>);
 #[derive(Serialize, Deserialize)]
 pub struct Entry {
     pub version: String,
-    pub files: Vec<String>
+    pub files: Vec<String>,
 }
 
 impl Index {
@@ -20,7 +20,7 @@ impl Index {
         let mut entries = BTreeMap::new();
         for entry in self.0 {
             let data = catalog::VersionData {
-                files: HashSet::from_iter(entry.files.into_iter())
+                files: HashSet::from_iter(entry.files.into_iter()),
             };
             let mut version = &entry.version[..];
             version = version.trim();

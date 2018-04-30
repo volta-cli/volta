@@ -39,18 +39,18 @@ cfg_if! {
     }
 }
 
+extern crate progress_read;
 extern crate reqwest;
 extern crate tee;
-extern crate progress_read;
 
+extern crate failure;
 #[macro_use]
 extern crate failure_derive;
-extern crate failure;
 
 #[derive(Fail, Debug)]
 #[fail(display = "HTTP failure ({})", code)]
 pub(crate) struct HttpError {
-    code: ::reqwest::StatusCode
+    code: ::reqwest::StatusCode,
 }
 
 cfg_if! {
@@ -71,7 +71,11 @@ pub trait Archive {
     fn uncompressed_size(&self) -> Option<u64>;
 
     /// Unpacks the zip archive to the specified destination folder.
-    fn unpack(self: Box<Self>, dest: &Path, progress: &mut FnMut(&(), usize)) -> Result<(), failure::Error>;
+    fn unpack(
+        self: Box<Self>,
+        dest: &Path,
+        progress: &mut FnMut(&(), usize),
+    ) -> Result<(), failure::Error>;
 }
 
 cfg_if! {

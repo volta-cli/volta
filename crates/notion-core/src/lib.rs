@@ -2,21 +2,21 @@
 
 #![cfg_attr(feature = "universal-docs", feature(doc_cfg))]
 
+extern crate cmdline_words_parser;
+extern crate console;
 extern crate indicatif;
+extern crate lazycell;
+extern crate node_archive;
+extern crate readext;
+extern crate reqwest;
+extern crate semver;
+extern crate serde_json;
 extern crate term_size;
 extern crate toml;
-extern crate node_archive;
-extern crate serde_json;
-extern crate console;
-extern crate lazycell;
-extern crate readext;
-extern crate semver;
-extern crate cmdline_words_parser;
-extern crate reqwest;
 
+extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate serde;
 
 extern crate winfolder;
 
@@ -33,9 +33,9 @@ pub mod serial;
 mod plugin;
 mod installer;
 
+extern crate failure;
 #[macro_use]
 extern crate failure_derive;
-extern crate failure;
 #[macro_use]
 extern crate notion_fail;
 

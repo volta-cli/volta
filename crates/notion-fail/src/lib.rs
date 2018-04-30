@@ -282,7 +282,7 @@ extern crate failure_derive;
 use std::convert::{From, Into};
 use std::fmt::{self, Display};
 
-use failure::{Fail, Backtrace};
+use failure::{Backtrace, Fail};
 
 /// A temporary polyfill for `throw!` until the new `failure` library includes it.
 #[macro_export]
@@ -312,7 +312,7 @@ pub struct NotionError {
     user_friendly: bool,
 
     /// The result of `error.exit_code()`.
-    exit_code: i32
+    exit_code: i32,
 }
 
 impl NotionError {
@@ -341,10 +341,14 @@ impl NotionError {
     }
 
     /// Indicates whether this error has a message suitable for reporting to an end-user.
-    pub fn is_user_friendly(&self) -> bool { self.user_friendly }
+    pub fn is_user_friendly(&self) -> bool {
+        self.user_friendly
+    }
 
     /// Returns the process exit code that should be returned if the process exits with this error.
-    pub fn exit_code(&self) -> i32 { self.exit_code }
+    pub fn exit_code(&self) -> i32 {
+        self.exit_code
+    }
 }
 
 impl<T: NotionFail> From<T> for NotionError {
@@ -354,7 +358,7 @@ impl<T: NotionFail> From<T> for NotionError {
         NotionError {
             error: failure.into(),
             user_friendly,
-            exit_code
+            exit_code,
         }
     }
 }
@@ -365,8 +369,9 @@ impl<T: NotionFail> From<T> for NotionError {
 pub trait FailExt {
     fn unknown(self) -> NotionError;
     fn with_context<F, D>(self, f: F) -> NotionError
-        where F: FnOnce(&Self) -> D,
-              D: NotionFail;
+    where
+        F: FnOnce(&Self) -> D,
+        D: NotionFail;
 }
 
 /// An extension trait for `Result` values, allowing conversion of third-party errors
@@ -378,14 +383,15 @@ pub trait ResultExt<T, E> {
     /// Wrap any error-producing result in a higher-layer error-producing result, pushing
     /// the lower-layer error onto the cause chain.
     fn with_context<F, D>(self, f: F) -> Result<T, NotionError>
-        where F: FnOnce(&E) -> D,
-              D: NotionFail;
+    where
+        F: FnOnce(&E) -> D,
+        D: NotionFail;
 }
 
 /// A wrapper type for unknown errors.
 #[derive(Debug)]
 struct UnknownNotionError {
-    error: failure::Error
+    error: failure::Error,
 }
 
 impl Display for UnknownNotionError {
@@ -405,8 +411,12 @@ impl Fail for UnknownNotionError {
 }
 
 impl NotionFail for UnknownNotionError {
-    fn is_user_friendly(&self) -> bool { false }
-    fn exit_code(&self) -> i32 { 1 }
+    fn is_user_friendly(&self) -> bool {
+        false
+    }
+    fn exit_code(&self) -> i32 {
+        1
+    }
 }
 
 impl<E: Into<failure::Error>> FailExt for E {
@@ -415,8 +425,9 @@ impl<E: Into<failure::Error>> FailExt for E {
     }
 
     fn with_context<F, D>(self, f: F) -> NotionError
-        where F: FnOnce(&Self) -> D,
-              D: NotionFail
+    where
+        F: FnOnce(&Self) -> D,
+        D: NotionFail,
     {
         let display = f(&self);
         let error: failure::Error = self.into();
@@ -427,18 +438,15 @@ impl<E: Into<failure::Error>> FailExt for E {
 
 impl<T, E: Into<failure::Error>> ResultExt<T, E> for Result<T, E> {
     fn unknown(self) -> Result<T, NotionError> {
-        self.map_err(|err| {
-            UnknownNotionError { error: err.into() }.into()
-        })
+        self.map_err(|err| UnknownNotionError { error: err.into() }.into())
     }
 
     fn with_context<F, D>(self, f: F) -> Result<T, NotionError>
-        where F: FnOnce(&E) -> D,
-              D: NotionFail
+    where
+        F: FnOnce(&E) -> D,
+        D: NotionFail,
     {
-        self.map_err(|err| {
-            err.with_context(f)
-        })
+        self.map_err(|err| err.with_context(f))
     }
 }
 

@@ -6,7 +6,7 @@ use notion_fail::Fallible;
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
-    pub node: Option<NodeConfig>
+    pub node: Option<NodeConfig>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -15,7 +15,7 @@ pub struct NodeConfig {
     pub resolve: Option<Plugin>,
 
     #[serde(rename = "ls-remote")]
-    pub ls_remote: Option<Plugin>
+    pub ls_remote: Option<Plugin>,
 }
 
 impl Config {
@@ -25,7 +25,7 @@ impl Config {
                 Some(n.into_node_config()?)
             } else {
                 None
-            }
+            },
         })
     }
 }
@@ -42,7 +42,7 @@ impl NodeConfig {
                 Some(p.into_ls_remote()?)
             } else {
                 None
-            }
+            },
         })
     }
 }

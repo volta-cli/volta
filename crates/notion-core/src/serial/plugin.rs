@@ -1,12 +1,12 @@
 use super::super::plugin;
 
-use notion_fail::{Fallible, FailExt, ResultExt};
+use notion_fail::{FailExt, Fallible, ResultExt};
 use semver::Version;
 
 #[derive(Serialize, Deserialize)]
 pub struct Plugin {
     url: Option<String>,
-    bin: Option<String>
+    bin: Option<String>,
 }
 
 #[derive(Fail, Debug)]
@@ -19,22 +19,27 @@ struct NeitherUrlNorBin;
 
 impl Plugin {
     fn into_plugin<T, U, B>(self, to_url: U, to_bin: B) -> Fallible<T>
-      where U: FnOnce(String) -> T,
-            B: FnOnce(String) -> T
+    where
+        U: FnOnce(String) -> T,
+        B: FnOnce(String) -> T,
     {
         match self {
-            Plugin { url: Some(_), bin: Some(_) } => {
-                Err(BothUrlAndBin.unknown())
-            }
-            Plugin { url: Some(url), bin: None } => {
-                Ok(to_url(url))
-            }
-            Plugin { url: None, bin: Some(bin) } => {
-                Ok(to_bin(bin))
-            }
-            Plugin { url: None, bin: None } => {
-                Err(NeitherUrlNorBin.unknown())
-            }
+            Plugin {
+                url: Some(_),
+                bin: Some(_),
+            } => Err(BothUrlAndBin.unknown()),
+            Plugin {
+                url: Some(url),
+                bin: None,
+            } => Ok(to_url(url)),
+            Plugin {
+                url: None,
+                bin: Some(bin),
+            } => Ok(to_bin(bin)),
+            Plugin {
+                url: None,
+                bin: None,
+            } => Err(NeitherUrlNorBin.unknown()),
         }
     }
 
@@ -51,7 +56,7 @@ impl Plugin {
 pub struct ResolveResponse {
     version: String,
     url: Option<String>,
-    stream: Option<bool>
+    stream: Option<bool>,
 }
 
 #[derive(Fail, Debug)]
@@ -69,21 +74,36 @@ struct FalseStream;
 impl ResolveResponse {
     pub fn into_resolve_response(self) -> Fallible<plugin::ResolveResponse> {
         match self {
-            ResolveResponse { url: Some(_), stream: Some(_), .. } => {
-                Err(BothUrlAndStream.unknown())
-            }
-            ResolveResponse { url: None, stream: None, .. } => {
-                Err(NeitherUrlNorStream.unknown())
-            }
-            ResolveResponse { url: None, stream: Some(false), .. } => {
-                Err(FalseStream.unknown())
-            }
-            ResolveResponse { url: Some(url), stream: None, version } => {
-                Ok(plugin::ResolveResponse::Url { url, version: Version::parse(&version).unknown()? })
-            }
-            ResolveResponse { url: None, stream: Some(true), version } => {
-                Ok(plugin::ResolveResponse::Stream { version: Version::parse(&version).unknown()? })
-            }
+            ResolveResponse {
+                url: Some(_),
+                stream: Some(_),
+                ..
+            } => Err(BothUrlAndStream.unknown()),
+            ResolveResponse {
+                url: None,
+                stream: None,
+                ..
+            } => Err(NeitherUrlNorStream.unknown()),
+            ResolveResponse {
+                url: None,
+                stream: Some(false),
+                ..
+            } => Err(FalseStream.unknown()),
+            ResolveResponse {
+                url: Some(url),
+                stream: None,
+                version,
+            } => Ok(plugin::ResolveResponse::Url {
+                url,
+                version: Version::parse(&version).unknown()?,
+            }),
+            ResolveResponse {
+                url: None,
+                stream: Some(true),
+                version,
+            } => Ok(plugin::ResolveResponse::Stream {
+                version: Version::parse(&version).unknown()?,
+            }),
         }
     }
 }

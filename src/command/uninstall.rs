@@ -2,17 +2,17 @@ use notion_core::session::Session;
 use notion_fail::{Fallible, ResultExt};
 use semver::Version;
 
-use ::Notion;
+use Notion;
 use command::{Command, CommandName, Help};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
-    arg_version: String
+    arg_version: String,
 }
 
 pub(crate) enum Uninstall {
     Help,
-    Default(Version)
+    Default(Version),
 }
 
 impl Command for Uninstall {
@@ -29,7 +29,9 @@ Options:
     -h, --help     Display this message
 ";
 
-    fn help() -> Self { Uninstall::Help }
+    fn help() -> Self {
+        Uninstall::Help
+    }
 
     fn parse(_: Notion, Args { arg_version }: Args) -> Fallible<Self> {
         let version = Version::parse(&arg_version).unknown()?;
@@ -38,9 +40,7 @@ Options:
 
     fn run(self) -> Fallible<bool> {
         match self {
-            Uninstall::Help => {
-                Help::Command(CommandName::Uninstall).run()
-            }
+            Uninstall::Help => Help::Command(CommandName::Uninstall).run(),
             Uninstall::Default(version) => {
                 let mut session = Session::new()?;
                 session.catalog_mut()?.uninstall_node(&version)?;
@@ -48,5 +48,4 @@ Options:
             }
         }
     }
-
 }

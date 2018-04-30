@@ -14,7 +14,7 @@ fn is_node_root(dir: &Path) -> bool {
 }
 
 fn is_node_modules(dir: &Path) -> bool {
-   dir.file_name() == Some(OsStr::new("node_modules"))
+    dir.file_name() == Some(OsStr::new("node_modules"))
 }
 
 fn is_dependency(dir: &Path) -> bool {
@@ -27,11 +27,10 @@ fn is_project_root(dir: &Path) -> bool {
 
 /// A Node project tree in the filesystem.
 pub struct Project {
-    manifest: Manifest
+    manifest: Manifest,
 }
 
 impl Project {
-
     /// Returns the Node project containing the current working directory,
     /// if any.
     pub fn for_current_dir() -> Fallible<Option<Project>> {
@@ -40,18 +39,20 @@ impl Project {
         while !is_project_root(dir) {
             dir = match dir.parent() {
                 Some(parent) => parent,
-                None => { return Ok(None); }
+                None => {
+                    return Ok(None);
+                }
             }
         }
 
         let manifest = match Manifest::for_dir(&dir)? {
             Some(manifest) => manifest,
-            None => { return Ok(None); }
+            None => {
+                return Ok(None);
+            }
         };
 
-        Ok(Some(Project {
-            manifest: manifest
-        }))
+        Ok(Some(Project { manifest: manifest }))
     }
 
     /// Returns the project manifest (`package.json`) for this project.

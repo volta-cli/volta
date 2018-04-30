@@ -17,16 +17,14 @@ pub struct Manifest {
     /// The requested version of Yarn, under the `notion.yarn` key.
     pub yarn: Option<VersionReq>,
     /// The `dependencies` section.
-    pub dependencies: HashMap<String, String>
+    pub dependencies: HashMap<String, String>,
 }
 
 impl Manifest {
-
     /// Loads and parses a Node manifest for the project rooted at the specified path.
     pub fn for_dir(project_root: &Path) -> Fallible<Option<Manifest>> {
         let file = File::open(project_root.join("package.json")).unknown()?;
         let serial: serial::manifest::Manifest = serde_json::de::from_reader(file).unknown()?;
         serial.into_manifest()
     }
-
 }
