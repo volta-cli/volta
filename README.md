@@ -9,9 +9,8 @@
 First-time setup (this will get automated more):
 ```sh
 $ cargo build --release
-$ cd support/unix
-$ ./build.sh ../../target/release/notion ../../target/release/node ../../target/release/launchbin ../../target/release/launchscript
-$ ./install.sh
+$ ./support/unix/build.sh
+$ ./support/unix/install.sh
 ```
 The first time you install, you'll need to open a new terminal to start using Notion.
 
