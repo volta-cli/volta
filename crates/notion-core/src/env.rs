@@ -13,7 +13,7 @@ use path;
 pub fn path_for(version: &str) -> OsString {
     let current = env::var_os("PATH").unwrap_or(OsString::new());
     let shim_dir = &path::shim_dir().unwrap();
-    let split = env::split_paths(&current).filter(|s| { s != shim_dir });
+    let split = env::split_paths(&current).filter(|s| s != shim_dir);
     let mut path_vec: Vec<PathBuf> = Vec::new();
     path_vec.push(path::node_version_bin_dir(version).unwrap());
     path_vec.extend(split);

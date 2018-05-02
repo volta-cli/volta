@@ -107,6 +107,7 @@ install:
   - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
   - rustc -vV
   - cargo -vV
+  - rustup component add rustfmt-preview
 
 ## Build Script ##
 
@@ -118,4 +119,5 @@ build: false
 #directly or perform other testing commands. Rust will automatically be placed in the PATH
 # environment variable.
 test_script:
+  - cargo fmt -- --write-mode=diff
   - cargo test --verbose %cargoflags%

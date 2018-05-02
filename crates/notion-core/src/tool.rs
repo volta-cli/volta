@@ -2,12 +2,12 @@
 
 use std::env::{args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
-use std::process::{Command, exit};
+use std::process::{exit, Command};
 use std::path::Path;
 use std::marker::Sized;
 
 use session::Session;
-use notion_fail::{NotionFail, FailExt, Fallible};
+use notion_fail::{FailExt, Fallible, NotionFail};
 use env;
 use style;
 
@@ -82,7 +82,9 @@ impl Tool for Script {
         Script(command)
     }
 
-    fn command(self) -> Command { self.0 }
+    fn command(self) -> Command {
+        self.0
+    }
 }
 
 fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
@@ -102,7 +104,9 @@ impl Tool for Script {
         Script(command_for(exe, args, path_var))
     }
 
-    fn command(self) -> Command { self.0 }
+    fn command(self) -> Command {
+        self.0
+    }
 }
 
 impl Tool for Binary {
@@ -114,7 +118,9 @@ impl Tool for Binary {
         Binary(command_for(exe, args, path_var))
     }
 
-    fn command(self) -> Command { self.0 }
+    fn command(self) -> Command {
+        self.0
+    }
 }
 
 #[derive(Fail, Debug)]
@@ -122,10 +128,11 @@ impl Tool for Binary {
 struct NoArg0Error;
 
 fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
-    let opt = args.next()
-        .and_then(|arg0| Path::new(&arg0)
+    let opt = args.next().and_then(|arg0| {
+        Path::new(&arg0)
             .file_name()
-            .map(|file_name| file_name.to_os_string()));
+            .map(|file_name| file_name.to_os_string())
+    });
     if let Some(file_name) = opt {
         Ok(file_name)
     } else {
@@ -138,8 +145,12 @@ fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
 struct NoGlobalError;
 
 impl NotionFail for NoGlobalError {
-    fn is_user_friendly(&self) -> bool { true }
-    fn exit_code(&self) -> i32 { 2 }
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        2
+    }
 }
 
 impl Tool for Node {
@@ -160,5 +171,7 @@ impl Tool for Node {
         Node(command_for(exe, args, path_var))
     }
 
-    fn command(self) -> Command { self.0 }
+    fn command(self) -> Command {
+        self.0
+    }
 }

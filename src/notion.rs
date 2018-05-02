@@ -1,15 +1,15 @@
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
-extern crate notion_core;
-extern crate docopt;
 extern crate console;
+extern crate docopt;
 extern crate failure;
 #[macro_use]
 extern crate failure_derive;
+extern crate notion_core;
 #[macro_use]
 extern crate notion_fail;
 extern crate semver;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 
 mod command;
 mod error;
@@ -22,7 +22,7 @@ use docopt::Docopt;
 use notion_core::style::{display_error, display_unknown_error};
 use notion_fail::{FailExt, Fallible};
 
-use command::{Command, CommandName, Use, Help, Version, Current, Install, Uninstall};
+use command::{Command, CommandName, Current, Help, Install, Uninstall, Use, Version};
 use error::{CliParseError, DocoptExt, NotionErrorExt};
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -32,17 +32,16 @@ struct Args {
     arg_command: Option<CommandName>,
     arg_args: Vec<String>,
     flag_version: bool,
-    flag_verbose: bool
+    flag_verbose: bool,
 }
 
 pub(crate) struct Notion {
     command: CommandName,
     args: Vec<String>,
-    verbose: bool
+    verbose: bool,
 }
 
 impl Notion {
-
     pub(crate) const USAGE: &'static str = "
 Notion: the hassle-free Node.js manager
 
@@ -69,7 +68,9 @@ See 'notion help <command>' for more information on a specific command.
 
     // This isn't used yet but we can use it for verbose mode in the future.
     #[allow(dead_code)]
-    pub(crate) fn verbose(&self) -> bool { self.verbose }
+    pub(crate) fn verbose(&self) -> bool {
+        self.verbose
+    }
 
     pub(crate) fn full_argv(&self) -> Vec<String> {
         let mut argv = vec![String::from("notion"), self.command.to_string()];
@@ -85,33 +86,41 @@ See 'notion help <command>' for more information on a specific command.
     fn parse() -> Fallible<Notion> {
         let mut command_string: Option<String> = None;
 
-        let args: Result<Args, docopt::Error> = Docopt::new(Notion::USAGE)
-            .and_then(|d| d.options_first(true)
-                           .version(Some(String::from(VERSION)))
-                           .parse()
-                           .and_then(|vals| {
-                               {
-                                   // Save the value of the <command> argument for error reporting.
-                                   let command = vals.get_str("<command>");
-                                   if command != "" {
-                                       command_string = Some(command.to_string());
-                                   }
-                               }
-                               vals.deserialize()
-                           }));
+        let args: Result<Args, docopt::Error> = Docopt::new(Notion::USAGE).and_then(|d| {
+            d.options_first(true)
+                .version(Some(String::from(VERSION)))
+                .parse()
+                .and_then(|vals| {
+                    {
+                        // Save the value of the <command> argument for error reporting.
+                        let command = vals.get_str("<command>");
+                        if command != "" {
+                            command_string = Some(command.to_string());
+                        }
+                    }
+                    vals.deserialize()
+                })
+        });
 
         Ok(match args {
             // Normalize the default `notion` command as `notion help`.
-            Ok(Args { arg_command: None, .. }) => Notion {
+            Ok(Args {
+                arg_command: None, ..
+            }) => Notion {
                 command: CommandName::Help,
                 args: vec![],
-                verbose: false
+                verbose: false,
             },
 
-            Ok(Args { arg_command: Some(cmd), arg_args, flag_verbose, .. }) => Notion {
+            Ok(Args {
+                arg_command: Some(cmd),
+                arg_args,
+                flag_verbose,
+                ..
+            }) => Notion {
                 command: cmd,
                 args: arg_args,
-                verbose: flag_verbose
+                verbose: flag_verbose,
             },
 
             Err(err) => {
@@ -121,20 +130,18 @@ See 'notion help <command>' for more information on a specific command.
                     Notion {
                         command: CommandName::Help,
                         args: vec![],
-                        verbose: false
+                        verbose: false,
                     }
                 }
-
                 // Docopt models `-V` and `--version` as errors, so this
                 // normalizes them to a normal `notion version` command.
                 else if err.is_version() {
                     Notion {
                         command: CommandName::Version,
                         args: vec![],
-                        verbose: false
+                        verbose: false,
                     }
                 }
-
                 // The only type that gets deserialized is CommandName. If
                 // the command name is not one of the expected set, we get
                 // an Error::Deserialize.
@@ -145,10 +152,9 @@ See 'notion help <command>' for more information on a specific command.
                             format!("no such command: `{}`", command)
                         } else {
                             format!("invalid command")
-                        }
+                        },
                     });
                 }
-
                 // Otherwise the other docopt error messages are pretty
                 // reasonable, so just wrap and then rethrow.
                 else {
@@ -160,23 +166,22 @@ See 'notion help <command>' for more information on a specific command.
 
     fn run(self) -> Fallible<bool> {
         match self.command {
-            CommandName::Install   => Install::go(self),
+            CommandName::Install => Install::go(self),
             CommandName::Uninstall => Uninstall::go(self),
-            CommandName::Use       => Use::go(self),
-            CommandName::Current   => Current::go(self),
-            CommandName::Help      => Help::go(self),
-            CommandName::Version   => Version::go(self),
+            CommandName::Use => Use::go(self),
+            CommandName::Current => Current::go(self),
+            CommandName::Help => Help::go(self),
+            CommandName::Version => Version::go(self),
         }
     }
-
 }
 
 /// The entry point for the `notion` CLI.
 pub fn main() {
     let exit_code = match Notion::go() {
-        Ok(true)  => { 0 }
-        Ok(false) => { 1 }
-        Err(err)  => {
+        Ok(true) => 0,
+        Ok(false) => 1,
+        Err(err) => {
             if err.is_user_friendly() {
                 display_error(&err);
             } else {

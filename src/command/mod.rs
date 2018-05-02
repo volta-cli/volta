@@ -17,7 +17,7 @@ use serde::de::DeserializeOwned;
 
 use notion_fail::{FailExt, Fallible};
 
-use {Notion, DocoptExt, CliParseError};
+use {CliParseError, DocoptExt, Notion};
 
 use std::fmt::{self, Display};
 use std::str::FromStr;
@@ -30,19 +30,23 @@ pub(crate) enum CommandName {
     Use,
     Current,
     Help,
-    Version
+    Version,
 }
 
 impl Display for CommandName {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(fmt, "{}", match *self {
-            CommandName::Install   => "install",
-            CommandName::Uninstall => "uninstall",
-            CommandName::Use       => "use",
-            CommandName::Current   => "current",
-            CommandName::Help      => "help",
-            CommandName::Version   => "version"
-        })
+        write!(
+            fmt,
+            "{}",
+            match *self {
+                CommandName::Install => "install",
+                CommandName::Uninstall => "uninstall",
+                CommandName::Use => "use",
+                CommandName::Current => "current",
+                CommandName::Help => "help",
+                CommandName::Version => "version",
+            }
+        )
     }
 }
 
@@ -51,12 +55,12 @@ impl FromStr for CommandName {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
-            "install"   => CommandName::Install,
+            "install" => CommandName::Install,
             "uninstall" => CommandName::Uninstall,
-            "use"       => CommandName::Use,
-            "current"   => CommandName::Current,
-            "help"      => CommandName::Help,
-            "version"   => CommandName::Version,
+            "use" => CommandName::Use,
+            "current" => CommandName::Current,
+            "help" => CommandName::Help,
+            "version" => CommandName::Version,
             _ => {
                 throw!(());
             }
@@ -89,20 +93,16 @@ pub(crate) trait Command: Sized {
     /// this command with the arguments taken from the Notion invocation.
     fn go(notion: Notion) -> Fallible<bool> {
         let argv = notion.full_argv();
-        let args = Docopt::new(Self::USAGE)
-            .and_then(|d| d.argv(argv).deserialize());
+        let args = Docopt::new(Self::USAGE).and_then(|d| d.argv(argv).deserialize());
 
         match args {
-            Ok(args) => {
-                Self::parse(notion, args)?.run()
-            }
+            Ok(args) => Self::parse(notion, args)?.run(),
             Err(err) => {
                 // Docopt models `-h` and `--help` as errors, so this
                 // normalizes them to a normal `notion help` command.
                 if err.is_help() {
                     Self::help().run()
                 }
-
                 // Otherwise it's a true docopt error, so rethrow it.
                 else {
                     throw!(err.with_context(CliParseError::from_docopt));

@@ -25,15 +25,21 @@ pub fn display_unknown_error() {
     eprintln!("Notion is still a pre-alpha project, so we expect to run into some bugs,");
     eprintln!("but we'd love to hear about them so we can fix them!");
     eprintln!();
-    eprintln!("Please feel free to reach out to us at {} on Twitter or file an issue at:", style("@notionjs").cyan().bold());
+    eprintln!(
+        "Please feel free to reach out to us at {} on Twitter or file an issue at:",
+        style("@notionjs").cyan().bold()
+    );
     eprintln!();
-    eprintln!("    {}", style("https://github.com/notion-cli/notion/issues").bold());
+    eprintln!(
+        "    {}",
+        style("https://github.com/notion-cli/notion/issues").bold()
+    );
     eprintln!();
 }
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
 pub enum Action {
-    Installing
+    Installing,
 }
 
 impl Action {
@@ -43,7 +49,7 @@ impl Action {
 impl Display for Action {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         let s = match self {
-            &Action::Installing => "Installing"
+            &Action::Installing => "Installing",
         };
         f.write_str(s)
     }
@@ -65,10 +71,20 @@ pub fn progress_bar(action: Action, details: &str, len: u64) -> ProgressBar {
 
     let bar = ProgressBar::new(len);
 
-    bar.set_message(&format!("{: >width$} {}", style(action.to_string()).green().bold(), details, width = Action::MAX_WIDTH));
-    bar.set_style(ProgressStyle::default_bar()
-        .template(&format!("{{msg}}  [{{bar:{}.cyan/blue}}] {{percent:>3}}%", bar_width))
-        .progress_chars("=> "));
+    bar.set_message(&format!(
+        "{: >width$} {}",
+        style(action.to_string()).green().bold(),
+        details,
+        width = Action::MAX_WIDTH
+    ));
+    bar.set_style(
+        ProgressStyle::default_bar()
+            .template(&format!(
+                "{{msg}}  [{{bar:{}.cyan/blue}}] {{percent:>3}}%",
+                bar_width
+            ))
+            .progress_chars("=> "),
+    );
 
     bar
 }
@@ -80,8 +96,7 @@ pub fn progress_spinner(message: &str) -> ProgressBar {
     let spinner = ProgressBar::new_spinner();
 
     spinner.set_message(message);
-    spinner.set_style(ProgressStyle::default_spinner()
-        .template("{spinner} {msg}"));
+    spinner.set_style(ProgressStyle::default_spinner().template("{spinner} {msg}"));
     spinner.enable_steady_tick(20); // tick the spinner every 20ms
 
     spinner

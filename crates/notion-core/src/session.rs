@@ -20,17 +20,16 @@ use semver::{Version, VersionReq};
 pub struct Session {
     config: LazyConfig,
     catalog: LazyCatalog,
-    project: Option<Project>
+    project: Option<Project>,
 }
 
 impl Session {
-
     /// Constructs a new `Session`.
     pub fn new() -> Fallible<Session> {
         Ok(Session {
             config: LazyConfig::new(),
             catalog: LazyCatalog::new(),
-            project: Project::for_current_dir()?
+            project: Project::for_current_dir()?,
         })
     }
 

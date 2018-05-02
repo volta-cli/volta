@@ -14,6 +14,8 @@ jobs:
     - stage: test
       rust: stable
       script: |
+        rustup component add rustfmt-preview &&
+        cargo fmt -- --write-mode=diff &&
         cargo test
     - stage: publish
       # Conditional builds: https://docs.travis-ci.com/user/conditional-builds-stages-jobs/

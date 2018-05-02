@@ -8,7 +8,7 @@ pub mod index;
 pub mod version;
 
 use std::path::Path;
-use std::fs::{File, create_dir_all};
+use std::fs::{create_dir_all, File};
 
 use notion_fail::{Fallible, ResultExt};
 

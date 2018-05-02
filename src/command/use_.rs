@@ -8,7 +8,7 @@ use notion_core::session::Session;
 use notion_core::serial::version::parse_requirements;
 use notion_fail::Fallible;
 
-use ::Notion;
+use Notion;
 use command::{Command, CommandName, Help};
 
 use std::process::exit;
@@ -16,13 +16,13 @@ use std::process::exit;
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
     arg_version: String,
-    flag_global: bool
+    flag_global: bool,
 }
 
 pub(crate) enum Use {
     Help,
     Global(VersionReq),
-    Local(VersionReq)
+    Local(VersionReq),
 }
 
 impl Command for Use {
@@ -40,9 +40,17 @@ Options:
     -g, --global   Activate the toolchain globally
 ";
 
-    fn help() -> Self { Use::Help }
+    fn help() -> Self {
+        Use::Help
+    }
 
-    fn parse(_: Notion, Args { arg_version, flag_global }: Args) -> Fallible<Self> {
+    fn parse(
+        _: Notion,
+        Args {
+            arg_version,
+            flag_global,
+        }: Args,
+    ) -> Fallible<Self> {
         let requirements = parse_requirements(&arg_version)?;
         Ok(if flag_global {
             Use::Global(requirements)

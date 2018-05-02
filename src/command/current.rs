@@ -3,20 +3,20 @@ use std::string::ToString;
 use notion_core::session::Session;
 use notion_fail::Fallible;
 
-use ::Notion;
+use Notion;
 use command::{Command, CommandName, Help};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
     flag_local: bool,
-    flag_global: bool
+    flag_global: bool,
 }
 
 pub(crate) enum Current {
     Help,
     Local,
     Global,
-    All
+    All,
 }
 
 impl Command for Current {
@@ -34,9 +34,17 @@ Options:
     -g, --global   Display global toolchain
 ";
 
-    fn help() -> Self { Current::Help }
+    fn help() -> Self {
+        Current::Help
+    }
 
-    fn parse(_: Notion, Args { flag_local, flag_global }: Args) -> Fallible<Current> {
+    fn parse(
+        _: Notion,
+        Args {
+            flag_local,
+            flag_global,
+        }: Args,
+    ) -> Fallible<Current> {
         Ok(if !flag_local && flag_global {
             Current::Local
         } else if flag_local && !flag_global {
@@ -50,19 +58,17 @@ Options:
         let session = Session::new()?;
 
         match self {
-            Current::Help => {
-                Help::Command(CommandName::Current).run()
-            }
-            Current::Local => {
-                Ok(local(&session)?
-                    .map(|version| { println!("v{}", version); })
-                    .is_some())
-            }
-            Current::Global => {
-                Ok(global(&session)?
-                    .map(|version| { println!("v{}", version); })
-                    .is_some())
-            }
+            Current::Help => Help::Command(CommandName::Current).run(),
+            Current::Local => Ok(local(&session)?
+                .map(|version| {
+                    println!("v{}", version);
+                })
+                .is_some()),
+            Current::Global => Ok(global(&session)?
+                .map(|version| {
+                    println!("v{}", version);
+                })
+                .is_some()),
             Current::All => {
                 let (local, global) = (local(&session)?, global(&session)?);
                 let global_active = local.is_none() && global.is_some();
@@ -71,20 +77,25 @@ Options:
                     println!("local: v{} (active)", version);
                 }
                 for version in global {
-                    println!("global: v{}{}", version, if global_active { " (active)" } else { "" });
+                    println!(
+                        "global: v{}{}",
+                        version,
+                        if global_active { " (active)" } else { "" }
+                    );
                 }
                 Ok(any)
             }
         }
     }
-
 }
 
 fn local(session: &Session) -> Fallible<Option<String>> {
     let project = session.project();
     let project = match project {
         Some(ref project) => project,
-        None => { return Ok(None); }
+        None => {
+            return Ok(None);
+        }
     };
 
     let req = &project.manifest().node;

@@ -19,13 +19,13 @@ pub struct Manifest {
     #[serde(rename = "devDependencies")]
     pub dev_dependencies: HashMap<String, String>,
 
-    pub notion: Option<NotionManifest>
+    pub notion: Option<NotionManifest>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct NotionManifest {
     pub node: String,
-    pub yarn: Option<String>
+    pub yarn: Option<String>,
 }
 
 impl Manifest {
@@ -38,7 +38,7 @@ impl Manifest {
                 } else {
                     None
                 },
-                dependencies: self.dependencies
+                dependencies: self.dependencies,
             }));
         }
 

@@ -1,8 +1,8 @@
 //! Provides types for working with Notion's local _catalog_, the local repository
 //! of available tool versions.
 
-use std::collections::{HashSet, BTreeSet, BTreeMap};
-use std::fs::{File, remove_dir_all};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::fs::{remove_dir_all, File};
 use std::io::{self, Write};
 use std::str::FromStr;
 use std::string::ToString;
@@ -14,7 +14,7 @@ use toml;
 
 use path::{self, user_catalog_file};
 use serial::touch;
-use notion_fail::{Fallible, NotionError, FailExt, ResultExt};
+use notion_fail::{FailExt, Fallible, NotionError, ResultExt};
 use semver::{Version, VersionReq};
 use installer::Installed;
 use installer::node::Installer;
@@ -27,15 +27,14 @@ const PUBLIC_NODE_VERSION_INDEX: &'static str = "https://nodejs.org/dist/index.j
 
 /// Lazily loaded tool catalog.
 pub struct LazyCatalog {
-    catalog: LazyCell<Catalog>
+    catalog: LazyCell<Catalog>,
 }
 
 impl LazyCatalog {
-
     /// Constructs a new `LazyCatalog`.
     pub fn new() -> LazyCatalog {
         LazyCatalog {
-            catalog: LazyCell::new()
+            catalog: LazyCell::new(),
         }
     }
 
@@ -48,12 +47,11 @@ impl LazyCatalog {
     pub fn get_mut(&mut self) -> Fallible<&mut Catalog> {
         self.catalog.try_borrow_mut_with(|| Catalog::current())
     }
-
 }
 
 /// The catalog of tool versions available locally.
 pub struct Catalog {
-    pub node: NodeCatalog
+    pub node: NodeCatalog,
 }
 
 /// The catalog of Node versions available locally.
@@ -62,11 +60,10 @@ pub struct NodeCatalog {
     pub activated: Option<Version>,
 
     // A sorted collection of the available versions in the catalog.
-    pub versions: BTreeSet<Version>
+    pub versions: BTreeSet<Version>,
 }
 
 impl Catalog {
-
     /// Returns the current tool catalog.
     fn current() -> Fallible<Catalog> {
         let path = user_catalog_file()?;
@@ -121,7 +118,8 @@ impl Catalog {
             if !home.is_dir() {
                 Err(io::Error::new(
                     io::ErrorKind::NotFound,
-                    format!("{} is not a directory", home.to_string_lossy()))).unknown()?;
+                    format!("{} is not a directory", home.to_string_lossy()),
+                )).unknown()?;
             }
 
             remove_dir_all(home).unknown()?;
@@ -133,18 +131,16 @@ impl Catalog {
 
         Ok(())
     }
-
 }
 
 /// Thrown when there is no Node version matching a requested semver specifier.
 #[derive(Fail, Debug)]
 #[fail(display = "No Node version found for {}", matching)]
 struct NoNodeVersionFoundError {
-    matching: VersionReq
+    matching: VersionReq,
 }
 
 impl NodeCatalog {
-
     /// Tests whether this Node catalog contains the specified Node version.
     pub fn contains(&self, version: &Version) -> bool {
         self.versions.contains(version)
@@ -153,21 +149,24 @@ impl NodeCatalog {
     /// Resolves the specified semantic versioning requirements from a remote distributor.
     fn resolve_remote(&self, matching: &VersionReq, config: &Config) -> Fallible<Installer> {
         match config.node {
-            Some(NodeConfig { resolve: Some(ref plugin), .. }) => {
-                plugin.resolve(matching)
-            }
-            _ => {
-                self.resolve_public(matching)
-            }
+            Some(NodeConfig {
+                resolve: Some(ref plugin),
+                ..
+            }) => plugin.resolve(matching),
+            _ => self.resolve_public(matching),
         }
     }
 
     /// Resolves the specified semantic versioning requirements from the public distributor (`https://nodejs.org`).
     fn resolve_public(&self, matching: &VersionReq) -> Fallible<Installer> {
-        let spinner = progress_spinner(&format!("Fetching public registry: {}", PUBLIC_NODE_VERSION_INDEX));
-        let serial: serial::index::Index =
-            reqwest::get(PUBLIC_NODE_VERSION_INDEX).unknown()?
-                .json().unknown()?;
+        let spinner = progress_spinner(&format!(
+            "Fetching public registry: {}",
+            PUBLIC_NODE_VERSION_INDEX
+        ));
+        let serial: serial::index::Index = reqwest::get(PUBLIC_NODE_VERSION_INDEX)
+            .unknown()?
+            .json()
+            .unknown()?;
         spinner.finish_and_clear();
         let index = serial.into_index()?;
         let version = index.entries.iter()
@@ -179,7 +178,11 @@ impl NodeCatalog {
         if let Some(version) = version {
             Installer::public(version)
         } else {
-            throw!(NoNodeVersionFoundError { matching: matching.clone() }.unknown());
+            throw!(
+                NoNodeVersionFoundError {
+                    matching: matching.clone(),
+                }.unknown()
+            );
         }
     }
 
@@ -192,17 +195,16 @@ impl NodeCatalog {
             .next()
             .map(|v| v.clone())
     }
-
 }
 
 /// The index of the public Node server.
 pub struct Index {
-    pub entries: BTreeMap<Version, VersionData>
+    pub entries: BTreeMap<Version, VersionData>,
 }
 
 /// The set of available files on the public Node server for a given Node version.
 pub struct VersionData {
-    pub files: HashSet<String>
+    pub files: HashSet<String>,
 }
 
 impl FromStr for Catalog {

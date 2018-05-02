@@ -14,15 +14,14 @@ use plugin;
 
 /// Lazily loaded Notion configuration settings.
 pub struct LazyConfig {
-    config: LazyCell<Config>
+    config: LazyCell<Config>,
 }
 
 impl LazyConfig {
-
     /// Constructs a new `LazyConfig` (but does not initialize it).
     pub fn new() -> LazyConfig {
         LazyConfig {
-            config: LazyCell::new()
+            config: LazyCell::new(),
         }
     }
 
@@ -34,7 +33,7 @@ impl LazyConfig {
 
 /// Notion configuration settings.
 pub struct Config {
-    pub node: Option<NodeConfig>
+    pub node: Option<NodeConfig>,
 }
 
 /// Notion configuration settings relating to the Node executable.
@@ -42,18 +41,16 @@ pub struct NodeConfig {
     /// The plugin for resolving Node versions, if any.
     pub resolve: Option<plugin::Resolve>,
     /// The plugin for listing the set of Node versions available on the remote server, if any.
-    pub ls_remote: Option<plugin::LsRemote>
+    pub ls_remote: Option<plugin::LsRemote>,
 }
 
 impl Config {
-
     /// Returns the current configuration settings, loaded from the filesystem.
     fn current() -> Fallible<Config> {
         let path = user_config_file()?;
         let src = touch(&path)?.read_into_string().unknown()?;
         src.parse()
     }
-
 }
 
 impl FromStr for Config {
