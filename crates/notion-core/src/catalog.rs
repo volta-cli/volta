@@ -12,14 +12,14 @@ use readext::ReadExt;
 use reqwest;
 use toml;
 
-use path::{self, user_catalog_file};
-use serial::touch;
-use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
-use semver::{Version, VersionReq};
+use config::{Config, NodeConfig};
 use installer::Installed;
 use installer::node::Installer;
+use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
+use path::{self, user_catalog_file};
+use semver::{Version, VersionReq};
 use serial;
-use config::{Config, NodeConfig};
+use serial::touch;
 use style::progress_spinner;
 
 /// URL of the index of available Node versions on the public Node server.

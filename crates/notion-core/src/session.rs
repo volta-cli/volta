@@ -2,10 +2,10 @@
 //! execution of a Notion tool, including their configuration, their current
 //! directory, and the state of the local tool catalog.
 
-use config::{Config, LazyConfig};
 use catalog::{Catalog, LazyCatalog};
-use project::Project;
+use config::{Config, LazyConfig};
 use installer::Installed;
+use project::Project;
 
 use notion_fail::Fallible;
 use semver::{Version, VersionReq};

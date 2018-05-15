@@ -1,15 +1,15 @@
+mod current;
+mod help;
 mod install;
 mod uninstall;
-mod current;
 mod use_;
-mod help;
 mod version;
 
+pub(crate) use self::current::Current;
+pub(crate) use self::help::Help;
 pub(crate) use self::install::Install;
 pub(crate) use self::uninstall::Uninstall;
-pub(crate) use self::current::Current;
 pub(crate) use self::use_::Use;
-pub(crate) use self::help::Help;
 pub(crate) use self::version::Version;
 
 use docopt::Docopt;

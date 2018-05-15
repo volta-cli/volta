@@ -289,7 +289,7 @@ use failure::{Backtrace, Fail};
 macro_rules! throw {
     ($e:expr) => {
         return Err(::std::convert::Into::into($e));
-    }
+    };
 }
 
 /// The failure trait for all Notion errors.

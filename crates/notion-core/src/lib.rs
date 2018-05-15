@@ -20,18 +20,18 @@ extern crate serde_derive;
 
 extern crate winfolder;
 
-pub mod path;
-pub mod env;
-pub mod config;
-pub mod tool;
-pub mod project;
-pub mod manifest;
 pub mod catalog;
+pub mod config;
+pub mod env;
+mod installer;
+pub mod manifest;
+pub mod path;
+mod plugin;
+pub mod project;
+pub mod serial;
 pub mod session;
 pub mod style;
-pub mod serial;
-mod plugin;
-mod installer;
+pub mod tool;
 
 extern crate failure;
 #[macro_use]

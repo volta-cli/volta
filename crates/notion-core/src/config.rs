@@ -2,15 +2,15 @@
 
 use std::str::FromStr;
 
-use toml;
 use lazycell::LazyCell;
+use toml;
 
-use path::user_config_file;
 use notion_fail::{Fallible, NotionError, ResultExt};
-use readext::ReadExt;
-use serial::touch;
-use serial;
+use path::user_config_file;
 use plugin;
+use readext::ReadExt;
+use serial;
+use serial::touch;
 
 /// Lazily loaded Notion configuration settings.
 pub struct LazyConfig {

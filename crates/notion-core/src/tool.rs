@@ -2,13 +2,13 @@
 
 use std::env::{args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
-use std::process::{exit, Command};
-use std::path::Path;
 use std::marker::Sized;
+use std::path::Path;
+use std::process::{exit, Command};
 
-use session::Session;
-use notion_fail::{FailExt, Fallible, NotionFail};
 use env;
+use notion_fail::{FailExt, Fallible, NotionFail};
+use session::Session;
 use style;
 
 /// Represents a command-line tool that Notion shims delegate to.

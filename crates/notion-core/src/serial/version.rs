@@ -1,5 +1,5 @@
-use semver::VersionReq;
 use notion_fail::{Fallible, ResultExt};
+use semver::VersionReq;
 
 pub fn parse_requirements(src: &str) -> Fallible<VersionReq> {
     let src = src.trim();
