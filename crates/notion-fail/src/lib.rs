@@ -218,7 +218,7 @@
 //! # extern crate failure_derive;
 //! # extern crate failure;
 //! # use notion_fail::{NotionFail, Fallible};
-//! // add `unknown()` and `with_context()` extension methosd to Results
+//! // add `unknown()` and `with_context()` extension methods to Results
 //! use notion_fail::ResultExt;
 //! # use std::fmt::Display;
 //!
