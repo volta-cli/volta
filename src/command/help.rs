@@ -1,7 +1,7 @@
 use notion_fail::Fallible;
 
-use {CliParseError, Notion};
 use command::{Command, CommandName, Current, Install, Uninstall, Use, Version};
+use {CliParseError, Notion};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {

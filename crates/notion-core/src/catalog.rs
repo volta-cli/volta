@@ -12,14 +12,14 @@ use readext::ReadExt;
 use reqwest;
 use toml;
 
-use path::{self, user_catalog_file};
-use serial::touch;
-use notion_fail::{FailExt, Fallible, NotionError, ResultExt};
-use semver::{Version, VersionReq};
+use config::{Config, NodeConfig};
 use installer::Installed;
 use installer::node::Installer;
+use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
+use path::{self, user_catalog_file};
+use semver::{Version, VersionReq};
 use serial;
-use config::{Config, NodeConfig};
+use serial::touch;
 use style::progress_spinner;
 
 /// URL of the index of available Node versions on the public Node server.
@@ -139,6 +139,14 @@ impl Catalog {
 struct NoNodeVersionFoundError {
     matching: VersionReq,
 }
+impl NotionFail for NoNodeVersionFoundError {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        100
+    }
+}
 
 impl NodeCatalog {
     /// Tests whether this Node catalog contains the specified Node version.
@@ -178,11 +186,9 @@ impl NodeCatalog {
         if let Some(version) = version {
             Installer::public(version)
         } else {
-            throw!(
-                NoNodeVersionFoundError {
-                    matching: matching.clone(),
-                }.unknown()
-            );
+            throw!(NoNodeVersionFoundError {
+                matching: matching.clone(),
+            });
         }
     }
 

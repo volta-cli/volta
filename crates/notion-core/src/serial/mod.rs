@@ -1,14 +1,14 @@
 //! Provides utilities for serializing and deserializing file formats.
 
 pub mod catalog;
-pub mod manifest;
 pub mod config;
-pub mod plugin;
 pub mod index;
+pub mod manifest;
+pub mod plugin;
 pub mod version;
 
-use std::path::Path;
 use std::fs::{create_dir_all, File};
+use std::path::Path;
 
 use notion_fail::{Fallible, ResultExt};
 

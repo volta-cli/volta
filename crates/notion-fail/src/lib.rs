@@ -218,7 +218,7 @@
 //! # extern crate failure_derive;
 //! # extern crate failure;
 //! # use notion_fail::{NotionFail, Fallible};
-//! // add `unknown()` and `with_context()` extension methosd to Results
+//! // add `unknown()` and `with_context()` extension methods to Results
 //! use notion_fail::ResultExt;
 //! # use std::fmt::Display;
 //!
@@ -289,7 +289,7 @@ use failure::{Backtrace, Fail};
 macro_rules! throw {
     ($e:expr) => {
         return Err(::std::convert::Into::into($e));
-    }
+    };
 }
 
 /// The failure trait for all Notion errors.
