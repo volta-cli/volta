@@ -26,6 +26,7 @@ pub struct Manifest {
 pub struct NotionManifest {
     pub node: String,
     pub yarn: Option<String>,
+    pub events_plugin: Option<String>,
 }
 
 impl Manifest {
@@ -39,6 +40,11 @@ impl Manifest {
                     None
                 },
                 dependencies: self.dependencies,
+                events_plugin: if let Some(plugin) = notion.events_plugin {
+                    Some(plugin)
+                } else {
+                    None
+                },
             }));
         }
 

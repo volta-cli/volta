@@ -1,3 +1,4 @@
+use notion_core::session::{ActivityKind, Session};
 use notion_fail::Fallible;
 
 use Notion;
@@ -33,13 +34,16 @@ Options:
         Ok(Version::Default)
     }
 
-    fn run(self) -> Fallible<bool> {
-        match self {
-            Version::Help => Help::Command(CommandName::Version).run(),
+    fn run(self, session: &mut Session) -> Fallible<bool> {
+        session.add_event_start(ActivityKind::Version);
+        let result = match self {
+            Version::Help => Help::Command(CommandName::Version).run(session),
             Version::Default => {
                 println!("{}", ::VERSION);
                 Ok(true)
             }
-        }
+        };
+        session.add_event_end(ActivityKind::Version, None);
+        result
     }
 }

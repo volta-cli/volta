@@ -19,6 +19,7 @@ use std::string::ToString;
 
 use docopt::Docopt;
 
+use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error};
 use notion_fail::{FailExt, Fallible};
 
@@ -79,8 +80,8 @@ See 'notion help <command>' for more information on a specific command.
         argv
     }
 
-    fn go() -> Fallible<bool> {
-        Self::parse()?.run()
+    fn go(session: &mut Session) -> Fallible<bool> {
+        Self::parse()?.run(session)
     }
 
     fn parse() -> Fallible<Notion> {
@@ -164,21 +165,24 @@ See 'notion help <command>' for more information on a specific command.
         })
     }
 
-    fn run(self) -> Fallible<bool> {
+    fn run(self, session: &mut Session) -> Fallible<bool> {
         match self.command {
-            CommandName::Install => Install::go(self),
-            CommandName::Uninstall => Uninstall::go(self),
-            CommandName::Use => Use::go(self),
-            CommandName::Current => Current::go(self),
-            CommandName::Help => Help::go(self),
-            CommandName::Version => Version::go(self),
+            CommandName::Install => Install::go(self, session),
+            CommandName::Uninstall => Uninstall::go(self, session),
+            CommandName::Use => Use::go(self, session),
+            CommandName::Current => Current::go(self, session),
+            CommandName::Help => Help::go(self, session),
+            CommandName::Version => Version::go(self, session),
         }
     }
 }
 
 /// The entry point for the `notion` CLI.
 pub fn main() {
-    let exit_code = match Notion::go() {
+    let mut session = Session::new().unwrap();
+    session.add_event_start(ActivityKind::Notion);
+
+    let exit_code = match Notion::go(&mut session) {
         Ok(true) => 0,
         Ok(false) => 1,
         Err(err) => {
@@ -192,10 +196,12 @@ pub fn main() {
                 eprintln!();
                 eprintln!("{}", usage);
             }
-
+            session.add_event_error(ActivityKind::Notion, &err);
             err.exit_code()
         }
     };
+    session.add_event_end(ActivityKind::Notion, Some(exit_code));
+    session.send_events();
 
     exit(exit_code);
 }

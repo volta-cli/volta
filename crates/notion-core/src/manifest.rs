@@ -18,6 +18,8 @@ pub struct Manifest {
     pub yarn: Option<VersionReq>,
     /// The `dependencies` section.
     pub dependencies: HashMap<String, String>,
+    /// The command to run a plugin for events, under the `notion.events_plugin` key.
+    pub events_plugin: Option<String>,
 }
 
 impl Manifest {

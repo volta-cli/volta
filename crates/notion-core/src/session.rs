@@ -6,9 +6,41 @@ use catalog::{Catalog, LazyCatalog};
 use config::{Config, LazyConfig};
 use installer::Installed;
 use project::Project;
+use std::fmt::{self, Display, Formatter};
 
-use notion_fail::Fallible;
+use event::EventLog;
+use notion_fail::{Fallible, NotionError};
 use semver::{Version, VersionReq};
+
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
+pub enum ActivityKind {
+    Install,
+    Uninstall,
+    Current,
+    Use,
+    Node,
+    Notion,
+    Tool,
+    Help,
+    Version,
+}
+
+impl Display for ActivityKind {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        let s = match self {
+            &ActivityKind::Install => "install",
+            &ActivityKind::Uninstall => "uninstall",
+            &ActivityKind::Current => "current",
+            &ActivityKind::Use => "use",
+            &ActivityKind::Node => "node",
+            &ActivityKind::Notion => "notion",
+            &ActivityKind::Tool => "tool",
+            &ActivityKind::Help => "help",
+            &ActivityKind::Version => "version",
+        };
+        f.write_str(s)
+    }
+}
 
 /// Represents the user's state during an execution of a Notion tool. The session
 /// encapsulates a number of aspects of the environment in which the tool was
@@ -21,6 +53,7 @@ pub struct Session {
     config: LazyConfig,
     catalog: LazyCatalog,
     project: Option<Project>,
+    event_log: EventLog,
 }
 
 impl Session {
@@ -30,6 +63,7 @@ impl Session {
             config: LazyConfig::new(),
             catalog: LazyCatalog::new(),
             project: Project::for_current_dir()?,
+            event_log: EventLog::new()?,
         })
     }
 
@@ -91,5 +125,31 @@ impl Session {
         let catalog = self.catalog.get_mut()?;
         let config = self.config.get()?;
         catalog.activate_node(matching, config)
+    }
+
+    pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
+        self.event_log.add_event_start(activity_kind)
+    }
+    pub fn add_event_end(&mut self, activity_kind: ActivityKind, exit_code: Option<i32>) {
+        self.event_log.add_event_end(activity_kind, exit_code)
+    }
+    pub fn add_event_error(&mut self, activity_kind: ActivityKind, error: &NotionError) {
+        self.event_log.add_event_error(activity_kind, error)
+    }
+
+    // send the events from this session to the monitor
+    pub fn send_events(&mut self) {
+        let command = self.events_command();
+        self.event_log.send_events(command)
+    }
+
+    pub fn events_command(&self) -> Option<String> {
+        if let Some(ref project) = self.project {
+            return match project.manifest().events_plugin {
+                Some(ref p) => Some(p.to_string()),
+                _ => None,
+            };
+        }
+        None
     }
 }

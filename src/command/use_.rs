@@ -5,7 +5,7 @@
 use semver::VersionReq;
 
 use notion_core::serial::version::parse_requirements;
-use notion_core::session::Session;
+use notion_core::session::{ActivityKind, Session};
 use notion_fail::Fallible;
 
 use Notion;
@@ -59,20 +59,21 @@ Options:
         })
     }
 
-    fn run(self) -> Fallible<bool> {
+    fn run(self, session: &mut Session) -> Fallible<bool> {
+        session.add_event_start(ActivityKind::Use);
         match self {
             Use::Help => {
-                Help::Command(CommandName::Use).run()?;
+                Help::Command(CommandName::Use).run(session)?;
             }
             Use::Global(requirements) => {
-                let mut session = Session::new()?;
                 session.activate_node(&requirements)?;
             }
             Use::Local(_) => {
                 println!("not yet implemented; in the meantime you can modify your package.json.");
                 exit(1);
             }
-        }
+        };
+        session.add_event_end(ActivityKind::Use, None);
         Ok(true)
     }
 }

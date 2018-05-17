@@ -1,3 +1,4 @@
+use notion_core::session::{ActivityKind, Session};
 use notion_fail::Fallible;
 
 use command::{Command, CommandName, Current, Install, Uninstall, Use, Version};
@@ -47,7 +48,8 @@ Options:
         })
     }
 
-    fn run(self) -> Fallible<bool> {
+    fn run(self, session: &mut Session) -> Fallible<bool> {
+        session.add_event_start(ActivityKind::Help);
         eprintln!(
             "{}",
             match self {
@@ -60,6 +62,7 @@ Options:
                 Help::Command(CommandName::Uninstall) => Uninstall::USAGE,
             }
         );
+        session.add_event_end(ActivityKind::Help, None);
         Ok(true)
     }
 }
