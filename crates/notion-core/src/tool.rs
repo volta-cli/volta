@@ -17,7 +17,11 @@ pub trait Tool: Sized {
         match Self::new() {
             Ok(tool) => tool.exec(),
             Err(e) => {
-                style::display_error(&e);
+                if e.is_user_friendly() {
+                    style::display_error(&e);
+                } else {
+                    style::display_unknown_error(&e);
+                }
                 exit(1);
             }
         }

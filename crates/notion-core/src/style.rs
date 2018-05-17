@@ -1,8 +1,10 @@
 //! The view layer of Notion, with utilities for styling command-line output.
 
+use std::env;
 use std::fmt::{self, Display, Formatter};
 
 use console::style;
+use failure::Fail;
 use indicatif::{ProgressBar, ProgressStyle};
 use term_size;
 
@@ -18,23 +20,40 @@ pub fn display_error_prefix() {
 }
 
 /// Displays a generic message for internal errors to stderr.
-pub fn display_unknown_error() {
+pub fn display_unknown_error<E: Fail>(err: &E) {
     display_error_prefix();
     eprintln!("an internal error occurred in Notion");
     eprintln!();
-    eprintln!("Notion is still a pre-alpha project, so we expect to run into some bugs,");
-    eprintln!("but we'd love to hear about them so we can fix them!");
-    eprintln!();
-    eprintln!(
-        "Please feel free to reach out to us at {} on Twitter or file an issue at:",
-        style("@notionjs").cyan().bold()
-    );
-    eprintln!();
-    eprintln!(
-        "    {}",
-        style("https://github.com/notion-cli/notion/issues").bold()
-    );
-    eprintln!();
+
+    if env::var("NOTION_DEV").is_ok() {
+        eprintln!("{} {:?}", style("details:").yellow().bold(), err);
+        eprintln!();
+
+        let backtrace = err.backtrace();
+
+        // For now, we require RUST_BACKTRACE for this to work.
+        // See: https://github.com/notion-cli/notion/issues/75
+
+        if backtrace.is_some() && env::var("RUST_BACKTRACE").is_ok() {
+            eprintln!("{:?}", backtrace.unwrap());
+        } else {
+            eprintln!("Run with NOTION_DEV=1 and RUST_BACKTRACE=1 for a backtrace.");
+        }
+    } else {
+        eprintln!("Notion is still a pre-alpha project, so we expect to run into some bugs,");
+        eprintln!("but we'd love to hear about them so we can fix them!");
+        eprintln!();
+        eprintln!(
+            "Please feel free to reach out to us at {} on Twitter or file an issue at:",
+            style("@notionjs").cyan().bold()
+        );
+        eprintln!();
+        eprintln!(
+            "    {}",
+            style("https://github.com/notion-cli/notion/issues").bold()
+        );
+        eprintln!();
+    }
 }
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
