@@ -13,6 +13,14 @@ supplied, no files are changed and a diff is printed if issues are found.
 END_USAGE
 }
 
+run_quiet() {
+  IFS='%' captured=$(script -q /dev/null $@)
+  if [ "$?" -ne 0 ]; then
+    echo $captured 1>&2
+    exit 1
+  fi
+}
+
 CHECK=write-mode=diff
 TOOLCHAIN_VERSION=1.26.0
 
@@ -23,18 +31,7 @@ elif [ -n "$1" ]; then
   extra_arg=--${CHECK}
 fi
 
-IFS='%'
-install_rust_output=$(rustup install ${TOOLCHAIN_VERSION} 2>&1)
-if [ "$?" -ne 0 ]; then
-  echo $install_rust_output 1>&2
-  exit 1
-fi
-
-IFS='%'
-install_rustfmt_output=$(rustup component add --toolchain ${TOOLCHAIN_VERSION} rustfmt-preview 2>&1)
-if [ "$?" -ne 0 ]; then
-  echo $install_rustfmt_output 1>&2
-  exit 1
-fi
+run_quiet rustup install ${TOOLCHAIN_VERSION}
+run_quiet rustup component add --toolchain ${TOOLCHAIN_VERSION} rustfmt-preview
 
 cargo +${TOOLCHAIN_VERSION} fmt -- ${extra_arg}
