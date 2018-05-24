@@ -14,7 +14,7 @@ END_USAGE
 }
 
 run_quiet() {
-  IFS='%' captured=$(script -q /dev/null $@)
+  IFS='%' captured=$($* 2>&1)
   if [ "$?" -ne 0 ]; then
     echo $captured 1>&2
     exit 1
