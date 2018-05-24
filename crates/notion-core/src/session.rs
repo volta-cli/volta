@@ -143,13 +143,11 @@ impl Session {
         self.event_log.send_events(command)
     }
 
+    // get the .notion.events_plugin string from package.json
     pub fn events_command(&self) -> Option<String> {
-        if let Some(ref project) = self.project {
-            return match project.manifest().events_plugin {
-                Some(ref p) => Some(p.to_string()),
-                _ => None,
-            };
-        }
-        None
+        self.project
+            .as_ref()
+            .and_then(|project| project.manifest().events_plugin.as_ref())
+            .map(|plugin| plugin.to_string())
     }
 }

@@ -23,21 +23,18 @@ impl Monitor {
     /// send event to the monitor process
     // if plugin command is not configured, this is a no-op
     pub fn send_events(&mut self, events: &Vec<Event>) -> () {
-        match self.monitor_process {
-            Some(ref mut child_process) => {
-                let p_stdin = child_process.stdin.as_mut().unwrap();
+        if let Some(ref mut child_process) = self.monitor_process {
+            let p_stdin = child_process.stdin.as_mut().unwrap();
 
-                let json = serde_json::to_string(&events);
-                match json {
-                    Ok(data) => {
-                        write!(p_stdin, "{}", data).expect("Writing data to plugin failed!");
-                    }
-                    Err(error) => {
-                        println!("There was a problem serializing the JSON data: {:?}", error);
-                    }
-                };
-            }
-            None => {}
+            let json = serde_json::to_string(&events);
+            match json {
+                Ok(data) => {
+                    write!(p_stdin, "{}", data).expect("Writing data to plugin failed!");
+                }
+                Err(error) => {
+                    println!("There was a problem serializing the JSON data: {:?}", error);
+                }
+            };
         }
     }
 }
@@ -67,25 +64,25 @@ impl LazyMonitor {
 }
 
 fn spawn_process(command: Option<String>) -> Option<Child> {
-    match command {
-        Some(ref cmd) => {
-            // TODO
-            // - split the command and arguments
-            // - run the command with CWD of notion?
-            let child = Command::new(cmd)
-                // .arg()
-                .stdin(Stdio::piped()) // JSON data is sent over stdin
-                // .stdout(Stdio::piped()) // let the plugin write to stdout and stderr, or not?
-                .spawn();
-            match child {
-                Err(err) => {
-                    eprintln!("Error running plugin command: '{}'", cmd);
-                    eprintln!("{}", err);
-                    None
-                }
-                Ok(c) => Some(c),
+    if let Some(ref cmd) = command {
+        // TODO
+        // - split the command and arguments
+        // - run the command with CWD of notion?
+        // https://stackoverflow.com/questions/26643688/how-do-i-split-a-string-in-rust
+
+        let child = Command::new(cmd)
+            // .arg()
+            .stdin(Stdio::piped()) // JSON data is sent over stdin
+            // .stdout(Stdio::piped()) // let the plugin write to stdout and stderr, or not?
+            .spawn();
+        return match child {
+            Err(err) => {
+                eprintln!("Error running plugin command: '{}'", cmd);
+                eprintln!("{}", err);
+                None
             }
+            Ok(c) => Some(c)
         }
-        _ => None,
     }
+    None
 }

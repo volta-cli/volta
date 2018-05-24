@@ -57,16 +57,13 @@ impl EventKind {
         exit_code: Option<i32>,
         error: Option<&NotionError>,
     ) -> Event {
-        let error_str = match error {
-            Some(err) => Some(err.to_string()),
-            None => None,
-        };
+
         Event {
             timestamp: unix_timestamp(),
             name: activity_kind.to_string(),
             event: self.to_string(),
             exit_code: exit_code,
-            error: error_str,
+            error: error.map(|e| e.to_string()),
             env: get_error_env(error),
         }
     }
@@ -83,32 +80,30 @@ fn unix_timestamp() -> u64 {
 }
 
 fn get_error_env(error: Option<&NotionError>) -> Option<ErrorEnv> {
-    match error {
-        Some(_) => {
-            let path = match env::var("PATH") {
-                Ok(p) => p,
-                Err(_e) => "error: Unable to get path from envirnoment".to_string(),
-            };
-            let argv = env::args().collect::<Vec<String>>().join(" ");
-            let exec_path = match env::current_exe() {
-                Ok(ep) => ep.display().to_string(),
-                Err(_e) => "error: Unable to get executable path from envirnoment".to_string(),
-            };
+    if error.is_some() {
+        let path = match env::var("PATH") {
+            Ok(p) => p,
+            Err(_e) => "error: Unable to get path from envirnoment".to_string(),
+        };
+        let argv = env::args().collect::<Vec<String>>().join(" ");
+        let exec_path = match env::current_exe() {
+            Ok(ep) => ep.display().to_string(),
+            Err(_e) => "error: Unable to get executable path from envirnoment".to_string(),
+        };
 
-            let info = os_info::get();
-            let platform = info.os_type().to_string();
-            let platform_version = info.version().to_string();
+        let info = os_info::get();
+        let platform = info.os_type().to_string();
+        let platform_version = info.version().to_string();
 
-            Some(ErrorEnv {
-                argv: argv,
-                exec_path: exec_path,
-                path: path,
-                platform: platform,
-                platform_version: platform_version,
-            })
-        }
-        None => None,
+        return Some(ErrorEnv {
+            argv: argv,
+            exec_path: exec_path,
+            path: path,
+            platform: platform,
+            platform_version: platform_version,
+        })
     }
+    None
 }
 
 pub struct EventLog {
