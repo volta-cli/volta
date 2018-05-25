@@ -64,24 +64,21 @@ impl LazyMonitor {
 }
 
 fn spawn_process(command: Option<String>) -> Option<Child> {
-    command
-        .as_ref()
-        .and_then(|full_cmd| {
-            return full_cmd.split(" ").take(1).next()
-                .and_then(|executable| {
-                    let child = Command::new(executable)
+    command.as_ref().and_then(|full_cmd| {
+        return full_cmd.split(" ").take(1).next().and_then(|executable| {
+            let child = Command::new(executable)
                         .args(full_cmd.split(" ").skip(1))
                         .stdin(Stdio::piped()) // JSON data is sent over stdin
                         // .stdout(Stdio::piped()) // let the plugin write to stdout for now
                         .spawn();
-                    return match child {
-                        Err(err) => {
-                            eprintln!("Error running plugin command: '{}'", full_cmd);
-                            eprintln!("{}", err);
-                            None
-                        }
-                        Ok(c) => Some(c)
-                    }
-                })
-        })
+            return match child {
+                Err(err) => {
+                    eprintln!("Error running plugin command: '{}'", full_cmd);
+                    eprintln!("{}", err);
+                    None
+                }
+                Ok(c) => Some(c),
+            };
+        });
+    })
 }

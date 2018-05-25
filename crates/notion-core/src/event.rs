@@ -57,7 +57,6 @@ impl EventKind {
         exit_code: Option<i32>,
         error: Option<&NotionError>,
     ) -> Event {
-
         Event {
             timestamp: unix_timestamp(),
             name: activity_kind.to_string(),
@@ -101,7 +100,7 @@ fn get_error_env(error: Option<&NotionError>) -> Option<ErrorEnv> {
             path: path,
             platform: platform,
             platform_version: platform_version,
-        })
+        });
     })
 }
 

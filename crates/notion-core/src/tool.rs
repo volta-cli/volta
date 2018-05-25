@@ -21,10 +21,10 @@ pub trait Tool: Sized {
                 tool.exec(session);
             }
             Err(err) => {
-                if e.is_user_friendly() {
-                    style::display_error(&e);
+                if err.is_user_friendly() {
+                    style::display_error(&err);
                 } else {
-                    style::display_unknown_error(&e);
+                    style::display_unknown_error(&err);
                 }
 
                 session.add_event_error(ActivityKind::Tool, &err);
