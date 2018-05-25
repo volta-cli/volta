@@ -64,24 +64,28 @@ impl LazyMonitor {
 }
 
 fn spawn_process(command: Option<String>) -> Option<Child> {
-    if let Some(ref cmd) = command {
-        // TODO
-        // - split the command and arguments
-        // - run the command with CWD of notion?
-        // https://stackoverflow.com/questions/26643688/how-do-i-split-a-string-in-rust
+    if let Some(ref full_cmd) = command {
+        // split the command and arguments
+        let mut cmd_iter = full_cmd.split(" ").take(1);
+        let args_iter = full_cmd.split(" ").skip(1);
 
-        let child = Command::new(cmd)
-            // .arg()
-            .stdin(Stdio::piped()) // JSON data is sent over stdin
-            // .stdout(Stdio::piped()) // let the plugin write to stdout and stderr, or not?
-            .spawn();
-        return match child {
-            Err(err) => {
-                eprintln!("Error running plugin command: '{}'", cmd);
-                eprintln!("{}", err);
-                None
+        if let Some(cmd_string) = cmd_iter.next() {
+            if !cmd_string.is_empty() {
+                let child = Command::new(cmd_string)
+                    .args(args_iter)
+                    .stdin(Stdio::piped()) // JSON data is sent over stdin
+                    // .stdout(Stdio::piped()) // let the plugin write to stdout for now
+                    .spawn();
+
+                return match child {
+                    Err(err) => {
+                        eprintln!("Error running plugin command: '{}'", full_cmd);
+                        eprintln!("{}", err);
+                        None
+                    }
+                    Ok(c) => Some(c)
+                }
             }
-            Ok(c) => Some(c)
         }
     }
     None

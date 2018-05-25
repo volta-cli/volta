@@ -10,6 +10,6 @@
   "notion": {
     "node": "6.11.1",
     "yarn": "1.2",
-    "events_plugin": "./long-runner"
+    "events_plugin": "./long-runner --some-arg"
   }
 }
