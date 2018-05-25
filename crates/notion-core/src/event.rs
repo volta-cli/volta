@@ -80,7 +80,7 @@ fn unix_timestamp() -> u64 {
 }
 
 fn get_error_env(error: Option<&NotionError>) -> Option<ErrorEnv> {
-    if error.is_some() {
+    error.and_then(|_| {
         let path = match env::var("PATH") {
             Ok(p) => p,
             Err(_e) => "error: Unable to get path from envirnoment".to_string(),
@@ -102,8 +102,7 @@ fn get_error_env(error: Option<&NotionError>) -> Option<ErrorEnv> {
             platform: platform,
             platform_version: platform_version,
         })
-    }
-    None
+    })
 }
 
 pub struct EventLog {
