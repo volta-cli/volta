@@ -276,8 +276,6 @@
 //! was being parsed and where it came from (say, the filename and line number).
 
 extern crate failure;
-#[macro_use]
-extern crate failure_derive;
 
 use std::convert::{From, Into};
 use std::fmt::{self, Display};
@@ -302,8 +300,7 @@ pub trait NotionFail: Fail {
 }
 
 /// The `NotionError` type, which can contain any Notion failure.
-#[derive(Fail, Debug)]
-#[fail(display = "{}", error)]
+#[derive(Debug)]
 pub struct NotionError {
     /// The underlying error.
     error: failure::Error,
@@ -313,6 +310,22 @@ pub struct NotionError {
 
     /// The result of `error.exit_code()`.
     exit_code: i32,
+}
+
+impl Fail for NotionError {
+    fn cause(&self) -> Option<&Fail> {
+        Some(self.error.cause())
+    }
+
+    fn backtrace(&self) -> Option<&Backtrace> {
+        Some(self.error.backtrace())
+    }
+}
+
+impl fmt::Display for NotionError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&self.error, f)
+    }
 }
 
 impl NotionError {
@@ -389,9 +402,20 @@ pub trait ResultExt<T, E> {
 }
 
 /// A wrapper type for unknown errors.
-#[derive(Debug)]
 struct UnknownNotionError {
     error: failure::Error,
+}
+
+// The `Debug` implementation for `failure::Error` prints out a stack
+// trace, which is too much information for many debugging purposes,
+// and doesn't nest properly within the debug string of compound data
+// structures, so just show the debug string for the underlying cause
+// instead.
+
+impl fmt::Debug for UnknownNotionError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self.error.cause(), f)
+    }
 }
 
 impl Display for UnknownNotionError {

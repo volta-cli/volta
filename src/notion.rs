@@ -185,7 +185,7 @@ pub fn main() {
             if err.is_user_friendly() {
                 display_error(&err);
             } else {
-                display_unknown_error();
+                display_unknown_error(&err);
             }
 
             if let Some(ref usage) = err.usage() {
