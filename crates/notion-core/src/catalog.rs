@@ -208,16 +208,22 @@ impl NodeCatalog {
                     PUBLIC_NODE_VERSION_INDEX
                 ));
                 let mut response: reqwest::Response = reqwest::get(PUBLIC_NODE_VERSION_INDEX).unknown()?;
+                let response_text: String = response.text().unknown()?;
                 let cached: NamedTempFile = NamedTempFile::new().unknown()?;
 
-                response.copy_to(&mut cached.as_file()).unknown()?;
+                // Block to borrow cached for cached_file.
+                {
+                    let mut cached_file: &File = cached.as_file();
+                    cached_file.write(response_text.as_bytes()).unknown()?;
+                }
+
                 cached.persist(path::node_index_file()?).unknown()?;
 
                 let expiry: NamedTempFile = NamedTempFile::new().unknown()?;
 
                 // Block to borrow expiry for expiry_file.
                 {
-                    let mut expiry_file = expiry.as_file();
+                    let mut expiry_file: &File = expiry.as_file();
                     let header: &reqwest::header::Raw = response.headers().get_raw("Expires").unwrap();
 
                     for line in header.iter() {
@@ -227,7 +233,7 @@ impl NodeCatalog {
 
                 expiry.persist(path::node_index_expiry_file()?).unknown()?;
 
-                let serial: serial::index::Index = response.json().unknown()?;
+                let serial: serial::index::Index = serde_json::de::from_str(&response_text).unknown()?;
 
                 spinner.finish_and_clear();
                 serial
