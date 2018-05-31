@@ -2,14 +2,19 @@
 //! of available tool versions.
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
-use std::fs::{remove_dir_all, File};
-use std::io::{self, Write};
+use std::fs::{self, remove_dir_all, File};
+use std::io::{self, ErrorKind, Write};
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::string::ToString;
+use std::time::SystemTime;
 
 use lazycell::LazyCell;
 use readext::ReadExt;
 use reqwest;
+use reqwest::header::HttpDate;
+use serde_json;
+use tempfile::NamedTempFile;
 use toml;
 
 use path::{self, user_catalog_file};
@@ -140,6 +145,42 @@ struct NoNodeVersionFoundError {
     matching: VersionReq,
 }
 
+/// Reads a file, if it exists.
+fn maybe_read_file(path: &PathBuf) -> io::Result<Option<String>> {
+    let result: io::Result<String> = fs::read_to_string(path);
+
+    match result {
+        Ok(string) => Ok(Some(string)),
+
+        Err(error) => {
+            match error.kind() {
+                ErrorKind::NotFound => Ok(None),
+                _ => Err(error)
+            }
+        },
+    }
+}
+
+/// Reads a public index from the Node cache, if it exists and hasn't expired.
+fn read_cached() -> Fallible<Option<serial::index::Index>> {
+    let expiry: Option<String> = maybe_read_file(&path::node_index_expiry_file()?).unknown()?;
+
+    if let Some(string) = expiry {
+        let expiry_date: HttpDate = HttpDate::from_str(&string).unknown()?;
+        let current_date: HttpDate = HttpDate::from(SystemTime::now());
+
+        if current_date < expiry_date {
+            let cached: Option<String> = maybe_read_file(&path::node_index_file()?).unknown()?;
+
+            if let Some(string) = cached {
+                return Ok(serde_json::de::from_str(&string).unknown()?);
+            }
+        }
+    }
+
+    Ok(None)
+}
+
 impl NodeCatalog {
     /// Tests whether this Node catalog contains the specified Node version.
     pub fn contains(&self, version: &Version) -> bool {
@@ -159,16 +200,40 @@ impl NodeCatalog {
 
     /// Resolves the specified semantic versioning requirements from the public distributor (`https://nodejs.org`).
     fn resolve_public(&self, matching: &VersionReq) -> Fallible<Installer> {
-        let spinner = progress_spinner(&format!(
-            "Fetching public registry: {}",
-            PUBLIC_NODE_VERSION_INDEX
-        ));
-        let serial: serial::index::Index = reqwest::get(PUBLIC_NODE_VERSION_INDEX)
-            .unknown()?
-            .json()
-            .unknown()?;
-        spinner.finish_and_clear();
-        let index = serial.into_index()?;
+        let index: Index = match read_cached().unknown()? {
+            Some(serial) => serial,
+            None => {
+                let spinner = progress_spinner(&format!(
+                    "Fetching public registry: {}",
+                    PUBLIC_NODE_VERSION_INDEX
+                ));
+                let mut response: reqwest::Response = reqwest::get(PUBLIC_NODE_VERSION_INDEX).unknown()?;
+                let cached: NamedTempFile = NamedTempFile::new().unknown()?;
+
+                response.copy_to(&mut cached.as_file()).unknown()?;
+                cached.persist(path::node_index_file()?).unknown()?;
+
+                let expiry: NamedTempFile = NamedTempFile::new().unknown()?;
+
+                // Block to borrow expiry for expiry_file.
+                {
+                    let mut expiry_file = expiry.as_file();
+                    let header: &reqwest::header::Raw = response.headers().get_raw("Expires").unwrap();
+
+                    for line in header.iter() {
+                        expiry_file.write(line).unknown()?;
+                    }
+                }
+
+                expiry.persist(path::node_index_expiry_file()?).unknown()?;
+
+                let serial: serial::index::Index = response.json().unknown()?;
+
+                spinner.finish_and_clear();
+                serial
+            },
+        }.into_index()?;
+
         let version = index.entries.iter()
             .rev()
             // ISSUE #34: also make sure this OS is available for this version

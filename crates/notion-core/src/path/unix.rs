@@ -83,6 +83,14 @@ pub fn node_cache_dir() -> Fallible<PathBuf> {
     Ok(cache_dir()?.join("node"))
 }
 
+pub fn node_index_file() -> Fallible<PathBuf> {
+    Ok(node_cache_dir()?.join("index.json"))
+}
+
+pub fn node_index_expiry_file() -> Fallible<PathBuf> {
+    Ok(node_cache_dir()?.join("index.json.expires"))
+}
+
 pub fn archive_extension() -> String {
     String::from("tar.gz")
 }
