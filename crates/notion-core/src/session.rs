@@ -7,6 +7,7 @@ use config::{Config, LazyConfig};
 use installer::Installed;
 use project::Project;
 use std::fmt::{self, Display, Formatter};
+use std::process::exit;
 
 use event::EventLog;
 use notion_fail::{Fallible, NotionError};
@@ -130,7 +131,7 @@ impl Session {
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
         self.event_log.add_event_start(activity_kind)
     }
-    pub fn add_event_end(&mut self, activity_kind: ActivityKind, exit_code: Option<i32>) {
+    pub fn add_event_end(&mut self, activity_kind: ActivityKind, exit_code: i32) {
         self.event_log.add_event_end(activity_kind, exit_code)
     }
     pub fn add_event_error(&mut self, activity_kind: ActivityKind, error: &NotionError) {
@@ -149,5 +150,10 @@ impl Session {
             .as_ref()
             .and_then(|project| project.manifest().events_plugin.as_ref())
             .map(|plugin| plugin.to_string())
+    }
+
+    pub fn exit(mut self, code: i32) -> ! {
+        self.send_events();
+        exit(code);
     }
 }

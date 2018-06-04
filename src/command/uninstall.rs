@@ -47,7 +47,7 @@ Options:
                 Ok(true)
             }
         };
-        session.add_event_end(ActivityKind::Uninstall, None);
+        session.add_event_end(ActivityKind::Uninstall, 0);
         result
     }
 }

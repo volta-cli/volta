@@ -73,7 +73,7 @@ Options:
                 exit(1);
             }
         };
-        session.add_event_end(ActivityKind::Use, None);
+        session.add_event_end(ActivityKind::Use, 0);
         Ok(true)
     }
 }

@@ -62,7 +62,7 @@ Options:
                 Help::Command(CommandName::Uninstall) => Uninstall::USAGE,
             }
         );
-        session.add_event_end(ActivityKind::Help, None);
+        session.add_event_end(ActivityKind::Help, 0);
         Ok(true)
     }
 }

@@ -86,7 +86,7 @@ Options:
                 Ok(any)
             }
         };
-        session.add_event_end(ActivityKind::Current, None);
+        session.add_event_end(ActivityKind::Current, 0);
         result
     }
 }

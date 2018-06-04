@@ -200,7 +200,7 @@ pub fn main() {
             err.exit_code()
         }
     };
-    session.add_event_end(ActivityKind::Notion, Some(exit_code));
+    session.add_event_end(ActivityKind::Notion, exit_code);
     session.send_events();
 
     exit(exit_code);

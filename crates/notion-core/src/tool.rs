@@ -4,7 +4,7 @@ use std::env::{args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
 use std::marker::Sized;
 use std::path::Path;
-use std::process::{exit, Command};
+use std::process::Command;
 
 use env;
 use notion_fail::{FailExt, Fallible, NotionFail, ResultExt};
@@ -28,9 +28,7 @@ pub trait Tool: Sized {
                 }
 
                 session.add_event_error(ActivityKind::Tool, &err);
-                session.send_events();
-
-                exit(1);
+                session.exit(1);
             }
         }
     }
@@ -50,26 +48,20 @@ pub trait Tool: Sized {
         let status = command.status().unknown();
         match status {
             Ok(status) if status.success() => {
-                session.add_event_end(ActivityKind::Tool, Some(0));
-                session.send_events();
-
-                exit(0);
+                session.add_event_end(ActivityKind::Tool, 0);
+                session.exit(0);
             }
             Ok(status) => {
                 // ISSUE (#36): if None, in unix, find out the signal
                 let code = status.code().unwrap_or(1);
-                session.add_event_end(ActivityKind::Tool, Some(code));
-                session.send_events();
-
-                exit(code);
+                session.add_event_end(ActivityKind::Tool, code);
+                session.exit(code);
             }
             Err(err) => {
                 style::display_error(&err);
 
                 session.add_event_error(ActivityKind::Tool, &err);
-                session.send_events();
-
-                exit(1);
+                session.exit(1);
             }
         }
     }

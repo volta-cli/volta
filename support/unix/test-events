@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# long-running script to test spawning processes
+# long-running script to show events and test spawning processes
 
 my_pid="$$"
 

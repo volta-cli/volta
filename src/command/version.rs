@@ -43,7 +43,7 @@ Options:
                 Ok(true)
             }
         };
-        session.add_event_end(ActivityKind::Version, None);
+        session.add_event_end(ActivityKind::Version, 0);
         result
     }
 }

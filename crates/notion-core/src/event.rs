@@ -3,7 +3,6 @@
 extern crate os_info;
 
 use std::env;
-use std::fmt::{self, Display, Formatter};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use monitor::LazyMonitor;
@@ -15,13 +14,7 @@ use session::ActivityKind;
 pub struct Event {
     timestamp: u64,
     name: String,
-    event: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    exit_code: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    error: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    env: Option<ErrorEnv>,
+    event: EventKind,
 }
 
 #[derive(Serialize)]
@@ -33,37 +26,26 @@ pub struct ErrorEnv {
     platform_version: String,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "lowercase")]
 enum EventKind {
     Start,
-    End,
-    Error,
-}
-
-impl Display for EventKind {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-        let s = match self {
-            &EventKind::Start => "start",
-            &EventKind::End => "end",
-            &EventKind::Error => "error",
-        };
-        f.write_str(s)
-    }
+    End {
+        exit_code: i32,
+    },
+    Error {
+        exit_code: i32,
+        error: String,
+        env: ErrorEnv,
+    },
 }
 
 impl EventKind {
-    pub fn into_event(
-        self,
-        activity_kind: ActivityKind,
-        exit_code: Option<i32>,
-        error: Option<&NotionError>,
-    ) -> Event {
+    pub fn into_event(self, activity_kind: ActivityKind) -> Event {
         Event {
             timestamp: unix_timestamp(),
             name: activity_kind.to_string(),
-            event: self.to_string(),
-            exit_code: exit_code,
-            error: error.map(|e| e.to_string()),
-            env: get_error_env(error),
+            event: self,
         }
     }
 }
@@ -78,30 +60,28 @@ fn unix_timestamp() -> u64 {
     nanosecs_since_epoch / 1_000_000
 }
 
-fn get_error_env(error: Option<&NotionError>) -> Option<ErrorEnv> {
-    error.and_then(|_| {
-        let path = match env::var("PATH") {
-            Ok(p) => p,
-            Err(_e) => "error: Unable to get path from envirnoment".to_string(),
-        };
-        let argv = env::args().collect::<Vec<String>>().join(" ");
-        let exec_path = match env::current_exe() {
-            Ok(ep) => ep.display().to_string(),
-            Err(_e) => "error: Unable to get executable path from envirnoment".to_string(),
-        };
+fn get_error_env() -> ErrorEnv {
+    let path = match env::var("PATH") {
+        Ok(p) => p,
+        Err(_e) => "error: Unable to get path from environment".to_string(),
+    };
+    let argv = env::args().collect::<Vec<String>>().join(" ");
+    let exec_path = match env::current_exe() {
+        Ok(ep) => ep.display().to_string(),
+        Err(_e) => "error: Unable to get executable path from environment".to_string(),
+    };
 
-        let info = os_info::get();
-        let platform = info.os_type().to_string();
-        let platform_version = info.version().to_string();
+    let info = os_info::get();
+    let platform = info.os_type().to_string();
+    let platform_version = info.version().to_string();
 
-        return Some(ErrorEnv {
-            argv: argv,
-            exec_path: exec_path,
-            path: path,
-            platform: platform,
-            platform_version: platform_version,
-        });
-    })
+    return ErrorEnv {
+        argv: argv,
+        exec_path: exec_path,
+        path: path,
+        platform: platform,
+        platform_version: platform_version,
+    };
 }
 
 pub struct EventLog {
@@ -119,29 +99,25 @@ impl EventLog {
     }
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
-        self.add_event(EventKind::Start, activity_kind, None, None)
+        self.add_event(EventKind::Start, activity_kind)
     }
-    pub fn add_event_end(&mut self, activity_kind: ActivityKind, exit_code: Option<i32>) {
-        self.add_event(EventKind::End, activity_kind, exit_code, None)
+    pub fn add_event_end(&mut self, activity_kind: ActivityKind, exit_code: i32) {
+        self.add_event(EventKind::End { exit_code }, activity_kind)
     }
     pub fn add_event_error(&mut self, activity_kind: ActivityKind, error: &NotionError) {
         let exit_code = error.exit_code();
         self.add_event(
-            EventKind::Error,
+            EventKind::Error {
+                exit_code,
+                error: error.to_string(),
+                env: get_error_env(),
+            },
             activity_kind,
-            Some(exit_code),
-            Some(error),
         )
     }
 
-    fn add_event(
-        &mut self,
-        event_kind: EventKind,
-        activity_kind: ActivityKind,
-        exit_code: Option<i32>,
-        error: Option<&NotionError>,
-    ) {
-        let event = event_kind.into_event(activity_kind, exit_code, error);
+    fn add_event(&mut self, event_kind: EventKind, activity_kind: ActivityKind) {
+        let event = event_kind.into_event(activity_kind);
         self.events.push(event);
     }
 

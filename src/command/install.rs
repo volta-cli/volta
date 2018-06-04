@@ -50,7 +50,7 @@ Options:
                 Ok(true)
             }
         };
-        session.add_event_end(ActivityKind::Install, None);
+        session.add_event_end(ActivityKind::Install, 0);
         result
     }
 }
