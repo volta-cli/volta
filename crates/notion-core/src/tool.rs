@@ -15,6 +15,7 @@ use style;
 pub trait Tool: Sized {
     fn launch() -> ! {
         let mut session = Session::new().unwrap();
+        session.add_event_start(ActivityKind::Tool);
 
         match Self::new(&mut session) {
             Ok(tool) => {
