@@ -7,12 +7,12 @@ use std::io::{self, ErrorKind, Write};
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::string::ToString;
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
 use lazycell::LazyCell;
 use readext::ReadExt;
 use reqwest;
-use reqwest::header::HttpDate;
+use reqwest::header::{CacheControl, CacheDirective, Expires, HttpDate};
 use serde_json;
 use tempfile::NamedTempFile;
 use toml;
@@ -180,6 +180,20 @@ fn read_cached_opt() -> Fallible<Option<serial::index::Index>> {
     Ok(None)
 }
 
+/// Get the cache max-age of an HTTP reponse.
+fn max_age(response: &reqwest::Response) -> u32 {
+    if let Some(cache_control_header) = response.headers().get::<CacheControl>() {
+        for cache_directive in cache_control_header.iter() {
+            if let CacheDirective::MaxAge(max_age) = cache_directive {
+                return *max_age;
+            }
+        }
+    }
+
+    // Default to four hours.
+    4 * 60 * 60
+}
+
 impl NodeCatalog {
     /// Tests whether this Node catalog contains the specified Node version.
     pub fn contains(&self, version: &Version) -> bool {
@@ -223,10 +237,13 @@ impl NodeCatalog {
                 // Block to borrow expiry for expiry_file.
                 {
                     let mut expiry_file: &File = expiry.as_file();
-                    let header: &reqwest::header::Raw = response.headers().get_raw("Expires").unwrap();
 
-                    for line in header.iter() {
-                        expiry_file.write(line).unknown()?;
+                    if let Some(expires_header) = response.headers().get::<Expires>() {
+                        write!(expiry_file, "{}", expires_header).unknown()?;
+                    } else {
+                        let expiry_date = SystemTime::now() + Duration::from_secs(max_age(&response).into());
+
+                        write!(expiry_file, "{}", HttpDate::from(expiry_date)).unknown()?;
                     }
                 }
 
