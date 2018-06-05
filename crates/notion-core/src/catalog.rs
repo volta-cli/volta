@@ -146,12 +146,11 @@ struct NoNodeVersionFoundError {
 }
 
 /// Reads a file, if it exists.
-fn maybe_read_file(path: &PathBuf) -> io::Result<Option<String>> {
+fn read_file_opt(path: &PathBuf) -> io::Result<Option<String>> {
     let result: io::Result<String> = fs::read_to_string(path);
 
     match result {
         Ok(string) => Ok(Some(string)),
-
         Err(error) => {
             match error.kind() {
                 ErrorKind::NotFound => Ok(None),
@@ -162,15 +161,15 @@ fn maybe_read_file(path: &PathBuf) -> io::Result<Option<String>> {
 }
 
 /// Reads a public index from the Node cache, if it exists and hasn't expired.
-fn read_cached() -> Fallible<Option<serial::index::Index>> {
-    let expiry: Option<String> = maybe_read_file(&path::node_index_expiry_file()?).unknown()?;
+fn read_cached_opt() -> Fallible<Option<serial::index::Index>> {
+    let expiry: Option<String> = read_file_opt(&path::node_index_expiry_file()?).unknown()?;
 
     if let Some(string) = expiry {
         let expiry_date: HttpDate = HttpDate::from_str(&string).unknown()?;
         let current_date: HttpDate = HttpDate::from(SystemTime::now());
 
         if current_date < expiry_date {
-            let cached: Option<String> = maybe_read_file(&path::node_index_file()?).unknown()?;
+            let cached: Option<String> = read_file_opt(&path::node_index_file()?).unknown()?;
 
             if let Some(string) = cached {
                 return Ok(serde_json::de::from_str(&string).unknown()?);
@@ -200,7 +199,7 @@ impl NodeCatalog {
 
     /// Resolves the specified semantic versioning requirements from the public distributor (`https://nodejs.org`).
     fn resolve_public(&self, matching: &VersionReq) -> Fallible<Installer> {
-        let index: Index = match read_cached().unknown()? {
+        let index: Index = match read_cached_opt().unknown()? {
             Some(serial) => serial,
             None => {
                 let spinner = progress_spinner(&format!(
