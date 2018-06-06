@@ -4,17 +4,32 @@ use std::env::{args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
 use std::marker::Sized;
 use std::path::Path;
-use std::process::Command;
+use std::process::{exit, Command};
 
 use env;
-use notion_fail::{FailExt, Fallible, NotionFail, ResultExt};
+use notion_fail::{FailExt, Fallible, NotionError, NotionFail, ResultExt};
 use session::{ActivityKind, Session};
 use style;
+
+fn display_error(err: &NotionError) {
+    if err.is_user_friendly() {
+        style::display_error(err);
+    } else {
+        style::display_unknown_error(err);
+    }
+}
 
 /// Represents a command-line tool that Notion shims delegate to.
 pub trait Tool: Sized {
     fn launch() -> ! {
-        let mut session = Session::new().unwrap();
+        let mut session = match Session::new() {
+            Ok(session) => session,
+            Err(err) => {
+                display_error(&err);
+                exit(1);
+            }
+        };
+
         session.add_event_start(ActivityKind::Tool);
 
         match Self::new(&mut session) {
@@ -22,12 +37,7 @@ pub trait Tool: Sized {
                 tool.exec(session);
             }
             Err(err) => {
-                if err.is_user_friendly() {
-                    style::display_error(&err);
-                } else {
-                    style::display_unknown_error(&err);
-                }
-
+                display_error(&err);
                 session.add_event_error(ActivityKind::Tool, &err);
                 session.exit(1);
             }

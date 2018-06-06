@@ -21,7 +21,7 @@ use docopt::Docopt;
 
 use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error};
-use notion_fail::{FailExt, Fallible};
+use notion_fail::{FailExt, Fallible, NotionError};
 
 use command::{Command, CommandName, Current, Help, Install, Uninstall, Use, Version};
 use error::{CliParseError, DocoptExt, NotionErrorExt};
@@ -177,31 +177,40 @@ See 'notion help <command>' for more information on a specific command.
     }
 }
 
+fn display_error_and_usage(err: &NotionError) {
+    if err.is_user_friendly() {
+        display_error(err);
+    } else {
+        display_unknown_error(err);
+    }
+
+    if let Some(ref usage) = err.usage() {
+        eprintln!();
+        eprintln!("{}", usage);
+    }
+}
+
 /// The entry point for the `notion` CLI.
 pub fn main() {
-    let mut session = Session::new().unwrap();
+    let mut session = match Session::new() {
+        Ok(session) => session,
+        Err(err) => {
+            display_error_and_usage(&err);
+            exit(1);
+        }
+    };
+
     session.add_event_start(ActivityKind::Notion);
 
     let exit_code = match Notion::go(&mut session) {
         Ok(true) => 0,
         Ok(false) => 1,
         Err(err) => {
-            if err.is_user_friendly() {
-                display_error(&err);
-            } else {
-                display_unknown_error(&err);
-            }
-
-            if let Some(ref usage) = err.usage() {
-                eprintln!();
-                eprintln!("{}", usage);
-            }
+            display_error_and_usage(&err);
             session.add_event_error(ActivityKind::Notion, &err);
             err.exit_code()
         }
     };
     session.add_event_end(ActivityKind::Notion, exit_code);
-    session.send_events();
-
-    exit(exit_code);
+    session.exit(exit_code);
 }
