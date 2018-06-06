@@ -29,10 +29,12 @@ impl Monitor {
             let json = serde_json::to_string(&events);
             match json {
                 Ok(data) => {
+                    // FIXME: tighten up this error message
                     write!(p_stdin, "{}", data).expect("Writing data to plugin failed!");
                 }
                 Err(error) => {
-                    println!("There was a problem serializing the JSON data: {:?}", error);
+                    // FIXME: tighten up this error message
+                    eprintln!("There was a problem serializing the JSON data: {:?}", error);
                 }
             };
         }

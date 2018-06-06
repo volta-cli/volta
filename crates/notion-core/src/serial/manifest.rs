@@ -26,6 +26,7 @@ pub struct Manifest {
 pub struct NotionManifest {
     pub node: String,
     pub yarn: Option<String>,
+    // FIXME: this should be in the notion config file
     pub events_plugin: Option<String>,
 }
 
