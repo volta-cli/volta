@@ -32,11 +32,13 @@ build_dir="$script_dir/../../target/$target_dir"
 
 encode_base64_sed_command notion NOTION "$build_dir/notion"
 encode_base64_sed_command node NODE "$build_dir/node"
+encode_base64_sed_command yarn YARN "$build_dir/yarn"
 encode_base64_sed_command launchbin LAUNCHBIN "$build_dir/launchbin"
 encode_base64_sed_command launchscript LAUNCHSCRIPT "$build_dir/launchscript"
 
 sed -f notion.base64.txt \
     -f node.base64.txt \
+    -f yarn.base64.txt \
     -f launchbin.base64.txt \
     -f launchscript.base64.txt \
     < "$script_dir/install.sh.in" > "$script_dir/install.sh"
@@ -45,5 +47,6 @@ chmod 755 "$script_dir/install.sh"
 
 rm notion.base64.txt \
    node.base64.txt \
+   yarn.base64.txt \
    launchbin.base64.txt \
    launchscript.base64.txt

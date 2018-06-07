@@ -7,6 +7,8 @@ use notion_fail::Fallible;
 #[derive(Serialize, Deserialize)]
 pub struct Config {
     pub node: Option<NodeConfig>,
+    // TODO: Do we need a YarnConfig? or should we change NodeConfig to a generic Config?
+    pub yarn: Option<NodeConfig>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -23,6 +25,11 @@ impl Config {
         Ok(config::Config {
             node: if let Some(n) = self.node {
                 Some(n.into_node_config()?)
+            } else {
+                None
+            },
+            yarn: if let Some(y) = self.yarn {
+                Some(y.into_node_config()?)
             } else {
                 None
             },

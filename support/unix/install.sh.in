@@ -14,6 +14,12 @@ notion_unpack_node() {
 END_BINARY_PAYLOAD
 }
 
+notion_unpack_yarn() {
+  base64 --decode <<'END_BINARY_PAYLOAD'
+<PLACEHOLDER_YARN_PAYLOAD>
+END_BINARY_PAYLOAD
+}
+
 notion_unpack_launchbin() {
   base64 --decode <<'END_BINARY_PAYLOAD'
 <PLACEHOLDER_LAUNCHBIN_PAYLOAD>
@@ -47,7 +53,9 @@ notion_create_tree() {
   #         shim/
 
   mkdir -p "${INSTALL_DIR}"/cache/node
+  mkdir -p "${INSTALL_DIR}"/cache/yarn
   mkdir -p "${INSTALL_DIR}"/versions/node
+  mkdir -p "${INSTALL_DIR}"/versions/yarn
   mkdir -p "${INSTALL_DIR}"/bin
   mkdir -p "${INSTALL_DIR}"/shim
 }
@@ -59,12 +67,12 @@ notion_create_binaries() {
 
   notion_unpack_notion       > "${INSTALL_DIR}"/bin/notion
   notion_unpack_node         > "${INSTALL_DIR}"/shim/node
+  notion_unpack_yarn         > "${INSTALL_DIR}"/shim/yarn
   notion_unpack_launchscript > "${INSTALL_DIR}"/launchscript
   notion_unpack_launchbin    > "${INSTALL_DIR}"/launchbin
 
   ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/shim/npm
   ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/shim/npx
-  ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/shim/yarn
 
   chmod 755 "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}/shim"/* "${INSTALL_DIR}"/launch*
 }
@@ -184,7 +192,7 @@ notion_install() {
 }
 
 notion_cleanup() {
-  unset -f notion_unpack_notion notion_unpack_node notion_unpack_launchbin notion_unpack_launchscript \
+  unset -f notion_unpack_notion notion_unpack_node notion_unpack_yarn notion_unpack_launchbin notion_unpack_launchscript \
     notion_install_dir notion_create_tree notion_create_binaries notion_try_profile notion_detect_profile \
     notion_eprintf notion_info notion_error notion_warning \
     notion_exit notion_install notion_cleanup

@@ -17,6 +17,10 @@ name = "node"
 path = "src/node.rs"
 
 [[bin]]
+name = "yarn"
+path = "src/yarn.rs"
+
+[[bin]]
 name = "launchbin"
 path = "src/launchbin.rs"
 

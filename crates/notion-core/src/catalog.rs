@@ -19,7 +19,8 @@ use toml;
 
 use config::{Config, NodeConfig};
 use installer::Installed;
-use installer::node::Installer;
+use installer::node::Installer as NodeInstaller;
+use installer::yarn::Installer as YarnInstaller;
 use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
 use path::{self, user_catalog_file};
 use semver::{Version, VersionReq};
@@ -27,8 +28,11 @@ use serial;
 use serial::touch;
 use style::progress_spinner;
 
+// TODO: Should we move these constants to a config file or even maybe a user config?
 /// URL of the index of available Node versions on the public Node server.
 const PUBLIC_NODE_VERSION_INDEX: &'static str = "https://nodejs.org/dist/index.json";
+/// URL of the index of available Yarn versions on the public git repository.
+const PUBLIC_YARN_VERSION_INDEX: &'static str = "https://github.com/notion-cli/yarn-releases/raw/master/index.json";
 
 /// Lazily loaded tool catalog.
 pub struct LazyCatalog {
@@ -57,11 +61,21 @@ impl LazyCatalog {
 /// The catalog of tool versions available locally.
 pub struct Catalog {
     pub node: NodeCatalog,
+    pub yarn: YarnCatalog,
 }
 
 /// The catalog of Node versions available locally.
 pub struct NodeCatalog {
     /// The currently activated Node version, if any.
+    pub activated: Option<Version>,
+
+    // A sorted collection of the available versions in the catalog.
+    pub versions: BTreeSet<Version>,
+}
+
+/// The catalog of Yarn versions available locally.
+pub struct YarnCatalog {
+    /// The currently activated Yarn version, if any.
     pub activated: Option<Version>,
 
     // A sorted collection of the available versions in the catalog.
@@ -136,6 +150,56 @@ impl Catalog {
 
         Ok(())
     }
+
+    // TODO: refactor activate, install and uninstall methods
+    // And potentially share code between node and yarn
+    /// Activates a Yarn version matching the specified semantic versioning requirements.
+    pub fn activate_yarn(&mut self, matching: &VersionReq, config: &Config) -> Fallible<()> {
+        let installed = self.install_yarn(matching, config)?;
+        let version = Some(installed.into_version());
+
+        if self.yarn.activated != version {
+            self.yarn.activated = version;
+            self.save()?;
+        }
+
+        Ok(())
+    }
+
+    /// Installs a Yarn version matching the specified semantic versioning requirements.
+    pub fn install_yarn(&mut self, matching: &VersionReq, config: &Config) -> Fallible<Installed> {
+        let installer = self.yarn.resolve_remote(&matching, config)?;
+        let installed = installer.install(&self.yarn).unknown()?;
+
+        if let &Installed::Now(ref version) = &installed {
+            self.yarn.versions.insert(version.clone());
+            self.save()?;
+        }
+
+        Ok(installed)
+    }
+
+    /// Uninstalls a specific Yarn version from the local catalog.
+    pub fn uninstall_yarn(&mut self, version: &Version) -> Fallible<()> {
+        if self.yarn.contains(version) {
+            let home = path::yarn_version_dir(&version.to_string())?;
+
+            if !home.is_dir() {
+                Err(io::Error::new(
+                    io::ErrorKind::NotFound,
+                    format!("{} is not a directory", home.to_string_lossy()),
+                )).unknown()?;
+            }
+
+            remove_dir_all(home).unknown()?;
+
+            self.yarn.versions.remove(version);
+
+            self.save()?;
+        }
+
+        Ok(())
+    }
 }
 
 /// Thrown when there is no Node version matching a requested semver specifier.
@@ -153,55 +217,6 @@ impl NotionFail for NoNodeVersionFoundError {
     }
 }
 
-/// Reads a file, if it exists.
-fn read_file_opt(path: &PathBuf) -> io::Result<Option<String>> {
-    let result: io::Result<String> = fs::read_to_string(path);
-
-    match result {
-        Ok(string) => Ok(Some(string)),
-        Err(error) => {
-            match error.kind() {
-                ErrorKind::NotFound => Ok(None),
-                _ => Err(error)
-            }
-        },
-    }
-}
-
-/// Reads a public index from the Node cache, if it exists and hasn't expired.
-fn read_cached_opt() -> Fallible<Option<serial::index::Index>> {
-    let expiry: Option<String> = read_file_opt(&path::node_index_expiry_file()?).unknown()?;
-
-    if let Some(string) = expiry {
-        let expiry_date: HttpDate = HttpDate::from_str(&string).unknown()?;
-        let current_date: HttpDate = HttpDate::from(SystemTime::now());
-
-        if current_date < expiry_date {
-            let cached: Option<String> = read_file_opt(&path::node_index_file()?).unknown()?;
-
-            if let Some(string) = cached {
-                return Ok(serde_json::de::from_str(&string).unknown()?);
-            }
-        }
-    }
-
-    Ok(None)
-}
-
-/// Get the cache max-age of an HTTP reponse.
-fn max_age(response: &reqwest::Response) -> u32 {
-    if let Some(cache_control_header) = response.headers().get::<CacheControl>() {
-        for cache_directive in cache_control_header.iter() {
-            if let CacheDirective::MaxAge(max_age) = cache_directive {
-                return *max_age;
-            }
-        }
-    }
-
-    // Default to four hours.
-    4 * 60 * 60
-}
-
 impl NodeCatalog {
     /// Tests whether this Node catalog contains the specified Node version.
     pub fn contains(&self, version: &Version) -> bool {
@@ -209,18 +224,18 @@ impl NodeCatalog {
     }
 
     /// Resolves the specified semantic versioning requirements from a remote distributor.
-    fn resolve_remote(&self, matching: &VersionReq, config: &Config) -> Fallible<Installer> {
+    fn resolve_remote(&self, matching: &VersionReq, config: &Config) -> Fallible<NodeInstaller> {
         match config.node {
             Some(NodeConfig {
                 resolve: Some(ref plugin),
                 ..
-            }) => plugin.resolve(matching),
+            }) => plugin.resolve_node(matching),
             _ => self.resolve_public(matching),
         }
     }
 
     /// Resolves the specified semantic versioning requirements from the public distributor (`https://nodejs.org`).
-    fn resolve_public(&self, matching: &VersionReq) -> Fallible<Installer> {
+    fn resolve_public(&self, matching: &VersionReq) -> Fallible<NodeInstaller> {
         let index: Index = match read_cached_opt().unknown()? {
             Some(serial) => serial,
             None => {
@@ -271,9 +286,80 @@ impl NodeCatalog {
             .next()
             .map(|(k, _)| k.clone());
         if let Some(version) = version {
-            Installer::public(version)
+            NodeInstaller::public(version)
         } else {
             throw!(NoNodeVersionFoundError {
+                matching: matching.clone(),
+            });
+        }
+    }
+
+    /// Resolves the specified semantic versioning requirements from the local catalog.
+    pub fn resolve_local(&self, req: &VersionReq) -> Option<Version> {
+        self.versions
+            .iter()
+            .rev()
+            .skip_while(|v| !req.matches(&v))
+            .next()
+            .map(|v| v.clone())
+    }
+}
+
+/// Thrown when there is no Node version matching a requested semver specifier.
+#[derive(Fail, Debug)]
+#[fail(display = "No Yarn version found for {}", matching)]
+struct NoYarnVersionFoundError {
+    matching: VersionReq,
+}
+impl NotionFail for NoYarnVersionFoundError {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        100
+    }
+}
+
+// TODO: Refactor and maybe share code with node catalog
+// Maybe we can move this method to the trait with a default implementation
+impl YarnCatalog {
+    /// Tests whether this Node catalog contains the specified Yarn version.
+    pub fn contains(&self, version: &Version) -> bool {
+        self.versions.contains(version)
+    }
+
+    /// Resolves the specified semantic versioning requirements from a remote distributor.
+    fn resolve_remote(&self, matching: &VersionReq, config: &Config) -> Fallible<YarnInstaller> {
+        match config.yarn {
+            Some(NodeConfig {
+                resolve: Some(ref plugin),
+                ..
+            }) => plugin.resolve_yarn(matching),
+            _ => self.resolve_public(matching),
+        }
+    }
+
+    /// Resolves the specified semantic versioning requirements from the public distributor.
+    fn resolve_public(&self, matching: &VersionReq) -> Fallible<YarnInstaller> {
+        let spinner = progress_spinner(&format!(
+            "Fetching public registry: {}",
+            PUBLIC_YARN_VERSION_INDEX
+        ));
+        let releases: Vec<String> = reqwest::get(PUBLIC_YARN_VERSION_INDEX)
+            .unknown()?
+            .json()
+            .unknown()?;
+        spinner.finish_and_clear();
+        let matching_version = releases.into_iter().find(|v| {
+            let v = Version::parse(v).unwrap();
+            matching.matches(&v)
+        });
+
+        if let Some(matching_version) = matching_version {
+            let version = Version::parse(&matching_version).unwrap();
+            YarnInstaller::public(version)
+        } else {
+            throw!(NoYarnVersionFoundError {
                 matching: matching.clone(),
             });
         }
@@ -307,4 +393,53 @@ impl FromStr for Catalog {
         let serial: serial::catalog::Catalog = toml::from_str(src).unknown()?;
         Ok(serial.into_catalog()?)
     }
+}
+
+/// Reads a file, if it exists.
+fn read_file_opt(path: &PathBuf) -> io::Result<Option<String>> {
+    let result: io::Result<String> = fs::read_to_string(path);
+
+    match result {
+        Ok(string) => Ok(Some(string)),
+        Err(error) => {
+            match error.kind() {
+                ErrorKind::NotFound => Ok(None),
+                _ => Err(error)
+            }
+        },
+    }
+}
+
+/// Reads a public index from the Node cache, if it exists and hasn't expired.
+fn read_cached_opt() -> Fallible<Option<serial::index::Index>> {
+    let expiry: Option<String> = read_file_opt(&path::node_index_expiry_file()?).unknown()?;
+
+    if let Some(string) = expiry {
+        let expiry_date: HttpDate = HttpDate::from_str(&string).unknown()?;
+        let current_date: HttpDate = HttpDate::from(SystemTime::now());
+
+        if current_date < expiry_date {
+            let cached: Option<String> = read_file_opt(&path::node_index_file()?).unknown()?;
+
+            if let Some(string) = cached {
+                return Ok(serde_json::de::from_str(&string).unknown()?);
+            }
+        }
+    }
+
+    Ok(None)
+}
+
+/// Get the cache max-age of an HTTP reponse.
+fn max_age(response: &reqwest::Response) -> u32 {
+    if let Some(cache_control_header) = response.headers().get::<CacheControl>() {
+        for cache_directive in cache_control_header.iter() {
+            if let CacheDirective::MaxAge(max_age) = cache_directive {
+                return *max_age;
+            }
+        }
+    }
+
+    // Default to four hours.
+    4 * 60 * 60
 }

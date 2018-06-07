@@ -4,7 +4,8 @@ use std::ffi::OsString;
 use std::io::Read;
 use std::process::{Command, Stdio};
 
-use installer::node::Installer;
+use installer::node::Installer as NodeInstaller;
+use installer::yarn::Installer as YarnInstaller;
 use serial;
 
 use cmdline_words_parser::StrExt;
@@ -32,7 +33,7 @@ pub struct InvalidCommandError {
 impl Resolve {
     /// Performs resolution of a Node version based on the given semantic
     /// versioning requirements.
-    pub fn resolve(&self, _matching: &VersionReq) -> Fallible<Installer> {
+    pub fn resolve_node(&self, _matching: &VersionReq) -> Fallible<NodeInstaller> {
         match self {
             &Resolve::Url(_) => unimplemented!(),
 
@@ -64,7 +65,51 @@ impl Resolve {
                     .unknown()?;
                 let response = ResolveResponse::from_reader(child.stdout.unwrap())?;
                 match response {
-                    ResolveResponse::Url { version, url } => Installer::remote(version, &url),
+                    ResolveResponse::Url { version, url } => NodeInstaller::remote(version, &url),
+                    ResolveResponse::Stream { version: _version } => {
+                        unimplemented!("bin plugin produced a stream")
+                    }
+                }
+            }
+        }
+    }
+
+    // TODO: refactor plugin resolver to be able to extend for both node, yarn and future tools
+    /// Performs resolution of a Yarn version based on the given semantic
+    /// versioning requirements.
+    pub fn resolve_yarn(&self, _matching: &VersionReq) -> Fallible<YarnInstaller> {
+        match self {
+            &Resolve::Url(_) => unimplemented!(),
+
+            &Resolve::Bin(ref bin) => {
+                let mut trimmed = bin.trim().to_string();
+                let mut words = trimmed.parse_cmdline_words();
+                let cmd = if let Some(word) = words.next() {
+                    word
+                } else {
+                    throw!(
+                        InvalidCommandError {
+                            command: String::from(bin.trim()),
+                        }.unknown()
+                    );
+                };
+                let args: Vec<OsString> = words
+                    .map(|s| {
+                        let mut os = OsString::new();
+                        os.push(s);
+                        os
+                    })
+                    .collect();
+                let child = Command::new(cmd)
+                    .args(&args)
+                    .stdin(Stdio::null())
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
+                    .spawn()
+                    .unknown()?;
+                let response = ResolveResponse::from_reader(child.stdout.unwrap())?;
+                match response {
+                    ResolveResponse::Url { version, url } => YarnInstaller::remote(version, &url),
                     ResolveResponse::Stream { version: _version } => {
                         unimplemented!("bin plugin produced a stream")
                     }

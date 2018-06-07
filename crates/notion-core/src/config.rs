@@ -34,6 +34,7 @@ impl LazyConfig {
 /// Notion configuration settings.
 pub struct Config {
     pub node: Option<NodeConfig>,
+    pub yarn: Option<NodeConfig>, // TODO: rename NodeConfig to a more generic config?
 }
 
 /// Notion configuration settings relating to the Node executable.

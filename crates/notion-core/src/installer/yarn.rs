@@ -4,7 +4,7 @@ use std::fs::{rename, File};
 use std::string::ToString;
 
 use super::Installed;
-use catalog::NodeCatalog;
+use catalog::YarnCatalog;
 use node_archive::{self, Archive};
 use path;
 use style::{progress_bar, Action};
@@ -12,26 +12,26 @@ use style::{progress_bar, Action};
 use notion_fail::{Fallible, ResultExt};
 use semver::Version;
 
-const PUBLIC_NODE_SERVER_ROOT: &'static str = "https://nodejs.org/dist/";
+const PUBLIC_YARN_SERVER_ROOT: &'static str = "https://github.com/notion-cli/yarn-releases/raw/master/dist/";
 
-/// A provisioned Node installer.
+/// A provisioned Yarn installer.
 pub struct Installer {
     archive: Box<Archive>,
     version: Version,
 }
 
 impl Installer {
-    /// Provision an `Installer` from the public Node distributor (`https://nodejs.org`).
+    /// Provision an `Installer` from the public Yarn distributor (`https://yarnpkg.com`).
     pub fn public(version: Version) -> Fallible<Self> {
-        let archive_file = path::node_archive_file(&version.to_string());
-        let url = format!("{}v{}/{}", PUBLIC_NODE_SERVER_ROOT, version, &archive_file);
+        let archive_file = path::yarn_archive_file(&version.to_string());
+        let url = format!("{}{}", PUBLIC_YARN_SERVER_ROOT, archive_file);
         Installer::remote(version, &url)
     }
 
     /// Provision an `Installer` from a remote distributor.
     pub fn remote(version: Version, url: &str) -> Fallible<Self> {
-        let archive_file = path::node_archive_file(&version.to_string());
-        let cache_file = path::node_cache_dir()?.join(&archive_file);
+        let archive_file = path::yarn_archive_file(&version.to_string());
+        let cache_file = path::yarn_cache_dir()?.join(&archive_file);
 
         if cache_file.is_file() {
             return Installer::cached(version, File::open(cache_file).unknown()?);
@@ -51,19 +51,19 @@ impl Installer {
         })
     }
 
-    /// Produces a reference to this installer's Node version.
+    /// Produces a reference to this installer's Yarn version.
     pub fn version(&self) -> &Version {
         &self.version
     }
 
-    /// Installs this version of Node. (It is left to the responsibility of the `NodeCatalog`
+    /// Installs this version of Yarn. (It is left to the responsibility of the `YarnCatalog`
     /// to update its state after installation succeeds.)
-    pub fn install(self, catalog: &NodeCatalog) -> Fallible<Installed> {
+    pub fn install(self, catalog: &YarnCatalog) -> Fallible<Installed> {
         if catalog.contains(&self.version) {
             return Ok(Installed::Already(self.version));
         }
 
-        let dest = path::node_versions_dir()?;
+        let dest = path::yarn_versions_dir()?;
         let bar = progress_bar(
             Action::Installing,
             &format!("v{}", self.version),
@@ -80,8 +80,8 @@ impl Installer {
 
         let version_string = self.version.to_string();
         rename(
-            dest.join(path::node_archive_root_dir(&version_string)),
-            path::node_version_dir(&version_string)?,
+            dest.join(path::yarn_archive_root_dir(&version_string)),
+            path::yarn_version_dir(&version_string)?,
         ).unknown()?;
 
         bar.finish_and_clear();

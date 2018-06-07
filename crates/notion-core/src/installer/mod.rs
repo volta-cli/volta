@@ -1,6 +1,7 @@
 //! Provides types for installing tools into the Notion catalog.
 
 pub mod node;
+pub mod yarn;
 
 use semver::Version;
 

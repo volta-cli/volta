@@ -16,6 +16,7 @@ pub fn path_for(version: &str) -> OsString {
     let split = env::split_paths(&current).filter(|s| s != shim_dir);
     let mut path_vec: Vec<PathBuf> = Vec::new();
     path_vec.push(path::node_version_bin_dir(version).unwrap());
+    path_vec.push(path::yarn_version_bin_dir(version).unwrap());
     path_vec.extend(split);
     env::join_paths(path_vec.iter()).unwrap()
 }
