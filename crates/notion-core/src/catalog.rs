@@ -2,14 +2,19 @@
 //! of available tool versions.
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
-use std::fs::{remove_dir_all, File};
-use std::io::{self, Write};
+use std::fs::{self, remove_dir_all, File};
+use std::io::{self, ErrorKind, Write};
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::string::ToString;
+use std::time::{Duration, SystemTime};
 
 use lazycell::LazyCell;
 use readext::ReadExt;
 use reqwest;
+use reqwest::header::{CacheControl, CacheDirective, Expires, HttpDate};
+use serde_json;
+use tempfile::NamedTempFile;
 use toml;
 
 use config::{Config, NodeConfig};
@@ -148,6 +153,55 @@ impl NotionFail for NoNodeVersionFoundError {
     }
 }
 
+/// Reads a file, if it exists.
+fn read_file_opt(path: &PathBuf) -> io::Result<Option<String>> {
+    let result: io::Result<String> = fs::read_to_string(path);
+
+    match result {
+        Ok(string) => Ok(Some(string)),
+        Err(error) => {
+            match error.kind() {
+                ErrorKind::NotFound => Ok(None),
+                _ => Err(error)
+            }
+        },
+    }
+}
+
+/// Reads a public index from the Node cache, if it exists and hasn't expired.
+fn read_cached_opt() -> Fallible<Option<serial::index::Index>> {
+    let expiry: Option<String> = read_file_opt(&path::node_index_expiry_file()?).unknown()?;
+
+    if let Some(string) = expiry {
+        let expiry_date: HttpDate = HttpDate::from_str(&string).unknown()?;
+        let current_date: HttpDate = HttpDate::from(SystemTime::now());
+
+        if current_date < expiry_date {
+            let cached: Option<String> = read_file_opt(&path::node_index_file()?).unknown()?;
+
+            if let Some(string) = cached {
+                return Ok(serde_json::de::from_str(&string).unknown()?);
+            }
+        }
+    }
+
+    Ok(None)
+}
+
+/// Get the cache max-age of an HTTP reponse.
+fn max_age(response: &reqwest::Response) -> u32 {
+    if let Some(cache_control_header) = response.headers().get::<CacheControl>() {
+        for cache_directive in cache_control_header.iter() {
+            if let CacheDirective::MaxAge(max_age) = cache_directive {
+                return *max_age;
+            }
+        }
+    }
+
+    // Default to four hours.
+    4 * 60 * 60
+}
+
 impl NodeCatalog {
     /// Tests whether this Node catalog contains the specified Node version.
     pub fn contains(&self, version: &Version) -> bool {
@@ -167,16 +221,49 @@ impl NodeCatalog {
 
     /// Resolves the specified semantic versioning requirements from the public distributor (`https://nodejs.org`).
     fn resolve_public(&self, matching: &VersionReq) -> Fallible<Installer> {
-        let spinner = progress_spinner(&format!(
-            "Fetching public registry: {}",
-            PUBLIC_NODE_VERSION_INDEX
-        ));
-        let serial: serial::index::Index = reqwest::get(PUBLIC_NODE_VERSION_INDEX)
-            .unknown()?
-            .json()
-            .unknown()?;
-        spinner.finish_and_clear();
-        let index = serial.into_index()?;
+        let index: Index = match read_cached_opt().unknown()? {
+            Some(serial) => serial,
+            None => {
+                let spinner = progress_spinner(&format!(
+                    "Fetching public registry: {}",
+                    PUBLIC_NODE_VERSION_INDEX
+                ));
+                let mut response: reqwest::Response = reqwest::get(PUBLIC_NODE_VERSION_INDEX).unknown()?;
+                let response_text: String = response.text().unknown()?;
+                let cached: NamedTempFile = NamedTempFile::new().unknown()?;
+
+                // Block to borrow cached for cached_file.
+                {
+                    let mut cached_file: &File = cached.as_file();
+                    cached_file.write(response_text.as_bytes()).unknown()?;
+                }
+
+                cached.persist(path::node_index_file()?).unknown()?;
+
+                let expiry: NamedTempFile = NamedTempFile::new().unknown()?;
+
+                // Block to borrow expiry for expiry_file.
+                {
+                    let mut expiry_file: &File = expiry.as_file();
+
+                    if let Some(expires_header) = response.headers().get::<Expires>() {
+                        write!(expiry_file, "{}", expires_header).unknown()?;
+                    } else {
+                        let expiry_date = SystemTime::now() + Duration::from_secs(max_age(&response).into());
+
+                        write!(expiry_file, "{}", HttpDate::from(expiry_date)).unknown()?;
+                    }
+                }
+
+                expiry.persist(path::node_index_expiry_file()?).unknown()?;
+
+                let serial: serial::index::Index = serde_json::de::from_str(&response_text).unknown()?;
+
+                spinner.finish_and_clear();
+                serial
+            },
+        }.into_index()?;
+
         let version = index.entries.iter()
             .rev()
             // ISSUE #34: also make sure this OS is available for this version

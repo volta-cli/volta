@@ -11,6 +11,7 @@ extern crate readext;
 extern crate reqwest;
 extern crate semver;
 extern crate serde_json;
+extern crate tempfile;
 extern crate term_size;
 extern crate toml;
 
