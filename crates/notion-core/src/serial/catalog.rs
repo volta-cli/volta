@@ -1,9 +1,9 @@
 use super::super::catalog;
 
-use std::string::ToString;
 use std::collections::BTreeSet;
-use std::iter::FromIterator;
 use std::default::Default;
+use std::iter::FromIterator;
+use std::string::ToString;
 
 use notion_fail::{Fallible, ResultExt};
 

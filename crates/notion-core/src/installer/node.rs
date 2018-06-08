@@ -3,11 +3,11 @@
 use std::fs::{rename, File};
 use std::string::ToString;
 
-use path;
-use node_archive::{self, Archive};
-use style::{progress_bar, Action};
-use catalog::NodeCatalog;
 use super::Installed;
+use catalog::NodeCatalog;
+use node_archive::{self, Archive};
+use path;
+use style::{progress_bar, Action};
 
 use notion_fail::{Fallible, ResultExt};
 use semver::Version;

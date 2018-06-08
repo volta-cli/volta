@@ -2,29 +2,50 @@
 
 use std::env::{args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
-use std::process::{exit, Command};
-use std::path::Path;
 use std::marker::Sized;
+use std::path::Path;
+use std::process::{exit, Command};
 
-use session::Session;
-use notion_fail::{FailExt, Fallible, NotionFail};
 use env;
+use notion_fail::{FailExt, Fallible, NotionError, NotionFail, ResultExt};
+use session::{ActivityKind, Session};
 use style;
+
+fn display_error(err: &NotionError) {
+    if err.is_user_friendly() {
+        style::display_error(err);
+    } else {
+        style::display_unknown_error(err);
+    }
+}
 
 /// Represents a command-line tool that Notion shims delegate to.
 pub trait Tool: Sized {
     fn launch() -> ! {
-        match Self::new() {
-            Ok(tool) => tool.exec(),
-            Err(e) => {
-                style::display_error(&e);
+        let mut session = match Session::new() {
+            Ok(session) => session,
+            Err(err) => {
+                display_error(&err);
                 exit(1);
+            }
+        };
+
+        session.add_event_start(ActivityKind::Tool);
+
+        match Self::new(&mut session) {
+            Ok(tool) => {
+                tool.exec(session);
+            }
+            Err(err) => {
+                display_error(&err);
+                session.add_event_error(ActivityKind::Tool, &err);
+                session.exit(1);
             }
         }
     }
 
     /// Constructs a new instance.
-    fn new() -> Fallible<Self>;
+    fn new(&mut Session) -> Fallible<Self>;
 
     /// Constructs a new instance, using the specified command-line and `PATH` variable.
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self;
@@ -33,20 +54,25 @@ pub trait Tool: Sized {
     fn command(self) -> Command;
 
     /// Delegates the current process to this tool.
-    fn exec(self) -> ! {
+    fn exec(self, mut session: Session) -> ! {
         let mut command = self.command();
-        let status = command.status();
+        let status = command.status().unknown();
         match status {
             Ok(status) if status.success() => {
-                exit(0);
+                session.add_event_end(ActivityKind::Tool, 0);
+                session.exit(0);
             }
             Ok(status) => {
                 // ISSUE (#36): if None, in unix, find out the signal
-                exit(status.code().unwrap_or(1));
+                let code = status.code().unwrap_or(1);
+                session.add_event_end(ActivityKind::Tool, code);
+                session.exit(code);
             }
             Err(err) => {
                 style::display_error(&err);
-                exit(1);
+
+                session.add_event_error(ActivityKind::Tool, &err);
+                session.exit(1);
             }
         }
     }
@@ -63,7 +89,7 @@ pub struct Node(Command);
 
 #[cfg(windows)]
 impl Tool for Script {
-    fn new() -> Fallible<Self> {
+    fn new(session: &mut Session) -> Fallible<Self> {
         unimplemented!()
     }
 
@@ -96,7 +122,7 @@ fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
 
 #[cfg(unix)]
 impl Tool for Script {
-    fn new() -> Fallible<Self> {
+    fn new(_session: &mut Session) -> Fallible<Self> {
         unimplemented!()
     }
 
@@ -110,7 +136,7 @@ impl Tool for Script {
 }
 
 impl Tool for Binary {
-    fn new() -> Fallible<Self> {
+    fn new(_session: &mut Session) -> Fallible<Self> {
         unimplemented!()
     }
 
@@ -154,8 +180,9 @@ impl NotionFail for NoGlobalError {
 }
 
 impl Tool for Node {
-    fn new() -> Fallible<Self> {
-        let mut session = Session::new()?;
+    fn new(session: &mut Session) -> Fallible<Self> {
+        session.add_event_start(ActivityKind::Node);
+
         let mut args = args_os();
         let exe = arg0(&mut args)?;
         let version = if let Some(version) = session.current_node()? {

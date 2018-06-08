@@ -1,16 +1,16 @@
 //! Types representing Notion plugins.
 
+use std::ffi::OsString;
 use std::io::Read;
 use std::process::{Command, Stdio};
-use std::ffi::OsString;
 
-use serial;
 use installer::node::Installer;
+use serial;
 
+use cmdline_words_parser::StrExt;
 use notion_fail::{FailExt, Fallible, ResultExt};
 use semver::{Version, VersionReq};
 use serde_json;
-use cmdline_words_parser::StrExt;
 
 /// A Node version resolution plugin.
 pub enum Resolve {

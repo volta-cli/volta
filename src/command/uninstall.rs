@@ -1,4 +1,4 @@
-use notion_core::session::Session;
+use notion_core::session::{ActivityKind, Session};
 use notion_fail::{Fallible, ResultExt};
 use semver::Version;
 
@@ -38,14 +38,16 @@ Options:
         Ok(Uninstall::Default(version))
     }
 
-    fn run(self) -> Fallible<bool> {
-        match self {
-            Uninstall::Help => Help::Command(CommandName::Uninstall).run(),
+    fn run(self, session: &mut Session) -> Fallible<bool> {
+        session.add_event_start(ActivityKind::Uninstall);
+        let result = match self {
+            Uninstall::Help => Help::Command(CommandName::Uninstall).run(session),
             Uninstall::Default(version) => {
-                let mut session = Session::new()?;
                 session.catalog_mut()?.uninstall_node(&version)?;
                 Ok(true)
             }
-        }
+        };
+        session.add_event_end(ActivityKind::Uninstall, 0);
+        result
     }
 }

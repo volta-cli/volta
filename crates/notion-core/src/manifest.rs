@@ -1,12 +1,12 @@
 //! Provides the `Manifest` type, which represents a Node manifest file (`package.json`).
 
 use std::collections::HashMap;
-use std::path::Path;
 use std::fs::File;
+use std::path::Path;
 
-use serde_json;
-use semver::VersionReq;
 use notion_fail::{Fallible, ResultExt};
+use semver::VersionReq;
+use serde_json;
 
 use serial;
 
@@ -18,6 +18,8 @@ pub struct Manifest {
     pub yarn: Option<VersionReq>,
     /// The `dependencies` section.
     pub dependencies: HashMap<String, String>,
+    /// The command to run a plugin for events, under the `notion.events_plugin` key.
+    pub events_plugin: Option<String>,
 }
 
 impl Manifest {

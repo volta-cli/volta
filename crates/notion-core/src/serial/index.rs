@@ -3,8 +3,8 @@ use super::super::catalog;
 use std::collections::{BTreeMap, HashSet};
 use std::iter::FromIterator;
 
-use semver::Version;
 use notion_fail::{Fallible, ResultExt};
+use semver::Version;
 
 #[derive(Serialize, Deserialize)]
 pub struct Index(Vec<Entry>);

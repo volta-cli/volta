@@ -1,9 +1,9 @@
 //! Provides the `Project` type, which represents a Node project tree in
 //! the filesystem.
 
-use std::path::Path;
-use std::ffi::OsStr;
 use std::env;
+use std::ffi::OsStr;
+use std::path::Path;
 
 use notion_fail::{Fallible, ResultExt};
 

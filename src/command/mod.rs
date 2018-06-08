@@ -1,20 +1,21 @@
+mod current;
+mod help;
 mod install;
 mod uninstall;
-mod current;
 mod use_;
-mod help;
 mod version;
 
+pub(crate) use self::current::Current;
+pub(crate) use self::help::Help;
 pub(crate) use self::install::Install;
 pub(crate) use self::uninstall::Uninstall;
-pub(crate) use self::current::Current;
 pub(crate) use self::use_::Use;
-pub(crate) use self::help::Help;
 pub(crate) use self::version::Version;
 
 use docopt::Docopt;
 use serde::de::DeserializeOwned;
 
+use notion_core::session::Session;
 use notion_fail::{FailExt, Fallible};
 
 use {CliParseError, DocoptExt, Notion};
@@ -87,21 +88,21 @@ pub(crate) trait Command: Sized {
     /// Executes the command. Returns `Ok(true)` if the process should return 0,
     /// `Ok(false)` if the process should return 1, and `Err(e)` if the process
     /// should return `e.exit_code()`.
-    fn run(self) -> Fallible<bool>;
+    fn run(self, session: &mut Session) -> Fallible<bool>;
 
     /// Top-level convenience method for taking a Notion invocation and executing
     /// this command with the arguments taken from the Notion invocation.
-    fn go(notion: Notion) -> Fallible<bool> {
+    fn go(notion: Notion, session: &mut Session) -> Fallible<bool> {
         let argv = notion.full_argv();
         let args = Docopt::new(Self::USAGE).and_then(|d| d.argv(argv).deserialize());
 
         match args {
-            Ok(args) => Self::parse(notion, args)?.run(),
+            Ok(args) => Self::parse(notion, args)?.run(session),
             Err(err) => {
                 // Docopt models `-h` and `--help` as errors, so this
                 // normalizes them to a normal `notion help` command.
                 if err.is_help() {
-                    Self::help().run()
+                    Self::help().run(session)
                 }
                 // Otherwise it's a true docopt error, so rethrow it.
                 else {

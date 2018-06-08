@@ -17,14 +17,14 @@ use serde_json;
 use tempfile::NamedTempFile;
 use toml;
 
-use path::{self, user_catalog_file};
-use serial::touch;
-use notion_fail::{FailExt, Fallible, NotionError, ResultExt};
-use semver::{Version, VersionReq};
+use config::{Config, NodeConfig};
 use installer::Installed;
 use installer::node::Installer;
+use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
+use path::{self, user_catalog_file};
+use semver::{Version, VersionReq};
 use serial;
-use config::{Config, NodeConfig};
+use serial::touch;
 use style::progress_spinner;
 
 /// URL of the index of available Node versions on the public Node server.
@@ -143,6 +143,14 @@ impl Catalog {
 #[fail(display = "No Node version found for {}", matching)]
 struct NoNodeVersionFoundError {
     matching: VersionReq,
+}
+impl NotionFail for NoNodeVersionFoundError {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        100
+    }
 }
 
 /// Reads a file, if it exists.
@@ -265,11 +273,9 @@ impl NodeCatalog {
         if let Some(version) = version {
             Installer::public(version)
         } else {
-            throw!(
-                NoNodeVersionFoundError {
-                    matching: matching.clone(),
-                }.unknown()
-            );
+            throw!(NoNodeVersionFoundError {
+                matching: matching.clone(),
+            });
         }
     }
 

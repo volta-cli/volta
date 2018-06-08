@@ -63,8 +63,8 @@ cfg_if! {
     }
 }
 
-use std::path::Path;
 use std::fs::File;
+use std::path::Path;
 
 pub trait Archive {
     fn compressed_size(&self) -> u64;
