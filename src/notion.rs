@@ -19,8 +19,9 @@ use std::string::ToString;
 
 use docopt::Docopt;
 
+use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error};
-use notion_fail::{FailExt, Fallible};
+use notion_fail::{FailExt, Fallible, NotionError};
 
 use command::{Command, CommandName, Current, Help, Install, Uninstall, Use, Version};
 use error::{CliParseError, DocoptExt, NotionErrorExt};
@@ -79,8 +80,8 @@ See 'notion help <command>' for more information on a specific command.
         argv
     }
 
-    fn go() -> Fallible<bool> {
-        Self::parse()?.run()
+    fn go(session: &mut Session) -> Fallible<bool> {
+        Self::parse()?.run(session)
     }
 
     fn parse() -> Fallible<Notion> {
@@ -164,38 +165,52 @@ See 'notion help <command>' for more information on a specific command.
         })
     }
 
-    fn run(self) -> Fallible<bool> {
+    fn run(self, session: &mut Session) -> Fallible<bool> {
         match self.command {
-            CommandName::Install => Install::go(self),
-            CommandName::Uninstall => Uninstall::go(self),
-            CommandName::Use => Use::go(self),
-            CommandName::Current => Current::go(self),
-            CommandName::Help => Help::go(self),
-            CommandName::Version => Version::go(self),
+            CommandName::Install => Install::go(self, session),
+            CommandName::Uninstall => Uninstall::go(self, session),
+            CommandName::Use => Use::go(self, session),
+            CommandName::Current => Current::go(self, session),
+            CommandName::Help => Help::go(self, session),
+            CommandName::Version => Version::go(self, session),
         }
+    }
+}
+
+fn display_error_and_usage(err: &NotionError) {
+    if err.is_user_friendly() {
+        display_error(err);
+    } else {
+        display_unknown_error(err);
+    }
+
+    if let Some(ref usage) = err.usage() {
+        eprintln!();
+        eprintln!("{}", usage);
     }
 }
 
 /// The entry point for the `notion` CLI.
 pub fn main() {
-    let exit_code = match Notion::go() {
-        Ok(true) => 0,
-        Ok(false) => 1,
+    let mut session = match Session::new() {
+        Ok(session) => session,
         Err(err) => {
-            if err.is_user_friendly() {
-                display_error(&err);
-            } else {
-                display_unknown_error(&err);
-            }
-
-            if let Some(ref usage) = err.usage() {
-                eprintln!();
-                eprintln!("{}", usage);
-            }
-
-            err.exit_code()
+            display_error_and_usage(&err);
+            exit(1);
         }
     };
 
-    exit(exit_code);
+    session.add_event_start(ActivityKind::Notion);
+
+    let exit_code = match Notion::go(&mut session) {
+        Ok(true) => 0,
+        Ok(false) => 1,
+        Err(err) => {
+            display_error_and_usage(&err);
+            session.add_event_error(ActivityKind::Notion, &err);
+            err.exit_code()
+        }
+    };
+    session.add_event_end(ActivityKind::Notion, exit_code);
+    session.exit(exit_code);
 }

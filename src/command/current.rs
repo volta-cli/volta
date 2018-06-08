@@ -1,6 +1,6 @@
 use std::string::ToString;
 
-use notion_core::session::Session;
+use notion_core::session::{ActivityKind, Session};
 use notion_fail::Fallible;
 
 use Notion;
@@ -54,11 +54,11 @@ Options:
         })
     }
 
-    fn run(self) -> Fallible<bool> {
-        let session = Session::new()?;
+    fn run(self, session: &mut Session) -> Fallible<bool> {
+        session.add_event_start(ActivityKind::Current);
 
-        match self {
-            Current::Help => Help::Command(CommandName::Current).run(),
+        let result = match self {
+            Current::Help => Help::Command(CommandName::Current).run(session),
             Current::Local => Ok(local(&session)?
                 .map(|version| {
                     println!("v{}", version);
@@ -85,7 +85,9 @@ Options:
                 }
                 Ok(any)
             }
-        }
+        };
+        session.add_event_end(ActivityKind::Current, 0);
+        result
     }
 }
 

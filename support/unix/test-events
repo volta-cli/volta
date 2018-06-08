@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+# long-running script to show events and test spawning processes
+
+my_pid="$$"
+
+echo "$my_pid called with $# args: $@"
+
+# get JSON data from stdin
+read some_data
+
+echo "$my_pid got:"
+# display nicely with jq if it is installed
+command -v jq >/dev/null 2>&1 && echo "$some_data" | jq '.' || echo "$some_data"
+
+i=0
+while [ $i -lt 3 ]
+do
+  sleep 2s
+  echo "$my_pid still running!"
+  let i=i+1
+done
+
+echo "$my_pid done!!"
+
