@@ -13,12 +13,13 @@ The output file is saved as $script_dir/install.sh.
 END_USAGE
 }
 
-target_dir='release'
-if [ "$#" -gt 1 ] || ! [[ "$1" =~ (debug|release) ]]; then
+if [ -z "$1" ]; then
+  target_dir='release'
+elif [[ "$1" =~ (debug|release) ]]; then
+  target_dir="$1"
+else
   usage
   exit 1
-elif [ -n "$1" ]; then
-  target_dir="$1"
 fi
 
 encode_base64_sed_command() {
