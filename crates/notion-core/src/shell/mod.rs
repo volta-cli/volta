@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use semver::Version;
 
-use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
+use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 
 use env;
 
@@ -27,8 +27,8 @@ impl NotionFail for UnspecifiedPostscriptError {
     fn is_user_friendly(&self) -> bool {
         true
     }
-    fn exit_code(&self) -> i32 {
-        100
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::EnvironmentError
     }
 }
 
@@ -56,8 +56,8 @@ impl NotionFail for UnspecifiedShellError {
     fn is_user_friendly(&self) -> bool {
         true
     }
-    fn exit_code(&self) -> i32 {
-        100
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::EnvironmentError
     }
 }
 
@@ -95,8 +95,8 @@ impl NotionFail for UnrecognizedShellError {
     fn is_user_friendly(&self) -> bool {
         true
     }
-    fn exit_code(&self) -> i32 {
-        100
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::EnvironmentError
     }
 }
 

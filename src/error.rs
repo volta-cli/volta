@@ -1,6 +1,6 @@
 use docopt;
 use failure::Context;
-use notion_fail::{NotionError, NotionFail};
+use notion_fail::{ExitCode, NotionError, NotionFail};
 
 #[derive(Fail, Debug)]
 #[fail(display = "{}", error)]
@@ -29,8 +29,8 @@ impl NotionFail for CliParseError {
     fn is_user_friendly(&self) -> bool {
         true
     }
-    fn exit_code(&self) -> i32 {
-        3
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::InvalidArguments
     }
 }
 
@@ -90,7 +90,7 @@ impl NotionFail for CommandUnimplementedError {
     fn is_user_friendly(&self) -> bool {
         true
     }
-    fn exit_code(&self) -> i32 {
-        4
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::NotYetImplemented
     }
 }

@@ -6,7 +6,7 @@ use semver::VersionReq;
 
 use notion_core::serial::version::parse_requirements;
 use notion_core::session::{ActivityKind, Session};
-use notion_fail::{Fallible, NotionFail};
+use notion_fail::{ExitCode, Fallible, NotionFail};
 
 use Notion;
 use command::{Command, CommandName, Help};
@@ -35,8 +35,8 @@ impl NotionFail for NoCustomUseError {
     fn is_user_friendly(&self) -> bool {
         true
     }
-    fn exit_code(&self) -> i32 {
-        4
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::NotYetImplemented
     }
 }
 

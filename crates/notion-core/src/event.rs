@@ -109,7 +109,7 @@ impl EventLog {
         let exit_code = error.exit_code();
         self.add_event(
             EventKind::Error {
-                exit_code,
+                exit_code: exit_code as i32,
                 error: error.to_string(),
                 env: get_error_env(),
             },

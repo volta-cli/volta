@@ -87,7 +87,7 @@
 //! extern crate failure_derive;
 //!
 //! # extern crate failure;
-//! use notion_fail::NotionFail;
+//! use notion_fail::{ExitCode, NotionFail};
 //!
 //! #[derive(Fail, Debug)]
 //! #[fail(display = "unexpected end of string")]
@@ -97,8 +97,8 @@
 //!     // this is a user-friendly error type
 //!     fn is_user_friendly(&self) -> bool { true }
 //!
-//!     // abort the process with exit code 101 if this failure goes uncaught
-//!     fn exit_code(&self) -> i32 { 101 }
+//!     // abort the process with the exit code for invalid arguments if this failure goes uncaught
+//!     fn exit_code(&self) -> ExitCode { ExitCode::InvalidArguments }
 //! }
 //! ```
 //!
@@ -115,7 +115,7 @@
 //! # #[macro_use] extern crate notion_fail;
 //! # #[macro_use] extern crate failure_derive;
 //! # extern crate failure;
-//! # use notion_fail::{NotionFail, Fallible};
+//! # use notion_fail::{ExitCode, Fallible, NotionFail};
 //! # #[derive(Fail, Debug)]
 //! # #[fail(display = "unexpected end of string")]
 //! # struct UnexpectedEndOfString;
@@ -124,8 +124,8 @@
 //! #     // this is a user-friendly error type
 //! #     fn is_user_friendly(&self) -> bool { true }
 //! #
-//! #     // abort the process with exit code 101 if this failure goes uncaught
-//! #     fn exit_code(&self) -> i32 { 101 }
+//! #     // abort the process with the exit code for invalid arguments if this failure goes uncaught
+//! #     fn exit_code(&self) -> ExitCode { ExitCode::InvalidArguments }
 //! # }
 //! #
 //! fn parse_component(src: &str, i: usize) -> Fallible<u8> {
@@ -158,7 +158,7 @@
 //! # #[macro_use] extern crate notion_fail;
 //! # #[macro_use] extern crate failure_derive;
 //! # extern crate failure;
-//! # use notion_fail::{NotionFail, Fallible};
+//! # use notion_fail::{ExitCode, Fallible, NotionFail};
 //! // add `unknown()` extension method to Results
 //! use notion_fail::ResultExt;
 //! # #[derive(Fail, Debug)]
@@ -169,8 +169,8 @@
 //! #     // this is a user-friendly error type
 //! #     fn is_user_friendly(&self) -> bool { true }
 //! #
-//! #     // abort the process with exit code 101 if this failure goes uncaught
-//! #     fn exit_code(&self) -> i32 { 101 }
+//! #     // abort the process with the exit code for invalid arguments if this failure goes uncaught
+//! #     fn exit_code(&self) -> ExitCode { ExitCode::InvalidArguments }
 //! # }
 //!
 //! fn parse_component(src: &str, i: usize) -> Fallible<u8> {
@@ -210,7 +210,7 @@
 //! # #[macro_use] extern crate notion_fail;
 //! # #[macro_use] extern crate failure_derive;
 //! # extern crate failure;
-//! # use notion_fail::{NotionFail, Fallible};
+//! # use notion_fail::{ExitCode, Fallible, NotionFail};
 //! // add `unknown()` and `with_context()` extension methods to Results
 //! use notion_fail::ResultExt;
 //! # use std::fmt::Display;
@@ -223,8 +223,8 @@
 //! #     // this is a user-friendly error type
 //! #     fn is_user_friendly(&self) -> bool { true }
 //! #
-//! #     // abort the process with exit code 101 if this failure goes uncaught
-//! #     fn exit_code(&self) -> i32 { 101 }
+//! #     // abort the process with the exit code for invalid arguments if this failure goes uncaught
+//! #     fn exit_code(&self) -> ExitCode { ExitCode::InvalidArguments }
 //! # }
 //! #
 //! # fn parse_component(src: &str, i: usize) -> Fallible<u8> {
@@ -242,7 +242,7 @@
 //!
 //! impl NotionFail for InvalidRgbString {
 //!     fn is_user_friendly(&self) -> bool { true}
-//!     fn exit_code(&self) -> i32 { 101 }
+//!     fn exit_code(&self) -> ExitCode { ExitCode::InvalidArguments }
 //! }
 //!
 //! impl InvalidRgbString {
@@ -283,13 +283,50 @@ macro_rules! throw {
     };
 }
 
+/// Exit codes supported by the NotionFail trait.
+#[derive(Copy, Clone, Debug)]
+pub enum ExitCode {
+    /// No error occurred.
+    Success = 0,
+
+    /// An unknown error occurred.
+    UnknownError = 1,
+
+    /// An invalid combination of command-line arguments was supplied.
+    InvalidArguments = 3,
+
+    /// No match could be found for the requested version string.
+    NoVersionMatch = 4,
+
+    /// A network error occurred.
+    NetworkError = 5,
+
+    /// A required environment variable was unset or invalid.
+    EnvironmentError = 6,
+
+    /// A file could not be read or written.
+    FileSystemError = 7,
+
+    /// Package configuration is missing or incorrect.
+    ConfigurationError = 8,
+
+    /// The command or feature is not yet implemented.
+    NotYetImplemented = 9,
+
+    /// The requested executable could not be run.
+    ExecutionFailure = 126,
+
+    /// The requested executable is not available.
+    ExecutableNotFound = 127,
+}
+
 /// The failure trait for all Notion errors.
 pub trait NotionFail: Fail {
     /// Indicates whether this error has a message suitable for reporting to an end-user.
     fn is_user_friendly(&self) -> bool;
 
     /// Returns the process exit code that should be returned if the process exits with this error.
-    fn exit_code(&self) -> i32;
+    fn exit_code(&self) -> ExitCode;
 }
 
 /// The `NotionError` type, which can contain any Notion failure.
@@ -302,7 +339,7 @@ pub struct NotionError {
     user_friendly: bool,
 
     /// The result of `error.exit_code()`.
-    exit_code: i32,
+    exit_code: ExitCode,
 }
 
 impl Fail for NotionError {
@@ -352,7 +389,7 @@ impl NotionError {
     }
 
     /// Returns the process exit code that should be returned if the process exits with this error.
-    pub fn exit_code(&self) -> i32 {
+    pub fn exit_code(&self) -> ExitCode {
         self.exit_code
     }
 }
@@ -431,8 +468,8 @@ impl NotionFail for UnknownNotionError {
     fn is_user_friendly(&self) -> bool {
         false
     }
-    fn exit_code(&self) -> i32 {
-        1
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::UnknownError
     }
 }
 
@@ -472,7 +509,7 @@ impl<D: NotionFail> NotionFail for failure::Context<D> {
         self.get_context().is_user_friendly()
     }
 
-    fn exit_code(&self) -> i32 {
+    fn exit_code(&self) -> ExitCode {
         self.get_context().exit_code()
     }
 }

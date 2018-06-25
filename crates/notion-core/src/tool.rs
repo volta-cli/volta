@@ -8,7 +8,7 @@ use std::path::Path;
 use std::process::{exit, Command};
 
 use env;
-use notion_fail::{FailExt, Fallible, NotionError, NotionFail};
+use notion_fail::{ExitCode, FailExt, Fallible, NotionError, NotionFail};
 use path;
 use session::{ActivityKind, Session};
 use style;
@@ -45,8 +45,8 @@ impl NotionFail for BinaryExecError {
     fn is_user_friendly(&self) -> bool {
         true
     }
-    fn exit_code(&self) -> i32 {
-        4
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::ExecutionFailure
     }
 }
 
@@ -64,8 +64,8 @@ impl NotionFail for ToolUnimplementedError {
     fn is_user_friendly(&self) -> bool {
         true
     }
-    fn exit_code(&self) -> i32 {
-        4
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::ExecutableNotFound
     }
 }
 
@@ -76,7 +76,7 @@ pub trait Tool: Sized {
             Ok(session) => session,
             Err(err) => {
                 display_error(&err);
-                exit(1);
+                exit(ExitCode::ExecutionFailure as i32);
             }
         };
 
@@ -89,7 +89,7 @@ pub trait Tool: Sized {
             Err(err) => {
                 display_error(&err);
                 session.add_event_error(ActivityKind::Tool, &err);
-                session.exit(1);
+                session.exit(ExitCode::ExecutionFailure as i32);
             }
         }
     }
@@ -110,7 +110,7 @@ pub trait Tool: Sized {
         match status {
             Ok(status) if status.success() => {
                 session.add_event_end(ActivityKind::Tool, 0);
-                session.exit(0);
+                session.exit(ExitCode::Success as i32);
             }
             Ok(status) => {
                 // ISSUE (#36): if None, in unix, find out the signal
@@ -122,7 +122,7 @@ pub trait Tool: Sized {
                 let notion_err = err.with_context(BinaryExecError::from_io_error);
                 display_error(&notion_err);
                 session.add_event_error(ActivityKind::Tool, &notion_err);
-                session.exit(1);
+                session.exit(ExitCode::ExecutionFailure as i32);
             }
         }
     }
@@ -267,8 +267,8 @@ impl NotionFail for NoGlobalError {
     fn is_user_friendly(&self) -> bool {
         true
     }
-    fn exit_code(&self) -> i32 {
-        2
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::NoVersionMatch
     }
 }
 

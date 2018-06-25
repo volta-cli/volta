@@ -1,6 +1,6 @@
 //! Provides error types for the installer tools.
 
-use notion_fail::NotionFail;
+use notion_fail::{ExitCode, NotionFail};
 
 use failure;
 
@@ -24,7 +24,7 @@ impl NotionFail for DownloadError {
     fn is_user_friendly(&self) -> bool {
         true
     }
-    fn exit_code(&self) -> i32 {
-        4
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::NetworkError
     }
 }

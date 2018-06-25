@@ -21,7 +21,7 @@ use docopt::Docopt;
 
 use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error, ErrorContext};
-use notion_fail::{FailExt, Fallible, NotionError};
+use notion_fail::{ExitCode, FailExt, Fallible, NotionError};
 
 use command::{Command, CommandName, Config, Current, Deactivate, Fetch, Help, Install, Shim, Use,
               Version};
@@ -203,19 +203,19 @@ pub fn main() {
         Ok(session) => session,
         Err(err) => {
             display_error_and_usage(&err);
-            exit(1);
+            exit(ExitCode::UnknownError as i32);
         }
     };
 
     session.add_event_start(ActivityKind::Notion);
 
     let exit_code = match Notion::go(&mut session) {
-        Ok(true) => 0,
-        Ok(false) => 1,
+        Ok(true) => ExitCode::Success as i32,
+        Ok(false) => ExitCode::UnknownError as i32,
         Err(err) => {
             display_error_and_usage(&err);
             session.add_event_error(ActivityKind::Notion, &err);
-            err.exit_code()
+            err.exit_code() as i32
         }
     };
     session.add_event_end(ActivityKind::Notion, exit_code);

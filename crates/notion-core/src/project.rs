@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use lazycell::LazyCell;
 
 use manifest::Manifest;
-use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
+use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use semver::Version;
 use serial::manifest::ToolchainManifest;
 
@@ -66,8 +66,8 @@ impl NotionFail for DepPackageReadError {
     fn is_user_friendly(&self) -> bool {
         true
     }
-    fn exit_code(&self) -> i32 {
-        4
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::FileSystemError
     }
 }
 
@@ -86,8 +86,8 @@ impl NotionFail for NoPinnedNodeVersion {
     fn is_user_friendly(&self) -> bool {
         true
     }
-    fn exit_code(&self) -> i32 {
-        4
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::ConfigurationError
     }
 }
 

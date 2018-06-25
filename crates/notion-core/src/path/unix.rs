@@ -5,7 +5,7 @@ use std::{env, io};
 use std::path::PathBuf;
 use std::os::unix;
 
-use notion_fail::{Fallible, NotionFail};
+use notion_fail::{ExitCode, Fallible, NotionFail};
 
 #[derive(Fail, Debug)]
 #[fail(display = "environment variable 'HOME' is not set")]
@@ -13,7 +13,7 @@ pub(crate) struct NoHomeEnvVar;
 
 impl NotionFail for NoHomeEnvVar {
     fn is_user_friendly(&self) -> bool { true }
-    fn exit_code(&self) -> i32 { 4 }
+    fn exit_code(&self) -> ExitCode { ExitCode::EnvironmentError }
 }
 
 // These are taken from: https://nodejs.org/dist/index.json and are used

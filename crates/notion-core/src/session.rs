@@ -13,7 +13,7 @@ use std::fmt::{self, Display, Formatter};
 use std::process::exit;
 
 use event::EventLog;
-use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
+use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use semver::{Version, VersionReq};
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
@@ -72,8 +72,8 @@ impl NotionFail for NotInPackageError {
     fn is_user_friendly(&self) -> bool {
         true
     }
-    fn exit_code(&self) -> i32 {
-        4
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::ConfigurationError
     }
 }
 

@@ -1,4 +1,4 @@
-use notion_fail::{Fallible, NotionFail, ResultExt};
+use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use semver::{ReqParseError, VersionReq};
 
 #[derive(Fail, Debug)]
@@ -19,8 +19,8 @@ impl NotionFail for VersionParseError {
     fn is_user_friendly(&self) -> bool {
         true
     }
-    fn exit_code(&self) -> i32 {
-        4
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::NoVersionMatch
     }
 }
 

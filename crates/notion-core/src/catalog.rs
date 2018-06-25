@@ -22,7 +22,7 @@ use config::{Config, ToolConfig};
 use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
 use distro::{Distro, Fetched};
-use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
+use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use path::{self, user_catalog_file};
 use semver::{Version, VersionReq};
 use serial;
@@ -221,8 +221,8 @@ impl NotionFail for NoNodeVersionFoundError {
     fn is_user_friendly(&self) -> bool {
         true
     }
-    fn exit_code(&self) -> i32 {
-        100
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::NoVersionMatch
     }
 }
 
@@ -236,8 +236,8 @@ impl NotionFail for NoYarnVersionFoundError {
     fn is_user_friendly(&self) -> bool {
         true
     }
-    fn exit_code(&self) -> i32 {
-        100
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::NoVersionMatch
     }
 }
 
@@ -293,8 +293,8 @@ impl NotionFail for RegistryFetchError {
     fn is_user_friendly(&self) -> bool {
         true
     }
-    fn exit_code(&self) -> i32 {
-        4
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::NetworkError
     }
 }
 

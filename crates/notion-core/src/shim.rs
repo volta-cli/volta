@@ -2,7 +2,7 @@
 
 use std::{fs, io};
 
-use notion_fail::{FailExt, Fallible, NotionFail};
+use notion_fail::{ExitCode, FailExt, Fallible, NotionFail};
 use path;
 
 #[derive(Fail, Debug)]
@@ -15,8 +15,8 @@ impl NotionFail for SymlinkError {
     fn is_user_friendly(&self) -> bool {
         true
     }
-    fn exit_code(&self) -> i32 {
-        4
+    fn exit_code(&self) -> ExitCode {
+        ExitCode::FileSystemError
     }
 }
 
