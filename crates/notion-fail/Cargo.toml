@@ -5,3 +5,4 @@ authors = ["Dave Herman <david.herman@gmail.com>"]
 
 [dependencies]
 failure = "0.1.1"
+failure_derive = "0.1.1"
