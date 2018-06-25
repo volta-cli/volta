@@ -4,6 +4,7 @@ use std::collections::BTreeSet;
 use std::default::Default;
 use std::iter::FromIterator;
 use std::string::ToString;
+use std::marker::PhantomData;
 
 use notion_fail::{Fallible, ResultExt};
 
@@ -12,37 +13,37 @@ use semver::{SemVerError, Version};
 #[derive(Serialize, Deserialize)]
 pub struct Catalog {
     #[serde(default)]
-    node: NodeCatalog,
+    node: NodeCollection,
     #[serde(default)]
-    yarn: YarnCatalog,
+    yarn: YarnCollection,
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename = "node")]
-pub struct NodeCatalog {
+pub struct NodeCollection{
     activated: Option<String>,
     versions: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename = "yarn")]
-pub struct YarnCatalog {
+pub struct YarnCollection{
     activated: Option<String>,
     versions: Vec<String>,
 }
 
-impl Default for NodeCatalog {
+impl Default for NodeCollection {
     fn default() -> Self {
-        NodeCatalog {
+        NodeCollection {
             activated: None,
             versions: vec![],
         }
     }
 }
 
-impl Default for YarnCatalog {
+impl Default for YarnCollection {
     fn default() -> Self {
-        YarnCatalog {
+        YarnCollection {
             activated: None,
             versions: vec![],
         }
@@ -52,14 +53,14 @@ impl Default for YarnCatalog {
 impl Catalog {
     pub fn into_catalog(self) -> Fallible<catalog::Catalog> {
         Ok(catalog::Catalog {
-            node: self.node.into_node_catalog().unknown()?,
-            yarn: self.yarn.into_yarn_catalog().unknown()?,
+            node: self.node.into_node_collection().unknown()?,
+            yarn: self.yarn.into_yarn_collection().unknown()?,
         })
     }
 }
 
-impl NodeCatalog {
-    fn into_node_catalog(self) -> Fallible<catalog::NodeCatalog> {
+impl NodeCollection {
+    fn into_node_collection(self) -> Fallible<catalog::NodeCollection> {
         let activated = match self.activated {
             Some(v) => Some(Version::parse(&v[..]).unknown()?),
             None => None,
@@ -70,15 +71,16 @@ impl NodeCatalog {
             .map(|s| Ok(Version::parse(&s[..])?))
             .collect();
 
-        Ok(catalog::NodeCatalog {
+        Ok(catalog::NodeCollection {
             activated: activated,
             versions: BTreeSet::from_iter(versions.unknown()?),
+            phantom: PhantomData
         })
     }
 }
 
-impl YarnCatalog {
-    fn into_yarn_catalog(self) -> Fallible<catalog::YarnCatalog> {
+impl YarnCollection {
+    fn into_yarn_collection(self) -> Fallible<catalog::YarnCollection> {
         let activated = match self.activated {
             Some(v) => Some(Version::parse(&v[..]).unknown()?),
             None => None,
@@ -89,9 +91,10 @@ impl YarnCatalog {
             .map(|s| Ok(Version::parse(&s[..])?))
             .collect();
 
-        Ok(catalog::YarnCatalog {
+        Ok(catalog::YarnCollection {
             activated,
             versions: BTreeSet::from_iter(versions.unknown()?),
+            phantom: PhantomData
         })
     }
 }
@@ -104,18 +107,18 @@ impl catalog::Catalog {
         }
     }
 }
-impl catalog::NodeCatalog {
-    fn to_serial(&self) -> NodeCatalog {
-        NodeCatalog {
+impl catalog::NodeCollection {
+    fn to_serial(&self) -> NodeCollection {
+        NodeCollection {
             activated: self.activated.clone().map(|v| v.to_string()),
             versions: self.versions.iter().map(|v| v.to_string()).collect(),
         }
     }
 }
 
-impl catalog::YarnCatalog {
-    fn to_serial(&self) -> YarnCatalog {
-        YarnCatalog {
+impl catalog::YarnCollection {
+    fn to_serial(&self) -> YarnCollection {
+        YarnCollection {
             activated: self.activated.clone().map(|v| v.to_string()),
             versions: self.versions.iter().map(|v| v.to_string()).collect(),
         }

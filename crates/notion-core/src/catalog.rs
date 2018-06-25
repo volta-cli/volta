@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::string::ToString;
 use std::time::{Duration, SystemTime};
+use std::marker::PhantomData;
 
 use lazycell::LazyCell;
 use readext::ReadExt;
@@ -17,10 +18,10 @@ use serde_json;
 use tempfile::NamedTempFile;
 use toml;
 
-use config::{Config, NodeConfig};
-use installer::Installed;
-use installer::node::Installer as NodeInstaller;
-use installer::yarn::Installer as YarnInstaller;
+use config::{Config, ToolConfig};
+use installer::{Installed, Install};
+use installer::node::NodeInstaller;
+use installer::yarn::YarnInstaller;
 use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
 use path::{self, user_catalog_file};
 use semver::{Version, VersionReq};
@@ -58,28 +59,23 @@ impl LazyCatalog {
     }
 }
 
-/// The catalog of tool versions available locally.
-pub struct Catalog {
-    pub node: NodeCatalog,
-    pub yarn: YarnCatalog,
-}
-
-/// The catalog of Node versions available locally.
-pub struct NodeCatalog {
+pub struct Collection<I:Install> {
     /// The currently activated Node version, if any.
     pub activated: Option<Version>,
 
     // A sorted collection of the available versions in the catalog.
     pub versions: BTreeSet<Version>,
+
+    pub phantom: PhantomData<I>,
 }
 
-/// The catalog of Yarn versions available locally.
-pub struct YarnCatalog {
-    /// The currently activated Yarn version, if any.
-    pub activated: Option<Version>,
+pub type NodeCollection = Collection<NodeInstaller>;
+pub type YarnCollection = Collection<YarnInstaller>;
 
-    // A sorted collection of the available versions in the catalog.
-    pub versions: BTreeSet<Version>,
+/// The catalog of tool versions available locally.
+pub struct Catalog {
+    pub node: NodeCollection,
+    pub yarn: YarnCollection,
 }
 
 impl Catalog {
@@ -118,7 +114,7 @@ impl Catalog {
 
     /// Installs a Node version matching the specified semantic versioning requirements.
     pub fn install_node(&mut self, matching: &VersionReq, config: &Config) -> Fallible<Installed> {
-        let installer = self.node.resolve_remote(&matching, config)?;
+        let installer = self.node.resolve_remote(&matching, config.node.as_ref())?;
         let installed = installer.install(&self.node).unknown()?;
 
         if let &Installed::Now(ref version) = &installed {
@@ -168,7 +164,7 @@ impl Catalog {
 
     /// Installs a Yarn version matching the specified semantic versioning requirements.
     pub fn install_yarn(&mut self, matching: &VersionReq, config: &Config) -> Fallible<Installed> {
-        let installer = self.yarn.resolve_remote(&matching, config)?;
+        let installer = self.yarn.resolve_remote(&matching, config.yarn.as_ref())?;
         let installed = installer.install(&self.yarn).unknown()?;
 
         if let &Installed::Now(ref version) = &installed {
@@ -217,24 +213,48 @@ impl NotionFail for NoNodeVersionFoundError {
     }
 }
 
-impl NodeCatalog {
-    /// Tests whether this Node catalog contains the specified Node version.
+/// Thrown when there is no Node version matching a requested semver specifier.
+#[derive(Fail, Debug)]
+#[fail(display = "No Yarn version found for {}", matching)]
+struct NoYarnVersionFoundError {
+    matching: VersionReq,
+}
+impl NotionFail for NoYarnVersionFoundError {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        100
+    }
+}
+
+impl<I:Install> Collection<I> {
+    /// Tests whether this Collection contains the specified Tool version.
     pub fn contains(&self, version: &Version) -> bool {
         self.versions.contains(version)
     }
+}
 
+pub trait Resolve<I:Install> {
     /// Resolves the specified semantic versioning requirements from a remote distributor.
-    fn resolve_remote(&self, matching: &VersionReq, config: &Config) -> Fallible<NodeInstaller> {
-        match config.node {
-            Some(NodeConfig {
-                resolve: Some(ref plugin),
-                ..
-            }) => plugin.resolve_node(matching),
+    fn resolve_remote(&self, matching: &VersionReq, config: Option<&ToolConfig<I>>) -> Fallible<I> {
+        match config {
+            Some(ToolConfig {
+                 resolve: Some(ref plugin),
+                 ..
+             }) => plugin.resolve(matching),
             _ => self.resolve_public(matching),
         }
     }
 
-    /// Resolves the specified semantic versioning requirements from the public distributor (`https://nodejs.org`).
+    /// Resolves the specified semantic versioning requirements from the public distributor (e.g. `https://nodejs.org`).
+    fn resolve_public(&self, matching: &VersionReq) -> Fallible<I>;
+
+    /// Resolves the specified semantic versioning requirements from the local catalog.
+    fn resolve_local(&self, req: &VersionReq) -> Option<Version>;
+}
+
+impl Resolve<NodeInstaller> for NodeCollection {
     fn resolve_public(&self, matching: &VersionReq) -> Fallible<NodeInstaller> {
         let index: Index = match read_cached_opt().unknown()? {
             Some(serial) => serial,
@@ -294,8 +314,7 @@ impl NodeCatalog {
         }
     }
 
-    /// Resolves the specified semantic versioning requirements from the local catalog.
-    pub fn resolve_local(&self, req: &VersionReq) -> Option<Version> {
+    fn resolve_local(&self, req: &VersionReq) -> Option<Version> {
         self.versions
             .iter()
             .rev()
@@ -305,40 +324,7 @@ impl NodeCatalog {
     }
 }
 
-/// Thrown when there is no Node version matching a requested semver specifier.
-#[derive(Fail, Debug)]
-#[fail(display = "No Yarn version found for {}", matching)]
-struct NoYarnVersionFoundError {
-    matching: VersionReq,
-}
-impl NotionFail for NoYarnVersionFoundError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> i32 {
-        100
-    }
-}
-
-// TODO: Refactor and maybe share code with node catalog
-// Maybe we can move this method to the trait with a default implementation
-impl YarnCatalog {
-    /// Tests whether this Node catalog contains the specified Yarn version.
-    pub fn contains(&self, version: &Version) -> bool {
-        self.versions.contains(version)
-    }
-
-    /// Resolves the specified semantic versioning requirements from a remote distributor.
-    fn resolve_remote(&self, matching: &VersionReq, config: &Config) -> Fallible<YarnInstaller> {
-        match config.yarn {
-            Some(NodeConfig {
-                resolve: Some(ref plugin),
-                ..
-            }) => plugin.resolve_yarn(matching),
-            _ => self.resolve_public(matching),
-        }
-    }
-
+impl Resolve<YarnInstaller> for YarnCollection {
     /// Resolves the specified semantic versioning requirements from the public distributor.
     fn resolve_public(&self, matching: &VersionReq) -> Fallible<YarnInstaller> {
         let spinner = progress_spinner(&format!(
@@ -365,8 +351,7 @@ impl YarnCatalog {
         }
     }
 
-    /// Resolves the specified semantic versioning requirements from the local catalog.
-    pub fn resolve_local(&self, req: &VersionReq) -> Option<Version> {
+    fn resolve_local(&self, req: &VersionReq) -> Option<Version> {
         self.versions
             .iter()
             .rev()
