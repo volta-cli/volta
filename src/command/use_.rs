@@ -31,14 +31,7 @@ impl NoCustomUseError {
     }
 }
 
-impl NotionFail for NoCustomUseError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> ExitCode {
-        ExitCode::NotYetImplemented
-    }
-}
+impl_notion_fail!(NoCustomUseError, ExitCode::NotYetImplemented);
 
 pub(crate) enum Use {
     Help,

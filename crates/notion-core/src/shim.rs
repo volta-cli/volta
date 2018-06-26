@@ -11,14 +11,7 @@ pub(crate) struct SymlinkError {
     error: String,
 }
 
-impl NotionFail for SymlinkError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> ExitCode {
-        ExitCode::FileSystemError
-    }
-}
+impl_notion_fail!(SymlinkError, ExitCode::FileSystemError);
 
 impl SymlinkError {
     pub(crate) fn from_io_error(error: &io::Error) -> Self {

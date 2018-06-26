@@ -41,14 +41,7 @@ impl BinaryExecError {
     }
 }
 
-impl NotionFail for BinaryExecError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> ExitCode {
-        ExitCode::ExecutionFailure
-    }
-}
+impl_notion_fail!(BinaryExecError, ExitCode::ExecutionFailure);
 
 #[derive(Fail, Debug)]
 #[fail(display = "this tool is not yet implemented")]
@@ -60,14 +53,7 @@ impl ToolUnimplementedError {
     }
 }
 
-impl NotionFail for ToolUnimplementedError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> ExitCode {
-        ExitCode::ExecutableNotFound
-    }
-}
+impl_notion_fail!(ToolUnimplementedError, ExitCode::ExecutableNotFound);
 
 /// Represents a command-line tool that Notion shims delegate to.
 pub trait Tool: Sized {
@@ -263,14 +249,7 @@ struct NoGlobalError {
     tool: String,
 }
 
-impl NotionFail for NoGlobalError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> ExitCode {
-        ExitCode::NoVersionMatch
-    }
-}
+impl_notion_fail!(NoGlobalError, ExitCode::NoVersionMatch);
 
 impl Tool for Node {
     fn new(session: &mut Session) -> Fallible<Self> {

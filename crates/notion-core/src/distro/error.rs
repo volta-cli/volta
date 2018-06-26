@@ -20,11 +20,4 @@ impl DownloadError {
     }
 }
 
-impl NotionFail for DownloadError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> ExitCode {
-        ExitCode::NetworkError
-    }
-}
+impl_notion_fail!(DownloadError, ExitCode::NetworkError);

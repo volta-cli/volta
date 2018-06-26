@@ -15,14 +15,7 @@ impl VersionParseError {
     }
 }
 
-impl NotionFail for VersionParseError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> ExitCode {
-        ExitCode::NoVersionMatch
-    }
-}
+impl_notion_fail!(VersionParseError, ExitCode::NoVersionMatch);
 
 pub fn parse_requirements(src: &str) -> Fallible<VersionReq> {
     let src = src.trim();

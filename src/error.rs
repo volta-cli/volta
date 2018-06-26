@@ -25,14 +25,7 @@ impl CliParseError {
     }
 }
 
-impl NotionFail for CliParseError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> ExitCode {
-        ExitCode::InvalidArguments
-    }
-}
+impl_notion_fail!(CliParseError, ExitCode::InvalidArguments);
 
 pub(crate) trait DocoptExt {
     fn is_help(&self) -> bool;
@@ -86,11 +79,4 @@ impl CommandUnimplementedError {
     }
 }
 
-impl NotionFail for CommandUnimplementedError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> ExitCode {
-        ExitCode::NotYetImplemented
-    }
-}
+impl_notion_fail!(CommandUnimplementedError, ExitCode::NotYetImplemented);

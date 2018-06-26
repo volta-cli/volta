@@ -217,14 +217,8 @@ impl Catalog {
 struct NoNodeVersionFoundError {
     matching: VersionReq,
 }
-impl NotionFail for NoNodeVersionFoundError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> ExitCode {
-        ExitCode::NoVersionMatch
-    }
-}
+
+impl_notion_fail!(NoNodeVersionFoundError, ExitCode::NoVersionMatch);
 
 /// Thrown when there is no Yarn version matching a requested semver specifier.
 #[derive(Fail, Debug)]
@@ -232,14 +226,8 @@ impl NotionFail for NoNodeVersionFoundError {
 struct NoYarnVersionFoundError {
     matching: VersionReq,
 }
-impl NotionFail for NoYarnVersionFoundError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> ExitCode {
-        ExitCode::NoVersionMatch
-    }
-}
+
+impl_notion_fail!(NoYarnVersionFoundError, ExitCode::NoVersionMatch);
 
 impl<D: Distro> Collection<D> {
     /// Tests whether this Collection contains the specified Tool version.
@@ -289,14 +277,7 @@ impl RegistryFetchError {
     }
 }
 
-impl NotionFail for RegistryFetchError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> ExitCode {
-        ExitCode::NetworkError
-    }
-}
+impl_notion_fail!(RegistryFetchError, ExitCode::NetworkError);
 
 impl Resolve<NodeDistro> for NodeCollection {
     fn resolve_public(&self, matching: &VersionReq) -> Fallible<NodeDistro> {

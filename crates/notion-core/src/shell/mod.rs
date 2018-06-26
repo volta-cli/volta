@@ -23,14 +23,7 @@ pub enum Postscript {
 #[fail(display = "Notion postscript file not specified")]
 struct UnspecifiedPostscriptError;
 
-impl NotionFail for UnspecifiedPostscriptError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> ExitCode {
-        ExitCode::EnvironmentError
-    }
-}
+impl_notion_fail!(UnspecifiedPostscriptError, ExitCode::EnvironmentError);
 
 pub trait Shell {
     fn postscript_path(&self) -> &Path;
@@ -52,14 +45,7 @@ pub struct CurrentShell(Box<dyn Shell>);
 #[fail(display = "Notion shell not specified")]
 struct UnspecifiedShellError;
 
-impl NotionFail for UnspecifiedShellError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> ExitCode {
-        ExitCode::EnvironmentError
-    }
-}
+impl_notion_fail!(UnspecifiedShellError, ExitCode::EnvironmentError);
 
 impl CurrentShell {
     pub fn detect() -> Fallible<Self> {
@@ -91,14 +77,7 @@ struct UnrecognizedShellError {
     name: String,
 }
 
-impl NotionFail for UnrecognizedShellError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> ExitCode {
-        ExitCode::EnvironmentError
-    }
-}
+impl_notion_fail!(UnrecognizedShellError, ExitCode::EnvironmentError);
 
 impl FromStr for CurrentShell {
     type Err = NotionError;

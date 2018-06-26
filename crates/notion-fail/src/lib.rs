@@ -93,13 +93,8 @@
 //! #[fail(display = "unexpected end of string")]
 //! struct UnexpectedEndOfString;
 //!
-//! impl NotionFail for UnexpectedEndOfString {
-//!     // this is a user-friendly error type
-//!     fn is_user_friendly(&self) -> bool { true }
-//!
-//!     // abort the process with the exit code for invalid arguments if this failure goes uncaught
-//!     fn exit_code(&self) -> ExitCode { ExitCode::InvalidArguments }
-//! }
+//! // A shortcut for implementing NotionFail; defaults to user-friendly.
+//! impl_notion_fail!(UnexpectedEndOfString, ExitCode::InvalidArguments);
 //! ```
 //!
 //! # Throwing errors
@@ -120,13 +115,7 @@
 //! # #[fail(display = "unexpected end of string")]
 //! # struct UnexpectedEndOfString;
 //! #
-//! # impl NotionFail for UnexpectedEndOfString {
-//! #     // this is a user-friendly error type
-//! #     fn is_user_friendly(&self) -> bool { true }
-//! #
-//! #     // abort the process with the exit code for invalid arguments if this failure goes uncaught
-//! #     fn exit_code(&self) -> ExitCode { ExitCode::InvalidArguments }
-//! # }
+//! # impl_notion_fail!(UnexpectedEndOfString, ExitCode::InvalidArguments);
 //! #
 //! fn parse_component(src: &str, i: usize) -> Fallible<u8> {
 //!     if i + 2 > src.len() {
@@ -165,13 +154,7 @@
 //! # #[fail(display = "unexpected end of string")]
 //! # struct UnexpectedEndOfString;
 //! #
-//! # impl NotionFail for UnexpectedEndOfString {
-//! #     // this is a user-friendly error type
-//! #     fn is_user_friendly(&self) -> bool { true }
-//! #
-//! #     // abort the process with the exit code for invalid arguments if this failure goes uncaught
-//! #     fn exit_code(&self) -> ExitCode { ExitCode::InvalidArguments }
-//! # }
+//! # impl_notion_fail!(UnexpectedEndOfString, ExitCode::InvalidArguments);
 //!
 //! fn parse_component(src: &str, i: usize) -> Fallible<u8> {
 //!     if i + 2 > src.len() {
@@ -219,13 +202,7 @@
 //! # #[fail(display = "unexpected end of string")]
 //! # struct UnexpectedEndOfString;
 //! #
-//! # impl NotionFail for UnexpectedEndOfString {
-//! #     // this is a user-friendly error type
-//! #     fn is_user_friendly(&self) -> bool { true }
-//! #
-//! #     // abort the process with the exit code for invalid arguments if this failure goes uncaught
-//! #     fn exit_code(&self) -> ExitCode { ExitCode::InvalidArguments }
-//! # }
+//! # impl_notion_fail!(UnexpectedEndOfString, ExitCode::InvalidArguments);
 //! #
 //! # fn parse_component(src: &str, i: usize) -> Fallible<u8> {
 //! #     if i + 2 > src.len() {
@@ -240,10 +217,7 @@
 //! #[fail(display = "invalid RGB string: ", details)]
 //! struct InvalidRgbString { details: String }
 //!
-//! impl NotionFail for InvalidRgbString {
-//!     fn is_user_friendly(&self) -> bool { true}
-//!     fn exit_code(&self) -> ExitCode { ExitCode::InvalidArguments }
-//! }
+//! impl_notion_fail!(InvalidRgbString, ExitCode::InvalidArguments);
 //!
 //! impl InvalidRgbString {
 //!     fn new<D: Display>(details: &D) -> InvalidRgbString {
@@ -327,6 +301,32 @@ pub trait NotionFail: Fail {
 
     /// Returns the process exit code that should be returned if the process exits with this error.
     fn exit_code(&self) -> ExitCode;
+}
+
+/// A typical implementation of NotionFail.
+#[macro_export]
+macro_rules! impl_notion_fail {
+    ($error_name: ident, $exit_code: expr) => (
+        impl NotionFail for $error_name {
+            fn is_user_friendly(&self) -> bool {
+                true
+            }
+            fn exit_code(&self) -> ExitCode {
+                $exit_code
+            }
+        }
+    );
+
+    ($error_name: ident, $is_friendly: expr, $exit_code: expr) => (
+        impl NotionFail for $error_name {
+            fn is_user_friendly(&self) -> bool {
+                $is_friendly
+            }
+            fn exit_code(&self) -> ExitCode {
+                $exit_code
+            }
+        }
+    );
 }
 
 /// The `NotionError` type, which can contain any Notion failure.
@@ -464,14 +464,7 @@ impl Fail for UnknownNotionError {
     }
 }
 
-impl NotionFail for UnknownNotionError {
-    fn is_user_friendly(&self) -> bool {
-        false
-    }
-    fn exit_code(&self) -> ExitCode {
-        ExitCode::UnknownError
-    }
-}
+impl_notion_fail!(UnknownNotionError, false, ExitCode::UnknownError);
 
 impl<E: Into<failure::Error>> FailExt for E {
     fn unknown(self) -> NotionError {

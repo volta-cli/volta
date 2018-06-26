@@ -62,14 +62,7 @@ impl DepPackageReadError {
     }
 }
 
-impl NotionFail for DepPackageReadError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> ExitCode {
-        ExitCode::FileSystemError
-    }
-}
+impl_notion_fail!(DepPackageReadError, ExitCode::FileSystemError);
 
 /// Thrown when a user tries to pin a Yarn version before pinning a Node version.
 #[derive(Fail, Debug)]
@@ -82,14 +75,7 @@ impl NoPinnedNodeVersion {
     }
 }
 
-impl NotionFail for NoPinnedNodeVersion {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> ExitCode {
-        ExitCode::ConfigurationError
-    }
-}
+impl_notion_fail!(NoPinnedNodeVersion, ExitCode::ConfigurationError);
 
 /// A Node project tree in the filesystem.
 pub struct Project {
