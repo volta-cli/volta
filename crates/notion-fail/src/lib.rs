@@ -50,8 +50,7 @@
 //! for its signature:
 //!
 //! ```
-//! # #[macro_use]
-//! # extern crate notion_fail;
+//! # #[macro_use] extern crate notion_fail;
 //! #
 //! use notion_fail::Fallible;
 //! #
@@ -80,9 +79,9 @@
 //!
 //! ## Example
 //!
-//! ```
-//! # #[macro_use]
-//! # extern crate notion_fail;
+//! ```compile_fail
+//! # #[macro_use] extern crate notion_fail;
+//!
 //! // required for `#[derive(Fail)]` and `#[fail(...)]` attributes
 //! #[macro_use]
 //! extern crate failure_derive;
@@ -113,10 +112,8 @@
 //! ## Example
 //!
 //! ```
-//! # #[macro_use]
-//! # extern crate notion_fail;
-//! # #[macro_use]
-//! # extern crate failure_derive;
+//! # #[macro_use] extern crate notion_fail;
+//! # #[macro_use] extern crate failure_derive;
 //! # extern crate failure;
 //! # use notion_fail::{NotionFail, Fallible};
 //! # #[derive(Fail, Debug)]
@@ -158,10 +155,8 @@
 //! ## Example
 //!
 //! ```
-//! # #[macro_use]
-//! # extern crate notion_fail;
-//! # #[macro_use]
-//! # extern crate failure_derive;
+//! # #[macro_use] extern crate notion_fail;
+//! # #[macro_use] extern crate failure_derive;
 //! # extern crate failure;
 //! # use notion_fail::{NotionFail, Fallible};
 //! // add `unknown()` extension method to Results
@@ -211,11 +206,9 @@
 //!
 //! ## Example
 //!
-//! ```
-//! # #[macro_use]
-//! # extern crate notion_fail;
-//! # #[macro_use]
-//! # extern crate failure_derive;
+//! ```compile_fail
+//! # #[macro_use] extern crate notion_fail;
+//! # #[macro_use] extern crate failure_derive;
 //! # extern crate failure;
 //! # use notion_fail::{NotionFail, Fallible};
 //! // add `unknown()` and `with_context()` extension methods to Results
