@@ -41,6 +41,7 @@ impl Manifest {
                     None
                 },
                 dependencies: self.dependencies,
+                dev_dependencies: self.dev_dependencies,
                 events_plugin: if let Some(plugin) = notion.events_plugin {
                     Some(plugin)
                 } else {
