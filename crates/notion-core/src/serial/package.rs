@@ -40,8 +40,9 @@ pub struct Info {
 impl Info {
     pub fn into_package_info(self) -> PackageInfo {
         let mut map = HashMap::new();
-        if self.bin.is_some() {
-            for (name, path) in self.bin.unwrap().iter() {
+        if let Some(ref bin) = self.bin {
+            for (name, path) in bin.iter() {
+                // handle case where only the path was given and binary name was unknown
                 if name == "" {
                     // npm uses the package name for the binary in this case
                     map.insert(self.name.clone(), path.clone());
@@ -110,7 +111,7 @@ where
     {
         let mut bin_map = BinMap(HashMap::new());
         // There will only be one string here, so add it to the map
-        // with "" for the path, since that is unknown here
+        // with "" for the name, since that is unknown here
         bin_map.insert("".to_string(), bin_path.to_string());
         Ok(bin_map)
     }
