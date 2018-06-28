@@ -4,6 +4,7 @@ pub mod catalog;
 pub mod config;
 pub mod index;
 pub mod manifest;
+pub mod package;
 pub mod plugin;
 pub mod version;
 

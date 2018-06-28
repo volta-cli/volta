@@ -1,0 +1,14 @@
+{
+  "name": "typescript",
+  "author": "Microsoft Corp.",
+  "homepage": "http://typescriptlang.org/",
+  "version": "2.8.3",
+  "license": "Apache-2.0",
+  "description": "Mock Typescript package",
+  "bin": {
+    "tsc": "./bin/tsc",
+    "tsserver": "./bin/tsserver"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
