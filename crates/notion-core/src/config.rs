@@ -42,7 +42,7 @@ pub struct Config {
 }
 
 /// Notion configuration settings relating to the Node executable.
-pub struct ToolConfig<I:Install> {
+pub struct ToolConfig<I: Install> {
     /// The plugin for resolving Node versions, if any.
     pub resolve: Option<plugin::ResolvePlugin>,
     /// The plugin for listing the set of Node versions available on the remote server, if any.

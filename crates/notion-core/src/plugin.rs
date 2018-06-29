@@ -32,7 +32,7 @@ pub struct InvalidCommandError {
 impl ResolvePlugin {
     /// Performs resolution of a Tool version based on the given semantic
     /// versioning requirements.
-    pub fn resolve<I:Install>(&self, _matching: &VersionReq) -> Fallible<I> {
+    pub fn resolve<I: Install>(&self, _matching: &VersionReq) -> Fallible<I> {
         match self {
             &ResolvePlugin::Url(_) => unimplemented!(),
 

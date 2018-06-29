@@ -42,7 +42,7 @@ impl Config {
     }
 }
 
-impl<I:Install> ToolConfig<I> {
+impl<I: Install> ToolConfig<I> {
     pub fn into_tool_config(self) -> Fallible<config::ToolConfig<I>> {
         Ok(config::ToolConfig {
             resolve: if let Some(p) = self.resolve {

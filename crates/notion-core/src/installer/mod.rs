@@ -32,7 +32,6 @@ impl Installed {
     }
 }
 
-/// TODO: figure out how to get rid of `Sized`
 pub trait Install:Sized {
     /// Provision an `Installer` from the public distributor (e.g. `https://nodejs.org`).
     fn public(version: Version) -> Fallible<Self>;

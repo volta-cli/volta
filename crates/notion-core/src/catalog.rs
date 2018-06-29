@@ -29,7 +29,7 @@ use serial;
 use serial::touch;
 use style::progress_spinner;
 
-// TODO: Should we move these constants to a config file or even maybe a user config?
+// ISSUE (#86): Move public repository URLs to config file
 /// URL of the index of available Node versions on the public Node server.
 const PUBLIC_NODE_VERSION_INDEX: &'static str = "https://nodejs.org/dist/index.json";
 /// URL of the index of available Yarn versions on the public git repository.
@@ -59,7 +59,7 @@ impl LazyCatalog {
     }
 }
 
-pub struct Collection<I:Install> {
+pub struct Collection<I: Install> {
     /// The currently activated Node version, if any.
     pub activated: Option<Version>,
 
@@ -147,7 +147,7 @@ impl Catalog {
         Ok(())
     }
 
-    // TODO: refactor activate, install and uninstall methods
+    // ISSUE (#87) Abstract Catalog's activate, install and uninstall methods
     // And potentially share code between node and yarn
     /// Activates a Yarn version matching the specified semantic versioning requirements.
     pub fn activate_yarn(&mut self, matching: &VersionReq, config: &Config) -> Fallible<()> {
@@ -228,14 +228,14 @@ impl NotionFail for NoYarnVersionFoundError {
     }
 }
 
-impl<I:Install> Collection<I> {
+impl<I: Install> Collection<I> {
     /// Tests whether this Collection contains the specified Tool version.
     pub fn contains(&self, version: &Version) -> bool {
         self.versions.contains(version)
     }
 }
 
-pub trait Resolve<I:Install> {
+pub trait Resolve<I: Install> {
     /// Resolves the specified semantic versioning requirements from a remote distributor.
     fn resolve_remote(&self, matching: &VersionReq, config: Option<&ToolConfig<I>>) -> Fallible<I> {
         match config {
