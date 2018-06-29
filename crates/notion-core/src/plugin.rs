@@ -4,7 +4,7 @@ use std::ffi::OsString;
 use std::io::Read;
 use std::process::{Command, Stdio};
 
-use installer::node::Installer;
+use installer::Install;
 use serial;
 
 use cmdline_words_parser::StrExt;
@@ -13,12 +13,12 @@ use semver::{Version, VersionReq};
 use serde_json;
 
 /// A Node version resolution plugin.
-pub enum Resolve {
-    /// Resolves a Node version by sending it to a URL and receiving the
+pub enum ResolvePlugin {
+    /// Resolves a Tool version by sending it to a URL and receiving the
     /// resolution in the response.
     Url(String),
 
-    /// Resolves a Node version by passing it to an executable and
+    /// Resolves a Tool version by passing it to an executable and
     /// receiving the resolution in the process's stdout stream.
     Bin(String),
 }
@@ -29,14 +29,14 @@ pub struct InvalidCommandError {
     command: String,
 }
 
-impl Resolve {
-    /// Performs resolution of a Node version based on the given semantic
+impl ResolvePlugin {
+    /// Performs resolution of a Tool version based on the given semantic
     /// versioning requirements.
-    pub fn resolve(&self, _matching: &VersionReq) -> Fallible<Installer> {
+    pub fn resolve<I: Install>(&self, _matching: &VersionReq) -> Fallible<I> {
         match self {
-            &Resolve::Url(_) => unimplemented!(),
+            &ResolvePlugin::Url(_) => unimplemented!(),
 
-            &Resolve::Bin(ref bin) => {
+            &ResolvePlugin::Bin(ref bin) => {
                 let mut trimmed = bin.trim().to_string();
                 let mut words = trimmed.parse_cmdline_words();
                 let cmd = if let Some(word) = words.next() {
@@ -64,7 +64,7 @@ impl Resolve {
                     .unknown()?;
                 let response = ResolveResponse::from_reader(child.stdout.unwrap())?;
                 match response {
-                    ResolveResponse::Url { version, url } => Installer::remote(version, &url),
+                    ResolveResponse::Url { version, url } => I::remote(version, &url),
                     ResolveResponse::Stream { version: _version } => {
                         unimplemented!("bin plugin produced a stream")
                     }

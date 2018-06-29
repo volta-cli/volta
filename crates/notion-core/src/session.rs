@@ -2,7 +2,7 @@
 //! execution of a Notion tool, including their configuration, their current
 //! directory, and the state of the local tool catalog.
 
-use catalog::{Catalog, LazyCatalog};
+use catalog::{Catalog, LazyCatalog, Resolve};
 use config::{Config, LazyConfig};
 use installer::Installed;
 use project::Project;
@@ -20,6 +20,7 @@ pub enum ActivityKind {
     Current,
     Use,
     Node,
+    Yarn,
     Notion,
     Tool,
     Help,
@@ -34,6 +35,7 @@ impl Display for ActivityKind {
             &ActivityKind::Current => "current",
             &ActivityKind::Use => "use",
             &ActivityKind::Node => "node",
+            &ActivityKind::Yarn => "yarn",
             &ActivityKind::Notion => "notion",
             &ActivityKind::Tool => "tool",
             &ActivityKind::Help => "help",
@@ -126,6 +128,30 @@ impl Session {
         let catalog = self.catalog.get_mut()?;
         let config = self.config.get()?;
         catalog.activate_node(matching, config)
+    }
+
+    /// Produces the version of Yarn for the current session. If there is an
+    /// active project with Notion settings, this will ensure a compatible
+    /// version of Yarn is installed before returning. If there is no active
+    /// project with Notion settings, this produces the global version, which
+    /// may be `None`.
+    pub fn current_yarn(&mut self) -> Fallible<Option<Version>> {
+        if let Some(ref project) = self.project {
+            let requirements = &project.manifest().yarn.clone().unwrap();
+            let catalog = self.catalog.get_mut()?;
+            let available = catalog.yarn.resolve_local(&requirements);
+
+            if available.is_some() {
+                return Ok(available);
+            }
+
+            let config = self.config.get()?;
+            let installed = catalog.install_yarn(&requirements, config)?;
+
+            return Ok(Some(installed.into_version()));
+        }
+
+        Ok(self.catalog()?.yarn.activated.clone())
     }
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {

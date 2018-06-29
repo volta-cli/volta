@@ -19,10 +19,18 @@ cfg_if! {
     }
 }
 
-pub fn archive_file(version: &str) -> String {
-    format!("{}.{}", archive_root_dir(version), archive_extension())
+pub fn node_archive_file(version: &str) -> String {
+    format!("{}.{}", node_archive_root_dir(version), archive_extension())
 }
 
-pub fn archive_root_dir(version: &str) -> String {
+pub fn node_archive_root_dir(version: &str) -> String {
     format!("node-v{}-{}-{}", version, OS, ARCH)
+}
+
+pub fn yarn_archive_file(version: &str) -> String {
+    format!("{}.{}", yarn_archive_root_dir(version), archive_extension())
+}
+
+pub fn yarn_archive_root_dir(version: &str) -> String {
+    format!("yarn-v{}", version)
 }

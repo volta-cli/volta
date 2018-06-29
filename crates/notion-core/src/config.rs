@@ -1,6 +1,7 @@
 //! Provides types for working with Notion configuration files.
 
 use std::str::FromStr;
+use std::marker::PhantomData;
 
 use lazycell::LazyCell;
 use toml;
@@ -11,6 +12,9 @@ use plugin;
 use readext::ReadExt;
 use serial;
 use serial::touch;
+use installer::Install;
+use installer::node::NodeInstaller;
+use installer::yarn::YarnInstaller;
 
 /// Lazily loaded Notion configuration settings.
 pub struct LazyConfig {
@@ -33,15 +37,18 @@ impl LazyConfig {
 
 /// Notion configuration settings.
 pub struct Config {
-    pub node: Option<NodeConfig>,
+    pub node: Option<ToolConfig<NodeInstaller>>,
+    pub yarn: Option<ToolConfig<YarnInstaller>>,
 }
 
 /// Notion configuration settings relating to the Node executable.
-pub struct NodeConfig {
+pub struct ToolConfig<I: Install> {
     /// The plugin for resolving Node versions, if any.
-    pub resolve: Option<plugin::Resolve>,
+    pub resolve: Option<plugin::ResolvePlugin>,
     /// The plugin for listing the set of Node versions available on the remote server, if any.
     pub ls_remote: Option<plugin::LsRemote>,
+
+    pub phantom: PhantomData<I>
 }
 
 impl Config {

@@ -43,8 +43,8 @@ impl Plugin {
         }
     }
 
-    pub fn into_resolve(self) -> Fallible<plugin::Resolve> {
-        self.into_plugin(plugin::Resolve::Url, plugin::Resolve::Bin)
+    pub fn into_resolve(self) -> Fallible<plugin::ResolvePlugin> {
+        self.into_plugin(plugin::ResolvePlugin::Url, plugin::ResolvePlugin::Bin)
     }
 
     pub fn into_ls_remote(self) -> Fallible<plugin::LsRemote> {

@@ -87,6 +87,9 @@ pub struct Binary(Command);
 /// Represents a Node executable.
 pub struct Node(Command);
 
+/// Represents a Yarn executable.
+pub struct Yarn(Command);
+
 #[cfg(windows)]
 impl Tool for Script {
     fn new(session: &mut Session) -> Fallible<Self> {
@@ -196,6 +199,30 @@ impl Tool for Node {
 
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
         Node(command_for(exe, args, path_var))
+    }
+
+    fn command(self) -> Command {
+        self.0
+    }
+}
+
+impl Tool for Yarn {
+    fn new(session: &mut Session) -> Fallible<Self> {
+        session.add_event_start(ActivityKind::Yarn);
+
+        let mut args = args_os();
+        let exe = arg0(&mut args)?;
+        let version = if let Some(version) = session.current_yarn()? {
+            version
+        } else {
+            throw!(NoGlobalError.unknown());
+        };
+        let path_var = env::path_for(&version.to_string());
+        Ok(Self::from_components(&exe, args, &path_var))
+    }
+
+    fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
+        Yarn(command_for(exe, args, path_var))
     }
 
     fn command(self) -> Command {

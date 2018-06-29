@@ -1,28 +1,40 @@
 use super::super::config;
+use std::marker::PhantomData;
 
 use super::plugin::Plugin;
+use installer::Install;
+use installer::node::NodeInstaller;
+use installer::yarn::YarnInstaller;
 
 use notion_fail::Fallible;
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
-    pub node: Option<NodeConfig>,
+    pub node: Option<ToolConfig<NodeInstaller>>,
+    pub yarn: Option<ToolConfig<YarnInstaller>>,
 }
 
 #[derive(Serialize, Deserialize)]
-#[serde(rename = "node")]
-pub struct NodeConfig {
+#[serde(rename = "tool")]
+pub struct ToolConfig<I> {
     pub resolve: Option<Plugin>,
 
     #[serde(rename = "ls-remote")]
     pub ls_remote: Option<Plugin>,
+
+    phantom: PhantomData<I>
 }
 
 impl Config {
     pub fn into_config(self) -> Fallible<config::Config> {
         Ok(config::Config {
             node: if let Some(n) = self.node {
-                Some(n.into_node_config()?)
+                Some(n.into_tool_config()?)
+            } else {
+                None
+            },
+            yarn: if let Some(y) = self.yarn {
+                Some(y.into_tool_config()?)
             } else {
                 None
             },
@@ -30,9 +42,9 @@ impl Config {
     }
 }
 
-impl NodeConfig {
-    pub fn into_node_config(self) -> Fallible<config::NodeConfig> {
-        Ok(config::NodeConfig {
+impl<I: Install> ToolConfig<I> {
+    pub fn into_tool_config(self) -> Fallible<config::ToolConfig<I>> {
+        Ok(config::ToolConfig {
             resolve: if let Some(p) = self.resolve {
                 Some(p.into_resolve()?)
             } else {
@@ -43,6 +55,7 @@ impl NodeConfig {
             } else {
                 None
             },
+            phantom: PhantomData
         })
     }
 }
