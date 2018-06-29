@@ -233,6 +233,16 @@ impl<I: Install> Collection<I> {
     pub fn contains(&self, version: &Version) -> bool {
         self.versions.contains(version)
     }
+
+    /// Resolves the specified semantic versioning requirements from the local catalog.
+    pub fn resolve_local(&self, req: &VersionReq) -> Option<Version> {
+        self.versions
+            .iter()
+            .rev()
+            .skip_while(|v| !req.matches(&v))
+            .next()
+            .map(|v| v.clone())
+    }
 }
 
 pub trait Resolve<I: Install> {
@@ -249,9 +259,6 @@ pub trait Resolve<I: Install> {
 
     /// Resolves the specified semantic versioning requirements from the public distributor (e.g. `https://nodejs.org`).
     fn resolve_public(&self, matching: &VersionReq) -> Fallible<I>;
-
-    /// Resolves the specified semantic versioning requirements from the local catalog.
-    fn resolve_local(&self, req: &VersionReq) -> Option<Version>;
 }
 
 impl Resolve<NodeInstaller> for NodeCollection {
@@ -313,15 +320,6 @@ impl Resolve<NodeInstaller> for NodeCollection {
             });
         }
     }
-
-    fn resolve_local(&self, req: &VersionReq) -> Option<Version> {
-        self.versions
-            .iter()
-            .rev()
-            .skip_while(|v| !req.matches(&v))
-            .next()
-            .map(|v| v.clone())
-    }
 }
 
 impl Resolve<YarnInstaller> for YarnCollection {
@@ -349,15 +347,6 @@ impl Resolve<YarnInstaller> for YarnCollection {
                 matching: matching.clone(),
             });
         }
-    }
-
-    fn resolve_local(&self, req: &VersionReq) -> Option<Version> {
-        self.versions
-            .iter()
-            .rev()
-            .skip_while(|v| !req.matches(&v))
-            .next()
-            .map(|v| v.clone())
     }
 }
 
