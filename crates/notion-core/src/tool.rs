@@ -1,13 +1,15 @@
 //! Traits and types for executing command-line tools.
 
-use std::env::{args_os, ArgsOs};
+use std::env::{args_os, var_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
+use std::io;
 use std::marker::Sized;
 use std::path::Path;
 use std::process::{exit, Command};
 
 use env;
-use notion_fail::{FailExt, Fallible, NotionError, NotionFail, ResultExt};
+use notion_fail::{FailExt, Fallible, NotionError, NotionFail};
+use path;
 use session::{ActivityKind, Session};
 use style;
 
@@ -16,6 +18,35 @@ fn display_error(err: &NotionError) {
         style::display_error(err);
     } else {
         style::display_unknown_error(err);
+    }
+}
+
+#[derive(Fail, Debug)]
+#[fail(display = "{}", error)]
+pub(crate) struct BinaryExecError {
+    pub(crate) error: String,
+}
+
+impl BinaryExecError {
+    pub(crate) fn from_io_error(error: &io::Error) -> Self {
+        if let Some(inner_err) = error.get_ref() {
+            BinaryExecError {
+                error: inner_err.to_string(),
+            }
+        } else {
+            BinaryExecError {
+                error: error.to_string(),
+            }
+        }
+    }
+}
+
+impl NotionFail for BinaryExecError {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        4
     }
 }
 
@@ -56,7 +87,7 @@ pub trait Tool: Sized {
     /// Delegates the current process to this tool.
     fn exec(self, mut session: Session) -> ! {
         let mut command = self.command();
-        let status = command.status().unknown();
+        let status = command.status();
         match status {
             Ok(status) if status.success() => {
                 session.add_event_end(ActivityKind::Tool, 0);
@@ -71,7 +102,8 @@ pub trait Tool: Sized {
             Err(err) => {
                 style::display_error(&err);
 
-                session.add_event_error(ActivityKind::Tool, &err);
+                let notion_err = err.with_context(BinaryExecError::from_io_error);
+                session.add_event_error(ActivityKind::Tool, &notion_err);
                 session.exit(1);
             }
         }
@@ -139,8 +171,43 @@ impl Tool for Script {
 }
 
 impl Tool for Binary {
-    fn new(_session: &mut Session) -> Fallible<Self> {
-        unimplemented!()
+    fn new(session: &mut Session) -> Fallible<Self> {
+        session.add_event_start(ActivityKind::Binary);
+
+        let mut args = args_os();
+        let exe = arg0(&mut args)?;
+        let current_path = var_os("PATH").unwrap_or(OsString::new());
+
+        if let Some(project) = session.project() {
+            if project.has_local_bin(&exe)? {
+                // local binary
+                // use the full path to the binary
+                let mut path_to_bin = project.local_bin_dir();
+                path_to_bin.push(&exe);
+                return Ok(Self::from_components(
+                    &path_to_bin.as_os_str(),
+                    args,
+                    &current_path,
+                ));
+            }
+        }
+
+        if let Some(version) = session.current_node()? {
+            // globally installed binary for this version of node
+            // use the full path to the binary
+            let mut third_p_bin_dir = path::node_version_3p_bin_dir(&version.to_string())?;
+            third_p_bin_dir.push(&exe);
+            return Ok(Self::from_components(
+                &third_p_bin_dir.as_os_str(),
+                args,
+                &current_path,
+            ));
+        };
+
+        // globally installed system binary
+        // not in a notion project, so use the system binary (remove notion shims and bins)
+        let path_without_notion = env::path_no_notion();
+        Ok(Self::from_components(&exe, args, &path_without_notion))
     }
 
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {

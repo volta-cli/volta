@@ -126,6 +126,11 @@ pub fn yarn_version_bin_dir(version: &str) -> Fallible<PathBuf> {
     Ok(yarn_version_dir(version)?.join("bin"))
 }
 
+// 3rd-party binaries installed globally for this node version
+pub fn node_version_3p_bin_dir(version: &str) -> Fallible<PathBuf> {
+    Ok(node_version_dir(version)?.join("lib/node_modules/.bin"))
+}
+
 pub fn bin_dir() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("bin"))
 }

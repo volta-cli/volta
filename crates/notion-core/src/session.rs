@@ -25,6 +25,7 @@ pub enum ActivityKind {
     Tool,
     Help,
     Version,
+    Binary,
 }
 
 impl Display for ActivityKind {
@@ -40,6 +41,7 @@ impl Display for ActivityKind {
             &ActivityKind::Tool => "tool",
             &ActivityKind::Help => "help",
             &ActivityKind::Version => "version",
+            &ActivityKind::Binary => "binary",
         };
         f.write_str(s)
     }
