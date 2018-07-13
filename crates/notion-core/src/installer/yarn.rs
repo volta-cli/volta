@@ -3,8 +3,8 @@
 use std::fs::{rename, File};
 use std::string::ToString;
 
-use super::{Installed, Install};
-use catalog::{YarnCollection};
+use super::{Install, Installed};
+use catalog::YarnCollection;
 use node_archive::{self, Archive};
 use path;
 use style::{progress_bar, Action};
@@ -12,7 +12,8 @@ use style::{progress_bar, Action};
 use notion_fail::{Fallible, ResultExt};
 use semver::Version;
 
-const PUBLIC_YARN_SERVER_ROOT: &'static str = "https://github.com/notion-cli/yarn-releases/raw/master/dist/";
+const PUBLIC_YARN_SERVER_ROOT: &'static str =
+    "https://github.com/notion-cli/yarn-releases/raw/master/dist/";
 
 /// A provisioned Yarn installer.
 pub struct YarnInstaller {

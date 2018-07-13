@@ -3,10 +3,10 @@
 pub mod node;
 pub mod yarn;
 
-use std::fs::{File};
-use semver::Version;
-use notion_fail::{Fallible};
 use catalog::Collection;
+use notion_fail::Fallible;
+use semver::Version;
+use std::fs::File;
 
 /// The result of a requested installation.
 pub enum Installed {
@@ -32,7 +32,7 @@ impl Installed {
     }
 }
 
-pub trait Install:Sized {
+pub trait Install: Sized {
     /// Provision an `Installer` from the public distributor (e.g. `https://nodejs.org`).
     fn public(version: Version) -> Fallible<Self>;
 

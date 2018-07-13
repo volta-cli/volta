@@ -22,7 +22,7 @@ pub struct ToolConfig<I> {
     #[serde(rename = "ls-remote")]
     pub ls_remote: Option<Plugin>,
 
-    phantom: PhantomData<I>
+    phantom: PhantomData<I>,
 }
 
 impl Config {
@@ -55,7 +55,7 @@ impl<I: Install> ToolConfig<I> {
             } else {
                 None
             },
-            phantom: PhantomData
+            phantom: PhantomData,
         })
     }
 }
