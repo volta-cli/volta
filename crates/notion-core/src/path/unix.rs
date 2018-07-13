@@ -58,13 +58,12 @@ cfg_if! {
 //                 6.11.3/
 //                 8.6.0/
 //                 ...
-//         bin/                                            bin_dir
-//             notion                                      notion_file
 //         shim/                                           shim_dir
 //             node                                        shim_file("node")
 //             npm
 //             npx
 //             ...
+//         notion                                          notion_file
 //         launchbin                                       launchbin_file
 //         launchscript                                    launchscript_file
 //         config.toml                                     user_config_file
@@ -131,12 +130,8 @@ pub fn node_version_3p_bin_dir(version: &str) -> Fallible<PathBuf> {
     Ok(node_version_dir(version)?.join("lib/node_modules/.bin"))
 }
 
-pub fn bin_dir() -> Fallible<PathBuf> {
-    Ok(notion_home()?.join("bin"))
-}
-
 pub fn notion_file() -> Fallible<PathBuf> {
-    Ok(bin_dir()?.join("notion"))
+    Ok(notion_home()?.join("notion"))
 }
 
 pub fn shim_dir() -> Fallible<PathBuf> {

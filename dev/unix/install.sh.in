@@ -32,6 +32,12 @@ notion_unpack_launchscript() {
 END_BINARY_PAYLOAD
 }
 
+notion_unpack_bash_launcher() {
+  cat <<'END_TEXT_PAYLOAD'
+<PLACEHOLDER_BASH_LAUNCHER_PAYLOAD>
+END_TEXT_PAYLOAD
+}
+
 notion_install_dir() {
   printf %s "${NOTION_HOME:-"$HOME/.notion"}"
 }
@@ -49,15 +55,17 @@ notion_create_tree() {
   #             node/
   #         versions/
   #             node/
-  #         bin/
+  #         shell/
   #         shim/
+  #         tmp/
 
   mkdir -p "${INSTALL_DIR}"/cache/node
   mkdir -p "${INSTALL_DIR}"/cache/yarn
   mkdir -p "${INSTALL_DIR}"/versions/node
   mkdir -p "${INSTALL_DIR}"/versions/yarn
-  mkdir -p "${INSTALL_DIR}"/bin
+  mkdir -p "${INSTALL_DIR}"/shell
   mkdir -p "${INSTALL_DIR}"/shim
+  mkdir -p "${INSTALL_DIR}"/tmp
 }
 
 notion_create_binaries() {
@@ -65,16 +73,17 @@ notion_create_binaries() {
 
   INSTALL_DIR="$(notion_install_dir)"
 
-  notion_unpack_notion       > "${INSTALL_DIR}"/bin/notion
-  notion_unpack_node         > "${INSTALL_DIR}"/shim/node
-  notion_unpack_yarn         > "${INSTALL_DIR}"/shim/yarn
-  notion_unpack_launchscript > "${INSTALL_DIR}"/launchscript
-  notion_unpack_launchbin    > "${INSTALL_DIR}"/launchbin
+  notion_unpack_notion        > "${INSTALL_DIR}"/notion
+  notion_unpack_node          > "${INSTALL_DIR}"/shim/node
+  notion_unpack_yarn          > "${INSTALL_DIR}"/shim/yarn
+  notion_unpack_launchscript  > "${INSTALL_DIR}"/launchscript
+  notion_unpack_launchbin     > "${INSTALL_DIR}"/launchbin
+  notion_unpack_bash_launcher > "${INSTALL_DIR}"/shell/notion.sh
 
   ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/shim/npm
   ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/shim/npx
 
-  chmod 755 "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}/shim"/* "${INSTALL_DIR}"/launch*
+  chmod 755 "${INSTALL_DIR}/"/notion "${INSTALL_DIR}/shim"/* "${INSTALL_DIR}"/launch*
 }
 
 notion_try_profile() {
@@ -166,7 +175,7 @@ notion_install() {
   local PROFILE_INSTALL_DIR
   PROFILE_INSTALL_DIR=$(notion_install_dir | sed "s:^$HOME:\$HOME:")
   local PATH_STR
-  PATH_STR="\\nexport NOTION_HOME=\"${PROFILE_INSTALL_DIR}\"\\nexport PATH=\"\${NOTION_HOME}/bin:\${NOTION_HOME}/shim:\$PATH\""
+  PATH_STR="\\nexport NOTION_HOME=\"${PROFILE_INSTALL_DIR}\"\\nexport PATH=\"\${NOTION_HOME}/shim:\$PATH\"\\n[ -s \"\$NOTION_HOME/shell/notion.sh\" ] && \\. \"\$NOTION_HOME/shell/notion.sh\"  # This loads Notion"
 
   if [ -z "${NOTION_PROFILE-}" ] ; then
     local TRIED_PROFILE
@@ -192,7 +201,7 @@ notion_install() {
 }
 
 notion_cleanup() {
-  unset -f notion_unpack_notion notion_unpack_node notion_unpack_yarn notion_unpack_launchbin notion_unpack_launchscript \
+  unset -f notion_unpack_notion notion_unpack_node notion_unpack_yarn notion_unpack_launchbin notion_unpack_launchscript notion_unpack_bash_launcher \
     notion_install_dir notion_create_tree notion_create_binaries notion_try_profile notion_detect_profile \
     notion_eprintf notion_info notion_error notion_warning \
     notion_exit notion_install notion_cleanup
