@@ -86,6 +86,12 @@ pub fn node_version_bin_dir(version: &str) -> Fallible<PathBuf> {
     node_version_dir(version)
 }
 
+// 3rd-party binaries installed globally for this node version
+pub fn node_version_3p_bin_dir(version: &str) -> Fallible<PathBuf> {
+    // ISSUE (#90) Figure out where binaries are globally installed on Windows
+    unimplemented!("global 3rd party executables not yet implemented for Windows")
+}
+
 pub fn launchbin_file() -> Fallible<PathBuf> {
     Ok(program_data_root()?.join("launchbin.exe"))
 }
