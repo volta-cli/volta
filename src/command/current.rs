@@ -1,6 +1,5 @@
 use std::string::ToString;
 
-use notion_core::catalog::Resolve;
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::Fallible;
 

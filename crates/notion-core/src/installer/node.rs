@@ -3,8 +3,8 @@
 use std::fs::{rename, File};
 use std::string::ToString;
 
-use super::{Installed, Install};
-use catalog::{NodeCollection};
+use super::{Install, Installed};
+use catalog::NodeCollection;
 use node_archive::{self, Archive};
 use path;
 use style::{progress_bar, Action};
@@ -15,7 +15,7 @@ use semver::Version;
 const PUBLIC_NODE_SERVER_ROOT: &'static str = "https://nodejs.org/dist/";
 
 /// A provisioned Node installer.
-pub struct NodeInstaller  {
+pub struct NodeInstaller {
     archive: Box<Archive>,
     version: Version,
 }

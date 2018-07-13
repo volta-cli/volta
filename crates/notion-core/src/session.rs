@@ -2,7 +2,7 @@
 //! execution of a Notion tool, including their configuration, their current
 //! directory, and the state of the local tool catalog.
 
-use catalog::{Catalog, LazyCatalog, Resolve};
+use catalog::{Catalog, LazyCatalog};
 use config::{Config, LazyConfig};
 use installer::Installed;
 use project::Project;

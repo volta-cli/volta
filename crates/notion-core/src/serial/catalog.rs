@@ -3,8 +3,8 @@ use super::super::catalog;
 use std::collections::BTreeSet;
 use std::default::Default;
 use std::iter::FromIterator;
-use std::string::ToString;
 use std::marker::PhantomData;
+use std::string::ToString;
 
 use notion_fail::{Fallible, ResultExt};
 
@@ -20,14 +20,14 @@ pub struct Catalog {
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename = "node")]
-pub struct NodeCollection{
+pub struct NodeCollection {
     activated: Option<String>,
     versions: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename = "yarn")]
-pub struct YarnCollection{
+pub struct YarnCollection {
     activated: Option<String>,
     versions: Vec<String>,
 }
@@ -74,7 +74,7 @@ impl NodeCollection {
         Ok(catalog::NodeCollection {
             activated: activated,
             versions: BTreeSet::from_iter(versions.unknown()?),
-            phantom: PhantomData
+            phantom: PhantomData,
         })
     }
 }
@@ -94,7 +94,7 @@ impl YarnCollection {
         Ok(catalog::YarnCollection {
             activated,
             versions: BTreeSet::from_iter(versions.unknown()?),
-            phantom: PhantomData
+            phantom: PhantomData,
         })
     }
 }

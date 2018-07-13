@@ -4,11 +4,11 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fs::{self, remove_dir_all, File};
 use std::io::{self, ErrorKind, Write};
+use std::marker::PhantomData;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::string::ToString;
 use std::time::{Duration, SystemTime};
-use std::marker::PhantomData;
 
 use lazycell::LazyCell;
 use readext::ReadExt;
@@ -19,9 +19,9 @@ use tempfile::NamedTempFile;
 use toml;
 
 use config::{Config, ToolConfig};
-use installer::{Installed, Install};
 use installer::node::NodeInstaller;
 use installer::yarn::YarnInstaller;
+use installer::{Install, Installed};
 use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
 use path::{self, user_catalog_file};
 use semver::{Version, VersionReq};
@@ -33,7 +33,8 @@ use style::progress_spinner;
 /// URL of the index of available Node versions on the public Node server.
 const PUBLIC_NODE_VERSION_INDEX: &'static str = "https://nodejs.org/dist/index.json";
 /// URL of the index of available Yarn versions on the public git repository.
-const PUBLIC_YARN_VERSION_INDEX: &'static str = "https://github.com/notion-cli/yarn-releases/raw/master/index.json";
+const PUBLIC_YARN_VERSION_INDEX: &'static str =
+    "https://github.com/notion-cli/yarn-releases/raw/master/index.json";
 
 /// Lazily loaded tool catalog.
 pub struct LazyCatalog {
@@ -250,9 +251,9 @@ pub trait Resolve<I: Install> {
     fn resolve_remote(&self, matching: &VersionReq, config: Option<&ToolConfig<I>>) -> Fallible<I> {
         match config {
             Some(ToolConfig {
-                 resolve: Some(ref plugin),
-                 ..
-             }) => plugin.resolve(matching),
+                resolve: Some(ref plugin),
+                ..
+            }) => plugin.resolve(matching),
             _ => self.resolve_public(matching),
         }
     }
@@ -270,7 +271,8 @@ impl Resolve<NodeInstaller> for NodeCollection {
                     "Fetching public registry: {}",
                     PUBLIC_NODE_VERSION_INDEX
                 ));
-                let mut response: reqwest::Response = reqwest::get(PUBLIC_NODE_VERSION_INDEX).unknown()?;
+                let mut response: reqwest::Response =
+                    reqwest::get(PUBLIC_NODE_VERSION_INDEX).unknown()?;
                 let response_text: String = response.text().unknown()?;
                 let cached: NamedTempFile = NamedTempFile::new().unknown()?;
 
@@ -291,7 +293,8 @@ impl Resolve<NodeInstaller> for NodeCollection {
                     if let Some(expires_header) = response.headers().get::<Expires>() {
                         write!(expiry_file, "{}", expires_header).unknown()?;
                     } else {
-                        let expiry_date = SystemTime::now() + Duration::from_secs(max_age(&response).into());
+                        let expiry_date =
+                            SystemTime::now() + Duration::from_secs(max_age(&response).into());
 
                         write!(expiry_file, "{}", HttpDate::from(expiry_date)).unknown()?;
                     }
@@ -299,11 +302,12 @@ impl Resolve<NodeInstaller> for NodeCollection {
 
                 expiry.persist(path::node_index_expiry_file()?).unknown()?;
 
-                let serial: serial::index::Index = serde_json::de::from_str(&response_text).unknown()?;
+                let serial: serial::index::Index =
+                    serde_json::de::from_str(&response_text).unknown()?;
 
                 spinner.finish_and_clear();
                 serial
-            },
+            }
         }.into_index()?;
 
         let version = index.entries.iter()
@@ -375,11 +379,9 @@ fn read_file_opt(path: &PathBuf) -> io::Result<Option<String>> {
 
     match result {
         Ok(string) => Ok(Some(string)),
-        Err(error) => {
-            match error.kind() {
-                ErrorKind::NotFound => Ok(None),
-                _ => Err(error)
-            }
+        Err(error) => match error.kind() {
+            ErrorKind::NotFound => Ok(None),
+            _ => Err(error),
         },
     }
 }
