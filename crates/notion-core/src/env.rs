@@ -10,7 +10,7 @@ use path;
 /// Produces a modified version of the current `PATH` environment variable that
 /// will find Node.js executables in the installation directory for the given
 /// version of Node instead of in the Notion shim directory.
-pub fn path_for(version: &str) -> OsString {
+pub fn path_for_installed_node(version: &str) -> OsString {
     let current = env::var_os("PATH").unwrap_or(OsString::new());
     let shim_dir = &path::shim_dir().unwrap();
     let split = env::split_paths(&current).filter(|s| s != shim_dir);
@@ -22,8 +22,9 @@ pub fn path_for(version: &str) -> OsString {
 }
 
 /// Produces a modified version of the current `PATH` environment variable that
-/// removes the Notion shims and binaries.
-pub fn path_no_notion() -> OsString {
+/// removes the Notion shims and binaries, to use for running system node and
+/// executables.
+pub fn path_for_system_node() -> OsString {
     let current = env::var_os("PATH").unwrap_or(OsString::new());
     let shim_dir = &path::shim_dir().unwrap();
     let bin_dir = &path::bin_dir().unwrap();

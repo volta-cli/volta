@@ -6,9 +6,10 @@ use std::env;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
+use lazycell::LazyCell;
+
 use notion_fail::{Fallible, ResultExt};
 use package_info::PackageInfo;
-
 use manifest::Manifest;
 
 fn is_node_root(dir: &Path) -> bool {
@@ -27,10 +28,29 @@ fn is_project_root(dir: &Path) -> bool {
     is_node_root(dir) && !is_dependency(dir)
 }
 
+pub struct LazyDependentBins {
+    bins: LazyCell<HashMap<String, String>>,
+}
+
+impl LazyDependentBins {
+    /// Constructs a new `LazyDependentBins`.
+    pub fn new() -> LazyDependentBins {
+        LazyDependentBins {
+            bins: LazyCell::new(),
+        }
+    }
+
+    /// Forces creating the dependent bins and returns an immutable reference to it.
+    pub fn get(&self, project: &Project) -> Fallible<&HashMap<String, String>> {
+        self.bins.try_borrow_with(|| Ok(project.dependent_binaries()?))
+    }
+}
+
 /// A Node project tree in the filesystem.
 pub struct Project {
     manifest: Manifest,
     project_root: PathBuf,
+    dependent_bins: LazyDependentBins,
 }
 
 impl Project {
@@ -63,6 +83,7 @@ impl Project {
         Ok(Some(Project {
             manifest: manifest,
             project_root: PathBuf::from(dir),
+            dependent_bins: LazyDependentBins::new(),
         }))
     }
 
@@ -73,18 +94,16 @@ impl Project {
 
     /// Returns the path to the local binary directory for this project.
     pub fn local_bin_dir(&self) -> PathBuf {
-        let mut bin_dir = self.project_root.clone();
-        bin_dir.push("node_modules/.bin");
-        bin_dir
+        let sub_dir: PathBuf = ["node_modules", ".bin"].iter().collect();
+        self.project_root.join(sub_dir)
     }
 
     /// Returns true if the input binary name is a direct dependency of the input project
     pub fn has_local_bin(&self, bin_name: &OsStr) -> Fallible<bool> {
-        if let Some(dep_bins) = self.dependent_binaries()? {
-            if let Some(bin_name_str) = bin_name.to_str() {
-                if dep_bins.contains_key(bin_name_str) {
-                    return Ok(true);
-                }
+        let dep_bins = self.dependent_bins.get(&self)?;
+        if let Some(bin_name_str) = bin_name.to_str() {
+            if dep_bins.contains_key(bin_name_str) {
+                return Ok(true);
             }
         }
         Ok(false)
@@ -105,10 +124,11 @@ impl Project {
         Ok(None)
     }
 
-    /// Gets the names of all the binaries installed by direct dependencies of the current project
-    fn dependent_binaries(&self) -> Fallible<Option<HashMap<String, String>>> {
+    /// Returns a mapping of the names to paths for all the binaries installed
+    /// by direct dependencies of the current project.
+    fn dependent_binaries(&self) -> Fallible<HashMap<String, String>> {
+        let mut dependent_bins = HashMap::new();
         if let Some(all_deps) = self.all_dependencies()? {
-            let mut retval = HashMap::new();
 
             // convert dependency names to the path to each project
             let all_dep_paths = all_deps
@@ -126,12 +146,11 @@ impl Project {
                 let pkg_info = PackageInfo::for_dir(&pkg_path)?;
                 let bin_map = pkg_info.bin;
                 for (name, path) in bin_map.iter() {
-                    retval.insert(name.clone(), path.clone());
+                    dependent_bins.insert(name.clone(), path.clone());
                 }
             }
-            return Ok(Some(retval));
         }
-        Ok(None)
+        Ok(dependent_bins)
     }
 }
 
@@ -190,7 +209,7 @@ pub mod tests {
         expected_bins.insert("rsvp".to_string(), "./bin/rsvp.js".to_string());
         expected_bins.insert("bin-1".to_string(), "./lib/cli.js".to_string());
         expected_bins.insert("bin-2".to_string(), "./lib/cli.js".to_string());
-        assert_eq!(dep_bins, Some(expected_bins));
+        assert_eq!(dep_bins, expected_bins);
     }
 
     #[test]

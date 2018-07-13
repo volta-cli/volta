@@ -179,9 +179,11 @@ impl Tool for Binary {
         let current_path = var_os("PATH").unwrap_or(OsString::new());
 
         if let Some(project) = session.project() {
+            // we are in a Node project
+
+            // if this project has this as a local executable, use that
             if project.has_local_bin(&exe)? {
-                // local binary
-                // use the full path to the binary
+                // use the full path to the file
                 let mut path_to_bin = project.local_bin_dir();
                 path_to_bin.push(&exe);
                 return Ok(Self::from_components(
@@ -192,8 +194,8 @@ impl Tool for Binary {
             }
         }
 
+        // if node is configured with Notion (`notion use` or notion config), use the global executable
         if let Some(version) = session.current_node()? {
-            // globally installed binary for this version of node
             // use the full path to the binary
             let mut third_p_bin_dir = path::node_version_3p_bin_dir(&version.to_string())?;
             third_p_bin_dir.push(&exe);
@@ -204,10 +206,10 @@ impl Tool for Binary {
             ));
         };
 
-        // globally installed system binary
-        // not in a notion project, so use the system binary (remove notion shims and bins)
-        let path_without_notion = env::path_no_notion();
-        Ok(Self::from_components(&exe, args, &path_without_notion))
+        // otherwise use system node
+        // (remove notion shims and bins)
+        let path_for_system_node = env::path_for_system_node();
+        Ok(Self::from_components(&exe, args, &path_for_system_node))
     }
 
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
@@ -260,7 +262,7 @@ impl Tool for Node {
         } else {
             throw!(NoGlobalError.unknown());
         };
-        let path_var = env::path_for(&version.to_string());
+        let path_var = env::path_for_installed_node(&version.to_string());
         Ok(Self::from_components(&exe, args, &path_var))
     }
 
@@ -284,7 +286,7 @@ impl Tool for Yarn {
         } else {
             throw!(NoGlobalError.unknown());
         };
-        let path_var = env::path_for(&version.to_string());
+        let path_var = env::path_for_installed_node(&version.to_string());
         Ok(Self::from_components(&exe, args, &path_var))
     }
 
