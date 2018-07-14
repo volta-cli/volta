@@ -55,16 +55,14 @@ notion_create_tree() {
   #             node/
   #         versions/
   #             node/
-  #         shell/
-  #         shim/
+  #         bin/
   #         tmp/
 
   mkdir -p "${INSTALL_DIR}"/cache/node
   mkdir -p "${INSTALL_DIR}"/cache/yarn
   mkdir -p "${INSTALL_DIR}"/versions/node
   mkdir -p "${INSTALL_DIR}"/versions/yarn
-  mkdir -p "${INSTALL_DIR}"/shell
-  mkdir -p "${INSTALL_DIR}"/shim
+  mkdir -p "${INSTALL_DIR}"/bin
   mkdir -p "${INSTALL_DIR}"/tmp
 }
 
@@ -74,16 +72,16 @@ notion_create_binaries() {
   INSTALL_DIR="$(notion_install_dir)"
 
   notion_unpack_notion        > "${INSTALL_DIR}"/notion
-  notion_unpack_node          > "${INSTALL_DIR}"/shim/node
-  notion_unpack_yarn          > "${INSTALL_DIR}"/shim/yarn
+  notion_unpack_node          > "${INSTALL_DIR}"/bin/node
+  notion_unpack_yarn          > "${INSTALL_DIR}"/bin/yarn
   notion_unpack_launchscript  > "${INSTALL_DIR}"/launchscript
   notion_unpack_launchbin     > "${INSTALL_DIR}"/launchbin
-  notion_unpack_bash_launcher > "${INSTALL_DIR}"/shell/notion.sh
+  notion_unpack_bash_launcher > "${INSTALL_DIR}"/load.sh
 
-  ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/shim/npm
-  ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/shim/npx
+  ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/bin/npm
+  ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/bin/npx
 
-  chmod 755 "${INSTALL_DIR}/"/notion "${INSTALL_DIR}/shim"/* "${INSTALL_DIR}"/launch*
+  chmod 755 "${INSTALL_DIR}/"/notion "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}"/launch*
 }
 
 notion_try_profile() {
@@ -175,7 +173,7 @@ notion_install() {
   local PROFILE_INSTALL_DIR
   PROFILE_INSTALL_DIR=$(notion_install_dir | sed "s:^$HOME:\$HOME:")
   local PATH_STR
-  PATH_STR="\\nexport NOTION_HOME=\"${PROFILE_INSTALL_DIR}\"\\nexport PATH=\"\${NOTION_HOME}/shim:\$PATH\"\\n[ -s \"\$NOTION_HOME/shell/notion.sh\" ] && \\. \"\$NOTION_HOME/shell/notion.sh\"  # This loads Notion"
+  PATH_STR="\\nexport NOTION_HOME=\"${PROFILE_INSTALL_DIR}\"\\n[ -s \"\$NOTION_HOME/load.sh\" ] && \\. \"\$NOTION_HOME/load.sh\"\\n\\nexport PATH=\"\${NOTION_HOME}/bin:\$PATH\""
 
   if [ -z "${NOTION_PROFILE-}" ] ; then
     local TRIED_PROFILE

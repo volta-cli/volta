@@ -1,7 +1,7 @@
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::Fallible;
 
-use command::{Command, CommandName, Current, Install, Uninstall, Use, Version};
+use command::{Command, CommandName, Config, Current, Install, Uninstall, Use, Version};
 use {CliParseError, Notion};
 
 #[derive(Debug, Deserialize)]
@@ -55,6 +55,7 @@ Options:
             match self {
                 Help::Notion => Notion::USAGE,
                 Help::Command(CommandName::Use) => Use::USAGE,
+                Help::Command(CommandName::Config) => Config::USAGE,
                 Help::Command(CommandName::Current) => Current::USAGE,
                 Help::Command(CommandName::Help) => Help::USAGE,
                 Help::Command(CommandName::Version) => Version::USAGE,

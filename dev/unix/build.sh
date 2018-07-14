@@ -44,7 +44,7 @@ encode_base64_sed_command node NODE "$build_dir/node"
 encode_base64_sed_command yarn YARN "$build_dir/yarn"
 encode_base64_sed_command launchbin LAUNCHBIN "$build_dir/launchbin"
 encode_base64_sed_command launchscript LAUNCHSCRIPT "$build_dir/launchscript"
-encode_expand_sed_command bash_launcher BASH_LAUNCHER "$shell_dir/unix/notion.sh"
+encode_expand_sed_command bash_launcher BASH_LAUNCHER "$shell_dir/unix/load.sh"
 
 sed -f notion.base64.txt \
     -f node.base64.txt \

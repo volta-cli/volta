@@ -1,3 +1,6 @@
+export NOTION_NODE=$($NOTION_HOME/notion config get node.default)
+export NOTION_YARN=$($NOTION_HOME/notion config get yarn.default)
+
 notion() {
     local EXIT_CODE
     local NOTION_ROOT
