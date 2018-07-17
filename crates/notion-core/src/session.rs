@@ -2,6 +2,8 @@
 //! execution of a Notion tool, including their configuration, their current
 //! directory, and the state of the local tool catalog.
 
+use std::env::{self, VarError};
+
 use catalog::{Catalog, LazyCatalog};
 use config::{Config, LazyConfig};
 use installer::Installed;
@@ -10,7 +12,7 @@ use std::fmt::{self, Display, Formatter};
 use std::process::exit;
 
 use event::EventLog;
-use notion_fail::{Fallible, NotionError};
+use notion_fail::{Fallible, NotionError, ResultExt};
 use semver::{Version, VersionReq};
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
@@ -18,6 +20,7 @@ pub enum ActivityKind {
     Install,
     Uninstall,
     Current,
+    Default,
     Use,
     Node,
     Yarn,
@@ -34,6 +37,7 @@ impl Display for ActivityKind {
             &ActivityKind::Install => "install",
             &ActivityKind::Uninstall => "uninstall",
             &ActivityKind::Current => "current",
+            &ActivityKind::Default => "default",
             &ActivityKind::Use => "use",
             &ActivityKind::Node => "node",
             &ActivityKind::Yarn => "yarn",
@@ -113,7 +117,21 @@ impl Session {
             return Ok(Some(installed.into_version()));
         }
 
-        Ok(self.catalog()?.node.activated.clone())
+        self.global_node()
+    }
+
+    pub fn global_node(&self) -> Fallible<Option<Version>> {
+        match env::var("NOTION_NODE_VERSION") {
+            Ok(s) => {
+                Ok(Some(Version::parse(&s[..]).unknown()?))
+            }
+            Err(VarError::NotPresent) => {
+                Ok(self.catalog()?.node.default.clone())
+            }
+            Err(VarError::NotUnicode(_)) => {
+                unimplemented!()
+            }
+        }
     }
 
     /// Installs a version of Node matching the specified semantic verisoning
@@ -124,12 +142,12 @@ impl Session {
         catalog.install_node(matching, config)
     }
 
-    /// Activates a version of Node matching the specified semantic versioning
+    /// Sets the default Node version to one matching the specified semantic versioning
     /// requirements.
-    pub fn activate_node(&mut self, matching: &VersionReq) -> Fallible<()> {
+    pub fn set_default_node(&mut self, matching: &VersionReq) -> Fallible<()> {
         let catalog = self.catalog.get_mut()?;
         let config = self.config.get()?;
-        catalog.activate_node(matching, config)
+        catalog.set_default_node(matching, config)
     }
 
     /// Produces the version of Yarn for the current session. If there is an
@@ -153,7 +171,7 @@ impl Session {
             return Ok(Some(installed.into_version()));
         }
 
-        Ok(self.catalog()?.yarn.activated.clone())
+        Ok(self.catalog()?.yarn.default.clone())
     }
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {

@@ -62,7 +62,7 @@ impl LazyCatalog {
 
 pub struct Collection<I: Install> {
     /// The currently activated Node version, if any.
-    pub activated: Option<Version>,
+    pub default: Option<Version>,
 
     // A sorted collection of the available versions in the catalog.
     pub versions: BTreeSet<Version>,
@@ -100,13 +100,13 @@ impl Catalog {
         Ok(())
     }
 
-    /// Activates a Node version matching the specified semantic versioning requirements.
-    pub fn activate_node(&mut self, matching: &VersionReq, config: &Config) -> Fallible<()> {
+    /// Sets the default Node version to one matching the specified semantic versioning requirements.
+    pub fn set_default_node(&mut self, matching: &VersionReq, config: &Config) -> Fallible<()> {
         let installed = self.install_node(matching, config)?;
         let version = Some(installed.into_version());
 
-        if self.node.activated != version {
-            self.node.activated = version;
+        if self.node.default != version {
+            self.node.default = version;
             self.save()?;
         }
 
@@ -150,13 +150,13 @@ impl Catalog {
 
     // ISSUE (#87) Abstract Catalog's activate, install and uninstall methods
     // And potentially share code between node and yarn
-    /// Activates a Yarn version matching the specified semantic versioning requirements.
-    pub fn activate_yarn(&mut self, matching: &VersionReq, config: &Config) -> Fallible<()> {
+    /// Sets the default Yarn version to one matching the specified semantic versioning requirements.
+    pub fn set_default_yarn(&mut self, matching: &VersionReq, config: &Config) -> Fallible<()> {
         let installed = self.install_yarn(matching, config)?;
         let version = Some(installed.into_version());
 
-        if self.yarn.activated != version {
-            self.yarn.activated = version;
+        if self.yarn.default != version {
+            self.yarn.default = version;
             self.save()?;
         }
 

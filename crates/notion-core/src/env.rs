@@ -27,8 +27,7 @@ pub fn path_for_installed_node(version: &str) -> OsString {
 pub fn path_for_system_node() -> OsString {
     let current = env::var_os("PATH").unwrap_or(OsString::new());
     let shim_dir = &path::shim_dir().unwrap();
-    let bin_dir = &path::bin_dir().unwrap();
     // remove the shim and bin dirs from the path
-    let split = env::split_paths(&current).filter(|s| s != shim_dir && s != bin_dir);
+    let split = env::split_paths(&current).filter(|s| s != shim_dir);
     env::join_paths(split).unwrap()
 }

@@ -22,14 +22,14 @@ pub(crate) struct Args {
 pub(crate) enum Use {
     Help,
     Global(VersionReq),
-    Local(VersionReq),
+    Save(VersionReq),
 }
 
 impl Command for Use {
     type Args = Args;
 
     const USAGE: &'static str = "
-Activate a particular toolchain version
+Select a particular toolchain version
 
 Usage:
     notion use [options] <version>
@@ -37,7 +37,7 @@ Usage:
 
 Options:
     -h, --help     Display this message
-    -g, --global   Activate the toolchain globally
+    -s, --save     Select the toolchain for the current Node project
 ";
 
     fn help() -> Self {
@@ -55,7 +55,7 @@ Options:
         Ok(if flag_global {
             Use::Global(requirements)
         } else {
-            Use::Local(requirements)
+            Use::Save(requirements)
         })
     }
 
@@ -66,9 +66,9 @@ Options:
                 Help::Command(CommandName::Use).run(session)?;
             }
             Use::Global(requirements) => {
-                session.activate_node(&requirements)?;
+                session.set_default_node(&requirements)?;
             }
-            Use::Local(_) => {
+            Use::Save(_) => {
                 println!("not yet implemented; in the meantime you can modify your package.json.");
                 exit(1);
             }

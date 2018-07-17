@@ -23,7 +23,7 @@ use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error};
 use notion_fail::{FailExt, Fallible, NotionError};
 
-use command::{Command, CommandName, Config, Current, Help, Install, Uninstall, Use, Version};
+use command::{Command, CommandName, Config, Current, Default, Help, Install, Uninstall, Use, Version};
 use error::{CliParseError, DocoptExt, NotionErrorExt};
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -62,6 +62,7 @@ Some common notion commands are:
     use            Activate a particular toolchain version
     config         Get or set configuration values
     current        Display the currently activated toolchain version
+    default        Get or set the default toolchain version
     help           Display this message
     version        Print version info and exit
 
@@ -173,6 +174,7 @@ See 'notion help <command>' for more information on a specific command.
             CommandName::Use => Use::go(self, session),
             CommandName::Config => Config::go(self, session),
             CommandName::Current => Current::go(self, session),
+            CommandName::Default => Default::go(self, session),
             CommandName::Help => Help::go(self, session),
             CommandName::Version => Version::go(self, session),
         }
