@@ -36,12 +36,7 @@ Options:
         Default::Help
     }
 
-    fn parse(
-        _: Notion,
-        Args {
-            arg_version,
-        }: Args,
-    ) -> Fallible<Self> {
+    fn parse(_: Notion, Args { arg_version }: Args) -> Fallible<Self> {
         Ok(if let Some(version) = arg_version {
             let requirements = parse_requirements(&version)?;
             Default::Set(requirements)
@@ -56,12 +51,12 @@ Options:
             Default::Help => {
                 Help::Command(CommandName::Default).run(session)?;
             }
-            Default::Get => {
-                match session.catalog()?.node.default {
-                    Some(ref version) => { println!("v{}", version); }
-                    None => { }
+            Default::Get => match session.catalog()?.node.default {
+                Some(ref version) => {
+                    println!("v{}", version);
                 }
-            }
+                None => {}
+            },
             Default::Set(requirements) => {
                 session.set_default_node(&requirements)?;
             }

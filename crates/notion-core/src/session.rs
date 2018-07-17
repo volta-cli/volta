@@ -122,15 +122,9 @@ impl Session {
 
     pub fn global_node(&self) -> Fallible<Option<Version>> {
         match env::var("NOTION_NODE_VERSION") {
-            Ok(s) => {
-                Ok(Some(Version::parse(&s[..]).unknown()?))
-            }
-            Err(VarError::NotPresent) => {
-                Ok(self.catalog()?.node.default.clone())
-            }
-            Err(VarError::NotUnicode(_)) => {
-                unimplemented!()
-            }
+            Ok(s) => Ok(Some(Version::parse(&s[..]).unknown()?)),
+            Err(VarError::NotPresent) => Ok(self.catalog()?.node.default.clone()),
+            Err(VarError::NotUnicode(_)) => unimplemented!(),
         }
     }
 

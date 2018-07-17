@@ -12,9 +12,9 @@ use notion_fail::{Fallible, ResultExt};
 use Notion;
 use command::{Command, CommandName, Help};
 
-use std::process::exit;
 use std::fs::File;
 use std::io::Write;
+use std::process::exit;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
@@ -74,11 +74,11 @@ Options:
                         let version = session.install_node(&requirements)?.into_version();
                         let mut file = File::create(path).unknown()?;
                         // ISSUE(#93): abstract out the shell backend
-                        file.write_all(format!("export NOTION_NODE_VERSION={}\n", version).as_bytes()).unknown()?;
+                        file.write_all(
+                            format!("export NOTION_NODE_VERSION={}\n", version).as_bytes(),
+                        ).unknown()?;
                     }
-                    None => {
-                        unimplemented!()
-                    }
+                    None => unimplemented!(),
                 }
                 session.set_default_node(&requirements)?;
             }

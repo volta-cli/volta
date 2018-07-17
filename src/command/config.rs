@@ -29,7 +29,7 @@ pub(crate) enum SubcommandName {
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Key {
-    arg_key: String
+    arg_key: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -83,7 +83,7 @@ pub(crate) enum Subcommand {
     Get {
         // Not yet implemented.
         #[allow(dead_code)]
-        key: String
+        key: String,
     },
     Set {
         // Not yet implemented.
@@ -92,23 +92,32 @@ pub(crate) enum Subcommand {
 
         // Not yet implemented.
         #[allow(dead_code)]
-        value: String
+        value: String,
     },
     Delete {
         // Not yet implemented.
         #[allow(dead_code)]
-        key: String
+        key: String,
     },
     List,
     Edit,
 }
 
-fn parse_subcommand<'de, T: Deserialize<'de>>(subcommand: &str, usage: &str, mut args: Vec<String>) -> Fallible<T> {
-    let mut argv = vec!["notion".to_string(), "config".to_string(), subcommand.to_string()];
+fn parse_subcommand<'de, T: Deserialize<'de>>(
+    subcommand: &str,
+    usage: &str,
+    mut args: Vec<String>,
+) -> Fallible<T> {
+    let mut argv = vec![
+        "notion".to_string(),
+        "config".to_string(),
+        subcommand.to_string(),
+    ];
     argv.append(&mut args);
     let usage = format!("Usage: notion config {} {}", subcommand, usage);
-    Docopt::new(&usage[..]).and_then(|d| d.argv(argv).deserialize())
-        .map_err(|err| { err.with_context(CliParseError::from_docopt) })
+    Docopt::new(&usage[..])
+        .and_then(|d| d.argv(argv).deserialize())
+        .map_err(|err| err.with_context(CliParseError::from_docopt))
 }
 
 impl Command for Config {
@@ -143,19 +152,23 @@ Config commands:
             SubcommandName::Get => {
                 let Key { arg_key } = parse_subcommand("get", "<key>", argv)?;
                 Config::Subcommand(Subcommand::Get { key: arg_key })
-            },
+            }
             SubcommandName::Set => {
-                let KeyValue { arg_key, arg_value } = parse_subcommand("set", "<key> <value>", argv)?;
-                Config::Subcommand(Subcommand::Set { key: arg_key, value: arg_value })
-            },
+                let KeyValue { arg_key, arg_value } =
+                    parse_subcommand("set", "<key> <value>", argv)?;
+                Config::Subcommand(Subcommand::Set {
+                    key: arg_key,
+                    value: arg_value,
+                })
+            }
             SubcommandName::Delete => {
                 let Key { arg_key } = parse_subcommand("delete", "<key>", argv)?;
                 Config::Subcommand(Subcommand::Delete { key: arg_key })
-            },
+            }
             SubcommandName::List => {
                 let Nullary = parse_subcommand("list", "", argv)?;
                 Config::Subcommand(Subcommand::List)
-            },
+            }
             SubcommandName::Edit => {
                 let Nullary = parse_subcommand("edit", "", argv)?;
                 Config::Subcommand(Subcommand::Edit)
@@ -167,21 +180,11 @@ Config commands:
         //session.add_event_start(ActivityKind::Version);
         let result = match self {
             Config::Help => Help::Command(CommandName::Config).run(session),
-            Config::Subcommand(Subcommand::Get { key: _ }) => {
-                Ok(true)
-            }
-            Config::Subcommand(Subcommand::Set { key: _, value: _ }) => {
-                unimplemented!()
-            }
-            Config::Subcommand(Subcommand::Delete { key: _ }) => {
-                unimplemented!()
-            }
-            Config::Subcommand(Subcommand::List) => {
-                unimplemented!()
-            }
-            Config::Subcommand(Subcommand::Edit) => {
-                unimplemented!()
-            }
+            Config::Subcommand(Subcommand::Get { key: _ }) => Ok(true),
+            Config::Subcommand(Subcommand::Set { key: _, value: _ }) => unimplemented!(),
+            Config::Subcommand(Subcommand::Delete { key: _ }) => unimplemented!(),
+            Config::Subcommand(Subcommand::List) => unimplemented!(),
+            Config::Subcommand(Subcommand::Edit) => unimplemented!(),
         };
         //session.add_event_end(ActivityKind::Version, 0);
         result
