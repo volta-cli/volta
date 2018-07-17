@@ -3,9 +3,15 @@
 
 use std::env;
 use std::ffi::OsString;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use path;
+
+pub fn postscript_path() -> Option<PathBuf> {
+    env::var_os("NOTION_POSTSCRIPT")
+        .as_ref()
+        .map(|ref s| Path::new(s).to_path_buf())
+}
 
 /// Produces a modified version of the current `PATH` environment variable that
 /// will find Node.js executables in the installation directory for the given
