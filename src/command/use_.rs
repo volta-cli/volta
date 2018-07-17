@@ -80,7 +80,6 @@ Options:
                     }
                     None => unimplemented!(),
                 }
-                session.set_default_node(&requirements)?;
             }
             Use::Save(_) => {
                 println!("not yet implemented; in the meantime you can modify your package.json.");
