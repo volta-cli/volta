@@ -1,5 +1,6 @@
 mod config;
 mod current;
+mod deactivate;
 mod default;
 mod help;
 mod install;
@@ -9,6 +10,7 @@ mod version;
 
 pub(crate) use self::config::Config;
 pub(crate) use self::current::Current;
+pub(crate) use self::deactivate::Deactivate;
 pub(crate) use self::default::Default;
 pub(crate) use self::help::Help;
 pub(crate) use self::install::Install;
@@ -35,6 +37,7 @@ pub(crate) enum CommandName {
     Use,
     Config,
     Current,
+    Deactivate,
     Default,
     Help,
     Version,
@@ -50,6 +53,7 @@ impl Display for CommandName {
                 CommandName::Uninstall => "uninstall",
                 CommandName::Use => "use",
                 CommandName::Config => "config",
+                CommandName::Deactivate => "deactivate",
                 CommandName::Default => "default",
                 CommandName::Current => "current",
                 CommandName::Help => "help",
@@ -69,6 +73,7 @@ impl FromStr for CommandName {
             "use" => CommandName::Use,
             "config" => CommandName::Config,
             "current" => CommandName::Current,
+            "deactivate" => CommandName::Deactivate,
             "default" => CommandName::Default,
             "help" => CommandName::Help,
             "version" => CommandName::Version,
