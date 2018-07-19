@@ -9,7 +9,6 @@
   },
   "notion": {
     "node": "6.11.1",
-    "yarn": "1.7.0",
-    "events_plugin": "./support/unix/test-events --some-arg"
+    "yarn": "1.7.0"
   }
 }

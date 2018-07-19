@@ -1,8 +1,8 @@
 /target/
 **/*.rs.bk
 Notion.msi
-support/windows/*.log
-support/windows/Notion.wixobj
-support/windows/Notion.wixpdb
-support/unix/install.sh
+dev/windows/*.log
+dev/windows/Notion.wixobj
+dev/windows/Notion.wixpdb
+dev/unix/install.sh
 /.idea/

@@ -8,9 +8,9 @@ use std::path::{Path, PathBuf};
 
 use lazycell::LazyCell;
 
+use manifest::Manifest;
 use notion_fail::{Fallible, ResultExt};
 use package_info::PackageInfo;
-use manifest::Manifest;
 
 fn is_node_root(dir: &Path) -> bool {
     dir.join("package.json").is_file()
@@ -42,7 +42,8 @@ impl LazyDependentBins {
 
     /// Forces creating the dependent bins and returns an immutable reference to it.
     pub fn get(&self, project: &Project) -> Fallible<&HashMap<String, String>> {
-        self.bins.try_borrow_with(|| Ok(project.dependent_binaries()?))
+        self.bins
+            .try_borrow_with(|| Ok(project.dependent_binaries()?))
     }
 }
 
@@ -129,7 +130,6 @@ impl Project {
     fn dependent_binaries(&self) -> Fallible<HashMap<String, String>> {
         let mut dependent_bins = HashMap::new();
         if let Some(all_deps) = self.all_dependencies()? {
-
             // convert dependency names to the path to each project
             let all_dep_paths = all_deps
                 .iter()

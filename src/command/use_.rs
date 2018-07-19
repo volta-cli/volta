@@ -4,32 +4,35 @@
 
 use semver::VersionReq;
 
+use notion_core::env;
 use notion_core::serial::version::parse_requirements;
 use notion_core::session::{ActivityKind, Session};
-use notion_fail::Fallible;
+use notion_fail::{Fallible, ResultExt};
 
 use Notion;
 use command::{Command, CommandName, Help};
 
+use std::fs::File;
+use std::io::Write;
 use std::process::exit;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
     arg_version: String,
-    flag_global: bool,
+    flag_save: bool,
 }
 
 pub(crate) enum Use {
     Help,
     Global(VersionReq),
-    Local(VersionReq),
+    Save(VersionReq),
 }
 
 impl Command for Use {
     type Args = Args;
 
     const USAGE: &'static str = "
-Activate a particular toolchain version
+Select a particular toolchain version
 
 Usage:
     notion use [options] <version>
@@ -37,7 +40,7 @@ Usage:
 
 Options:
     -h, --help     Display this message
-    -g, --global   Activate the toolchain globally
+    -s, --save     Select the toolchain for the current Node project
 ";
 
     fn help() -> Self {
@@ -48,14 +51,14 @@ Options:
         _: Notion,
         Args {
             arg_version,
-            flag_global,
+            flag_save,
         }: Args,
     ) -> Fallible<Self> {
         let requirements = parse_requirements(&arg_version)?;
-        Ok(if flag_global {
-            Use::Global(requirements)
+        Ok(if flag_save {
+            Use::Save(requirements)
         } else {
-            Use::Local(requirements)
+            Use::Global(requirements)
         })
     }
 
@@ -66,9 +69,19 @@ Options:
                 Help::Command(CommandName::Use).run(session)?;
             }
             Use::Global(requirements) => {
-                session.activate_node(&requirements)?;
+                match env::postscript_path() {
+                    Some(path) => {
+                        let version = session.install_node(&requirements)?.into_version();
+                        let mut file = File::create(path).unknown()?;
+                        // ISSUE(#93): abstract out the shell backend
+                        file.write_all(
+                            format!("export NOTION_NODE_VERSION={}\n", version).as_bytes(),
+                        ).unknown()?;
+                    }
+                    None => unimplemented!(),
+                }
             }
-            Use::Local(_) => {
+            Use::Save(_) => {
                 println!("not yet implemented; in the meantime you can modify your package.json.");
                 exit(1);
             }

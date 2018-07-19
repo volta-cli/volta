@@ -22,6 +22,7 @@ pub struct ToolConfig<I> {
     #[serde(rename = "ls-remote")]
     pub ls_remote: Option<Plugin>,
 
+    #[serde(skip)]
     phantom: PhantomData<I>,
 }
 

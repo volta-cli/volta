@@ -21,21 +21,21 @@ pub struct Catalog {
 #[derive(Serialize, Deserialize)]
 #[serde(rename = "node")]
 pub struct NodeCollection {
-    activated: Option<String>,
+    default: Option<String>,
     versions: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename = "yarn")]
 pub struct YarnCollection {
-    activated: Option<String>,
+    default: Option<String>,
     versions: Vec<String>,
 }
 
 impl Default for NodeCollection {
     fn default() -> Self {
         NodeCollection {
-            activated: None,
+            default: None,
             versions: vec![],
         }
     }
@@ -44,7 +44,7 @@ impl Default for NodeCollection {
 impl Default for YarnCollection {
     fn default() -> Self {
         YarnCollection {
-            activated: None,
+            default: None,
             versions: vec![],
         }
     }
@@ -61,7 +61,7 @@ impl Catalog {
 
 impl NodeCollection {
     fn into_node_collection(self) -> Fallible<catalog::NodeCollection> {
-        let activated = match self.activated {
+        let default = match self.default {
             Some(v) => Some(Version::parse(&v[..]).unknown()?),
             None => None,
         };
@@ -72,7 +72,7 @@ impl NodeCollection {
             .collect();
 
         Ok(catalog::NodeCollection {
-            activated: activated,
+            default,
             versions: BTreeSet::from_iter(versions.unknown()?),
             phantom: PhantomData,
         })
@@ -81,7 +81,7 @@ impl NodeCollection {
 
 impl YarnCollection {
     fn into_yarn_collection(self) -> Fallible<catalog::YarnCollection> {
-        let activated = match self.activated {
+        let default = match self.default {
             Some(v) => Some(Version::parse(&v[..]).unknown()?),
             None => None,
         };
@@ -92,7 +92,7 @@ impl YarnCollection {
             .collect();
 
         Ok(catalog::YarnCollection {
-            activated,
+            default,
             versions: BTreeSet::from_iter(versions.unknown()?),
             phantom: PhantomData,
         })
@@ -110,7 +110,7 @@ impl catalog::Catalog {
 impl catalog::NodeCollection {
     fn to_serial(&self) -> NodeCollection {
         NodeCollection {
-            activated: self.activated.clone().map(|v| v.to_string()),
+            default: self.default.clone().map(|v| v.to_string()),
             versions: self.versions.iter().map(|v| v.to_string()).collect(),
         }
     }
@@ -119,7 +119,7 @@ impl catalog::NodeCollection {
 impl catalog::YarnCollection {
     fn to_serial(&self) -> YarnCollection {
         YarnCollection {
-            activated: self.activated.clone().map(|v| v.to_string()),
+            default: self.default.clone().map(|v| v.to_string()),
             versions: self.versions.iter().map(|v| v.to_string()).collect(),
         }
     }

@@ -64,18 +64,21 @@ Options:
                     println!("v{}", version);
                 })
                 .is_some()),
-            Current::Global => Ok(global(&session)?
+            Current::Global => Ok(global(session)?
                 .map(|version| {
                     println!("v{}", version);
                 })
                 .is_some()),
             Current::All => {
                 let (local, global) = (local(&session)?, global(&session)?);
+
                 let global_active = local.is_none() && global.is_some();
                 let any = local.is_some() || global.is_some();
+
                 for version in local {
                     println!("local: v{} (active)", version);
                 }
+
                 for version in global {
                     println!(
                         "global: v{}{}",
@@ -83,6 +86,7 @@ Options:
                         if global_active { " (active)" } else { "" }
                     );
                 }
+
                 Ok(any)
             }
         };
@@ -106,6 +110,5 @@ fn local(session: &Session) -> Fallible<Option<String>> {
 }
 
 fn global(session: &Session) -> Fallible<Option<String>> {
-    let catalog = session.catalog()?;
-    Ok(catalog.node.activated.clone().map(|v| v.to_string()))
+    Ok(session.global_node()?.clone().map(|v| v.to_string()))
 }
