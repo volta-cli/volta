@@ -1,9 +1,17 @@
-use super::{Postscript, Backend};
+use std::path::{Path, PathBuf};
 
-pub(crate) struct BashBackend;
+use super::{Postscript, Shell};
 
-impl Backend for BashBackend {
-    fn emit(&self, postscript: &Postscript) -> String {
+pub(crate) struct Bash {
+    pub(crate) postscript_path: PathBuf
+}
+
+impl Shell for Bash {
+    fn postscript_path(&self) -> &Path {
+        &self.postscript_path
+    }
+
+    fn compile_postscript(&self, postscript: &Postscript) -> String {
         match postscript {
             &Postscript::Path(ref s) => {
                 // FIXME: proper escaping

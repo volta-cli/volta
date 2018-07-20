@@ -1,5 +1,5 @@
 use notion_core::env;
-use notion_core::postscript::Postscript;
+use notion_core::shell::{CurrentShell, Postscript, Shell};
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::Fallible;
 
@@ -43,12 +43,14 @@ Options:
                 Help::Command(CommandName::Deactivate).run(session)?;
             }
             Deactivate::Deactivate => {
-                let path_var = match env::path_for_system_node().into_string() {
-                    Ok(s) => s,
+                let shell = CurrentShell::detect()?;
+
+                let postscript = match env::path_for_system_node().into_string() {
+                    Ok(path) => Postscript::Path(path),
                     Err(_) => unimplemented!()
                 };
-                let postscript = Postscript::Path(path_var);
-                postscript.save()?;
+
+                shell.save_postscript(&postscript)?;
             }
         };
         session.add_event_end(ActivityKind::Deactivate, 0);

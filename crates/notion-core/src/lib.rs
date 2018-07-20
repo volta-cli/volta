@@ -31,7 +31,7 @@ pub mod monitor;
 mod package_info;
 pub mod path;
 mod plugin;
-pub mod postscript;
+pub mod shell;
 pub mod project;
 pub mod serial;
 pub mod session;

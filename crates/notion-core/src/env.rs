@@ -4,27 +4,17 @@
 use std::env;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::fs::File;
-use std::io::Write;
-
-use notion_fail::{Fallible, ResultExt};
 
 use path;
+
+pub(crate) fn shell_name() -> Option<String> {
+    env::var_os("NOTION_SHELL").map(|s| s.to_string_lossy().into_owned())
+}
 
 pub fn postscript_path() -> Option<PathBuf> {
     env::var_os("NOTION_POSTSCRIPT")
         .as_ref()
         .map(|ref s| Path::new(s).to_path_buf())
-}
-
-pub fn write_postscript<S: AsRef<str>>(postscript: S) -> Fallible<()> {
-    Ok(match postscript_path() {
-        Some(path) => {
-            let mut file = File::create(path).unknown()?;
-            file.write_all(postscript.as_ref().as_bytes()).unknown()?;
-        }
-        None => unimplemented!()
-    })
 }
 
 /// Produces a modified version of the current `PATH` environment variable that
