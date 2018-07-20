@@ -14,7 +14,7 @@ impl Shell for Bash {
     fn compile_postscript(&self, postscript: &Postscript) -> String {
         match postscript {
             &Postscript::Path(ref s) => {
-                // FIXME: proper escaping
+                // ISSUE(#99): proper escaping
                 format!("export PATH='{}'\n", s)
             }
             &Postscript::ToolVersion { ref tool, ref version } => {
