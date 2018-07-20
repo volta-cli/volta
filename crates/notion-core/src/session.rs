@@ -30,6 +30,7 @@ pub enum ActivityKind {
     Help,
     Version,
     Binary,
+    Shim,
 }
 
 impl Display for ActivityKind {
@@ -48,6 +49,7 @@ impl Display for ActivityKind {
             &ActivityKind::Help => "help",
             &ActivityKind::Version => "version",
             &ActivityKind::Binary => "binary",
+            &ActivityKind::Shim => "shim",
         };
         f.write_str(s)
     }

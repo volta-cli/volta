@@ -23,7 +23,7 @@ use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error, ErrorContext};
 use notion_fail::{FailExt, Fallible, NotionError};
 
-use command::{Command, CommandName, Config, Current, Deactivate, Default, Help, Install, Uninstall,
+use command::{Command, CommandName, Config, Current, Deactivate, Default, Help, Install, Shim, Uninstall,
               Use, Version};
 use error::{CliParseError, DocoptExt, NotionErrorExt};
 
@@ -65,6 +65,7 @@ Some common notion commands are:
     current        Display the currently activated toolchain version
     deactivate     Remove Notion from the current shell
     default        Get or set the default toolchain version
+    shim           View and manage shims
     help           Display this message
     version        Print version info and exit
 
@@ -178,6 +179,7 @@ See 'notion help <command>' for more information on a specific command.
             CommandName::Current => Current::go(self, session),
             CommandName::Deactivate => Deactivate::go(self, session),
             CommandName::Default => Default::go(self, session),
+            CommandName::Shim => Shim::go(self, session),
             CommandName::Help => Help::go(self, session),
             CommandName::Version => Version::go(self, session),
         }
