@@ -1,6 +1,6 @@
 use notion_core::env;
 use notion_core::session::{ActivityKind, Session};
-use notion_fail::Fallible;
+use notion_fail::{Fallible, ResultExt};
 
 use Notion;
 use command::{Command, CommandName, Help};
@@ -42,9 +42,9 @@ Options:
                 Help::Command(CommandName::Deactivate).run(session)?;
             }
             Deactivate::Deactivate => {
-                // FIXME: proper escaping and error handling
-                let path_var = env::path_for_system_node().into_string().unwrap();
-                env::write_postscript(format!("export PATH={}\n", path_var))?;
+                // FIXME: proper escaping
+                let path_var = env::path_for_system_node().into_string().unknown()?;
+                env::write_postscript(format!("export PATH='{}'\n", path_var))?;
             }
         };
         session.add_event_end(ActivityKind::Deactivate, 0);
