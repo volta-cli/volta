@@ -4,7 +4,7 @@
 
 use semver::VersionReq;
 
-use notion_core::env;
+use notion_core::postscript::Postscript;
 use notion_core::serial::version::parse_requirements;
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::Fallible;
@@ -68,8 +68,8 @@ Options:
             }
             Use::Global(requirements) => {
                 let version = session.install_node(&requirements)?.into_version();
-                // ISSUE(#93): abstract out the shell backend
-                env::write_postscript(format!("export NOTION_NODE_VERSION={}\n", version))?;
+                let postscript = Postscript::ToolVersion { tool: "node".to_string(), version };
+                postscript.save()?;
             }
             Use::Save(_) => {
                 println!("not yet implemented; in the meantime you can modify your package.json.");

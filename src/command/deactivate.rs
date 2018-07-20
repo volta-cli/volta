@@ -1,6 +1,7 @@
 use notion_core::env;
+use notion_core::postscript::Postscript;
 use notion_core::session::{ActivityKind, Session};
-use notion_fail::{Fallible, ResultExt};
+use notion_fail::Fallible;
 
 use Notion;
 use command::{Command, CommandName, Help};
@@ -42,9 +43,12 @@ Options:
                 Help::Command(CommandName::Deactivate).run(session)?;
             }
             Deactivate::Deactivate => {
-                // FIXME: proper escaping
-                let path_var = env::path_for_system_node().into_string().unknown()?;
-                env::write_postscript(format!("export PATH='{}'\n", path_var))?;
+                let path_var = match env::path_for_system_node().into_string() {
+                    Ok(s) => s,
+                    Err(_) => unimplemented!()
+                };
+                let postscript = Postscript::Path(path_var);
+                postscript.save()?;
             }
         };
         session.add_event_end(ActivityKind::Deactivate, 0);
