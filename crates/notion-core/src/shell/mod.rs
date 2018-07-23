@@ -18,7 +18,7 @@ pub enum Postscript {
     ToolVersion { tool: String, version: Version }
 }
 
-/// Thrown when the shell name specified in the Notion environment is not supported.
+/// Thrown when the postscript file was not specified in the Notion environment.
 #[derive(Fail, Debug)]
 #[fail(display = "Notion postscript file not specified")]
 struct UnspecifiedPostscriptError;
@@ -46,7 +46,7 @@ pub trait Shell {
 
 pub struct CurrentShell(Box<dyn Shell>);
 
-/// Thrown when the shell name specified in the Notion environment is not supported.
+/// Thrown when the shell name was not specified in the Notion environment.
 #[derive(Fail, Debug)]
 #[fail(display = "Notion shell not specified")]
 struct UnspecifiedShellError;
