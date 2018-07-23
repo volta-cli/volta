@@ -8,21 +8,43 @@ use failure::Fail;
 use indicatif::{ProgressBar, ProgressStyle};
 use term_size;
 
+/// Represents the context from which an error is being reported.
+pub enum ErrorContext {
+    /// An error reported from the `notion` executable.
+    Notion,
+
+    /// An error reported from a shim.
+    Shim
+}
+
 /// Displays an error to stderr.
-pub fn display_error<E: Display>(err: &E) {
-    display_error_prefix();
+pub fn display_error<E: Display>(cx: ErrorContext, err: &E) {
+    display_error_prefix(cx);
     eprintln!("{}", err);
 }
 
-/// Displays an error to stderr with a styled `"error:"` prefix.
-pub fn display_error_prefix() {
-    eprint!("{} ", style("error:").red().bold());
+/// Displays an error to stderr with a styled prefix.
+pub fn display_error_prefix(cx: ErrorContext) {
+    match cx {
+        ErrorContext::Notion => {
+            // Since the command here was `notion`, it would be redundant to say that this was
+            // a Notion error, so we are less explicit in the heading.
+            eprint!("{} ", style("error:").red().bold());
+        }
+        ErrorContext::Shim => {
+            // Since a Notion error is rare case for a shim, it can be surprising to a user.
+            // To make it extra clear that this was a failure that happened in Notion when
+            // attempting to delegate to a shim, we are more explicit about the fact that it's
+            // a Notion error.
+            eprint!("{} ", style("Notion error:").red().bold());
+        }
+    }
 }
 
 /// Displays a generic message for internal errors to stderr.
-pub fn display_unknown_error<E: Fail>(err: &E) {
-    display_error_prefix();
-    eprintln!("an internal error occurred in Notion");
+pub fn display_unknown_error<E: Fail>(cx: ErrorContext, err: &E) {
+    display_error_prefix(cx);
+    eprintln!("an internal error occurred");
     eprintln!();
 
     if env::var("NOTION_DEV").is_ok() {
