@@ -2,10 +2,37 @@
 //! in a standard Notion layout in Windows operating systems.
 
 use std::path::PathBuf;
+use std::os::windows::fs;
+use std::io;
 
 use winfolder;
 
-use notion_fail::Fallible;
+use notion_fail::{Fallible, FailExt};
+
+#[derive(Fail, Debug)]
+#[fail(display = "{}", error)]
+pub(crate) struct SymlinkError {
+    error: String,
+}
+
+impl NotionFail for SymlinkError {
+    fn is_user_friendly(&self) -> bool { true }
+    fn exit_code(&self) -> i32 { 4 }
+}
+
+impl SymlinkError {
+    pub(crate) fn from_io_error(error: &io::Error) -> Self {
+        if let Some(inner_err) = error.get_ref() {
+            SymlinkError {
+                error: inner_err.to_string(),
+            }
+        } else {
+            SymlinkError {
+                error: error.to_string(),
+            }
+        }
+    }
+}
 
 // These are taken from: https://nodejs.org/dist/index.json and are used
 // by `path::archive_root_dir` to determine the root directory of the
@@ -153,4 +180,22 @@ pub fn user_config_file() -> Fallible<PathBuf> {
 
 pub fn user_catalog_file() -> Fallible<PathBuf> {
     Ok(local_data_root()?.join("catalog.toml"))
+}
+
+pub fn create_shim_symlink(shim_name: &str) -> Fallible<()> {
+    let launchbin = launchbin_file()?;
+    let shim = shim_file(shim_name)?;
+    match fs::symlink_file(launchbin, shim) {
+        Ok(_) => Ok(()),
+        Err(err) => {
+            if err.kind() == io::ErrorKind::AlreadyExists {
+                throw!(SymlinkError {
+                    error: format!("shim `{}` already exists", shim_name),
+                });
+            }
+            else {
+                throw!(err.with_context(SymlinkError::from_io_error));
+            }
+        },
+    }
 }

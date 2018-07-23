@@ -116,8 +116,9 @@ fn list(session: &mut Session, verbose: bool) -> Fallible<bool> {
         })
 }
 
-fn create(_session: &Session, _shim_name: String, _verbose: bool) -> Fallible<bool> {
-    unimplemented!("create not yet implemented - you can manually create these in ~/.notion/bin/");
+fn create(_session: &Session, shim_name: String, _verbose: bool) -> Fallible<bool> {
+    path::create_shim_symlink(&shim_name)?;
+    Ok(true)
 }
 
 fn resolve_shim(session: &mut Session, shim_name: &OsStr) -> Fallible<ShimKind> {

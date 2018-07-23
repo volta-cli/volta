@@ -3,8 +3,10 @@
 
 use std::env;
 use std::path::PathBuf;
+use std::os::unix::fs;
+use std::io;
 
-use notion_fail::{Fallible, NotionFail};
+use notion_fail::{Fallible, NotionFail, FailExt};
 
 #[derive(Fail, Debug)]
 #[fail(display = "environment variable 'HOME' is not set")]
@@ -13,6 +15,31 @@ pub(crate) struct NoHomeEnvVar;
 impl NotionFail for NoHomeEnvVar {
     fn is_user_friendly(&self) -> bool { true }
     fn exit_code(&self) -> i32 { 4 }
+}
+
+#[derive(Fail, Debug)]
+#[fail(display = "{}", error)]
+pub(crate) struct SymlinkError {
+    error: String,
+}
+
+impl NotionFail for SymlinkError {
+    fn is_user_friendly(&self) -> bool { true }
+    fn exit_code(&self) -> i32 { 4 }
+}
+
+impl SymlinkError {
+    pub(crate) fn from_io_error(error: &io::Error) -> Self {
+        if let Some(inner_err) = error.get_ref() {
+            SymlinkError {
+                error: inner_err.to_string(),
+            }
+        } else {
+            SymlinkError {
+                error: error.to_string(),
+            }
+        }
+    }
 }
 
 // These are taken from: https://nodejs.org/dist/index.json and are used
@@ -156,4 +183,22 @@ pub fn user_config_file() -> Fallible<PathBuf> {
 
 pub fn user_catalog_file() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("catalog.toml"))
+}
+
+pub fn create_shim_symlink(shim_name: &str) -> Fallible<()> {
+    let launchbin = launchbin_file()?;
+    let shim = shim_file(shim_name)?;
+    match fs::symlink(launchbin, shim) {
+        Ok(_) => Ok(()),
+        Err(err) => {
+            if err.kind() == io::ErrorKind::AlreadyExists {
+                throw!(SymlinkError {
+                    error: format!("shim `{}` already exists", shim_name),
+                });
+            }
+            else {
+                throw!(err.with_context(SymlinkError::from_io_error));
+            }
+        },
+    }
 }
