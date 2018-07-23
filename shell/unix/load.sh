@@ -11,7 +11,7 @@ notion() {
     export NOTION_POSTSCRIPT="${NOTION_ROOT}/tmp/notion_tmp_$(dd if=/dev/urandom count=1 2> /dev/null | cksum | cut -f1 -d" ").sh"
 
     # Forward the arguments to the Notion executable.
-    command "${NOTION_ROOT}/notion" "$@"
+    NOTION_SHELL=bash command "${NOTION_ROOT}/notion" "$@"
     EXIT_CODE=$?
 
     # Call the post-invocation script if it is present, then delete it.

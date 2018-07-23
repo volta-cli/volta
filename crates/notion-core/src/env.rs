@@ -7,6 +7,10 @@ use std::path::{Path, PathBuf};
 
 use path;
 
+pub(crate) fn shell_name() -> Option<String> {
+    env::var_os("NOTION_SHELL").map(|s| s.to_string_lossy().into_owned())
+}
+
 pub fn postscript_path() -> Option<PathBuf> {
     env::var_os("NOTION_POSTSCRIPT")
         .as_ref()
@@ -33,7 +37,7 @@ pub fn path_for_installed_node(version: &str) -> OsString {
 pub fn path_for_system_node() -> OsString {
     let current = env::var_os("PATH").unwrap_or(OsString::new());
     let shim_dir = &path::shim_dir().unwrap();
-    // remove the shim and bin dirs from the path
+    // remove the shim dir from the path
     let split = env::split_paths(&current).filter(|s| s != shim_dir);
     env::join_paths(split).unwrap()
 }

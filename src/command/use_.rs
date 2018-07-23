@@ -4,16 +4,14 @@
 
 use semver::VersionReq;
 
-use notion_core::env;
+use notion_core::shell::{CurrentShell, Postscript, Shell};
 use notion_core::serial::version::parse_requirements;
 use notion_core::session::{ActivityKind, Session};
-use notion_fail::{Fallible, ResultExt};
+use notion_fail::Fallible;
 
 use Notion;
 use command::{Command, CommandName, Help};
 
-use std::fs::File;
-use std::io::Write;
 use std::process::exit;
 
 #[derive(Debug, Deserialize)]
@@ -69,17 +67,10 @@ Options:
                 Help::Command(CommandName::Use).run(session)?;
             }
             Use::Global(requirements) => {
-                match env::postscript_path() {
-                    Some(path) => {
-                        let version = session.install_node(&requirements)?.into_version();
-                        let mut file = File::create(path).unknown()?;
-                        // ISSUE(#93): abstract out the shell backend
-                        file.write_all(
-                            format!("export NOTION_NODE_VERSION={}\n", version).as_bytes(),
-                        ).unknown()?;
-                    }
-                    None => unimplemented!(),
-                }
+                let shell = CurrentShell::detect()?;
+                let version = session.install_node(&requirements)?.into_version();
+                let postscript = Postscript::ToolVersion { tool: "node".to_string(), version };
+                shell.save_postscript(&postscript)?;
             }
             Use::Save(_) => {
                 println!("not yet implemented; in the meantime you can modify your package.json.");
