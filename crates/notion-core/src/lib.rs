@@ -35,6 +35,7 @@ pub mod shell;
 pub mod project;
 pub mod serial;
 pub mod session;
+pub mod shim;
 pub mod style;
 pub mod tool;
 

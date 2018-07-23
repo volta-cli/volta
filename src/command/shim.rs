@@ -4,7 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use notion_core::session::{ActivityKind, Session};
-use notion_core::{path, style};
+use notion_core::{path, style, shim};
 use notion_fail::{Fallible, ResultExt};
 
 use Notion;
@@ -13,6 +13,7 @@ use command::{Command, CommandName, Help};
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
     arg_shimname: Option<String>,
+    flag_delete: bool,
     flag_verbose: bool,
 }
 
@@ -20,6 +21,7 @@ pub(crate) enum Shim {
     Help,
     List(bool),
     Create(String, bool),
+    Delete(String, bool),
 }
 
 enum ShimKind {
@@ -48,9 +50,11 @@ impl Command for Shim {
 Manage Notion shims for 3rd-party executables
 
 Usage:
-    notion shim [<shimname>] [options]
+    notion shim [options]
+    notion shim <shimname> [options]
 
 Options:
+    -d, --delete   Delete 3rd-party shim
     -v, --verbose  Verbose output
     -h, --help     Display this message
 
@@ -65,11 +69,16 @@ Options:
         _: Notion,
         Args {
             arg_shimname,
+            flag_delete,
             flag_verbose,
         }: Args,
     ) -> Fallible<Self> {
         Ok(if let Some(shim_name) = arg_shimname {
-            Shim::Create(shim_name, flag_verbose)
+            if flag_delete {
+                Shim::Delete(shim_name, flag_verbose)
+            } else {
+                Shim::Create(shim_name, flag_verbose)
+            }
         } else {
             Shim::List(flag_verbose)
         })
@@ -82,6 +91,7 @@ Options:
             Shim::Help => Help::Command(CommandName::Shim).run(session),
             Shim::List(verbose) => list(session, verbose),
             Shim::Create(shim_name, verbose) => create(session, shim_name, verbose),
+            Shim::Delete(shim_name, verbose) => delete(session, shim_name, verbose),
         };
         session.add_event_end(ActivityKind::Shim, 0);
         result
@@ -117,7 +127,12 @@ fn list(session: &mut Session, verbose: bool) -> Fallible<bool> {
 }
 
 fn create(_session: &Session, shim_name: String, _verbose: bool) -> Fallible<bool> {
-    path::create_shim_symlink(&shim_name)?;
+    shim::create(&shim_name)?;
+    Ok(true)
+}
+
+fn delete(_session: &Session, shim_name: String, _verbose: bool) -> Fallible<bool> {
+    shim::delete(&shim_name)?;
     Ok(true)
 }
 
