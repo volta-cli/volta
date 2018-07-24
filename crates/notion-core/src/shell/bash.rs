@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use super::{Postscript, Shell};
 
 pub(crate) struct Bash {
-    pub(crate) postscript_path: PathBuf
+    pub(crate) postscript_path: PathBuf,
 }
 
 impl Shell for Bash {
@@ -17,9 +17,14 @@ impl Shell for Bash {
                 // ISSUE(#99): proper escaping
                 format!("export PATH='{}'\n", s)
             }
-            &Postscript::ToolVersion { ref tool, ref version } => {
-                format!("export NOTION_{}_VERSION={}\n", tool.to_ascii_uppercase(), version)
-            }
+            &Postscript::ToolVersion {
+                ref tool,
+                ref version,
+            } => format!(
+                "export NOTION_{}_VERSION={}\n",
+                tool.to_ascii_uppercase(),
+                version
+            ),
         }
     }
 }

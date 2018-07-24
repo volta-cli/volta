@@ -12,8 +12,12 @@ pub(crate) struct SymlinkError {
 }
 
 impl NotionFail for SymlinkError {
-    fn is_user_friendly(&self) -> bool { true }
-    fn exit_code(&self) -> i32 { 4 }
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        4
+    }
 }
 
 impl SymlinkError {
@@ -47,19 +51,18 @@ pub fn create(shim_name: &str) -> Fallible<()> {
                 throw!(SymlinkError {
                     error: format!("shim `{}` already exists", shim_name),
                 });
-            }
-            else {
+            } else {
                 throw!(err.with_context(SymlinkError::from_io_error));
             }
-        },
+        }
     }
 }
 
 pub fn delete(shim_name: &str) -> Fallible<()> {
     if !is_3p_shim(shim_name) {
-         throw!(SymlinkError {
+        throw!(SymlinkError {
             error: format!("cannot delete `{}`, not a 3rd-party executable", shim_name),
-         });
+        });
     }
     let shim = path::shim_file(shim_name)?;
     match fs::remove_file(shim) {
@@ -69,10 +72,9 @@ pub fn delete(shim_name: &str) -> Fallible<()> {
                 throw!(SymlinkError {
                     error: format!("shim `{}` does not exist", shim_name),
                 });
-            }
-            else {
+            } else {
                 throw!(err.with_context(SymlinkError::from_io_error));
             }
-        },
+        }
     }
 }

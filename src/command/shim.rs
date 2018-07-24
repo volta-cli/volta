@@ -4,7 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use notion_core::session::{ActivityKind, Session};
-use notion_core::{path, style, shim};
+use notion_core::{path, shim, style};
 use notion_fail::{Fallible, ResultExt};
 
 use Notion;

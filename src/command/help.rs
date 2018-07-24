@@ -1,7 +1,8 @@
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::Fallible;
 
-use command::{Command, CommandName, Config, Current, Deactivate, Default, Install, Shim, Uninstall, Use, Version};
+use command::{Command, CommandName, Config, Current, Deactivate, Default, Install, Shim,
+              Uninstall, Use, Version};
 use {CliParseError, Notion};
 
 #[derive(Debug, Deserialize)]

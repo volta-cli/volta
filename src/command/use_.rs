@@ -4,9 +4,9 @@
 
 use semver::VersionReq;
 
-use notion_core::shell::{CurrentShell, Postscript, Shell};
 use notion_core::serial::version::parse_requirements;
 use notion_core::session::{ActivityKind, Session};
+use notion_core::shell::{CurrentShell, Postscript, Shell};
 use notion_fail::Fallible;
 
 use Notion;
@@ -69,7 +69,10 @@ Options:
             Use::Global(requirements) => {
                 let shell = CurrentShell::detect()?;
                 let version = session.install_node(&requirements)?.into_version();
-                let postscript = Postscript::ToolVersion { tool: "node".to_string(), version };
+                let postscript = Postscript::ToolVersion {
+                    tool: "node".to_string(),
+                    version,
+                };
                 shell.save_postscript(&postscript)?;
             }
             Use::Save(_) => {
