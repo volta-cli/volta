@@ -15,9 +15,9 @@ use style;
 
 fn display_error(err: &NotionError) {
     if err.is_user_friendly() {
-        style::display_error(err);
+        style::display_error(style::ErrorContext::Shim, err);
     } else {
-        style::display_unknown_error(err);
+        style::display_unknown_error(style::ErrorContext::Shim, err);
     }
 }
 
@@ -100,9 +100,8 @@ pub trait Tool: Sized {
                 session.exit(code);
             }
             Err(err) => {
-                style::display_error(&err);
-
                 let notion_err = err.with_context(BinaryExecError::from_io_error);
+                display_error(&notion_err);
                 session.add_event_error(ActivityKind::Tool, &notion_err);
                 session.exit(1);
             }
@@ -168,6 +167,8 @@ impl Tool for Script {
     fn command(self) -> Command {
         self.0
     }
+
+
 }
 
 impl Tool for Binary {
@@ -239,8 +240,10 @@ fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
 }
 
 #[derive(Fail, Debug)]
-#[fail(display = "No Node version selected")]
-struct NoGlobalError;
+#[fail(display = "No {} version selected", tool)]
+struct NoGlobalError {
+    tool: String
+}
 
 impl NotionFail for NoGlobalError {
     fn is_user_friendly(&self) -> bool {
@@ -260,7 +263,7 @@ impl Tool for Node {
         let version = if let Some(version) = session.current_node()? {
             version
         } else {
-            throw!(NoGlobalError.unknown());
+            throw!(NoGlobalError { tool: "Node".to_string() });
         };
         let path_var = env::path_for_installed_node(&version.to_string());
         Ok(Self::from_components(&exe, args, &path_var))
@@ -284,7 +287,7 @@ impl Tool for Yarn {
         let version = if let Some(version) = session.current_yarn()? {
             version
         } else {
-            throw!(NoGlobalError.unknown());
+            throw!(NoGlobalError { tool: "Yarn".to_string() });
         };
         let path_var = env::path_for_installed_node(&version.to_string());
         Ok(Self::from_components(&exe, args, &path_var))
