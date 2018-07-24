@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use notion_core::session::{ActivityKind, Session};
 use notion_core::{path, shim, style};
 use notion_fail::{Fallible, ResultExt};
+use semver::VersionReq;
 
 use Notion;
 use command::{Command, CommandName, Help};
@@ -28,6 +29,7 @@ enum ShimKind {
     Local(PathBuf),
     Global(PathBuf),
     System,
+    WillInstall(VersionReq),
     Unimplemented,
 }
 
@@ -37,6 +39,7 @@ impl Display for ShimKind {
             &ShimKind::Local(ref path) => format!("{}", path.to_string_lossy()),
             &ShimKind::Global(ref path) => format!("{}", path.to_string_lossy()),
             &ShimKind::System => format!("[system]"),
+            &ShimKind::WillInstall(ref version) => format!("[will install version {}]", version),
             &ShimKind::Unimplemented => format!("[shim not implemented!]"),
         };
         f.write_str(&s)
@@ -59,7 +62,6 @@ Options:
     -h, --help     Display this message
 
 ";
-    // TODO more verbiage about how to use this command
 
     fn help() -> Self {
         Shim::Help
@@ -142,8 +144,7 @@ fn delete(_session: &Session, shim_name: String, _verbose: bool) -> Fallible<boo
 
 fn resolve_shim(session: &mut Session, shim_name: &OsStr) -> Fallible<ShimKind> {
     match shim_name.to_str() {
-        Some("node") => resolve_node_shims(session, shim_name),
-        Some("npm") => resolve_node_shims(session, shim_name),
+        Some("node") | Some("npm") => resolve_node_shims(session, shim_name),
         Some("yarn") => resolve_yarn_shims(session, shim_name),
         Some("npx") => resolve_npx_shims(session, shim_name),
         Some(_) => resolve_3p_shims(session, shim_name),
@@ -151,22 +152,53 @@ fn resolve_shim(session: &mut Session, shim_name: &OsStr) -> Fallible<ShimKind> 
     }
 }
 
-fn resolve_node_shims(session: &mut Session, shim_name: &OsStr) -> Fallible<ShimKind> {
-    let version = session.current_node()?;
-    version.map_or(Ok(ShimKind::System), |v| {
-        let mut bin_path = path::node_version_bin_dir(&v.to_string()).unknown()?;
+// figure out which version of node is installed or configured,
+// or which version will be installed if it's not available locally
+fn resolve_node_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
+    if let Some(project) = session.project() {
+        let requirements = &project.manifest().node;
+        let catalog = session.catalog()?;
+        if let Some(available) = catalog.node.resolve_local(&requirements) {
+            // node is available locally - this shim will use that version
+            let mut bin_path = path::node_version_bin_dir(&available.to_string()).unknown()?;
+            bin_path.push(&shim_name);
+            return Ok(ShimKind::Global(bin_path));
+        }
+
+        // not installed, but will install based on the required version
+        return Ok(ShimKind::WillInstall(requirements.clone()));
+    }
+
+    if let Some(global_version) = session.global_node()? {
+        let mut bin_path = path::node_version_bin_dir(&global_version.to_string()).unknown()?;
         bin_path.push(&shim_name);
-        Ok(ShimKind::Global(bin_path))
-    })
+        return Ok(ShimKind::Global(bin_path));
+    }
+    Ok(ShimKind::System)
 }
 
-fn resolve_yarn_shims(session: &mut Session, shim_name: &OsStr) -> Fallible<ShimKind> {
-    let version = session.current_yarn()?;
-    version.map_or(Ok(ShimKind::System), |v| {
-        let mut bin_path = path::yarn_version_bin_dir(&v.to_string()).unknown()?;
+fn resolve_yarn_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
+    if let Some(project) = session.project() {
+        if let Some(requirements) = &project.manifest().yarn {
+            let catalog = session.catalog()?;
+            if let Some(available) = catalog.yarn.resolve_local(&requirements) {
+                // yarn is available locally - this shim will use that version
+                let mut bin_path = path::yarn_version_bin_dir(&available.to_string()).unknown()?;
+                bin_path.push(&shim_name);
+                return Ok(ShimKind::Global(bin_path));
+            }
+
+            // not installed, but will install based on the required version
+            return Ok(ShimKind::WillInstall(requirements.clone()));
+        }
+    }
+
+    if let Some(ref default_version) = session.catalog()?.yarn.default {
+        let mut bin_path = path::yarn_version_bin_dir(&default_version.to_string()).unknown()?;
         bin_path.push(&shim_name);
-        Ok(ShimKind::Global(bin_path))
-    })
+        return Ok(ShimKind::Global(bin_path));
+    }
+    Ok(ShimKind::System)
 }
 
 fn resolve_npx_shims(_session: &mut Session, _shim_name: &OsStr) -> Fallible<ShimKind> {
