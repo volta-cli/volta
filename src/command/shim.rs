@@ -105,24 +105,28 @@ fn list(session: &mut Session, verbose: bool) -> Fallible<bool> {
             files
                 .map(|file| {
                     file.and_then(|f| {
-                        f.path().file_name().map_or(Ok(true), |shim_name| {
+                        f.path().file_name().map_or(Ok(false), |shim_name| {
                             if verbose {
                                 match resolve_shim(session, &shim_name) {
                                     Ok(shim_info) => {
                                         println!("{} -> {}", shim_name.to_string_lossy(), shim_info)
-                                    }
-                                    Err(err) => style::display_error(&err),
+                                    },
+                                    Err(err) => {
+                                        style::display_error(&err);
+                                        return Ok(false);
+                                    },
                                 }
                             } else {
                                 println!("{}", shim_name.to_string_lossy());
                             }
-                            Ok(false)
+                            Ok(true)
                         })
                     })
                 })
                 .collect::<Vec<_>>()
                 .iter()
-                .any(|ref result| result.as_ref().ok() == Some(&true))
+                // return false if anything failed
+                .all(|ref result| result.as_ref().ok() == Some(&true))
         })
 }
 
