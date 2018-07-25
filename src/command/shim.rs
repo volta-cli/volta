@@ -114,7 +114,7 @@ fn list(session: &mut Session, verbose: bool) -> Fallible<bool> {
                                         println!("{} -> {}", shim_name.to_string_lossy(), shim_info)
                                     },
                                     Err(err) => {
-                                        style::display_error(&err);
+                                        style::display_error(style::ErrorContext::Notion, &err);
                                         return Ok(false);
                                     },
                                 }
