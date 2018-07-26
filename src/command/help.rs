@@ -1,7 +1,8 @@
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::Fallible;
 
-use command::{Command, CommandName, Config, Current, Deactivate, Default, Install, Uninstall, Use, Version};
+use command::{Command, CommandName, Config, Current, Deactivate, Default, Install, Shim,
+              Uninstall, Use, Version};
 use {CliParseError, Notion};
 
 #[derive(Debug, Deserialize)]
@@ -63,6 +64,7 @@ Options:
                 Help::Command(CommandName::Version) => Version::USAGE,
                 Help::Command(CommandName::Install) => Install::USAGE,
                 Help::Command(CommandName::Uninstall) => Uninstall::USAGE,
+                Help::Command(CommandName::Shim) => Shim::USAGE,
             }
         );
         session.add_event_end(ActivityKind::Help, 0);

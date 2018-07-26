@@ -31,10 +31,11 @@ pub mod monitor;
 mod package_info;
 pub mod path;
 mod plugin;
-pub mod shell;
 pub mod project;
 pub mod serial;
 pub mod session;
+pub mod shell;
+pub mod shim;
 pub mod style;
 pub mod tool;
 

@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use semver::Version;
 
-use notion_fail::{NotionError, NotionFail, Fallible, ResultExt};
+use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
 
 use env;
 
@@ -15,7 +15,7 @@ pub(crate) use self::bash::Bash;
 
 pub enum Postscript {
     Path(String),
-    ToolVersion { tool: String, version: Version }
+    ToolVersion { tool: String, version: Version },
 }
 
 /// Thrown when the postscript file was not specified in the Notion environment.
@@ -39,7 +39,8 @@ pub trait Shell {
 
     fn save_postscript(&self, postscript: &Postscript) -> Fallible<()> {
         let mut file = File::create(self.postscript_path()).unknown()?;
-        file.write_all(self.compile_postscript(postscript).as_bytes()).unknown()?;
+        file.write_all(self.compile_postscript(postscript).as_bytes())
+            .unknown()?;
         Ok(())
     }
 }
@@ -64,7 +65,9 @@ impl CurrentShell {
     pub fn detect() -> Fallible<Self> {
         match env::shell_name() {
             Some(name) => Ok(name.parse()?),
-            None => { throw!(UnspecifiedShellError); }
+            None => {
+                throw!(UnspecifiedShellError);
+            }
         }
     }
 }
@@ -81,12 +84,11 @@ impl Shell for CurrentShell {
     }
 }
 
-
 /// Thrown when the shell name specified in the Notion environment is not supported.
 #[derive(Fail, Debug)]
 #[fail(display = "Unrecognized command shell name: {}", name)]
 struct UnrecognizedShellError {
-    name: String
+    name: String,
 }
 
 impl NotionFail for UnrecognizedShellError {
@@ -106,7 +108,11 @@ impl FromStr for CurrentShell {
 
         Ok(CurrentShell(match src {
             "bash" => Box::new(Bash { postscript_path }),
-            _ => { throw!(UnrecognizedShellError { name: src.to_string() }); }
+            _ => {
+                throw!(UnrecognizedShellError {
+                    name: src.to_string()
+                });
+            }
         }))
     }
 }

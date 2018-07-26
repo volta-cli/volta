@@ -1,6 +1,6 @@
 use notion_core::env;
-use notion_core::shell::{CurrentShell, Postscript, Shell};
 use notion_core::session::{ActivityKind, Session};
+use notion_core::shell::{CurrentShell, Postscript, Shell};
 use notion_fail::Fallible;
 
 use Notion;
@@ -47,7 +47,7 @@ Options:
 
                 let postscript = match env::path_for_system_node().into_string() {
                     Ok(path) => Postscript::Path(path),
-                    Err(_) => unimplemented!()
+                    Err(_) => unimplemented!(),
                 };
 
                 shell.save_postscript(&postscript)?;

@@ -2,6 +2,8 @@
 //! in a standard Notion layout in Windows operating systems.
 
 use std::path::PathBuf;
+use std::os::windows;
+use std::io;
 
 use winfolder;
 
@@ -153,4 +155,8 @@ pub fn user_config_file() -> Fallible<PathBuf> {
 
 pub fn user_catalog_file() -> Fallible<PathBuf> {
     Ok(local_data_root()?.join("catalog.toml"))
+}
+
+pub fn create_file_symlink(src: PathBuf, dst: PathBuf) -> Result<(), io::Error> {
+    windows::fs::symlink_file(src, dst)
 }

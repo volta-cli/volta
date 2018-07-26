@@ -1,8 +1,9 @@
 //! Provides functions for determining the paths of files and directories
 //! in a standard Notion layout in Unix-based operating systems.
 
-use std::env;
+use std::{env, io};
 use std::path::PathBuf;
+use std::os::unix;
 
 use notion_fail::{Fallible, NotionFail};
 
@@ -156,4 +157,8 @@ pub fn user_config_file() -> Fallible<PathBuf> {
 
 pub fn user_catalog_file() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("catalog.toml"))
+}
+
+pub fn create_file_symlink(src: PathBuf, dst: PathBuf) -> Result<(), io::Error> {
+    unix::fs::symlink(src, dst)
 }
