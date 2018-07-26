@@ -1,12 +1,12 @@
 use std::ffi::OsStr;
 use std::fmt::{self, Display, Formatter};
+use std::fs;
 use std::path::PathBuf;
-use std::{fs, io};
 
 use console::style;
 use notion_core::project::Project;
 use notion_core::session::{ActivityKind, Session};
-use notion_core::{path, shim, style};
+use notion_core::{path, shim};
 use notion_fail::{Fallible, ResultExt};
 use semver::{Version, VersionReq};
 
@@ -109,38 +109,25 @@ Options:
 }
 
 fn list(session: &Session, verbose: bool) -> Fallible<bool> {
-    path::shim_dir()
-        .and_then(|shim_dir| fs::read_dir(shim_dir).unknown())
-        .map(|files| {
-            files.map(|file| {
-                file.and_then(|f| print_file_info(f, session, verbose))
-            })
-            .collect::<Vec<_>>()
-            .iter()
-            // return false if anything failed
-            .all(|ref result| result.as_ref().ok() == Some(&true))
-        })
+    let shim_dir = path::shim_dir()?;
+    let files = fs::read_dir(shim_dir).unknown()?;
+
+    for file in files {
+        let file = file.unknown()?;
+        print_file_info(file, session, verbose)?;
+    }
+    Ok(true)
 }
 
-fn print_file_info(
-    file: fs::DirEntry,
-    session: &Session,
-    verbose: bool,
-) -> Result<bool, io::Error> {
-    file.path().file_name().map_or(Ok(false), |shim_name| {
-        if verbose {
-            match resolve_shim(session, &shim_name) {
-                Ok(shim_info) => println!("{} -> {}", shim_name.to_string_lossy(), shim_info),
-                Err(err) => {
-                    style::display_error(style::ErrorContext::Notion, &err);
-                    return Ok(false);
-                }
-            }
-        } else {
-            println!("{}", shim_name.to_string_lossy());
-        }
-        Ok(true)
-    })
+fn print_file_info(file: fs::DirEntry, session: &Session, verbose: bool) -> Fallible<()> {
+    let shim_name = file.file_name();
+    if verbose {
+        let shim_info = resolve_shim(session, &shim_name)?;
+        println!("{} -> {}", shim_name.to_string_lossy(), shim_info);
+    } else {
+        println!("{}", shim_name.to_string_lossy());
+    }
+    Ok(())
 }
 
 fn create(_session: &Session, shim_name: String, _verbose: bool) -> Fallible<bool> {
@@ -163,7 +150,7 @@ fn resolve_shim(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
     }
 }
 
-fn node_is_available(project: &Project, session: &Session) -> Fallible<Option<Version>> {
+fn available_node_version(project: &Project, session: &Session) -> Fallible<Option<Version>> {
     let requirements = &project.manifest().node;
     let catalog = session.catalog()?;
     Ok(catalog.node.resolve_local(&requirements))
@@ -174,7 +161,7 @@ fn node_is_available(project: &Project, session: &Session) -> Fallible<Option<Ve
 fn resolve_node_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
     if let Some(project) = session.project() {
         let requirements = &project.manifest().node;
-        if let Some(available) = node_is_available(&project, &session)? {
+        if let Some(available) = available_node_version(&project, &session)? {
             // node is available locally - this shim will use that version
             let mut bin_path = path::node_version_bin_dir(&available.to_string()).unknown()?;
             bin_path.push(&shim_name);
@@ -231,7 +218,7 @@ fn resolve_3p_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> 
         }
 
         // if node is installed, use the bin there
-        if let Some(available) = node_is_available(&project, &session)? {
+        if let Some(available) = available_node_version(&project, &session)? {
             // node is available locally - this shim will use that version
             let mut bin_path = path::node_version_3p_bin_dir(&available.to_string())?;
             bin_path.push(&shim_name);
