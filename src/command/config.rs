@@ -11,6 +11,7 @@ use Notion;
 use command::{Command, CommandName, Help};
 
 use CliParseError;
+use CommandUnimplementedError;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
@@ -181,10 +182,14 @@ Config commands:
         let result = match self {
             Config::Help => Help::Command(CommandName::Config).run(session),
             Config::Subcommand(Subcommand::Get { key: _ }) => Ok(true),
-            Config::Subcommand(Subcommand::Set { key: _, value: _ }) => unimplemented!(),
-            Config::Subcommand(Subcommand::Delete { key: _ }) => unimplemented!(),
-            Config::Subcommand(Subcommand::List) => unimplemented!(),
-            Config::Subcommand(Subcommand::Edit) => unimplemented!(),
+            Config::Subcommand(Subcommand::Set { key: _, value: _ }) => {
+                throw!(CommandUnimplementedError::new("set"))
+            }
+            Config::Subcommand(Subcommand::Delete { key: _ }) => {
+                throw!(CommandUnimplementedError::new("delete"))
+            }
+            Config::Subcommand(Subcommand::List) => throw!(CommandUnimplementedError::new("list")),
+            Config::Subcommand(Subcommand::Edit) => throw!(CommandUnimplementedError::new("edit")),
         };
         //session.add_event_end(ActivityKind::Version, 0);
         result

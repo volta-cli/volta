@@ -25,7 +25,7 @@ use notion_fail::{FailExt, Fallible, NotionError};
 
 use command::{Command, CommandName, Config, Current, Deactivate, Default, Help, Install, Shim,
               Uninstall, Use, Version};
-use error::{CliParseError, DocoptExt, NotionErrorExt};
+use error::{CliParseError, CommandUnimplementedError, DocoptExt, NotionErrorExt};
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 

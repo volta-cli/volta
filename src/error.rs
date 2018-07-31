@@ -71,3 +71,26 @@ impl NotionErrorExt for NotionError {
         None
     }
 }
+
+#[derive(Fail, Debug)]
+#[fail(display = "command `{}` is not yet implemented", name)]
+pub(crate) struct CommandUnimplementedError {
+    pub(crate) name: String,
+}
+
+impl CommandUnimplementedError {
+    pub(crate) fn new(cmd_name: &str) -> Self {
+        CommandUnimplementedError {
+            name: cmd_name.to_string(),
+        }
+    }
+}
+
+impl NotionFail for CommandUnimplementedError {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        4
+    }
+}

@@ -20,7 +20,6 @@ impl NotionFail for VersionParseError {
         true
     }
     fn exit_code(&self) -> i32 {
-        // TODO
         4
     }
 }
