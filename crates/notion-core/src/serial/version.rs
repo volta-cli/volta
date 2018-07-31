@@ -1,14 +1,38 @@
-use notion_fail::{Fallible, ResultExt};
-use semver::VersionReq;
+use notion_fail::{Fallible, NotionFail, ResultExt};
+use semver::{ReqParseError, VersionReq};
+
+#[derive(Fail, Debug)]
+#[fail(display = "{}", error)]
+pub(crate) struct VersionParseError {
+    pub(crate) error: ReqParseError,
+}
+
+impl VersionParseError {
+    pub(crate) fn from_req_parse_error(error: &ReqParseError) -> Self {
+        VersionParseError {
+            error: error.clone(),
+        }
+    }
+}
+
+impl NotionFail for VersionParseError {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        // TODO
+        4
+    }
+}
 
 pub fn parse_requirements(src: &str) -> Fallible<VersionReq> {
     let src = src.trim();
     Ok(
         if src.len() > 0 && src.chars().next().unwrap().is_digit(10) {
             let defaulted = format!("={}", src);
-            VersionReq::parse(&defaulted).unknown()?
+            VersionReq::parse(&defaulted).with_context(VersionParseError::from_req_parse_error)?
         } else {
-            VersionReq::parse(src).unknown()?
+            VersionReq::parse(src).with_context(VersionParseError::from_req_parse_error)?
         },
     )
 }
