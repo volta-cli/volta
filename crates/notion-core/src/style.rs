@@ -14,7 +14,7 @@ pub enum ErrorContext {
     Notion,
 
     /// An error reported from a shim.
-    Shim
+    Shim,
 }
 
 /// Displays an error to stderr.

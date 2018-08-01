@@ -2,12 +2,36 @@
 
 use std::collections::HashMap;
 use std::fs::File;
+use std::io;
 use std::path::Path;
 
-use notion_fail::{Fallible, ResultExt};
+use notion_fail::{Fallible, NotionFail, ResultExt};
 use serde_json;
 
 use serial;
+
+#[derive(Fail, Debug)]
+#[fail(display = "Could not read package info: {}", error)]
+pub(crate) struct PackageReadError {
+    pub(crate) error: String,
+}
+
+impl PackageReadError {
+    pub(crate) fn from_io_error(error: &io::Error) -> Self {
+        PackageReadError {
+            error: error.to_string(),
+        }
+    }
+}
+
+impl NotionFail for PackageReadError {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        4
+    }
+}
 
 /// Info about a Node package
 pub struct PackageInfo {
@@ -18,7 +42,8 @@ pub struct PackageInfo {
 impl PackageInfo {
     /// Loads and parses package.json for the project located at the specified path.
     pub fn for_dir(project_dir: &Path) -> Fallible<PackageInfo> {
-        let file = File::open(project_dir.join("package.json")).unknown()?;
+        let file = File::open(project_dir.join("package.json"))
+            .with_context(PackageReadError::from_io_error)?;
         let serial: serial::package::Info = serde_json::de::from_reader(file).unknown()?;
         Ok(serial.into_package_info())
     }
