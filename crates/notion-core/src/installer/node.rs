@@ -5,6 +5,7 @@ use std::string::ToString;
 
 use super::{Install, Installed};
 use catalog::NodeCollection;
+use installer::error::DownloadError;
 use node_archive::{self, Archive};
 use path;
 use style::{progress_bar, Action};
@@ -38,7 +39,7 @@ impl Install for NodeInstaller {
         }
 
         Ok(NodeInstaller {
-            archive: node_archive::fetch(url, &cache_file).unknown()?,
+            archive: node_archive::fetch(url, &cache_file).with_context(DownloadError::from_error)?,
             version: version,
         })
     }

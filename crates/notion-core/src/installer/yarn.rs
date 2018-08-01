@@ -5,6 +5,7 @@ use std::string::ToString;
 
 use super::{Install, Installed};
 use catalog::YarnCollection;
+use installer::error::DownloadError;
 use node_archive::{self, Archive};
 use path;
 use style::{progress_bar, Action};
@@ -39,7 +40,7 @@ impl Install for YarnInstaller {
         }
 
         Ok(YarnInstaller {
-            archive: node_archive::fetch(url, &cache_file).unknown()?,
+            archive: node_archive::fetch(url, &cache_file).with_context(DownloadError::from_error)?,
             version: version,
         })
     }
