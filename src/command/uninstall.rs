@@ -1,9 +1,32 @@
 use notion_core::session::{ActivityKind, Session};
-use notion_fail::{Fallible, ResultExt};
-use semver::Version;
+use notion_fail::{Fallible, NotionFail, ResultExt};
+use semver::{SemVerError, Version};
 
 use Notion;
 use command::{Command, CommandName, Help};
+
+#[derive(Fail, Debug)]
+#[fail(display = "Could not parse version: {}", error)]
+pub(crate) struct VersionParseError {
+    pub(crate) error: SemVerError,
+}
+
+impl VersionParseError {
+    pub(crate) fn from_semver_err(error: &SemVerError) -> Self {
+        VersionParseError {
+            error: error.clone(),
+        }
+    }
+}
+
+impl NotionFail for VersionParseError {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        4
+    }
+}
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
@@ -34,7 +57,8 @@ Options:
     }
 
     fn parse(_: Notion, Args { arg_version }: Args) -> Fallible<Self> {
-        let version = Version::parse(&arg_version).unknown()?;
+        let version =
+            Version::parse(&arg_version).with_context(VersionParseError::from_semver_err)?;
         Ok(Uninstall::Default(version))
     }
 
