@@ -40,7 +40,8 @@ impl Install for YarnInstaller {
         }
 
         Ok(YarnInstaller {
-            archive: node_archive::fetch(url, &cache_file).with_context(DownloadError::from_error)?,
+            archive: node_archive::fetch(url, &cache_file)
+                .with_context(DownloadError::for_version(version.to_string()))?,
             version: version,
         })
     }
