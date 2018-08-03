@@ -1,5 +1,6 @@
 //! Provides types for installing tools into the Notion catalog.
 
+mod error;
 pub mod node;
 pub mod yarn;
 

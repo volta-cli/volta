@@ -214,7 +214,7 @@ impl NotionFail for NoNodeVersionFoundError {
     }
 }
 
-/// Thrown when there is no Node version matching a requested semver specifier.
+/// Thrown when there is no Yarn version matching a requested semver specifier.
 #[derive(Fail, Debug)]
 #[fail(display = "No Yarn version found for {}", matching)]
 struct NoYarnVersionFoundError {
@@ -262,6 +262,30 @@ pub trait Resolve<I: Install> {
     fn resolve_public(&self, matching: &VersionReq) -> Fallible<I>;
 }
 
+/// Thrown when the public registry for Node or Yarn could not be downloaded.
+#[derive(Fail, Debug)]
+#[fail(display = "Could not fetch public registry\n{}", error)]
+pub(crate) struct RegistryFetchError {
+    error: String,
+}
+
+impl RegistryFetchError {
+    pub(crate) fn from_error(error: &reqwest::Error) -> RegistryFetchError {
+        RegistryFetchError {
+            error: error.to_string(),
+        }
+    }
+}
+
+impl NotionFail for RegistryFetchError {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        4
+    }
+}
+
 impl Resolve<NodeInstaller> for NodeCollection {
     fn resolve_public(&self, matching: &VersionReq) -> Fallible<NodeInstaller> {
         let index: Index = match read_cached_opt().unknown()? {
@@ -271,8 +295,8 @@ impl Resolve<NodeInstaller> for NodeCollection {
                     "Fetching public registry: {}",
                     PUBLIC_NODE_VERSION_INDEX
                 ));
-                let mut response: reqwest::Response =
-                    reqwest::get(PUBLIC_NODE_VERSION_INDEX).unknown()?;
+                let mut response: reqwest::Response = reqwest::get(PUBLIC_NODE_VERSION_INDEX)
+                    .with_context(RegistryFetchError::from_error)?;
                 let response_text: String = response.text().unknown()?;
                 let cached: NamedTempFile = NamedTempFile::new().unknown()?;
 
@@ -334,7 +358,7 @@ impl Resolve<YarnInstaller> for YarnCollection {
             PUBLIC_YARN_VERSION_INDEX
         ));
         let releases: Vec<String> = reqwest::get(PUBLIC_YARN_VERSION_INDEX)
-            .unknown()?
+            .with_context(RegistryFetchError::from_error)?
             .json()
             .unknown()?;
         spinner.finish_and_clear();

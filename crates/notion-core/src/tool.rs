@@ -50,6 +50,25 @@ impl NotionFail for BinaryExecError {
     }
 }
 
+#[derive(Fail, Debug)]
+#[fail(display = "this tool is not yet implemented")]
+pub(crate) struct ToolUnimplementedError;
+
+impl ToolUnimplementedError {
+    pub(crate) fn new() -> Self {
+        ToolUnimplementedError {}
+    }
+}
+
+impl NotionFail for ToolUnimplementedError {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        4
+    }
+}
+
 /// Represents a command-line tool that Notion shims delegate to.
 pub trait Tool: Sized {
     fn launch() -> ! {
@@ -124,7 +143,7 @@ pub struct Yarn(Command);
 #[cfg(windows)]
 impl Tool for Script {
     fn new(session: &mut Session) -> Fallible<Self> {
-        unimplemented!()
+        throw!(ToolUnimplementedError::new())
     }
 
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
@@ -157,7 +176,7 @@ fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
 #[cfg(unix)]
 impl Tool for Script {
     fn new(_session: &mut Session) -> Fallible<Self> {
-        unimplemented!()
+        throw!(ToolUnimplementedError::new())
     }
 
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
@@ -167,8 +186,6 @@ impl Tool for Script {
     fn command(self) -> Command {
         self.0
     }
-
-
 }
 
 impl Tool for Binary {
@@ -242,7 +259,7 @@ fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
 #[derive(Fail, Debug)]
 #[fail(display = "No {} version selected", tool)]
 struct NoGlobalError {
-    tool: String
+    tool: String,
 }
 
 impl NotionFail for NoGlobalError {
@@ -263,7 +280,9 @@ impl Tool for Node {
         let version = if let Some(version) = session.current_node()? {
             version
         } else {
-            throw!(NoGlobalError { tool: "Node".to_string() });
+            throw!(NoGlobalError {
+                tool: "Node".to_string()
+            });
         };
         let path_var = env::path_for_installed_node(&version.to_string());
         Ok(Self::from_components(&exe, args, &path_var))
@@ -287,7 +306,9 @@ impl Tool for Yarn {
         let version = if let Some(version) = session.current_yarn()? {
             version
         } else {
-            throw!(NoGlobalError { tool: "Yarn".to_string() });
+            throw!(NoGlobalError {
+                tool: "Yarn".to_string()
+            });
         };
         let path_var = env::path_for_installed_node(&version.to_string());
         Ok(Self::from_components(&exe, args, &path_var))

@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use lazycell::LazyCell;
 
 use manifest::Manifest;
-use notion_fail::{Fallible, ResultExt};
+use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
 use package_info::PackageInfo;
 
 fn is_node_root(dir: &Path) -> bool {
@@ -44,6 +44,29 @@ impl LazyDependentBins {
     pub fn get(&self, project: &Project) -> Fallible<&HashMap<String, String>> {
         self.bins
             .try_borrow_with(|| Ok(project.dependent_binaries()?))
+    }
+}
+
+#[derive(Fail, Debug)]
+#[fail(display = "Could not read dependent package info: {}", error)]
+pub(crate) struct DepPackageReadError {
+    pub(crate) error: String,
+}
+
+impl DepPackageReadError {
+    pub(crate) fn from_error(error: &NotionError) -> Self {
+        DepPackageReadError {
+            error: error.to_string(),
+        }
+    }
+}
+
+impl NotionFail for DepPackageReadError {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        4
     }
 }
 
@@ -143,7 +166,8 @@ impl Project {
 
             // use those project paths to get the "bin" info for each project
             for pkg_path in all_dep_paths.iter() {
-                let pkg_info = PackageInfo::for_dir(&pkg_path)?;
+                let pkg_info =
+                    PackageInfo::for_dir(&pkg_path).with_context(DepPackageReadError::from_error)?;
                 let bin_map = pkg_info.bin;
                 for (name, path) in bin_map.iter() {
                     dependent_bins.insert(name.clone(), path.clone());
