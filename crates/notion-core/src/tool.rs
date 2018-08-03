@@ -56,7 +56,7 @@ pub(crate) struct ToolUnimplementedError;
 
 impl ToolUnimplementedError {
     pub(crate) fn new() -> Self {
-        ToolUnimplementedError {}
+        ToolUnimplementedError
     }
 }
 
