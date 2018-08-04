@@ -6,7 +6,6 @@ use lazycell::LazyCell;
 use serde_json;
 
 use event::Event;
-use notion_fail::Fallible;
 
 pub struct Monitor {
     monitor_process: Option<Child>,
@@ -14,7 +13,7 @@ pub struct Monitor {
 
 impl Monitor {
     /// Returns the current monitor.
-    pub fn new(command: Option<String>) -> Monitor {
+    pub fn new(command: &str) -> Monitor {
         Monitor {
             monitor_process: spawn_process(command),
         }
@@ -54,33 +53,31 @@ impl LazyMonitor {
     }
 
     /// Forces creating a monitor and returns an immutable reference to it.
-    pub fn get(&self, command: Option<String>) -> Fallible<&Monitor> {
-        self.monitor.try_borrow_with(|| Ok(Monitor::new(command)))
+    pub fn get(&self, command: &str) -> &Monitor {
+        self.monitor.borrow_with(|| Monitor::new(command))
     }
 
     /// Forces creating a monitor and returns a mutable reference to it.
-    pub fn get_mut(&mut self, command: Option<String>) -> Fallible<&mut Monitor> {
+    pub fn get_mut(&mut self, command: &str) -> &mut Monitor {
         self.monitor
-            .try_borrow_mut_with(|| Ok(Monitor::new(command)))
+            .borrow_mut_with(|| Monitor::new(command))
     }
 }
 
-fn spawn_process(command: Option<String>) -> Option<Child> {
-    command.as_ref().and_then(|full_cmd| {
-        return full_cmd.split(" ").take(1).next().and_then(|executable| {
-            let child = Command::new(executable)
-                        .args(full_cmd.split(" ").skip(1))
-                        .stdin(Stdio::piped()) // JSON data is sent over stdin
-                        // .stdout(Stdio::piped()) // let the plugin write to stdout for now
-                        .spawn();
-            return match child {
-                Err(err) => {
-                    eprintln!("Error running plugin command: '{}'", full_cmd);
-                    eprintln!("{}", err);
-                    None
-                }
-                Ok(c) => Some(c),
-            };
-        });
+fn spawn_process(command: &str) -> Option<Child> {
+    command.split(" ").take(1).next().and_then(|executable| {
+        let child = Command::new(executable)
+                    .args(command.split(" ").skip(1))
+                    .stdin(Stdio::piped()) // JSON data is sent over stdin
+                    // .stdout(Stdio::piped()) // let the plugin write to stdout for now
+                    .spawn();
+        match child {
+            Err(err) => {
+                eprintln!("Error running plugin command: '{}'", command);
+                eprintln!("{}", err);
+                None
+            }
+            Ok(c) => Some(c),
+        }
     })
 }

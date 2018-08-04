@@ -12,6 +12,25 @@ use notion_fail::Fallible;
 pub struct Config {
     pub node: Option<ToolConfig<NodeDistro>>,
     pub yarn: Option<ToolConfig<YarnDistro>>,
+    pub events: Option<EventsConfig>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename = "events")]
+pub struct EventsConfig {
+    pub publish: Option<Plugin>,
+}
+
+impl EventsConfig {
+    pub fn into_events_config(self) -> Fallible<config::EventsConfig> {
+        Ok(config::EventsConfig {
+            publish: if let Some(p) = self.publish {
+                Some(p.into_publish()?)
+            } else {
+                None
+            }
+        })
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -36,6 +55,11 @@ impl Config {
             },
             yarn: if let Some(y) = self.yarn {
                 Some(y.into_tool_config()?)
+            } else {
+                None
+            },
+            events: if let Some(e) = self.events {
+                Some(e.into_events_config()?)
             } else {
                 None
             },

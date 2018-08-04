@@ -8,6 +8,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use monitor::LazyMonitor;
 use notion_fail::{Fallible, NotionError};
 use session::ActivityKind;
+use plugin::Publish;
 
 // the Event data that is serialized to JSON and sent the plugin
 #[derive(Serialize)]
@@ -121,11 +122,15 @@ impl EventLog {
         self.events.push(event);
     }
 
-    // send the events from this session to the monitor
-    pub fn send_events(&mut self, command: Option<String>) {
-        self.monitor
-            .get_mut(command)
-            .unwrap()
-            .send_events(&self.events);
+    pub fn publish(&mut self, plugin: Option<&Publish>) {
+        match plugin {
+            Some(&Publish::Url(_)) => { unimplemented!() }
+            Some(&Publish::Bin(ref command)) => {
+                self.monitor
+                    .get_mut(command)
+                    .send_events(&self.events);
+            }
+            None => { }
+        }
     }
 }
