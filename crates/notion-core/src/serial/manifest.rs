@@ -19,11 +19,11 @@ pub struct Manifest {
     #[serde(rename = "devDependencies")]
     pub dev_dependencies: HashMap<String, String>,
 
-    pub notion: Option<NotionManifest>,
+    pub toolchain: Option<ToolchainManifest>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct NotionManifest {
+pub struct ToolchainManifest {
     pub node: String,
     pub yarn: Option<String>,
     // FIXME: this should be in the notion config file
@@ -32,7 +32,7 @@ pub struct NotionManifest {
 
 impl Manifest {
     pub fn into_manifest(self) -> Fallible<Option<manifest::Manifest>> {
-        if let Some(notion) = self.notion {
+        if let Some(notion) = self.toolchain {
             return Ok(Some(manifest::Manifest {
                 node: parse_requirements(&notion.node)?,
                 yarn: if let Some(yarn) = notion.yarn {

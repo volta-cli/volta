@@ -7,7 +7,7 @@
   "devDependencies": {
     "ember-cli": "2.18.1"
   },
-  "notion": {
+  "toolchain": {
     "node": "6.11.1",
     "yarn": "1.7.0"
   }
