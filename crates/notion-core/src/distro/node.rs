@@ -22,14 +22,14 @@ pub struct NodeDistro {
 }
 
 impl Distro for NodeDistro {
-    /// Provision an `Installer` from the public Node distributor (`https://nodejs.org`).
+    /// Provision a Node distribution from the public Node distributor (`https://nodejs.org`).
     fn public(version: Version) -> Fallible<Self> {
         let archive_file = path::node_archive_file(&version.to_string());
         let url = format!("{}v{}/{}", PUBLIC_NODE_SERVER_ROOT, version, &archive_file);
         NodeDistro::remote(version, &url)
     }
 
-    /// Provision an `Installer` from a remote distributor.
+    /// Provision a Node distribution from a remote distributor.
     fn remote(version: Version, url: &str) -> Fallible<Self> {
         let archive_file = path::node_archive_file(&version.to_string());
         let cache_file = path::node_cache_dir()?.join(&archive_file);
@@ -45,7 +45,7 @@ impl Distro for NodeDistro {
         })
     }
 
-    /// Provision an `Installer` from the filesystem.
+    /// Provision a Node distribution from the filesystem.
     fn cached(version: Version, file: File) -> Fallible<Self> {
         Ok(NodeDistro {
             archive: node_archive::load(file).unknown()?,
@@ -53,7 +53,7 @@ impl Distro for NodeDistro {
         })
     }
 
-    /// Produces a reference to this installer's Node version.
+    /// Produces a reference to this distribution's Node version.
     fn version(&self) -> &Version {
         &self.version
     }
