@@ -11,7 +11,7 @@
     "@namespaced/something-else": "^6.3.7",
     "eslint": "~4.8.0"
   },
-  "notion": {
+  "toolchain": {
     "node": "6.11.1",
     "yarn": "1.2"
   }
