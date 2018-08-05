@@ -23,7 +23,7 @@ use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error, ErrorContext};
 use notion_fail::{FailExt, Fallible, NotionError};
 
-use command::{Command, CommandName, Config, Current, Deactivate, Default, Help, Install, Shim,
+use command::{Command, CommandName, Config, Current, Deactivate, Default, Help, Fetch, Shim,
               Uninstall, Use, Version};
 use error::{CliParseError, CommandUnimplementedError, DocoptExt, NotionErrorExt};
 
@@ -58,8 +58,8 @@ Options:
     -v, --verbose  Use verbose output
 
 Some common notion commands are:
-    install        Install a toolchain to the local machine
-    uninstall      Uninstall a toolchain from the local machine
+    fetch          Fetch a toolchain to the local machine
+    uninstall      Uninstall a tool from the local machine
     use            Activate a particular toolchain version
     config         Get or set configuration values
     current        Display the currently activated toolchain version
@@ -172,7 +172,7 @@ See 'notion help <command>' for more information on a specific command.
 
     fn run(self, session: &mut Session) -> Fallible<bool> {
         match self.command {
-            CommandName::Install => Install::go(self, session),
+            CommandName::Fetch => Fetch::go(self, session),
             CommandName::Uninstall => Uninstall::go(self, session),
             CommandName::Use => Use::go(self, session),
             CommandName::Config => Config::go(self, session),

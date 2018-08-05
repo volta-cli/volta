@@ -3,7 +3,7 @@ mod current;
 mod deactivate;
 mod default;
 mod help;
-mod install;
+mod fetch;
 mod shim;
 mod uninstall;
 mod use_;
@@ -14,7 +14,7 @@ pub(crate) use self::current::Current;
 pub(crate) use self::deactivate::Deactivate;
 pub(crate) use self::default::Default;
 pub(crate) use self::help::Help;
-pub(crate) use self::install::Install;
+pub(crate) use self::fetch::Fetch;
 pub(crate) use self::shim::Shim;
 pub(crate) use self::uninstall::Uninstall;
 pub(crate) use self::use_::Use;
@@ -34,7 +34,7 @@ use std::str::FromStr;
 /// Represents the set of Notion command names.
 #[derive(Debug, Deserialize, Clone, Copy)]
 pub(crate) enum CommandName {
-    Install,
+    Fetch,
     Uninstall,
     Use,
     Config,
@@ -52,7 +52,7 @@ impl Display for CommandName {
             fmt,
             "{}",
             match *self {
-                CommandName::Install => "install",
+                CommandName::Fetch => "fetch",
                 CommandName::Uninstall => "uninstall",
                 CommandName::Use => "use",
                 CommandName::Config => "config",
@@ -72,7 +72,7 @@ impl FromStr for CommandName {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
-            "install" => CommandName::Install,
+            "fetch" => CommandName::Fetch,
             "uninstall" => CommandName::Uninstall,
             "use" => CommandName::Use,
             "config" => CommandName::Config,

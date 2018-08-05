@@ -19,9 +19,9 @@ use tempfile::NamedTempFile;
 use toml;
 
 use config::{Config, ToolConfig};
-use installer::node::NodeInstaller;
-use installer::yarn::YarnInstaller;
-use installer::{Install, Installed};
+use distro::node::NodeDistro;
+use distro::yarn::YarnDistro;
+use distro::{Distro, Fetched};
 use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
 use path::{self, user_catalog_file};
 use semver::{Version, VersionReq};
@@ -60,18 +60,18 @@ impl LazyCatalog {
     }
 }
 
-pub struct Collection<I: Install> {
+pub struct Collection<D: Distro> {
     /// The currently activated Node version, if any.
     pub default: Option<Version>,
 
     // A sorted collection of the available versions in the catalog.
     pub versions: BTreeSet<Version>,
 
-    pub phantom: PhantomData<I>,
+    pub phantom: PhantomData<D>,
 }
 
-pub type NodeCollection = Collection<NodeInstaller>;
-pub type YarnCollection = Collection<YarnInstaller>;
+pub type NodeCollection = Collection<NodeDistro>;
+pub type YarnCollection = Collection<YarnDistro>;
 
 /// The catalog of tool versions available locally.
 pub struct Catalog {
@@ -102,8 +102,8 @@ impl Catalog {
 
     /// Sets the default Node version to one matching the specified semantic versioning requirements.
     pub fn set_default_node(&mut self, matching: &VersionReq, config: &Config) -> Fallible<()> {
-        let installed = self.install_node(matching, config)?;
-        let version = Some(installed.into_version());
+        let fetched = self.fetch_node(matching, config)?;
+        let version = Some(fetched.into_version());
 
         if self.node.default != version {
             self.node.default = version;
@@ -113,17 +113,17 @@ impl Catalog {
         Ok(())
     }
 
-    /// Installs a Node version matching the specified semantic versioning requirements.
-    pub fn install_node(&mut self, matching: &VersionReq, config: &Config) -> Fallible<Installed> {
-        let installer = self.node.resolve_remote(&matching, config.node.as_ref())?;
-        let installed = installer.install(&self.node).unknown()?;
+    /// Fetches a Node version matching the specified semantic versioning requirements.
+    pub fn fetch_node(&mut self, matching: &VersionReq, config: &Config) -> Fallible<Fetched> {
+        let distro = self.node.resolve_remote(&matching, config.node.as_ref())?;
+        let fetched = distro.fetch(&self.node).unknown()?;
 
-        if let &Installed::Now(ref version) = &installed {
+        if let &Fetched::Now(ref version) = &fetched {
             self.node.versions.insert(version.clone());
             self.save()?;
         }
 
-        Ok(installed)
+        Ok(fetched)
     }
 
     /// Uninstalls a specific Node version from the local catalog.
@@ -152,8 +152,8 @@ impl Catalog {
     // And potentially share code between node and yarn
     /// Sets the default Yarn version to one matching the specified semantic versioning requirements.
     pub fn set_default_yarn(&mut self, matching: &VersionReq, config: &Config) -> Fallible<()> {
-        let installed = self.install_yarn(matching, config)?;
-        let version = Some(installed.into_version());
+        let fetched = self.fetch_yarn(matching, config)?;
+        let version = Some(fetched.into_version());
 
         if self.yarn.default != version {
             self.yarn.default = version;
@@ -163,17 +163,17 @@ impl Catalog {
         Ok(())
     }
 
-    /// Installs a Yarn version matching the specified semantic versioning requirements.
-    pub fn install_yarn(&mut self, matching: &VersionReq, config: &Config) -> Fallible<Installed> {
-        let installer = self.yarn.resolve_remote(&matching, config.yarn.as_ref())?;
-        let installed = installer.install(&self.yarn).unknown()?;
+    /// Fetches a Yarn version matching the specified semantic versioning requirements.
+    pub fn fetch_yarn(&mut self, matching: &VersionReq, config: &Config) -> Fallible<Fetched> {
+        let distro = self.yarn.resolve_remote(&matching, config.yarn.as_ref())?;
+        let fetched = distro.fetch(&self.yarn).unknown()?;
 
-        if let &Installed::Now(ref version) = &installed {
+        if let &Fetched::Now(ref version) = &fetched {
             self.yarn.versions.insert(version.clone());
             self.save()?;
         }
 
-        Ok(installed)
+        Ok(fetched)
     }
 
     /// Uninstalls a specific Yarn version from the local catalog.
@@ -229,7 +229,7 @@ impl NotionFail for NoYarnVersionFoundError {
     }
 }
 
-impl<I: Install> Collection<I> {
+impl<D: Distro> Collection<D> {
     /// Tests whether this Collection contains the specified Tool version.
     pub fn contains(&self, version: &Version) -> bool {
         self.versions.contains(version)
@@ -246,9 +246,9 @@ impl<I: Install> Collection<I> {
     }
 }
 
-pub trait Resolve<I: Install> {
+pub trait Resolve<D: Distro> {
     /// Resolves the specified semantic versioning requirements from a remote distributor.
-    fn resolve_remote(&self, matching: &VersionReq, config: Option<&ToolConfig<I>>) -> Fallible<I> {
+    fn resolve_remote(&self, matching: &VersionReq, config: Option<&ToolConfig<D>>) -> Fallible<D> {
         match config {
             Some(ToolConfig {
                 resolve: Some(ref plugin),
@@ -259,7 +259,7 @@ pub trait Resolve<I: Install> {
     }
 
     /// Resolves the specified semantic versioning requirements from the public distributor (e.g. `https://nodejs.org`).
-    fn resolve_public(&self, matching: &VersionReq) -> Fallible<I>;
+    fn resolve_public(&self, matching: &VersionReq) -> Fallible<D>;
 }
 
 /// Thrown when the public registry for Node or Yarn could not be downloaded.
@@ -286,8 +286,8 @@ impl NotionFail for RegistryFetchError {
     }
 }
 
-impl Resolve<NodeInstaller> for NodeCollection {
-    fn resolve_public(&self, matching: &VersionReq) -> Fallible<NodeInstaller> {
+impl Resolve<NodeDistro> for NodeCollection {
+    fn resolve_public(&self, matching: &VersionReq) -> Fallible<NodeDistro> {
         let index: Index = match read_cached_opt().unknown()? {
             Some(serial) => serial,
             None => {
@@ -341,7 +341,7 @@ impl Resolve<NodeInstaller> for NodeCollection {
             .next()
             .map(|(k, _)| k.clone());
         if let Some(version) = version {
-            NodeInstaller::public(version)
+            NodeDistro::public(version)
         } else {
             throw!(NoNodeVersionFoundError {
                 matching: matching.clone(),
@@ -350,9 +350,9 @@ impl Resolve<NodeInstaller> for NodeCollection {
     }
 }
 
-impl Resolve<YarnInstaller> for YarnCollection {
+impl Resolve<YarnDistro> for YarnCollection {
     /// Resolves the specified semantic versioning requirements from the public distributor.
-    fn resolve_public(&self, matching: &VersionReq) -> Fallible<YarnInstaller> {
+    fn resolve_public(&self, matching: &VersionReq) -> Fallible<YarnDistro> {
         let spinner = progress_spinner(&format!(
             "Fetching public registry: {}",
             PUBLIC_YARN_VERSION_INDEX
@@ -369,7 +369,7 @@ impl Resolve<YarnInstaller> for YarnCollection {
 
         if let Some(matching_version) = matching_version {
             let version = Version::parse(&matching_version).unwrap();
-            YarnInstaller::public(version)
+            YarnDistro::public(version)
         } else {
             throw!(NoYarnVersionFoundError {
                 matching: matching.clone(),

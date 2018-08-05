@@ -68,7 +68,7 @@ Options:
             }
             Use::Global(requirements) => {
                 let shell = CurrentShell::detect()?;
-                let version = session.install_node(&requirements)?.into_version();
+                let version = session.fetch_node(&requirements)?.into_version();
                 let postscript = Postscript::ToolVersion {
                     tool: "node".to_string(),
                     version,
