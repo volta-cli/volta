@@ -6,9 +6,9 @@ use std::str::FromStr;
 use lazycell::LazyCell;
 use toml;
 
-use installer::Install;
-use installer::node::NodeInstaller;
-use installer::yarn::YarnInstaller;
+use distro::Distro;
+use distro::node::NodeDistro;
+use distro::yarn::YarnDistro;
 use notion_fail::{Fallible, NotionError, ResultExt};
 use path::user_config_file;
 use plugin;
@@ -37,18 +37,18 @@ impl LazyConfig {
 
 /// Notion configuration settings.
 pub struct Config {
-    pub node: Option<ToolConfig<NodeInstaller>>,
-    pub yarn: Option<ToolConfig<YarnInstaller>>,
+    pub node: Option<ToolConfig<NodeDistro>>,
+    pub yarn: Option<ToolConfig<YarnDistro>>,
 }
 
 /// Notion configuration settings relating to the Node executable.
-pub struct ToolConfig<I: Install> {
+pub struct ToolConfig<D: Distro> {
     /// The plugin for resolving Node versions, if any.
     pub resolve: Option<plugin::ResolvePlugin>,
     /// The plugin for listing the set of Node versions available on the remote server, if any.
     pub ls_remote: Option<plugin::LsRemote>,
 
-    pub phantom: PhantomData<I>,
+    pub phantom: PhantomData<D>,
 }
 
 impl Config {

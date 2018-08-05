@@ -2,16 +2,16 @@ use super::super::config;
 use std::marker::PhantomData;
 
 use super::plugin::Plugin;
-use installer::Install;
-use installer::node::NodeInstaller;
-use installer::yarn::YarnInstaller;
+use distro::Distro;
+use distro::node::NodeDistro;
+use distro::yarn::YarnDistro;
 
 use notion_fail::Fallible;
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
-    pub node: Option<ToolConfig<NodeInstaller>>,
-    pub yarn: Option<ToolConfig<YarnInstaller>>,
+    pub node: Option<ToolConfig<NodeDistro>>,
+    pub yarn: Option<ToolConfig<YarnDistro>>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -43,8 +43,8 @@ impl Config {
     }
 }
 
-impl<I: Install> ToolConfig<I> {
-    pub fn into_tool_config(self) -> Fallible<config::ToolConfig<I>> {
+impl<D: Distro> ToolConfig<D> {
+    pub fn into_tool_config(self) -> Fallible<config::ToolConfig<D>> {
         Ok(config::ToolConfig {
             resolve: if let Some(p) = self.resolve {
                 Some(p.into_resolve()?)

@@ -4,7 +4,7 @@ use std::ffi::OsString;
 use std::io::Read;
 use std::process::{Command, Stdio};
 
-use installer::Install;
+use distro::Distro;
 use serial;
 
 use cmdline_words_parser::StrExt;
@@ -32,7 +32,7 @@ pub struct InvalidCommandError {
 impl ResolvePlugin {
     /// Performs resolution of a Tool version based on the given semantic
     /// versioning requirements.
-    pub fn resolve<I: Install>(&self, _matching: &VersionReq) -> Fallible<I> {
+    pub fn resolve<D: Distro>(&self, _matching: &VersionReq) -> Fallible<D> {
         match self {
             &ResolvePlugin::Url(_) => unimplemented!(),
 
@@ -64,7 +64,7 @@ impl ResolvePlugin {
                     .unknown()?;
                 let response = ResolveResponse::from_reader(child.stdout.unwrap())?;
                 match response {
-                    ResolveResponse::Url { version, url } => I::remote(version, &url),
+                    ResolveResponse::Url { version, url } => D::remote(version, &url),
                     ResolveResponse::Stream { version: _version } => {
                         unimplemented!("bin plugin produced a stream")
                     }

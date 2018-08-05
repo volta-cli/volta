@@ -25,7 +25,7 @@ pub mod catalog;
 pub mod config;
 pub mod env;
 mod event;
-mod installer;
+mod distro;
 pub mod manifest;
 pub mod monitor;
 mod package_info;

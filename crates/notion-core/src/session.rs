@@ -6,7 +6,7 @@ use std::env::{self, VarError};
 
 use catalog::{Catalog, LazyCatalog};
 use config::{Config, LazyConfig};
-use installer::Installed;
+use distro::Fetched;
 use project::Project;
 use std::fmt::{self, Display, Formatter};
 use std::process::exit;
@@ -17,7 +17,7 @@ use semver::{Version, VersionReq};
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
 pub enum ActivityKind {
-    Install,
+    Fetch,
     Uninstall,
     Current,
     Deactivate,
@@ -36,7 +36,7 @@ pub enum ActivityKind {
 impl Display for ActivityKind {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         let s = match self {
-            &ActivityKind::Install => "install",
+            &ActivityKind::Fetch => "fetch",
             &ActivityKind::Uninstall => "uninstall",
             &ActivityKind::Current => "current",
             &ActivityKind::Deactivate => "deactivate",
@@ -116,9 +116,9 @@ impl Session {
             }
 
             let config = self.config.get()?;
-            let installed = catalog.install_node(&requirements, config)?;
+            let fetched = catalog.fetch_node(&requirements, config)?;
 
-            return Ok(Some(installed.into_version()));
+            return Ok(Some(fetched.into_version()));
         }
 
         self.global_node()
@@ -132,12 +132,12 @@ impl Session {
         }
     }
 
-    /// Installs a version of Node matching the specified semantic verisoning
+    /// Fetches a version of Node matching the specified semantic verisoning
     /// requirements.
-    pub fn install_node(&mut self, matching: &VersionReq) -> Fallible<Installed> {
+    pub fn fetch_node(&mut self, matching: &VersionReq) -> Fallible<Fetched> {
         let catalog = self.catalog.get_mut()?;
         let config = self.config.get()?;
-        catalog.install_node(matching, config)
+        catalog.fetch_node(matching, config)
     }
 
     /// Sets the default Node version to one matching the specified semantic versioning
@@ -164,12 +164,20 @@ impl Session {
             }
 
             let config = self.config.get()?;
-            let installed = catalog.install_yarn(&requirements, config)?;
+            let fetched = catalog.fetch_yarn(&requirements, config)?;
 
-            return Ok(Some(installed.into_version()));
+            return Ok(Some(fetched.into_version()));
         }
 
         Ok(self.catalog()?.yarn.default.clone())
+    }
+
+    /// Fetches a version of Node matching the specified semantic verisoning
+    /// requirements.
+    pub fn fetch_yarn(&mut self, matching: &VersionReq) -> Fallible<Fetched> {
+        let catalog = self.catalog.get_mut()?;
+        let config = self.config.get()?;
+        catalog.fetch_yarn(matching, config)
     }
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {

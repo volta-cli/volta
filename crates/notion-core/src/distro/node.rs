@@ -3,9 +3,9 @@
 use std::fs::{rename, File};
 use std::string::ToString;
 
-use super::{Install, Installed};
+use super::{Distro, Fetched};
 use catalog::NodeCollection;
-use installer::error::DownloadError;
+use distro::error::DownloadError;
 use node_archive::{self, Archive};
 use path;
 use style::{progress_bar, Action};
@@ -15,54 +15,54 @@ use semver::Version;
 
 const PUBLIC_NODE_SERVER_ROOT: &'static str = "https://nodejs.org/dist/";
 
-/// A provisioned Node installer.
-pub struct NodeInstaller {
+/// A provisioned Node distribution.
+pub struct NodeDistro {
     archive: Box<Archive>,
     version: Version,
 }
 
-impl Install for NodeInstaller {
-    /// Provision an `Installer` from the public Node distributor (`https://nodejs.org`).
+impl Distro for NodeDistro {
+    /// Provision a Node distribution from the public Node distributor (`https://nodejs.org`).
     fn public(version: Version) -> Fallible<Self> {
         let archive_file = path::node_archive_file(&version.to_string());
         let url = format!("{}v{}/{}", PUBLIC_NODE_SERVER_ROOT, version, &archive_file);
-        NodeInstaller::remote(version, &url)
+        NodeDistro::remote(version, &url)
     }
 
-    /// Provision an `Installer` from a remote distributor.
+    /// Provision a Node distribution from a remote distributor.
     fn remote(version: Version, url: &str) -> Fallible<Self> {
         let archive_file = path::node_archive_file(&version.to_string());
         let cache_file = path::node_cache_dir()?.join(&archive_file);
 
         if cache_file.is_file() {
-            return NodeInstaller::cached(version, File::open(cache_file).unknown()?);
+            return NodeDistro::cached(version, File::open(cache_file).unknown()?);
         }
 
-        Ok(NodeInstaller {
+        Ok(NodeDistro {
             archive: node_archive::fetch(url, &cache_file)
                 .with_context(DownloadError::for_version(version.to_string()))?,
             version: version,
         })
     }
 
-    /// Provision an `Installer` from the filesystem.
+    /// Provision a Node distribution from the filesystem.
     fn cached(version: Version, file: File) -> Fallible<Self> {
-        Ok(NodeInstaller {
+        Ok(NodeDistro {
             archive: node_archive::load(file).unknown()?,
             version: version,
         })
     }
 
-    /// Produces a reference to this installer's Node version.
+    /// Produces a reference to this distribution's Node version.
     fn version(&self) -> &Version {
         &self.version
     }
 
-    /// Installs this version of Node. (It is left to the responsibility of the `NodeCollection`
-    /// to update its state after installation succeeds.)
-    fn install(self, collection: &NodeCollection) -> Fallible<Installed> {
+    /// Fetches this version of Node. (It is left to the responsibility of the `NodeCollection`
+    /// to update its state after fetching succeeds.)
+    fn fetch(self, collection: &NodeCollection) -> Fallible<Fetched> {
         if collection.contains(&self.version) {
-            return Ok(Installed::Already(self.version));
+            return Ok(Fetched::Already(self.version));
         }
 
         let dest = path::node_versions_dir()?;
@@ -87,6 +87,6 @@ impl Install for NodeInstaller {
         ).unknown()?;
 
         bar.finish_and_clear();
-        Ok(Installed::Now(self.version))
+        Ok(Fetched::Now(self.version))
     }
 }
