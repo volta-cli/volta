@@ -6,39 +6,36 @@ use semver::VersionReq;
 
 use notion_core::serial::version::parse_requirements;
 use notion_core::session::{ActivityKind, Session};
-use notion_core::shell::{CurrentShell, Postscript, Shell};
 use notion_fail::Fallible;
 
 use Notion;
 use command::{Command, CommandName, Help};
 
-use std::process::exit;
-
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
+    arg_toolchain: String,
     arg_version: String,
-    flag_save: bool,
 }
 
 pub(crate) enum Use {
     Help,
-    Global(VersionReq),
-    Save(VersionReq),
+    Node(VersionReq),
+    Yarn(VersionReq),
+    Other { name: String, version: VersionReq },
 }
 
 impl Command for Use {
     type Args = Args;
 
     const USAGE: &'static str = "
-Select a particular toolchain version
+Select a toolchain for the current project
 
 Usage:
-    notion use [options] <version>
+    notion use <toolchain> <version>
     notion use -h | --help
 
 Options:
     -h, --help     Display this message
-    -s, --save     Select the toolchain for the current Node project
 ";
 
     fn help() -> Self {
@@ -48,16 +45,20 @@ Options:
     fn parse(
         _: Notion,
         Args {
+            arg_toolchain,
             arg_version,
-            flag_save,
         }: Args,
     ) -> Fallible<Self> {
-        let requirements = parse_requirements(&arg_version)?;
-        Ok(if flag_save {
-            Use::Save(requirements)
-        } else {
-            Use::Global(requirements)
-        })
+        match &arg_toolchain[..] {
+            "node" => Ok(Use::Node(parse_requirements(&arg_version)?)),
+            "yarn" => Ok(Use::Yarn(parse_requirements(&arg_version)?)),
+            ref tool => {
+                Ok(Use::Other {
+                    name: tool.to_string(),
+                    version: parse_requirements(&arg_version)?,
+                })
+            }
+        }
     }
 
     fn run(self, session: &mut Session) -> Fallible<bool> {
@@ -66,18 +67,14 @@ Options:
             Use::Help => {
                 Help::Command(CommandName::Use).run(session)?;
             }
-            Use::Global(requirements) => {
-                let shell = CurrentShell::detect()?;
-                let version = session.fetch_node(&requirements)?.into_version();
-                let postscript = Postscript::ToolVersion {
-                    tool: "node".to_string(),
-                    version,
-                };
-                shell.save_postscript(&postscript)?;
+            Use::Node(_requirements) => {
+                unimplemented!()
             }
-            Use::Save(_) => {
-                println!("not yet implemented; in the meantime you can modify your package.json.");
-                exit(1);
+            Use::Yarn(_requirements) => {
+                unimplemented!()
+            }
+            Use::Other { name: _, version: _ } => {
+                unimplemented!()
             }
         };
         session.add_event_end(ActivityKind::Use, 0);

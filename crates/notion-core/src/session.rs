@@ -19,6 +19,7 @@ use semver::{Version, VersionReq};
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
 pub enum ActivityKind {
     Fetch,
+    Install,
     Uninstall,
     Current,
     Deactivate,
@@ -38,6 +39,7 @@ impl Display for ActivityKind {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         let s = match self {
             &ActivityKind::Fetch => "fetch",
+            &ActivityKind::Install => "install",
             &ActivityKind::Uninstall => "uninstall",
             &ActivityKind::Current => "current",
             &ActivityKind::Deactivate => "deactivate",
@@ -179,6 +181,14 @@ impl Session {
         let catalog = self.catalog.get_mut()?;
         let config = self.config.get()?;
         catalog.fetch_yarn(matching, config)
+    }
+
+    /// Sets the default Yarn version to one matching the specified semantic versioning
+    /// requirements.
+    pub fn set_default_yarn(&mut self, matching: &VersionReq) -> Fallible<()> {
+        let catalog = self.catalog.get_mut()?;
+        let config = self.config.get()?;
+        catalog.set_default_yarn(matching, config)
     }
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {

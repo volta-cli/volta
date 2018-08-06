@@ -1,22 +1,20 @@
 mod config;
 mod current;
 mod deactivate;
-mod default;
 mod help;
 mod fetch;
+mod install;
 mod shim;
-mod uninstall;
 mod use_;
 mod version;
 
 pub(crate) use self::config::Config;
 pub(crate) use self::current::Current;
 pub(crate) use self::deactivate::Deactivate;
-pub(crate) use self::default::Default;
 pub(crate) use self::help::Help;
 pub(crate) use self::fetch::Fetch;
 pub(crate) use self::shim::Shim;
-pub(crate) use self::uninstall::Uninstall;
+pub(crate) use self::install::Install;
 pub(crate) use self::use_::Use;
 pub(crate) use self::version::Version;
 
@@ -35,12 +33,11 @@ use std::str::FromStr;
 #[derive(Debug, Deserialize, Clone, Copy)]
 pub(crate) enum CommandName {
     Fetch,
-    Uninstall,
+    Install,
     Use,
     Config,
     Current,
     Deactivate,
-    Default,
     Shim,
     Help,
     Version,
@@ -53,11 +50,10 @@ impl Display for CommandName {
             "{}",
             match *self {
                 CommandName::Fetch => "fetch",
-                CommandName::Uninstall => "uninstall",
+                CommandName::Install => "install",
                 CommandName::Use => "use",
                 CommandName::Config => "config",
                 CommandName::Deactivate => "deactivate",
-                CommandName::Default => "default",
                 CommandName::Current => "current",
                 CommandName::Shim => "shim",
                 CommandName::Help => "help",
@@ -73,12 +69,11 @@ impl FromStr for CommandName {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
             "fetch" => CommandName::Fetch,
-            "uninstall" => CommandName::Uninstall,
+            "install" => CommandName::Install,
             "use" => CommandName::Use,
             "config" => CommandName::Config,
             "current" => CommandName::Current,
             "deactivate" => CommandName::Deactivate,
-            "default" => CommandName::Default,
             "shim" => CommandName::Shim,
             "help" => CommandName::Help,
             "version" => CommandName::Version,
