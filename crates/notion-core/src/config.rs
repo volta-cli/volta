@@ -39,6 +39,7 @@ impl LazyConfig {
 pub struct Config {
     pub node: Option<ToolConfig<NodeDistro>>,
     pub yarn: Option<ToolConfig<YarnDistro>>,
+    pub events: Option<EventsConfig>,
 }
 
 /// Notion configuration settings relating to the Node executable.
@@ -67,4 +68,10 @@ impl FromStr for Config {
         let serial: serial::config::Config = toml::from_str(src).unknown()?;
         Ok(serial.into_config()?)
     }
+}
+
+/// Notion configuration settings related to events.
+pub struct EventsConfig {
+    /// The plugin for publishing events, if any.
+    pub publish: Option<plugin::Publish>,
 }

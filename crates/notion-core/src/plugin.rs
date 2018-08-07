@@ -99,3 +99,12 @@ pub enum LsRemote {
     Url(String),
     Bin(String),
 }
+
+/// A plugin for publishing Notion events.
+pub enum Publish {
+    /// Reports an event by sending a POST request to a URL.
+    Url(String),
+
+    /// Reports an event by forking a process and sending the event by IPC.
+    Bin(String),
+}

@@ -26,8 +26,6 @@ pub struct Manifest {
 pub struct ToolchainManifest {
     pub node: String,
     pub yarn: Option<String>,
-    // FIXME: this should be in the notion config file
-    pub events_plugin: Option<String>,
 }
 
 impl Manifest {
@@ -42,11 +40,6 @@ impl Manifest {
                 },
                 dependencies: self.dependencies,
                 dev_dependencies: self.dev_dependencies,
-                events_plugin: if let Some(plugin) = notion.events_plugin {
-                    Some(plugin)
-                } else {
-                    None
-                },
             }));
         }
 

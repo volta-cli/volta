@@ -7,6 +7,7 @@ use std::env::{self, VarError};
 use catalog::{Catalog, LazyCatalog};
 use config::{Config, LazyConfig};
 use distro::Fetched;
+use plugin::Publish;
 use project::Project;
 use std::fmt::{self, Display, Formatter};
 use std::process::exit;
@@ -190,22 +191,20 @@ impl Session {
         self.event_log.add_event_error(activity_kind, error)
     }
 
-    // send the events from this session to the monitor
-    pub fn send_events(&mut self) {
-        let command = self.events_command();
-        self.event_log.send_events(command)
-    }
-
-    // get the .notion.events_plugin string from package.json
-    pub fn events_command(&self) -> Option<String> {
-        self.project
-            .as_ref()
-            .and_then(|project| project.manifest().events_plugin.as_ref())
-            .map(|plugin| plugin.to_string())
-    }
-
     pub fn exit(mut self, code: i32) -> ! {
-        self.send_events();
+        match publish_plugin(&self.config) {
+            Ok(plugin) => {
+                self.event_log.publish(plugin);
+            }
+            Err(e) => {
+                eprintln!("Warning: invalid config file ({})", e);
+            }
+        }
         exit(code);
     }
+}
+
+fn publish_plugin(config: &LazyConfig) -> Fallible<Option<&Publish>> {
+    let config = config.get()?;
+    Ok(config.events.as_ref().and_then(|events| events.publish.as_ref()))
 }

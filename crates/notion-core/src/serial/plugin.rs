@@ -50,6 +50,10 @@ impl Plugin {
     pub fn into_ls_remote(self) -> Fallible<plugin::LsRemote> {
         self.into_plugin(plugin::LsRemote::Url, plugin::LsRemote::Bin)
     }
+
+    pub fn into_publish(self) -> Fallible<plugin::Publish> {
+        self.into_plugin(plugin::Publish::Url, plugin::Publish::Bin)
+    }
 }
 
 #[derive(Serialize, Deserialize)]
