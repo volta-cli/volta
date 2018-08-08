@@ -216,5 +216,8 @@ impl Session {
 
 fn publish_plugin(config: &LazyConfig) -> Fallible<Option<&Publish>> {
     let config = config.get()?;
-    Ok(config.events.as_ref().and_then(|events| events.publish.as_ref()))
+    Ok(config
+        .events
+        .as_ref()
+        .and_then(|events| events.publish.as_ref()))
 }

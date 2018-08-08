@@ -52,12 +52,10 @@ Options:
         match &arg_toolchain[..] {
             "node" => Ok(Use::Node(parse_requirements(&arg_version)?)),
             "yarn" => Ok(Use::Yarn(parse_requirements(&arg_version)?)),
-            ref tool => {
-                Ok(Use::Other {
-                    name: tool.to_string(),
-                    version: parse_requirements(&arg_version)?,
-                })
-            }
+            ref tool => Ok(Use::Other {
+                name: tool.to_string(),
+                version: parse_requirements(&arg_version)?,
+            }),
         }
     }
 
@@ -67,15 +65,12 @@ Options:
             Use::Help => {
                 Help::Command(CommandName::Use).run(session)?;
             }
-            Use::Node(_requirements) => {
-                unimplemented!()
-            }
-            Use::Yarn(_requirements) => {
-                unimplemented!()
-            }
-            Use::Other { name: _, version: _ } => {
-                unimplemented!()
-            }
+            Use::Node(_requirements) => unimplemented!(),
+            Use::Yarn(_requirements) => unimplemented!(),
+            Use::Other {
+                name: _,
+                version: _,
+            } => unimplemented!(),
         };
         session.add_event_end(ActivityKind::Use, 0);
         Ok(true)

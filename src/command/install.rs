@@ -48,12 +48,10 @@ Options:
         match &arg_package[..] {
             "node" => Ok(Install::Node(parse_requirements(&arg_version)?)),
             "yarn" => Ok(Install::Yarn(parse_requirements(&arg_version)?)),
-            ref package => {
-                Ok(Install::Other {
-                    name: package.to_string(),
-                    version: parse_requirements(&arg_version)?,
-                })
-            }
+            ref package => Ok(Install::Other {
+                name: package.to_string(),
+                version: parse_requirements(&arg_version)?,
+            }),
         }
     }
 
@@ -69,9 +67,10 @@ Options:
             Install::Yarn(requirements) => {
                 session.set_default_yarn(&requirements)?;
             }
-            Install::Other { name: _, version: _ } => {
-                unimplemented!()
-            }
+            Install::Other {
+                name: _,
+                version: _,
+            } => unimplemented!(),
         };
         session.add_event_end(ActivityKind::Install, 0);
         Ok(true)

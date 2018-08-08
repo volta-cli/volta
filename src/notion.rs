@@ -23,8 +23,8 @@ use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error, ErrorContext};
 use notion_fail::{FailExt, Fallible, NotionError};
 
-use command::{Command, CommandName, Config, Current, Deactivate, Help, Fetch, Install,
-              Shim, Use, Version};
+use command::{Command, CommandName, Config, Current, Deactivate, Fetch, Help, Install, Shim, Use,
+              Version};
 use error::{CliParseError, CommandUnimplementedError, DocoptExt, NotionErrorExt};
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");

@@ -28,7 +28,7 @@ impl EventsConfig {
                 Some(p.into_publish()?)
             } else {
                 None
-            }
+            },
         })
     }
 }

@@ -1,8 +1,8 @@
 mod config;
 mod current;
 mod deactivate;
-mod help;
 mod fetch;
+mod help;
 mod install;
 mod shim;
 mod use_;
@@ -11,10 +11,10 @@ mod version;
 pub(crate) use self::config::Config;
 pub(crate) use self::current::Current;
 pub(crate) use self::deactivate::Deactivate;
-pub(crate) use self::help::Help;
 pub(crate) use self::fetch::Fetch;
-pub(crate) use self::shim::Shim;
+pub(crate) use self::help::Help;
 pub(crate) use self::install::Install;
+pub(crate) use self::shim::Shim;
 pub(crate) use self::use_::Use;
 pub(crate) use self::version::Version;
 

@@ -23,9 +23,9 @@ extern crate winfolder;
 
 pub mod catalog;
 pub mod config;
+mod distro;
 pub mod env;
 mod event;
-mod distro;
 pub mod manifest;
 pub mod monitor;
 mod package_info;
