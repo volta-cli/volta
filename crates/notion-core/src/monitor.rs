@@ -59,8 +59,7 @@ impl LazyMonitor {
 
     /// Forces creating a monitor and returns a mutable reference to it.
     pub fn get_mut(&mut self, command: &str) -> &mut Monitor {
-        self.monitor
-            .borrow_mut_with(|| Monitor::new(command))
+        self.monitor.borrow_mut_with(|| Monitor::new(command))
     }
 }
 

@@ -23,8 +23,8 @@ use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error, ErrorContext};
 use notion_fail::{FailExt, Fallible, NotionError};
 
-use command::{Command, CommandName, Config, Current, Deactivate, Default, Help, Fetch, Shim,
-              Uninstall, Use, Version};
+use command::{Command, CommandName, Config, Current, Deactivate, Fetch, Help, Install, Shim, Use,
+              Version};
 use error::{CliParseError, CommandUnimplementedError, DocoptExt, NotionErrorExt};
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -59,12 +59,11 @@ Options:
 
 Some common notion commands are:
     fetch          Fetch a toolchain to the local machine
-    uninstall      Uninstall a tool from the local machine
-    use            Activate a particular toolchain version
+    install        Install a global package
+    use            Select a toolchain for the current project
     config         Get or set configuration values
     current        Display the currently activated toolchain version
     deactivate     Remove Notion from the current shell
-    default        Get or set the default toolchain version
     shim           View and manage shims
     help           Display this message
     version        Print version info and exit
@@ -173,12 +172,11 @@ See 'notion help <command>' for more information on a specific command.
     fn run(self, session: &mut Session) -> Fallible<bool> {
         match self.command {
             CommandName::Fetch => Fetch::go(self, session),
-            CommandName::Uninstall => Uninstall::go(self, session),
+            CommandName::Install => Install::go(self, session),
             CommandName::Use => Use::go(self, session),
             CommandName::Config => Config::go(self, session),
             CommandName::Current => Current::go(self, session),
             CommandName::Deactivate => Deactivate::go(self, session),
-            CommandName::Default => Default::go(self, session),
             CommandName::Shim => Shim::go(self, session),
             CommandName::Help => Help::go(self, session),
             CommandName::Version => Version::go(self, session),

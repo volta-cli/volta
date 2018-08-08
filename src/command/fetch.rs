@@ -4,8 +4,8 @@ use notion_core::serial::version::parse_requirements;
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::Fallible;
 
-use {CliParseError, Notion};
 use command::{Command, CommandName, Help};
+use {CliParseError, Notion};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
@@ -37,7 +37,13 @@ Options:
         Fetch::Help
     }
 
-    fn parse(_: Notion, Args { arg_toolchain, arg_version }: Args) -> Fallible<Self> {
+    fn parse(
+        _: Notion,
+        Args {
+            arg_toolchain,
+            arg_version,
+        }: Args,
+    ) -> Fallible<Self> {
         match &arg_toolchain[..] {
             "node" => Ok(Fetch::Node(parse_requirements(&arg_version)?)),
             "yarn" => Ok(Fetch::Yarn(parse_requirements(&arg_version)?)),
