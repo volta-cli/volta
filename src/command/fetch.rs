@@ -9,7 +9,7 @@ use {CliParseError, Notion};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
-    arg_toolchain: String,
+    arg_tool: String,
     arg_version: String,
 }
 
@@ -23,10 +23,10 @@ impl Command for Fetch {
     type Args = Args;
 
     const USAGE: &'static str = "
-Fetch a toolchain to the local machine
+Fetch a tool to the local machine
 
 Usage:
-    notion fetch <toolchain> <version>
+    notion fetch <tool> <version>
     notion fetch -h | --help
 
 Options:
@@ -40,17 +40,17 @@ Options:
     fn parse(
         _: Notion,
         Args {
-            arg_toolchain,
+            arg_tool,
             arg_version,
         }: Args,
     ) -> Fallible<Self> {
-        match &arg_toolchain[..] {
+        match &arg_tool[..] {
             "node" => Ok(Fetch::Node(parse_requirements(&arg_version)?)),
             "yarn" => Ok(Fetch::Yarn(parse_requirements(&arg_version)?)),
-            ref toolchain => {
+            ref tool => {
                 throw!(CliParseError {
                     usage: None,
-                    error: format!("no such toolchain: `{}`", toolchain),
+                    error: format!("no such tool: `{}`", tool),
                 });
             }
         }

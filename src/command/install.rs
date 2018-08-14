@@ -9,7 +9,7 @@ use command::{Command, CommandName, Help};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
-    arg_package: String,
+    arg_tool: String,
     arg_version: String,
 }
 
@@ -24,10 +24,10 @@ impl Command for Install {
     type Args = Args;
 
     const USAGE: &'static str = "
-Install a global package
+Install a tool in the user toolchain
 
 Usage:
-    notion install <package> <version>
+    notion install <tool> <version>
     notion install -h | --help
 
 Options:
@@ -41,15 +41,15 @@ Options:
     fn parse(
         _: Notion,
         Args {
-            arg_package,
+            arg_tool,
             arg_version,
         }: Args,
     ) -> Fallible<Self> {
-        match &arg_package[..] {
+        match &arg_tool[..] {
             "node" => Ok(Install::Node(parse_requirements(&arg_version)?)),
             "yarn" => Ok(Install::Yarn(parse_requirements(&arg_version)?)),
-            ref package => Ok(Install::Other {
-                name: package.to_string(),
+            ref tool => Ok(Install::Other {
+                name: tool.to_string(),
                 version: parse_requirements(&arg_version)?,
             }),
         }

@@ -104,10 +104,9 @@ impl Session {
     }
 
     /// Produces the version of Node for the current session. If there is an
-    /// active project with Notion settings, this will ensure a compatible
-    /// version of Node is installed before returning. If there is no active
-    /// project with Notion settings, this produces the global version, which
-    /// may be `None`.
+    /// active pinned project, this will ensure that project's Node version is
+    /// installed before returning. If there is no active pinned project, this
+    /// produces the user version, which may be `None`.
     pub fn current_node(&mut self) -> Fallible<Option<Version>> {
         if let Some(ref project) = self.project {
             let requirements = &project.manifest().node;
@@ -124,10 +123,10 @@ impl Session {
             return Ok(Some(fetched.into_version()));
         }
 
-        self.global_node()
+        self.user_node()
     }
 
-    pub fn global_node(&self) -> Fallible<Option<Version>> {
+    pub fn user_node(&self) -> Fallible<Option<Version>> {
         match env::var("NOTION_NODE_VERSION") {
             Ok(s) => Ok(Some(Version::parse(&s[..]).unknown()?)),
             Err(VarError::NotPresent) => Ok(self.catalog()?.node.default.clone()),
@@ -152,10 +151,9 @@ impl Session {
     }
 
     /// Produces the version of Yarn for the current session. If there is an
-    /// active project with Notion settings, this will ensure a compatible
-    /// version of Yarn is installed before returning. If there is no active
-    /// project with Notion settings, this produces the global version, which
-    /// may be `None`.
+    /// active pinned project, this will ensure that project's Yarn version is
+    /// installed before returning. If there is no active pinned project, this
+    /// produces the user version, which may be `None`.
     pub fn current_yarn(&mut self) -> Fallible<Option<Version>> {
         if let Some(ref project) = self.project {
             let requirements = &project.manifest().yarn.clone().unwrap();

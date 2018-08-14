@@ -8,14 +8,14 @@ use command::{Command, CommandName, Help};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
-    flag_local: bool,
-    flag_global: bool,
+    flag_project: bool,
+    flag_user: bool,
 }
 
 pub(crate) enum Current {
     Help,
-    Local,
-    Global,
+    Project,
+    User,
     All,
 }
 
@@ -23,15 +23,15 @@ impl Command for Current {
     type Args = Args;
 
     const USAGE: &'static str = "
-Display the currently activated toolchain
+Display the currently activated Node version
 
 Usage:
     notion current [options]
 
 Options:
     -h, --help     Display this message
-    -l, --local    Display local toolchain
-    -g, --global   Display global toolchain
+    -p, --project  Display the current project's Node version
+    -u, --user     Display the user's Node version
 ";
 
     fn help() -> Self {
@@ -41,14 +41,14 @@ Options:
     fn parse(
         _: Notion,
         Args {
-            flag_local,
-            flag_global,
+            flag_project,
+            flag_user,
         }: Args,
     ) -> Fallible<Current> {
-        Ok(if !flag_local && flag_global {
-            Current::Local
-        } else if flag_local && !flag_global {
-            Current::Global
+        Ok(if !flag_project && flag_user {
+            Current::User
+        } else if flag_project && !flag_user {
+            Current::Project
         } else {
             Current::All
         })
@@ -59,31 +59,31 @@ Options:
 
         let result = match self {
             Current::Help => Help::Command(CommandName::Current).run(session),
-            Current::Local => Ok(local(&session)?
+            Current::Project => Ok(project_node_version(&session)?
                 .map(|version| {
                     println!("v{}", version);
                 })
                 .is_some()),
-            Current::Global => Ok(global(session)?
+            Current::User => Ok(user_node_version(session)?
                 .map(|version| {
                     println!("v{}", version);
                 })
                 .is_some()),
             Current::All => {
-                let (local, global) = (local(&session)?, global(&session)?);
+                let (project, user) = (project_node_version(&session)?, user_node_version(&session)?);
 
-                let global_active = local.is_none() && global.is_some();
-                let any = local.is_some() || global.is_some();
+                let user_active = project.is_none() && user.is_some();
+                let any = project.is_some() || user.is_some();
 
-                for version in local {
-                    println!("local: v{} (active)", version);
+                for version in project {
+                    println!("project: v{} (active)", version);
                 }
 
-                for version in global {
+                for version in user {
                     println!(
-                        "global: v{}{}",
+                        "user: v{}{}",
                         version,
-                        if global_active { " (active)" } else { "" }
+                        if user_active { " (active)" } else { "" }
                     );
                 }
 
@@ -95,7 +95,7 @@ Options:
     }
 }
 
-fn local(session: &Session) -> Fallible<Option<String>> {
+fn project_node_version(session: &Session) -> Fallible<Option<String>> {
     let project = session.project();
     let project = match project {
         Some(ref project) => project,
@@ -109,6 +109,6 @@ fn local(session: &Session) -> Fallible<Option<String>> {
     Ok(catalog.node.resolve_local(&req).map(|v| v.to_string()))
 }
 
-fn global(session: &Session) -> Fallible<Option<String>> {
-    Ok(session.global_node()?.clone().map(|v| v.to_string()))
+fn user_node_version(session: &Session) -> Fallible<Option<String>> {
+    Ok(session.user_node()?.clone().map(|v| v.to_string()))
 }
