@@ -70,7 +70,10 @@ Options:
                 })
                 .is_some()),
             Current::All => {
-                let (project, user) = (project_node_version(&session)?, user_node_version(&session)?);
+                let (project, user) = (
+                    project_node_version(&session)?,
+                    user_node_version(&session)?,
+                );
 
                 let user_active = project.is_none() && user.is_some();
                 let any = project.is_some() || user.is_some();

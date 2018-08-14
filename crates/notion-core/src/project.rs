@@ -253,6 +253,8 @@ pub mod tests {
         let test_project = Project::for_dir(&project_path).unwrap().unwrap();
         // tsc and tsserver are installed, but not direct deps
         assert!(!test_project.has_direct_bin(&OsStr::new("tsc")).unwrap());
-        assert!(!test_project.has_direct_bin(&OsStr::new("tsserver")).unwrap());
+        assert!(!test_project
+            .has_direct_bin(&OsStr::new("tsserver"))
+            .unwrap());
     }
 }
