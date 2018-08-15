@@ -60,6 +60,10 @@ pub fn node_cache_dir() -> Fallible<PathBuf> {
     Ok(cache_dir()?.join("node"))
 }
 
+pub fn yarn_cache_dir() -> Fallible<PathBuf> {
+    Ok(cache_dir()?.join("yarn"))
+}
+
 pub fn node_index_file() -> Fallible<PathBuf> {
     Ok(node_cache_dir()?.join("index.json"))
 }
@@ -80,12 +84,24 @@ pub fn node_versions_dir() -> Fallible<PathBuf> {
     Ok(versions_dir()?.join("node"))
 }
 
+pub fn yarn_versions_dir() -> Fallible<PathBuf> {
+    Ok(versions_dir()?.join("yarn"))
+}
+
 pub fn node_version_dir(version: &str) -> Fallible<PathBuf> {
     Ok(node_versions_dir()?.join(version))
 }
 
+pub fn yarn_version_dir(version: &str) -> Fallible<PathBuf> {
+    Ok(yarn_versions_dir()?.join(version))
+}
+
 pub fn node_version_bin_dir(version: &str) -> Fallible<PathBuf> {
     node_version_dir(version)
+}
+
+pub fn yarn_version_bin_dir(version: &str) -> Fallible<PathBuf> {
+    Ok(yarn_version_dir(version)?.join("bin"))
 }
 
 // 3rd-party binaries installed globally for this node version
