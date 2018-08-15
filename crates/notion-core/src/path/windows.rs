@@ -2,6 +2,7 @@
 //! in a standard Notion layout in Windows operating systems.
 
 use std::path::PathBuf;
+// using std::os instead of std::os::windows because that was causing `cargo doc --features universal-docs` to fail
 use std::os;
 use std::io;
 
