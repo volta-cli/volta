@@ -11,7 +11,7 @@ pub(crate) struct SymlinkError {
     error: String,
 }
 
-impl_notion_fail!(SymlinkError, ExitCode::FileSystemError);
+impl_notion_fail!(SymlinkError, FileSystemError);
 
 impl SymlinkError {
     pub(crate) fn from_io_error(error: &io::Error) -> Self {

@@ -11,7 +11,7 @@ use notion_fail::{ExitCode, Fallible, NotionFail};
 #[fail(display = "environment variable 'HOME' is not set")]
 pub(crate) struct NoHomeEnvVar;
 
-impl_notion_fail!(NoHomeEnvVar, ExitCode::EnvironmentError);
+impl_notion_fail!(NoHomeEnvVar, EnvironmentError);
 
 // These are taken from: https://nodejs.org/dist/index.json and are used
 // by `path::archive_root_dir` to determine the root directory of the

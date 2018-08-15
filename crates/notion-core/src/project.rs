@@ -62,7 +62,7 @@ impl DepPackageReadError {
     }
 }
 
-impl_notion_fail!(DepPackageReadError, ExitCode::FileSystemError);
+impl_notion_fail!(DepPackageReadError, FileSystemError);
 
 /// Thrown when a user tries to pin a Yarn version before pinning a Node version.
 #[derive(Fail, Debug)]
@@ -75,7 +75,7 @@ impl NoPinnedNodeVersion {
     }
 }
 
-impl_notion_fail!(NoPinnedNodeVersion, ExitCode::ConfigurationError);
+impl_notion_fail!(NoPinnedNodeVersion, ConfigurationError);
 
 /// A Node project tree in the filesystem.
 pub struct Project {

@@ -218,7 +218,7 @@ struct NoNodeVersionFoundError {
     matching: VersionReq,
 }
 
-impl_notion_fail!(NoNodeVersionFoundError, ExitCode::NoVersionMatch);
+impl_notion_fail!(NoNodeVersionFoundError, NoVersionMatch);
 
 /// Thrown when there is no Yarn version matching a requested semver specifier.
 #[derive(Fail, Debug)]
@@ -227,7 +227,7 @@ struct NoYarnVersionFoundError {
     matching: VersionReq,
 }
 
-impl_notion_fail!(NoYarnVersionFoundError, ExitCode::NoVersionMatch);
+impl_notion_fail!(NoYarnVersionFoundError, NoVersionMatch);
 
 impl<D: Distro> Collection<D> {
     /// Tests whether this Collection contains the specified Tool version.
@@ -277,7 +277,7 @@ impl RegistryFetchError {
     }
 }
 
-impl_notion_fail!(RegistryFetchError, ExitCode::NetworkError);
+impl_notion_fail!(RegistryFetchError, NetworkError);
 
 impl Resolve<NodeDistro> for NodeCollection {
     fn resolve_public(&self, matching: &VersionReq) -> Fallible<NodeDistro> {

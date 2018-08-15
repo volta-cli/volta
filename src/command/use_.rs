@@ -31,7 +31,7 @@ impl NoCustomUseError {
     }
 }
 
-impl_notion_fail!(NoCustomUseError, ExitCode::NotYetImplemented);
+impl_notion_fail!(NoCustomUseError, NotYetImplemented);
 
 pub(crate) enum Use {
     Help,

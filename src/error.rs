@@ -25,7 +25,7 @@ impl CliParseError {
     }
 }
 
-impl_notion_fail!(CliParseError, ExitCode::InvalidArguments);
+impl_notion_fail!(CliParseError, InvalidArguments);
 
 pub(crate) trait DocoptExt {
     fn is_help(&self) -> bool;
@@ -79,4 +79,4 @@ impl CommandUnimplementedError {
     }
 }
 
-impl_notion_fail!(CommandUnimplementedError, ExitCode::NotYetImplemented);
+impl_notion_fail!(CommandUnimplementedError, NotYetImplemented);

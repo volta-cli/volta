@@ -15,7 +15,7 @@ impl VersionParseError {
     }
 }
 
-impl_notion_fail!(VersionParseError, ExitCode::NoVersionMatch);
+impl_notion_fail!(VersionParseError, NoVersionMatch);
 
 pub fn parse_requirements(src: &str) -> Fallible<VersionReq> {
     let src = src.trim();

@@ -20,4 +20,4 @@ impl DownloadError {
     }
 }
 
-impl_notion_fail!(DownloadError, ExitCode::NetworkError);
+impl_notion_fail!(DownloadError, NetworkError);
