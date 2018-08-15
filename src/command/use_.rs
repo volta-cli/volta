@@ -13,7 +13,7 @@ use command::{Command, CommandName, Help};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
-    arg_toolchain: String,
+    arg_tool: String,
     arg_version: String,
 }
 
@@ -28,10 +28,10 @@ impl Command for Use {
     type Args = Args;
 
     const USAGE: &'static str = "
-Select a toolchain for the current project
+Select a tool for the current project's toolchain
 
 Usage:
-    notion use <toolchain> <version>
+    notion use <tool> <version>
     notion use -h | --help
 
 Options:
@@ -45,11 +45,11 @@ Options:
     fn parse(
         _: Notion,
         Args {
-            arg_toolchain,
+            arg_tool,
             arg_version,
         }: Args,
     ) -> Fallible<Self> {
-        match &arg_toolchain[..] {
+        match &arg_tool[..] {
             "node" => Ok(Use::Node(parse_requirements(&arg_version)?)),
             "yarn" => Ok(Use::Yarn(parse_requirements(&arg_version)?)),
             ref tool => Ok(Use::Other {

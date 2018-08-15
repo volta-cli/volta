@@ -123,7 +123,7 @@ impl Project {
     }
 
     /// Returns true if the input binary name is a direct dependency of the input project
-    pub fn has_local_bin(&self, bin_name: &OsStr) -> Fallible<bool> {
+    pub fn has_direct_bin(&self, bin_name: &OsStr) -> Fallible<bool> {
         let dep_bins = self.dependent_bins.get(&self)?;
         if let Some(bin_name_str) = bin_name.to_str() {
             if dep_bins.contains_key(bin_name_str) {
@@ -241,10 +241,10 @@ pub mod tests {
         let project_path = fixture_path("basic");
         let test_project = Project::for_dir(&project_path).unwrap().unwrap();
         // eslint, rsvp, bin-1, and bin-2 are direct dependencies
-        assert!(test_project.has_local_bin(&OsStr::new("eslint")).unwrap());
-        assert!(test_project.has_local_bin(&OsStr::new("rsvp")).unwrap());
-        assert!(test_project.has_local_bin(&OsStr::new("bin-1")).unwrap());
-        assert!(test_project.has_local_bin(&OsStr::new("bin-2")).unwrap());
+        assert!(test_project.has_direct_bin(&OsStr::new("eslint")).unwrap());
+        assert!(test_project.has_direct_bin(&OsStr::new("rsvp")).unwrap());
+        assert!(test_project.has_direct_bin(&OsStr::new("bin-1")).unwrap());
+        assert!(test_project.has_direct_bin(&OsStr::new("bin-2")).unwrap());
     }
 
     #[test]
@@ -252,7 +252,9 @@ pub mod tests {
         let project_path = fixture_path("basic");
         let test_project = Project::for_dir(&project_path).unwrap().unwrap();
         // tsc and tsserver are installed, but not direct deps
-        assert!(!test_project.has_local_bin(&OsStr::new("tsc")).unwrap());
-        assert!(!test_project.has_local_bin(&OsStr::new("tsserver")).unwrap());
+        assert!(!test_project.has_direct_bin(&OsStr::new("tsc")).unwrap());
+        assert!(!test_project
+            .has_direct_bin(&OsStr::new("tsserver"))
+            .unwrap());
     }
 }

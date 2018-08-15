@@ -58,11 +58,11 @@ Options:
     -v, --verbose  Use verbose output
 
 Some common notion commands are:
-    fetch          Fetch a toolchain to the local machine
-    install        Install a global package
-    use            Select a toolchain for the current project
+    fetch          Fetch a tool to the local machine
+    install        Install a tool in the user toolchain
+    use            Select a tool for the current project's toolchain
     config         Get or set configuration values
-    current        Display the currently activated toolchain version
+    current        Display the currently activated Node version
     deactivate     Remove Notion from the current shell
     shim           View and manage shims
     help           Display this message

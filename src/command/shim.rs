@@ -28,8 +28,8 @@ pub(crate) enum Shim {
 }
 
 enum ShimKind {
-    Local(PathBuf),
-    Global(PathBuf),
+    Project(PathBuf),
+    User(PathBuf),
     System,
     NotInstalled,
     WillInstall(VersionReq),
@@ -39,8 +39,8 @@ enum ShimKind {
 impl Display for ShimKind {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         let s = match self {
-            &ShimKind::Local(ref path) => format!("{}", path.to_string_lossy()),
-            &ShimKind::Global(ref path) => format!("{}", path.to_string_lossy()),
+            &ShimKind::Project(ref path) => format!("{}", path.to_string_lossy()),
+            &ShimKind::User(ref path) => format!("{}", path.to_string_lossy()),
             &ShimKind::System => format!("[system]"),
             &ShimKind::NotInstalled => {
                 format!("{}", style("[executable not installed!]").red().bold())
@@ -156,26 +156,26 @@ fn available_node_version(project: &Project, session: &Session) -> Fallible<Opti
     Ok(catalog.node.resolve_local(&requirements))
 }
 
-// figure out which version of node is installed or configured,
-// or which version will be installed if it's not available locally
+// figure out which version of Node is installed or configured,
+// or which version will be installed if it's not pinned by the project
 fn resolve_node_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
     if let Some(project) = session.project() {
         let requirements = &project.manifest().node;
         if let Some(available) = available_node_version(&project, &session)? {
-            // node is available locally - this shim will use that version
+            // Node is pinned by the project - this shim will use that version
             let mut bin_path = path::node_version_bin_dir(&available.to_string()).unknown()?;
             bin_path.push(&shim_name);
-            return Ok(ShimKind::Global(bin_path));
+            return Ok(ShimKind::User(bin_path));
         }
 
         // not installed, but will install based on the required version
         return Ok(ShimKind::WillInstall(requirements.clone()));
     }
 
-    if let Some(global_version) = session.global_node()? {
-        let mut bin_path = path::node_version_bin_dir(&global_version.to_string()).unknown()?;
+    if let Some(user_version) = session.user_node()? {
+        let mut bin_path = path::node_version_bin_dir(&user_version.to_string()).unknown()?;
         bin_path.push(&shim_name);
-        return Ok(ShimKind::Global(bin_path));
+        return Ok(ShimKind::User(bin_path));
     }
     Ok(ShimKind::System)
 }
@@ -185,10 +185,10 @@ fn resolve_yarn_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind
         if let Some(requirements) = &project.manifest().yarn {
             let catalog = session.catalog()?;
             if let Some(available) = catalog.yarn.resolve_local(&requirements) {
-                // yarn is available locally - this shim will use that version
+                // Yarn is pinned by the project - this shim will use that version
                 let mut bin_path = path::yarn_version_bin_dir(&available.to_string()).unknown()?;
                 bin_path.push(&shim_name);
-                return Ok(ShimKind::Global(bin_path));
+                return Ok(ShimKind::User(bin_path));
             }
 
             // not installed, but will install based on the required version
@@ -199,7 +199,7 @@ fn resolve_yarn_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind
     if let Some(ref default_version) = session.catalog()?.yarn.default {
         let mut bin_path = path::yarn_version_bin_dir(&default_version.to_string()).unknown()?;
         bin_path.push(&shim_name);
-        return Ok(ShimKind::Global(bin_path));
+        return Ok(ShimKind::User(bin_path));
     }
     Ok(ShimKind::System)
 }
@@ -211,28 +211,28 @@ fn resolve_npx_shims(_session: &Session, _shim_name: &OsStr) -> Fallible<ShimKin
 fn resolve_3p_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
     if let Some(project) = session.project() {
         // if this is a local executable, get the path to that
-        if project.has_local_bin(shim_name)? {
+        if project.has_direct_bin(shim_name)? {
             let mut path_to_bin = project.local_bin_dir();
             path_to_bin.push(shim_name);
-            return Ok(ShimKind::Local(path_to_bin));
+            return Ok(ShimKind::Project(path_to_bin));
         }
 
-        // if node is installed, use the bin there
+        // if Node is installed, use the bin there
         if let Some(available) = available_node_version(&project, &session)? {
-            // node is available locally - this shim will use that version
+            // Node is pinned by the project - this shim will use that version
             let mut bin_path = path::node_version_3p_bin_dir(&available.to_string())?;
             bin_path.push(&shim_name);
-            return Ok(ShimKind::Global(bin_path));
+            return Ok(ShimKind::User(bin_path));
         }
-        // if node is not installed, this shim has not been installed for this node version
+        // if Node is not installed, this shim has not been installed for this node version
         return Ok(ShimKind::NotInstalled);
     }
-    // if node is globally configured with Notion, use the global executable
+    // if a user Node is configured with Notion, use that executable
     // otherwise it's a shim to system executables
-    let global_version = session.global_node()?;
-    global_version.map_or(Ok(ShimKind::System), |gv| {
+    let user_version = session.user_node()?;
+    user_version.map_or(Ok(ShimKind::System), |gv| {
         let mut bin_path = path::node_version_3p_bin_dir(&gv.to_string())?;
         bin_path.push(&shim_name);
-        Ok(ShimKind::Global(bin_path))
+        Ok(ShimKind::User(bin_path))
     })
 }

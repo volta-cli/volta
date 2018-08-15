@@ -200,7 +200,7 @@ impl Tool for Binary {
             // we are in a Node project
 
             // if this project has this as a local executable, use that
-            if project.has_local_bin(&exe)? {
+            if project.has_direct_bin(&exe)? {
                 // use the full path to the file
                 let mut path_to_bin = project.local_bin_dir();
                 path_to_bin.push(&exe);
