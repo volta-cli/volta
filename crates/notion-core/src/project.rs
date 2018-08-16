@@ -5,12 +5,16 @@ use std::collections::{HashMap, HashSet};
 use std::env;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
+use std::fs::File;
 
 use lazycell::LazyCell;
 
 use manifest::Manifest;
 use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
 use package_info::PackageInfo;
+use semver::Version;
+use serial::manifest::ToolchainManifest;
+use serde_json;
 
 fn is_node_root(dir: &Path) -> bool {
     dir.join("package.json").is_file()
@@ -116,6 +120,11 @@ impl Project {
         &self.manifest
     }
 
+    /// Returns the path to the `package.json` file for this project.
+    pub fn package_file(&self) -> PathBuf {
+        self.project_root.join("package.json")
+    }
+
     /// Returns the path to the local binary directory for this project.
     pub fn local_bin_dir(&self) -> PathBuf {
         let sub_dir: PathBuf = ["node_modules", ".bin"].iter().collect();
@@ -175,6 +184,26 @@ impl Project {
             }
         }
         Ok(dependent_bins)
+    }
+
+    /// Writes the specified version of Node to the `toolchain.node` key in package.json.
+    pub fn pin_node_in_toolchain(&self, node_version: Version) -> Fallible<()> {
+
+        // update the toolchain node version
+        let toolchain = ToolchainManifest::new(node_version.to_string(), self.manifest().yarn_str.clone());
+        Manifest::update_toolchain(toolchain, self.package_file())?;
+        println!("Pinned node to version {} in package.json", node_version);
+        Ok(())
+    }
+
+    /// Writes the specified version of Yarn to the `toolchain.yarn` key in package.json.
+    pub fn pin_yarn_in_toolchain(&self, yarn_version: Version) -> Fallible<()> {
+
+        // update the toolchain yarn version
+        let toolchain = ToolchainManifest::new(self.manifest().node_str.clone(), Some(yarn_version.to_string()));
+        Manifest::update_toolchain(toolchain, self.package_file())?;
+        println!("Pinned yarn to version {} in package.json", yarn_version);
+        Ok(())
     }
 }
 

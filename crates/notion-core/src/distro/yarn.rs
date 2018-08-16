@@ -2,6 +2,7 @@
 
 use std::fs::{rename, File};
 use std::string::ToString;
+use std::path::PathBuf;
 
 use super::{Distro, Fetched};
 use catalog::YarnCollection;
@@ -22,6 +23,20 @@ pub struct YarnDistro {
     version: Version,
 }
 
+/// Check if the cached file is valid. It may have been corrupted or interrupted in the middle of
+/// downloading.
+fn cache_is_valid(cache_file: &PathBuf) -> bool {
+    if cache_file.is_file() {
+        if let Ok(file) = File::open(cache_file) {
+            match node_archive::load(file) {
+                Ok(_) => return true,
+                Err(_) => return false,
+            }
+        }
+    }
+    false
+}
+
 impl Distro for YarnDistro {
     /// Provision a distribution from the public Yarn distributor (`https://yarnpkg.com`).
     fn public(version: Version) -> Fallible<Self> {
@@ -35,7 +50,7 @@ impl Distro for YarnDistro {
         let archive_file = path::yarn_archive_file(&version.to_string());
         let cache_file = path::yarn_cache_dir()?.join(&archive_file);
 
-        if cache_file.is_file() {
+        if cache_is_valid(&cache_file) {
             return YarnDistro::cached(version, File::open(cache_file).unknown()?);
         }
 

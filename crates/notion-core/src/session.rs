@@ -150,6 +150,27 @@ impl Session {
         catalog.set_default_node(matching, config)
     }
 
+    /// Returns the version of Node matching the specified semantic versioning requirements.
+    pub fn get_matching_node(&self, matching: &VersionReq) -> Fallible<Version> {
+        let catalog = self.catalog.get()?;
+        let config = self.config.get()?;
+        catalog.resolve_node(matching, config)
+    }
+
+    /// Updates toolchain in package.json with the Node version matching the specified semantic
+    /// versioning requirements.
+    pub fn pin_node_version(&self, matching: &VersionReq) -> Fallible<bool> {
+        if let Some(ref project) = self.project {
+            let node_version = self.get_matching_node(matching)?;
+            project.pin_node_in_toolchain(node_version)?;
+        }
+        else {
+            // TODO: throw error - not in project
+            unimplemented!("Not in a project");
+        }
+        Ok(true)
+    }
+
     /// Produces the version of Yarn for the current session. If there is an
     /// active pinned project, this will ensure that project's Yarn version is
     /// installed before returning. If there is no active pinned project, this
@@ -187,6 +208,27 @@ impl Session {
         let catalog = self.catalog.get_mut()?;
         let config = self.config.get()?;
         catalog.set_default_yarn(matching, config)
+    }
+
+    /// Returns the version of Yarn matching the specified semantic versioning requirements
+    pub fn get_matching_yarn(&self, matching: &VersionReq) -> Fallible<Version> {
+        let catalog = self.catalog.get()?;
+        let config = self.config.get()?;
+        catalog.resolve_yarn(matching, config)
+    }
+
+    /// Updates toolchain in package.json with the Yarn version matching the specified semantic
+    /// versioning requirements.
+    pub fn pin_yarn_version(&self, matching: &VersionReq) -> Fallible<bool> {
+        if let Some(ref project) = self.project {
+            let yarn_version = self.get_matching_yarn(matching)?;
+            project.pin_yarn_in_toolchain(yarn_version)?;
+        }
+        else {
+            // TODO: throw error - not in project
+            unimplemented!("Not in a project");
+        }
+        Ok(true)
     }
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {

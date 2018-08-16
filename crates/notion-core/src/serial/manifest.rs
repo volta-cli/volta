@@ -33,16 +33,27 @@ impl Manifest {
         if let Some(notion) = self.toolchain {
             return Ok(Some(manifest::Manifest {
                 node: parse_requirements(&notion.node)?,
-                yarn: if let Some(yarn) = notion.yarn {
+                node_str: notion.node,
+                yarn: if let Some(yarn) = &notion.yarn {
                     Some(parse_requirements(&yarn)?)
                 } else {
                     None
                 },
+                yarn_str: notion.yarn,
                 dependencies: self.dependencies,
                 dev_dependencies: self.dev_dependencies,
             }));
         }
 
         Ok(None)
+    }
+}
+
+impl ToolchainManifest {
+    pub fn new(node_version: String, yarn_version: Option<String>) -> Self {
+        ToolchainManifest {
+            node: node_version,
+            yarn: yarn_version,
+        }
     }
 }

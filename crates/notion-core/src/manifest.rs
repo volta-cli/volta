@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::Path;
+use std::path::PathBuf;
 
 use notion_fail::{Fallible, ResultExt};
 use semver::VersionReq;
@@ -12,10 +13,14 @@ use serial;
 
 /// A Node manifest file.
 pub struct Manifest {
-    /// The requested version of Node, under the `notion.node` key.
+    /// The requested version of Node, under the `toolchain.node` key.
     pub node: VersionReq,
-    /// The requested version of Yarn, under the `notion.yarn` key.
+    /// The pinned version of Node as a string.
+    pub node_str: String,
+    /// The requested version of Yarn, under the `toolchain.yarn` key.
     pub yarn: Option<VersionReq>,
+    /// The pinned version of Yarn as a string.
+    pub yarn_str: Option<String>,
     /// The `dependencies` section.
     pub dependencies: HashMap<String, String>,
     /// The `devDependencies` section.
@@ -28,6 +33,23 @@ impl Manifest {
         let file = File::open(project_root.join("package.json")).unknown()?;
         let serial: serial::manifest::Manifest = serde_json::de::from_reader(file).unknown()?;
         serial.into_manifest()
+    }
+
+    pub fn update_toolchain(toolchain: serial::manifest::ToolchainManifest, package_file: PathBuf) -> Fallible<()> {
+        // parse the entire package.json file into a Value
+        let file = File::open(&package_file).unknown()?;
+        let mut v: serde_json::Value = serde_json::from_reader(file).unknown()?;
+        if let Some(map) = v.as_object_mut() {
+            // update the "toolchain" key
+            let toolchain_value = serde_json::to_value(toolchain).unknown()?;
+            map.insert("toolchain".to_string(), toolchain_value);
+            // write to file
+            let file = File::create(package_file).unknown()?;
+            serde_json::to_writer_pretty(file, map).unknown()?;
+            // TODO: detect indentation and use that
+            // (see https://play.rust-lang.org/?gist=009ef8f29aa6af44c26d32be5f3c9724)
+        }
+        Ok(())
     }
 }
 
