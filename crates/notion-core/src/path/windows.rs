@@ -2,6 +2,7 @@
 //! in a standard Notion layout in Windows operating systems.
 
 use std::path::PathBuf;
+#[cfg(windows)]
 use std::os::windows;
 use std::io;
 
@@ -48,6 +49,7 @@ fn program_data_root() -> Fallible<PathBuf> {
     #[cfg(windows)]
     return Ok(winfolder::Folder::ProgramData.path().join("Notion"));
 
+    // "universal-docs" is built on a Unix machine, so we can't include Windows-specific libs
     #[cfg(feature = "universal-docs")]
     unimplemented!()
 }
@@ -132,6 +134,7 @@ fn program_files_root() -> Fallible<PathBuf> {
     #[cfg(windows)]
     return Ok(winfolder::Folder::ProgramFilesX64.path().join("Notion"));
 
+    // "universal-docs" is built on a Unix machine, so we can't include Windows-specific libs
     #[cfg(feature = "universal-docs")]
     unimplemented!()
 }
@@ -161,6 +164,7 @@ fn local_data_root() -> Fallible<PathBuf> {
     #[cfg(windows)]
     return Ok(winfolder::Folder::LocalAppData.path().join("Notion"));
 
+    // "universal-docs" is built on a Unix machine, so we can't include Windows-specific libs
     #[cfg(feature = "universal-docs")]
     unimplemented!()
 }
@@ -174,5 +178,10 @@ pub fn user_catalog_file() -> Fallible<PathBuf> {
 }
 
 pub fn create_file_symlink(src: PathBuf, dst: PathBuf) -> Result<(), io::Error> {
-    windows::fs::symlink_file(src, dst)
+    #[cfg(windows)]
+    return windows::fs::symlink_file(src, dst);
+
+    // "universal-docs" is built on a Unix machine, so we can't include Windows-specific libs
+    #[cfg(feature = "universal-docs")]
+    unimplemented!()
 }
