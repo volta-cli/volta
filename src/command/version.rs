@@ -1,5 +1,5 @@
 use notion_core::session::{ActivityKind, Session};
-use notion_fail::Fallible;
+use notion_fail::{ExitCode, Fallible};
 
 use Notion;
 use command::{Command, CommandName, Help};
@@ -43,7 +43,7 @@ Options:
                 Ok(true)
             }
         };
-        session.add_event_end(ActivityKind::Version, 0);
+        session.add_event_end(ActivityKind::Version, ExitCode::Success);
         result
     }
 }

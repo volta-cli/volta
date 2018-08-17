@@ -5,7 +5,7 @@ use std::ffi::{OsStr, OsString};
 use std::io;
 use std::marker::Sized;
 use std::path::Path;
-use std::process::{exit, Command};
+use std::process::Command;
 
 use env;
 use notion_fail::{ExitCode, FailExt, Fallible, NotionError, NotionFail};
@@ -60,7 +60,7 @@ pub trait Tool: Sized {
             Ok(session) => session,
             Err(err) => {
                 display_error(&err);
-                exit(ExitCode::ExecutionFailure as i32);
+                ExitCode::ExecutionFailure.exit();
             }
         };
 
@@ -73,7 +73,7 @@ pub trait Tool: Sized {
             Err(err) => {
                 display_error(&err);
                 session.add_event_error(ActivityKind::Tool, &err);
-                session.exit(ExitCode::ExecutionFailure as i32);
+                session.exit(ExitCode::ExecutionFailure);
             }
         }
     }
@@ -93,20 +93,20 @@ pub trait Tool: Sized {
         let status = command.status();
         match status {
             Ok(status) if status.success() => {
-                session.add_event_end(ActivityKind::Tool, 0);
-                session.exit(ExitCode::Success as i32);
+                session.add_event_end(ActivityKind::Tool, ExitCode::Success);
+                session.exit(ExitCode::Success);
             }
             Ok(status) => {
                 // ISSUE (#36): if None, in unix, find out the signal
                 let code = status.code().unwrap_or(1);
-                session.add_event_end(ActivityKind::Tool, code);
-                session.exit(code);
+                session.add_event_tool_end(ActivityKind::Tool, code);
+                session.exit_tool(code);
             }
             Err(err) => {
                 let notion_err = err.with_context(BinaryExecError::from_io_error);
                 display_error(&notion_err);
                 session.add_event_error(ActivityKind::Tool, &notion_err);
-                session.exit(ExitCode::ExecutionFailure as i32);
+                session.exit(ExitCode::ExecutionFailure);
             }
         }
     }

@@ -239,9 +239,12 @@
 extern crate failure;
 #[macro_use]
 extern crate notion_fail_derive;
+#[macro_use]
+extern crate serde_derive;
 
 use std::convert::{From, Into};
 use std::fmt::{self, Display};
+use std::process::exit;
 
 use failure::{Backtrace, Fail};
 
@@ -254,7 +257,7 @@ macro_rules! throw {
 }
 
 /// Exit codes supported by the NotionFail trait.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Serialize)]
 pub enum ExitCode {
     /// No error occurred.
     Success = 0,
@@ -288,6 +291,12 @@ pub enum ExitCode {
 
     /// The requested executable is not available.
     ExecutableNotFound = 127,
+}
+
+impl ExitCode {
+    pub fn exit(self) -> ! {
+        exit(self as i32);
+    }
 }
 
 /// The failure trait for all Notion errors.

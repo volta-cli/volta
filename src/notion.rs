@@ -16,7 +16,6 @@ extern crate serde_derive;
 mod command;
 mod error;
 
-use std::process::exit;
 use std::string::ToString;
 
 use docopt::Docopt;
@@ -205,19 +204,19 @@ pub fn main() {
         Ok(session) => session,
         Err(err) => {
             display_error_and_usage(&err);
-            exit(ExitCode::UnknownError as i32);
+            ExitCode::UnknownError.exit();
         }
     };
 
     session.add_event_start(ActivityKind::Notion);
 
     let exit_code = match Notion::go(&mut session) {
-        Ok(true) => ExitCode::Success as i32,
-        Ok(false) => ExitCode::UnknownError as i32,
+        Ok(true) => ExitCode::Success,
+        Ok(false) => ExitCode::UnknownError,
         Err(err) => {
             display_error_and_usage(&err);
             session.add_event_error(ActivityKind::Notion, &err);
-            err.exit_code() as i32
+            err.exit_code()
         }
     };
     session.add_event_end(ActivityKind::Notion, exit_code);

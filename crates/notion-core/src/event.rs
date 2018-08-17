@@ -6,7 +6,7 @@ use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use monitor::LazyMonitor;
-use notion_fail::{Fallible, NotionError};
+use notion_fail::{ExitCode, Fallible, NotionError};
 use plugin::Publish;
 use session::ActivityKind;
 
@@ -32,12 +32,15 @@ pub struct ErrorEnv {
 enum EventKind {
     Start,
     End {
-        exit_code: i32,
+        exit_code: ExitCode,
     },
     Error {
-        exit_code: i32,
+        exit_code: ExitCode,
         error: String,
         env: ErrorEnv,
+    },
+    ToolEnd {
+        exit_code: i32,
     },
 }
 
@@ -102,14 +105,17 @@ impl EventLog {
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
         self.add_event(EventKind::Start, activity_kind)
     }
-    pub fn add_event_end(&mut self, activity_kind: ActivityKind, exit_code: i32) {
+    pub fn add_event_end(&mut self, activity_kind: ActivityKind, exit_code: ExitCode) {
         self.add_event(EventKind::End { exit_code }, activity_kind)
+    }
+    pub fn add_event_tool_end(&mut self, activity_kind: ActivityKind, exit_code: i32) {
+        self.add_event(EventKind::ToolEnd { exit_code }, activity_kind)
     }
     pub fn add_event_error(&mut self, activity_kind: ActivityKind, error: &NotionError) {
         let exit_code = error.exit_code();
         self.add_event(
             EventKind::Error {
-                exit_code: exit_code as i32,
+                exit_code: exit_code,
                 error: error.to_string(),
                 env: get_error_env(),
             },

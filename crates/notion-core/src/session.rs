@@ -254,14 +254,17 @@ impl Session {
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
         self.event_log.add_event_start(activity_kind)
     }
-    pub fn add_event_end(&mut self, activity_kind: ActivityKind, exit_code: i32) {
+    pub fn add_event_end(&mut self, activity_kind: ActivityKind, exit_code: ExitCode) {
         self.event_log.add_event_end(activity_kind, exit_code)
+    }
+    pub fn add_event_tool_end(&mut self, activity_kind: ActivityKind, exit_code: i32) {
+        self.event_log.add_event_tool_end(activity_kind, exit_code)
     }
     pub fn add_event_error(&mut self, activity_kind: ActivityKind, error: &NotionError) {
         self.event_log.add_event_error(activity_kind, error)
     }
 
-    pub fn exit(mut self, code: i32) -> ! {
+    fn publish_plugin(mut self) {
         match publish_plugin(&self.config) {
             Ok(plugin) => {
                 self.event_log.publish(plugin);
@@ -270,6 +273,15 @@ impl Session {
                 eprintln!("Warning: invalid config file ({})", e);
             }
         }
+    }
+
+    pub fn exit(self, code: ExitCode) -> ! {
+        self.publish_plugin();
+        code.exit();
+    }
+
+    pub fn exit_tool(self, code: i32) -> ! {
+        self.publish_plugin();
         exit(code);
     }
 }

@@ -85,7 +85,7 @@ Options:
                 version: _,
             } => throw!(NoCustomUseError::new(_name)),
         };
-        session.add_event_end(ActivityKind::Use, 0);
+        session.add_event_end(ActivityKind::Use, ExitCode::Success);
         Ok(true)
     }
 }

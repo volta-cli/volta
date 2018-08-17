@@ -1,7 +1,7 @@
 use notion_core::env;
 use notion_core::session::{ActivityKind, Session};
 use notion_core::shell::{CurrentShell, Postscript, Shell};
-use notion_fail::Fallible;
+use notion_fail::{ExitCode, Fallible};
 
 use Notion;
 use command::{Command, CommandName, Help};
@@ -53,7 +53,7 @@ Options:
                 shell.save_postscript(&postscript)?;
             }
         };
-        session.add_event_end(ActivityKind::Deactivate, 0);
+        session.add_event_end(ActivityKind::Deactivate, ExitCode::Success);
         Ok(true)
     }
 }

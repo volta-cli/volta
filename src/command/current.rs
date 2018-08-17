@@ -1,7 +1,7 @@
 use std::string::ToString;
 
 use notion_core::session::{ActivityKind, Session};
-use notion_fail::Fallible;
+use notion_fail::{ExitCode, Fallible};
 
 use Notion;
 use command::{Command, CommandName, Help};
@@ -93,7 +93,7 @@ Options:
                 Ok(any)
             }
         };
-        session.add_event_end(ActivityKind::Current, 0);
+        session.add_event_end(ActivityKind::Current, ExitCode::Success);
         result
     }
 }
