@@ -5,7 +5,6 @@ use std::collections::{HashMap, HashSet};
 use std::env;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
-use std::fs::File;
 
 use lazycell::LazyCell;
 
@@ -14,7 +13,6 @@ use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
 use package_info::PackageInfo;
 use semver::Version;
 use serial::manifest::ToolchainManifest;
-use serde_json;
 
 fn is_node_root(dir: &Path) -> bool {
     dir.join("package.json").is_file()
@@ -101,18 +99,16 @@ impl Project {
             }
         }
 
-        let manifest = match Manifest::for_dir(&dir)? {
-            Some(manifest) => manifest,
-            None => {
-                return Ok(None);
-            }
-        };
-
         Ok(Some(Project {
-            manifest: manifest,
+            manifest: Manifest::for_dir(&dir)?,
             project_root: PathBuf::from(dir),
             dependent_bins: LazyDependentBins::new(),
         }))
+    }
+
+    /// Returns true if the project manifest contains a toolchain.
+    pub fn is_pinned(&self) -> bool {
+        self.manifest.has_toolchain()
     }
 
     /// Returns the project manifest (`package.json`) for this project.
@@ -144,17 +140,16 @@ impl Project {
 
     /// Gets the names of all the direct dependencies of the current project
     fn all_dependencies(&self) -> Fallible<Option<HashSet<String>>> {
-        if let Some(manifest) = Manifest::for_dir(&self.project_root)? {
-            let mut dependencies = HashSet::new();
-            for (name, _version) in manifest.dependencies.iter() {
-                dependencies.insert(name.clone());
-            }
-            for (name, _version) in manifest.dev_dependencies.iter() {
-                dependencies.insert(name.clone());
-            }
-            return Ok(Some(dependencies));
+        let manifest = Manifest::for_dir(&self.project_root)?;
+        let mut dependencies = HashSet::new();
+        for (name, _version) in manifest.dependencies.iter() {
+            dependencies.insert(name.clone());
         }
-        Ok(None)
+        for (name, _version) in manifest.dev_dependencies.iter() {
+            dependencies.insert(name.clone());
+        }
+        // TODO: this doesn't need the option now...
+        Ok(Some(dependencies))
     }
 
     /// Returns a mapping of the names to paths for all the binaries installed
@@ -190,7 +185,7 @@ impl Project {
     pub fn pin_node_in_toolchain(&self, node_version: Version) -> Fallible<()> {
 
         // update the toolchain node version
-        let toolchain = ToolchainManifest::new(node_version.to_string(), self.manifest().yarn_str.clone());
+        let toolchain = ToolchainManifest::new(node_version.to_string(), self.manifest().yarn_str().clone());
         Manifest::update_toolchain(toolchain, self.package_file())?;
         println!("Pinned node to version {} in package.json", node_version);
         Ok(())
@@ -200,9 +195,14 @@ impl Project {
     pub fn pin_yarn_in_toolchain(&self, yarn_version: Version) -> Fallible<()> {
 
         // update the toolchain yarn version
-        let toolchain = ToolchainManifest::new(self.manifest().node_str.clone(), Some(yarn_version.to_string()));
-        Manifest::update_toolchain(toolchain, self.package_file())?;
-        println!("Pinned yarn to version {} in package.json", yarn_version);
+        if let Some(node_str) = self.manifest().node_str() {
+            let toolchain = ToolchainManifest::new(node_str.clone(), Some(yarn_version.to_string()));
+            Manifest::update_toolchain(toolchain, self.package_file())?;
+            println!("Pinned yarn to version {} in package.json", yarn_version);
+        } else {
+            // TODO - make an error for this
+            unimplemented!("must specifiy a node version before pinning yarn");
+        }
         Ok(())
     }
 }

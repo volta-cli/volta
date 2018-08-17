@@ -11,8 +11,8 @@ use serde_json;
 
 use serial;
 
-/// A Node manifest file.
-pub struct Manifest {
+/// A toolchain manifest.
+pub struct ToolchainManifest {
     /// The requested version of Node, under the `toolchain.node` key.
     pub node: VersionReq,
     /// The pinned version of Node as a string.
@@ -21,6 +21,12 @@ pub struct Manifest {
     pub yarn: Option<VersionReq>,
     /// The pinned version of Yarn as a string.
     pub yarn_str: Option<String>,
+}
+
+/// A Node manifest file.
+pub struct Manifest {
+    /// The `toolchain` section.
+    pub toolchain: Option<ToolchainManifest>,
     /// The `dependencies` section.
     pub dependencies: HashMap<String, String>,
     /// The `devDependencies` section.
@@ -29,12 +35,40 @@ pub struct Manifest {
 
 impl Manifest {
     /// Loads and parses a Node manifest for the project rooted at the specified path.
-    pub fn for_dir(project_root: &Path) -> Fallible<Option<Manifest>> {
+    pub fn for_dir(project_root: &Path) -> Fallible<Manifest> {
+        // if package.json doesn't exist, this fails, OK
         let file = File::open(project_root.join("package.json")).unknown()?;
         let serial: serial::manifest::Manifest = serde_json::de::from_reader(file).unknown()?;
         serial.into_manifest()
     }
 
+    // TODO: docs
+    pub fn has_toolchain(&self) -> bool {
+        self.toolchain.is_some()
+    }
+
+    // TODO: docs
+    // this will panic if there is no node - always check pinned_project
+    pub fn node(&self) -> VersionReq {
+        self.toolchain.as_ref().unwrap().node.clone()
+    }
+
+    // TODO: docs
+    pub fn node_str(&self) -> Option<String> {
+        self.toolchain.as_ref().map(|t| t.node_str.clone())
+    }
+
+    // TODO: docs
+    pub fn yarn(&self) -> Option<VersionReq> {
+        self.toolchain.as_ref().map(|t| t.yarn.clone()).unwrap_or(None)
+    }
+
+    // TODO: docs
+    pub fn yarn_str(&self) -> Option<String> {
+        self.toolchain.as_ref().map(|t| t.yarn_str.clone()).unwrap_or(None)
+    }
+
+    // TODO - docs
     pub fn update_toolchain(toolchain: serial::manifest::ToolchainManifest, package_file: PathBuf) -> Fallible<()> {
         // parse the entire package.json file into a Value
         let file = File::open(&package_file).unknown()?;

@@ -68,7 +68,7 @@ impl Display for ActivityKind {
 pub struct Session {
     config: LazyConfig,
     catalog: LazyCatalog,
-    project: Option<Project>,
+    node_project: Option<Project>,
     event_log: EventLog,
 }
 
@@ -78,14 +78,24 @@ impl Session {
         Ok(Session {
             config: LazyConfig::new(),
             catalog: LazyCatalog::new(),
-            project: Project::for_current_dir()?,
+            node_project: Project::for_current_dir()?,
             event_log: EventLog::new()?,
         })
     }
 
     /// Produces a reference to the current Node project, if any.
-    pub fn project(&self) -> Option<&Project> {
-        self.project.as_ref()
+    // TODO: rename this back to project?
+    pub fn node_project(&self) -> Option<&Project> {
+        self.node_project.as_ref()
+    }
+
+    // TODO: docs
+    /// Produces a reference to the current Node project if the project has a toolchain configured.
+    pub fn in_pinned_project(&self) -> bool {
+        if let Some(ref project) = self.node_project {
+            return project.is_pinned();
+        }
+        false
     }
 
     /// Produces a reference to the current tool catalog.
@@ -108,8 +118,9 @@ impl Session {
     /// installed before returning. If there is no active pinned project, this
     /// produces the user version, which may be `None`.
     pub fn current_node(&mut self) -> Fallible<Option<Version>> {
-        if let Some(ref project) = self.project {
-            let requirements = &project.manifest().node;
+        if self.in_pinned_project() {
+            let project = self.node_project.as_ref().unwrap();
+            let requirements = &project.manifest().node();
             let catalog = self.catalog.get_mut()?;
             let available = catalog.node.resolve_local(&requirements);
 
@@ -160,7 +171,7 @@ impl Session {
     /// Updates toolchain in package.json with the Node version matching the specified semantic
     /// versioning requirements.
     pub fn pin_node_version(&self, matching: &VersionReq) -> Fallible<bool> {
-        if let Some(ref project) = self.project {
+        if let Some(ref project) = self.node_project() {
             let node_version = self.get_matching_node(matching)?;
             project.pin_node_in_toolchain(node_version)?;
         }
@@ -176,8 +187,9 @@ impl Session {
     /// installed before returning. If there is no active pinned project, this
     /// produces the user version, which may be `None`.
     pub fn current_yarn(&mut self) -> Fallible<Option<Version>> {
-        if let Some(ref project) = self.project {
-            let requirements = &project.manifest().yarn.clone().unwrap();
+        if self.in_pinned_project() {
+            let project = self.node_project.as_ref().unwrap();
+            let requirements = &project.manifest().yarn().clone().unwrap();
             let catalog = self.catalog.get_mut()?;
             let available = catalog.yarn.resolve_local(&requirements);
 
@@ -220,7 +232,7 @@ impl Session {
     /// Updates toolchain in package.json with the Yarn version matching the specified semantic
     /// versioning requirements.
     pub fn pin_yarn_version(&self, matching: &VersionReq) -> Fallible<bool> {
-        if let Some(ref project) = self.project {
+        if let Some(ref project) = self.node_project() {
             let yarn_version = self.get_matching_yarn(matching)?;
             project.pin_yarn_in_toolchain(yarn_version)?;
         }

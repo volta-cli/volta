@@ -99,17 +99,13 @@ Options:
 }
 
 fn project_node_version(session: &Session) -> Fallible<Option<String>> {
-    let project = session.project();
-    let project = match project {
-        Some(ref project) => project,
-        None => {
-            return Ok(None);
-        }
-    };
-
-    let req = &project.manifest().node;
-    let catalog = session.catalog()?;
-    Ok(catalog.node.resolve_local(&req).map(|v| v.to_string()))
+    if session.in_pinned_project() {
+        let project = session.node_project().unwrap();
+        let req = &project.manifest().node();
+        let catalog = session.catalog()?;
+        return Ok(catalog.node.resolve_local(&req).map(|v| v.to_string()));
+    }
+    Ok(None)
 }
 
 fn user_node_version(session: &Session) -> Fallible<Option<String>> {

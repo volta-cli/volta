@@ -151,7 +151,7 @@ fn resolve_shim(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
 }
 
 fn available_node_version(project: &Project, session: &Session) -> Fallible<Option<Version>> {
-    let requirements = &project.manifest().node;
+    let requirements = &project.manifest().node();
     let catalog = session.catalog()?;
     Ok(catalog.node.resolve_local(&requirements))
 }
@@ -159,8 +159,9 @@ fn available_node_version(project: &Project, session: &Session) -> Fallible<Opti
 // figure out which version of Node is installed or configured,
 // or which version will be installed if it's not pinned by the project
 fn resolve_node_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
-    if let Some(project) = session.project() {
-        let requirements = &project.manifest().node;
+    if session.in_pinned_project() {
+        let project = session.node_project().unwrap();
+        let requirements = &project.manifest().node();
         if let Some(available) = available_node_version(&project, &session)? {
             // Node is pinned by the project - this shim will use that version
             let mut bin_path = path::node_version_bin_dir(&available.to_string()).unknown()?;
@@ -181,8 +182,9 @@ fn resolve_node_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind
 }
 
 fn resolve_yarn_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
-    if let Some(project) = session.project() {
-        if let Some(requirements) = &project.manifest().yarn {
+    if session.in_pinned_project() {
+        let project = session.node_project().unwrap();
+        if let Some(requirements) = &project.manifest().yarn() {
             let catalog = session.catalog()?;
             if let Some(available) = catalog.yarn.resolve_local(&requirements) {
                 // Yarn is pinned by the project - this shim will use that version
@@ -209,7 +211,8 @@ fn resolve_npx_shims(_session: &Session, _shim_name: &OsStr) -> Fallible<ShimKin
 }
 
 fn resolve_3p_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
-    if let Some(project) = session.project() {
+    if session.in_pinned_project() {
+        let project = session.node_project().unwrap();
         // if this is a local executable, get the path to that
         if project.has_direct_bin(shim_name)? {
             let mut path_to_bin = project.local_bin_dir();
