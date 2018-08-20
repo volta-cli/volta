@@ -13,8 +13,7 @@ use std::fmt::{self, Display, Formatter};
 use std::process::exit;
 
 use event::EventLog;
-use notion_fail::NotionFail;
-use notion_fail::{Fallible, NotionError, ResultExt};
+use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
 use semver::{Version, VersionReq};
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]

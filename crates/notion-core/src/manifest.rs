@@ -2,11 +2,13 @@
 
 use std::collections::HashMap;
 use std::fs::File;
-use std::path::Path;
-use std::path::PathBuf;
+use std::io::Read;
+use std::path::{Path, PathBuf};
 
+use detect_indent;
 use notion_fail::{Fallible, ResultExt};
 use semver::VersionReq;
+use serde::Serialize;
 use serde_json;
 
 use serial;
@@ -82,15 +84,25 @@ impl Manifest {
         // parse the entire package.json file into a Value
         let file = File::open(&package_file).unknown()?;
         let mut v: serde_json::Value = serde_json::from_reader(file).unknown()?;
+
+        // detect indentation in package.json
+        let mut contents = String::new();
+        let mut indent_file = File::open(&package_file).unknown()?;
+        indent_file.read_to_string(&mut contents).unknown()?;
+        let indent = detect_indent::detect_indent(&contents);
+
         if let Some(map) = v.as_object_mut() {
             // update the "toolchain" key
             let toolchain_value = serde_json::to_value(toolchain).unknown()?;
             map.insert("toolchain".to_string(), toolchain_value);
-            // write to file
+
+            // TODO: write to file
             let file = File::create(package_file).unknown()?;
-            serde_json::to_writer_pretty(file, map).unknown()?;
-            // TODO: detect indentation and use that
-            // (see https://play.rust-lang.org/?gist=009ef8f29aa6af44c26d32be5f3c9724)
+            let formatter =
+                serde_json::ser::PrettyFormatter::with_indent(indent.indent().as_bytes());
+            let mut ser = serde_json::Serializer::with_formatter(file, formatter);
+
+            map.serialize(&mut ser).unknown()?;
         }
         Ok(())
     }
