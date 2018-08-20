@@ -1,8 +1,8 @@
 //! Provides the `Installer` type, which represents a provisioned Node installer.
 
 use std::fs::{rename, File};
-use std::string::ToString;
 use std::path::PathBuf;
+use std::string::ToString;
 
 use super::{Distro, Fetched};
 use catalog::NodeCollection;

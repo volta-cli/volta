@@ -13,6 +13,7 @@ use std::fmt::{self, Display, Formatter};
 use std::process::exit;
 
 use event::EventLog;
+use notion_fail::NotionFail;
 use notion_fail::{Fallible, NotionError, ResultExt};
 use semver::{Version, VersionReq};
 
@@ -58,6 +59,25 @@ impl Display for ActivityKind {
     }
 }
 
+/// Thrown when the user tries to pin Node or Yarn versions outside of a package.
+#[derive(Fail, Debug)]
+#[fail(display = "Not in a node package")]
+pub(crate) struct NotInPackageError;
+
+impl NotInPackageError {
+    pub(crate) fn new() -> Self {
+        NotInPackageError
+    }
+}
+impl NotionFail for NotInPackageError {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        4
+    }
+}
+
 /// Represents the user's state during an execution of a Notion tool. The session
 /// encapsulates a number of aspects of the environment in which the tool was
 /// invoked, including:
@@ -68,7 +88,7 @@ impl Display for ActivityKind {
 pub struct Session {
     config: LazyConfig,
     catalog: LazyCatalog,
-    node_project: Option<Project>,
+    project: Option<Project>,
     event_log: EventLog,
 }
 
@@ -78,21 +98,19 @@ impl Session {
         Ok(Session {
             config: LazyConfig::new(),
             catalog: LazyCatalog::new(),
-            node_project: Project::for_current_dir()?,
+            project: Project::for_current_dir()?,
             event_log: EventLog::new()?,
         })
     }
 
     /// Produces a reference to the current Node project, if any.
-    // TODO: rename this back to project?
-    pub fn node_project(&self) -> Option<&Project> {
-        self.node_project.as_ref()
+    pub fn project(&self) -> Option<&Project> {
+        self.project.as_ref()
     }
 
-    // TODO: docs
-    /// Produces a reference to the current Node project if the project has a toolchain configured.
+    /// Returns if the current project has a pinned toolchain (at least Node is pinned).
     pub fn in_pinned_project(&self) -> bool {
-        if let Some(ref project) = self.node_project {
+        if let Some(ref project) = self.project {
             return project.is_pinned();
         }
         false
@@ -119,8 +137,8 @@ impl Session {
     /// produces the user version, which may be `None`.
     pub fn current_node(&mut self) -> Fallible<Option<Version>> {
         if self.in_pinned_project() {
-            let project = self.node_project.as_ref().unwrap();
-            let requirements = &project.manifest().node();
+            let project = self.project.as_ref().unwrap();
+            let requirements = &project.manifest().node().unwrap();
             let catalog = self.catalog.get_mut()?;
             let available = catalog.node.resolve_local(&requirements);
 
@@ -171,13 +189,11 @@ impl Session {
     /// Updates toolchain in package.json with the Node version matching the specified semantic
     /// versioning requirements.
     pub fn pin_node_version(&self, matching: &VersionReq) -> Fallible<bool> {
-        if let Some(ref project) = self.node_project() {
+        if let Some(ref project) = self.project() {
             let node_version = self.get_matching_node(matching)?;
             project.pin_node_in_toolchain(node_version)?;
-        }
-        else {
-            // TODO: throw error - not in project
-            unimplemented!("Not in a project");
+        } else {
+            throw!(NotInPackageError::new());
         }
         Ok(true)
     }
@@ -188,7 +204,7 @@ impl Session {
     /// produces the user version, which may be `None`.
     pub fn current_yarn(&mut self) -> Fallible<Option<Version>> {
         if self.in_pinned_project() {
-            let project = self.node_project.as_ref().unwrap();
+            let project = self.project.as_ref().unwrap();
             let requirements = &project.manifest().yarn().clone().unwrap();
             let catalog = self.catalog.get_mut()?;
             let available = catalog.yarn.resolve_local(&requirements);
@@ -232,13 +248,11 @@ impl Session {
     /// Updates toolchain in package.json with the Yarn version matching the specified semantic
     /// versioning requirements.
     pub fn pin_yarn_version(&self, matching: &VersionReq) -> Fallible<bool> {
-        if let Some(ref project) = self.node_project() {
+        if let Some(ref project) = self.project() {
             let yarn_version = self.get_matching_yarn(matching)?;
             project.pin_yarn_in_toolchain(yarn_version)?;
-        }
-        else {
-            // TODO: throw error - not in project
-            unimplemented!("Not in a project");
+        } else {
+            throw!(NotInPackageError::new());
         }
         Ok(true)
     }

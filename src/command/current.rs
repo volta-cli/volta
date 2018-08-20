@@ -100,8 +100,8 @@ Options:
 
 fn project_node_version(session: &Session) -> Fallible<Option<String>> {
     if session.in_pinned_project() {
-        let project = session.node_project().unwrap();
-        let req = &project.manifest().node();
+        let project = session.project().unwrap();
+        let req = &project.manifest().node().unwrap();
         let catalog = session.catalog()?;
         return Ok(catalog.node.resolve_local(&req).map(|v| v.to_string()));
     }

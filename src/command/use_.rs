@@ -20,16 +20,15 @@ pub(crate) struct Args {
 
 // error message for using tools that are not node|yarn
 #[derive(Fail, Debug)]
-#[fail(display = "pinning tool '{}' not yet implemented - for now you can manually edit package.json", name)]
+#[fail(display = "pinning tool '{}' not yet implemented - for now you can manually edit package.json",
+       name)]
 pub(crate) struct NoCustomUseError {
     pub(crate) name: String,
 }
 
 impl NoCustomUseError {
     pub(crate) fn new(name: String) -> Self {
-        NoCustomUseError {
-            name: name,
-        }
+        NoCustomUseError { name: name }
     }
 }
 
@@ -41,7 +40,6 @@ impl NotionFail for NoCustomUseError {
         4
     }
 }
-
 
 pub(crate) enum Use {
     Help,

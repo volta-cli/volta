@@ -72,6 +72,26 @@ impl NotionFail for DepPackageReadError {
     }
 }
 
+/// Thrown when a user tries to pin a Yarn version before pinning a Node version.
+#[derive(Fail, Debug)]
+#[fail(display = "There is no pinned node version for this project")]
+pub(crate) struct NoPinnedNodeVersion;
+
+impl NoPinnedNodeVersion {
+    pub(crate) fn new() -> Self {
+        NoPinnedNodeVersion
+    }
+}
+
+impl NotionFail for NoPinnedNodeVersion {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        4
+    }
+}
+
 /// A Node project tree in the filesystem.
 pub struct Project {
     manifest: Manifest,
@@ -139,7 +159,7 @@ impl Project {
     }
 
     /// Gets the names of all the direct dependencies of the current project
-    fn all_dependencies(&self) -> Fallible<Option<HashSet<String>>> {
+    fn all_dependencies(&self) -> Fallible<HashSet<String>> {
         let manifest = Manifest::for_dir(&self.project_root)?;
         let mut dependencies = HashSet::new();
         for (name, _version) in manifest.dependencies.iter() {
@@ -148,34 +168,32 @@ impl Project {
         for (name, _version) in manifest.dev_dependencies.iter() {
             dependencies.insert(name.clone());
         }
-        // TODO: this doesn't need the option now...
-        Ok(Some(dependencies))
+        Ok(dependencies)
     }
 
     /// Returns a mapping of the names to paths for all the binaries installed
     /// by direct dependencies of the current project.
     fn dependent_binaries(&self) -> Fallible<HashMap<String, String>> {
         let mut dependent_bins = HashMap::new();
-        if let Some(all_deps) = self.all_dependencies()? {
-            // convert dependency names to the path to each project
-            let all_dep_paths = all_deps
-                .iter()
-                .map(|dep_name| {
-                    let mut path_to_pkg = PathBuf::from(&self.project_root);
-                    path_to_pkg.push("node_modules");
-                    path_to_pkg.push(dep_name);
-                    path_to_pkg
-                })
-                .collect::<HashSet<PathBuf>>();
+        let all_deps = self.all_dependencies()?;
+        // convert dependency names to the path to each project
+        let all_dep_paths = all_deps
+            .iter()
+            .map(|dep_name| {
+                let mut path_to_pkg = PathBuf::from(&self.project_root);
+                path_to_pkg.push("node_modules");
+                path_to_pkg.push(dep_name);
+                path_to_pkg
+            })
+            .collect::<HashSet<PathBuf>>();
 
-            // use those project paths to get the "bin" info for each project
-            for pkg_path in all_dep_paths.iter() {
-                let pkg_info =
-                    PackageInfo::for_dir(&pkg_path).with_context(DepPackageReadError::from_error)?;
-                let bin_map = pkg_info.bin;
-                for (name, path) in bin_map.iter() {
-                    dependent_bins.insert(name.clone(), path.clone());
-                }
+        // use those project paths to get the "bin" info for each project
+        for pkg_path in all_dep_paths.iter() {
+            let pkg_info =
+                PackageInfo::for_dir(&pkg_path).with_context(DepPackageReadError::from_error)?;
+            let bin_map = pkg_info.bin;
+            for (name, path) in bin_map.iter() {
+                dependent_bins.insert(name.clone(), path.clone());
             }
         }
         Ok(dependent_bins)
@@ -183,9 +201,9 @@ impl Project {
 
     /// Writes the specified version of Node to the `toolchain.node` key in package.json.
     pub fn pin_node_in_toolchain(&self, node_version: Version) -> Fallible<()> {
-
         // update the toolchain node version
-        let toolchain = ToolchainManifest::new(node_version.to_string(), self.manifest().yarn_str().clone());
+        let toolchain =
+            ToolchainManifest::new(node_version.to_string(), self.manifest().yarn_str().clone());
         Manifest::update_toolchain(toolchain, self.package_file())?;
         println!("Pinned node to version {} in package.json", node_version);
         Ok(())
@@ -193,15 +211,14 @@ impl Project {
 
     /// Writes the specified version of Yarn to the `toolchain.yarn` key in package.json.
     pub fn pin_yarn_in_toolchain(&self, yarn_version: Version) -> Fallible<()> {
-
         // update the toolchain yarn version
         if let Some(node_str) = self.manifest().node_str() {
-            let toolchain = ToolchainManifest::new(node_str.clone(), Some(yarn_version.to_string()));
+            let toolchain =
+                ToolchainManifest::new(node_str.clone(), Some(yarn_version.to_string()));
             Manifest::update_toolchain(toolchain, self.package_file())?;
             println!("Pinned yarn to version {} in package.json", yarn_version);
         } else {
-            // TODO - make an error for this
-            unimplemented!("must specifiy a node version before pinning yarn");
+            throw!(NoPinnedNodeVersion::new());
         }
         Ok(())
     }
@@ -242,7 +259,7 @@ pub mod tests {
         expected_deps.insert("rsvp".to_string());
         expected_deps.insert("@namespaced/something-else".to_string());
         expected_deps.insert("eslint".to_string());
-        assert_eq!(all_deps, Some(expected_deps));
+        assert_eq!(all_deps, expected_deps);
     }
 
     #[test]

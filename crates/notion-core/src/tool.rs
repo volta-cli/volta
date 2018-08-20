@@ -198,7 +198,7 @@ impl Tool for Binary {
 
         if session.in_pinned_project() {
             // we are in a pinned Node project
-            let project = session.node_project().unwrap();
+            let project = session.project().unwrap();
 
             // if this project has this as a local executable, use that
             if project.has_direct_bin(&exe)? {

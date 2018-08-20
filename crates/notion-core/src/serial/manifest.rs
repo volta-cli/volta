@@ -30,7 +30,6 @@ pub struct ToolchainManifest {
 }
 
 impl Manifest {
-    // TODO - docs
     pub fn into_manifest(self) -> Fallible<manifest::Manifest> {
         Ok(manifest::Manifest {
             toolchain: self.into_toolchain_manifest()?,
@@ -39,7 +38,6 @@ impl Manifest {
         })
     }
 
-    // TODO - docs
     pub fn into_toolchain_manifest(&self) -> Fallible<Option<manifest::ToolchainManifest>> {
         if let Some(toolchain) = &self.toolchain {
             return Ok(Some(manifest::ToolchainManifest {

@@ -42,34 +42,43 @@ impl Manifest {
         serial.into_manifest()
     }
 
-    // TODO: docs
+    /// Returns whether this manifest contains a toolchain section (at least Node is pinned).
     pub fn has_toolchain(&self) -> bool {
         self.toolchain.is_some()
     }
 
-    // TODO: docs
-    // this will panic if there is no node - always check pinned_project
-    pub fn node(&self) -> VersionReq {
-        self.toolchain.as_ref().unwrap().node.clone()
+    /// Returns the pinned version of Node as a VersionReq, if any.
+    pub fn node(&self) -> Option<VersionReq> {
+        self.toolchain.as_ref().map(|t| t.node.clone())
     }
 
-    // TODO: docs
+    /// Returns the pinned verison of Node as a String, if any.
     pub fn node_str(&self) -> Option<String> {
         self.toolchain.as_ref().map(|t| t.node_str.clone())
     }
 
-    // TODO: docs
+    /// Returns the pinned verison of Yarn as a VersionReq, if any.
     pub fn yarn(&self) -> Option<VersionReq> {
-        self.toolchain.as_ref().map(|t| t.yarn.clone()).unwrap_or(None)
+        self.toolchain
+            .as_ref()
+            .map(|t| t.yarn.clone())
+            .unwrap_or(None)
     }
 
-    // TODO: docs
+    /// Returns the pinned verison of Yarn as a String, if any.
     pub fn yarn_str(&self) -> Option<String> {
-        self.toolchain.as_ref().map(|t| t.yarn_str.clone()).unwrap_or(None)
+        self.toolchain
+            .as_ref()
+            .map(|t| t.yarn_str.clone())
+            .unwrap_or(None)
     }
 
-    // TODO - docs
-    pub fn update_toolchain(toolchain: serial::manifest::ToolchainManifest, package_file: PathBuf) -> Fallible<()> {
+    /// Writes the input ToolchainManifest to package.json, adding the "toolchain" key if
+    /// necessary.
+    pub fn update_toolchain(
+        toolchain: serial::manifest::ToolchainManifest,
+        package_file: PathBuf,
+    ) -> Fallible<()> {
         // parse the entire package.json file into a Value
         let file = File::open(&package_file).unknown()?;
         let mut v: serde_json::Value = serde_json::from_reader(file).unknown()?;
@@ -108,7 +117,7 @@ pub mod tests {
     fn gets_node_version() {
         let project_path = fixture_path("basic");
         let version = match Manifest::for_dir(&project_path) {
-            Ok(manifest) => manifest.unwrap().node,
+            Ok(manifest) => manifest.node().unwrap(),
             _ => panic!(
                 "Error: Could not get manifest for project {:?}",
                 project_path
@@ -121,7 +130,7 @@ pub mod tests {
     fn gets_yarn_version() {
         let project_path = fixture_path("basic");
         let version = match Manifest::for_dir(&project_path) {
-            Ok(manifest) => manifest.unwrap().yarn,
+            Ok(manifest) => manifest.yarn(),
             _ => panic!(
                 "Error: Could not get manifest for project {:?}",
                 project_path
@@ -134,7 +143,7 @@ pub mod tests {
     fn gets_dependencies() {
         let project_path = fixture_path("basic");
         let dependencies = match Manifest::for_dir(&project_path) {
-            Ok(manifest) => manifest.unwrap().dependencies,
+            Ok(manifest) => manifest.dependencies,
             _ => panic!(
                 "Error: Could not get manifest for project {:?}",
                 project_path
@@ -150,7 +159,7 @@ pub mod tests {
     fn gets_dev_dependencies() {
         let project_path = fixture_path("basic");
         let dev_dependencies = match Manifest::for_dir(&project_path) {
-            Ok(manifest) => manifest.unwrap().dev_dependencies,
+            Ok(manifest) => manifest.dev_dependencies,
             _ => panic!(
                 "Error: Could not get manifest for project {:?}",
                 project_path
@@ -164,4 +173,31 @@ pub mod tests {
         expected_deps.insert("eslint".to_string(), "~4.8.0".to_string());
         assert_eq!(dev_dependencies, expected_deps);
     }
+
+    #[test]
+    fn node_for_no_toolchain() {
+        let project_path = fixture_path("no_toolchain");
+        let manifest = match Manifest::for_dir(&project_path) {
+            Ok(manifest) => manifest,
+            _ => panic!(
+                "Error: Could not get manifest for project {:?}",
+                project_path
+            ),
+        };
+        assert_eq!(manifest.node(), None);
+    }
+
+    #[test]
+    fn yarn_for_no_toolchain() {
+        let project_path = fixture_path("no_toolchain");
+        let manifest = match Manifest::for_dir(&project_path) {
+            Ok(manifest) => manifest,
+            _ => panic!(
+                "Error: Could not get manifest for project {:?}",
+                project_path
+            ),
+        };
+        assert_eq!(manifest.yarn(), None);
+    }
+
 }
