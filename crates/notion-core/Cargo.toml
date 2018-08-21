@@ -12,7 +12,7 @@ term_size = "0.3.0"
 indicatif = "0.9.0"
 console = "0.6.1"
 readext = "0.1.0"
-serde_json = "1.0.3"
+serde_json = { version = "1.0.3", features = ["preserve_order"] }
 serde = "1.0.27"
 serde_derive = "1.0.27"
 node-archive = { path = "../node-archive" }
@@ -27,3 +27,4 @@ cfg-if = "0.1"
 winfolder = "0.1"
 tempfile = "3.0.2"
 os_info = "0.7.0"
+detect-indent = { "git" = "https://github.com/stefanpenner/detect-indent-rs", "branch" = "master" }

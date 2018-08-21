@@ -13,7 +13,7 @@ use std::fmt::{self, Display, Formatter};
 use std::process::exit;
 
 use event::EventLog;
-use notion_fail::{Fallible, NotionError, ResultExt};
+use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
 use semver::{Version, VersionReq};
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
@@ -58,6 +58,25 @@ impl Display for ActivityKind {
     }
 }
 
+/// Thrown when the user tries to pin Node or Yarn versions outside of a package.
+#[derive(Fail, Debug)]
+#[fail(display = "Not in a node package")]
+pub(crate) struct NotInPackageError;
+
+impl NotInPackageError {
+    pub(crate) fn new() -> Self {
+        NotInPackageError
+    }
+}
+impl NotionFail for NotInPackageError {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        4
+    }
+}
+
 /// Represents the user's state during an execution of a Notion tool. The session
 /// encapsulates a number of aspects of the environment in which the tool was
 /// invoked, including:
@@ -88,6 +107,14 @@ impl Session {
         self.project.as_ref()
     }
 
+    /// Returns if the current project has a pinned toolchain (at least Node is pinned).
+    pub fn in_pinned_project(&self) -> bool {
+        if let Some(ref project) = self.project {
+            return project.is_pinned();
+        }
+        false
+    }
+
     /// Produces a reference to the current tool catalog.
     pub fn catalog(&self) -> Fallible<&Catalog> {
         self.catalog.get()
@@ -108,8 +135,9 @@ impl Session {
     /// installed before returning. If there is no active pinned project, this
     /// produces the user version, which may be `None`.
     pub fn current_node(&mut self) -> Fallible<Option<Version>> {
-        if let Some(ref project) = self.project {
-            let requirements = &project.manifest().node;
+        if self.in_pinned_project() {
+            let project = self.project.as_ref().unwrap();
+            let requirements = &project.manifest().node().unwrap();
             let catalog = self.catalog.get_mut()?;
             let available = catalog.node.resolve_local(&requirements);
 
@@ -150,13 +178,33 @@ impl Session {
         catalog.set_default_node(matching, config)
     }
 
+    /// Returns the version of Node matching the specified semantic versioning requirements.
+    pub fn get_matching_node(&self, matching: &VersionReq) -> Fallible<Version> {
+        let catalog = self.catalog.get()?;
+        let config = self.config.get()?;
+        catalog.resolve_node(matching, config)
+    }
+
+    /// Updates toolchain in package.json with the Node version matching the specified semantic
+    /// versioning requirements.
+    pub fn pin_node_version(&self, matching: &VersionReq) -> Fallible<bool> {
+        if let Some(ref project) = self.project() {
+            let node_version = self.get_matching_node(matching)?;
+            project.pin_node_in_toolchain(node_version)?;
+        } else {
+            throw!(NotInPackageError::new());
+        }
+        Ok(true)
+    }
+
     /// Produces the version of Yarn for the current session. If there is an
     /// active pinned project, this will ensure that project's Yarn version is
     /// installed before returning. If there is no active pinned project, this
     /// produces the user version, which may be `None`.
     pub fn current_yarn(&mut self) -> Fallible<Option<Version>> {
-        if let Some(ref project) = self.project {
-            let requirements = &project.manifest().yarn.clone().unwrap();
+        if self.in_pinned_project() {
+            let project = self.project.as_ref().unwrap();
+            let requirements = &project.manifest().yarn().clone().unwrap();
             let catalog = self.catalog.get_mut()?;
             let available = catalog.yarn.resolve_local(&requirements);
 
@@ -187,6 +235,25 @@ impl Session {
         let catalog = self.catalog.get_mut()?;
         let config = self.config.get()?;
         catalog.set_default_yarn(matching, config)
+    }
+
+    /// Returns the version of Yarn matching the specified semantic versioning requirements
+    pub fn get_matching_yarn(&self, matching: &VersionReq) -> Fallible<Version> {
+        let catalog = self.catalog.get()?;
+        let config = self.config.get()?;
+        catalog.resolve_yarn(matching, config)
+    }
+
+    /// Updates toolchain in package.json with the Yarn version matching the specified semantic
+    /// versioning requirements.
+    pub fn pin_yarn_version(&self, matching: &VersionReq) -> Fallible<bool> {
+        if let Some(ref project) = self.project() {
+            let yarn_version = self.get_matching_yarn(matching)?;
+            project.pin_yarn_in_toolchain(yarn_version)?;
+        } else {
+            throw!(NotInPackageError::new());
+        }
+        Ok(true)
     }
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {

@@ -4,6 +4,7 @@
 
 extern crate cmdline_words_parser;
 extern crate console;
+extern crate detect_indent;
 extern crate indicatif;
 extern crate lazycell;
 extern crate node_archive;

@@ -126,6 +126,12 @@ impl Catalog {
         Ok(fetched)
     }
 
+    /// Resolves a Node version matching the specified semantic versioning requirements.
+    pub fn resolve_node(&self, matching: &VersionReq, config: &Config) -> Fallible<Version> {
+        let distro = self.node.resolve_remote(&matching, config.node.as_ref())?;
+        Ok(distro.version().clone())
+    }
+
     /// Uninstalls a specific Node version from the local catalog.
     pub fn uninstall_node(&mut self, version: &Version) -> Fallible<()> {
         if self.node.contains(version) {
@@ -174,6 +180,12 @@ impl Catalog {
         }
 
         Ok(fetched)
+    }
+
+    /// Resolves a Yarn version matching the specified semantic versioning requirements.
+    pub fn resolve_yarn(&self, matching: &VersionReq, config: &Config) -> Fallible<Version> {
+        let distro = self.yarn.resolve_remote(&matching, config.yarn.as_ref())?;
+        Ok(distro.version().clone())
     }
 
     /// Uninstalls a specific Yarn version from the local catalog.

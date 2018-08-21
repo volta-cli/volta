@@ -196,8 +196,9 @@ impl Tool for Binary {
         let exe = arg0(&mut args)?;
         let current_path = var_os("PATH").unwrap_or(OsString::new());
 
-        if let Some(project) = session.project() {
-            // we are in a Node project
+        if session.in_pinned_project() {
+            // we are in a pinned Node project
+            let project = session.project().unwrap();
 
             // if this project has this as a local executable, use that
             if project.has_direct_bin(&exe)? {

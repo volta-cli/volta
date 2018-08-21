@@ -25,24 +25,41 @@ pub struct Manifest {
 #[derive(Serialize, Deserialize)]
 pub struct ToolchainManifest {
     pub node: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub yarn: Option<String>,
 }
 
 impl Manifest {
-    pub fn into_manifest(self) -> Fallible<Option<manifest::Manifest>> {
-        if let Some(notion) = self.toolchain {
-            return Ok(Some(manifest::Manifest {
-                node: parse_requirements(&notion.node)?,
-                yarn: if let Some(yarn) = notion.yarn {
+    pub fn into_manifest(self) -> Fallible<manifest::Manifest> {
+        Ok(manifest::Manifest {
+            toolchain: self.into_toolchain_manifest()?,
+            dependencies: self.dependencies,
+            dev_dependencies: self.dev_dependencies,
+        })
+    }
+
+    pub fn into_toolchain_manifest(&self) -> Fallible<Option<manifest::ToolchainManifest>> {
+        if let Some(toolchain) = &self.toolchain {
+            return Ok(Some(manifest::ToolchainManifest {
+                node: parse_requirements(&toolchain.node)?,
+                node_str: toolchain.node.clone(),
+                yarn: if let Some(yarn) = &toolchain.yarn {
                     Some(parse_requirements(&yarn)?)
                 } else {
                     None
                 },
-                dependencies: self.dependencies,
-                dev_dependencies: self.dev_dependencies,
+                yarn_str: toolchain.yarn.clone(),
             }));
         }
-
         Ok(None)
+    }
+}
+
+impl ToolchainManifest {
+    pub fn new(node_version: String, yarn_version: Option<String>) -> Self {
+        ToolchainManifest {
+            node: node_version,
+            yarn: yarn_version,
+        }
     }
 }

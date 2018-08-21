@@ -11,6 +11,8 @@ use lazycell::LazyCell;
 use manifest::Manifest;
 use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
 use package_info::PackageInfo;
+use semver::Version;
+use serial::manifest::ToolchainManifest;
 
 fn is_node_root(dir: &Path) -> bool {
     dir.join("package.json").is_file()
@@ -70,6 +72,26 @@ impl NotionFail for DepPackageReadError {
     }
 }
 
+/// Thrown when a user tries to pin a Yarn version before pinning a Node version.
+#[derive(Fail, Debug)]
+#[fail(display = "There is no pinned node version for this project")]
+pub(crate) struct NoPinnedNodeVersion;
+
+impl NoPinnedNodeVersion {
+    pub(crate) fn new() -> Self {
+        NoPinnedNodeVersion
+    }
+}
+
+impl NotionFail for NoPinnedNodeVersion {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        4
+    }
+}
+
 /// A Node project tree in the filesystem.
 pub struct Project {
     manifest: Manifest,
@@ -97,23 +119,26 @@ impl Project {
             }
         }
 
-        let manifest = match Manifest::for_dir(&dir)? {
-            Some(manifest) => manifest,
-            None => {
-                return Ok(None);
-            }
-        };
-
         Ok(Some(Project {
-            manifest: manifest,
+            manifest: Manifest::for_dir(&dir)?,
             project_root: PathBuf::from(dir),
             dependent_bins: LazyDependentBins::new(),
         }))
     }
 
+    /// Returns true if the project manifest contains a toolchain.
+    pub fn is_pinned(&self) -> bool {
+        self.manifest.has_toolchain()
+    }
+
     /// Returns the project manifest (`package.json`) for this project.
     pub fn manifest(&self) -> &Manifest {
         &self.manifest
+    }
+
+    /// Returns the path to the `package.json` file for this project.
+    pub fn package_file(&self) -> PathBuf {
+        self.project_root.join("package.json")
     }
 
     /// Returns the path to the local binary directory for this project.
@@ -134,47 +159,68 @@ impl Project {
     }
 
     /// Gets the names of all the direct dependencies of the current project
-    fn all_dependencies(&self) -> Fallible<Option<HashSet<String>>> {
-        if let Some(manifest) = Manifest::for_dir(&self.project_root)? {
-            let mut dependencies = HashSet::new();
-            for (name, _version) in manifest.dependencies.iter() {
-                dependencies.insert(name.clone());
-            }
-            for (name, _version) in manifest.dev_dependencies.iter() {
-                dependencies.insert(name.clone());
-            }
-            return Ok(Some(dependencies));
+    fn all_dependencies(&self) -> Fallible<HashSet<String>> {
+        let manifest = Manifest::for_dir(&self.project_root)?;
+        let mut dependencies = HashSet::new();
+        for (name, _version) in manifest.dependencies.iter() {
+            dependencies.insert(name.clone());
         }
-        Ok(None)
+        for (name, _version) in manifest.dev_dependencies.iter() {
+            dependencies.insert(name.clone());
+        }
+        Ok(dependencies)
     }
 
     /// Returns a mapping of the names to paths for all the binaries installed
     /// by direct dependencies of the current project.
     fn dependent_binaries(&self) -> Fallible<HashMap<String, String>> {
         let mut dependent_bins = HashMap::new();
-        if let Some(all_deps) = self.all_dependencies()? {
-            // convert dependency names to the path to each project
-            let all_dep_paths = all_deps
-                .iter()
-                .map(|dep_name| {
-                    let mut path_to_pkg = PathBuf::from(&self.project_root);
-                    path_to_pkg.push("node_modules");
-                    path_to_pkg.push(dep_name);
-                    path_to_pkg
-                })
-                .collect::<HashSet<PathBuf>>();
+        let all_deps = self.all_dependencies()?;
+        // convert dependency names to the path to each project
+        let all_dep_paths = all_deps
+            .iter()
+            .map(|dep_name| {
+                let mut path_to_pkg = PathBuf::from(&self.project_root);
+                path_to_pkg.push("node_modules");
+                path_to_pkg.push(dep_name);
+                path_to_pkg
+            })
+            .collect::<HashSet<PathBuf>>();
 
-            // use those project paths to get the "bin" info for each project
-            for pkg_path in all_dep_paths.iter() {
-                let pkg_info =
-                    PackageInfo::for_dir(&pkg_path).with_context(DepPackageReadError::from_error)?;
-                let bin_map = pkg_info.bin;
-                for (name, path) in bin_map.iter() {
-                    dependent_bins.insert(name.clone(), path.clone());
-                }
+        // use those project paths to get the "bin" info for each project
+        for pkg_path in all_dep_paths.iter() {
+            let pkg_info =
+                PackageInfo::for_dir(&pkg_path).with_context(DepPackageReadError::from_error)?;
+            let bin_map = pkg_info.bin;
+            for (name, path) in bin_map.iter() {
+                dependent_bins.insert(name.clone(), path.clone());
             }
         }
         Ok(dependent_bins)
+    }
+
+    /// Writes the specified version of Node to the `toolchain.node` key in package.json.
+    pub fn pin_node_in_toolchain(&self, node_version: Version) -> Fallible<()> {
+        // update the toolchain node version
+        let toolchain =
+            ToolchainManifest::new(node_version.to_string(), self.manifest().yarn_str().clone());
+        Manifest::update_toolchain(toolchain, self.package_file())?;
+        println!("Pinned node to version {} in package.json", node_version);
+        Ok(())
+    }
+
+    /// Writes the specified version of Yarn to the `toolchain.yarn` key in package.json.
+    pub fn pin_yarn_in_toolchain(&self, yarn_version: Version) -> Fallible<()> {
+        // update the toolchain yarn version
+        if let Some(node_str) = self.manifest().node_str() {
+            let toolchain =
+                ToolchainManifest::new(node_str.clone(), Some(yarn_version.to_string()));
+            Manifest::update_toolchain(toolchain, self.package_file())?;
+            println!("Pinned yarn to version {} in package.json", yarn_version);
+        } else {
+            throw!(NoPinnedNodeVersion::new());
+        }
+        Ok(())
     }
 }
 
@@ -201,19 +247,13 @@ pub mod tests {
         let project_path = fixture_path("basic");
         let test_project = Project::for_dir(&project_path).unwrap().unwrap();
 
-        let all_deps = match test_project.all_dependencies() {
-            Ok(deps) => deps,
-            _ => panic!(
-                "Error: Could not get dependencies for project {:?}",
-                project_path
-            ),
-        };
+        let all_deps = test_project.all_dependencies().expect("Could not get dependencies");
         let mut expected_deps = HashSet::new();
         expected_deps.insert("@namespace/some-dep".to_string());
         expected_deps.insert("rsvp".to_string());
         expected_deps.insert("@namespaced/something-else".to_string());
         expected_deps.insert("eslint".to_string());
-        assert_eq!(all_deps, Some(expected_deps));
+        assert_eq!(all_deps, expected_deps);
     }
 
     #[test]
@@ -221,13 +261,7 @@ pub mod tests {
         let project_path = fixture_path("basic");
         let test_project = Project::for_dir(&project_path).unwrap().unwrap();
 
-        let dep_bins = match test_project.dependent_binaries() {
-            Ok(bin_map) => bin_map,
-            _ => panic!(
-                "Error: Could not get dependent binaries for project {:?}",
-                project_path
-            ),
-        };
+        let dep_bins = test_project.dependent_binaries().expect("Could not get dependent binaries");
         let mut expected_bins = HashMap::new();
         expected_bins.insert("eslint".to_string(), "./bin/eslint.js".to_string());
         expected_bins.insert("rsvp".to_string(), "./bin/rsvp.js".to_string());

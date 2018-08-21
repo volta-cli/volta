@@ -1,0 +1,14 @@
+{
+  "name": "basic-project",
+  "version": "0.0.7",
+  "description": "Testing that manifest pulls things out of this correctly",
+  "license": "To Kill",
+  "dependencies": {
+    "@namespace/some-dep": "0.2.4",
+    "rsvp": "^3.5.0"
+  },
+  "devDependencies": {
+    "@namespaced/something-else": "^6.3.7",
+    "eslint": "~4.8.0"
+  }
+}

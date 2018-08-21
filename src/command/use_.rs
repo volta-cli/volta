@@ -6,7 +6,7 @@ use semver::VersionReq;
 
 use notion_core::serial::version::parse_requirements;
 use notion_core::session::{ActivityKind, Session};
-use notion_fail::Fallible;
+use notion_fail::{Fallible, NotionFail};
 
 use Notion;
 use command::{Command, CommandName, Help};
@@ -15,6 +15,29 @@ use command::{Command, CommandName, Help};
 pub(crate) struct Args {
     arg_tool: String,
     arg_version: String,
+}
+
+// error message for using tools that are not node|yarn
+#[derive(Fail, Debug)]
+#[fail(display = "pinning tool '{}' not yet implemented - for now you can manually edit package.json",
+       name)]
+pub(crate) struct NoCustomUseError {
+    pub(crate) name: String,
+}
+
+impl NoCustomUseError {
+    pub(crate) fn new(name: String) -> Self {
+        NoCustomUseError { name: name }
+    }
+}
+
+impl NotionFail for NoCustomUseError {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        4
+    }
 }
 
 pub(crate) enum Use {
@@ -62,15 +85,13 @@ Options:
     fn run(self, session: &mut Session) -> Fallible<bool> {
         session.add_event_start(ActivityKind::Use);
         match self {
-            Use::Help => {
-                Help::Command(CommandName::Use).run(session)?;
-            }
-            Use::Node(_requirements) => unimplemented!(),
-            Use::Yarn(_requirements) => unimplemented!(),
+            Use::Help => Help::Command(CommandName::Use).run(session)?,
+            Use::Node(requirements) => session.pin_node_version(&requirements)?,
+            Use::Yarn(requirements) => session.pin_yarn_version(&requirements)?,
             Use::Other {
-                name: _,
+                name: _name,
                 version: _,
-            } => unimplemented!(),
+            } => throw!(NoCustomUseError::new(_name)),
         };
         session.add_event_end(ActivityKind::Use, 0);
         Ok(true)
