@@ -18,9 +18,10 @@ pub(crate) struct Args {
 }
 
 // error message for using tools that are not node|yarn
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "pinning tool '{}' not yet implemented - for now you can manually edit package.json",
        name)]
+#[notion_fail(code = "NotYetImplemented")]
 pub(crate) struct NoCustomUseError {
     pub(crate) name: String,
 }
@@ -30,8 +31,6 @@ impl NoCustomUseError {
         NoCustomUseError { name: name }
     }
 }
-
-impl_notion_fail!(NoCustomUseError, NotYetImplemented);
 
 pub(crate) enum Use {
     Help,

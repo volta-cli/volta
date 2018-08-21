@@ -2,8 +2,9 @@ use docopt;
 use failure::Context;
 use notion_fail::{ExitCode, NotionError, NotionFail};
 
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "{}", error)]
+#[notion_fail(code = "InvalidArguments")]
 pub(crate) struct CliParseError {
     pub(crate) usage: Option<String>,
     pub(crate) error: String,
@@ -24,8 +25,6 @@ impl CliParseError {
         }
     }
 }
-
-impl_notion_fail!(CliParseError, InvalidArguments);
 
 pub(crate) trait DocoptExt {
     fn is_help(&self) -> bool;
@@ -65,8 +64,9 @@ impl NotionErrorExt for NotionError {
     }
 }
 
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "command `{}` is not yet implemented", name)]
+#[notion_fail(code = "NotYetImplemented")]
 pub(crate) struct CommandUnimplementedError {
     pub(crate) name: String,
 }
@@ -78,5 +78,3 @@ impl CommandUnimplementedError {
         }
     }
 }
-
-impl_notion_fail!(CommandUnimplementedError, NotYetImplemented);

@@ -59,8 +59,9 @@ impl Display for ActivityKind {
 }
 
 /// Thrown when the user tries to pin Node or Yarn versions outside of a package.
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "Not in a node package")]
+#[notion_fail(code = "ConfigurationError")]
 pub(crate) struct NotInPackageError;
 
 impl NotInPackageError {
@@ -68,8 +69,6 @@ impl NotInPackageError {
         NotInPackageError
     }
 }
-
-impl_notion_fail!(NotInPackageError, ConfigurationError);
 
 /// Represents the user's state during an execution of a Notion tool. The session
 /// encapsulates a number of aspects of the environment in which the tool was

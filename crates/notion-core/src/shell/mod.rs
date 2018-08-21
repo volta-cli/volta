@@ -19,11 +19,10 @@ pub enum Postscript {
 }
 
 /// Thrown when the postscript file was not specified in the Notion environment.
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "Notion postscript file not specified")]
+#[notion_fail(code = "EnvironmentError")]
 struct UnspecifiedPostscriptError;
-
-impl_notion_fail!(UnspecifiedPostscriptError, EnvironmentError);
 
 pub trait Shell {
     fn postscript_path(&self) -> &Path;
@@ -41,11 +40,10 @@ pub trait Shell {
 pub struct CurrentShell(Box<dyn Shell>);
 
 /// Thrown when the shell name was not specified in the Notion environment.
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "Notion shell not specified")]
+#[notion_fail(code = "EnvironmentError")]
 struct UnspecifiedShellError;
-
-impl_notion_fail!(UnspecifiedShellError, EnvironmentError);
 
 impl CurrentShell {
     pub fn detect() -> Fallible<Self> {
@@ -71,13 +69,12 @@ impl Shell for CurrentShell {
 }
 
 /// Thrown when the shell name specified in the Notion environment is not supported.
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "Unrecognized command shell name: {}", name)]
+#[notion_fail(code = "EnvironmentError")]
 struct UnrecognizedShellError {
     name: String,
 }
-
-impl_notion_fail!(UnrecognizedShellError, EnvironmentError);
 
 impl FromStr for CurrentShell {
     type Err = NotionError;

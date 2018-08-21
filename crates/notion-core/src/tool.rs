@@ -21,8 +21,9 @@ fn display_error(err: &NotionError) {
     }
 }
 
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "{}", error)]
+#[notion_fail(code = "ExecutionFailure")]
 pub(crate) struct BinaryExecError {
     pub(crate) error: String,
 }
@@ -41,10 +42,9 @@ impl BinaryExecError {
     }
 }
 
-impl_notion_fail!(BinaryExecError, ExecutionFailure);
-
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "this tool is not yet implemented")]
+#[notion_fail(code = "ExecutableNotFound")]
 pub(crate) struct ToolUnimplementedError;
 
 impl ToolUnimplementedError {
@@ -52,8 +52,6 @@ impl ToolUnimplementedError {
         ToolUnimplementedError
     }
 }
-
-impl_notion_fail!(ToolUnimplementedError, ExecutableNotFound);
 
 /// Represents a command-line tool that Notion shims delegate to.
 pub trait Tool: Sized {
@@ -243,13 +241,12 @@ fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
     }
 }
 
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "No {} version selected", tool)]
+#[notion_fail(code = "NoVersionMatch")]
 struct NoGlobalError {
     tool: String,
 }
-
-impl_notion_fail!(NoGlobalError, NoVersionMatch);
 
 impl Tool for Node {
     fn new(session: &mut Session) -> Fallible<Self> {

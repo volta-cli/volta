@@ -1,8 +1,9 @@
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use semver::{ReqParseError, VersionReq};
 
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "{}", error)]
+#[notion_fail(code = "NoVersionMatch")]
 pub(crate) struct VersionParseError {
     pub(crate) error: ReqParseError,
 }
@@ -14,8 +15,6 @@ impl VersionParseError {
         }
     }
 }
-
-impl_notion_fail!(VersionParseError, NoVersionMatch);
 
 pub fn parse_requirements(src: &str) -> Fallible<VersionReq> {
     let src = src.trim();

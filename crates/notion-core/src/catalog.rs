@@ -212,22 +212,20 @@ impl Catalog {
 }
 
 /// Thrown when there is no Node version matching a requested semver specifier.
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "No Node version found for {}", matching)]
+#[notion_fail(code = "NoVersionMatch")]
 struct NoNodeVersionFoundError {
     matching: VersionReq,
 }
 
-impl_notion_fail!(NoNodeVersionFoundError, NoVersionMatch);
-
 /// Thrown when there is no Yarn version matching a requested semver specifier.
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "No Yarn version found for {}", matching)]
+#[notion_fail(code = "NoVersionMatch")]
 struct NoYarnVersionFoundError {
     matching: VersionReq,
 }
-
-impl_notion_fail!(NoYarnVersionFoundError, NoVersionMatch);
 
 impl<D: Distro> Collection<D> {
     /// Tests whether this Collection contains the specified Tool version.
@@ -263,8 +261,9 @@ pub trait Resolve<D: Distro> {
 }
 
 /// Thrown when the public registry for Node or Yarn could not be downloaded.
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "Could not fetch public registry\n{}", error)]
+#[notion_fail(code = "NetworkError")]
 pub(crate) struct RegistryFetchError {
     error: String,
 }
@@ -276,8 +275,6 @@ impl RegistryFetchError {
         }
     }
 }
-
-impl_notion_fail!(RegistryFetchError, NetworkError);
 
 impl Resolve<NodeDistro> for NodeCollection {
     fn resolve_public(&self, matching: &VersionReq) -> Fallible<NodeDistro> {

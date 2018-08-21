@@ -5,13 +5,12 @@ use std::{fs, io};
 use notion_fail::{ExitCode, FailExt, Fallible, NotionFail};
 use path;
 
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "{}", error)]
+#[notion_fail(code = "FileSystemError")]
 pub(crate) struct SymlinkError {
     error: String,
 }
-
-impl_notion_fail!(SymlinkError, FileSystemError);
 
 impl SymlinkError {
     pub(crate) fn from_io_error(error: &io::Error) -> Self {

@@ -48,8 +48,9 @@ impl LazyDependentBins {
     }
 }
 
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "Could not read dependent package info: {}", error)]
+#[notion_fail(code = "FileSystemError")]
 pub(crate) struct DepPackageReadError {
     pub(crate) error: String,
 }
@@ -62,11 +63,10 @@ impl DepPackageReadError {
     }
 }
 
-impl_notion_fail!(DepPackageReadError, FileSystemError);
-
 /// Thrown when a user tries to pin a Yarn version before pinning a Node version.
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "There is no pinned node version for this project")]
+#[notion_fail(code = "ConfigurationError")]
 pub(crate) struct NoPinnedNodeVersion;
 
 impl NoPinnedNodeVersion {
@@ -74,8 +74,6 @@ impl NoPinnedNodeVersion {
         NoPinnedNodeVersion
     }
 }
-
-impl_notion_fail!(NoPinnedNodeVersion, ConfigurationError);
 
 /// A Node project tree in the filesystem.
 pub struct Project {

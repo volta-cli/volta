@@ -89,12 +89,10 @@
 //! # extern crate failure;
 //! use notion_fail::{ExitCode, NotionFail};
 //!
-//! #[derive(Fail, Debug)]
+//! #[derive(Debug, Fail, NotionFail)]
 //! #[fail(display = "unexpected end of string")]
+//! #[notion_fail(code = "InvalidArguments")]
 //! struct UnexpectedEndOfString;
-//!
-//! // A shortcut for implementing NotionFail; defaults to user-friendly.
-//! impl_notion_fail!(UnexpectedEndOfString, InvalidArguments);
 //! ```
 //!
 //! # Throwing errors
@@ -111,11 +109,10 @@
 //! # #[macro_use] extern crate failure_derive;
 //! # extern crate failure;
 //! # use notion_fail::{ExitCode, Fallible, NotionFail};
-//! # #[derive(Fail, Debug)]
+//! # #[derive(Debug, Fail, NotionFail)]
 //! # #[fail(display = "unexpected end of string")]
+//! # #[notion_fail(code = "InvalidArguments")]
 //! # struct UnexpectedEndOfString;
-//! #
-//! # impl_notion_fail!(UnexpectedEndOfString, InvalidArguments);
 //! #
 //! fn parse_component(src: &str, i: usize) -> Fallible<u8> {
 //!     if i + 2 > src.len() {
@@ -150,11 +147,10 @@
 //! # use notion_fail::{ExitCode, Fallible, NotionFail};
 //! // add `unknown()` extension method to Results
 //! use notion_fail::ResultExt;
-//! # #[derive(Fail, Debug)]
+//! # #[derive(Debug, Fail, NotionFail)]
 //! # #[fail(display = "unexpected end of string")]
+//! # #[notion_fail(code = "InvalidArguments")]
 //! # struct UnexpectedEndOfString;
-//! #
-//! # impl_notion_fail!(UnexpectedEndOfString, InvalidArguments);
 //!
 //! fn parse_component(src: &str, i: usize) -> Fallible<u8> {
 //!     if i + 2 > src.len() {
@@ -198,11 +194,10 @@
 //! use notion_fail::ResultExt;
 //! # use std::fmt::Display;
 //!
-//! # #[derive(Fail, Debug)]
+//! # #[derive(Debug, Fail, NotionFail)]
 //! # #[fail(display = "unexpected end of string")]
+//! # #[notion_fail(code = "InvalidArguments")]
 //! # struct UnexpectedEndOfString;
-//! #
-//! # impl_notion_fail!(UnexpectedEndOfString, InvalidArguments);
 //! #
 //! # fn parse_component(src: &str, i: usize) -> Fallible<u8> {
 //! #     if i + 2 > src.len() {
@@ -213,11 +208,10 @@
 //! #     // convert the std::num::ParseIntError into a NotionError
 //! #     u8::from_str_radix(&src[i..i + 2], 16).unknown()
 //! # }
-//! #[derive(Fail, Debug)]
+//! #[derive(Debug, Fail, NotionFail)]
 //! #[fail(display = "invalid RGB string: ", details)]
+//! #[notion_fail(code = "InvalidArguments")]
 //! struct InvalidRgbString { details: String }
-//!
-//! impl_notion_fail!(InvalidRgbString, InvalidArguments);
 //!
 //! impl InvalidRgbString {
 //!     fn new<D: Display>(details: &D) -> InvalidRgbString {
@@ -243,6 +237,8 @@
 //! was being parsed and where it came from (say, the filename and line number).
 
 extern crate failure;
+#[macro_use]
+extern crate notion_fail_derive;
 
 use std::convert::{From, Into};
 use std::fmt::{self, Display};
@@ -301,32 +297,6 @@ pub trait NotionFail: Fail {
 
     /// Returns the process exit code that should be returned if the process exits with this error.
     fn exit_code(&self) -> ExitCode;
-}
-
-/// A typical implementation of NotionFail.
-#[macro_export]
-macro_rules! impl_notion_fail {
-    ($error_name: ident, $exit_code: ident) => (
-        impl NotionFail for $error_name {
-            fn is_user_friendly(&self) -> bool {
-                true
-            }
-            fn exit_code(&self) -> ExitCode {
-                $crate::ExitCode::$exit_code
-            }
-        }
-    );
-
-    ($error_name: ident, $is_friendly: expr, $exit_code: ident) => (
-        impl NotionFail for $error_name {
-            fn is_user_friendly(&self) -> bool {
-                $is_friendly
-            }
-            fn exit_code(&self) -> ExitCode {
-                $crate::ExitCode::$exit_code
-            }
-        }
-    );
 }
 
 /// The `NotionError` type, which can contain any Notion failure.
@@ -432,6 +402,8 @@ pub trait ResultExt<T, E> {
 }
 
 /// A wrapper type for unknown errors.
+#[derive(NotionFail)]
+#[notion_fail(code = "UnknownError", friendly = "false")]
 struct UnknownNotionError {
     error: failure::Error,
 }
@@ -463,8 +435,6 @@ impl Fail for UnknownNotionError {
         Some(self.error.backtrace())
     }
 }
-
-impl_notion_fail!(UnknownNotionError, false, UnknownError);
 
 impl<E: Into<failure::Error>> FailExt for E {
     fn unknown(self) -> NotionError {

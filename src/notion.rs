@@ -6,6 +6,8 @@ extern crate failure_derive;
 extern crate notion_core;
 #[macro_use]
 extern crate notion_fail;
+#[macro_use]
+extern crate notion_fail_derive;
 extern crate semver;
 extern crate serde;
 #[macro_use]

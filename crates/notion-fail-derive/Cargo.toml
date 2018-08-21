@@ -1,0 +1,12 @@
+[package]
+name = "notion-fail-derive"
+version = "0.1.0"
+authors = ["Ben Blank <ben.blank@gmail.com>"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "0.4.12"
+quote = "0.6.6"
+syn = "0.14.8"
