@@ -247,13 +247,7 @@ pub mod tests {
         let project_path = fixture_path("basic");
         let test_project = Project::for_dir(&project_path).unwrap().unwrap();
 
-        let all_deps = match test_project.all_dependencies() {
-            Ok(deps) => deps,
-            _ => panic!(
-                "Error: Could not get dependencies for project {:?}",
-                project_path
-            ),
-        };
+        let all_deps = test_project.all_dependencies().expect("Could not get dependencies");
         let mut expected_deps = HashSet::new();
         expected_deps.insert("@namespace/some-dep".to_string());
         expected_deps.insert("rsvp".to_string());
@@ -267,13 +261,7 @@ pub mod tests {
         let project_path = fixture_path("basic");
         let test_project = Project::for_dir(&project_path).unwrap().unwrap();
 
-        let dep_bins = match test_project.dependent_binaries() {
-            Ok(bin_map) => bin_map,
-            _ => panic!(
-                "Error: Could not get dependent binaries for project {:?}",
-                project_path
-            ),
-        };
+        let dep_bins = test_project.dependent_binaries().expect("Could not get dependent binaries");
         let mut expected_bins = HashMap::new();
         expected_bins.insert("eslint".to_string(), "./bin/eslint.js".to_string());
         expected_bins.insert("rsvp".to_string(), "./bin/rsvp.js".to_string());

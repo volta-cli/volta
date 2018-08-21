@@ -96,12 +96,11 @@ impl Manifest {
             let toolchain_value = serde_json::to_value(toolchain).unknown()?;
             map.insert("toolchain".to_string(), toolchain_value);
 
-            // TODO: write to file
+            // serialize the updated contents back to package.json
             let file = File::create(package_file).unknown()?;
             let formatter =
                 serde_json::ser::PrettyFormatter::with_indent(indent.indent().as_bytes());
             let mut ser = serde_json::Serializer::with_formatter(file, formatter);
-
             map.serialize(&mut ser).unknown()?;
         }
         Ok(())
@@ -128,39 +127,21 @@ pub mod tests {
     #[test]
     fn gets_node_version() {
         let project_path = fixture_path("basic");
-        let version = match Manifest::for_dir(&project_path) {
-            Ok(manifest) => manifest.node().unwrap(),
-            _ => panic!(
-                "Error: Could not get manifest for project {:?}",
-                project_path
-            ),
-        };
+        let version = Manifest::for_dir(&project_path).expect("Could not get manifest").node().unwrap();
         assert_eq!(version, VersionReq::parse("=6.11.1").unwrap());
     }
 
     #[test]
     fn gets_yarn_version() {
         let project_path = fixture_path("basic");
-        let version = match Manifest::for_dir(&project_path) {
-            Ok(manifest) => manifest.yarn(),
-            _ => panic!(
-                "Error: Could not get manifest for project {:?}",
-                project_path
-            ),
-        };
+        let version = Manifest::for_dir(&project_path).expect("Could not get manifest").yarn();
         assert_eq!(version.unwrap(), VersionReq::parse("=1.2").unwrap());
     }
 
     #[test]
     fn gets_dependencies() {
         let project_path = fixture_path("basic");
-        let dependencies = match Manifest::for_dir(&project_path) {
-            Ok(manifest) => manifest.dependencies,
-            _ => panic!(
-                "Error: Could not get manifest for project {:?}",
-                project_path
-            ),
-        };
+        let dependencies = Manifest::for_dir(&project_path).expect("Could not get manifest").dependencies;
         let mut expected_deps = HashMap::new();
         expected_deps.insert("@namespace/some-dep".to_string(), "0.2.4".to_string());
         expected_deps.insert("rsvp".to_string(), "^3.5.0".to_string());
@@ -170,13 +151,7 @@ pub mod tests {
     #[test]
     fn gets_dev_dependencies() {
         let project_path = fixture_path("basic");
-        let dev_dependencies = match Manifest::for_dir(&project_path) {
-            Ok(manifest) => manifest.dev_dependencies,
-            _ => panic!(
-                "Error: Could not get manifest for project {:?}",
-                project_path
-            ),
-        };
+        let dev_dependencies = Manifest::for_dir(&project_path).expect("Could not get manifest").dev_dependencies;
         let mut expected_deps = HashMap::new();
         expected_deps.insert(
             "@namespaced/something-else".to_string(),
@@ -189,26 +164,14 @@ pub mod tests {
     #[test]
     fn node_for_no_toolchain() {
         let project_path = fixture_path("no_toolchain");
-        let manifest = match Manifest::for_dir(&project_path) {
-            Ok(manifest) => manifest,
-            _ => panic!(
-                "Error: Could not get manifest for project {:?}",
-                project_path
-            ),
-        };
+        let manifest = Manifest::for_dir(&project_path).expect("Could not get manifest");
         assert_eq!(manifest.node(), None);
     }
 
     #[test]
     fn yarn_for_no_toolchain() {
         let project_path = fixture_path("no_toolchain");
-        let manifest = match Manifest::for_dir(&project_path) {
-            Ok(manifest) => manifest,
-            _ => panic!(
-                "Error: Could not get manifest for project {:?}",
-                project_path
-            ),
-        };
+        let manifest = Manifest::for_dir(&project_path).expect("Could not get manifest");
         assert_eq!(manifest.yarn(), None);
     }
 
