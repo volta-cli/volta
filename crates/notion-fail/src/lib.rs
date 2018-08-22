@@ -106,6 +106,7 @@
 //!
 //! ```
 //! # #[macro_use] extern crate notion_fail;
+//! # #[macro_use] extern crate notion_fail_derive;
 //! # #[macro_use] extern crate failure_derive;
 //! # extern crate failure;
 //! # use notion_fail::{ExitCode, Fallible, NotionFail};
@@ -142,6 +143,7 @@
 //!
 //! ```
 //! # #[macro_use] extern crate notion_fail;
+//! # #[macro_use] extern crate notion_fail_derive;
 //! # #[macro_use] extern crate failure_derive;
 //! # extern crate failure;
 //! # use notion_fail::{ExitCode, Fallible, NotionFail};
