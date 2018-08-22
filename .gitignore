@@ -6,3 +6,5 @@ dev/windows/Notion.wixobj
 dev/windows/Notion.wixpdb
 dev/unix/install.sh
 /.idea/
+/rls/
+/rls*
