@@ -2,16 +2,39 @@
 
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::Read;
+use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
 use detect_indent;
-use notion_fail::{Fallible, ResultExt};
+use notion_fail::{Fallible, NotionFail, ResultExt};
 use semver::VersionReq;
 use serde::Serialize;
 use serde_json;
 
 use serial;
+
+#[derive(Fail, Debug)]
+#[fail(display = "Could not read package info: {}", error)]
+pub(crate) struct PackageReadError {
+    pub(crate) error: String,
+}
+
+impl PackageReadError {
+    pub(crate) fn from_io_error(error: &io::Error) -> Self {
+        PackageReadError {
+            error: error.to_string(),
+        }
+    }
+}
+
+impl NotionFail for PackageReadError {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+    fn exit_code(&self) -> i32 {
+        4
+    }
+}
 
 /// A toolchain manifest.
 pub struct ToolchainManifest {
@@ -33,13 +56,15 @@ pub struct Manifest {
     pub dependencies: HashMap<String, String>,
     /// The `devDependencies` section.
     pub dev_dependencies: HashMap<String, String>,
+    /// The `bin` section, containing a map of binary names to locations
+    pub bin: HashMap<String, String>,
 }
 
 impl Manifest {
     /// Loads and parses a Node manifest for the project rooted at the specified path.
     pub fn for_dir(project_root: &Path) -> Fallible<Manifest> {
-        // if package.json doesn't exist, this fails, OK
-        let file = File::open(project_root.join("package.json")).unknown()?;
+        let file = File::open(project_root.join("package.json"))
+            .with_context(PackageReadError::from_io_error)?;
         let serial: serial::manifest::Manifest = serde_json::de::from_reader(file).unknown()?;
         serial.into_manifest()
     }
@@ -127,21 +152,28 @@ pub mod tests {
     #[test]
     fn gets_node_version() {
         let project_path = fixture_path("basic");
-        let version = Manifest::for_dir(&project_path).expect("Could not get manifest").node().unwrap();
+        let version = Manifest::for_dir(&project_path)
+            .expect("Could not get manifest")
+            .node()
+            .unwrap();
         assert_eq!(version, VersionReq::parse("=6.11.1").unwrap());
     }
 
     #[test]
     fn gets_yarn_version() {
         let project_path = fixture_path("basic");
-        let version = Manifest::for_dir(&project_path).expect("Could not get manifest").yarn();
+        let version = Manifest::for_dir(&project_path)
+            .expect("Could not get manifest")
+            .yarn();
         assert_eq!(version.unwrap(), VersionReq::parse("=1.2").unwrap());
     }
 
     #[test]
     fn gets_dependencies() {
         let project_path = fixture_path("basic");
-        let dependencies = Manifest::for_dir(&project_path).expect("Could not get manifest").dependencies;
+        let dependencies = Manifest::for_dir(&project_path)
+            .expect("Could not get manifest")
+            .dependencies;
         let mut expected_deps = HashMap::new();
         expected_deps.insert("@namespace/some-dep".to_string(), "0.2.4".to_string());
         expected_deps.insert("rsvp".to_string(), "^3.5.0".to_string());
@@ -151,7 +183,9 @@ pub mod tests {
     #[test]
     fn gets_dev_dependencies() {
         let project_path = fixture_path("basic");
-        let dev_dependencies = Manifest::for_dir(&project_path).expect("Could not get manifest").dev_dependencies;
+        let dev_dependencies = Manifest::for_dir(&project_path)
+            .expect("Could not get manifest")
+            .dev_dependencies;
         let mut expected_deps = HashMap::new();
         expected_deps.insert(
             "@namespaced/something-else".to_string(),
@@ -175,4 +209,47 @@ pub mod tests {
         assert_eq!(manifest.yarn(), None);
     }
 
+    #[test]
+    fn gets_bin_map_format() {
+        let project_path = fixture_path("basic/node_modules/eslint");
+        let bin = Manifest::for_dir(&project_path)
+            .expect("Could not get manifest")
+            .bin;
+        let mut expected_bin = HashMap::new();
+        expected_bin.insert("eslint".to_string(), "./bin/eslint.js".to_string());
+        assert_eq!(bin, expected_bin);
+    }
+
+    #[test]
+    fn gets_multiple_bins() {
+        let project_path = fixture_path("basic/node_modules/typescript");
+        let bin = Manifest::for_dir(&project_path)
+            .expect("Could not get manifest")
+            .bin;
+        let mut expected_bin = HashMap::new();
+        expected_bin.insert("tsc".to_string(), "./bin/tsc".to_string());
+        expected_bin.insert("tsserver".to_string(), "./bin/tsserver".to_string());
+        assert_eq!(bin, expected_bin);
+    }
+
+    #[test]
+    fn gets_bin_string_format() {
+        let project_path = fixture_path("basic/node_modules/rsvp");
+        let bin = Manifest::for_dir(&project_path)
+            .expect("Could not get manifest")
+            .bin;
+        let mut expected_bin = HashMap::new();
+        expected_bin.insert("rsvp".to_string(), "./bin/rsvp.js".to_string());
+        assert_eq!(bin, expected_bin);
+    }
+
+    #[test]
+    fn handles_dep_with_no_bin() {
+        let project_path = fixture_path("basic/node_modules/@namespace/some-dep");
+        let bin = Manifest::for_dir(&project_path)
+            .expect("Could not get manifest")
+            .bin;
+        let expected_bin = HashMap::new();
+        assert_eq!(bin, expected_bin);
+    }
 }
