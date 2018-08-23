@@ -204,18 +204,20 @@ impl Session {
     pub fn current_yarn(&mut self) -> Fallible<Option<Version>> {
         if self.in_pinned_project() {
             let project = self.project.as_ref().unwrap();
-            let requirements = &project.manifest().yarn().clone().unwrap();
-            let catalog = self.catalog.get_mut()?;
-            let available = catalog.yarn.resolve_local(&requirements);
+            // pinning yarn is optional
+            if let Some(requirements) = &project.manifest().yarn().clone() {
+                let catalog = self.catalog.get_mut()?;
+                let available = catalog.yarn.resolve_local(&requirements);
 
-            if available.is_some() {
-                return Ok(available);
+                if available.is_some() {
+                    return Ok(available);
+                }
+
+                let config = self.config.get()?;
+                let fetched = catalog.fetch_yarn(&requirements, config)?;
+
+                return Ok(Some(fetched.into_version()));
             }
-
-            let config = self.config.get()?;
-            let fetched = catalog.fetch_yarn(&requirements, config)?;
-
-            return Ok(Some(fetched.into_version()));
         }
 
         Ok(self.catalog()?.yarn.default.clone())
