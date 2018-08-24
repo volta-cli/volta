@@ -264,7 +264,7 @@ impl Session {
         self.event_log.add_event_error(activity_kind, error)
     }
 
-    fn publish_plugin(mut self) {
+    fn publish_to_event_log(mut self) {
         match publish_plugin(&self.config) {
             Ok(plugin) => {
                 self.event_log.publish(plugin);
@@ -276,12 +276,12 @@ impl Session {
     }
 
     pub fn exit(self, code: ExitCode) -> ! {
-        self.publish_plugin();
+        self.publish_to_event_log();
         code.exit();
     }
 
     pub fn exit_tool(self, code: i32) -> ! {
-        self.publish_plugin();
+        self.publish_to_event_log();
         exit(code);
     }
 }
