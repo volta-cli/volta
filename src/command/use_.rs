@@ -74,7 +74,7 @@ Options:
         }
     }
 
-    fn run(self, session: &mut Session) -> Fallible<bool> {
+    fn run(self, session: &mut Session) -> Fallible<()> {
         session.add_event_start(ActivityKind::Use);
         match self {
             Use::Help => Help::Command(CommandName::Use).run(session)?,
@@ -86,6 +86,6 @@ Options:
             } => throw!(NoCustomUseError::new(_name)),
         };
         session.add_event_end(ActivityKind::Use, ExitCode::Success);
-        Ok(true)
+        Ok(())
     }
 }

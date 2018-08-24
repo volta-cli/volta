@@ -103,11 +103,11 @@ pub(crate) trait Command: Sized {
     /// Executes the command. Returns `Ok(true)` if the process should return 0,
     /// `Ok(false)` if the process should return 1, and `Err(e)` if the process
     /// should return `e.exit_code()`.
-    fn run(self, session: &mut Session) -> Fallible<bool>;
+    fn run(self, session: &mut Session) -> Fallible<()>;
 
     /// Top-level convenience method for taking a Notion invocation and executing
     /// this command with the arguments taken from the Notion invocation.
-    fn go(notion: Notion, session: &mut Session) -> Fallible<bool> {
+    fn go(notion: Notion, session: &mut Session) -> Fallible<()> {
         let argv = notion.full_argv();
         let args = Docopt::new(Self::USAGE).and_then(|d| d.argv(argv).deserialize());
 

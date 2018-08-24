@@ -49,7 +49,7 @@ Options:
         })
     }
 
-    fn run(self, session: &mut Session) -> Fallible<bool> {
+    fn run(self, session: &mut Session) -> Fallible<()> {
         session.add_event_start(ActivityKind::Help);
         eprintln!(
             "{}",
@@ -67,6 +67,6 @@ Options:
             }
         );
         session.add_event_end(ActivityKind::Help, ExitCode::Success);
-        Ok(true)
+        Ok(())
     }
 }

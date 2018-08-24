@@ -36,7 +36,7 @@ Options:
         Ok(Deactivate::Deactivate)
     }
 
-    fn run(self, session: &mut Session) -> Fallible<bool> {
+    fn run(self, session: &mut Session) -> Fallible<()> {
         session.add_event_start(ActivityKind::Deactivate);
         match self {
             Deactivate::Help => {
@@ -54,6 +54,6 @@ Options:
             }
         };
         session.add_event_end(ActivityKind::Deactivate, ExitCode::Success);
-        Ok(true)
+        Ok(())
     }
 }

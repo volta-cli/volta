@@ -85,7 +85,7 @@ See 'notion help <command>' for more information on a specific command.
         argv
     }
 
-    fn go(session: &mut Session) -> Fallible<bool> {
+    fn go(session: &mut Session) -> Fallible<()> {
         Self::parse()?.run(session)
     }
 
@@ -170,7 +170,7 @@ See 'notion help <command>' for more information on a specific command.
         })
     }
 
-    fn run(self, session: &mut Session) -> Fallible<bool> {
+    fn run(self, session: &mut Session) -> Fallible<()> {
         match self.command {
             CommandName::Fetch => Fetch::go(self, session),
             CommandName::Install => Install::go(self, session),
@@ -211,8 +211,7 @@ pub fn main() {
     session.add_event_start(ActivityKind::Notion);
 
     let exit_code = match Notion::go(&mut session) {
-        Ok(true) => ExitCode::Success,
-        Ok(false) => ExitCode::UnknownError,
+        Ok(_) => ExitCode::Success,
         Err(err) => {
             display_error_and_usage(&err);
             session.add_event_error(ActivityKind::Notion, &err);

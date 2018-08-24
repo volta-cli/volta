@@ -34,16 +34,15 @@ Options:
         Ok(Version::Default)
     }
 
-    fn run(self, session: &mut Session) -> Fallible<bool> {
+    fn run(self, session: &mut Session) -> Fallible<()> {
         session.add_event_start(ActivityKind::Version);
-        let result = match self {
-            Version::Help => Help::Command(CommandName::Version).run(session),
+        match self {
+            Version::Help => Help::Command(CommandName::Version).run(session)?,
             Version::Default => {
                 println!("{}", ::VERSION);
-                Ok(true)
             }
         };
         session.add_event_end(ActivityKind::Version, ExitCode::Success);
-        result
+        Ok(())
     }
 }

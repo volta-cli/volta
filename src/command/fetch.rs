@@ -56,20 +56,18 @@ Options:
         }
     }
 
-    fn run(self, session: &mut Session) -> Fallible<bool> {
+    fn run(self, session: &mut Session) -> Fallible<()> {
         session.add_event_start(ActivityKind::Fetch);
-        let result = match self {
-            Fetch::Help => Help::Command(CommandName::Fetch).run(session),
+        match self {
+            Fetch::Help => Help::Command(CommandName::Fetch).run(session)?,
             Fetch::Node(version) => {
                 session.fetch_node(&version)?;
-                Ok(true)
             }
             Fetch::Yarn(version) => {
                 session.fetch_yarn(&version)?;
-                Ok(true)
             }
         };
         session.add_event_end(ActivityKind::Fetch, ExitCode::Success);
-        result
+        Ok(())
     }
 }

@@ -1,7 +1,7 @@
 use std::string::ToString;
 
 use notion_core::session::{ActivityKind, Session};
-use notion_fail::{ExitCode, Fallible};
+use notion_fail::{ExitCode, Fallible, NotionFail};
 
 use Notion;
 use command::{Command, CommandName, Help};
@@ -11,6 +11,11 @@ pub(crate) struct Args {
     flag_project: bool,
     flag_user: bool,
 }
+
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "no versions found")]
+#[notion_fail(code = "NoVersionMatch")]
+struct NoVersionsFoundError;
 
 pub(crate) enum Current {
     Help,
@@ -54,21 +59,24 @@ Options:
         })
     }
 
-    fn run(self, session: &mut Session) -> Fallible<bool> {
+    fn run(self, session: &mut Session) -> Fallible<()> {
         session.add_event_start(ActivityKind::Current);
 
         let result = match self {
-            Current::Help => Help::Command(CommandName::Current).run(session),
-            Current::Project => Ok(project_node_version(&session)?
+            Current::Help => {
+                Help::Command(CommandName::Current).run(session)?;
+                true
+            },
+            Current::Project => project_node_version(&session)?
                 .map(|version| {
                     println!("v{}", version);
                 })
-                .is_some()),
-            Current::User => Ok(user_node_version(session)?
+                .is_some(),
+            Current::User => user_node_version(session)?
                 .map(|version| {
                     println!("v{}", version);
                 })
-                .is_some()),
+                .is_some(),
             Current::All => {
                 let (project, user) = (
                     project_node_version(&session)?,
@@ -90,11 +98,14 @@ Options:
                     );
                 }
 
-                Ok(any)
+                any
             }
         };
         session.add_event_end(ActivityKind::Current, ExitCode::Success);
-        result
+        if !result {
+            throw!(NoVersionsFoundError);
+        }
+        Ok(())
     }
 }
 
