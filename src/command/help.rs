@@ -1,5 +1,5 @@
 use notion_core::session::{ActivityKind, Session};
-use notion_fail::Fallible;
+use notion_fail::{ExitCode, Fallible};
 
 use command::{Command, CommandName, Config, Current, Deactivate, Fetch, Install, Shim, Use,
               Version};
@@ -66,7 +66,7 @@ Options:
                 Help::Command(CommandName::Shim) => Shim::USAGE,
             }
         );
-        session.add_event_end(ActivityKind::Help, 0);
+        session.add_event_end(ActivityKind::Help, ExitCode::Success);
         Ok(true)
     }
 }

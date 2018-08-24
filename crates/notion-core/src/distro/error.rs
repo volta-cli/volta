@@ -1,11 +1,12 @@
 //! Provides error types for the installer tools.
 
-use notion_fail::NotionFail;
+use notion_fail::{ExitCode, NotionFail};
 
 use failure;
 
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "Failed to download version {}\n{}", version, error)]
+#[notion_fail(code = "NetworkError")]
 pub(crate) struct DownloadError {
     version: String,
     error: String,
@@ -17,14 +18,5 @@ impl DownloadError {
             version: version,
             error: error.to_string(),
         }
-    }
-}
-
-impl NotionFail for DownloadError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> i32 {
-        4
     }
 }

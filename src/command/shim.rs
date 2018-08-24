@@ -7,7 +7,7 @@ use console::style;
 use notion_core::project::Project;
 use notion_core::session::{ActivityKind, Session};
 use notion_core::{path, shim};
-use notion_fail::{Fallible, ResultExt};
+use notion_fail::{ExitCode, Fallible, ResultExt};
 use semver::{Version, VersionReq};
 
 use Notion;
@@ -103,7 +103,7 @@ Options:
             Shim::Create(shim_name, verbose) => create(session, shim_name, verbose),
             Shim::Delete(shim_name, verbose) => delete(session, shim_name, verbose),
         };
-        session.add_event_end(ActivityKind::Shim, 0);
+        session.add_event_end(ActivityKind::Shim, ExitCode::Success);
         result
     }
 }

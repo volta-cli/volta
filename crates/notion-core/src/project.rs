@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use lazycell::LazyCell;
 
 use manifest::Manifest;
-use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
+use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use semver::Version;
 use serial::manifest::ToolchainManifest;
 
@@ -48,8 +48,9 @@ impl LazyDependentBins {
     }
 }
 
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "Could not read dependent package info: {}", error)]
+#[notion_fail(code = "FileSystemError")]
 pub(crate) struct DepPackageReadError {
     pub(crate) error: String,
 }
@@ -62,32 +63,15 @@ impl DepPackageReadError {
     }
 }
 
-impl NotionFail for DepPackageReadError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> i32 {
-        4
-    }
-}
-
 /// Thrown when a user tries to pin a Yarn version before pinning a Node version.
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "There is no pinned node version for this project")]
+#[notion_fail(code = "ConfigurationError")]
 pub(crate) struct NoPinnedNodeVersion;
 
 impl NoPinnedNodeVersion {
     pub(crate) fn new() -> Self {
         NoPinnedNodeVersion
-    }
-}
-
-impl NotionFail for NoPinnedNodeVersion {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> i32 {
-        4
     }
 }
 

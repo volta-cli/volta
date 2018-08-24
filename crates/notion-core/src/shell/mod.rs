@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use semver::Version;
 
-use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
+use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 
 use env;
 
@@ -19,18 +19,10 @@ pub enum Postscript {
 }
 
 /// Thrown when the postscript file was not specified in the Notion environment.
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "Notion postscript file not specified")]
+#[notion_fail(code = "EnvironmentError")]
 struct UnspecifiedPostscriptError;
-
-impl NotionFail for UnspecifiedPostscriptError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> i32 {
-        100
-    }
-}
 
 pub trait Shell {
     fn postscript_path(&self) -> &Path;
@@ -48,18 +40,10 @@ pub trait Shell {
 pub struct CurrentShell(Box<dyn Shell>);
 
 /// Thrown when the shell name was not specified in the Notion environment.
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "Notion shell not specified")]
+#[notion_fail(code = "EnvironmentError")]
 struct UnspecifiedShellError;
-
-impl NotionFail for UnspecifiedShellError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> i32 {
-        100
-    }
-}
 
 impl CurrentShell {
     pub fn detect() -> Fallible<Self> {
@@ -85,19 +69,11 @@ impl Shell for CurrentShell {
 }
 
 /// Thrown when the shell name specified in the Notion environment is not supported.
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "Unrecognized command shell name: {}", name)]
+#[notion_fail(code = "EnvironmentError")]
 struct UnrecognizedShellError {
     name: String,
-}
-
-impl NotionFail for UnrecognizedShellError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> i32 {
-        100
-    }
 }
 
 impl FromStr for CurrentShell {

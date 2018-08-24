@@ -6,6 +6,8 @@ extern crate failure_derive;
 extern crate notion_core;
 #[macro_use]
 extern crate notion_fail;
+#[macro_use]
+extern crate notion_fail_derive;
 extern crate semver;
 extern crate serde;
 #[macro_use]
@@ -14,14 +16,13 @@ extern crate serde_derive;
 mod command;
 mod error;
 
-use std::process::exit;
 use std::string::ToString;
 
 use docopt::Docopt;
 
 use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error, ErrorContext};
-use notion_fail::{FailExt, Fallible, NotionError};
+use notion_fail::{ExitCode, FailExt, Fallible, NotionError};
 
 use command::{Command, CommandName, Config, Current, Deactivate, Fetch, Help, Install, Shim, Use,
               Version};
@@ -203,15 +204,15 @@ pub fn main() {
         Ok(session) => session,
         Err(err) => {
             display_error_and_usage(&err);
-            exit(1);
+            ExitCode::UnknownError.exit();
         }
     };
 
     session.add_event_start(ActivityKind::Notion);
 
     let exit_code = match Notion::go(&mut session) {
-        Ok(true) => 0,
-        Ok(false) => 1,
+        Ok(true) => ExitCode::Success,
+        Ok(false) => ExitCode::UnknownError,
         Err(err) => {
             display_error_and_usage(&err);
             session.add_event_error(ActivityKind::Notion, &err);

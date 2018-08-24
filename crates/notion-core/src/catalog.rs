@@ -22,7 +22,7 @@ use config::{Config, ToolConfig};
 use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
 use distro::{Distro, Fetched};
-use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
+use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use path::{self, user_catalog_file};
 use semver::{Version, VersionReq};
 use serial;
@@ -212,33 +212,19 @@ impl Catalog {
 }
 
 /// Thrown when there is no Node version matching a requested semver specifier.
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "No Node version found for {}", matching)]
+#[notion_fail(code = "NoVersionMatch")]
 struct NoNodeVersionFoundError {
     matching: VersionReq,
 }
-impl NotionFail for NoNodeVersionFoundError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> i32 {
-        100
-    }
-}
 
 /// Thrown when there is no Yarn version matching a requested semver specifier.
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "No Yarn version found for {}", matching)]
+#[notion_fail(code = "NoVersionMatch")]
 struct NoYarnVersionFoundError {
     matching: VersionReq,
-}
-impl NotionFail for NoYarnVersionFoundError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> i32 {
-        100
-    }
 }
 
 impl<D: Distro> Collection<D> {
@@ -275,8 +261,9 @@ pub trait Resolve<D: Distro> {
 }
 
 /// Thrown when the public registry for Node or Yarn could not be downloaded.
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "Could not fetch public registry\n{}", error)]
+#[notion_fail(code = "NetworkError")]
 pub(crate) struct RegistryFetchError {
     error: String,
 }
@@ -286,15 +273,6 @@ impl RegistryFetchError {
         RegistryFetchError {
             error: error.to_string(),
         }
-    }
-}
-
-impl NotionFail for RegistryFetchError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> i32 {
-        4
     }
 }
 

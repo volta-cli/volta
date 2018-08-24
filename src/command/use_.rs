@@ -6,7 +6,7 @@ use semver::VersionReq;
 
 use notion_core::serial::version::parse_requirements;
 use notion_core::session::{ActivityKind, Session};
-use notion_fail::{Fallible, NotionFail};
+use notion_fail::{ExitCode, Fallible, NotionFail};
 
 use Notion;
 use command::{Command, CommandName, Help};
@@ -18,9 +18,10 @@ pub(crate) struct Args {
 }
 
 // error message for using tools that are not node|yarn
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "pinning tool '{}' not yet implemented - for now you can manually edit package.json",
        name)]
+#[notion_fail(code = "NotYetImplemented")]
 pub(crate) struct NoCustomUseError {
     pub(crate) name: String,
 }
@@ -28,15 +29,6 @@ pub(crate) struct NoCustomUseError {
 impl NoCustomUseError {
     pub(crate) fn new(name: String) -> Self {
         NoCustomUseError { name: name }
-    }
-}
-
-impl NotionFail for NoCustomUseError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> i32 {
-        4
     }
 }
 
@@ -93,7 +85,7 @@ Options:
                 version: _,
             } => throw!(NoCustomUseError::new(_name)),
         };
-        session.add_event_end(ActivityKind::Use, 0);
+        session.add_event_end(ActivityKind::Use, ExitCode::Success);
         Ok(true)
     }
 }

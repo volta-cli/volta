@@ -1,8 +1,9 @@
-use notion_fail::{Fallible, NotionFail, ResultExt};
+use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use semver::{ReqParseError, VersionReq};
 
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "{}", error)]
+#[notion_fail(code = "NoVersionMatch")]
 pub(crate) struct VersionParseError {
     pub(crate) error: ReqParseError,
 }
@@ -12,15 +13,6 @@ impl VersionParseError {
         VersionParseError {
             error: error.clone(),
         }
-    }
-}
-
-impl NotionFail for VersionParseError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> i32 {
-        4
     }
 }
 

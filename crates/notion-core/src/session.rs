@@ -13,7 +13,7 @@ use std::fmt::{self, Display, Formatter};
 use std::process::exit;
 
 use event::EventLog;
-use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
+use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use semver::{Version, VersionReq};
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
@@ -59,21 +59,14 @@ impl Display for ActivityKind {
 }
 
 /// Thrown when the user tries to pin Node or Yarn versions outside of a package.
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "Not in a node package")]
+#[notion_fail(code = "ConfigurationError")]
 pub(crate) struct NotInPackageError;
 
 impl NotInPackageError {
     pub(crate) fn new() -> Self {
         NotInPackageError
-    }
-}
-impl NotionFail for NotInPackageError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> i32 {
-        4
     }
 }
 
@@ -261,14 +254,17 @@ impl Session {
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
         self.event_log.add_event_start(activity_kind)
     }
-    pub fn add_event_end(&mut self, activity_kind: ActivityKind, exit_code: i32) {
+    pub fn add_event_end(&mut self, activity_kind: ActivityKind, exit_code: ExitCode) {
         self.event_log.add_event_end(activity_kind, exit_code)
+    }
+    pub fn add_event_tool_end(&mut self, activity_kind: ActivityKind, exit_code: i32) {
+        self.event_log.add_event_tool_end(activity_kind, exit_code)
     }
     pub fn add_event_error(&mut self, activity_kind: ActivityKind, error: &NotionError) {
         self.event_log.add_event_error(activity_kind, error)
     }
 
-    pub fn exit(mut self, code: i32) -> ! {
+    fn publish_to_event_log(mut self) {
         match publish_plugin(&self.config) {
             Ok(plugin) => {
                 self.event_log.publish(plugin);
@@ -277,6 +273,15 @@ impl Session {
                 eprintln!("Warning: invalid config file ({})", e);
             }
         }
+    }
+
+    pub fn exit(self, code: ExitCode) -> ! {
+        self.publish_to_event_log();
+        code.exit();
+    }
+
+    pub fn exit_tool(self, code: i32) -> ! {
+        self.publish_to_event_log();
         exit(code);
     }
 }

@@ -6,15 +6,16 @@ use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
 use detect_indent;
-use notion_fail::{Fallible, NotionFail, ResultExt};
+use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use semver::VersionReq;
 use serde::Serialize;
 use serde_json;
 
 use serial;
 
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "Could not read package info: {}", error)]
+#[notion_fail(code = "FileSystemError")]
 pub(crate) struct PackageReadError {
     pub(crate) error: String,
 }
@@ -24,15 +25,6 @@ impl PackageReadError {
         PackageReadError {
             error: error.to_string(),
         }
-    }
-}
-
-impl NotionFail for PackageReadError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> i32 {
-        4
     }
 }
 

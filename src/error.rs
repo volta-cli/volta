@@ -1,9 +1,10 @@
 use docopt;
 use failure::Context;
-use notion_fail::{NotionError, NotionFail};
+use notion_fail::{ExitCode, NotionError, NotionFail};
 
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "{}", error)]
+#[notion_fail(code = "InvalidArguments")]
 pub(crate) struct CliParseError {
     pub(crate) usage: Option<String>,
     pub(crate) error: String,
@@ -22,15 +23,6 @@ impl CliParseError {
                 error: error.to_string(),
             }
         }
-    }
-}
-
-impl NotionFail for CliParseError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> i32 {
-        3
     }
 }
 
@@ -72,8 +64,9 @@ impl NotionErrorExt for NotionError {
     }
 }
 
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail, NotionFail)]
 #[fail(display = "command `{}` is not yet implemented", name)]
+#[notion_fail(code = "NotYetImplemented")]
 pub(crate) struct CommandUnimplementedError {
     pub(crate) name: String,
 }
@@ -83,14 +76,5 @@ impl CommandUnimplementedError {
         CommandUnimplementedError {
             name: cmd_name.to_string(),
         }
-    }
-}
-
-impl NotionFail for CommandUnimplementedError {
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
-    fn exit_code(&self) -> i32 {
-        4
     }
 }
