@@ -82,7 +82,7 @@ impl Distro for NodeDistro {
 
         let dest = path::node_versions_dir()?;
         let bar = progress_bar(
-            Action::Installing,
+            Action::Fetching,
             &format!("v{}", self.version),
             self.archive
                 .uncompressed_size()

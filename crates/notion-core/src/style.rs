@@ -80,17 +80,18 @@ pub fn display_unknown_error<E: Fail>(cx: ErrorContext, err: &E) {
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
 pub enum Action {
-    Installing,
+    Fetching,
 }
 
 impl Action {
-    const MAX_WIDTH: usize = 12;
+    // this is the maximum width of the displayed Action strings, used for formatting
+    const MAX_WIDTH: usize = 10;
 }
 
 impl Display for Action {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         let s = match self {
-            &Action::Installing => "Installing",
+            &Action::Fetching => "Fetching",
         };
         f.write_str(s)
     }

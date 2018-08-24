@@ -83,7 +83,7 @@ impl Distro for YarnDistro {
 
         let dest = path::yarn_versions_dir()?;
         let bar = progress_bar(
-            Action::Installing,
+            Action::Fetching,
             &format!("v{}", self.version),
             self.archive
                 .uncompressed_size()
