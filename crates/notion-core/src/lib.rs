@@ -29,7 +29,6 @@ pub mod env;
 mod event;
 pub mod manifest;
 pub mod monitor;
-mod package_info;
 pub mod path;
 mod plugin;
 pub mod project;

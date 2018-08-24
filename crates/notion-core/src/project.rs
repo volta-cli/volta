@@ -10,7 +10,6 @@ use lazycell::LazyCell;
 
 use manifest::Manifest;
 use notion_fail::{Fallible, NotionError, NotionFail, ResultExt};
-use package_info::PackageInfo;
 use semver::Version;
 use serial::manifest::ToolchainManifest;
 
@@ -190,7 +189,7 @@ impl Project {
         // use those project paths to get the "bin" info for each project
         for pkg_path in all_dep_paths.iter() {
             let pkg_info =
-                PackageInfo::for_dir(&pkg_path).with_context(DepPackageReadError::from_error)?;
+                Manifest::for_dir(&pkg_path).with_context(DepPackageReadError::from_error)?;
             let bin_map = pkg_info.bin;
             for (name, path) in bin_map.iter() {
                 dependent_bins.insert(name.clone(), path.clone());
@@ -247,7 +246,9 @@ pub mod tests {
         let project_path = fixture_path("basic");
         let test_project = Project::for_dir(&project_path).unwrap().unwrap();
 
-        let all_deps = test_project.all_dependencies().expect("Could not get dependencies");
+        let all_deps = test_project
+            .all_dependencies()
+            .expect("Could not get dependencies");
         let mut expected_deps = HashSet::new();
         expected_deps.insert("@namespace/some-dep".to_string());
         expected_deps.insert("rsvp".to_string());
@@ -261,7 +262,9 @@ pub mod tests {
         let project_path = fixture_path("basic");
         let test_project = Project::for_dir(&project_path).unwrap().unwrap();
 
-        let dep_bins = test_project.dependent_binaries().expect("Could not get dependent binaries");
+        let dep_bins = test_project
+            .dependent_binaries()
+            .expect("Could not get dependent binaries");
         let mut expected_bins = HashMap::new();
         expected_bins.insert("eslint".to_string(), "./bin/eslint.js".to_string());
         expected_bins.insert("rsvp".to_string(), "./bin/rsvp.js".to_string());
