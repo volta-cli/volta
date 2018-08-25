@@ -35,6 +35,8 @@ const PUBLIC_NODE_VERSION_INDEX: &'static str = "https://nodejs.org/dist/index.j
 /// URL of the index of available Yarn versions on the public git repository.
 const PUBLIC_YARN_VERSION_INDEX: &'static str =
     "https://github.com/notion-cli/yarn-releases/raw/master/index.json";
+/// URL of the latest Yarn version on the public yarnpkg.com
+const PUBLIC_YARN_LATEST_VERSION: &'static str = "https://yarnpkg.com/latest-version";
 
 /// Lazily loaded tool catalog.
 pub struct LazyCatalog {
@@ -278,51 +280,7 @@ impl RegistryFetchError {
 
 impl Resolve<NodeDistro> for NodeCollection {
     fn resolve_public(&self, matching: &VersionReq) -> Fallible<NodeDistro> {
-        let index: Index = match read_cached_opt().unknown()? {
-            Some(serial) => serial,
-            None => {
-                let spinner = progress_spinner(&format!(
-                    "Fetching public registry: {}",
-                    PUBLIC_NODE_VERSION_INDEX
-                ));
-                let mut response: reqwest::Response = reqwest::get(PUBLIC_NODE_VERSION_INDEX)
-                    .with_context(RegistryFetchError::from_error)?;
-                let response_text: String = response.text().unknown()?;
-                let cached: NamedTempFile = NamedTempFile::new().unknown()?;
-
-                // Block to borrow cached for cached_file.
-                {
-                    let mut cached_file: &File = cached.as_file();
-                    cached_file.write(response_text.as_bytes()).unknown()?;
-                }
-
-                cached.persist(path::node_index_file()?).unknown()?;
-
-                let expiry: NamedTempFile = NamedTempFile::new().unknown()?;
-
-                // Block to borrow expiry for expiry_file.
-                {
-                    let mut expiry_file: &File = expiry.as_file();
-
-                    if let Some(expires_header) = response.headers().get::<Expires>() {
-                        write!(expiry_file, "{}", expires_header).unknown()?;
-                    } else {
-                        let expiry_date =
-                            SystemTime::now() + Duration::from_secs(max_age(&response).into());
-
-                        write!(expiry_file, "{}", HttpDate::from(expiry_date)).unknown()?;
-                    }
-                }
-
-                expiry.persist(path::node_index_expiry_file()?).unknown()?;
-
-                let serial: serial::index::Index =
-                    serde_json::de::from_str(&response_text).unknown()?;
-
-                spinner.finish_and_clear();
-                serial
-            }
-        }.into_index()?;
+        let index: Index = resolve_node_versions().unwrap().into_index()?;
 
         let version = index.entries.iter()
             .rev()
@@ -432,4 +390,76 @@ fn max_age(response: &reqwest::Response) -> u32 {
 
     // Default to four hours.
     4 * 60 * 60
+}
+
+fn resolve_node_versions() -> Result<serial::index::Index, NotionError> {
+    match read_cached_opt().unknown()? {
+        Some(serial) => Ok(serial),
+        None => {
+            let spinner = progress_spinner(&format!(
+                "Fetching public registry: {}",
+                PUBLIC_NODE_VERSION_INDEX
+            ));
+            let mut response: reqwest::Response = reqwest::get(PUBLIC_NODE_VERSION_INDEX)
+                .with_context(RegistryFetchError::from_error)?;
+            let response_text: String = response.text().unknown()?;
+            let cached: NamedTempFile = NamedTempFile::new().unknown()?;
+
+            // Block to borrow cached for cached_file.
+            {
+                let mut cached_file: &File = cached.as_file();
+                cached_file.write(response_text.as_bytes()).unknown()?;
+            }
+
+            cached.persist(path::node_index_file()?).unknown()?;
+
+            let expiry: NamedTempFile = NamedTempFile::new().unknown()?;
+
+            // Block to borrow expiry for expiry_file.
+            {
+                let mut expiry_file: &File = expiry.as_file();
+
+                if let Some(expires_header) = response.headers().get::<Expires>() {
+                    write!(expiry_file, "{}", expires_header).unknown()?;
+                } else {
+                    let expiry_date =
+                        SystemTime::now() + Duration::from_secs(max_age(&response).into());
+
+                    write!(expiry_file, "{}", HttpDate::from(expiry_date)).unknown()?;
+                }
+            }
+
+            expiry.persist(path::node_index_expiry_file()?).unknown()?;
+
+            let serial: serial::index::Index =
+                serde_json::de::from_str(&response_text).unknown()?;
+
+            spinner.finish_and_clear();
+            Ok(serial)
+        }
+    }
+}
+
+pub fn parse_node_version(src: String) -> Fallible<String> {
+    let mut version:String= src;
+    if version == "latest" {
+        let index = resolve_node_versions().unwrap().into_index()?;
+        let mut latest_version:Version = index.entries.keys().next().unwrap().clone();
+        for key in index.entries.keys() {
+            if key > &latest_version {
+                latest_version = key.clone();
+            }
+        };
+        version = latest_version.to_string();
+    }
+    Ok(version)
+}
+
+pub fn parse_yarn_version(src: String) -> Fallible<String> {
+    let mut version:String = src;
+    if version == "latest" {
+        let mut response: reqwest::Response = reqwest::get(PUBLIC_YARN_LATEST_VERSION).unwrap();
+        version = response.text().unknown()?;
+    }
+    Ok(version)
 }
