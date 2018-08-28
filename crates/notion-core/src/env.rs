@@ -41,3 +41,71 @@ pub fn path_for_system_node() -> OsString {
     let split = env::split_paths(&current).filter(|s| s != shim_dir);
     env::join_paths(split).unwrap()
 }
+
+#[cfg(test)]
+pub mod tests {
+
+    use super::*;
+    use std::env;
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_shell_name() {
+        env::set_var("NOTION_SHELL", "bash");
+        assert_eq!(shell_name().unwrap(), "bash".to_string());
+    }
+
+    #[test]
+    fn test_postscript_path() {
+        env::set_var("NOTION_POSTSCRIPT", "/some/path");
+        assert_eq!(postscript_path().unwrap(), PathBuf::from("/some/path"));
+    }
+
+    #[test]
+    fn test_path_for_installed_node() {
+        let home = env::home_dir().expect("Could not get home directory");
+        env::set_var("PATH", "/usr/bin:/blah:/doesnt/matter/bin");
+
+        let mut expected_node_bin = PathBuf::from(&home);
+        expected_node_bin.push(".notion");
+        expected_node_bin.push("versions");
+        expected_node_bin.push("node");
+        expected_node_bin.push("1.2.3");
+        expected_node_bin.push("bin");
+
+        let mut expected_yarn_bin = PathBuf::from(&home);
+        expected_yarn_bin.push(".notion");
+        expected_yarn_bin.push("versions");
+        expected_yarn_bin.push("yarn");
+        expected_yarn_bin.push("1.2.3");
+        expected_yarn_bin.push("bin");
+
+        let mut expected_path = String::from("");
+        expected_path.push_str(expected_node_bin.as_path().to_str().unwrap());
+        expected_path.push_str(":");
+        expected_path.push_str(expected_yarn_bin.as_path().to_str().unwrap());
+        expected_path.push_str(":/usr/bin:/blah:/doesnt/matter/bin");
+
+        assert_eq!(
+            path_for_installed_node("1.2.3").into_string().unwrap(),
+            expected_path
+        );
+    }
+
+    #[test]
+    fn test_path_for_system_node() {
+        let home = env::home_dir().expect("Could not get home directory");
+        let mut shim_dir = PathBuf::from(&home);
+        shim_dir.push(".notion");
+        shim_dir.push("bin");
+
+        let mut path_with_shim = String::from(shim_dir.as_path().to_str().unwrap());
+        path_with_shim.push_str(":/usr/bin:/bin:/something/bin");
+
+        env::set_var("PATH", path_with_shim);
+
+        let expected_path = String::from("/usr/bin:/bin:/something/bin");
+
+        assert_eq!(path_for_system_node().into_string().unwrap(), expected_path);
+    }
+}

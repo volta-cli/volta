@@ -295,3 +295,31 @@ fn publish_plugin(config: &LazyConfig) -> Fallible<Option<&Publish>> {
         .as_ref()
         .and_then(|events| events.publish.as_ref()))
 }
+
+#[cfg(test)]
+pub mod tests {
+
+    use session::Session;
+    use std::env;
+    use std::path::PathBuf;
+
+    fn fixture_path(fixture_dir: &str) -> PathBuf {
+        let mut cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        cargo_manifest_dir.push("fixtures");
+        cargo_manifest_dir.push(fixture_dir);
+        cargo_manifest_dir
+    }
+
+    #[test]
+    fn test_in_pinned_project() {
+        let project_pinned = fixture_path("basic");
+        env::set_current_dir(&project_pinned).expect("Could not set current directory");
+        let pinned_session = Session::new().expect("Couldn't create new Session");
+        assert_eq!(pinned_session.in_pinned_project(), true);
+
+        let project_unpinned = fixture_path("no_toolchain");
+        env::set_current_dir(&project_unpinned).expect("Could not set current directory");
+        let unpinned_session = Session::new().expect("Couldn't create new Session");
+        assert_eq!(unpinned_session.in_pinned_project(), false);
+    }
+}

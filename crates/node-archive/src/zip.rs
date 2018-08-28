@@ -90,3 +90,29 @@ impl<S: Read + Seek> Archive for Zip<S> {
     }
 
 }
+
+
+#[cfg(test)]
+pub mod tests {
+
+    use zip::Zip;
+    use std::path::PathBuf;
+    use std::fs::File;
+
+    fn fixture_path(fixture_dir: &str) -> PathBuf {
+        let mut cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        cargo_manifest_dir.push("fixtures");
+        cargo_manifest_dir.push(fixture_dir);
+        cargo_manifest_dir
+    }
+
+    #[test]
+    fn test_load() {
+        let mut test_file_path = fixture_path("zips");
+        test_file_path.push("test-file.zip");
+        let test_file = File::open(test_file_path).expect("Couldn't open test file");
+        let zip = Zip::load(test_file).expect("Failed to load zip file");
+
+        assert_eq!(zip.compressed_size, 214);
+    }
+}

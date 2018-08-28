@@ -1,0 +1,8 @@
+[node]
+resolve = { bin = "/some/bin/for/node" }
+
+[yarn]
+ls-remote = { bin = "/bin/to/yarn" }
+
+[events]
+publish = { bin = "/events/bin" }

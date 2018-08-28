@@ -138,3 +138,35 @@ impl EventLog {
         }
     }
 }
+
+#[cfg(test)]
+pub mod tests {
+
+    use super::EventLog;
+    use notion_fail::{ExitCode, FailExt};
+    use session::ActivityKind;
+    use std::io;
+
+    #[test]
+    fn test_adding_events() {
+        let mut event_log = EventLog::new().expect("Could not create event log");
+        assert_eq!(event_log.events.len(), 0);
+
+        event_log.add_event_start(ActivityKind::Current);
+        assert_eq!(event_log.events.len(), 1);
+        assert_eq!(event_log.events[0].name, "current");
+
+        event_log.add_event_end(ActivityKind::Use, ExitCode::NetworkError);
+        assert_eq!(event_log.events.len(), 2);
+        assert_eq!(event_log.events[1].name, "use");
+
+        event_log.add_event_tool_end(ActivityKind::Version, 12);
+        assert_eq!(event_log.events.len(), 3);
+        assert_eq!(event_log.events[2].name, "version");
+
+        let error = io::Error::new(io::ErrorKind::Other, "test!").unknown();
+        event_log.add_event_error(ActivityKind::Install, &error);
+        assert_eq!(event_log.events.len(), 4);
+        assert_eq!(event_log.events[3].name, "install");
+    }
+}

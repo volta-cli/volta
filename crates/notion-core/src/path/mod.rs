@@ -34,3 +34,38 @@ pub fn yarn_archive_file(version: &str) -> String {
 pub fn yarn_archive_root_dir(version: &str) -> String {
     format!("yarn-v{}", version)
 }
+
+#[cfg(test)]
+pub mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_node_archive_file() {
+        assert_eq!(
+            node_archive_file("1.2.3"),
+            format!("node-v1.2.3-{}-{}.{}", OS, ARCH, archive_extension())
+        );
+    }
+
+    #[test]
+    fn test_node_archive_root_dir() {
+        assert_eq!(
+            node_archive_root_dir("1.2.3"),
+            format!("node-v1.2.3-{}-{}", OS, ARCH)
+        );
+    }
+
+    #[test]
+    fn yarn_node_archive_file() {
+        assert_eq!(
+            yarn_archive_file("1.2.3"),
+            format!("yarn-v1.2.3.{}", archive_extension())
+        );
+    }
+
+    #[test]
+    fn yarn_node_archive_root_dir() {
+        assert_eq!(yarn_archive_root_dir("1.2.3"), "yarn-v1.2.3".to_string());
+    }
+}
