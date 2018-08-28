@@ -78,8 +78,9 @@ notion_create_binaries() {
   notion_unpack_launchbin     > "${INSTALL_DIR}"/launchbin
   notion_unpack_bash_launcher > "${INSTALL_DIR}"/load.sh
 
-  ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/bin/npm
-  ln -s "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/bin/npx
+  # using -f so that there is no error if the target already exists (for reinstall)
+  ln -sf "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/bin/npm
+  ln -sf "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/bin/npx
 
   chmod 755 "${INSTALL_DIR}/"/notion "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}"/launch*
 }
