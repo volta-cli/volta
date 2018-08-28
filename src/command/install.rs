@@ -6,6 +6,7 @@ use notion_fail::{ExitCode, Fallible};
 
 use Notion;
 use command::{Command, CommandName, Help};
+use CommandUnimplementedError;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
@@ -32,6 +33,9 @@ Usage:
 
 Options:
     -h, --help     Display this message
+
+Supported Tools:
+    Currently Notion supports installing `node` and `yarn` - support for more tools is coming soon!
 ";
 
     fn help() -> Self {
@@ -68,9 +72,9 @@ Options:
                 session.set_default_yarn(&requirements)?;
             }
             Install::Other {
-                name: _,
+                name: name,
                 version: _,
-            } => unimplemented!(),
+            } => throw!(CommandUnimplementedError::new(&format!("notion install {}", name)))
         };
         session.add_event_end(ActivityKind::Install, ExitCode::Success);
         Ok(())
