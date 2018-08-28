@@ -177,11 +177,11 @@ Config commands:
         })
     }
 
-    fn run(self, session: &mut Session) -> Fallible<bool> {
+    fn run(self, session: &mut Session) -> Fallible<()> {
         //session.add_event_start(ActivityKind::Version);
         let result = match self {
             Config::Help => Help::Command(CommandName::Config).run(session),
-            Config::Subcommand(Subcommand::Get { key: _ }) => Ok(true),
+            Config::Subcommand(Subcommand::Get { key: _ }) => Ok(()),
             Config::Subcommand(Subcommand::Set { key: _, value: _ }) => {
                 throw!(CommandUnimplementedError::new("set"))
             }

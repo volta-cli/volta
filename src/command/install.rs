@@ -55,7 +55,7 @@ Options:
         }
     }
 
-    fn run(self, session: &mut Session) -> Fallible<bool> {
+    fn run(self, session: &mut Session) -> Fallible<()> {
         session.add_event_start(ActivityKind::Install);
         match self {
             Install::Help => {
@@ -73,6 +73,6 @@ Options:
             } => unimplemented!(),
         };
         session.add_event_end(ActivityKind::Install, ExitCode::Success);
-        Ok(true)
+        Ok(())
     }
 }

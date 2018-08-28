@@ -94,21 +94,21 @@ Options:
         })
     }
 
-    fn run(self, session: &mut Session) -> Fallible<bool> {
+    fn run(self, session: &mut Session) -> Fallible<()> {
         session.add_event_start(ActivityKind::Shim);
 
-        let result = match self {
-            Shim::Help => Help::Command(CommandName::Shim).run(session),
-            Shim::List(verbose) => list(session, verbose),
-            Shim::Create(shim_name, verbose) => create(session, shim_name, verbose),
-            Shim::Delete(shim_name, verbose) => delete(session, shim_name, verbose),
+        match self {
+            Shim::Help => Help::Command(CommandName::Shim).run(session)?,
+            Shim::List(verbose) => list(session, verbose)?,
+            Shim::Create(shim_name, verbose) => create(session, shim_name, verbose)?,
+            Shim::Delete(shim_name, verbose) => delete(session, shim_name, verbose)?,
         };
         session.add_event_end(ActivityKind::Shim, ExitCode::Success);
-        result
+        Ok(())
     }
 }
 
-fn list(session: &Session, verbose: bool) -> Fallible<bool> {
+fn list(session: &Session, verbose: bool) -> Fallible<()> {
     let shim_dir = path::shim_dir()?;
     let files = fs::read_dir(shim_dir).unknown()?;
 
@@ -116,7 +116,7 @@ fn list(session: &Session, verbose: bool) -> Fallible<bool> {
         let file = file.unknown()?;
         print_file_info(file, session, verbose)?;
     }
-    Ok(true)
+    Ok(())
 }
 
 fn print_file_info(file: fs::DirEntry, session: &Session, verbose: bool) -> Fallible<()> {
@@ -130,14 +130,14 @@ fn print_file_info(file: fs::DirEntry, session: &Session, verbose: bool) -> Fall
     Ok(())
 }
 
-fn create(_session: &Session, shim_name: String, _verbose: bool) -> Fallible<bool> {
+fn create(_session: &Session, shim_name: String, _verbose: bool) -> Fallible<()> {
     shim::create(&shim_name)?;
-    Ok(true)
+    Ok(())
 }
 
-fn delete(_session: &Session, shim_name: String, _verbose: bool) -> Fallible<bool> {
+fn delete(_session: &Session, shim_name: String, _verbose: bool) -> Fallible<()> {
     shim::delete(&shim_name)?;
-    Ok(true)
+    Ok(())
 }
 
 fn resolve_shim(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {

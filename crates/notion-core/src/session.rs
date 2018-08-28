@@ -180,14 +180,14 @@ impl Session {
 
     /// Updates toolchain in package.json with the Node version matching the specified semantic
     /// versioning requirements.
-    pub fn pin_node_version(&self, matching: &VersionReq) -> Fallible<bool> {
+    pub fn pin_node_version(&self, matching: &VersionReq) -> Fallible<()> {
         if let Some(ref project) = self.project() {
             let node_version = self.get_matching_node(matching)?;
             project.pin_node_in_toolchain(node_version)?;
         } else {
             throw!(NotInPackageError::new());
         }
-        Ok(true)
+        Ok(())
     }
 
     /// Produces the version of Yarn for the current session. If there is an
@@ -241,14 +241,14 @@ impl Session {
 
     /// Updates toolchain in package.json with the Yarn version matching the specified semantic
     /// versioning requirements.
-    pub fn pin_yarn_version(&self, matching: &VersionReq) -> Fallible<bool> {
+    pub fn pin_yarn_version(&self, matching: &VersionReq) -> Fallible<()> {
         if let Some(ref project) = self.project() {
             let yarn_version = self.get_matching_yarn(matching)?;
             project.pin_yarn_in_toolchain(yarn_version)?;
         } else {
             throw!(NotInPackageError::new());
         }
-        Ok(true)
+        Ok(())
     }
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
