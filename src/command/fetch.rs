@@ -1,6 +1,7 @@
 use semver::VersionReq;
 
 use notion_core::serial::version::parse_requirements;
+use notion_core::catalog::{parse_node_version, parse_yarn_version};
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::{ExitCode, Fallible};
 
@@ -45,8 +46,14 @@ Options:
         }: Args,
     ) -> Fallible<Self> {
         match &arg_tool[..] {
-            "node" => Ok(Fetch::Node(parse_requirements(&arg_version)?)),
-            "yarn" => Ok(Fetch::Yarn(parse_requirements(&arg_version)?)),
+            "node" => {
+                let node_version = parse_node_version(arg_version)?;
+                Ok(Fetch::Node(parse_requirements(&node_version)?))
+            },
+            "yarn" => {
+                let yarn_version = parse_yarn_version(arg_version)?;
+                Ok(Fetch::Yarn(parse_requirements(&yarn_version)?))
+            },
             ref tool => {
                 throw!(CliParseError {
                     usage: None,
