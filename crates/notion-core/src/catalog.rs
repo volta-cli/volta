@@ -280,7 +280,7 @@ impl RegistryFetchError {
 
 impl Resolve<NodeDistro> for NodeCollection {
     fn resolve_public(&self, matching: &VersionReq) -> Fallible<NodeDistro> {
-        let index: Index = resolve_node_versions().unwrap().into_index()?;
+        let index: Index = resolve_node_versions()?.into_index()?;
 
         let version = index.entries.iter()
             .rev()
@@ -443,7 +443,7 @@ fn resolve_node_versions() -> Result<serial::index::Index, NotionError> {
 pub fn parse_node_version(src: String) -> Fallible<String> {
     let mut version:String= src;
     if version == "latest" {
-        let index = resolve_node_versions().unwrap().into_index()?;
+        let index = resolve_node_versions()?.into_index()?;
         let mut latest_version:Version = index.entries.keys().next().unwrap().clone();
         for key in index.entries.keys() {
             if key > &latest_version {
@@ -458,7 +458,8 @@ pub fn parse_node_version(src: String) -> Fallible<String> {
 pub fn parse_yarn_version(src: String) -> Fallible<String> {
     let mut version:String = src;
     if version == "latest" {
-        let mut response: reqwest::Response = reqwest::get(PUBLIC_YARN_LATEST_VERSION).unwrap();
+        let mut response: reqwest::Response = reqwest::get(PUBLIC_YARN_LATEST_VERSION)
+            .with_context(RegistryFetchError::from_error)?;
         version = response.text().unknown()?;
     }
     Ok(version)
