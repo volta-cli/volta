@@ -4,8 +4,8 @@ use std::fs::{rename, File};
 use std::path::PathBuf;
 use std::string::ToString;
 
-use super::{Distro, Fetched};
 use super::super::ensure_dir_exists;
+use super::{Distro, Fetched};
 use catalog::NodeCollection;
 use distro::error::DownloadError;
 use node_archive::{self, Archive};

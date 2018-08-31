@@ -18,6 +18,7 @@ use serde_json;
 use tempfile::NamedTempFile;
 use toml;
 
+use super::ensure_dir_exists;
 use config::{Config, ToolConfig};
 use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
@@ -28,7 +29,6 @@ use semver::{Version, VersionReq};
 use serial;
 use serial::touch;
 use style::progress_spinner;
-use super::ensure_dir_exists;
 
 // ISSUE (#86): Move public repository URLs to config file
 /// URL of the index of available Node versions on the public Node server.

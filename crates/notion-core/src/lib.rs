@@ -65,8 +65,7 @@ pub(crate) struct CreateDirError {
 }
 
 impl CreateDirError {
-    pub(crate) fn for_dir(dir: String) -> impl FnOnce(&io::Error) -> CreateDirError
-    {
+    pub(crate) fn for_dir(dir: String) -> impl FnOnce(&io::Error) -> CreateDirError {
         move |error| CreateDirError {
             dir,
             error: error.to_string(),
@@ -80,7 +79,8 @@ pub fn ensure_dir_exists<P: AsRef<Path>>(path: &P) -> Fallible<()> {
     if p.is_dir() {
         fs::create_dir_all(p).with_context(CreateDirError::for_dir(p.to_string_lossy().to_string()))
     } else if let Some(dir) = p.parent() {
-        fs::create_dir_all(dir).with_context(CreateDirError::for_dir(dir.to_string_lossy().to_string()))
+        fs::create_dir_all(dir)
+            .with_context(CreateDirError::for_dir(dir.to_string_lossy().to_string()))
     } else {
         Ok(())
     }
