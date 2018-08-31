@@ -1,5 +1,5 @@
 use super::super::manifest;
-use super::version::parse_requirements;
+use serial::version::parse_requirements;
 
 use notion_fail::Fallible;
 

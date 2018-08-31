@@ -11,7 +11,7 @@ use semver::VersionReq;
 use serde::Serialize;
 use serde_json;
 
-use serial;
+pub mod serial;
 
 #[derive(Debug, Fail, NotionFail)]
 #[fail(display = "Could not read package info: {}", error)]
@@ -57,7 +57,7 @@ impl Manifest {
     pub fn for_dir(project_root: &Path) -> Fallible<Manifest> {
         let file = File::open(project_root.join("package.json"))
             .with_context(PackageReadError::from_io_error)?;
-        let serial: serial::manifest::Manifest = serde_json::de::from_reader(file).unknown()?;
+        let serial: serial::Manifest = serde_json::de::from_reader(file).unknown()?;
         serial.into_manifest()
     }
 
@@ -95,7 +95,7 @@ impl Manifest {
     /// Writes the input ToolchainManifest to package.json, adding the "toolchain" key if
     /// necessary.
     pub fn update_toolchain(
-        toolchain: serial::manifest::ToolchainManifest,
+        toolchain: serial::ToolchainManifest,
         package_file: PathBuf,
     ) -> Fallible<()> {
         // parse the entire package.json file into a Value

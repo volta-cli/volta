@@ -1,6 +1,5 @@
 //! Provides utilities for serializing and deserializing file formats.
 
-pub mod manifest;
 pub mod plugin;
 pub mod version;
 
