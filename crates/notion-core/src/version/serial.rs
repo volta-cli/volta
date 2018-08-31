@@ -34,7 +34,7 @@ pub fn parse_requirements(src: &str) -> Fallible<VersionReq> {
 #[cfg(test)]
 pub mod tests {
 
-    use serial::version::parse_requirements;
+    use version::serial::parse_requirements;
     use semver::VersionReq;
 
     #[test]

@@ -38,6 +38,7 @@ pub mod shell;
 pub mod shim;
 pub mod style;
 pub mod tool;
+pub mod version;
 
 extern crate failure;
 #[macro_use]

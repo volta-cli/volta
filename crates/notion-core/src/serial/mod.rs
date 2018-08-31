@@ -1,8 +1,5 @@
 //! Provides utilities for serializing and deserializing file formats.
 
-pub mod plugin;
-pub mod version;
-
 use std::fs::{create_dir_all, File};
 use std::path::Path;
 
