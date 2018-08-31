@@ -18,13 +18,12 @@ use serde_json;
 use tempfile::NamedTempFile;
 use toml;
 
-use super::ensure_dir_exists;
 use config::{Config, ToolConfig};
 use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
 use distro::{Distro, Fetched};
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
-use path::{self, user_catalog_file};
+use path::{self, ensure_containing_dir_exists, user_catalog_file};
 use semver::{Version, VersionReq};
 use serial;
 use serial::touch;
@@ -413,7 +412,7 @@ fn resolve_node_versions() -> Result<serial::index::Index, NotionError> {
             }
 
             let index_cache_file = path::node_index_file()?;
-            ensure_dir_exists(&index_cache_file)?;
+            ensure_containing_dir_exists(&index_cache_file)?;
             cached.persist(index_cache_file).unknown()?;
 
             let expiry: NamedTempFile = NamedTempFile::new().unknown()?;
@@ -433,7 +432,7 @@ fn resolve_node_versions() -> Result<serial::index::Index, NotionError> {
             }
 
             let index_expiry_file = path::node_index_expiry_file()?;
-            ensure_dir_exists(&index_expiry_file)?;
+            ensure_containing_dir_exists(&index_expiry_file)?;
             expiry.persist(index_expiry_file).unknown()?;
 
             let serial: serial::index::Index =
