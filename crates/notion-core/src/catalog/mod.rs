@@ -2,10 +2,9 @@
 //! of available tool versions.
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
-use std::fs::{self, remove_dir_all, File};
-use std::io::{self, ErrorKind, Write};
+use std::fs::{remove_dir_all, File};
+use std::io::{self, Write};
 use std::marker::PhantomData;
-use std::path::PathBuf;
 use std::str::FromStr;
 use std::string::ToString;
 use std::time::{Duration, SystemTime};
@@ -25,7 +24,7 @@ use distro::{Distro, Fetched};
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use path::{self, user_catalog_file};
 use semver::{Version, VersionReq};
-use fs::{ensure_containing_dir_exists, touch};
+use fs::{ensure_containing_dir_exists, read_file_opt, touch};
 use style::progress_spinner;
 
 pub mod serial;
@@ -343,19 +342,6 @@ impl FromStr for Catalog {
     fn from_str(src: &str) -> Result<Self, Self::Err> {
         let serial: serial::Catalog = toml::from_str(src).unknown()?;
         Ok(serial.into_catalog()?)
-    }
-}
-
-/// Reads a file, if it exists.
-fn read_file_opt(path: &PathBuf) -> io::Result<Option<String>> {
-    let result: io::Result<String> = fs::read_to_string(path);
-
-    match result {
-        Ok(string) => Ok(Some(string)),
-        Err(error) => match error.kind() {
-            ErrorKind::NotFound => Ok(None),
-            _ => Err(error),
-        },
     }
 }
 

@@ -1,8 +1,8 @@
 //! Provides utilities for operating on the filesystem.
 
 use std::fs::{self, create_dir_all, File};
-use std::io;
-use std::path::Path;
+use std::io::{self, ErrorKind};
+use std::path::{Path, PathBuf};
 
 use notion_fail::{ExitCode, FailExt, Fallible, NotionFail, ResultExt};
 
@@ -45,5 +45,18 @@ pub fn ensure_containing_dir_exists<P: AsRef<Path>>(path: &P) -> Fallible<()> {
     } else {
         // this was called for a file with no parent directory
         throw!(PathInternalError.unknown());
+    }
+}
+
+/// Reads a file, if it exists.
+pub fn read_file_opt(path: &PathBuf) -> io::Result<Option<String>> {
+    let result: io::Result<String> = fs::read_to_string(path);
+
+    match result {
+        Ok(string) => Ok(Some(string)),
+        Err(error) => match error.kind() {
+            ErrorKind::NotFound => Ok(None),
+            _ => Err(error),
+        },
     }
 }
