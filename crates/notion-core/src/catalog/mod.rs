@@ -25,9 +25,10 @@ use distro::{Distro, Fetched};
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use path::{self, ensure_containing_dir_exists, user_catalog_file};
 use semver::{Version, VersionReq};
-use serial;
-use serial::touch;
+use super::serial::touch;
 use style::progress_spinner;
+
+pub mod serial;
 
 // ISSUE (#86): Move public repository URLs to config file
 /// URL of the index of available Node versions on the public Node server.
@@ -340,7 +341,7 @@ impl FromStr for Catalog {
     type Err = NotionError;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
-        let serial: serial::catalog::Catalog = toml::from_str(src).unknown()?;
+        let serial: serial::Catalog = toml::from_str(src).unknown()?;
         Ok(serial.into_catalog()?)
     }
 }
@@ -359,7 +360,7 @@ fn read_file_opt(path: &PathBuf) -> io::Result<Option<String>> {
 }
 
 /// Reads a public index from the Node cache, if it exists and hasn't expired.
-fn read_cached_opt() -> Fallible<Option<serial::index::Index>> {
+fn read_cached_opt() -> Fallible<Option<serial::Index>> {
     let expiry: Option<String> = read_file_opt(&path::node_index_expiry_file()?).unknown()?;
 
     if let Some(string) = expiry {
@@ -392,7 +393,7 @@ fn max_age(response: &reqwest::Response) -> u32 {
     4 * 60 * 60
 }
 
-fn resolve_node_versions() -> Result<serial::index::Index, NotionError> {
+fn resolve_node_versions() -> Result<serial::Index, NotionError> {
     match read_cached_opt().unknown()? {
         Some(serial) => Ok(serial),
         None => {
@@ -435,7 +436,7 @@ fn resolve_node_versions() -> Result<serial::index::Index, NotionError> {
             ensure_containing_dir_exists(&index_expiry_file)?;
             expiry.persist(index_expiry_file).unknown()?;
 
-            let serial: serial::index::Index =
+            let serial: serial::Index =
                 serde_json::de::from_str(&response_text).unknown()?;
 
             spinner.finish_and_clear();

@@ -1,6 +1,4 @@
-use super::super::catalog;
-
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::default::Default;
 use std::iter::FromIterator;
 use std::marker::PhantomData;
@@ -51,8 +49,8 @@ impl Default for YarnCollection {
 }
 
 impl Catalog {
-    pub fn into_catalog(self) -> Fallible<catalog::Catalog> {
-        Ok(catalog::Catalog {
+    pub fn into_catalog(self) -> Fallible<super::Catalog> {
+        Ok(super::Catalog {
             node: self.node.into_node_collection().unknown()?,
             yarn: self.yarn.into_yarn_collection().unknown()?,
         })
@@ -60,7 +58,7 @@ impl Catalog {
 }
 
 impl NodeCollection {
-    fn into_node_collection(self) -> Fallible<catalog::NodeCollection> {
+    fn into_node_collection(self) -> Fallible<super::NodeCollection> {
         let default = match self.default {
             Some(v) => Some(Version::parse(&v[..]).unknown()?),
             None => None,
@@ -71,7 +69,7 @@ impl NodeCollection {
             .map(|s| Ok(Version::parse(&s[..])?))
             .collect();
 
-        Ok(catalog::NodeCollection {
+        Ok(super::NodeCollection {
             default,
             versions: BTreeSet::from_iter(versions.unknown()?),
             phantom: PhantomData,
@@ -80,7 +78,7 @@ impl NodeCollection {
 }
 
 impl YarnCollection {
-    fn into_yarn_collection(self) -> Fallible<catalog::YarnCollection> {
+    fn into_yarn_collection(self) -> Fallible<super::YarnCollection> {
         let default = match self.default {
             Some(v) => Some(Version::parse(&v[..]).unknown()?),
             None => None,
@@ -91,7 +89,7 @@ impl YarnCollection {
             .map(|s| Ok(Version::parse(&s[..])?))
             .collect();
 
-        Ok(catalog::YarnCollection {
+        Ok(super::YarnCollection {
             default,
             versions: BTreeSet::from_iter(versions.unknown()?),
             phantom: PhantomData,
@@ -99,7 +97,7 @@ impl YarnCollection {
     }
 }
 
-impl catalog::Catalog {
+impl super::Catalog {
     pub fn to_serial(&self) -> Catalog {
         Catalog {
             node: self.node.to_serial(),
@@ -107,7 +105,7 @@ impl catalog::Catalog {
         }
     }
 }
-impl catalog::NodeCollection {
+impl super::NodeCollection {
     fn to_serial(&self) -> NodeCollection {
         NodeCollection {
             default: self.default.clone().map(|v| v.to_string()),
@@ -116,11 +114,38 @@ impl catalog::NodeCollection {
     }
 }
 
-impl catalog::YarnCollection {
+impl super::YarnCollection {
     fn to_serial(&self) -> YarnCollection {
         YarnCollection {
             default: self.default.clone().map(|v| v.to_string()),
             versions: self.versions.iter().map(|v| v.to_string()).collect(),
         }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Index(Vec<Entry>);
+
+#[derive(Serialize, Deserialize)]
+pub struct Entry {
+    pub version: String,
+    pub files: Vec<String>,
+}
+
+impl Index {
+    pub fn into_index(self) -> Fallible<super::Index> {
+        let mut entries = BTreeMap::new();
+        for entry in self.0 {
+            let data = super::VersionData {
+                files: HashSet::from_iter(entry.files.into_iter()),
+            };
+            let mut version = &entry.version[..];
+            version = version.trim();
+            if version.starts_with('v') {
+                version = &version[1..];
+            }
+            entries.insert(Version::parse(version).unknown()?, data);
+        }
+        Ok(super::Index { entries })
     }
 }
