@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::string::ToString;
 
 use super::{Distro, Fetched};
+use super::super::ensure_dir_exists;
 use catalog::NodeCollection;
 use distro::error::DownloadError;
 use node_archive::{self, Archive};
@@ -53,6 +54,7 @@ impl Distro for NodeDistro {
             return NodeDistro::cached(version, File::open(cache_file).unknown()?);
         }
 
+        ensure_dir_exists(&cache_file)?;
         Ok(NodeDistro {
             archive: node_archive::fetch(url, &cache_file)
                 .with_context(DownloadError::for_version(version.to_string()))?,

@@ -49,3 +49,39 @@ extern crate notion_fail_derive;
 
 #[macro_use]
 extern crate cfg_if;
+
+use std::fs;
+use std::io;
+use std::path::Path;
+
+use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
+
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "Could not create directory {}: {}", dir, error)]
+#[notion_fail(code = "FileSystemError")]
+pub(crate) struct CreateDirError {
+    pub(crate) dir: String,
+    pub(crate) error: String,
+}
+
+impl CreateDirError {
+    pub(crate) fn for_dir(dir: String) -> impl FnOnce(&io::Error) -> CreateDirError
+    {
+        move |error| CreateDirError {
+            dir,
+            error: error.to_string(),
+        }
+    }
+}
+
+/// If the input path is a directory, it creates that directory. If the input path is a file, it creates the parent directory of that file.
+pub fn ensure_dir_exists<P: AsRef<Path>>(path: &P) -> Fallible<()> {
+    let p = path.as_ref();
+    if p.is_dir() {
+        fs::create_dir_all(p).with_context(CreateDirError::for_dir(p.to_string_lossy().to_string()))
+    } else if let Some(dir) = p.parent() {
+        fs::create_dir_all(dir).with_context(CreateDirError::for_dir(dir.to_string_lossy().to_string()))
+    } else {
+        Ok(())
+    }
+}

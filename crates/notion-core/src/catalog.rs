@@ -28,6 +28,7 @@ use semver::{Version, VersionReq};
 use serial;
 use serial::touch;
 use style::progress_spinner;
+use super::ensure_dir_exists;
 
 // ISSUE (#86): Move public repository URLs to config file
 /// URL of the index of available Node versions on the public Node server.
@@ -411,7 +412,9 @@ fn resolve_node_versions() -> Result<serial::index::Index, NotionError> {
                 cached_file.write(response_text.as_bytes()).unknown()?;
             }
 
-            cached.persist(path::node_index_file()?).unknown()?;
+            let index_cache_file = path::node_index_file()?;
+            ensure_dir_exists(&index_cache_file)?;
+            cached.persist(index_cache_file).unknown()?;
 
             let expiry: NamedTempFile = NamedTempFile::new().unknown()?;
 
@@ -429,7 +432,9 @@ fn resolve_node_versions() -> Result<serial::index::Index, NotionError> {
                 }
             }
 
-            expiry.persist(path::node_index_expiry_file()?).unknown()?;
+            let index_expiry_file = path::node_index_expiry_file()?;
+            ensure_dir_exists(&index_expiry_file)?;
+            expiry.persist(index_expiry_file).unknown()?;
 
             let serial: serial::index::Index =
                 serde_json::de::from_str(&response_text).unknown()?;
