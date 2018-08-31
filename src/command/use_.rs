@@ -4,7 +4,7 @@
 
 use semver::VersionReq;
 
-use notion_core::serial::version::parse_requirements;
+use notion_core::version::serial::parse_requirements;
 use notion_core::session::{ActivityKind, Session};
 use notion_core::catalog::{parse_node_version, parse_yarn_version};
 use notion_fail::{ExitCode, Fallible, NotionFail};

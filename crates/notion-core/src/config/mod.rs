@@ -13,7 +13,7 @@ use notion_fail::{Fallible, NotionError, ResultExt};
 use path::user_config_file;
 use plugin;
 use readext::ReadExt;
-use super::serial::touch;
+use fs::touch;
 
 pub mod serial;
 

@@ -23,9 +23,9 @@ use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
 use distro::{Distro, Fetched};
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
-use path::{self, ensure_containing_dir_exists, user_catalog_file};
+use path::{self, user_catalog_file};
 use semver::{Version, VersionReq};
-use super::serial::touch;
+use fs::{ensure_containing_dir_exists, touch};
 use style::progress_spinner;
 
 pub mod serial;

@@ -4,10 +4,10 @@ use std::fs::{rename, File};
 use std::path::PathBuf;
 use std::string::ToString;
 
-use super::super::path::ensure_containing_dir_exists;
 use super::{Distro, Fetched};
 use catalog::NodeCollection;
 use distro::error::DownloadError;
+use fs::ensure_containing_dir_exists;
 use node_archive::{self, Archive};
 use path;
 use style::{progress_bar, Action};
