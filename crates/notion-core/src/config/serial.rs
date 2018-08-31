@@ -1,7 +1,7 @@
 use super::super::config;
 use std::marker::PhantomData;
 
-use super::plugin::Plugin;
+use serial::plugin::Plugin;
 use distro::Distro;
 use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
