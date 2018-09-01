@@ -15,7 +15,7 @@ use plugin;
 use readext::ReadExt;
 use fs::touch;
 
-pub mod serial;
+pub(crate) mod serial;
 
 /// Lazily loaded Notion configuration settings.
 pub struct LazyConfig {

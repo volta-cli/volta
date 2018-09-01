@@ -8,7 +8,7 @@ use notion_core::project::Project;
 use notion_core::session::{ActivityKind, Session};
 use notion_core::{path, shim};
 use notion_fail::{ExitCode, Fallible, ResultExt};
-use semver::{Version, VersionReq};
+use semver::Version;
 
 use Notion;
 use command::{Command, CommandName, Help};
@@ -32,7 +32,7 @@ enum ShimKind {
     User(PathBuf),
     System,
     NotInstalled,
-    WillInstall(VersionReq),
+    WillInstall(Version),
     Unimplemented,
 }
 
@@ -150,10 +150,9 @@ fn resolve_shim(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
     }
 }
 
-fn available_node_version(project: &Project, session: &Session) -> Fallible<Option<Version>> {
-    let requirements = &project.manifest().node().unwrap();
+fn is_node_version_installed(project: &Project, session: &Session) -> Fallible<bool> {
     let catalog = session.catalog()?;
-    Ok(catalog.node.resolve_local(&requirements))
+    Ok(catalog.node.contains(&project.manifest().node().unwrap()))
 }
 
 // figure out which version of Node is installed or configured,
@@ -161,16 +160,16 @@ fn available_node_version(project: &Project, session: &Session) -> Fallible<Opti
 fn resolve_node_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
     if session.in_pinned_project() {
         let project = session.project().unwrap();
-        let requirements = &project.manifest().node().unwrap();
-        if let Some(available) = available_node_version(&project, &session)? {
+        let version = &project.manifest().node().unwrap();
+        if is_node_version_installed(&project, &session)? {
             // Node is pinned by the project - this shim will use that version
-            let mut bin_path = path::node_version_bin_dir(&available.to_string()).unknown()?;
+            let mut bin_path = path::node_version_bin_dir(&version.to_string()).unknown()?;
             bin_path.push(&shim_name);
             return Ok(ShimKind::User(bin_path));
         }
 
         // not installed, but will install based on the required version
-        return Ok(ShimKind::WillInstall(requirements.clone()));
+        return Ok(ShimKind::WillInstall(version.clone()));
     }
 
     if let Some(user_version) = session.user_node()? {
@@ -184,17 +183,17 @@ fn resolve_node_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind
 fn resolve_yarn_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
     if session.in_pinned_project() {
         let project = session.project().unwrap();
-        if let Some(requirements) = &project.manifest().yarn() {
+        if let Some(ref version) = &project.manifest().yarn() {
             let catalog = session.catalog()?;
-            if let Some(available) = catalog.yarn.resolve_local(&requirements) {
+            if catalog.yarn.contains(version) {
                 // Yarn is pinned by the project - this shim will use that version
-                let mut bin_path = path::yarn_version_bin_dir(&available.to_string()).unknown()?;
+                let mut bin_path = path::yarn_version_bin_dir(&version.to_string()).unknown()?;
                 bin_path.push(&shim_name);
                 return Ok(ShimKind::User(bin_path));
             }
 
             // not installed, but will install based on the required version
-            return Ok(ShimKind::WillInstall(requirements.clone()));
+            return Ok(ShimKind::WillInstall(version.clone()));
         }
     }
 
@@ -221,9 +220,10 @@ fn resolve_3p_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> 
         }
 
         // if Node is installed, use the bin there
-        if let Some(available) = available_node_version(&project, &session)? {
+        if is_node_version_installed(&project, &session)? {
+            let version = project.manifest().node().unwrap();
             // Node is pinned by the project - this shim will use that version
-            let mut bin_path = path::node_version_3p_bin_dir(&available.to_string())?;
+            let mut bin_path = path::node_version_3p_bin_dir(&version.to_string())?;
             bin_path.push(&shim_name);
             return Ok(ShimKind::User(bin_path));
         }

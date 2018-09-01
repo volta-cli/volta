@@ -7,11 +7,11 @@ use std::path::{Path, PathBuf};
 
 use detect_indent;
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
-use semver::VersionReq;
+use semver::Version;
 use serde::Serialize;
 use serde_json;
 
-pub mod serial;
+pub(crate) mod serial;
 
 #[derive(Debug, Fail, NotionFail)]
 #[fail(display = "Could not read package info: {}", error)]
@@ -30,12 +30,12 @@ impl PackageReadError {
 
 /// A toolchain manifest.
 pub struct ToolchainManifest {
-    /// The requested version of Node, under the `toolchain.node` key.
-    pub node: VersionReq,
+    /// The pinned version of Node, under the `toolchain.node` key.
+    pub node: Version,
     /// The pinned version of Node as a string.
     pub node_str: String,
-    /// The requested version of Yarn, under the `toolchain.yarn` key.
-    pub yarn: Option<VersionReq>,
+    /// The pinned version of Yarn, under the `toolchain.yarn` key.
+    pub yarn: Option<Version>,
     /// The pinned version of Yarn as a string.
     pub yarn_str: Option<String>,
 }
@@ -66,8 +66,8 @@ impl Manifest {
         self.toolchain.is_some()
     }
 
-    /// Returns the pinned version of Node as a VersionReq, if any.
-    pub fn node(&self) -> Option<VersionReq> {
+    /// Returns the pinned version of Node as a Version, if any.
+    pub fn node(&self) -> Option<Version> {
         self.toolchain.as_ref().map(|t| t.node.clone())
     }
 
@@ -76,8 +76,8 @@ impl Manifest {
         self.toolchain.as_ref().map(|t| t.node_str.clone())
     }
 
-    /// Returns the pinned verison of Yarn as a VersionReq, if any.
-    pub fn yarn(&self) -> Option<VersionReq> {
+    /// Returns the pinned verison of Yarn as a Version, if any.
+    pub fn yarn(&self) -> Option<Version> {
         self.toolchain
             .as_ref()
             .map(|t| t.yarn.clone())

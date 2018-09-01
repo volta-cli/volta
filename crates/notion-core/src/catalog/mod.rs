@@ -26,8 +26,9 @@ use path::{self, user_catalog_file};
 use semver::{Version, VersionReq};
 use fs::{ensure_containing_dir_exists, read_file_opt, touch};
 use style::progress_spinner;
+use version::VersionSpec;
 
-pub mod serial;
+pub(crate) mod serial;
 
 // ISSUE (#86): Move public repository URLs to config file
 /// URL of the index of available Node versions on the public Node server.
@@ -103,7 +104,7 @@ impl Catalog {
     }
 
     /// Sets the default Node version to one matching the specified semantic versioning requirements.
-    pub fn set_default_node(&mut self, matching: &VersionReq, config: &Config) -> Fallible<()> {
+    pub fn set_default_node(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<()> {
         let fetched = self.fetch_node(matching, config)?;
         let version = Some(fetched.into_version());
 
@@ -116,8 +117,8 @@ impl Catalog {
     }
 
     /// Fetches a Node version matching the specified semantic versioning requirements.
-    pub fn fetch_node(&mut self, matching: &VersionReq, config: &Config) -> Fallible<Fetched> {
-        let distro = self.node.resolve_remote(&matching, config.node.as_ref())?;
+    pub fn fetch_node(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched> {
+        let distro = self.node.resolve_remote(matching, config.node.as_ref())?;
         let fetched = distro.fetch(&self.node).unknown()?;
 
         if let &Fetched::Now(ref version) = &fetched {
@@ -129,7 +130,7 @@ impl Catalog {
     }
 
     /// Resolves a Node version matching the specified semantic versioning requirements.
-    pub fn resolve_node(&self, matching: &VersionReq, config: &Config) -> Fallible<Version> {
+    pub fn resolve_node(&self, matching: &VersionSpec, config: &Config) -> Fallible<Version> {
         let distro = self.node.resolve_remote(&matching, config.node.as_ref())?;
         Ok(distro.version().clone())
     }
@@ -159,7 +160,7 @@ impl Catalog {
     // ISSUE (#87) Abstract Catalog's activate, install and uninstall methods
     // And potentially share code between node and yarn
     /// Sets the default Yarn version to one matching the specified semantic versioning requirements.
-    pub fn set_default_yarn(&mut self, matching: &VersionReq, config: &Config) -> Fallible<()> {
+    pub fn set_default_yarn(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<()> {
         let fetched = self.fetch_yarn(matching, config)?;
         let version = Some(fetched.into_version());
 
@@ -172,7 +173,7 @@ impl Catalog {
     }
 
     /// Fetches a Yarn version matching the specified semantic versioning requirements.
-    pub fn fetch_yarn(&mut self, matching: &VersionReq, config: &Config) -> Fallible<Fetched> {
+    pub fn fetch_yarn(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched> {
         let distro = self.yarn.resolve_remote(&matching, config.yarn.as_ref())?;
         let fetched = distro.fetch(&self.yarn).unknown()?;
 
@@ -185,7 +186,7 @@ impl Catalog {
     }
 
     /// Resolves a Yarn version matching the specified semantic versioning requirements.
-    pub fn resolve_yarn(&self, matching: &VersionReq, config: &Config) -> Fallible<Version> {
+    pub fn resolve_yarn(&self, matching: &VersionSpec, config: &Config) -> Fallible<Version> {
         let distro = self.yarn.resolve_remote(&matching, config.yarn.as_ref())?;
         Ok(distro.version().clone())
     }
@@ -218,7 +219,7 @@ impl Catalog {
 #[fail(display = "No Node version found for {}", matching)]
 #[notion_fail(code = "NoVersionMatch")]
 struct NoNodeVersionFoundError {
-    matching: VersionReq,
+    matching: VersionSpec,
 }
 
 /// Thrown when there is no Yarn version matching a requested semver specifier.
@@ -234,21 +235,11 @@ impl<D: Distro> Collection<D> {
     pub fn contains(&self, version: &Version) -> bool {
         self.versions.contains(version)
     }
-
-    /// Resolves the specified semantic versioning requirements from the local catalog.
-    pub fn resolve_local(&self, req: &VersionReq) -> Option<Version> {
-        self.versions
-            .iter()
-            .rev()
-            .skip_while(|v| !req.matches(&v))
-            .next()
-            .map(|v| v.clone())
-    }
 }
 
 pub trait Resolve<D: Distro> {
     /// Resolves the specified semantic versioning requirements from a remote distributor.
-    fn resolve_remote(&self, matching: &VersionReq, config: Option<&ToolConfig<D>>) -> Fallible<D> {
+    fn resolve_remote(&self, matching: &VersionSpec, config: Option<&ToolConfig<D>>) -> Fallible<D> {
         match config {
             Some(ToolConfig {
                 resolve: Some(ref plugin),
@@ -259,7 +250,7 @@ pub trait Resolve<D: Distro> {
     }
 
     /// Resolves the specified semantic versioning requirements from the public distributor (e.g. `https://nodejs.org`).
-    fn resolve_public(&self, matching: &VersionReq) -> Fallible<D>;
+    fn resolve_public(&self, matching: &VersionSpec) -> Fallible<D>;
 }
 
 /// Thrown when the public registry for Node or Yarn could not be downloaded.
@@ -279,50 +270,66 @@ impl RegistryFetchError {
 }
 
 impl Resolve<NodeDistro> for NodeCollection {
-    fn resolve_public(&self, matching: &VersionReq) -> Fallible<NodeDistro> {
-        let index: Index = resolve_node_versions()?.into_index()?;
+    fn resolve_public(&self, matching: &VersionSpec) -> Fallible<NodeDistro> {
+        let version_opt = {
+            let index: Index = resolve_node_versions()?.into_index()?;
+            let mut entries = index.entries.into_iter();
+            let entry = match *matching {
+                VersionSpec::Latest => {
+                    entries.next()
+                }
+                VersionSpec::Semver(ref matching) => {
+                    // ISSUE #34: also make sure this OS is available for this version
+                    entries.find(|&(ref k, _)| matching.matches(k))
+                }
+            };
+            entry.map(|(k, _)| k)
+        };
 
-        let version = index.entries.iter()
-            .rev()
-            // ISSUE #34: also make sure this OS is available for this version
-            .skip_while(|&(ref k, _)| !matching.matches(k))
-            .next()
-            .map(|(k, _)| k.clone());
-        if let Some(version) = version {
+        if let Some(version) = version_opt {
             NodeDistro::public(version)
         } else {
             throw!(NoNodeVersionFoundError {
-                matching: matching.clone(),
-            });
+                matching: matching.clone()
+            })
         }
     }
 }
 
 impl Resolve<YarnDistro> for YarnCollection {
     /// Resolves the specified semantic versioning requirements from the public distributor.
-    fn resolve_public(&self, matching: &VersionReq) -> Fallible<YarnDistro> {
-        let spinner = progress_spinner(&format!(
-            "Fetching public registry: {}",
-            PUBLIC_YARN_VERSION_INDEX
-        ));
-        let releases: Vec<String> = reqwest::get(PUBLIC_YARN_VERSION_INDEX)
-            .with_context(RegistryFetchError::from_error)?
-            .json()
-            .unknown()?;
-        spinner.finish_and_clear();
-        let matching_version = releases.into_iter().find(|v| {
-            let v = Version::parse(v).unwrap();
-            matching.matches(&v)
-        });
+    fn resolve_public(&self, matching: &VersionSpec) -> Fallible<YarnDistro> {
+        let version = match *matching {
+            VersionSpec::Latest => {
+                let mut response: reqwest::Response = reqwest::get(PUBLIC_YARN_LATEST_VERSION)
+                    .with_context(RegistryFetchError::from_error)?;
+                response.text().unknown()?
+            }
+            VersionSpec::Semver(ref matching) => {
+                let spinner = progress_spinner(&format!(
+                    "Fetching public registry: {}",
+                    PUBLIC_YARN_VERSION_INDEX
+                ));
+                let releases: Vec<String> = reqwest::get(PUBLIC_YARN_VERSION_INDEX)
+                    .with_context(RegistryFetchError::from_error)?
+                    .json()
+                    .unknown()?;
+                spinner.finish_and_clear();
+                let version = releases.into_iter().find(|v| {
+                    let v = Version::parse(v).unwrap();
+                    matching.matches(&v)
+                });
 
-        if let Some(matching_version) = matching_version {
-            let version = Version::parse(&matching_version).unwrap();
-            YarnDistro::public(version)
-        } else {
-            throw!(NoYarnVersionFoundError {
-                matching: matching.clone(),
-            });
-        }
+                if let Some(version) = version {
+                    version
+                } else {
+                    throw!(NoYarnVersionFoundError {
+                        matching: matching.clone(),
+                    });
+                }
+            }
+        };
+        YarnDistro::public(Version::parse(&version).unknown()?)
     }
 }
 
@@ -429,29 +436,4 @@ fn resolve_node_versions() -> Result<serial::Index, NotionError> {
             Ok(serial)
         }
     }
-}
-
-pub fn parse_node_version(src: String) -> Fallible<String> {
-    let mut version:String= src;
-    if version == "latest" {
-        let index = resolve_node_versions()?.into_index()?;
-        let mut latest_version:Version = index.entries.keys().next().unwrap().clone();
-        for key in index.entries.keys() {
-            if key > &latest_version {
-                latest_version = key.clone();
-            }
-        };
-        version = latest_version.to_string();
-    }
-    Ok(version)
-}
-
-pub fn parse_yarn_version(src: String) -> Fallible<String> {
-    let mut version:String = src;
-    if version == "latest" {
-        let mut response: reqwest::Response = reqwest::get(PUBLIC_YARN_LATEST_VERSION)
-            .with_context(RegistryFetchError::from_error)?;
-        version = response.text().unknown()?;
-    }
-    Ok(version)
 }

@@ -1,7 +1,4 @@
-use semver::VersionReq;
-
-use notion_core::version::serial::parse_requirements;
-use notion_core::catalog::{parse_node_version, parse_yarn_version};
+use notion_core::version::VersionSpec;
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::{ExitCode, Fallible};
 
@@ -16,8 +13,8 @@ pub(crate) struct Args {
 
 pub(crate) enum Fetch {
     Help,
-    Node(VersionReq),
-    Yarn(VersionReq),
+    Node(VersionSpec),
+    Yarn(VersionSpec),
 }
 
 impl Command for Fetch {
@@ -47,12 +44,10 @@ Options:
     ) -> Fallible<Self> {
         match &arg_tool[..] {
             "node" => {
-                let node_version = parse_node_version(arg_version)?;
-                Ok(Fetch::Node(parse_requirements(&node_version)?))
+                Ok(Fetch::Node(VersionSpec::parse(&arg_version)?))
             },
             "yarn" => {
-                let yarn_version = parse_yarn_version(arg_version)?;
-                Ok(Fetch::Yarn(parse_requirements(&yarn_version)?))
+                Ok(Fetch::Yarn(VersionSpec::parse(&arg_version)?))
             },
             ref tool => {
                 throw!(CliParseError {

@@ -2,11 +2,8 @@
 // With https://github.com/rust-lang/rfcs/blob/master/text/2151-raw-identifiers.md we
 // could consider something like `r#use` instead.
 
-use semver::VersionReq;
-
-use notion_core::version::serial::parse_requirements;
+use notion_core::version::VersionSpec;
 use notion_core::session::{ActivityKind, Session};
-use notion_core::catalog::{parse_node_version, parse_yarn_version};
 use notion_fail::{ExitCode, Fallible, NotionFail};
 
 use Notion;
@@ -35,9 +32,9 @@ impl NoCustomUseError {
 
 pub(crate) enum Use {
     Help,
-    Node(VersionReq),
-    Yarn(VersionReq),
-    Other { name: String, version: VersionReq },
+    Node(VersionSpec),
+    Yarn(VersionSpec),
+    Other { name: String, version: VersionSpec },
 }
 
 impl Command for Use {
@@ -67,16 +64,14 @@ Options:
     ) -> Fallible<Self> {
         match &arg_tool[..] {
             "node" => {
-                let node_version = parse_node_version(arg_version)?;
-                Ok(Use::Node(parse_requirements(&node_version)?))
+                Ok(Use::Node(VersionSpec::parse(&arg_version)?))
             },
             "yarn" => {
-                let yarn_version = parse_yarn_version(arg_version)?;
-                Ok(Use::Yarn(parse_requirements(&yarn_version)?))
+                Ok(Use::Yarn(VersionSpec::parse(&arg_version)?))
             },
             ref tool => Ok(Use::Other {
                 name: tool.to_string(),
-                version: parse_requirements(&arg_version)?,
+                version: VersionSpec::parse(&arg_version)?,
             }),
         }
     }
@@ -85,8 +80,8 @@ Options:
         session.add_event_start(ActivityKind::Use);
         match self {
             Use::Help => Help::Command(CommandName::Use).run(session)?,
-            Use::Node(requirements) => session.pin_node_version(&requirements)?,
-            Use::Yarn(requirements) => session.pin_yarn_version(&requirements)?,
+            Use::Node(spec) => session.pin_node_version(&spec)?,
+            Use::Yarn(spec) => session.pin_yarn_version(&spec)?,
             Use::Other {
                 name: _name,
                 version: _,
