@@ -130,7 +130,7 @@ impl Manifest {
 pub mod tests {
 
     use manifest::Manifest;
-    use semver::VersionReq;
+    use semver::Version;
     use std::collections::HashMap;
     use std::path::PathBuf;
 
@@ -148,7 +148,7 @@ pub mod tests {
             .expect("Could not get manifest")
             .node()
             .unwrap();
-        assert_eq!(version, VersionReq::parse("=6.11.1").unwrap());
+        assert_eq!(version, Version::parse("6.11.1").unwrap());
     }
 
     #[test]
@@ -157,7 +157,7 @@ pub mod tests {
         let version = Manifest::for_dir(&project_path)
             .expect("Could not get manifest")
             .yarn();
-        assert_eq!(version.unwrap(), VersionReq::parse("=1.2").unwrap());
+        assert_eq!(version.unwrap(), Version::parse("1.2.0").unwrap());
     }
 
     #[test]
