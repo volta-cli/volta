@@ -25,7 +25,7 @@ pub struct NodeDistro {
 
 /// Check if the cached file is valid. It may have been corrupted or interrupted in the middle of
 /// downloading.
-// FIXME(#134) - verify checksum
+// ISSUE(#134) - verify checksum
 fn cache_is_valid(cache_file: &PathBuf) -> bool {
     if cache_file.is_file() {
         if let Ok(file) = File::open(cache_file) {
