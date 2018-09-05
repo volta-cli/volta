@@ -27,17 +27,18 @@ pub mod config;
 mod distro;
 pub mod env;
 mod event;
+pub(crate) mod fs;
 pub mod manifest;
 pub mod monitor;
 pub mod path;
 mod plugin;
 pub mod project;
-pub mod serial;
 pub mod session;
 pub mod shell;
 pub mod shim;
 pub mod style;
 pub mod tool;
+pub mod version;
 
 extern crate failure;
 #[macro_use]

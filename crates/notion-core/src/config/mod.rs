@@ -13,8 +13,9 @@ use notion_fail::{Fallible, NotionError, ResultExt};
 use path::user_config_file;
 use plugin;
 use readext::ReadExt;
-use serial;
-use serial::touch;
+use fs::touch;
+
+pub(crate) mod serial;
 
 /// Lazily loaded Notion configuration settings.
 pub struct LazyConfig {
@@ -65,7 +66,7 @@ impl FromStr for Config {
     type Err = NotionError;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
-        let serial: serial::config::Config = toml::from_str(src).unknown()?;
+        let serial: serial::Config = toml::from_str(src).unknown()?;
         Ok(serial.into_config()?)
     }
 }

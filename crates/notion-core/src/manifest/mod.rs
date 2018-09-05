@@ -7,11 +7,11 @@ use std::path::{Path, PathBuf};
 
 use detect_indent;
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
-use semver::VersionReq;
+use semver::Version;
 use serde::Serialize;
 use serde_json;
 
-use serial;
+pub(crate) mod serial;
 
 #[derive(Debug, Fail, NotionFail)]
 #[fail(display = "Could not read package info: {}", error)]
@@ -30,12 +30,12 @@ impl PackageReadError {
 
 /// A toolchain manifest.
 pub struct ToolchainManifest {
-    /// The requested version of Node, under the `toolchain.node` key.
-    pub node: VersionReq,
+    /// The pinned version of Node, under the `toolchain.node` key.
+    pub node: Version,
     /// The pinned version of Node as a string.
     pub node_str: String,
-    /// The requested version of Yarn, under the `toolchain.yarn` key.
-    pub yarn: Option<VersionReq>,
+    /// The pinned version of Yarn, under the `toolchain.yarn` key.
+    pub yarn: Option<Version>,
     /// The pinned version of Yarn as a string.
     pub yarn_str: Option<String>,
 }
@@ -57,7 +57,7 @@ impl Manifest {
     pub fn for_dir(project_root: &Path) -> Fallible<Manifest> {
         let file = File::open(project_root.join("package.json"))
             .with_context(PackageReadError::from_io_error)?;
-        let serial: serial::manifest::Manifest = serde_json::de::from_reader(file).unknown()?;
+        let serial: serial::Manifest = serde_json::de::from_reader(file).unknown()?;
         serial.into_manifest()
     }
 
@@ -66,8 +66,8 @@ impl Manifest {
         self.toolchain.is_some()
     }
 
-    /// Returns the pinned version of Node as a VersionReq, if any.
-    pub fn node(&self) -> Option<VersionReq> {
+    /// Returns the pinned version of Node as a Version, if any.
+    pub fn node(&self) -> Option<Version> {
         self.toolchain.as_ref().map(|t| t.node.clone())
     }
 
@@ -76,8 +76,8 @@ impl Manifest {
         self.toolchain.as_ref().map(|t| t.node_str.clone())
     }
 
-    /// Returns the pinned verison of Yarn as a VersionReq, if any.
-    pub fn yarn(&self) -> Option<VersionReq> {
+    /// Returns the pinned verison of Yarn as a Version, if any.
+    pub fn yarn(&self) -> Option<Version> {
         self.toolchain
             .as_ref()
             .map(|t| t.yarn.clone())
@@ -95,7 +95,7 @@ impl Manifest {
     /// Writes the input ToolchainManifest to package.json, adding the "toolchain" key if
     /// necessary.
     pub fn update_toolchain(
-        toolchain: serial::manifest::ToolchainManifest,
+        toolchain: serial::ToolchainManifest,
         package_file: PathBuf,
     ) -> Fallible<()> {
         // parse the entire package.json file into a Value
@@ -130,7 +130,7 @@ impl Manifest {
 pub mod tests {
 
     use manifest::Manifest;
-    use semver::VersionReq;
+    use semver::Version;
     use std::collections::HashMap;
     use std::path::PathBuf;
 
@@ -148,7 +148,7 @@ pub mod tests {
             .expect("Could not get manifest")
             .node()
             .unwrap();
-        assert_eq!(version, VersionReq::parse("=6.11.1").unwrap());
+        assert_eq!(version, Version::parse("6.11.1").unwrap());
     }
 
     #[test]
@@ -157,7 +157,7 @@ pub mod tests {
         let version = Manifest::for_dir(&project_path)
             .expect("Could not get manifest")
             .yarn();
-        assert_eq!(version.unwrap(), VersionReq::parse("=1.2").unwrap());
+        assert_eq!(version.unwrap(), Version::parse("1.2.0").unwrap());
     }
 
     #[test]

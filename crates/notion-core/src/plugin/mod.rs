@@ -5,12 +5,14 @@ use std::io::Read;
 use std::process::{Command, Stdio};
 
 use distro::Distro;
-use serial;
 
 use cmdline_words_parser::StrExt;
 use notion_fail::{FailExt, Fallible, ResultExt};
-use semver::{Version, VersionReq};
+use semver::Version;
 use serde_json;
+use version::VersionSpec;
+
+pub(crate) mod serial;
 
 /// A Node version resolution plugin.
 pub enum ResolvePlugin {
@@ -32,7 +34,7 @@ pub struct InvalidCommandError {
 impl ResolvePlugin {
     /// Performs resolution of a Tool version based on the given semantic
     /// versioning requirements.
-    pub fn resolve<D: Distro>(&self, _matching: &VersionReq) -> Fallible<D> {
+    pub fn resolve<D: Distro>(&self, _matching: &VersionSpec) -> Fallible<D> {
         match self {
             &ResolvePlugin::Url(_) => unimplemented!(),
 
@@ -89,7 +91,7 @@ pub enum ResolveResponse {
 impl ResolveResponse {
     /// Reads and parses a response from a Node version resolution plugin.
     pub fn from_reader<R: Read>(reader: R) -> Fallible<Self> {
-        let serial: serial::plugin::ResolveResponse = serde_json::from_reader(reader).unknown()?;
+        let serial: serial::ResolveResponse = serde_json::from_reader(reader).unknown()?;
         Ok(serial.into_resolve_response()?)
     }
 }

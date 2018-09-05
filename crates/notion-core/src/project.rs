@@ -11,7 +11,7 @@ use lazycell::LazyCell;
 use manifest::Manifest;
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use semver::Version;
-use serial::manifest::ToolchainManifest;
+use manifest::serial::ToolchainManifest;
 
 fn is_node_root(dir: &Path) -> bool {
     dir.join("package.json").is_file()

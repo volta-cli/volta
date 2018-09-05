@@ -1,8 +1,5 @@
-use semver::VersionReq;
-
-use notion_core::serial::version::parse_requirements;
+use notion_core::version::VersionSpec;
 use notion_core::session::{ActivityKind, Session};
-use notion_core::catalog::{parse_node_version, parse_yarn_version};
 use notion_fail::{ExitCode, Fallible};
 
 use Notion;
@@ -17,9 +14,9 @@ pub(crate) struct Args {
 
 pub(crate) enum Install {
     Help,
-    Node(VersionReq),
-    Yarn(VersionReq),
-    Other { name: String, version: VersionReq },
+    Node(VersionSpec),
+    Yarn(VersionSpec),
+    Other { name: String, version: VersionSpec },
 }
 
 impl Command for Install {
@@ -52,16 +49,14 @@ Supported Tools:
     ) -> Fallible<Self> {
         match &arg_tool[..] {
             "node" => {
-                let node_version = parse_node_version(arg_version)?;
-                Ok(Install::Node(parse_requirements(&node_version)?))
+                Ok(Install::Node(VersionSpec::parse(&arg_version)?))
             },
             "yarn" => {
-                let yarn_version = parse_yarn_version(arg_version)?;
-                Ok(Install::Yarn(parse_requirements(&yarn_version)?))
+                Ok(Install::Yarn(VersionSpec::parse(&arg_version)?))
             },
             ref tool => Ok(Install::Other {
                 name: tool.to_string(),
-                version: parse_requirements(&arg_version)?,
+                version: VersionSpec::parse(&arg_version)?,
             }),
         }
     }

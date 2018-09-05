@@ -9,12 +9,14 @@ use config::{Config, LazyConfig};
 use distro::Fetched;
 use plugin::Publish;
 use project::Project;
+use version::VersionSpec;
+
 use std::fmt::{self, Display, Formatter};
 use std::process::exit;
 
 use event::EventLog;
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
-use semver::{Version, VersionReq};
+use semver::Version;
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
 pub enum ActivityKind {
@@ -130,16 +132,16 @@ impl Session {
     pub fn current_node(&mut self) -> Fallible<Option<Version>> {
         if self.in_pinned_project() {
             let project = self.project.as_ref().unwrap();
-            let requirements = &project.manifest().node().unwrap();
+            let version = &project.manifest().node().unwrap();
             let catalog = self.catalog.get_mut()?;
-            let available = catalog.node.resolve_local(&requirements);
+            let spec = VersionSpec::exact(&version);
 
-            if available.is_some() {
-                return Ok(available);
+            if catalog.node.contains(version) {
+                return Ok(Some(version.clone()));
             }
 
             let config = self.config.get()?;
-            let fetched = catalog.fetch_node(&requirements, config)?;
+            let fetched = catalog.fetch_node(&spec, config)?;
 
             return Ok(Some(fetched.into_version()));
         }
@@ -157,7 +159,7 @@ impl Session {
 
     /// Fetches a version of Node matching the specified semantic verisoning
     /// requirements.
-    pub fn fetch_node(&mut self, matching: &VersionReq) -> Fallible<Fetched> {
+    pub fn fetch_node(&mut self, matching: &VersionSpec) -> Fallible<Fetched> {
         let catalog = self.catalog.get_mut()?;
         let config = self.config.get()?;
         catalog.fetch_node(matching, config)
@@ -165,14 +167,14 @@ impl Session {
 
     /// Sets the default Node version to one matching the specified semantic versioning
     /// requirements.
-    pub fn set_default_node(&mut self, matching: &VersionReq) -> Fallible<()> {
+    pub fn set_default_node(&mut self, matching: &VersionSpec) -> Fallible<()> {
         let catalog = self.catalog.get_mut()?;
         let config = self.config.get()?;
         catalog.set_default_node(matching, config)
     }
 
     /// Returns the version of Node matching the specified semantic versioning requirements.
-    pub fn get_matching_node(&self, matching: &VersionReq) -> Fallible<Version> {
+    pub fn get_matching_node(&self, matching: &VersionSpec) -> Fallible<Version> {
         let catalog = self.catalog.get()?;
         let config = self.config.get()?;
         catalog.resolve_node(matching, config)
@@ -180,7 +182,7 @@ impl Session {
 
     /// Updates toolchain in package.json with the Node version matching the specified semantic
     /// versioning requirements.
-    pub fn pin_node_version(&self, matching: &VersionReq) -> Fallible<()> {
+    pub fn pin_node_version(&self, matching: &VersionSpec) -> Fallible<()> {
         if let Some(ref project) = self.project() {
             let node_version = self.get_matching_node(matching)?;
             project.pin_node_in_toolchain(node_version)?;
@@ -198,16 +200,16 @@ impl Session {
         if self.in_pinned_project() {
             let project = self.project.as_ref().unwrap();
             // pinning yarn is optional
-            if let Some(requirements) = &project.manifest().yarn().clone() {
+            if let Some(version) = &project.manifest().yarn().clone() {
                 let catalog = self.catalog.get_mut()?;
-                let available = catalog.yarn.resolve_local(&requirements);
+                let spec = VersionSpec::exact(&version);
 
-                if available.is_some() {
-                    return Ok(available);
+                if catalog.yarn.contains(&version) {
+                    return Ok(Some(version.clone()));
                 }
 
                 let config = self.config.get()?;
-                let fetched = catalog.fetch_yarn(&requirements, config)?;
+                let fetched = catalog.fetch_yarn(&spec, config)?;
 
                 return Ok(Some(fetched.into_version()));
             }
@@ -218,7 +220,7 @@ impl Session {
 
     /// Fetches a version of Node matching the specified semantic verisoning
     /// requirements.
-    pub fn fetch_yarn(&mut self, matching: &VersionReq) -> Fallible<Fetched> {
+    pub fn fetch_yarn(&mut self, matching: &VersionSpec) -> Fallible<Fetched> {
         let catalog = self.catalog.get_mut()?;
         let config = self.config.get()?;
         catalog.fetch_yarn(matching, config)
@@ -226,14 +228,14 @@ impl Session {
 
     /// Sets the default Yarn version to one matching the specified semantic versioning
     /// requirements.
-    pub fn set_default_yarn(&mut self, matching: &VersionReq) -> Fallible<()> {
+    pub fn set_default_yarn(&mut self, matching: &VersionSpec) -> Fallible<()> {
         let catalog = self.catalog.get_mut()?;
         let config = self.config.get()?;
         catalog.set_default_yarn(matching, config)
     }
 
     /// Returns the version of Yarn matching the specified semantic versioning requirements
-    pub fn get_matching_yarn(&self, matching: &VersionReq) -> Fallible<Version> {
+    pub fn get_matching_yarn(&self, matching: &VersionSpec) -> Fallible<Version> {
         let catalog = self.catalog.get()?;
         let config = self.config.get()?;
         catalog.resolve_yarn(matching, config)
@@ -241,7 +243,7 @@ impl Session {
 
     /// Updates toolchain in package.json with the Yarn version matching the specified semantic
     /// versioning requirements.
-    pub fn pin_yarn_version(&self, matching: &VersionReq) -> Fallible<()> {
+    pub fn pin_yarn_version(&self, matching: &VersionSpec) -> Fallible<()> {
         if let Some(ref project) = self.project() {
             let yarn_version = self.get_matching_yarn(matching)?;
             project.pin_yarn_in_toolchain(yarn_version)?;

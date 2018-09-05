@@ -1,5 +1,5 @@
 use super::super::manifest;
-use super::version::parse_requirements;
+use version::VersionSpec;
 
 use notion_fail::Fallible;
 
@@ -82,10 +82,10 @@ impl Manifest {
     pub fn into_toolchain_manifest(&self) -> Fallible<Option<manifest::ToolchainManifest>> {
         if let Some(toolchain) = &self.toolchain {
             return Ok(Some(manifest::ToolchainManifest {
-                node: parse_requirements(&toolchain.node)?,
+                node: VersionSpec::parse_version(&toolchain.node)?,
                 node_str: toolchain.node.clone(),
                 yarn: if let Some(yarn) = &toolchain.yarn {
-                    Some(parse_requirements(&yarn)?)
+                    Some(VersionSpec::parse_version(&yarn)?)
                 } else {
                     None
                 },
