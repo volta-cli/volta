@@ -1,5 +1,5 @@
 use std::env;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -13,6 +13,9 @@ use support::process::ProcessBuilder;
 
 #[cfg(feature = "mock-network")]
 use mockito::{self, mock, Matcher};
+
+// TODO: there should be a FileBuilder that handles everything
+// (package.json, catalog, config, etc.)
 
 // package.json
 #[derive(PartialEq, Clone)]
@@ -99,9 +102,19 @@ impl CacheBuilder {
     }
 }
 
-pub struct Sandbox {
-    root: PathBuf,
-    mocks: Vec<mockito::Mock>,
+// environment variables
+pub struct EnvVar {
+    name: String,
+    value: String,
+}
+
+impl EnvVar {
+    pub fn new(name: &str, value: &str) -> Self {
+        EnvVar {
+            name: name.to_string(),
+            value: value.to_string(),
+        }
+    }
 }
 
 #[must_use]
@@ -114,7 +127,7 @@ pub struct SandboxBuilder {
     yarn_latest_mock: Option<String>,
     node_archive_mock: Option<String>,
     yarn_archive_mock: Option<String>,
-    // more TODO
+    path_dirs: Vec<PathBuf>,
 }
 
 impl SandboxBuilder {
@@ -128,6 +141,8 @@ impl SandboxBuilder {
             root: Sandbox {
                 root,
                 mocks: vec![],
+                env_vars: vec![],
+                path: OsString::new(),
             },
             package: None,
             caches: vec![],
@@ -136,6 +151,7 @@ impl SandboxBuilder {
             yarn_latest_mock: None,
             node_archive_mock: None,
             yarn_archive_mock: None,
+            path_dirs: vec![notion_bin_dir()],
         }
     }
 
@@ -158,6 +174,18 @@ impl SandboxBuilder {
         self
     }
 
+    /// Set the shell for the sandbox (chainable)
+    pub fn notion_shell(mut self, shell_name: &str) -> Self {
+        self.root.env_vars.push(EnvVar::new("NOTION_SHELL", shell_name));
+        self
+    }
+
+    /// Add a directory to the PATH (chainable)
+    pub fn path_dir(mut self, dir: &str) -> Self {
+        self.path_dirs.push(PathBuf::from(dir));
+        self
+    }
+
     /// Create the project
     pub fn build(mut self) -> Sandbox {
         // First, clean the directory if it already exists
@@ -173,9 +201,11 @@ impl SandboxBuilder {
             default_package(self.root()).build();
         }
 
-        // TODO: make this cleaner, somehow?
+        // make sure these directories exist
+        // TODO: make this DRYer
         t!(fs::create_dir_all(node_cache_dir()));
         t!(fs::create_dir_all(yarn_cache_dir()));
+        t!(fs::create_dir_all(notion_tmp_dir()));
 
         // write node and yarn caches
         for cache in self.caches.iter() {
@@ -213,6 +243,9 @@ impl SandboxBuilder {
             self.root.mocks.append(&mut default_yarn_archive_mocks());
         }
 
+        // join dirs for the path (notion bin path is already first)
+        self.root.path = env::join_paths(self.path_dirs.iter()).unwrap();
+
         let SandboxBuilder { root, .. } = self;
         root
     }
@@ -230,6 +263,15 @@ fn home_dir() -> PathBuf {
 }
 fn notion_home() -> PathBuf {
     home_dir().join(".notion")
+}
+fn notion_tmp_dir() -> PathBuf {
+    notion_home().join("tmp")
+}
+fn notion_bin_dir() -> PathBuf {
+    notion_home().join("bin")
+}
+fn notion_postscript() -> PathBuf {
+    notion_tmp_dir().join("notion_tmp_1234.sh")
 }
 fn cache_dir() -> PathBuf {
     notion_home().join("cache")
@@ -267,6 +309,13 @@ fn fixture_file(file: &str) -> PathBuf {
     path
 }
 
+pub struct Sandbox {
+    root: PathBuf,
+    mocks: Vec<mockito::Mock>,
+    env_vars: Vec<EnvVar>,
+    path: OsString,
+}
+
 impl Sandbox {
     /// Root of the project, ex: `/path/to/cargo/target/integration_test/t0/foo`
     pub fn root(&self) -> PathBuf {
@@ -283,16 +332,21 @@ impl Sandbox {
         let mut p = support::process::process(program);
         p.cwd(self.root())
             // sandbox the Notion environment
-            // TODO: allow overrides for these
             .env("HOME", home_dir())
             .env("NOTION_HOME", notion_home())
-            .env("PATH", "")
+            .env("PATH", &self.path)
+            .env("NOTION_POSTSCRIPT", notion_postscript())
             .env_remove("NOTION_DEV")
             .env_remove("NOTION_NODE_VERSION")
-            .env_remove("NOTION_POSTSCRIPT")
             .env_remove("NOTION_SHELL");
-        // TODO: need this on windows?
-        // .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
+            // TODO: need this?
+            // .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
+
+        // overrides for env vars
+        for env_var in &self.env_vars {
+            p.env(&env_var.name, &env_var.value);
+        }
+
         p
     }
 
@@ -306,10 +360,18 @@ impl Sandbox {
         p
     }
 
+    // TODO: refactor these
     pub fn read_package_json(&self) -> String {
         let package_file = package_json_file(self.root());
         let mut contents = String::new();
         let mut file = t!(File::open(package_file));
+        t!(file.read_to_string(&mut contents));
+        contents
+    }
+    pub fn read_postscript(&self) -> String {
+        let postscript_file = notion_postscript();
+        let mut contents = String::new();
+        let mut file = t!(File::open(postscript_file));
         t!(file.read_to_string(&mut contents));
         contents
     }

@@ -17,4 +17,5 @@ mod support;
 
 // test files
 
+mod notion_deactivate;
 mod notion_use;
