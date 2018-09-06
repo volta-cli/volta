@@ -165,12 +165,12 @@ impl Session {
         catalog.fetch_node(matching, config)
     }
 
-    /// Sets the default Node version to one matching the specified semantic versioning
+    /// Sets the user toolchain's Node version to one matching the specified semantic versioning
     /// requirements.
-    pub fn set_default_node(&mut self, matching: &VersionSpec) -> Fallible<()> {
+    pub fn set_user_node(&mut self, matching: &VersionSpec) -> Fallible<()> {
         let catalog = self.catalog.get_mut()?;
         let config = self.config.get()?;
-        catalog.set_default_node(matching, config)
+        catalog.set_user_node(matching, config)
     }
 
     /// Returns the version of Node matching the specified semantic versioning requirements.
@@ -226,12 +226,12 @@ impl Session {
         catalog.fetch_yarn(matching, config)
     }
 
-    /// Sets the default Yarn version to one matching the specified semantic versioning
+    /// Sets the Yarn version in the user toolchain to one matching the specified semantic versioning
     /// requirements.
-    pub fn set_default_yarn(&mut self, matching: &VersionSpec) -> Fallible<()> {
+    pub fn set_user_yarn(&mut self, matching: &VersionSpec) -> Fallible<()> {
         let catalog = self.catalog.get_mut()?;
         let config = self.config.get()?;
-        catalog.set_default_yarn(matching, config)
+        catalog.set_user_yarn(matching, config)
     }
 
     /// Returns the version of Yarn matching the specified semantic versioning requirements

@@ -103,8 +103,8 @@ impl Catalog {
         Ok(())
     }
 
-    /// Sets the default Node version to one matching the specified semantic versioning requirements.
-    pub fn set_default_node(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<()> {
+    /// Sets the Node version in the user toolchain to one matching the specified semantic versioning requirements.
+    pub fn set_user_node(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<()> {
         let fetched = self.fetch_node(matching, config)?;
         let version = Some(fetched.into_version());
 
@@ -159,8 +159,8 @@ impl Catalog {
 
     // ISSUE (#87) Abstract Catalog's activate, install and uninstall methods
     // And potentially share code between node and yarn
-    /// Sets the default Yarn version to one matching the specified semantic versioning requirements.
-    pub fn set_default_yarn(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<()> {
+    /// Sets the Yarn version in the user toolchain to one matching the specified semantic versioning requirements.
+    pub fn set_user_yarn(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<()> {
         let fetched = self.fetch_yarn(matching, config)?;
         let version = Some(fetched.into_version());
 

@@ -75,10 +75,10 @@ Supported Tools:
                 Help::Command(CommandName::Install).run(session)?;
             }
             Install::Node(requirements) => {
-                session.set_default_node(&requirements)?;
+                session.set_user_node(&requirements)?;
             }
             Install::Yarn(requirements) => {
-                session.set_default_yarn(&requirements)?;
+                session.set_user_yarn(&requirements)?;
             }
             Install::Other {
                 package,
