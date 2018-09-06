@@ -2,6 +2,8 @@ use notion_core::version::VersionSpec;
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::{ExitCode, Fallible};
 
+use result::ResultOptionExt;
+
 use Notion;
 use command::{Command, CommandName, Help};
 use CommandUnimplementedError;
@@ -9,14 +11,14 @@ use CommandUnimplementedError;
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
     arg_tool: String,
-    arg_version: String,
+    arg_version: Option<String>,
 }
 
 pub(crate) enum Install {
     Help,
     Node(VersionSpec),
     Yarn(VersionSpec),
-    Other { name: String, version: VersionSpec },
+    Other { package: String, version: VersionSpec },
 }
 
 impl Command for Install {
@@ -26,7 +28,7 @@ impl Command for Install {
 Install a tool in the user toolchain
 
 Usage:
-    notion install <tool> <version>
+    notion install <tool> [<version>]
     notion install -h | --help
 
 Options:
@@ -47,16 +49,21 @@ Supported Tools:
             arg_version,
         }: Args,
     ) -> Fallible<Self> {
+        let version = arg_version
+            .map(VersionSpec::parse)
+            .invert()?
+            .unwrap_or_default();
+
         match &arg_tool[..] {
             "node" => {
-                Ok(Install::Node(VersionSpec::parse(&arg_version)?))
+                Ok(Install::Node(version))
             },
             "yarn" => {
-                Ok(Install::Yarn(VersionSpec::parse(&arg_version)?))
+                Ok(Install::Yarn(version))
             },
-            ref tool => Ok(Install::Other {
-                name: tool.to_string(),
-                version: VersionSpec::parse(&arg_version)?,
+            ref package => Ok(Install::Other {
+                package: package.to_string(),
+                version: version,
             }),
         }
     }
@@ -74,9 +81,9 @@ Supported Tools:
                 session.set_default_yarn(&requirements)?;
             }
             Install::Other {
-                name: name,
+                package,
                 version: _,
-            } => throw!(CommandUnimplementedError::new(&format!("notion install {}", name)))
+            } => throw!(CommandUnimplementedError::new(&format!("notion install {}", package)))
         };
         session.add_event_end(ActivityKind::Install, ExitCode::Success);
         Ok(())

@@ -335,7 +335,7 @@ impl Resolve<YarnDistro> for YarnCollection {
 
 /// The index of the public Node server.
 pub struct Index {
-    pub entries: BTreeMap<Version, VersionData>,
+    entries: Vec<(Version, VersionData)>
 }
 
 /// The set of available files on the public Node server for a given Node version.

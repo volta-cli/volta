@@ -24,6 +24,12 @@ impl fmt::Display for VersionSpec {
     }
 }
 
+impl Default for VersionSpec {
+    fn default() -> Self {
+        VersionSpec::Latest
+    }
+}
+
 impl VersionSpec {
     pub fn exact(version: &Version) -> Self {
         VersionSpec::Semver(VersionReq::exact(version))
