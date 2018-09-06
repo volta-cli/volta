@@ -7,6 +7,8 @@ extern crate console;
 extern crate detect_indent;
 extern crate indicatif;
 extern crate lazycell;
+#[cfg(feature = "mock-network")]
+extern crate mockito;
 extern crate node_archive;
 extern crate readext;
 extern crate reqwest;

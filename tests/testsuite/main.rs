@@ -1,0 +1,20 @@
+extern crate failure;
+#[macro_use]
+extern crate failure_derive;
+#[cfg(feature = "mock-network")]
+extern crate mockito;
+extern crate notion_core;
+#[macro_use]
+extern crate notion_fail;
+#[macro_use]
+extern crate notion_fail_derive;
+extern crate reqwest;
+// #[macro_use]
+extern crate serde_json;
+
+#[macro_use]
+mod support;
+
+// test files
+
+mod notion_use;

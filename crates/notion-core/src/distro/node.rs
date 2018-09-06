@@ -15,7 +15,20 @@ use style::{progress_bar, Action};
 use notion_fail::{Fallible, ResultExt};
 use semver::Version;
 
-const PUBLIC_NODE_SERVER_ROOT: &'static str = "https://nodejs.org/dist/";
+#[cfg(feature = "mock-network")]
+use mockito;
+
+cfg_if! {
+    if #[cfg(feature = "mock-network")] {
+        fn public_node_server_root() -> String {
+            mockito::SERVER_URL.to_string()
+        }
+    } else {
+        fn public_node_server_root() -> String {
+            "https://nodejs.org/dist".to_string()
+        }
+    }
+}
 
 /// A provisioned Node distribution.
 pub struct NodeDistro {
@@ -42,7 +55,12 @@ impl Distro for NodeDistro {
     /// Provision a Node distribution from the public Node distributor (`https://nodejs.org`).
     fn public(version: Version) -> Fallible<Self> {
         let archive_file = path::node_archive_file(&version.to_string());
-        let url = format!("{}v{}/{}", PUBLIC_NODE_SERVER_ROOT, version, &archive_file);
+        let url = format!(
+            "{}/v{}/{}",
+            public_node_server_root(),
+            version,
+            &archive_file
+        );
         NodeDistro::remote(version, &url)
     }
 

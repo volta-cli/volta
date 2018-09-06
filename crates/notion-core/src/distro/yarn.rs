@@ -15,8 +15,20 @@ use style::{progress_bar, Action};
 use notion_fail::{Fallible, ResultExt};
 use semver::Version;
 
-const PUBLIC_YARN_SERVER_ROOT: &'static str =
-    "https://github.com/notion-cli/yarn-releases/raw/master/dist/";
+#[cfg(feature = "mock-network")]
+use mockito;
+
+cfg_if! {
+    if #[cfg(feature = "mock-network")] {
+        fn public_yarn_server_root() -> String {
+            mockito::SERVER_URL.to_string()
+        }
+    } else {
+        fn public_yarn_server_root() -> String {
+            "https://github.com/notion-cli/yarn-releases/raw/master/dist".to_string()
+        }
+    }
+}
 
 /// A provisioned Yarn distribution.
 pub struct YarnDistro {
@@ -43,7 +55,7 @@ impl Distro for YarnDistro {
     /// Provision a distribution from the public Yarn distributor (`https://yarnpkg.com`).
     fn public(version: Version) -> Fallible<Self> {
         let archive_file = path::yarn_archive_file(&version.to_string());
-        let url = format!("{}{}", PUBLIC_YARN_SERVER_ROOT, archive_file);
+        let url = format!("{}/{}", public_yarn_server_root(), archive_file);
         YarnDistro::remote(version, &url)
     }
 

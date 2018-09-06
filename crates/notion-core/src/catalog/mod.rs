@@ -30,14 +30,36 @@ use version::VersionSpec;
 
 pub(crate) mod serial;
 
+#[cfg(feature = "mock-network")]
+use mockito;
+
 // ISSUE (#86): Move public repository URLs to config file
-/// URL of the index of available Node versions on the public Node server.
-const PUBLIC_NODE_VERSION_INDEX: &'static str = "https://nodejs.org/dist/index.json";
-/// URL of the index of available Yarn versions on the public git repository.
-const PUBLIC_YARN_VERSION_INDEX: &'static str =
-    "https://github.com/notion-cli/yarn-releases/raw/master/index.json";
-/// URL of the latest Yarn version on the public yarnpkg.com
-const PUBLIC_YARN_LATEST_VERSION: &'static str = "https://yarnpkg.com/latest-version";
+cfg_if! {
+    if #[cfg(feature = "mock-network")] {
+        fn public_node_version_index() -> String {
+            format!("{}/node-dist/index.json", mockito::SERVER_URL)
+        }
+        fn public_yarn_version_index() -> String {
+            format!("{}/yarn-releases/index.json", mockito::SERVER_URL)
+        }
+        fn public_yarn_latest_version() -> String {
+            format!("{}/yarn-latest", mockito::SERVER_URL)
+        }
+    } else {
+        /// Returns the URL of the index of available Node versions on the public Node server.
+        fn public_node_version_index() -> String {
+            "https://nodejs.org/dist/index.json".to_string()
+        }
+        /// Return the URL of the index of available Yarn versions on the public git repository.
+        fn public_yarn_version_index() -> String {
+            "https://github.com/notion-cli/yarn-releases/raw/master/index.json".to_string()
+        }
+        /// URL of the latest Yarn version on the public yarnpkg.com
+        fn public_yarn_latest_version() -> String {
+            "https://yarnpkg.com/latest-version".to_string()
+        }
+    }
+}
 
 /// Lazily loaded tool catalog.
 pub struct LazyCatalog {
@@ -308,16 +330,16 @@ impl Resolve<YarnDistro> for YarnCollection {
     fn resolve_public(&self, matching: &VersionSpec) -> Fallible<YarnDistro> {
         let version = match *matching {
             VersionSpec::Latest => {
-                let mut response: reqwest::Response = reqwest::get(PUBLIC_YARN_LATEST_VERSION)
+                let mut response: reqwest::Response = reqwest::get(public_yarn_latest_version().as_str())
                     .with_context(RegistryFetchError::from_error)?;
                 response.text().unknown()?
             }
             VersionSpec::Semver(ref matching) => {
                 let spinner = progress_spinner(&format!(
                     "Fetching public registry: {}",
-                    PUBLIC_YARN_VERSION_INDEX
+                    public_yarn_version_index()
                 ));
-                let releases: Vec<String> = reqwest::get(PUBLIC_YARN_VERSION_INDEX)
+                let releases: Vec<String> = reqwest::get(public_yarn_version_index().as_str())
                     .with_context(RegistryFetchError::from_error)?
                     .json()
                     .unknown()?;
@@ -399,10 +421,11 @@ fn resolve_node_versions() -> Result<serial::Index, NotionError> {
         None => {
             let spinner = progress_spinner(&format!(
                 "Fetching public registry: {}",
-                PUBLIC_NODE_VERSION_INDEX
+                public_node_version_index()
             ));
-            let mut response: reqwest::Response = reqwest::get(PUBLIC_NODE_VERSION_INDEX)
-                .with_context(RegistryFetchError::from_error)?;
+            let mut response: reqwest::Response = reqwest::get(
+                public_node_version_index().as_str(),
+            ).with_context(RegistryFetchError::from_error)?;
             let response_text: String = response.text().unknown()?;
             let cached: NamedTempFile = NamedTempFile::new().unknown()?;
 

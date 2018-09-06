@@ -7,6 +7,7 @@ repository = "https://github.com/notion-cli/notion"
 
 [features]
 universal-docs = ["notion-core/universal-docs"]
+mock-network = ["mockito", "notion-core/mock-network"]
 
 [[bin]]
 name = "notion"
@@ -33,12 +34,15 @@ docopt = "0.8"
 notion-core = { path = "crates/notion-core" }
 serde = "1.0"
 serde_derive = "1.0"
+serde_json = "1.0.26"
 console = "0.6.1"
 failure_derive = "0.1.1"
 failure = "0.1.1"
 notion-fail = { path = "crates/notion-fail" }
 notion-fail-derive = { path = "crates/notion-fail-derive" }
+reqwest = "0.8.5"
 semver = "0.9.0"
 result = "1.0.0"
+mockito = { version = "0.12.0", optional = true }
 
 [workspace]
