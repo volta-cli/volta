@@ -27,5 +27,5 @@ reqwest = "0.8.5"
 cfg-if = "0.1"
 winfolder = "0.1"
 tempfile = "3.0.2"
-os_info = "0.7.0"
+os_info = "1.0.2"
 detect-indent = { "git" = "https://github.com/stefanpenner/detect-indent-rs", "branch" = "master" }
