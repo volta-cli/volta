@@ -1,7 +1,7 @@
 //! Provides types for working with Notion's local _catalog_, the local repository
 //! of available tool versions.
 
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashSet};
 use std::fs::{remove_dir_all, File};
 use std::io::{self, Write};
 use std::marker::PhantomData;
@@ -276,6 +276,9 @@ impl Resolve<NodeDistro> for NodeCollection {
             let mut entries = index.entries.into_iter();
             let entry = match *matching {
                 VersionSpec::Latest => {
+                    // NOTE: This assumes the registry always produces a list in sorted order
+                    //       from newest to oldest. This should be specified as a requirement
+                    //       when we document the plugin API.
                     entries.next()
                 }
                 VersionSpec::Semver(ref matching) => {

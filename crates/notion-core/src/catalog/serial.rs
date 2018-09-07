@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashSet};
 use std::default::Default;
 use std::iter::FromIterator;
 use std::marker::PhantomData;
