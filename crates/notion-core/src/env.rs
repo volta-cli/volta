@@ -155,7 +155,11 @@ pub mod tests {
     fn test_path_for_system_node() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
 
-        let program_files = winfolder::Folder::ProgramFilesX64.path();
+        let program_files = if cfg!(target_arch = "x86_64") {
+            winfolder::Folder::ProgramFilesX64.path()
+        } else {
+            winfolder::Folder::ProgramFiles.path()
+        };
         let mut shim_dir = PathBuf::from(&program_files);
         shim_dir.push("Notion");
         shim_dir.push("bin");

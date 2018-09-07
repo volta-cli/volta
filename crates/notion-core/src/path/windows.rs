@@ -131,7 +131,10 @@ pub fn launchscript_file() -> Fallible<PathBuf> {
 //                 ...
 
 fn program_files_root() -> Fallible<PathBuf> {
-    #[cfg(windows)]
+    #[cfg(all(windows, target_arch = "x86"))]
+    return Ok(winfolder::Folder::ProgramFiles.path().join("Notion"));
+
+    #[cfg(all(windows, target_arch = "x86_64"))]
     return Ok(winfolder::Folder::ProgramFilesX64.path().join("Notion"));
 
     // "universal-docs" is built on a Unix machine, so we can't include Windows-specific libs
