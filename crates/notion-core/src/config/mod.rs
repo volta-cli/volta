@@ -9,11 +9,11 @@ use toml;
 use distro::Distro;
 use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
+use fs::touch;
 use notion_fail::{Fallible, NotionError, ResultExt};
 use path::user_config_file;
 use plugin;
 use readext::ReadExt;
-use fs::touch;
 
 pub(crate) mod serial;
 

@@ -1,10 +1,10 @@
 use super::super::config;
 use std::marker::PhantomData;
 
-use plugin::serial::Plugin;
 use distro::Distro;
 use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
+use plugin::serial::Plugin;
 
 use notion_fail::Fallible;
 

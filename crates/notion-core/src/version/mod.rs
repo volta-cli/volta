@@ -1,7 +1,7 @@
 pub(crate) mod serial;
 
-use std::str::FromStr;
 use std::fmt;
+use std::str::FromStr;
 
 use semver::{ReqParseError, SemVerError, Version, VersionReq};
 
@@ -12,14 +12,14 @@ use self::serial::parse_requirements;
 #[derive(Debug, Clone)]
 pub enum VersionSpec {
     Latest,
-    Semver(VersionReq)
+    Semver(VersionReq),
 }
 
 impl fmt::Display for VersionSpec {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match *self {
             VersionSpec::Latest => write!(f, "latest"),
-            VersionSpec::Semver(ref req) => req.fmt(f)
+            VersionSpec::Semver(ref req) => req.fmt(f),
         }
     }
 }
@@ -37,7 +37,8 @@ impl VersionSpec {
 
     pub fn parse(s: impl AsRef<str>) -> Fallible<Self> {
         let s = s.as_ref();
-        s.parse().with_context(VersionParseError::from_req_parse_error)
+        s.parse()
+            .with_context(VersionParseError::from_req_parse_error)
     }
 
     pub fn parse_requirements(s: impl AsRef<str>) -> Fallible<VersionReq> {

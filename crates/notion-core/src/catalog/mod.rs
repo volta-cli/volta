@@ -21,10 +21,10 @@ use config::{Config, ToolConfig};
 use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
 use distro::{Distro, Fetched};
+use fs::{ensure_containing_dir_exists, read_file_opt, touch};
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use path::{self, user_catalog_file};
 use semver::{Version, VersionReq};
-use fs::{ensure_containing_dir_exists, read_file_opt, touch};
 use style::progress_spinner;
 use version::VersionSpec;
 
@@ -239,7 +239,11 @@ impl<D: Distro> Collection<D> {
 
 pub trait Resolve<D: Distro> {
     /// Resolves the specified semantic versioning requirements from a remote distributor.
-    fn resolve_remote(&self, matching: &VersionSpec, config: Option<&ToolConfig<D>>) -> Fallible<D> {
+    fn resolve_remote(
+        &self,
+        matching: &VersionSpec,
+        config: Option<&ToolConfig<D>>,
+    ) -> Fallible<D> {
         match config {
             Some(ToolConfig {
                 resolve: Some(ref plugin),
@@ -338,7 +342,7 @@ impl Resolve<YarnDistro> for YarnCollection {
 
 /// The index of the public Node server.
 pub struct Index {
-    entries: Vec<(Version, VersionData)>
+    entries: Vec<(Version, VersionData)>,
 }
 
 /// The set of available files on the public Node server for a given Node version.
@@ -432,8 +436,7 @@ fn resolve_node_versions() -> Result<serial::Index, NotionError> {
             ensure_containing_dir_exists(&index_expiry_file)?;
             expiry.persist(index_expiry_file).unknown()?;
 
-            let serial: serial::Index =
-                serde_json::de::from_str(&response_text).unknown()?;
+            let serial: serial::Index = serde_json::de::from_str(&response_text).unknown()?;
 
             spinner.finish_and_clear();
             Ok(serial)

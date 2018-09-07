@@ -2,8 +2,8 @@
 // With https://github.com/rust-lang/rfcs/blob/master/text/2151-raw-identifiers.md we
 // could consider something like `r#use` instead.
 
-use notion_core::version::VersionSpec;
 use notion_core::session::{ActivityKind, Session};
+use notion_core::version::VersionSpec;
 use notion_fail::{ExitCode, Fallible, NotionFail};
 
 use Notion;
@@ -63,12 +63,8 @@ Options:
         }: Args,
     ) -> Fallible<Self> {
         match &arg_tool[..] {
-            "node" => {
-                Ok(Use::Node(VersionSpec::parse(&arg_version)?))
-            },
-            "yarn" => {
-                Ok(Use::Yarn(VersionSpec::parse(&arg_version)?))
-            },
+            "node" => Ok(Use::Node(VersionSpec::parse(&arg_version)?)),
+            "yarn" => Ok(Use::Yarn(VersionSpec::parse(&arg_version)?)),
             ref tool => Ok(Use::Other {
                 name: tool.to_string(),
                 version: VersionSpec::parse(&arg_version)?,

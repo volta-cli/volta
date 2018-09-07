@@ -141,7 +141,10 @@ pub mod tests {
         pathbufs.push(PathBuf::from("/usr/bin"));
         pathbufs.push(PathBuf::from("/bin"));
 
-        let path_with_shim = env::join_paths(pathbufs.iter()).unwrap().into_string().expect("Could not create path containing shim dir");
+        let path_with_shim = env::join_paths(pathbufs.iter())
+            .unwrap()
+            .into_string()
+            .expect("Could not create path containing shim dir");
 
         env::set_var("PATH", path_with_shim);
 
@@ -168,7 +171,10 @@ pub mod tests {
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
         pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
 
-        let path_with_shim = env::join_paths(pathbufs.iter()).unwrap().into_string().expect("Could not create path containing shim dir");
+        let path_with_shim = env::join_paths(pathbufs.iter())
+            .unwrap()
+            .into_string()
+            .expect("Could not create path containing shim dir");
 
         env::set_var("PATH", path_with_shim);
 
