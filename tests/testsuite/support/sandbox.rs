@@ -14,42 +14,6 @@ use support::process::ProcessBuilder;
 #[cfg(feature = "mock-network")]
 use mockito::{self, mock, Matcher};
 
-// TODO: there should be a FileBuilder that handles everything
-// (package.json, catalog, config, etc.)
-
-// package.json
-#[derive(PartialEq, Clone)]
-struct PackageBuilder {
-    path: PathBuf,
-    contents: String,
-}
-
-impl PackageBuilder {
-    pub fn new(path: PathBuf, contents: &str) -> PackageBuilder {
-        PackageBuilder {
-            path,
-            contents: contents.to_string(),
-        }
-    }
-
-    pub fn build(&self) {
-        self.dirname().mkdir_p();
-
-        let mut file = File::create(&self.path).unwrap_or_else(|e| {
-            panic!(
-                "could not create package.json file {}: {}",
-                self.path.display(),
-                e
-            )
-        });
-
-        t!(file.write_all(self.contents.as_bytes()));
-    }
-
-    fn dirname(&self) -> &Path {
-        self.path.parent().unwrap()
-    }
-}
 
 // version cache for node and yarn
 #[derive(PartialEq, Clone)]
@@ -119,14 +83,14 @@ impl EnvVar {
 
 // catalog.toml
 #[derive(PartialEq, Clone)]
-pub struct CatalogBuilder {
+pub struct FileBuilder {
     path: PathBuf,
     contents: String,
 }
 
-impl CatalogBuilder {
-    pub fn new(path: PathBuf, contents: &str) -> CatalogBuilder {
-        CatalogBuilder {
+impl FileBuilder {
+    pub fn new(path: PathBuf, contents: &str) -> FileBuilder {
+        FileBuilder {
             path,
             contents: contents.to_string(),
         }
@@ -137,7 +101,7 @@ impl CatalogBuilder {
 
         let mut file = File::create(&self.path).unwrap_or_else(|e| {
             panic!(
-                "could not create catalog.toml file {}: {}",
+                "could not create file {}: {}",
                 self.path.display(),
                 e
             )
@@ -154,7 +118,7 @@ impl CatalogBuilder {
 #[must_use]
 pub struct SandboxBuilder {
     root: Sandbox,
-    package: Option<PackageBuilder>,
+    files: Vec<FileBuilder>,
     caches: Vec<CacheBuilder>,
     node_index_mock: Option<String>,
     yarn_index_mock: Option<String>,
@@ -162,7 +126,6 @@ pub struct SandboxBuilder {
     node_archive_mock: Option<String>,
     yarn_archive_mock: Option<String>,
     path_dirs: Vec<PathBuf>,
-    catalog: Option<CatalogBuilder>,
 }
 
 impl SandboxBuilder {
@@ -179,7 +142,7 @@ impl SandboxBuilder {
                 env_vars: vec![],
                 path: OsString::new(),
             },
-            package: None,
+            files: vec![],
             caches: vec![],
             node_index_mock: None,
             yarn_index_mock: None,
@@ -187,7 +150,6 @@ impl SandboxBuilder {
             node_archive_mock: None,
             yarn_archive_mock: None,
             path_dirs: vec![notion_bin_dir()],
-            catalog: None,
         }
     }
 
@@ -206,7 +168,13 @@ impl SandboxBuilder {
     /// Set the package.json for the sandbox (chainable)
     pub fn package_json(mut self, contents: &str) -> Self {
         let package_file = package_json_file(self.root());
-        self.package = Some(PackageBuilder::new(package_file, contents));
+        self.files.push(FileBuilder::new(package_file, contents));
+        self
+    }
+
+    /// Set the catalog.toml for the sandbox (chainable)
+    pub fn catalog(mut self, contents: &str) -> Self {
+        self.files.push(FileBuilder::new(user_catalog_file(), contents));
         self
     }
 
@@ -228,13 +196,6 @@ impl SandboxBuilder {
         self
     }
 
-    /// Set the catalog.toml for the sandbox (chainable)
-    pub fn catalog(mut self, contents: &str) -> Self {
-        let catalog_file = user_catalog_file();
-        self.catalog = Some(CatalogBuilder::new(catalog_file, contents));
-        self
-    }
-
     /// Create the project
     pub fn build(mut self) -> Sandbox {
         // First, clean the directory if it already exists
@@ -243,15 +204,7 @@ impl SandboxBuilder {
         // Create the empty directory
         self.root.root().mkdir_p();
 
-        // write package.json
-        if let Some(package_builder) = self.package {
-            package_builder.build();
-        } else {
-            default_package(self.root()).build();
-        }
-
         // make sure these directories exist
-        // TODO: make this DRYer
         t!(fs::create_dir_all(node_cache_dir()));
         t!(fs::create_dir_all(yarn_cache_dir()));
         t!(fs::create_dir_all(notion_tmp_dir()));
@@ -261,38 +214,39 @@ impl SandboxBuilder {
             cache.build();
         }
 
-        // write catalog
-        if let Some(catalog_builder) = self.catalog {
-            catalog_builder.build();
+        // write files
+        for file_builder in self.files {
+            file_builder.build();
         }
 
         // setup network mocks
+        // TODO: redo all of this - force the test setup to be explicit
         if let Some(_mock) = self.node_index_mock {
-            panic!("unimplemented!!"); // TODO
+            panic!("unimplemented!!");
         } else {
             self.root.mocks.push(default_node_index_mock());
         }
 
         if let Some(_mock) = self.yarn_index_mock {
-            panic!("unimplemented!!"); // TODO
+            panic!("unimplemented!!");
         } else {
             self.root.mocks.push(default_yarn_index_mock());
         }
 
         if let Some(_mock) = self.yarn_latest_mock {
-            panic!("unimplemented!!"); // TODO
+            panic!("unimplemented!!");
         } else {
             self.root.mocks.push(default_yarn_latest_mock());
         }
 
         if let Some(_mock) = self.node_archive_mock {
-            panic!("unimplemented!!"); // TODO
+            panic!("unimplemented!!");
         } else {
             self.root.mocks.append(&mut default_node_archive_mocks());
         }
 
         if let Some(_mock) = self.yarn_archive_mock {
-            panic!("unimplemented!!"); // TODO
+            panic!("unimplemented!!");
         } else {
             self.root.mocks.append(&mut default_yarn_archive_mocks());
         }
@@ -310,7 +264,7 @@ impl SandboxBuilder {
 }
 
 // files and dirs in the sandbox
-// TODO: some of these are different on windows?
+// TODO: some of these are different on windows - how to sandbox that?
 
 fn home_dir() -> PathBuf {
     paths::home()
@@ -417,20 +371,14 @@ impl Sandbox {
         p
     }
 
-    // TODO: refactor these
     pub fn read_package_json(&self) -> String {
         let package_file = package_json_file(self.root());
-        let mut contents = String::new();
-        let mut file = t!(File::open(package_file));
-        t!(file.read_to_string(&mut contents));
-        contents
+        read_file_to_string(package_file)
     }
+
     pub fn read_postscript(&self) -> String {
         let postscript_file = notion_postscript();
-        let mut contents = String::new();
-        let mut file = t!(File::open(postscript_file));
-        t!(file.read_to_string(&mut contents));
-        contents
+        read_file_to_string(postscript_file)
     }
 }
 
@@ -459,25 +407,10 @@ fn notion_exe() -> PathBuf {
     cargo_dir().join(format!("notion{}", env::consts::EXE_SUFFIX))
 }
 
-// default file contents
-
-fn default_package(mut root: PathBuf) -> PackageBuilder {
-    root.push("package.json");
-    let contents = r#"{
-  "name": "default-test-package",
-  "version": "1.7.3",
-  "description": "Default description",
-  "author": "Default Person <default.person@zombo.com>",
-  "main": "index.js"
-}
-        "#;
-    PackageBuilder::new(root, contents)
-}
-
 // default network mocks
 
 fn default_node_index_mock() -> mockito::Mock {
-    mock("GET", "/node-dist/index.json") // TODO make that a constant
+    mock("GET", "/node-dist/index.json")
         // .with_status(200)
         .with_header("content-type", "application/json")
         .with_body(
@@ -490,7 +423,7 @@ fn default_node_index_mock() -> mockito::Mock {
 }
 
 fn default_yarn_index_mock() -> mockito::Mock {
-    mock("GET", "/yarn-releases/index.json") // TODO make that a constant
+    mock("GET", "/yarn-releases/index.json")
         // .with_status(200)
         // .with_header("content-type", "application/json")
         .with_body(r#"[ "1.0.0", "1.0.1", "1.2.0", "1.4.0", "1.9.2", "1.9.4" ]"#)
@@ -498,7 +431,7 @@ fn default_yarn_index_mock() -> mockito::Mock {
 }
 
 fn default_yarn_latest_mock() -> mockito::Mock {
-    mock("GET", "/yarn-latest") // TODO make that a constant
+    mock("GET", "/yarn-latest")
         // .with_status(200)
         // .with_header("content-type", "application/json")
         .with_body("1.2.0")
@@ -604,4 +537,11 @@ fn split_and_add_args(p: &mut ProcessBuilder, s: &str) {
         }
         p.arg(arg);
     }
+}
+
+fn read_file_to_string(file_path: PathBuf) -> String {
+    let mut contents = String::new();
+    let mut file = t!(File::open(file_path));
+    t!(file.read_to_string(&mut contents));
+    contents
 }

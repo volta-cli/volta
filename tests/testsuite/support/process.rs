@@ -124,10 +124,9 @@ impl ProcessBuilder {
     pub fn exec(&self) -> Fallible<()> {
         let mut command = self.build_command();
 
-        // TODO: should use with_context()
         let exit = match command.status() {
             Ok(e) => e,
-            Err(_err) => {
+            Err(_) => {
                 throw!(process_error(
                     &format!("could not execute process {}", self),
                     None,
@@ -151,10 +150,9 @@ impl ProcessBuilder {
     pub fn exec_with_output(&self) -> Fallible<Output> {
         let mut command = self.build_command();
 
-        // TODO: should use .with_context()
         let output = match command.output() {
             Ok(o) => o,
-            Err(_err) => {
+            Err(_) => {
                 throw!(process_error(
                     &format!("could not execute process {}", self),
                     None,
@@ -209,7 +207,7 @@ pub fn process<T: AsRef<OsStr>>(cmd: T) -> ProcessBuilder {
 
 #[derive(Debug, Fail, NotionFail)]
 #[fail(display = "{}", desc)]
-#[notion_fail(code = "InvalidArguments")]
+#[notion_fail(code = "ExecutionFailure")]
 pub struct ProcessError {
     pub desc: String,
     pub exit: Option<ExitStatus>,
