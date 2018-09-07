@@ -117,6 +117,40 @@ impl EnvVar {
     }
 }
 
+// catalog.toml
+#[derive(PartialEq, Clone)]
+pub struct CatalogBuilder {
+    path: PathBuf,
+    contents: String,
+}
+
+impl CatalogBuilder {
+    pub fn new(path: PathBuf, contents: &str) -> CatalogBuilder {
+        CatalogBuilder {
+            path,
+            contents: contents.to_string(),
+        }
+    }
+
+    pub fn build(&self) {
+        self.dirname().mkdir_p();
+
+        let mut file = File::create(&self.path).unwrap_or_else(|e| {
+            panic!(
+                "could not create catalog.toml file {}: {}",
+                self.path.display(),
+                e
+            )
+        });
+
+        t!(file.write_all(self.contents.as_bytes()));
+    }
+
+    fn dirname(&self) -> &Path {
+        self.path.parent().unwrap()
+    }
+}
+
 #[must_use]
 pub struct SandboxBuilder {
     root: Sandbox,
@@ -128,6 +162,7 @@ pub struct SandboxBuilder {
     node_archive_mock: Option<String>,
     yarn_archive_mock: Option<String>,
     path_dirs: Vec<PathBuf>,
+    catalog: Option<CatalogBuilder>,
 }
 
 impl SandboxBuilder {
@@ -152,6 +187,7 @@ impl SandboxBuilder {
             node_archive_mock: None,
             yarn_archive_mock: None,
             path_dirs: vec![notion_bin_dir()],
+            catalog: None,
         }
     }
 
@@ -180,9 +216,22 @@ impl SandboxBuilder {
         self
     }
 
+    /// Set an environment variable for the sandbox (chainable)
+    pub fn env(mut self, name: &str, value: &str) -> Self {
+        self.root.env_vars.push(EnvVar::new(name, value));
+        self
+    }
+
     /// Add a directory to the PATH (chainable)
     pub fn path_dir(mut self, dir: &str) -> Self {
         self.path_dirs.push(PathBuf::from(dir));
+        self
+    }
+
+    /// Set the catalog.toml for the sandbox (chainable)
+    pub fn catalog(mut self, contents: &str) -> Self {
+        let catalog_file = user_catalog_file();
+        self.catalog = Some(CatalogBuilder::new(catalog_file, contents));
         self
     }
 
@@ -210,6 +259,11 @@ impl SandboxBuilder {
         // write node and yarn caches
         for cache in self.caches.iter() {
             cache.build();
+        }
+
+        // write catalog
+        if let Some(catalog_builder) = self.catalog {
+            catalog_builder.build();
         }
 
         // setup network mocks
@@ -293,6 +347,9 @@ fn node_index_expiry_file() -> PathBuf {
 fn package_json_file(mut root: PathBuf) -> PathBuf {
     root.push("package.json");
     root
+}
+fn user_catalog_file() -> PathBuf {
+    notion_home().join("catalog.toml")
 }
 
 fn fixture_dir() -> PathBuf {
