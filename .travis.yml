@@ -14,7 +14,8 @@ jobs:
     - stage: test
       rust: stable
       script: |
-        cargo test --all
+        cargo test --package notion-core --package notion-fail --package node-archive --package notion-fail-derive --package progress-read &&
+        cargo test --features mock-network
     - stage: publish
       # Conditional builds: https://docs.travis-ci.com/user/conditional-builds-stages-jobs/
       if: (branch = master) AND (type = push)

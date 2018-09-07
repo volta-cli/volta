@@ -118,4 +118,5 @@ build: false
 #directly or perform other testing commands. Rust will automatically be placed in the PATH
 # environment variable.
 test_script:
-  - cargo test --all --verbose %cargoflags%
+  - cargo test --package notion-core --package notion-fail --package node-archive --package notion-fail-derive --package progress-read &&
+    cargo test --features mock-network
