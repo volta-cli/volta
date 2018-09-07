@@ -92,3 +92,35 @@ impl FromStr for CurrentShell {
         }))
     }
 }
+
+#[cfg(test)]
+pub mod tests {
+
+    use super::{CurrentShell, Postscript, Shell};
+    use semver::Version;
+    use std::str::FromStr;
+
+    #[test]
+    fn test_compile_postscript() {
+        let bash = CurrentShell::from_str("bash").expect("Could not create bash shell");
+
+        assert_eq!(
+            bash.compile_postscript(&Postscript::Path("some:path".to_string())),
+            "export PATH='some:path'\n"
+        );
+
+        // ISSUE(#99): proper escaping
+        assert_eq!(
+            bash.compile_postscript(&Postscript::Path("/path:/with:/single'quotes'".to_string())),
+            "export PATH='/path:/with:/single'quotes''\n"
+        );
+
+        assert_eq!(
+            bash.compile_postscript(&Postscript::ToolVersion {
+                tool: "test".to_string(),
+                version: Version::parse("2.4.5").unwrap()
+            }),
+            "export NOTION_TEST_VERSION=2.4.5\n"
+        );
+    }
+}

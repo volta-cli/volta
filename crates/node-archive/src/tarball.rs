@@ -103,7 +103,7 @@ fn headers_only(url: &str) -> Result<Response, failure::Error> {
 }
 
 // From http://www.gzip.org/zlib/rfc-gzip.html#member-format
-// 
+//
 //   0   1   2   3   4   5   6   7
 // +---+---+---+---+---+---+---+---+
 // |     CRC32     |     ISIZE     |
@@ -193,4 +193,31 @@ fn fetch_uncompressed_size(url: &str) -> Result<u64, failure::Error> {
 fn load_uncompressed_size(file: &mut File) -> Result<u64, failure::Error> {
     let packed = load_isize(file)?;
     Ok(unpack_isize(packed))
+}
+
+
+#[cfg(test)]
+pub mod tests {
+
+    use tarball::Tarball;
+    use std::path::PathBuf;
+    use std::fs::File;
+
+    fn fixture_path(fixture_dir: &str) -> PathBuf {
+        let mut cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        cargo_manifest_dir.push("fixtures");
+        cargo_manifest_dir.push(fixture_dir);
+        cargo_manifest_dir
+    }
+
+    #[test]
+    fn test_load() {
+        let mut test_file_path = fixture_path("tarballs");
+        test_file_path.push("test-file.tar.gz");
+        let test_file = File::open(test_file_path).expect("Couldn't open test file");
+        let tarball = Tarball::load(test_file).expect("Failed to load tarball");
+
+        assert_eq!(tarball.uncompressed_size, 10240);
+        assert_eq!(tarball.compressed_size, 402);
+    }
 }

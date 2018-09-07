@@ -15,6 +15,7 @@ use version::VersionSpec;
 pub(crate) mod serial;
 
 /// A Node version resolution plugin.
+#[derive(PartialEq, Debug)]
 pub enum ResolvePlugin {
     /// Resolves a Tool version by sending it to a URL and receiving the
     /// resolution in the response.
@@ -97,12 +98,14 @@ impl ResolveResponse {
 }
 
 /// A plugin listing the available versions of Node.
+#[derive(PartialEq, Debug)]
 pub enum LsRemote {
     Url(String),
     Bin(String),
 }
 
 /// A plugin for publishing Notion events.
+#[derive(PartialEq, Debug)]
 pub enum Publish {
     /// Reports an event by sending a POST request to a URL.
     Url(String),

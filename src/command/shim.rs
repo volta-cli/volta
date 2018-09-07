@@ -108,6 +108,7 @@ Options:
     }
 }
 
+// ISSUE(#143): all the logic for this should be moved to notion-core
 fn list(session: &Session, verbose: bool) -> Fallible<()> {
     let shim_dir = path::shim_dir()?;
     let files = fs::read_dir(shim_dir).unknown()?;

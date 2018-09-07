@@ -76,3 +76,67 @@ pub struct EventsConfig {
     /// The plugin for publishing events, if any.
     pub publish: Option<plugin::Publish>,
 }
+
+#[cfg(test)]
+pub mod tests {
+
+    use config::Config;
+    use plugin;
+    use std::fs;
+    use std::path::PathBuf;
+
+    fn fixture_path(fixture_dir: &str) -> PathBuf {
+        let mut cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        cargo_manifest_dir.push("fixtures");
+        cargo_manifest_dir.push(fixture_dir);
+        cargo_manifest_dir
+    }
+
+    #[test]
+    fn test_from_str_urls() {
+        let fixture_dir = fixture_path("config");
+        let mut urls_file = fixture_dir.clone();
+
+        urls_file.push("urls.toml");
+        let node_config: Config = fs::read_to_string(urls_file)
+            .expect("Could not read urls.toml")
+            .parse()
+            .expect("Could not parse urls.toml");
+        assert_eq!(
+            node_config.node.unwrap().resolve,
+            Some(plugin::ResolvePlugin::Url("https://nodejs.org".to_string()))
+        );
+        assert_eq!(
+            node_config.yarn.unwrap().ls_remote,
+            Some(plugin::LsRemote::Url("https://yarnpkg.com".to_string()))
+        );
+        assert_eq!(
+            node_config.events.unwrap().publish,
+            Some(plugin::Publish::Url("https://google.com".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_from_str_bins() {
+        let fixture_dir = fixture_path("config");
+        let mut bins_file = fixture_dir.clone();
+
+        bins_file.push("bins.toml");
+        let node_config: Config = fs::read_to_string(bins_file)
+            .expect("Could not read bins.toml")
+            .parse()
+            .expect("Could not parse bins.toml");
+        assert_eq!(
+            node_config.node.unwrap().resolve,
+            Some(plugin::ResolvePlugin::Bin("/some/bin/for/node".to_string()))
+        );
+        assert_eq!(
+            node_config.yarn.unwrap().ls_remote,
+            Some(plugin::LsRemote::Bin("/bin/to/yarn".to_string()))
+        );
+        assert_eq!(
+            node_config.events.unwrap().publish,
+            Some(plugin::Publish::Bin("/events/bin".to_string()))
+        );
+    }
+}

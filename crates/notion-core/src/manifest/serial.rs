@@ -12,9 +12,15 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
 // wrapper for HashMap to use with deserialization
-pub struct BinMap<K, V>(HashMap<K, V>);
+#[derive(Debug, PartialEq)]
+pub struct BinMap<K, V>(HashMap<K, V>)
+where
+    K: Eq + Hash;
 
-impl<K, V> Deref for BinMap<K, V> {
+impl<K, V> Deref for BinMap<K, V>
+where
+    K: Eq + Hash,
+{
     type Target = HashMap<K, V>;
 
     fn deref(&self) -> &HashMap<K, V> {
@@ -22,7 +28,10 @@ impl<K, V> Deref for BinMap<K, V> {
     }
 }
 
-impl<K, V> DerefMut for BinMap<K, V> {
+impl<K, V> DerefMut for BinMap<K, V>
+where
+    K: Eq + Hash,
+{
     fn deref_mut(&mut self) -> &mut HashMap<K, V> {
         &mut self.0
     }
@@ -107,11 +116,17 @@ impl ToolchainManifest {
 
 // (deserialization adapted from https://serde.rs/deserialize-map.html)
 
-struct BinVisitor<K, V> {
+struct BinVisitor<K, V>
+where
+    K: Eq + Hash,
+{
     marker: PhantomData<fn() -> BinMap<K, V>>,
 }
 
-impl<K, V> BinVisitor<K, V> {
+impl<K, V> BinVisitor<K, V>
+where
+    K: Eq + Hash,
+{
     fn new() -> Self {
         BinVisitor {
             marker: PhantomData,
@@ -164,5 +179,175 @@ where
         // with "" for the name, since that is unknown here
         bin_map.insert("".to_string(), bin_path.to_string());
         Ok(bin_map)
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+
+    use super::{BinMap, Manifest};
+    use serde_json;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_empty_package() {
+        let package_empty = "{}";
+        // deserializing should not fail
+        let _manifest: Manifest =
+            serde_json::de::from_str(package_empty).expect("Could not deserialize string");
+    }
+
+    #[test]
+    fn test_full_package() {
+        // all fields populated
+        let package_all = r#"{
+            "name": "some_package",
+            "version": "3.5.2",
+            "description": "This is a description",
+            "author": "Author Name",
+            "dependencies": { "something": "1.2.3" },
+            "devDependencies": { "somethingElse": "1.2.3" },
+            "toolchain": {
+                "node": "0.10.5",
+                "yarn": "1.2.1"
+            },
+            "bin": {
+                "somebin": "cli.js"
+            }
+        }"#;
+        let manifest_all: Manifest =
+            serde_json::de::from_str(package_all).expect("Could not deserialize string");
+
+        assert_eq!(manifest_all.name, Some("some_package".to_string()));
+        assert_eq!(manifest_all.version, Some("3.5.2".to_string()));
+        assert_eq!(
+            manifest_all.description,
+            Some("This is a description".to_string())
+        );
+        assert_eq!(manifest_all.author, Some("Author Name".to_string()));
+        // (checking the rest of the fields in other tests)
+    }
+
+    #[test]
+    fn test_package_dependencies() {
+        let package_no_deps = r#"{
+            "dependencies": {}
+        }"#;
+        let manifest_no_deps: Manifest =
+            serde_json::de::from_str(package_no_deps).expect("Could not deserialize string");
+        assert_eq!(manifest_no_deps.dependencies, HashMap::new());
+
+        let package_with_deps = r#"{
+            "dependencies": {
+                "somedep": "1.3.7"
+            }
+        }"#;
+        let manifest_with_deps: Manifest =
+            serde_json::de::from_str(package_with_deps).expect("Could not deserialize string");
+        let mut expected_map = HashMap::new();
+        expected_map.insert("somedep".to_string(), "1.3.7".to_string());
+        assert_eq!(manifest_with_deps.dependencies, expected_map);
+    }
+
+    #[test]
+    fn test_package_dev_dependencies() {
+        let package_no_dev_deps = r#"{
+            "devDependencies": {}
+        }"#;
+        let manifest_no_dev_deps: Manifest =
+            serde_json::de::from_str(package_no_dev_deps).expect("Could not deserialize string");
+        assert_eq!(manifest_no_dev_deps.dev_dependencies, HashMap::new());
+
+        let package_dev_deps = r#"{
+            "devDependencies": {
+                "somethingElse": "1.2.3"
+            }
+        }"#;
+        let manifest_dev_deps: Manifest =
+            serde_json::de::from_str(package_dev_deps).expect("Could not deserialize string");
+        let mut expected_map = HashMap::new();
+        expected_map.insert("somethingElse".to_string(), "1.2.3".to_string());
+        assert_eq!(manifest_dev_deps.dev_dependencies, expected_map);
+    }
+
+    #[test]
+    fn test_package_toolchain() {
+        let package_empty_toolchain = r#"{
+            "toolchain": {
+            }
+        }"#;
+        let manifest_empty_toolchain =
+            serde_json::de::from_str::<Manifest>(package_empty_toolchain);
+        assert!(
+            manifest_empty_toolchain.is_err(),
+            "Node must be defined in the 'toolchain'"
+        );
+
+        let package_node_only = r#"{
+            "toolchain": {
+                "node": "0.10.5"
+            }
+        }"#;
+        let manifest_node_only: Manifest =
+            serde_json::de::from_str(package_node_only).expect("Could not deserialize string");
+        assert_eq!(manifest_node_only.toolchain.unwrap().node, "0.10.5");
+
+        let package_yarn_only = r#"{
+            "toolchain": {
+                "yarn": "1.2.1"
+            }
+        }"#;
+        let manifest_yarn_only = serde_json::de::from_str::<Manifest>(package_yarn_only);
+        assert!(
+            manifest_yarn_only.is_err(),
+            "Node must be defined in the 'toolchain'"
+        );
+
+        let package_node_and_yarn = r#"{
+            "toolchain": {
+                "node": "0.10.5",
+                "yarn": "1.2.1"
+            }
+        }"#;
+        let manifest_node_and_yarn: Manifest =
+            serde_json::de::from_str(package_node_and_yarn).expect("Could not deserialize string");
+        let toolchain = manifest_node_and_yarn
+            .toolchain
+            .expect("Did not parse toolchain correctly");
+        assert_eq!(toolchain.node, "0.10.5");
+        assert_eq!(toolchain.yarn.unwrap(), "1.2.1");
+    }
+
+    #[test]
+    fn test_package_bin() {
+        let package_no_bin = r#"{
+            "bin": {
+            }
+        }"#;
+        let manifest_no_bin: Manifest =
+            serde_json::de::from_str(package_no_bin).expect("Could not deserialize string");
+        assert_eq!(manifest_no_bin.bin.unwrap(), BinMap(HashMap::new()));
+
+        let package_bin_map = r#"{
+            "bin": {
+                "somebin": "cli.js"
+            }
+        }"#;
+        let manifest_bin_map: Manifest =
+            serde_json::de::from_str(package_bin_map).expect("Could not deserialize string");
+        let mut expected_bin_map = BinMap(HashMap::new());
+        expected_bin_map.insert("somebin".to_string(), "cli.js".to_string());
+        assert_eq!(manifest_bin_map.bin.unwrap(), expected_bin_map);
+
+        let package_bin_string = r#"{
+            "name": "package_name",
+            "bin": "cli.js"
+        }"#;
+        let manifest_bin_string: Manifest =
+            serde_json::de::from_str(package_bin_string).expect("Could not deserialize string");
+        let mut expected_bin_string = BinMap(HashMap::new());
+        // after serializing the binary name is an empty string for this case
+        expected_bin_string.insert("".to_string(), "cli.js".to_string());
+        assert_eq!(manifest_bin_string.bin.unwrap(), expected_bin_string);
     }
 }
