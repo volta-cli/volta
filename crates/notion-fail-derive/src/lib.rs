@@ -6,9 +6,9 @@ extern crate syn;
 
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
-use syn::{DeriveInput, Lit, NestedMeta};
 use syn::Meta::{List, NameValue, Word};
 use syn::NestedMeta::{Literal, Meta};
+use syn::{DeriveInput, Lit, NestedMeta};
 
 #[proc_macro_derive(NotionFail, attributes(notion_fail))]
 pub fn notion_fail(token_stream: TokenStream) -> TokenStream {
@@ -24,11 +24,11 @@ pub fn notion_fail(token_stream: TokenStream) -> TokenStream {
             match item {
                 Literal(_) => {
                     panic!("#[notion_fail()]: must be name/value pairs, not a literal");
-                },
+                }
 
                 Meta(List(_)) => {
                     panic!("#[notion_fail()]: must be name/value pairs, not a list");
-                },
+                }
 
                 Meta(NameValue(ref m)) if m.ident == "code" => {
                     if let Lit::Str(s) = &m.lit {
@@ -38,7 +38,7 @@ pub fn notion_fail(token_stream: TokenStream) -> TokenStream {
                         // Defined, but not a string.
                         panic!("#[notion_fail()]: 'code' must be a string.");
                     }
-                },
+                }
 
                 Meta(NameValue(ref m)) if m.ident == "friendly" => {
                     if let Lit::Str(s) = &m.lit {
@@ -47,15 +47,15 @@ pub fn notion_fail(token_stream: TokenStream) -> TokenStream {
                         // Defined, but not a string.
                         panic!("#[notion_fail()]: 'code' must be a string.");
                     }
-                },
+                }
 
                 Meta(NameValue(m)) => {
                     panic!("#[notion_fail()]: not a recognized name: '{}'", m.ident);
-                },
+                }
 
                 Meta(Word(_)) => {
                     panic!("#[notion_fail()]: must be name/value pairs, not an identifier");
-                },
+                }
             }
         }
     }
@@ -86,7 +86,7 @@ fn get_notion_fail_meta_items(attr: &syn::Attribute) -> Option<Vec<NestedMeta>> 
 
             _ => {
                 panic!("#[notion_fail()] must be a list of attributes");
-            },
+            }
         }
     } else {
         None

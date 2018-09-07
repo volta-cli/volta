@@ -39,5 +39,6 @@ failure = "0.1.1"
 notion-fail = { path = "crates/notion-fail" }
 notion-fail-derive = { path = "crates/notion-fail-derive" }
 semver = "0.9.0"
+result = "1.0.0"
 
 [workspace]

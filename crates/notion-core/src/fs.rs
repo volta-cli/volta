@@ -35,7 +35,7 @@ impl CreateDirError {
 #[derive(Debug, Fail, NotionFail)]
 #[fail(display = "`path` internal error")]
 #[notion_fail(code = "UnknownError")]
-pub (crate) struct PathInternalError;
+pub(crate) struct PathInternalError;
 
 /// This creates the parent directory of the input path, assuming the input path is a file.
 pub fn ensure_containing_dir_exists<P: AsRef<Path>>(path: &P) -> Fallible<()> {

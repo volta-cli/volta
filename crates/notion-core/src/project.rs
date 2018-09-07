@@ -9,9 +9,9 @@ use std::path::{Path, PathBuf};
 use lazycell::LazyCell;
 
 use manifest::Manifest;
+use manifest::serial::ToolchainManifest;
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use semver::Version;
-use manifest::serial::ToolchainManifest;
 
 fn is_node_root(dir: &Path) -> bool {
     dir.join("package.json").is_file()

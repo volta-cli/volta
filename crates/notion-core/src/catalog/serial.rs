@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashSet};
 use std::default::Default;
 use std::iter::FromIterator;
 use std::marker::PhantomData;
@@ -134,7 +134,7 @@ pub struct Entry {
 
 impl Index {
     pub fn into_index(self) -> Fallible<super::Index> {
-        let mut entries = BTreeMap::new();
+        let mut entries = Vec::new();
         for entry in self.0 {
             let data = super::VersionData {
                 files: HashSet::from_iter(entry.files.into_iter()),
@@ -144,7 +144,7 @@ impl Index {
             if version.starts_with('v') {
                 version = &version[1..];
             }
-            entries.insert(Version::parse(version).unknown()?, data);
+            entries.push((Version::parse(version).unknown()?, data));
         }
         Ok(super::Index { entries })
     }

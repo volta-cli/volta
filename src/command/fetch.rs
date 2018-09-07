@@ -1,5 +1,5 @@
-use notion_core::version::VersionSpec;
 use notion_core::session::{ActivityKind, Session};
+use notion_core::version::VersionSpec;
 use notion_fail::{ExitCode, Fallible};
 
 use command::{Command, CommandName, Help};
@@ -43,12 +43,8 @@ Options:
         }: Args,
     ) -> Fallible<Self> {
         match &arg_tool[..] {
-            "node" => {
-                Ok(Fetch::Node(VersionSpec::parse(&arg_version)?))
-            },
-            "yarn" => {
-                Ok(Fetch::Yarn(VersionSpec::parse(&arg_version)?))
-            },
+            "node" => Ok(Fetch::Node(VersionSpec::parse(&arg_version)?)),
+            "yarn" => Ok(Fetch::Yarn(VersionSpec::parse(&arg_version)?)),
             ref tool => {
                 throw!(CliParseError {
                     usage: None,

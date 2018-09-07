@@ -1,7 +1,7 @@
 //! Provides types for working with Notion's local _catalog_, the local repository
 //! of available tool versions.
 
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashSet};
 use std::fs::{remove_dir_all, File};
 use std::io::{self, Write};
 use std::marker::PhantomData;
@@ -21,10 +21,10 @@ use config::{Config, ToolConfig};
 use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
 use distro::{Distro, Fetched};
+use fs::{ensure_containing_dir_exists, read_file_opt, touch};
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use path::{self, user_catalog_file};
 use semver::{Version, VersionReq};
-use fs::{ensure_containing_dir_exists, read_file_opt, touch};
 use style::progress_spinner;
 use version::VersionSpec;
 
@@ -103,8 +103,8 @@ impl Catalog {
         Ok(())
     }
 
-    /// Sets the default Node version to one matching the specified semantic versioning requirements.
-    pub fn set_default_node(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<()> {
+    /// Sets the Node version in the user toolchain to one matching the specified semantic versioning requirements.
+    pub fn set_user_node(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<()> {
         let fetched = self.fetch_node(matching, config)?;
         let version = Some(fetched.into_version());
 
@@ -159,8 +159,8 @@ impl Catalog {
 
     // ISSUE (#87) Abstract Catalog's activate, install and uninstall methods
     // And potentially share code between node and yarn
-    /// Sets the default Yarn version to one matching the specified semantic versioning requirements.
-    pub fn set_default_yarn(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<()> {
+    /// Sets the Yarn version in the user toolchain to one matching the specified semantic versioning requirements.
+    pub fn set_user_yarn(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<()> {
         let fetched = self.fetch_yarn(matching, config)?;
         let version = Some(fetched.into_version());
 
@@ -239,7 +239,11 @@ impl<D: Distro> Collection<D> {
 
 pub trait Resolve<D: Distro> {
     /// Resolves the specified semantic versioning requirements from a remote distributor.
-    fn resolve_remote(&self, matching: &VersionSpec, config: Option<&ToolConfig<D>>) -> Fallible<D> {
+    fn resolve_remote(
+        &self,
+        matching: &VersionSpec,
+        config: Option<&ToolConfig<D>>,
+    ) -> Fallible<D> {
         match config {
             Some(ToolConfig {
                 resolve: Some(ref plugin),
@@ -276,6 +280,9 @@ impl Resolve<NodeDistro> for NodeCollection {
             let mut entries = index.entries.into_iter();
             let entry = match *matching {
                 VersionSpec::Latest => {
+                    // NOTE: This assumes the registry always produces a list in sorted order
+                    //       from newest to oldest. This should be specified as a requirement
+                    //       when we document the plugin API.
                     entries.next()
                 }
                 VersionSpec::Semver(ref matching) => {
@@ -335,7 +342,7 @@ impl Resolve<YarnDistro> for YarnCollection {
 
 /// The index of the public Node server.
 pub struct Index {
-    pub entries: BTreeMap<Version, VersionData>,
+    entries: Vec<(Version, VersionData)>,
 }
 
 /// The set of available files on the public Node server for a given Node version.
@@ -429,8 +436,7 @@ fn resolve_node_versions() -> Result<serial::Index, NotionError> {
             ensure_containing_dir_exists(&index_expiry_file)?;
             expiry.persist(index_expiry_file).unknown()?;
 
-            let serial: serial::Index =
-                serde_json::de::from_str(&response_text).unknown()?;
+            let serial: serial::Index = serde_json::de::from_str(&response_text).unknown()?;
 
             spinner.finish_and_clear();
             Ok(serial)

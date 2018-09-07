@@ -66,7 +66,7 @@ Options:
             Current::Help => {
                 Help::Command(CommandName::Current).run(session)?;
                 true
-            },
+            }
             Current::Project => project_node_version(&session)?
                 .map(|version| {
                     println!("v{}", version);
