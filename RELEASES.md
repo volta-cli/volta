@@ -1,3 +1,9 @@
+# Version 0.1.2
+
+- Correct logic for computing `latest` version of Node (#144)
+- Don't crash if cache dir was deleted (#138)
+- Improved tests (#135)
+
 # Version 0.1.1
 
 - Support for specifying `latest` as a version specifier (#133)
