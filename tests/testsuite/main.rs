@@ -8,6 +8,7 @@ extern crate notion_core;
 extern crate notion_fail;
 #[macro_use]
 extern crate notion_fail_derive;
+extern crate rand;
 extern crate reqwest;
 // #[macro_use]
 extern crate serde_json;
