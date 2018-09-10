@@ -3,6 +3,7 @@ use support::matchers::execs;
 use support::sandbox::sandbox;
 
 #[test]
+#[cfg(unix)]
 fn deactivate_bash() {
     let s = sandbox()
         .notion_shell("bash")
