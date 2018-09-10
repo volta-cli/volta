@@ -5,8 +5,8 @@ use std::str::FromStr;
 
 use semver::Version;
 
-use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use fs::ensure_containing_dir_exists;
+use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 
 use env;
 

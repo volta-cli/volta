@@ -330,8 +330,9 @@ impl Resolve<YarnDistro> for YarnCollection {
     fn resolve_public(&self, matching: &VersionSpec) -> Fallible<YarnDistro> {
         let version = match *matching {
             VersionSpec::Latest => {
-                let mut response: reqwest::Response = reqwest::get(public_yarn_latest_version().as_str())
-                    .with_context(RegistryFetchError::from_error)?;
+                let mut response: reqwest::Response =
+                    reqwest::get(public_yarn_latest_version().as_str())
+                        .with_context(RegistryFetchError::from_error)?;
                 response.text().unknown()?
             }
             VersionSpec::Semver(ref matching) => {

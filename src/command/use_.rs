@@ -34,8 +34,12 @@ pub(crate) enum Use {
     Help,
     Node(VersionSpec),
     Yarn(VersionSpec),
-    #[allow(dead_code)]
-    Other { name: String, version: VersionSpec },
+    Other {
+        name: String,
+        // not currently used
+        #[allow(dead_code)]
+        version: VersionSpec,
+    },
 }
 
 impl Command for Use {
@@ -79,10 +83,7 @@ Options:
             Use::Help => Help::Command(CommandName::Use).run(session)?,
             Use::Node(spec) => session.pin_node_version(&spec)?,
             Use::Yarn(spec) => session.pin_yarn_version(&spec)?,
-            Use::Other {
-                name,
-                ..
-            } => throw!(NoCustomUseError::new(name)),
+            Use::Other { name, .. } => throw!(NoCustomUseError::new(name)),
         };
         session.add_event_end(ActivityKind::Use, ExitCode::Success);
         Ok(())

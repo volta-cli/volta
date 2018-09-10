@@ -55,10 +55,11 @@ fn pinned_project_with_user_node_env() {
 fn pinned_project_with_user_node_default() {
     let s = sandbox()
         .package_json(&package_json_with_pinned_node("1.7.19"))
-        .catalog(r#"[node]
+        .catalog(
+            r#"[node]
 default = '9.12.11'
 versions = [ '9.12.11' ]
-"#
+"#,
         )
         .build();
 
@@ -73,9 +74,7 @@ versions = [ '9.12.11' ]
 
 #[test]
 fn unpinned_project() {
-    let s = sandbox()
-        .package_json(BASIC_PACKAGE_JSON)
-        .build();
+    let s = sandbox().package_json(BASIC_PACKAGE_JSON).build();
 
     assert_that(
         s.notion("current"),
@@ -105,10 +104,11 @@ fn unpinned_project_with_user_node_env() {
 fn unpinned_project_with_user_node_default() {
     let s = sandbox()
         .package_json(BASIC_PACKAGE_JSON)
-        .catalog(r#"[node]
+        .catalog(
+            r#"[node]
 default = '9.12.11'
 versions = [ '9.12.11' ]
-"#
+"#,
         )
         .build();
 
@@ -122,8 +122,7 @@ versions = [ '9.12.11' ]
 
 #[test]
 fn no_project() {
-    let s = sandbox()
-        .build();
+    let s = sandbox().build();
 
     assert_that(
         s.notion("current"),
@@ -135,9 +134,7 @@ fn no_project() {
 
 #[test]
 fn no_project_with_user_node_env() {
-    let s = sandbox()
-        .env("NOTION_NODE_VERSION", "2.18.5")
-        .build();
+    let s = sandbox().env("NOTION_NODE_VERSION", "2.18.5").build();
 
     assert_that(
         s.notion("current"),
@@ -151,10 +148,11 @@ fn no_project_with_user_node_env() {
 #[cfg(unix)]
 fn no_project_with_user_node_default() {
     let s = sandbox()
-        .catalog(r#"[node]
+        .catalog(
+            r#"[node]
 default = '9.12.11'
 versions = [ '9.12.11' ]
-"#
+"#,
         )
         .build();
 

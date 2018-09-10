@@ -6,8 +6,8 @@ use std::iter;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
-use rand::{Rng, thread_rng};
 use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 use reqwest::header::HttpDate;
 
 use support;
@@ -16,7 +16,6 @@ use support::process::ProcessBuilder;
 
 #[cfg(feature = "mock-network")]
 use mockito::{self, mock, Matcher};
-
 
 // version cache for node and yarn
 #[derive(PartialEq, Clone)]
@@ -28,7 +27,6 @@ struct CacheBuilder {
 }
 
 impl CacheBuilder {
-    #[allow(dead_code)]
     pub fn new(path: PathBuf, expiry_path: PathBuf, contents: &str, expired: bool) -> CacheBuilder {
         CacheBuilder {
             path,
@@ -102,13 +100,8 @@ impl FileBuilder {
     pub fn build(&self) {
         self.dirname().mkdir_p();
 
-        let mut file = File::create(&self.path).unwrap_or_else(|e| {
-            panic!(
-                "could not create file {}: {}",
-                self.path.display(),
-                e
-            )
-        });
+        let mut file = File::create(&self.path)
+            .unwrap_or_else(|e| panic!("could not create file {}: {}", self.path.display(), e));
 
         t!(file.write_all(self.contents.as_bytes()));
     }
@@ -147,7 +140,6 @@ impl SandboxBuilder {
     }
 
     /// Set the Node cache for the sandbox (chainable)
-    #[allow(dead_code)]
     pub fn node_cache(mut self, cache: &str, expired: bool) -> Self {
         self.caches.push(CacheBuilder::new(
             node_index_file(),
@@ -167,13 +159,16 @@ impl SandboxBuilder {
 
     /// Set the catalog.toml for the sandbox (chainable)
     pub fn catalog(mut self, contents: &str) -> Self {
-        self.files.push(FileBuilder::new(user_catalog_file(), contents));
+        self.files
+            .push(FileBuilder::new(user_catalog_file(), contents));
         self
     }
 
     /// Set the shell for the sandbox (chainable)
     pub fn notion_shell(mut self, shell_name: &str) -> Self {
-        self.root.env_vars.push(EnvVar::new("NOTION_SHELL", shell_name));
+        self.root
+            .env_vars
+            .push(EnvVar::new("NOTION_SHELL", shell_name));
         self
     }
 
@@ -202,6 +197,7 @@ impl SandboxBuilder {
 
     /// Setup mocks to return info about the node archive file (chainable)
     pub fn node_archive_mocks(mut self) -> Self {
+        // ISSUE(#145): this should actually use a real http server instead of these mocks
 
         // generate a "file" that is 200 bytes long
         let mut rng = thread_rng();
@@ -211,8 +207,10 @@ impl SandboxBuilder {
             .collect();
 
         // mock the HEAD request, which gets the file size
-        let head_mock = mock("HEAD", Matcher::Regex(r"^/v\d+.\d+.\d+/node-v\d+.\d+.\d+".to_string()))
-            .with_header("Accept-Ranges", "bytes")
+        let head_mock = mock(
+            "HEAD",
+            Matcher::Regex(r"^/v\d+.\d+.\d+/node-v\d+.\d+.\d+".to_string()),
+        ).with_header("Accept-Ranges", "bytes")
             .with_body(&archive_file_mock)
             .create();
         self.root.mocks.push(head_mock);
@@ -220,16 +218,19 @@ impl SandboxBuilder {
         // mock the "Range: bytes" request, which gets the ISIZE value (last 4 bytes)
         // this will be interpreted as a packed integer value
         // (doesn't really matter - used for progress bar)
-        let range_mock = mock("GET", Matcher::Regex(r"^/v\d+.\d+.\d+/node-v\d+.\d+.\d+".to_string()))
-            .match_header("Range", Matcher::Any)
+        let range_mock = mock(
+            "GET",
+            Matcher::Regex(r"^/v\d+.\d+.\d+/node-v\d+.\d+.\d+".to_string()),
+        ).match_header("Range", Matcher::Any)
             .with_body("1234")
             .create();
         self.root.mocks.push(range_mock);
 
         // mock the file download
-        // TODO: this should actually use a real http server
-        let file_mock = mock("GET", Matcher::Regex(r"^/v\d+.\d+.\d+/node-v\d+.\d+.\d+".to_string()))
-            .match_header("Range", Matcher::Missing)
+        let file_mock = mock(
+            "GET",
+            Matcher::Regex(r"^/v\d+.\d+.\d+/node-v\d+.\d+.\d+".to_string()),
+        ).match_header("Range", Matcher::Missing)
             .with_body(&archive_file_mock)
             .create();
         self.root.mocks.push(file_mock);
@@ -260,6 +261,7 @@ impl SandboxBuilder {
 
     /// Setup mocks to return info about the yarn archive file (chainable)
     pub fn yarn_archive_mocks(mut self) -> Self {
+        // ISSUE(#145): this should actually use a real http server instead of these mocks
 
         // generate a "file" that is 200 bytes long
         let mut rng = thread_rng();
@@ -285,7 +287,6 @@ impl SandboxBuilder {
         self.root.mocks.push(range_mock);
 
         // mock the file download
-        // TODO: this should actually use a real http server
         let file_mock = mock("GET", Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()))
             .match_header("Range", Matcher::Missing)
             .with_body(&archive_file_mock)
@@ -294,7 +295,6 @@ impl SandboxBuilder {
 
         self
     }
-
 
     /// Create the project
     pub fn build(mut self) -> Sandbox {
@@ -358,11 +358,9 @@ fn node_cache_dir() -> PathBuf {
 fn yarn_cache_dir() -> PathBuf {
     cache_dir().join("yarn")
 }
-#[allow(dead_code)]
 fn node_index_file() -> PathBuf {
     node_cache_dir().join("index.json")
 }
-#[allow(dead_code)]
 fn node_index_expiry_file() -> PathBuf {
     node_cache_dir().join("index.json.expires")
 }
@@ -403,9 +401,8 @@ impl Sandbox {
             .env("NOTION_POSTSCRIPT", notion_postscript())
             .env_remove("NOTION_DEV")
             .env_remove("NOTION_NODE_VERSION")
-            .env_remove("NOTION_SHELL");
-            // TODO: need this?
-            // .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
+            .env_remove("NOTION_SHELL")
+            .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
 
         // overrides for env vars
         for env_var in &self.env_vars {
