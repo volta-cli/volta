@@ -396,7 +396,9 @@ impl Sandbox {
         p.cwd(self.root())
             // sandbox the Notion environment
             .env("HOME", home_dir())
+            .env("USERPROFILE", home_dir()) // windows
             .env("NOTION_HOME", notion_home())
+            .env("NOTION_DATA_ROOT", notion_home())
             .env("PATH", &self.path)
             .env("NOTION_POSTSCRIPT", notion_postscript())
             .env_remove("NOTION_DEV")

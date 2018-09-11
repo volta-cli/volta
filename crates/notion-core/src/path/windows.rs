@@ -1,6 +1,7 @@
 //! Provides functions for determining the paths of files and directories
 //! in a standard Notion layout in Windows operating systems.
 
+use std::env;
 use std::path::PathBuf;
 #[cfg(windows)]
 use std::os::windows;
@@ -46,12 +47,17 @@ cfg_if! {
 //             launchscript.exe                        launchscript_file
 
 fn program_data_root() -> Fallible<PathBuf> {
-    #[cfg(windows)]
-    return Ok(winfolder::Folder::ProgramData.path().join("Notion"));
+    if let Ok(notion_data) = env::var("NOTION_DATA_ROOT") {
+        return Ok(PathBuf::from(notion_data).join("Notion"));
+    } else {
+        #[cfg(windows)]
+        return Ok(winfolder::Folder::ProgramData.path().join("Notion"));
 
-    // "universal-docs" is built on a Unix machine, so we can't include Windows-specific libs
-    #[cfg(feature = "universal-docs")]
-    unimplemented!()
+        // "universal-docs" is built on a Unix machine, so we can't include Windows-specific libs
+        #[cfg(feature = "universal-docs")]
+        unimplemented!()
+    }
+
 }
 
 pub fn cache_dir() -> Fallible<PathBuf> {
@@ -107,7 +113,7 @@ pub fn yarn_version_bin_dir(version: &str) -> Fallible<PathBuf> {
 }
 
 // 3rd-party binaries installed globally for this node version
-pub fn node_version_3p_bin_dir(version: &str) -> Fallible<PathBuf> {
+pub fn node_version_3p_bin_dir(_version: &str) -> Fallible<PathBuf> {
     // ISSUE (#90) Figure out where binaries are globally installed on Windows
     unimplemented!("global 3rd party executables not yet implemented for Windows")
 }
@@ -164,12 +170,16 @@ pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
 //                         catalog.toml                user_catalog_file
 
 fn local_data_root() -> Fallible<PathBuf> {
-    #[cfg(windows)]
-    return Ok(winfolder::Folder::LocalAppData.path().join("Notion"));
+    if let Some(home_dir) = env::home_dir() {
+        return Ok(home_dir.join("AppData").join("Local").join("Notion"));
+    } else {
+        #[cfg(windows)]
+        return Ok(winfolder::Folder::LocalAppData.path().join("Notion"));
 
-    // "universal-docs" is built on a Unix machine, so we can't include Windows-specific libs
-    #[cfg(feature = "universal-docs")]
-    unimplemented!()
+        // "universal-docs" is built on a Unix machine, so we can't include Windows-specific libs
+        #[cfg(feature = "universal-docs")]
+        unimplemented!()
+    }
 }
 
 pub fn user_config_file() -> Fallible<PathBuf> {
