@@ -649,7 +649,7 @@ dependencies = [
 [[package]]
 name = "mockito"
 version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/mikrostew/mockito?branch=match-unknown#7a85b002f1b0ae84c9cf38bd6ea2150d58f9f653"
 dependencies = [
  "colored 1.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "difference 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -716,11 +716,12 @@ dependencies = [
 name = "notion"
 version = "0.1.3"
 dependencies = [
+ "cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "console 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "docopt 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure_derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "mockito 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mockito 0.12.0 (git+https://github.com/mikrostew/mockito?branch=match-unknown)",
  "notion-core 0.1.0",
  "notion-fail 0.1.0",
  "notion-fail-derive 0.1.0",
@@ -745,7 +746,7 @@ dependencies = [
  "failure_derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "indicatif 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazycell 0.6.0 (git+https://github.com/dherman/lazycell?branch=borrow_mut_with)",
- "mockito 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mockito 0.12.0 (git+https://github.com/mikrostew/mockito?branch=match-unknown)",
  "node-archive 0.1.0",
  "notion-fail 0.1.0",
  "notion-fail-derive 0.1.0",
@@ -1715,7 +1716,7 @@ dependencies = [
 "checksum miniz_oxide_c_api 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "92d98fdbd6145645828069b37ea92ca3de225e000d80702da25c20d3584b38a5"
 "checksum mio 0.6.12 (registry+https://github.com/rust-lang/crates.io-index)" = "75f72a93f046f1517e3cfddc0a096eb756a2ba727d36edc8227dee769a50a9b0"
 "checksum miow 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8c1f2f3b1cf331de6896aabf6e9d55dca90356cc9960cca7eaaf408a355ae919"
-"checksum mockito 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b92f0012f86f99e9733772b8cb72cc64e78dbe9fc9989648244e7e3d78f92424"
+"checksum mockito 0.12.0 (git+https://github.com/mikrostew/mockito?branch=match-unknown)" = "<none>"
 "checksum msdos_time 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "65ba9d75bcea84e07812618fedf284a64776c2f2ea0cad6bca7f69739695a958"
 "checksum native-tls 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "f74dbadc8b43df7864539cedb7bc91345e532fdd913cfdc23ad94f4d2d40fbc0"
 "checksum net2 0.2.31 (registry+https://github.com/rust-lang/crates.io-index)" = "3a80f842784ef6c9a958b68b7516bc7e35883c614004dd94959a4dca1b716c09"

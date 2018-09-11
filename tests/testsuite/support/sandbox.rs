@@ -111,6 +111,19 @@ impl FileBuilder {
     }
 }
 
+// because the http request methods from reqwest show up as <unknown> in mockito
+cfg_if! {
+    if #[cfg(all(windows, target_arch = "x86_64"))] {
+        fn method_name(_method: &str) -> &str {
+            "<UNKNOWN>"
+        }
+    } else {
+        fn method_name(method: &str) -> &str {
+            method
+        }
+    }
+}
+
 #[must_use]
 pub struct SandboxBuilder {
     root: Sandbox,
@@ -186,12 +199,13 @@ impl SandboxBuilder {
 
     /// Setup mock to return the available node versions (chainable)
     pub fn node_available_versions(mut self, body: &str) -> Self {
-        let mock = mock("GET", "/node-dist/index.json")
+        let mock = mock(method_name("GET"), "/node-dist/index.json")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(body)
             .create();
         self.root.mocks.push(mock);
+
         self
     }
 
@@ -208,7 +222,7 @@ impl SandboxBuilder {
 
         // mock the HEAD request, which gets the file size
         let head_mock = mock(
-            "HEAD",
+            method_name("HEAD"),
             Matcher::Regex(r"^/v\d+.\d+.\d+/node-v\d+.\d+.\d+".to_string()),
         ).with_header("Accept-Ranges", "bytes")
             .with_body(&archive_file_mock)
@@ -219,7 +233,7 @@ impl SandboxBuilder {
         // this will be interpreted as a packed integer value
         // (doesn't really matter - used for progress bar)
         let range_mock = mock(
-            "GET",
+            method_name("GET"),
             Matcher::Regex(r"^/v\d+.\d+.\d+/node-v\d+.\d+.\d+".to_string()),
         ).match_header("Range", Matcher::Any)
             .with_body("1234")
@@ -228,7 +242,7 @@ impl SandboxBuilder {
 
         // mock the file download
         let file_mock = mock(
-            "GET",
+            method_name("GET"),
             Matcher::Regex(r"^/v\d+.\d+.\d+/node-v\d+.\d+.\d+".to_string()),
         ).match_header("Range", Matcher::Missing)
             .with_body(&archive_file_mock)
@@ -240,7 +254,7 @@ impl SandboxBuilder {
 
     /// Setup mock to return the available yarn versions (chainable)
     pub fn yarn_available_versions(mut self, body: &str) -> Self {
-        let mock = mock("GET", "/yarn-releases/index.json")
+        let mock = mock(method_name("GET"), "/yarn-releases/index.json")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(body)
@@ -251,7 +265,7 @@ impl SandboxBuilder {
 
     /// Setup mock to return the latest version of yarn (chainable)
     pub fn yarn_latest(mut self, version: &str) -> Self {
-        let mock = mock("GET", "/yarn-latest")
+        let mock = mock(method_name("GET"), "/yarn-latest")
             .with_status(200)
             .with_body(version)
             .create();
@@ -271,7 +285,7 @@ impl SandboxBuilder {
             .collect();
 
         // mock the HEAD request, which gets the file size
-        let head_mock = mock("HEAD", Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()))
+        let head_mock = mock(method_name("HEAD"), Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()))
             .with_header("Accept-Ranges", "bytes")
             .with_body(&archive_file_mock)
             .create();
@@ -280,14 +294,14 @@ impl SandboxBuilder {
         // mock the "Range: bytes" request, which gets the ISIZE value (last 4 bytes)
         // this will be interpreted as a packed integer value
         // (doesn't really matter - used for progress bar)
-        let range_mock = mock("GET", Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()))
+        let range_mock = mock(method_name("GET"), Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()))
             .match_header("Range", Matcher::Any)
             .with_body("1234")
             .create();
         self.root.mocks.push(range_mock);
 
         // mock the file download
-        let file_mock = mock("GET", Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()))
+        let file_mock = mock(method_name("GET"), Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()))
             .match_header("Range", Matcher::Missing)
             .with_body(&archive_file_mock)
             .create();

@@ -43,7 +43,8 @@ notion-fail-derive = { path = "crates/notion-fail-derive" }
 reqwest = "0.8.5"
 semver = "0.9.0"
 result = "1.0.0"
-mockito = { version = "0.12.0", optional = true }
+mockito = { "git" = "https://github.com/mikrostew/mockito", "branch" = "match-unknown", optional = true }
 rand = "0.5"
+cfg-if = "0.1"
 
 [workspace]
