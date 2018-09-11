@@ -51,7 +51,6 @@ fn pinned_project_with_user_node_env() {
 }
 
 #[test]
-#[cfg(unix)]
 fn pinned_project_with_user_node_default() {
     let s = sandbox()
         .package_json(&package_json_with_pinned_node("1.7.19"))
@@ -100,7 +99,6 @@ fn unpinned_project_with_user_node_env() {
 }
 
 #[test]
-#[cfg(unix)]
 fn unpinned_project_with_user_node_default() {
     let s = sandbox()
         .package_json(BASIC_PACKAGE_JSON)
@@ -145,7 +143,6 @@ fn no_project_with_user_node_env() {
 }
 
 #[test]
-#[cfg(unix)]
 fn no_project_with_user_node_default() {
     let s = sandbox()
         .catalog(

@@ -349,8 +349,13 @@ fn notion_bin_dir() -> PathBuf {
 fn notion_postscript() -> PathBuf {
     notion_tmp_dir().join("notion_tmp_1234.sh")
 }
+#[cfg(unix)]
 fn cache_dir() -> PathBuf {
     notion_home().join("cache")
+}
+#[cfg(windows)]
+fn cache_dir() -> PathBuf {
+    home_dir().join("Notion").join("cache")
 }
 fn node_cache_dir() -> PathBuf {
     cache_dir().join("node")
@@ -368,8 +373,17 @@ fn package_json_file(mut root: PathBuf) -> PathBuf {
     root.push("package.json");
     root
 }
+#[cfg(unix)]
 fn user_catalog_file() -> PathBuf {
     notion_home().join("catalog.toml")
+}
+#[cfg(windows)]
+fn local_data_root() -> PathBuf {
+    home_dir().join("AppData").join("Local").join("Notion")
+}
+#[cfg(windows)]
+fn user_catalog_file() -> PathBuf {
+    local_data_root().join("catalog.toml")
 }
 
 pub struct Sandbox {
@@ -398,7 +412,7 @@ impl Sandbox {
             .env("HOME", home_dir())
             .env("USERPROFILE", home_dir()) // windows
             .env("NOTION_HOME", notion_home())
-            .env("NOTION_DATA_ROOT", notion_home())
+            .env("NOTION_DATA_ROOT", notion_home()) // windows
             .env("PATH", &self.path)
             .env("NOTION_POSTSCRIPT", notion_postscript())
             .env_remove("NOTION_DEV")
