@@ -124,8 +124,10 @@ pub fn launchscript_file() -> Fallible<PathBuf> {
 //     Program Files\
 //         Notion\
 //             notion.exe                              notion_file
-//             bin\                                    shim_dir
-//                 node.exe                            shim_file("node")
+//             bin\                                    bin_dir
+//                 node.exe
+//             shim\                                   shim_dir
+//                 yarn.exe                            shim_file("yarn")
 //                 npm.exe
 //                 npx.exe
 //                 ...
@@ -147,11 +149,15 @@ pub fn notion_file() -> Fallible<PathBuf> {
 }
 
 pub fn shim_dir() -> Fallible<PathBuf> {
-    Ok(program_files_root()?.join("bin"))
+    Ok(program_files_root()?.join("shim"))
 }
 
 pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
     Ok(shim_dir()?.join(&format!("{}.exe", toolname)))
+}
+
+pub fn bin_dir() -> Fallible<PathBuf> {
+    Ok(program_files_root()?.join("bin"))
 }
 
 // C:\

@@ -55,8 +55,10 @@ cfg_if! {
 //                 6.11.3/
 //                 8.6.0/
 //                 ...
-//         bin/                                            shim_dir
-//             node                                        shim_file("node")
+//         bin/                                            bin_dir
+//             node                                        bin_file("node")
+//         shim/                                           shim_dir
+//             yarn                                        shim_file
 //             npm
 //             npx
 //             ...
@@ -131,8 +133,12 @@ pub fn notion_file() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("notion"))
 }
 
-pub fn shim_dir() -> Fallible<PathBuf> {
+pub fn bin_dir() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("bin"))
+}
+
+pub fn shim_dir() -> Fallible<PathBuf> {
+    Ok(notion_home()?.join("shim"))
 }
 
 pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
