@@ -203,7 +203,7 @@ impl Tool for Binary {
                 return Ok(Self::from_components(
                     &path_to_bin.as_os_str(),
                     args,
-                    &env::path_for_node_scripts(),
+                    &env::path_for_node_scripts()?,
                 ));
             }
         }
@@ -216,7 +216,7 @@ impl Tool for Binary {
             return Ok(Self::from_components(
                 &third_p_bin_dir.as_os_str(),
                 args,
-                &env::path_for_node_scripts(),
+                &env::path_for_node_scripts()?,
             ));
         };
 
@@ -273,7 +273,7 @@ impl Tool for Node {
                 tool: "Node".to_string()
             });
         };
-        let path_var = env::path_for_installed_node(&version.to_string());
+        let path_var = env::path_for_installed_node(&version.to_string())?;
         Ok(Self::from_components(&exe, args, &path_var))
     }
 
@@ -299,7 +299,7 @@ impl Tool for Yarn {
                 tool: "Yarn".to_string()
             });
         };
-        let path_var = env::path_for_installed_yarn(&version.to_string());
+        let path_var = env::path_for_installed_yarn(&version.to_string())?;
         Ok(Self::from_components(&exe, args, &path_var))
     }
 

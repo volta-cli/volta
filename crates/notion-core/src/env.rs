@@ -5,6 +5,7 @@ use std::env;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
+use notion_fail::{Fallible, ResultExt};
 use path;
 
 pub(crate) fn shell_name() -> Option<String> {
@@ -17,62 +18,50 @@ pub fn postscript_path() -> Option<PathBuf> {
         .map(|ref s| Path::new(s).to_path_buf())
 }
 
+// remove the shim and bin dirs from the path, then prepend any input paths
+fn build_path(paths: Vec<PathBuf>) -> Fallible<OsString> {
+    let current_dir = env::var_os("PATH").unwrap_or(OsString::new());
+    let shim_dir = &path::shim_dir()?;
+    let bin_dir = &path::bin_dir()?;
+    let split = env::split_paths(&current_dir).filter(|s| s != shim_dir && s != bin_dir);
+    let mut path_vec: Vec<PathBuf> = Vec::new();
+    for p in paths.iter() {
+        path_vec.push(p.to_path_buf());
+    }
+    path_vec.extend(split);
+    env::join_paths(path_vec.iter()).unknown()
+}
+
 /// Produces a modified version of the current `PATH` environment variable that
 /// will find Node.js executables in the installation directory for the given
 /// version of Node instead of in the Notion shim directory.
-pub fn path_for_installed_node(version: &str) -> OsString {
-    let current = env::var_os("PATH").unwrap_or(OsString::new());
-    let shim_dir = &path::shim_dir().unwrap();
-    let bin_dir = &path::bin_dir().unwrap();
-    let split = env::split_paths(&current).filter(|s| s != shim_dir && s != bin_dir);
-    let mut path_vec: Vec<PathBuf> = Vec::new();
-    // TODO: this is the only line that is different
-    path_vec.push(path::node_version_bin_dir(version).unwrap());
-    path_vec.extend(split);
-    env::join_paths(path_vec.iter()).unwrap()
+pub fn path_for_installed_node(version: &str) -> Fallible<OsString> {
+    let prepended_paths = vec![path::node_version_bin_dir(version)?];
+    build_path(prepended_paths)
 }
 
 /// Produces a modified version of the current `PATH` environment variable that
 /// will find Yarn executables in the installation directory for the given
 /// version of Yarn instead of in the Notion shim directory.
-pub fn path_for_installed_yarn(version: &str) -> OsString {
-    let current = env::var_os("PATH").unwrap_or(OsString::new());
-    let shim_dir = &path::shim_dir().unwrap();
-    let bin_dir = &path::bin_dir().unwrap();
-    let split = env::split_paths(&current).filter(|s| s != shim_dir && s != bin_dir);
-    let mut path_vec: Vec<PathBuf> = Vec::new();
-    // TODO: this is the only line that is different
-    path_vec.push(path::yarn_version_bin_dir(version).unwrap());
-    path_vec.extend(split);
-    env::join_paths(path_vec.iter()).unwrap()
+pub fn path_for_installed_yarn(version: &str) -> Fallible<OsString> {
+    let prepended_paths = vec![path::yarn_version_bin_dir(version)?];
+    build_path(prepended_paths)
 }
 
 /// Produces a modified version of the current `PATH` environment variable for
 /// Node.js executables, which provides access to the Node shim but no other
 /// Notion shims.
-pub fn path_for_node_scripts() -> OsString {
-    let current = env::var_os("PATH").unwrap_or(OsString::new());
-    let shim_dir = &path::shim_dir().unwrap();
-    // let bin_dir = &path::bin_dir().unwrap();
-    // remove all shims except for the node shim from the path
-    let split = env::split_paths(&current).filter(|s| s != shim_dir);
-    let mut path_vec: Vec<PathBuf> = Vec::new();
-    // path_vec.push(path::node_version_bin_dir(version).unwrap());
-    // path_vec.push(path::yarn_version_bin_dir(version).unwrap());
-    path_vec.extend(split);
-    env::join_paths(path_vec.iter()).unwrap()
+pub fn path_for_node_scripts() -> Fallible<OsString> {
+    let prepended_paths = vec![path::bin_dir()?];
+    build_path(prepended_paths)
 }
 
 /// Produces a modified version of the current `PATH` environment variable that
 /// removes the Notion shims and binaries, to use for running system node and
 /// executables.
-pub fn path_for_system_node() -> OsString {
-    let current = env::var_os("PATH").unwrap_or(OsString::new());
-    let shim_dir = &path::shim_dir().unwrap();
-    let bin_dir = &path::bin_dir().unwrap();
-    // remove the shim dir from the path
-    let split = env::split_paths(&current).filter(|s| s != shim_dir && s != bin_dir);
-    env::join_paths(split).unwrap()
+pub fn path_for_system_node() -> Fallible<OsString> {
+    let prepended_paths = vec![];
+    build_path(prepended_paths)
 }
 
 #[cfg(test)]
@@ -143,7 +132,7 @@ pub mod tests {
         expected_path.push_str(":/usr/bin:/blah:/doesnt/matter/bin");
 
         assert_eq!(
-            path_for_installed_node("1.2.3").into_string().unwrap(),
+            path_for_installed_node("1.2.3").unwrap().into_string().unwrap(),
             expected_path
         );
     }
@@ -174,7 +163,7 @@ pub mod tests {
         expected_path.push_str(";C:\\\\somebin;D:\\\\ProbramFlies");
 
         assert_eq!(
-            path_for_installed_node("1.2.3").into_string().unwrap(),
+            path_for_installed_node("1.2.3").unwrap().into_string().unwrap(),
             expected_path
         );
     }
@@ -202,7 +191,7 @@ pub mod tests {
         expected_path.push_str(":/usr/bin:/blah:/doesnt/matter/bin");
 
         assert_eq!(
-            path_for_installed_yarn("1.2.3").into_string().unwrap(),
+            path_for_installed_yarn("1.2.3").unwrap().into_string().unwrap(),
             expected_path
         );
     }
@@ -234,7 +223,7 @@ pub mod tests {
         expected_path.push_str(";C:\\\\something;D:\\\\blah");
 
         assert_eq!(
-            path_for_installed_yarn("1.2.3").into_string().unwrap(),
+            path_for_installed_yarn("1.2.3").unwrap().into_string().unwrap(),
             expected_path
         );
     }
@@ -256,7 +245,7 @@ pub mod tests {
         expected_path.push_str(":/usr/bin:/blah:/doesnt/matter/bin");
 
         assert_eq!(
-            path_for_node_scripts().into_string().unwrap(),
+            path_for_node_scripts().unwrap().into_string().unwrap(),
             expected_path
         );
     }
@@ -287,7 +276,7 @@ pub mod tests {
         expected_path.push_str(";C:\\\\somebin;D:\\\\ProbramFlies");
 
         assert_eq!(
-            path_for_node_scripts().into_string().unwrap(),
+            path_for_node_scripts().unwrap().into_string().unwrap(),
             expected_path
         );
     }
@@ -306,7 +295,7 @@ pub mod tests {
 
         let expected_path = String::from("/usr/bin:/bin");
 
-        assert_eq!(path_for_system_node().into_string().unwrap(), expected_path);
+        assert_eq!(path_for_system_node().unwrap().into_string().unwrap(), expected_path);
     }
 
     #[test]
@@ -327,6 +316,6 @@ pub mod tests {
 
         let expected_path = String::from("C:\\\\somebin;D:\\\\ProbramFlies");
 
-        assert_eq!(path_for_system_node().into_string().unwrap(), expected_path);
+        assert_eq!(path_for_system_node().unwrap().into_string().unwrap(), expected_path);
     }
 }

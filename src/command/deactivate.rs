@@ -45,7 +45,7 @@ Options:
             Deactivate::Deactivate => {
                 let shell = CurrentShell::detect()?;
 
-                let postscript = match env::path_for_system_node().into_string() {
+                let postscript = match env::path_for_system_node()?.into_string() {
                     Ok(path) => Postscript::Path(path),
                     Err(_) => unimplemented!(),
                 };
