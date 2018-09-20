@@ -221,7 +221,7 @@ impl Tool for Binary {
         };
 
         // at this point, there is no project or user toolchain
-        // the user is executing a Notion shim that doesn't have any way to execute it
+        // the user is executing a Notion shim that doesn't have a way to execute it
         throw!(NoToolChainError::for_shim(
             exe.to_string_lossy().to_string()
         ));

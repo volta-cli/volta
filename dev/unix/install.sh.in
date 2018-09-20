@@ -56,13 +56,17 @@ notion_create_tree() {
   #         versions/
   #             node/
   #         bin/
+  #         shim/
   #         tmp/
 
   mkdir -p "${INSTALL_DIR}"/cache/node
   mkdir -p "${INSTALL_DIR}"/cache/yarn
   mkdir -p "${INSTALL_DIR}"/versions/node
   mkdir -p "${INSTALL_DIR}"/versions/yarn
+  rm -rf "${INSTALL_DIR}"/bin
   mkdir -p "${INSTALL_DIR}"/bin
+  rm -rf "${INSTALL_DIR}"/shim
+  mkdir -p "${INSTALL_DIR}"/shim
   mkdir -p "${INSTALL_DIR}"/tmp
 }
 
@@ -73,16 +77,16 @@ notion_create_binaries() {
 
   notion_unpack_notion        > "${INSTALL_DIR}"/notion
   notion_unpack_node          > "${INSTALL_DIR}"/bin/node
-  notion_unpack_yarn          > "${INSTALL_DIR}"/bin/yarn
+  notion_unpack_yarn          > "${INSTALL_DIR}"/shim/yarn
   notion_unpack_launchscript  > "${INSTALL_DIR}"/launchscript
   notion_unpack_launchbin     > "${INSTALL_DIR}"/launchbin
   notion_unpack_bash_launcher > "${INSTALL_DIR}"/load.sh
 
   # using -f so that there is no error if the target already exists (for reinstall)
-  ln -sf "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/bin/npm
-  ln -sf "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/bin/npx
+  ln -sf "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/shim/npm
+  ln -sf "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/shim/npx
 
-  chmod 755 "${INSTALL_DIR}/"/notion "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}"/launch*
+  chmod 755 "${INSTALL_DIR}/"/notion "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}/shim"/* "${INSTALL_DIR}"/launch*
 }
 
 notion_try_profile() {
@@ -174,7 +178,7 @@ notion_install() {
   local PROFILE_INSTALL_DIR
   PROFILE_INSTALL_DIR=$(notion_install_dir | sed "s:^$HOME:\$HOME:")
   local PATH_STR
-  PATH_STR="\\nexport NOTION_HOME=\"${PROFILE_INSTALL_DIR}\"\\n[ -s \"\$NOTION_HOME/load.sh\" ] && \\. \"\$NOTION_HOME/load.sh\"\\n\\nexport PATH=\"\${NOTION_HOME}/bin:\$PATH\""
+  PATH_STR="\\nexport NOTION_HOME=\"${PROFILE_INSTALL_DIR}\"\\n[ -s \"\$NOTION_HOME/load.sh\" ] && \\. \"\$NOTION_HOME/load.sh\"\\n\\nexport PATH=\"\${NOTION_HOME}/bin:\${NOTION_HOME}/shim:\$PATH\""
 
   if [ -z "${NOTION_PROFILE-}" ] ; then
     local TRIED_PROFILE

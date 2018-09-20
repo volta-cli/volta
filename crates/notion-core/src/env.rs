@@ -44,7 +44,7 @@ pub fn path_for_installed_node(version: &str) -> Fallible<OsString> {
 /// will find Yarn executables in the installation directory for the given
 /// version of Yarn instead of in the Notion shim directory.
 pub fn path_for_installed_yarn(version: &str) -> Fallible<OsString> {
-    let prepended_paths = vec![path::yarn_version_bin_dir(version)?];
+    let prepended_paths = vec![path::yarn_version_bin_dir(version)?, path::bin_dir()?];
     build_path(prepended_paths)
 }
 
@@ -188,6 +188,8 @@ pub mod tests {
 
         let mut expected_path = String::from("");
         expected_path.push_str(expected_yarn_bin.as_path().to_str().unwrap());
+        expected_path.push_str(":");
+        expected_path.push_str(&bin_dir().to_string_lossy());
         expected_path.push_str(":/usr/bin:/blah:/doesnt/matter/bin");
 
         assert_eq!(
@@ -220,6 +222,8 @@ pub mod tests {
 
         let mut expected_path = String::from("");
         expected_path.push_str(expected_yarn_bin.as_path().to_str().unwrap());
+        expected_path.push_str(";");
+        expected_path.push_str(&bin_dir().to_string_lossy());
         expected_path.push_str(";C:\\\\something;D:\\\\blah");
 
         assert_eq!(
