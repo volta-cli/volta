@@ -195,6 +195,8 @@ impl Tool for Binary {
         // first try to use the project toolchain
         // (if the user is in a pinned project, check if the executable is a direct dependency)
         if session.in_pinned_project() {
+            let node_version = session.current_node()?.unwrap();
+            let yarn_version = session.current_yarn()?;
             let project = session.project().unwrap();
             if project.has_direct_bin(&exe)? {
                 // use the full path to the file
@@ -203,7 +205,7 @@ impl Tool for Binary {
                 return Ok(Self::from_components(
                     &path_to_bin.as_os_str(),
                     args,
-                    &env::path_for_node_scripts()?,
+                    &env::path_for_toolchain(&node_version, &yarn_version)?,
                 ));
             }
         }
@@ -216,7 +218,7 @@ impl Tool for Binary {
             return Ok(Self::from_components(
                 &third_p_bin_dir.as_os_str(),
                 args,
-                &env::path_for_node_scripts()?,
+                &env::path_for_toolchain(&version, &session.current_yarn()?)?,
             ));
         };
 
@@ -273,7 +275,7 @@ impl Tool for Node {
                 tool: "Node".to_string()
             });
         };
-        let path_var = env::path_for_installed_node(&version.to_string())?;
+        let path_var = env::path_for_toolchain(&version, &session.current_yarn()?)?;
         Ok(Self::from_components(&exe, args, &path_var))
     }
 
@@ -299,7 +301,7 @@ impl Tool for Yarn {
                 tool: "Yarn".to_string()
             });
         };
-        let path_var = env::path_for_installed_yarn(&version.to_string())?;
+        let path_var = env::path_for_toolchain(&session.current_node()?.unwrap(), &Some(version))?;
         Ok(Self::from_components(&exe, args, &path_var))
     }
 
