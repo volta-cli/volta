@@ -7,6 +7,7 @@ use std::env::{self, VarError};
 use catalog::{Catalog, LazyCatalog};
 use config::{Config, LazyConfig};
 use distro::Fetched;
+use image::Image;
 use plugin::Publish;
 use project::Project;
 use version::VersionSpec;
@@ -100,6 +101,14 @@ impl Session {
     /// Produces a reference to the current Node project, if any.
     pub fn project(&self) -> Option<&Project> {
         self.project.as_ref()
+    }
+
+    /// Returns the current project's pinned platform image, if any.
+    pub fn project_platform(&self) -> Option<&Image> {
+        if let Some(ref project) = self.project {
+            return project.platform();
+        }
+        None
     }
 
     /// Returns if the current project has a pinned toolchain (at least Node is pinned).

@@ -28,6 +28,7 @@ mod distro;
 pub mod env;
 mod event;
 pub(crate) mod fs;
+pub(crate) mod image;
 pub mod manifest;
 pub mod monitor;
 pub mod path;

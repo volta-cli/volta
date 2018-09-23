@@ -8,8 +8,9 @@ use std::path::{Path, PathBuf};
 
 use lazycell::LazyCell;
 
+use image::Image;
 use manifest::Manifest;
-use manifest::serial::ToolchainManifest;
+use manifest::serial;
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use semver::Version;
 
@@ -109,9 +110,14 @@ impl Project {
         }))
     }
 
+    /// Returns the pinned platform image, if any.
+    pub fn platform(&self) -> Option<&Image> {
+        self.manifest.platform()
+    }
+
     /// Returns true if the project manifest contains a toolchain.
     pub fn is_pinned(&self) -> bool {
-        self.manifest.has_toolchain()
+        self.manifest.platform().is_some()
     }
 
     /// Returns the project manifest (`package.json`) for this project.
@@ -186,7 +192,7 @@ impl Project {
     pub fn pin_node_in_toolchain(&self, node_version: Version) -> Fallible<()> {
         // update the toolchain node version
         let toolchain =
-            ToolchainManifest::new(node_version.to_string(), self.manifest().yarn_str().clone());
+            serial::Image::new(node_version.to_string(), self.manifest().yarn_str().clone());
         Manifest::update_toolchain(toolchain, self.package_file())?;
         println!("Pinned node to version {} in package.json", node_version);
         Ok(())
@@ -197,7 +203,7 @@ impl Project {
         // update the toolchain yarn version
         if let Some(node_str) = self.manifest().node_str() {
             let toolchain =
-                ToolchainManifest::new(node_str.clone(), Some(yarn_version.to_string()));
+                serial::Image::new(node_str.clone(), Some(yarn_version.to_string()));
             Manifest::update_toolchain(toolchain, self.package_file())?;
             println!("Pinned yarn to version {} in package.json", yarn_version);
         } else {
