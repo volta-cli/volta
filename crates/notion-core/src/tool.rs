@@ -1,6 +1,6 @@
 //! Traits and types for executing command-line tools.
 
-use std::env::{args_os, var_os, ArgsOs};
+use std::env::{args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
 use std::io;
 use std::marker::Sized;
@@ -172,19 +172,32 @@ impl Tool for Script {
     }
 }
 
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "No toolchain available to run shim {}", shim_name)]
+#[notion_fail(code = "ExecutionFailure")]
+pub(crate) struct NoToolChainError {
+    shim_name: String,
+}
+
+impl NoToolChainError {
+    pub(crate) fn for_shim(shim_name: String) -> NoToolChainError {
+        NoToolChainError { shim_name }
+    }
+}
+
 impl Tool for Binary {
     fn new(session: &mut Session) -> Fallible<Self> {
         session.add_event_start(ActivityKind::Binary);
 
         let mut args = args_os();
         let exe = arg0(&mut args)?;
-        let current_path = var_os("PATH").unwrap_or(OsString::new());
 
+        // first try to use the project toolchain
+        // (if the user is in a pinned project, check if the executable is a direct dependency)
         if session.in_pinned_project() {
-            // we are in a pinned Node project
+            let node_version = session.current_node()?.unwrap();
+            let yarn_version = session.current_yarn()?;
             let project = session.project().unwrap();
-
-            // if this project has this as a local executable, use that
             if project.has_direct_bin(&exe)? {
                 // use the full path to the file
                 let mut path_to_bin = project.local_bin_dir();
@@ -192,12 +205,12 @@ impl Tool for Binary {
                 return Ok(Self::from_components(
                     &path_to_bin.as_os_str(),
                     args,
-                    &current_path,
+                    &env::path_for_toolchain(&node_version, &yarn_version)?,
                 ));
             }
         }
 
-        // if node is configured with Notion (`notion use` or notion config), use the global executable
+        // next try to use the user toolchain
         if let Some(version) = session.current_node()? {
             // use the full path to the binary
             let mut third_p_bin_dir = path::node_version_3p_bin_dir(&version.to_string())?;
@@ -205,14 +218,15 @@ impl Tool for Binary {
             return Ok(Self::from_components(
                 &third_p_bin_dir.as_os_str(),
                 args,
-                &current_path,
+                &env::path_for_toolchain(&version, &session.current_yarn()?)?,
             ));
         };
 
-        // otherwise use system node
-        // (remove notion shims and bins)
-        let path_for_system_node = env::path_for_system_node();
-        Ok(Self::from_components(&exe, args, &path_for_system_node))
+        // at this point, there is no project or user toolchain
+        // the user is executing a Notion shim that doesn't have a way to execute it
+        throw!(NoToolChainError::for_shim(
+            exe.to_string_lossy().to_string()
+        ));
     }
 
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
@@ -261,7 +275,7 @@ impl Tool for Node {
                 tool: "Node".to_string()
             });
         };
-        let path_var = env::path_for_installed_node(&version.to_string());
+        let path_var = env::path_for_toolchain(&version, &session.current_yarn()?)?;
         Ok(Self::from_components(&exe, args, &path_var))
     }
 
@@ -287,7 +301,7 @@ impl Tool for Yarn {
                 tool: "Yarn".to_string()
             });
         };
-        let path_var = env::path_for_installed_node(&version.to_string());
+        let path_var = env::path_for_toolchain(&session.current_node()?.unwrap(), &Some(version))?;
         Ok(Self::from_components(&exe, args, &path_var))
     }
 

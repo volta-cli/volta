@@ -5,7 +5,9 @@ use std::env;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
+use notion_fail::{Fallible, ResultExt};
 use path;
+use semver::Version;
 
 pub(crate) fn shell_name() -> Option<String> {
     env::var_os("NOTION_SHELL").map(|s| s.to_string_lossy().into_owned())
@@ -17,29 +19,36 @@ pub fn postscript_path() -> Option<PathBuf> {
         .map(|ref s| Path::new(s).to_path_buf())
 }
 
-/// Produces a modified version of the current `PATH` environment variable that
-/// will find Node.js executables in the installation directory for the given
-/// version of Node instead of in the Notion shim directory.
-pub fn path_for_installed_node(version: &str) -> OsString {
-    let current = env::var_os("PATH").unwrap_or(OsString::new());
-    let shim_dir = &path::shim_dir().unwrap();
-    let split = env::split_paths(&current).filter(|s| s != shim_dir);
+// remove the Notion shims from the path, then prepend any input paths
+fn build_path(paths: Vec<PathBuf>) -> Fallible<OsString> {
+    let current_dir = env::var_os("PATH").unwrap_or(OsString::new());
+    let shim_dir = &path::shim_dir()?;
+    let split = env::split_paths(&current_dir).filter(|s| s != shim_dir);
     let mut path_vec: Vec<PathBuf> = Vec::new();
-    path_vec.push(path::node_version_bin_dir(version).unwrap());
-    path_vec.push(path::yarn_version_bin_dir(version).unwrap());
+    for p in paths.iter() {
+        path_vec.push(p.to_path_buf());
+    }
     path_vec.extend(split);
-    env::join_paths(path_vec.iter()).unwrap()
+    env::join_paths(path_vec.iter()).unknown()
+}
+
+/// Produces a modified version of the current `PATH` environment variable that
+/// will find toolchain executables (Node, Yarn) in the installation directories
+/// for the given versions instead of in the Notion shim directory.
+pub fn path_for_toolchain(node_version: &Version, yarn_version: &Option<Version>) -> Fallible<OsString> {
+    let mut prepended_paths = vec![path::node_version_bin_dir(&node_version.to_string())?];
+    if let Some(version) = yarn_version {
+        prepended_paths.push(path::yarn_version_bin_dir(&version.to_string())?);
+    }
+    build_path(prepended_paths)
 }
 
 /// Produces a modified version of the current `PATH` environment variable that
 /// removes the Notion shims and binaries, to use for running system node and
 /// executables.
-pub fn path_for_system_node() -> OsString {
-    let current = env::var_os("PATH").unwrap_or(OsString::new());
-    let shim_dir = &path::shim_dir().unwrap();
-    // remove the shim dir from the path
-    let split = env::split_paths(&current).filter(|s| s != shim_dir);
-    env::join_paths(split).unwrap()
+pub fn path_for_system_node() -> Fallible<OsString> {
+    let prepended_paths = vec![];
+    build_path(prepended_paths)
 }
 
 #[cfg(test)]
@@ -48,9 +57,30 @@ pub mod tests {
     use super::*;
     use std::env;
     use std::path::PathBuf;
+    use semver::Version;
 
     #[cfg(windows)]
     use winfolder;
+
+    fn notion_base() -> PathBuf {
+        #[cfg(unix)]
+        return PathBuf::from(env::home_dir().expect("Could not get home directory")).join(".notion");
+
+        #[cfg(all(windows, target_arch = "x86"))]
+        return winfolder::Folder::ProgramFiles.path().join("Notion");
+
+        #[cfg(all(windows, target_arch = "x86_64"))]
+        return winfolder::Folder::ProgramFilesX64.path().join("Notion");
+    }
+
+    fn shim_dir() -> PathBuf {
+        notion_base().join("bin")
+    }
+
+    #[cfg(windows)]
+    fn program_data_root() -> PathBuf {
+        winfolder::Folder::ProgramData.path().join("Notion")
+    }
 
     #[test]
     fn test_shell_name() {
@@ -66,120 +96,110 @@ pub mod tests {
 
     #[test]
     #[cfg(unix)]
-    fn test_path_for_installed_node() {
-        let home = env::home_dir().expect("Could not get home directory");
-        env::set_var("PATH", "/usr/bin:/blah:/doesnt/matter/bin");
+    fn test_path_for_toolchain() {
+        env::set_var(
+            "PATH",
+            format!(
+                "/usr/bin:/blah:{}:/doesnt/matter/bin",
+                shim_dir().to_string_lossy()
+            ),
+        );
 
-        let mut expected_node_bin = PathBuf::from(&home);
-        expected_node_bin.push(".notion");
-        expected_node_bin.push("versions");
-        expected_node_bin.push("node");
-        expected_node_bin.push("1.2.3");
-        expected_node_bin.push("bin");
+        let node_bin = notion_base()
+            .join("versions")
+            .join("node")
+            .join("1.2.3")
+            .join("bin");
+        let expected_node_bin = node_bin.as_path().to_str().unwrap();
 
-        let mut expected_yarn_bin = PathBuf::from(&home);
-        expected_yarn_bin.push(".notion");
-        expected_yarn_bin.push("versions");
-        expected_yarn_bin.push("yarn");
-        expected_yarn_bin.push("1.2.3");
-        expected_yarn_bin.push("bin");
-
-        let mut expected_path = String::from("");
-        expected_path.push_str(expected_node_bin.as_path().to_str().unwrap());
-        expected_path.push_str(":");
-        expected_path.push_str(expected_yarn_bin.as_path().to_str().unwrap());
-        expected_path.push_str(":/usr/bin:/blah:/doesnt/matter/bin");
+        let yarn_bin = notion_base()
+            .join("versions")
+            .join("yarn")
+            .join("4.5.7")
+            .join("bin");
+        let expected_yarn_bin = yarn_bin.as_path().to_str().unwrap();
 
         assert_eq!(
-            path_for_installed_node("1.2.3").into_string().unwrap(),
-            expected_path
+            path_for_toolchain(&Version::parse("1.2.3").unwrap(), &None).unwrap().into_string().unwrap(),
+            format!("{}:/usr/bin:/blah:/doesnt/matter/bin", expected_node_bin),
+        );
+        assert_eq!(
+            path_for_toolchain(&Version::parse("1.2.3").unwrap(), &Version::parse("4.5.7").ok()).unwrap().into_string().unwrap(),
+            format!("{}:{}:/usr/bin:/blah:/doesnt/matter/bin", expected_node_bin, expected_yarn_bin),
         );
     }
 
     #[test]
     #[cfg(windows)]
-    fn test_path_for_installed_node() {
-        let program_data = winfolder::Folder::ProgramData.path();
-        env::set_var("PATH", "C:\\\\something;D:\\\\blah");
+    fn test_path_for_toolchain() {
+        let mut pathbufs: Vec<PathBuf> = Vec::new();
+        pathbufs.push(shim_dir());
+        pathbufs.push(PathBuf::from("C:\\\\somebin"));
+        pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
 
-        let mut expected_node_bin = PathBuf::from(&program_data);
-        expected_node_bin.push("Notion");
-        expected_node_bin.push("versions");
-        expected_node_bin.push("node");
-        expected_node_bin.push("1.2.3");
+        let path_with_shims = env::join_paths(pathbufs.iter())
+            .unwrap()
+            .into_string()
+            .expect("Could not create path containing shim dir");
 
-        let mut expected_yarn_bin = PathBuf::from(&program_data);
-        expected_yarn_bin.push("Notion");
-        expected_yarn_bin.push("versions");
-        expected_yarn_bin.push("yarn");
-        expected_yarn_bin.push("1.2.3");
-        expected_yarn_bin.push("bin");
+        env::set_var("PATH", path_with_shims);
 
-        let mut expected_path = String::from("");
-        expected_path.push_str(expected_node_bin.as_path().to_str().unwrap());
-        expected_path.push_str(";");
-        expected_path.push_str(expected_yarn_bin.as_path().to_str().unwrap());
-        expected_path.push_str(";C:\\\\something;D:\\\\blah");
+        let node_bin = program_data_root()
+            .join("versions")
+            .join("node")
+            .join("1.2.3");
+        let expected_node_bin = node_bin.as_path().to_str().unwrap();
+
+        let yarn_bin = program_data_root()
+            .join("versions")
+            .join("yarn")
+            .join("4.5.7")
+            .join("bin");
+        let expected_yarn_bin = yarn_bin.as_path().to_str().unwrap();
 
         assert_eq!(
-            path_for_installed_node("1.2.3").into_string().unwrap(),
-            expected_path
+            path_for_toolchain(&Version::parse("1.2.3").unwrap(), &None).unwrap().into_string().unwrap(),
+            format!("{};C:\\\\somebin;D:\\\\ProbramFlies", expected_node_bin),
+        );
+        assert_eq!(
+            path_for_toolchain(&Version::parse("1.2.3").unwrap(), &Version::parse("4.5.7").ok()).unwrap().into_string().unwrap(),
+            format!("{};{};C:\\\\somebin;D:\\\\ProbramFlies", expected_node_bin, expected_yarn_bin),
         );
     }
 
     #[test]
     #[cfg(unix)]
     fn test_path_for_system_node() {
-        let mut pathbufs: Vec<PathBuf> = Vec::new();
-
-        let home = env::home_dir().expect("Could not get home directory");
-        let mut shim_dir = PathBuf::from(&home);
-        shim_dir.push(".notion");
-        shim_dir.push("bin");
-
-        pathbufs.push(shim_dir);
-        pathbufs.push(PathBuf::from("/usr/bin"));
-        pathbufs.push(PathBuf::from("/bin"));
-
-        let path_with_shim = env::join_paths(pathbufs.iter())
-            .unwrap()
-            .into_string()
-            .expect("Could not create path containing shim dir");
-
-        env::set_var("PATH", path_with_shim);
+        env::set_var(
+            "PATH",
+            format!(
+                "{}:/usr/bin:/bin",
+                shim_dir().to_string_lossy()
+            ),
+        );
 
         let expected_path = String::from("/usr/bin:/bin");
 
-        assert_eq!(path_for_system_node().into_string().unwrap(), expected_path);
+        assert_eq!(path_for_system_node().unwrap().into_string().unwrap(), expected_path);
     }
 
     #[test]
     #[cfg(windows)]
     fn test_path_for_system_node() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
-
-        let program_files = if cfg!(target_arch = "x86_64") {
-            winfolder::Folder::ProgramFilesX64.path()
-        } else {
-            winfolder::Folder::ProgramFiles.path()
-        };
-        let mut shim_dir = PathBuf::from(&program_files);
-        shim_dir.push("Notion");
-        shim_dir.push("bin");
-
-        pathbufs.push(shim_dir);
+        pathbufs.push(shim_dir());
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
         pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
 
-        let path_with_shim = env::join_paths(pathbufs.iter())
+        let path_with_shims = env::join_paths(pathbufs.iter())
             .unwrap()
             .into_string()
             .expect("Could not create path containing shim dir");
 
-        env::set_var("PATH", path_with_shim);
+        env::set_var("PATH", path_with_shims);
 
         let expected_path = String::from("C:\\\\somebin;D:\\\\ProbramFlies");
 
-        assert_eq!(path_for_system_node().into_string().unwrap(), expected_path);
+        assert_eq!(path_for_system_node().unwrap().into_string().unwrap(), expected_path);
     }
 }
