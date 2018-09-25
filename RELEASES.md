@@ -1,3 +1,7 @@
+# Version 0.1.3
+
+- Fix for Yarn path bug (#153)
+
 # Version 0.1.2
 
 - Correct logic for computing `latest` version of Node (#144)
