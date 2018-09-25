@@ -10,6 +10,7 @@ use std::fmt;
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
+use std::rc::Rc;
 
 // wrapper for HashMap to use with deserialization
 #[derive(Debug, PartialEq)]
@@ -80,7 +81,7 @@ impl Manifest {
             }
         }
         Ok(manifest::Manifest {
-            platform_image: self.into_image()?,
+            platform_image: self.into_image()?.map(Rc::new),
             dependencies: self.dependencies,
             dev_dependencies: self.dev_dependencies,
             bin: map,

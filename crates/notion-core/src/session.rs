@@ -3,6 +3,7 @@
 //! directory, and the state of the local tool catalog.
 
 use std::env::{self, VarError};
+use std::rc::Rc;
 
 use catalog::{Catalog, LazyCatalog};
 use config::{Config, LazyConfig};
@@ -83,7 +84,7 @@ impl NotInPackageError {
 pub struct Session {
     config: LazyConfig,
     catalog: LazyCatalog,
-    project: Option<Project>,
+    project: Option<Rc<Project>>,
     event_log: EventLog,
 }
 
@@ -93,18 +94,55 @@ impl Session {
         Ok(Session {
             config: LazyConfig::new(),
             catalog: LazyCatalog::new(),
-            project: Project::for_current_dir()?,
+            project: Project::for_current_dir()?.map(Rc::new),
             event_log: EventLog::new()?,
         })
     }
 
     /// Produces a reference to the current Node project, if any.
-    pub fn project(&self) -> Option<&Project> {
-        self.project.as_ref()
+    pub fn project(&self) -> Option<Rc<Project>> {
+        self.project.clone()
+    }
+
+    pub fn current_platform(&mut self) -> Fallible<Option<Rc<Image>>> {
+        if let Some(image) = self.project_platform() {
+            return Ok(Some(image));
+        }
+
+        if let Some(image) = self.user_platform()? {
+            return Ok(Some(image));
+        }
+
+        return Ok(None);
+    }
+
+    pub fn user_platform(&mut self) -> Fallible<Option<Rc<Image>>> {
+        if let Some(node) = self.user_node()? {
+            let node_str = node.to_string();
+
+            if let Some(yarn) = self.user_yarn()? {
+                let yarn_str = yarn.to_string();
+
+                return Ok(Some(Rc::new(Image {
+                    node,
+                    node_str,
+                    yarn: Some(yarn),
+                    yarn_str: Some(yarn_str)
+                })));
+            }
+
+            return Ok(Some(Rc::new(Image {
+                node,
+                node_str,
+                yarn: None,
+                yarn_str: None
+            })));
+        }
+        Ok(None)
     }
 
     /// Returns the current project's pinned platform image, if any.
-    pub fn project_platform(&self) -> Option<&Image> {
+    pub fn project_platform(&self) -> Option<Rc<Image>> {
         if let Some(ref project) = self.project {
             return project.platform();
         }
@@ -132,6 +170,23 @@ impl Session {
     /// Produces a reference to the configuration.
     pub fn config(&self) -> Fallible<&Config> {
         self.config.get()
+    }
+
+    /// Ensures that a platform image has been fully fetched and set up.
+    pub(crate) fn prepare_image(&mut self, image: &Image) -> Fallible<()> {
+        let catalog = self.catalog.get_mut()?;
+
+        if !catalog.node.contains(&image.node) {
+            let config = self.config.get()?;
+            let _ = catalog.fetch_node(&VersionSpec::exact(&image.node), config)?;
+        }
+
+        if let Some(ref yarn_version) = &image.yarn {
+            let config = self.config.get()?;
+            let _ = catalog.fetch_yarn(&VersionSpec::exact(yarn_version), config)?;
+        }
+
+        Ok(())
     }
 
     /// Produces the version of Node for the current session. If there is an
@@ -224,6 +279,10 @@ impl Session {
             }
         }
 
+        self.user_yarn()
+    }
+
+    pub fn user_yarn(&mut self) -> Fallible<Option<Version>> {
         Ok(self.catalog()?.yarn.default.clone())
     }
 

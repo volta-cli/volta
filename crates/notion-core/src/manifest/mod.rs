@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 
 use detect_indent;
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
@@ -32,7 +33,7 @@ impl PackageReadError {
 /// A Node manifest file.
 pub struct Manifest {
     /// The platform image specified by the `toolchain` section.
-    pub platform_image: Option<Image>,
+    pub platform_image: Option<Rc<Image>>,
     /// The `dependencies` section.
     pub dependencies: HashMap<String, String>,
     /// The `devDependencies` section.
@@ -51,8 +52,8 @@ impl Manifest {
     }
 
     /// Returns a reference to the platform image specified by manifest, if any.
-    pub fn platform(&self) -> Option<&Image> {
-        self.platform_image.as_ref()
+    pub fn platform(&self) -> Option<Rc<Image>> {
+        self.platform_image.as_ref().map(|p| p.clone())
     }
 
     /// Returns the pinned version of Node as a Version, if any.

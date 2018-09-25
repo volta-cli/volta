@@ -5,6 +5,7 @@ use std::env;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
+use image::Image;
 use notion_fail::{Fallible, ResultExt};
 use path;
 use semver::Version;
@@ -35,10 +36,10 @@ fn build_path(paths: Vec<PathBuf>) -> Fallible<OsString> {
 /// Produces a modified version of the current `PATH` environment variable that
 /// will find toolchain executables (Node, Yarn) in the installation directories
 /// for the given versions instead of in the Notion shim directory.
-pub fn path_for_toolchain(node_version: &Version, yarn_version: &Option<Version>) -> Fallible<OsString> {
-    let mut prepended_paths = vec![path::node_version_bin_dir(&node_version.to_string())?];
-    if let Some(version) = yarn_version {
-        prepended_paths.push(path::yarn_version_bin_dir(&version.to_string())?);
+pub fn path_for_platform(image: &Image) -> Fallible<OsString> {
+    let mut prepended_paths = vec![path::node_version_bin_dir(&image.node_str)?];
+    if let Some(ref version) = &image.yarn_str {
+        prepended_paths.push(path::yarn_version_bin_dir(version)?);
     }
     build_path(prepended_paths)
 }

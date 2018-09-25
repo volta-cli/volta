@@ -5,6 +5,7 @@ use std::collections::{HashMap, HashSet};
 use std::env;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 
 use lazycell::LazyCell;
 
@@ -111,7 +112,7 @@ impl Project {
     }
 
     /// Returns the pinned platform image, if any.
-    pub fn platform(&self) -> Option<&Image> {
+    pub fn platform(&self) -> Option<Rc<Image>> {
         self.manifest.platform()
     }
 

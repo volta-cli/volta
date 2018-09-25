@@ -193,32 +193,47 @@ impl Tool for Binary {
         let exe = arg0(&mut args)?;
 
         // first try to use the project toolchain
-        // (if the user is in a pinned project, check if the executable is a direct dependency)
-        if session.in_pinned_project() {
-            let node_version = session.current_node()?.unwrap();
-            let yarn_version = session.current_yarn()?;
-            let project = session.project().unwrap();
+        if let Some(project) = session.project() {
+            // check if the executable is a direct dependency
             if project.has_direct_bin(&exe)? {
                 // use the full path to the file
                 let mut path_to_bin = project.local_bin_dir();
                 path_to_bin.push(&exe);
-                return Ok(Self::from_components(
-                    &path_to_bin.as_os_str(),
-                    args,
-                    &env::path_for_toolchain(&node_version, &yarn_version)?,
-                ));
+
+                // if we're in a pinned project, use the project's platform.
+                if let Some(ref platform) = session.project_platform() {
+                    return Ok(Self::from_components(
+                        &path_to_bin.as_os_str(),
+                        args,
+                        &env::path_for_platform(platform)?,
+                    ));
+                }
+
+                // otherwise use the user platform.
+                if let Some(ref platform) = session.user_platform()? {
+                    return Ok(Self::from_components(
+                        &path_to_bin.as_os_str(),
+                        args,
+                        &env::path_for_platform(platform)?,
+                    ))
+                }
+
+                // if there's no user platform selected, fail.
+                throw!(NoUserToolError {
+                    tool: "Node".to_string()
+                });
             }
         }
 
         // next try to use the user toolchain
-        if let Some(version) = session.current_node()? {
+        if let Some(ref platform) = session.user_platform()? {
             // use the full path to the binary
-            let mut third_p_bin_dir = path::node_version_3p_bin_dir(&version.to_string())?;
+            let mut third_p_bin_dir = path::node_version_3p_bin_dir(&platform.node_str)?;
             third_p_bin_dir.push(&exe);
             return Ok(Self::from_components(
                 &third_p_bin_dir.as_os_str(),
                 args,
-                &env::path_for_toolchain(&version, &session.current_yarn()?)?,
+                &env::path_for_platform(platform)?,
             ));
         };
 
@@ -258,7 +273,7 @@ fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
 #[derive(Debug, Fail, NotionFail)]
 #[fail(display = "No {} version selected", tool)]
 #[notion_fail(code = "NoVersionMatch")]
-struct NoGlobalError {
+struct NoUserToolError {
     tool: String,
 }
 
@@ -268,15 +283,15 @@ impl Tool for Node {
 
         let mut args = args_os();
         let exe = arg0(&mut args)?;
-        let version = if let Some(version) = session.current_node()? {
-            version
+        if let Some(ref platform) = session.current_platform()? {
+            session.prepare_image(platform)?;
+            let path_var = env::path_for_platform(platform)?;
+            Ok(Self::from_components(&exe, args, &path_var))
         } else {
-            throw!(NoGlobalError {
+            throw!(NoUserToolError {
                 tool: "Node".to_string()
             });
-        };
-        let path_var = env::path_for_toolchain(&version, &session.current_yarn()?)?;
-        Ok(Self::from_components(&exe, args, &path_var))
+        }
     }
 
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
@@ -294,15 +309,15 @@ impl Tool for Yarn {
 
         let mut args = args_os();
         let exe = arg0(&mut args)?;
-        let version = if let Some(version) = session.current_yarn()? {
-            version
+        if let Some(ref platform) = session.current_platform()? {
+            session.prepare_image(platform)?;
+            let path_var = env::path_for_platform(platform)?;
+            Ok(Self::from_components(&exe, args, &path_var))
         } else {
-            throw!(NoGlobalError {
+            throw!(NoUserToolError {
                 tool: "Yarn".to_string()
             });
-        };
-        let path_var = env::path_for_toolchain(&session.current_node()?.unwrap(), &Some(version))?;
-        Ok(Self::from_components(&exe, args, &path_var))
+        }
     }
 
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
