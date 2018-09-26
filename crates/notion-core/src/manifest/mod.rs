@@ -1,6 +1,6 @@
 //! Provides the `Manifest` type, which represents a Node manifest file (`package.json`).
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
@@ -54,6 +54,14 @@ impl Manifest {
     /// Returns a reference to the platform image specified by manifest, if any.
     pub fn platform(&self) -> Option<Rc<Image>> {
         self.platform_image.as_ref().map(|p| p.clone())
+    }
+
+    /// Gets the names of all the direct dependencies in the manifest.
+    pub fn merged_dependencies(&self) -> HashSet<String> {
+        self.dependencies.iter()
+            .chain(self.dev_dependencies.iter())
+            .map(|(name, _version)| name.clone())
+            .collect()
     }
 
     /// Returns the pinned version of Node as a Version, if any.

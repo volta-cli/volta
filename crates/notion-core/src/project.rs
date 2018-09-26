@@ -1,7 +1,7 @@
 //! Provides the `Project` type, which represents a Node project tree in
 //! the filesystem.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::env;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
@@ -148,24 +148,11 @@ impl Project {
         Ok(false)
     }
 
-    /// Gets the names of all the direct dependencies of the current project
-    fn all_dependencies(&self) -> Fallible<HashSet<String>> {
-        let manifest = Manifest::for_dir(&self.project_root)?;
-        let mut dependencies = HashSet::new();
-        for (name, _version) in manifest.dependencies.iter() {
-            dependencies.insert(name.clone());
-        }
-        for (name, _version) in manifest.dev_dependencies.iter() {
-            dependencies.insert(name.clone());
-        }
-        Ok(dependencies)
-    }
-
     /// Returns a mapping of the names to paths for all the binaries installed
     /// by direct dependencies of the current project.
     fn dependent_binaries(&self) -> Fallible<HashMap<String, String>> {
         let mut dependent_bins = HashMap::new();
-        let all_deps = self.all_dependencies()?;
+        let all_deps = Manifest::for_dir(&self.project_root)?.merged_dependencies();
         // convert dependency names to the path to each project
         let all_dep_paths = all_deps
             .iter()
@@ -174,11 +161,10 @@ impl Project {
                 path_to_pkg.push("node_modules");
                 path_to_pkg.push(dep_name);
                 path_to_pkg
-            })
-            .collect::<HashSet<PathBuf>>();
+            });
 
         // use those project paths to get the "bin" info for each project
-        for pkg_path in all_dep_paths.iter() {
+        for pkg_path in all_dep_paths {
             let pkg_info =
                 Manifest::for_dir(&pkg_path).with_context(DepPackageReadError::from_error)?;
             let bin_map = pkg_info.bin;
@@ -219,7 +205,6 @@ impl Project {
 #[cfg(test)]
 pub mod tests {
     use std::collections::HashMap;
-    use std::collections::HashSet;
     use std::ffi::OsStr;
     use std::path::PathBuf;
 
@@ -230,22 +215,6 @@ pub mod tests {
         cargo_manifest_dir.push("fixtures");
         cargo_manifest_dir.push(fixture_dir);
         cargo_manifest_dir
-    }
-
-    #[test]
-    fn gets_all_dependencies() {
-        let project_path = fixture_path("basic");
-        let test_project = Project::for_dir(&project_path).unwrap().unwrap();
-
-        let all_deps = test_project
-            .all_dependencies()
-            .expect("Could not get dependencies");
-        let mut expected_deps = HashSet::new();
-        expected_deps.insert("@namespace/some-dep".to_string());
-        expected_deps.insert("rsvp".to_string());
-        expected_deps.insert("@namespaced/something-else".to_string());
-        expected_deps.insert("eslint".to_string());
-        assert_eq!(all_deps, expected_deps);
     }
 
     #[test]
