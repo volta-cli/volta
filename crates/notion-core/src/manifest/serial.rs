@@ -42,7 +42,6 @@ pub struct Manifest {
     pub name: Option<String>,
     pub version: Option<String>,
     pub description: Option<String>,
-    pub author: Option<String>,
 
     #[serde(default)]
     pub dependencies: HashMap<String, String>,
@@ -204,7 +203,6 @@ pub mod tests {
             "name": "some_package",
             "version": "3.5.2",
             "description": "This is a description",
-            "author": "Author Name",
             "dependencies": { "something": "1.2.3" },
             "devDependencies": { "somethingElse": "1.2.3" },
             "toolchain": {
@@ -224,7 +222,6 @@ pub mod tests {
             manifest_all.description,
             Some("This is a description".to_string())
         );
-        assert_eq!(manifest_all.author, Some("Author Name".to_string()));
         // (checking the rest of the fields in other tests)
     }
 
