@@ -47,4 +47,7 @@ mockito = { "git" = "https://github.com/mikrostew/mockito", "branch" = "match-un
 rand = "0.5"
 cfg-if = "0.1"
 
+[dev-dependencies]
+hamcrest2 = "0.2.3"
+
 [workspace]

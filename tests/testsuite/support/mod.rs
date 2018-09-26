@@ -7,7 +7,6 @@ macro_rules! t {
     };
 }
 
-pub mod hamcrest;
 pub mod matchers;
 pub mod paths;
 pub mod process;

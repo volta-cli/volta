@@ -1,4 +1,4 @@
-use support::hamcrest::assert_that;
+use hamcrest2::core::Matcher;
 use support::matchers::execs;
 use support::sandbox::sandbox;
 
@@ -48,11 +48,11 @@ fn use_node() {
         .node_archive_mocks()
         .build();
 
-    assert_that(
+    assert_that!(
         s.notion("use node 10"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Pinned node to version 10.18.11 in package.json"),
+            .with_stdout_contains("Pinned node to version 10.18.11 in package.json")
     );
 
     assert_eq!(
@@ -69,11 +69,11 @@ fn use_node_latest() {
         .node_archive_mocks()
         .build();
 
-    assert_that(
+    assert_that!(
         s.notion("use node latest"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Pinned node to version 10.18.11 in package.json"),
+            .with_stdout_contains("Pinned node to version 10.18.11 in package.json")
     );
 
     assert_eq!(
@@ -90,11 +90,11 @@ fn use_yarn_no_node() {
         .yarn_archive_mocks()
         .build();
 
-    assert_that(
+    assert_that!(
         s.notion("use yarn 1.4"),
         execs()
             .with_status(ExitCode::ConfigurationError as i32)
-            .with_stderr_contains("error: There is no pinned node version for this project"),
+            .with_stderr_contains("error: There is no pinned node version for this project")
     );
 
     assert_eq!(s.read_package_json(), BASIC_PACKAGE_JSON,)
@@ -108,11 +108,11 @@ fn use_yarn() {
         .yarn_archive_mocks()
         .build();
 
-    assert_that(
+    assert_that!(
         s.notion("use yarn 1.4"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Pinned yarn to version 1.4.0 in package.json"),
+            .with_stdout_contains("Pinned yarn to version 1.4.0 in package.json")
     );
 
     assert_eq!(
@@ -129,11 +129,11 @@ fn use_yarn_latest() {
         .yarn_archive_mocks()
         .build();
 
-    assert_that(
+    assert_that!(
         s.notion("use yarn latest"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Pinned yarn to version 1.2.0 in package.json"),
+            .with_stdout_contains("Pinned yarn to version 1.2.0 in package.json")
     );
 
     assert_eq!(

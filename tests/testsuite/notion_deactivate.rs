@@ -1,4 +1,4 @@
-use support::hamcrest::assert_that;
+use hamcrest2::core::Matcher;
 use support::matchers::execs;
 use support::sandbox::sandbox;
 
@@ -11,7 +11,7 @@ fn deactivate_bash() {
         .path_dir("/usr/local/bin")
         .build();
 
-    assert_that(s.notion("deactivate"), execs().with_status(0));
+    assert_that!(s.notion("deactivate"), execs().with_status(0));
 
     assert_eq!(
         s.read_postscript(),

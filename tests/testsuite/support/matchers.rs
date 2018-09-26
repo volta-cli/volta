@@ -5,7 +5,7 @@ use std::usize;
 
 use serde_json::{self, Value};
 
-use support::hamcrest;
+use hamcrest2::core::{Matcher, MatchResult};
 use support::process::{ProcessBuilder, ProcessError};
 
 #[derive(Clone)]
@@ -162,13 +162,13 @@ impl Execs {
         self
     }
 
-    fn match_output(&self, actual: &Output) -> hamcrest::MatchResult {
+    fn match_output(&self, actual: &Output) -> MatchResult {
         self.match_status(actual)
             .and(self.match_stdout(actual))
             .and(self.match_stderr(actual))
     }
 
-    fn match_status(&self, actual: &Output) -> hamcrest::MatchResult {
+    fn match_status(&self, actual: &Output) -> MatchResult {
         match self.expect_exit_code {
             None => Ok(()),
             Some(code) if actual.status.code() == Some(code) => Ok(()),
@@ -181,7 +181,7 @@ impl Execs {
         }
     }
 
-    fn match_stdout(&self, actual: &Output) -> hamcrest::MatchResult {
+    fn match_stdout(&self, actual: &Output) -> MatchResult {
         self.match_std(
             self.expect_stdout.as_ref(),
             &actual.stdout,
@@ -309,7 +309,7 @@ impl Execs {
         Ok(())
     }
 
-    fn match_stderr(&self, actual: &Output) -> hamcrest::MatchResult {
+    fn match_stderr(&self, actual: &Output) -> MatchResult {
         self.match_std(
             self.expect_stderr.as_ref(),
             &actual.stderr,
@@ -326,7 +326,7 @@ impl Execs {
         description: &str,
         extra: &[u8],
         kind: MatchKind,
-    ) -> hamcrest::MatchResult {
+    ) -> MatchResult {
         let out = match expected {
             Some(out) => out,
             None => return Ok(()),
@@ -461,7 +461,7 @@ impl Execs {
         }
     }
 
-    fn match_json(&self, expected: &Value, line: &str) -> hamcrest::MatchResult {
+    fn match_json(&self, expected: &Value, line: &str) -> MatchResult {
         let actual = match line.parse() {
             Err(e) => return Err(format!("invalid json, {}:\n`{}`", e, line)),
             Ok(actual) => actual,
@@ -637,20 +637,26 @@ fn zip_all<T, I1: Iterator<Item = T>, I2: Iterator<Item = T>>(a: I1, b: I2) -> Z
     }
 }
 
+impl fmt::Display for Execs {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "execs")
+    }
+}
+
 impl fmt::Debug for Execs {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "execs")
     }
 }
 
-impl hamcrest::Matcher<ProcessBuilder> for Execs {
-    fn matches(&self, mut process: ProcessBuilder) -> hamcrest::MatchResult {
+impl Matcher<ProcessBuilder> for Execs {
+    fn matches(&self, mut process: ProcessBuilder) -> MatchResult {
         self.matches(&mut process)
     }
 }
 
-impl<'a> hamcrest::Matcher<&'a mut ProcessBuilder> for Execs {
-    fn matches(&self, process: &'a mut ProcessBuilder) -> hamcrest::MatchResult {
+impl<'a> Matcher<&'a mut ProcessBuilder> for Execs {
+    fn matches(&self, process: &'a mut ProcessBuilder) -> MatchResult {
         println!("running {}", process);
         let res = process.exec_with_output();
 
@@ -675,8 +681,8 @@ impl<'a> hamcrest::Matcher<&'a mut ProcessBuilder> for Execs {
     }
 }
 
-impl hamcrest::Matcher<Output> for Execs {
-    fn matches(&self, output: Output) -> hamcrest::MatchResult {
+impl Matcher<Output> for Execs {
+    fn matches(&self, output: Output) -> MatchResult {
         self.match_output(&output)
     }
 }
