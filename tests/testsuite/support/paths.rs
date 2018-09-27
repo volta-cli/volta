@@ -28,7 +28,7 @@ fn init() {
 }
 
 fn global_root() -> PathBuf {
-    let mut path = t!(env::current_exe());
+    let mut path = ok_or_panic!{ env::current_exe() };
     path.pop(); // chop off exe name
     path.pop(); // chop off 'debug'
 
@@ -67,8 +67,8 @@ impl PathExt for Path {
             return;
         }
 
-        for file in t!(fs::read_dir(self)) {
-            let file = t!(file);
+        for file in ok_or_panic!{ fs::read_dir(self) } {
+            let file = ok_or_panic!{ file };
             if file.file_type().map(|m| m.is_dir()).unwrap_or(false) {
                 file.path().rm_rf();
             } else {
@@ -94,9 +94,9 @@ where
     match f(path) {
         Ok(()) => {}
         Err(ref e) if cfg!(windows) && e.kind() == ErrorKind::PermissionDenied => {
-            let mut p = t!(path.metadata()).permissions();
+            let mut p = ok_or_panic!{ path.metadata() }.permissions();
             p.set_readonly(false);
-            t!(fs::set_permissions(path, p));
+            ok_or_panic!{ fs::set_permissions(path, p) };
             f(path).unwrap_or_else(|e| {
                 panic!("failed to {} {}: {}", desc, path.display(), e);
             })

@@ -43,7 +43,7 @@ impl CacheBuilder {
         let mut cache_file = File::create(&self.path).unwrap_or_else(|e| {
             panic!("could not create cache file {}: {}", self.path.display(), e)
         });
-        t!(cache_file.write_all(self.contents.as_bytes()));
+        ok_or_panic!{ cache_file.write_all(self.contents.as_bytes()) };
 
         // write expiry file
         let one_day = Duration::from_secs(24 * 60 * 60);
@@ -59,7 +59,7 @@ impl CacheBuilder {
                 e
             )
         });
-        t!(expiry_file.write_all(expiry_date.to_string().as_bytes()));
+        ok_or_panic!{ expiry_file.write_all(expiry_date.to_string().as_bytes()) };
     }
 
     fn dirname(&self) -> &Path {
@@ -103,7 +103,7 @@ impl FileBuilder {
         let mut file = File::create(&self.path)
             .unwrap_or_else(|e| panic!("could not create file {}: {}", self.path.display(), e));
 
-        t!(file.write_all(self.contents.as_bytes()));
+        ok_or_panic!{ file.write_all(self.contents.as_bytes()) };
     }
 
     fn dirname(&self) -> &Path {
@@ -319,9 +319,9 @@ impl SandboxBuilder {
         self.root.root().mkdir_p();
 
         // make sure these directories exist
-        t!(fs::create_dir_all(node_cache_dir()));
-        t!(fs::create_dir_all(yarn_cache_dir()));
-        t!(fs::create_dir_all(notion_tmp_dir()));
+        ok_or_panic!{ fs::create_dir_all(node_cache_dir()) };
+        ok_or_panic!{ fs::create_dir_all(yarn_cache_dir()) };
+        ok_or_panic!{ fs::create_dir_all(notion_tmp_dir()) };
 
         // write node and yarn caches
         for cache in self.caches.iter() {
@@ -498,7 +498,7 @@ fn split_and_add_args(p: &mut ProcessBuilder, s: &str) {
 
 fn read_file_to_string(file_path: PathBuf) -> String {
     let mut contents = String::new();
-    let mut file = t!(File::open(file_path));
-    t!(file.read_to_string(&mut contents));
+    let mut file = ok_or_panic!{ File::open(file_path) };
+    ok_or_panic!{ file.read_to_string(&mut contents) };
     contents
 }

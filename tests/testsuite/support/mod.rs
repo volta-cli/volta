@@ -1,8 +1,8 @@
-macro_rules! t {
-    ($e:expr) => {
+macro_rules! ok_or_panic {
+    { $e:expr } => {
         match $e {
-            Ok(e) => e,
-            Err(e) => panic!("{} failed with {}", stringify!($e), e),
+            Ok(x) => x,
+            Err(err) => panic!("{} failed with {}", stringify!($e), err),
         }
     };
 }
