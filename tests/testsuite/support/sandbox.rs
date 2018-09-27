@@ -346,7 +346,6 @@ impl SandboxBuilder {
 }
 
 // files and dirs in the sandbox
-// TODO: some of these are different on windows - how to sandbox that?
 
 fn home_dir() -> PathBuf {
     paths::home()

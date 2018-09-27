@@ -14,10 +14,8 @@ extern crate notion_fail;
 extern crate notion_fail_derive;
 extern crate rand;
 extern crate reqwest;
-// #[macro_use]
 extern crate serde_json;
 
-#[macro_use]
 mod support;
 
 // test files
