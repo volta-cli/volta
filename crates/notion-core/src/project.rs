@@ -153,15 +153,7 @@ impl Project {
     fn dependent_binaries(&self) -> Fallible<HashMap<String, String>> {
         let mut dependent_bins = HashMap::new();
         let all_deps = Manifest::for_dir(&self.project_root)?.merged_dependencies();
-        // convert dependency names to the path to each project
-        let all_dep_paths = all_deps
-            .iter()
-            .map(|dep_name| {
-                let mut path_to_pkg = PathBuf::from(&self.project_root);
-                path_to_pkg.push("node_modules");
-                path_to_pkg.push(dep_name);
-                path_to_pkg
-            });
+        let all_dep_paths = all_deps.iter().map(|name| self.get_dependency_path(name));
 
         // use those project paths to get the "bin" info for each project
         for pkg_path in all_dep_paths {
@@ -173,6 +165,17 @@ impl Project {
             }
         }
         Ok(dependent_bins)
+    }
+
+    /// Convert dependency names to the path to each project.
+    fn get_dependency_path(&self, name: &String) -> PathBuf {
+        // TODO(158): Add support for Yarn Plug'n'Play.
+        let mut path = PathBuf::from(&self.project_root);
+
+        path.push("node_modules");
+        path.push(name);
+
+        path
     }
 
     /// Writes the specified version of Node to the `toolchain.node` key in package.json.
@@ -253,5 +256,17 @@ pub mod tests {
         assert!(!test_project
             .has_direct_bin(&OsStr::new("tsserver"))
             .unwrap());
+    }
+
+    #[test]
+    fn maps_dependency_paths() {
+        let project_path = fixture_path("basic");
+        let test_project = Project::for_dir(&project_path).unwrap().unwrap();
+        let mut expected_path = PathBuf::from(project_path);
+
+        expected_path.push("node_modules");
+        expected_path.push("foo");
+
+        assert!(test_project.get_dependency_path(&"foo".to_string()) == expected_path);
     }
 }
