@@ -149,14 +149,6 @@ impl Session {
         None
     }
 
-    /// Returns if the current project has a pinned toolchain (at least Node is pinned).
-    pub fn in_pinned_project(&self) -> bool {
-        if let Some(ref project) = self.project {
-            return project.is_pinned();
-        }
-        false
-    }
-
     /// Produces a reference to the current tool catalog.
     pub fn catalog(&self) -> Fallible<&Catalog> {
         self.catalog.get()
@@ -187,30 +179,6 @@ impl Session {
         }
 
         Ok(())
-    }
-
-    /// Produces the version of Node for the current session. If there is an
-    /// active pinned project, this will ensure that project's Node version is
-    /// installed before returning. If there is no active pinned project, this
-    /// produces the user version, which may be `None`.
-    pub fn current_node(&mut self) -> Fallible<Option<Version>> {
-        if self.in_pinned_project() {
-            let project = self.project.as_ref().unwrap();
-            let version = &project.manifest().node().unwrap();
-            let catalog = self.catalog.get_mut()?;
-            let spec = VersionSpec::exact(&version);
-
-            if catalog.node.contains(version) {
-                return Ok(Some(version.clone()));
-            }
-
-            let config = self.config.get()?;
-            let fetched = catalog.fetch_node(&spec, config)?;
-
-            return Ok(Some(fetched.into_version()));
-        }
-
-        self.user_node()
     }
 
     pub fn user_node(&self) -> Fallible<Option<Version>> {
@@ -254,32 +222,6 @@ impl Session {
             throw!(NotInPackageError::new());
         }
         Ok(())
-    }
-
-    /// Produces the version of Yarn for the current session. If there is an
-    /// active pinned project, this will ensure that project's Yarn version is
-    /// installed before returning. If there is no active pinned project, this
-    /// produces the user version, which may be `None`.
-    pub fn current_yarn(&mut self) -> Fallible<Option<Version>> {
-        if self.in_pinned_project() {
-            let project = self.project.as_ref().unwrap();
-            // pinning yarn is optional
-            if let Some(version) = &project.manifest().yarn().clone() {
-                let catalog = self.catalog.get_mut()?;
-                let spec = VersionSpec::exact(&version);
-
-                if catalog.yarn.contains(&version) {
-                    return Ok(Some(version.clone()));
-                }
-
-                let config = self.config.get()?;
-                let fetched = catalog.fetch_yarn(&spec, config)?;
-
-                return Ok(Some(fetched.into_version()));
-            }
-        }
-
-        self.user_yarn()
     }
 
     pub fn user_yarn(&mut self) -> Fallible<Option<Version>> {
@@ -383,11 +325,11 @@ pub mod tests {
         let project_pinned = fixture_path("basic");
         env::set_current_dir(&project_pinned).expect("Could not set current directory");
         let pinned_session = Session::new().expect("Couldn't create new Session");
-        assert_eq!(pinned_session.in_pinned_project(), true);
+        assert_eq!(pinned_session.project_platform().is_some(), true);
 
         let project_unpinned = fixture_path("no_toolchain");
         env::set_current_dir(&project_unpinned).expect("Could not set current directory");
         let unpinned_session = Session::new().expect("Couldn't create new Session");
-        assert_eq!(unpinned_session.in_pinned_project(), false);
+        assert_eq!(unpinned_session.project_platform().is_none(), true);
     }
 }

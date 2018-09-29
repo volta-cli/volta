@@ -8,7 +8,6 @@ use std::path::{Path, PathBuf};
 use image::Image;
 use notion_fail::{Fallible, ResultExt};
 use path;
-use semver::Version;
 
 pub(crate) fn shell_name() -> Option<String> {
     env::var_os("NOTION_SHELL").map(|s| s.to_string_lossy().into_owned())
