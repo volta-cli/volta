@@ -232,12 +232,12 @@ mod test {
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
         pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
 
-        let path_with_shims = env::join_paths(pathbufs.iter())
+        let path_with_shims = std::env::join_paths(pathbufs.iter())
             .unwrap()
             .into_string()
             .expect("Could not create path containing shim dir");
 
-        env::set_var("PATH", path_with_shims);
+        std::env::set_var("PATH", path_with_shims);
 
         let expected_path = String::from("C:\\\\somebin;D:\\\\ProbramFlies");
 
