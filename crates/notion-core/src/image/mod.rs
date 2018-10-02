@@ -180,12 +180,30 @@ mod test {
             .join("bin");
         let expected_yarn_bin = yarn_bin.as_path().to_str().unwrap();
 
+        let v123 = Version::parse("1.2.3").unwrap();
+        let v457 = Version::parse("4.5.7").unwrap();
+
+        let no_yarn_image = Image {
+            node: v123.clone(),
+            node_str: v123.to_string(),
+            yarn: None,
+            yarn_str: None
+        };
+
         assert_eq!(
-            path_for_toolchain(&Version::parse("1.2.3").unwrap(), &None).unwrap().into_string().unwrap(),
+            no_yarn_image.path().unwrap().into_string().unwrap(),
             format!("{};C:\\\\somebin;D:\\\\ProbramFlies", expected_node_bin),
         );
+
+        let with_yarn_image = Image {
+            node: v123.clone(),
+            node_str: v123.to_string(),
+            yarn: Some(v457.clone()),
+            yarn_str: Some(v457.to_string())
+        };
+
         assert_eq!(
-            path_for_toolchain(&Version::parse("1.2.3").unwrap(), &Version::parse("4.5.7").ok()).unwrap().into_string().unwrap(),
+            with_yarn_image.path().unwrap().into_string().unwrap(),
             format!("{};{};C:\\\\somebin;D:\\\\ProbramFlies", expected_node_bin, expected_yarn_bin),
         );
     }
@@ -223,7 +241,7 @@ mod test {
 
         let expected_path = String::from("C:\\\\somebin;D:\\\\ProbramFlies");
 
-        assert_eq!(path_for_system_node().unwrap().into_string().unwrap(), expected_path);
+        assert_eq!(System::path().unwrap().into_string().unwrap(), expected_path);
     }
 
 }
