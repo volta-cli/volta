@@ -5,6 +5,7 @@
 extern crate cmdline_words_parser;
 extern crate console;
 extern crate detect_indent;
+extern crate envoy;
 extern crate indicatif;
 extern crate lazycell;
 extern crate node_archive;
@@ -28,7 +29,7 @@ mod distro;
 pub mod env;
 mod event;
 pub(crate) mod fs;
-pub(crate) mod image;
+pub mod image;
 pub mod manifest;
 pub mod monitor;
 pub mod path;

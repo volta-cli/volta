@@ -7,7 +7,6 @@ use std::marker::Sized;
 use std::path::Path;
 use std::process::Command;
 
-use env;
 use notion_fail::{ExitCode, FailExt, Fallible, NotionError, NotionFail};
 use path;
 use session::{ActivityKind, Session};
@@ -205,7 +204,7 @@ impl Tool for Binary {
                     return Ok(Self::from_components(
                         &path_to_bin.as_os_str(),
                         args,
-                        &env::path_for_platform(platform)?,
+                        &platform.path()?,
                     ));
                 }
 
@@ -214,7 +213,7 @@ impl Tool for Binary {
                     return Ok(Self::from_components(
                         &path_to_bin.as_os_str(),
                         args,
-                        &env::path_for_platform(platform)?,
+                        &platform.path()?,
                     ))
                 }
 
@@ -233,7 +232,7 @@ impl Tool for Binary {
             return Ok(Self::from_components(
                 &third_p_bin_dir.as_os_str(),
                 args,
-                &env::path_for_platform(platform)?,
+                &platform.path()?,
             ));
         };
 
@@ -285,8 +284,7 @@ impl Tool for Node {
         let exe = arg0(&mut args)?;
         if let Some(ref platform) = session.current_platform()? {
             session.prepare_image(platform)?;
-            let path_var = env::path_for_platform(platform)?;
-            Ok(Self::from_components(&exe, args, &path_var))
+            Ok(Self::from_components(&exe, args, &platform.path()?))
         } else {
             throw!(NoUserToolError {
                 tool: "Node".to_string()
@@ -311,8 +309,7 @@ impl Tool for Yarn {
         let exe = arg0(&mut args)?;
         if let Some(ref platform) = session.current_platform()? {
             session.prepare_image(platform)?;
-            let path_var = env::path_for_platform(platform)?;
-            Ok(Self::from_components(&exe, args, &path_var))
+            Ok(Self::from_components(&exe, args, &platform.path()?))
         } else {
             throw!(NoUserToolError {
                 tool: "Yarn".to_string()
