@@ -1,7 +1,7 @@
 //! Provides the `Project` type, which represents a Node project tree in
 //! the filesystem.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
@@ -14,6 +14,7 @@ use manifest::Manifest;
 use manifest::serial;
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use semver::Version;
+use shim;
 
 fn is_node_root(dir: &Path) -> bool {
     dir.join("package.json").is_file()
@@ -47,6 +48,23 @@ impl LazyDependentBins {
     pub fn get(&self, project: &Project) -> Fallible<&HashMap<String, String>> {
         self.bins
             .try_borrow_with(|| Ok(project.dependent_binaries()?))
+    }
+}
+
+/// Represents a set of binary names and a vector of any errors which occurred while
+/// trying to collect them.
+struct FaultTolerantBinaryNames {
+    binaries: HashSet<String>,
+    errors: Vec<NotionError>,
+}
+
+impl FaultTolerantBinaryNames {
+    /// Constructs a new `FaultTolerantBinNames`.
+    pub fn new() -> FaultTolerantBinaryNames {
+        FaultTolerantBinaryNames {
+            binaries: HashSet::new(),
+            errors: Vec::new(),
+        }
     }
 }
 
@@ -148,6 +166,21 @@ impl Project {
         Ok(false)
     }
 
+    /// Automatically shim the binaries of all direct dependencies of this project and
+    /// return a vector of any errors which occurred while doing so.
+    pub fn autoshim(&self) -> Vec<NotionError> {
+        let dependent_binaries = self.dependent_binary_names_fault_tolerant();
+        let mut errors = dependent_binaries.errors;
+
+        for name in dependent_binaries.binaries.iter() {
+            if let Err(error) = shim::create(&name) {
+                errors.push(error);
+            }
+        }
+
+        errors
+    }
+
     /// Returns a mapping of the names to paths for all the binaries installed
     /// by direct dependencies of the current project.
     fn dependent_binaries(&self) -> Fallible<HashMap<String, String>> {
@@ -165,6 +198,37 @@ impl Project {
             }
         }
         Ok(dependent_bins)
+    }
+
+    /// Gets the names of the binaries of all direct dependencies and returns them along
+    /// with any errors which occurred while doing so.
+    fn dependent_binary_names_fault_tolerant(&self) -> FaultTolerantBinaryNames {
+        let mut dependent_binary_names = FaultTolerantBinaryNames::new();
+
+        match Manifest::for_dir(&self.project_root) {
+            Ok(manifest) => {
+                let dependencies = manifest.merged_dependencies();
+                let dependency_paths = dependencies.iter().map(|name| self.get_dependency_path(name));
+
+                for dependency_path in dependency_paths {
+                    match Manifest::for_dir(&dependency_path) {
+                        Ok(dependency) => {
+                            for (name, _path) in dependency.bin.iter() {
+                                dependent_binary_names.binaries.insert(name.clone());
+                            }
+                        },
+                        Err(error) => {
+                            dependent_binary_names.errors.push(error);
+                        },
+                    }
+                }
+            },
+            Err(error) => {
+                dependent_binary_names.errors.push(error);
+            },
+        }
+
+        dependent_binary_names
     }
 
     /// Convert dependency names to the path to each project.
