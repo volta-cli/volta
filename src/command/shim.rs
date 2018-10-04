@@ -4,18 +4,48 @@ use std::fs;
 use std::path::PathBuf;
 
 use console::style;
+use notion_core::project::Project;
 use notion_core::session::{ActivityKind, Session};
 use notion_core::{path, shim};
-use notion_fail::{ExitCode, Fallible, ResultExt};
+use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use semver::Version;
 
 use Notion;
 use command::{Command, CommandName, Help};
 
+/// Thrown when the user tries to create or delete a shim without specifying a name.
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "you must specify a shim name")]
+#[notion_fail(code = "InvalidArguments")]
+struct MissingShimNameError;
+
+/// Thrown when the user tries to autoshim outside of a Node package without supplying
+/// a target directory.
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "{} is not a node package", path)]
+#[notion_fail(code = "ConfigurationError")]
+struct NotAPackageError {
+    path: String,
+}
+
+/// Thrown when the user supplies a shim name with the "list" subcommand.alloc
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "the list command takes no additional arguments")]
+#[notion_fail(code = "InvalidArguments")]
+struct PresentShimNameError;
+
+/// Thrown when the user supplies an unrecognized subcommand.
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "unrecognized shim command {}", command)]
+#[notion_fail(code = "InvalidArguments")]
+struct UnrecognizedCommandError {
+    command: String,
+}
+
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
-    arg_shimname: Option<String>,
-    flag_delete: bool,
+    arg_command: Option<String>,
+    arg_shim_name_or_path: Option<String>,
     flag_verbose: bool,
 }
 
@@ -24,6 +54,7 @@ pub(crate) enum Shim {
     List(bool),
     Create(String, bool),
     Delete(String, bool),
+    Auto(Option<PathBuf>, bool),
 }
 
 enum ShimKind {
@@ -60,11 +91,12 @@ impl Command for Shim {
 Manage Notion shims for 3rd-party executables
 
 Usage:
-    notion shim [options]
-    notion shim <shimname> [options]
+    notion shim list [options]
+    notion shim create <shim name> [options]
+    notion shim delete <shim name> [options]
+    notion shim auto [path] [options]
 
 Options:
-    -d, --delete   Delete 3rd-party shim
     -v, --verbose  Verbose output
     -h, --help     Display this message
 
@@ -77,19 +109,44 @@ Options:
     fn parse(
         _: Notion,
         Args {
-            arg_shimname,
-            flag_delete,
+            arg_command,
+            arg_shim_name_or_path,
             flag_verbose,
         }: Args,
     ) -> Fallible<Self> {
-        Ok(if let Some(shim_name) = arg_shimname {
-            if flag_delete {
-                Shim::Delete(shim_name, flag_verbose)
-            } else {
-                Shim::Create(shim_name, flag_verbose)
-            }
-        } else {
-            Shim::List(flag_verbose)
+        Ok(match arg_command {
+            Some(ref command) if command == &"auto".to_string() => {
+                if let Some(path_string) = arg_shim_name_or_path {
+                    Shim::Auto(Some(PathBuf::from(path_string)), flag_verbose)
+                } else {
+                    Shim::Auto(None, flag_verbose)
+                }
+            },
+            Some(ref command) if command == &"create".to_string() => {
+                if let Some(shim_name) = arg_shim_name_or_path {
+                    Shim::Create(shim_name, flag_verbose)
+                } else {
+                    throw!(MissingShimNameError);
+                }
+            },
+            Some(ref command) if command == &"delete".to_string() => {
+                if let Some(shim_name) = arg_shim_name_or_path {
+                    Shim::Delete(shim_name, flag_verbose)
+                } else {
+                    throw!(MissingShimNameError);
+                }
+            },
+            Some(ref command) if command == &"list".to_string() => {
+                if let Some(_) = arg_shim_name_or_path {
+                    throw!(PresentShimNameError);
+                } else {
+                    Shim::List(flag_verbose)
+                }
+            },
+            Some(command) => throw!(UnrecognizedCommandError {
+                command: command,
+            }),
+            None => Shim::Help,
         })
     }
 
@@ -101,6 +158,7 @@ Options:
             Shim::List(verbose) => list(session, verbose)?,
             Shim::Create(shim_name, verbose) => create(session, shim_name, verbose)?,
             Shim::Delete(shim_name, verbose) => delete(session, shim_name, verbose)?,
+            Shim::Auto(path, verbose) => autoshim(session, path, verbose)?,
         };
         session.add_event_end(ActivityKind::Shim, ExitCode::Success);
         Ok(())
@@ -137,6 +195,26 @@ fn create(_session: &Session, shim_name: String, _verbose: bool) -> Fallible<()>
 
 fn delete(_session: &Session, shim_name: String, _verbose: bool) -> Fallible<()> {
     shim::delete(&shim_name)?;
+    Ok(())
+}
+
+fn autoshim(session: &Session, maybe_path: Option<PathBuf>, _verbose: bool) -> Fallible<()> {
+    let errors = if let Some(path) = maybe_path {
+        if let Some(path_project) = Project::for_dir(&path)? {
+            path_project.autoshim()
+        } else {
+            throw!(NotAPackageError {
+                path: path.to_str().unwrap().to_string(),
+            })
+        }
+    } else if let Some(session_project) = session.project() {
+        session_project.autoshim()
+    } else {
+        throw!(NotAPackageError {
+            path: ".".to_string(),
+        })
+    };
+
     Ok(())
 }
 
