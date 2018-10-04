@@ -7,7 +7,7 @@ use semver::Version;
 use notion_fail::{Fallible, ResultExt};
 use path;
 
-/// A toolchain manifest.
+/// A platform image.
 pub struct Image {
     /// The pinned version of Node, under the `toolchain.node` key.
     pub node: Version,

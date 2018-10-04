@@ -218,7 +218,7 @@ impl Tool for Binary {
                 }
 
                 // if there's no user platform selected, fail.
-                throw!(NoUserToolError {
+                throw!(NoSuchToolError {
                     tool: "Node".to_string()
                 });
             }
@@ -227,6 +227,7 @@ impl Tool for Binary {
         // next try to use the user toolchain
         if let Some(ref platform) = session.user_platform()? {
             // use the full path to the binary
+            // ISSUE (#160): Look up the platform image bound to the user tool.
             let mut third_p_bin_dir = path::node_version_3p_bin_dir(&platform.node_str)?;
             third_p_bin_dir.push(&exe);
             return Ok(Self::from_components(
@@ -270,9 +271,14 @@ fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
 }
 
 #[derive(Debug, Fail, NotionFail)]
-#[fail(display = "No {} version selected", tool)]
+#[fail(display = r#"
+No {} version selected.
+
+See `notion help use` for help adding {} to a project toolchain.
+
+See `notion help install` for help adding {} to your personal toolchain."#, tool, tool, tool)]
 #[notion_fail(code = "NoVersionMatch")]
-struct NoUserToolError {
+struct NoSuchToolError {
     tool: String,
 }
 
@@ -286,7 +292,7 @@ impl Tool for Node {
             session.prepare_image(platform)?;
             Ok(Self::from_components(&exe, args, &platform.path()?))
         } else {
-            throw!(NoUserToolError {
+            throw!(NoSuchToolError {
                 tool: "Node".to_string()
             });
         }
@@ -311,7 +317,7 @@ impl Tool for Yarn {
             session.prepare_image(platform)?;
             Ok(Self::from_components(&exe, args, &platform.path()?))
         } else {
-            throw!(NoUserToolError {
+            throw!(NoSuchToolError {
                 tool: "Yarn".to_string()
             });
         }
