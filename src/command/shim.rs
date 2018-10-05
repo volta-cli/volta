@@ -6,12 +6,19 @@ use std::path::PathBuf;
 use console::style;
 use notion_core::project::Project;
 use notion_core::session::{ActivityKind, Session};
+use notion_core::style::{display_error, display_unknown_error, ErrorContext};
 use notion_core::{path, shim};
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use semver::Version;
 
 use Notion;
 use command::{Command, CommandName, Help};
+
+/// Thrown when one or more errors occurred while autoshimming.
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "auto shimming did not complete without failures")]
+#[notion_fail(code = "UnknownError")]
+struct AutoshimError;
 
 /// Thrown when the user tries to create or delete a shim without specifying a name.
 #[derive(Debug, Fail, NotionFail)]
@@ -215,7 +222,19 @@ fn autoshim(session: &Session, maybe_path: Option<PathBuf>, _verbose: bool) -> F
         })
     };
 
-    Ok(())
+    if errors.len() == 0 {
+        Ok(())
+    } else {
+        for error in errors {
+            if error.is_user_friendly() {
+                display_error(ErrorContext::Notion, &error);
+            } else {
+                display_unknown_error(ErrorContext::Notion, &error);
+            }
+        }
+
+        throw!(AutoshimError)
+    }
 }
 
 fn resolve_shim(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
