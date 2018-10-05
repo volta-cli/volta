@@ -20,12 +20,6 @@ use command::{Command, CommandName, Help};
 #[notion_fail(code = "UnknownError")]
 struct AutoshimError;
 
-/// Thrown when the user tries to create or delete a shim without specifying a name.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "you must specify a shim name")]
-#[notion_fail(code = "InvalidArguments")]
-struct MissingShimNameError;
-
 /// Thrown when the user tries to autoshim outside of a Node package without supplying
 /// a target directory.
 #[derive(Debug, Fail, NotionFail)]
@@ -35,24 +29,15 @@ struct NotAPackageError {
     path: String,
 }
 
-/// Thrown when the user supplies a shim name with the "list" subcommand.alloc
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "the list command takes no additional arguments")]
-#[notion_fail(code = "InvalidArguments")]
-struct PresentShimNameError;
-
-/// Thrown when the user supplies an unrecognized subcommand.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "unrecognized shim command {}", command)]
-#[notion_fail(code = "InvalidArguments")]
-struct UnrecognizedCommandError {
-    command: String,
-}
-
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
-    arg_command: Option<String>,
-    arg_shim_name_or_path: Option<String>,
+    arg_path: Option<String>,
+    arg_shimname: String,
+    cmd_auto: bool,
+    cmd_create: bool,
+    cmd_delete: bool,
+    cmd_list: bool,
+    flag_help: bool,
     flag_verbose: bool,
 }
 
@@ -99,9 +84,9 @@ Manage Notion shims for 3rd-party executables
 
 Usage:
     notion shim list [options]
-    notion shim create <shim name> [options]
-    notion shim delete <shim name> [options]
-    notion shim auto [path] [options]
+    notion shim create <shimname> [options]
+    notion shim delete <shimname> [options]
+    notion shim auto [<path>] [options]
 
 Options:
     -v, --verbose  Verbose output
@@ -116,44 +101,33 @@ Options:
     fn parse(
         _: Notion,
         Args {
-            arg_command,
-            arg_shim_name_or_path,
+            arg_path,
+            arg_shimname,
+            cmd_auto,
+            cmd_create,
+            cmd_delete,
+            cmd_list,
+            flag_help,
             flag_verbose,
         }: Args,
     ) -> Fallible<Self> {
-        Ok(match arg_command.as_ref().map(|command| command.as_str()) {
-            Some("auto") => {
-                if let Some(path_string) = arg_shim_name_or_path {
-                    Shim::Auto(Some(PathBuf::from(path_string)), flag_verbose)
-                } else {
-                    Shim::Auto(None, flag_verbose)
-                }
-            },
-            Some("create") => {
-                if let Some(shim_name) = arg_shim_name_or_path {
-                    Shim::Create(shim_name, flag_verbose)
-                } else {
-                    throw!(MissingShimNameError);
-                }
-            },
-            Some("delete") => {
-                if let Some(shim_name) = arg_shim_name_or_path {
-                    Shim::Delete(shim_name, flag_verbose)
-                } else {
-                    throw!(MissingShimNameError);
-                }
-            },
-            Some("list") => {
-                if let Some(_) = arg_shim_name_or_path {
-                    throw!(PresentShimNameError);
-                } else {
-                    Shim::List(flag_verbose)
-                }
-            },
-            Some(command) => throw!(UnrecognizedCommandError {
-                command: command.to_string(),
-            }),
-            None => Shim::Help,
+        Ok(if flag_help {
+            Shim::Help
+        } else if cmd_auto {
+            if let Some(path_string) = arg_path {
+                Shim::Auto(Some(PathBuf::from(path_string)), flag_verbose)
+            } else {
+                Shim::Auto(None, flag_verbose)
+            }
+        } else if cmd_create {
+            Shim::Create(arg_shimname, flag_verbose)
+        } else if cmd_delete {
+            Shim::Delete(arg_shimname, flag_verbose)
+        } else if cmd_list {
+            Shim::List(flag_verbose)
+        } else {
+            // Can't happen.
+            Shim::Help
         })
     }
 
