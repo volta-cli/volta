@@ -121,29 +121,29 @@ Options:
             flag_verbose,
         }: Args,
     ) -> Fallible<Self> {
-        Ok(match arg_command {
-            Some(ref command) if command == &"auto".to_string() => {
+        Ok(match arg_command.as_ref().map(|command| command.as_str()) {
+            Some("auto") => {
                 if let Some(path_string) = arg_shim_name_or_path {
                     Shim::Auto(Some(PathBuf::from(path_string)), flag_verbose)
                 } else {
                     Shim::Auto(None, flag_verbose)
                 }
             },
-            Some(ref command) if command == &"create".to_string() => {
+            Some("create") => {
                 if let Some(shim_name) = arg_shim_name_or_path {
                     Shim::Create(shim_name, flag_verbose)
                 } else {
                     throw!(MissingShimNameError);
                 }
             },
-            Some(ref command) if command == &"delete".to_string() => {
+            Some("delete") => {
                 if let Some(shim_name) = arg_shim_name_or_path {
                     Shim::Delete(shim_name, flag_verbose)
                 } else {
                     throw!(MissingShimNameError);
                 }
             },
-            Some(ref command) if command == &"list".to_string() => {
+            Some("list") => {
                 if let Some(_) = arg_shim_name_or_path {
                     throw!(PresentShimNameError);
                 } else {
@@ -151,7 +151,7 @@ Options:
                 }
             },
             Some(command) => throw!(UnrecognizedCommandError {
-                command: command,
+                command: command.to_string(),
             }),
             None => Shim::Help,
         })
