@@ -1,3 +1,7 @@
+# Version 0.1.4
+
+- Fix for `package.json` parsing bug (#156)
+
 # Version 0.1.3
 
 - Fix for Yarn path bug (#153)
