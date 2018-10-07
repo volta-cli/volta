@@ -4,9 +4,11 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 
 use detect_indent;
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
+use image::Image;
 use semver::Version;
 use serde::Serialize;
 use serde_json;
@@ -28,22 +30,10 @@ impl PackageReadError {
     }
 }
 
-/// A toolchain manifest.
-pub struct ToolchainManifest {
-    /// The pinned version of Node, under the `toolchain.node` key.
-    pub node: Version,
-    /// The pinned version of Node as a string.
-    pub node_str: String,
-    /// The pinned version of Yarn, under the `toolchain.yarn` key.
-    pub yarn: Option<Version>,
-    /// The pinned version of Yarn as a string.
-    pub yarn_str: Option<String>,
-}
-
 /// A Node manifest file.
 pub struct Manifest {
-    /// The `toolchain` section.
-    pub toolchain: Option<ToolchainManifest>,
+    /// The platform image specified by the `toolchain` section.
+    pub platform_image: Option<Rc<Image>>,
     /// The `dependencies` section.
     pub dependencies: HashMap<String, String>,
     /// The `devDependencies` section.
@@ -61,33 +51,31 @@ impl Manifest {
         serial.into_manifest()
     }
 
-    /// Returns whether this manifest contains a toolchain section (at least Node is pinned).
-    pub fn has_toolchain(&self) -> bool {
-        self.toolchain.is_some()
+    /// Returns a reference to the platform image specified by manifest, if any.
+    pub fn platform(&self) -> Option<Rc<Image>> {
+        self.platform_image.as_ref().map(|p| p.clone())
     }
 
     /// Returns the pinned version of Node as a Version, if any.
     pub fn node(&self) -> Option<Version> {
-        self.toolchain.as_ref().map(|t| t.node.clone())
+        self.platform().map(|t| t.node.clone())
     }
 
     /// Returns the pinned verison of Node as a String, if any.
     pub fn node_str(&self) -> Option<String> {
-        self.toolchain.as_ref().map(|t| t.node_str.clone())
+        self.platform().map(|t| t.node_str.clone())
     }
 
     /// Returns the pinned verison of Yarn as a Version, if any.
     pub fn yarn(&self) -> Option<Version> {
-        self.toolchain
-            .as_ref()
+        self.platform()
             .map(|t| t.yarn.clone())
             .unwrap_or(None)
     }
 
     /// Returns the pinned verison of Yarn as a String, if any.
     pub fn yarn_str(&self) -> Option<String> {
-        self.toolchain
-            .as_ref()
+        self.platform()
             .map(|t| t.yarn_str.clone())
             .unwrap_or(None)
     }
@@ -95,7 +83,7 @@ impl Manifest {
     /// Writes the input ToolchainManifest to package.json, adding the "toolchain" key if
     /// necessary.
     pub fn update_toolchain(
-        toolchain: serial::ToolchainManifest,
+        toolchain: serial::Image,
         package_file: PathBuf,
     ) -> Fallible<()> {
         // parse the entire package.json file into a Value

@@ -110,10 +110,8 @@ Options:
 }
 
 fn project_node_version(session: &Session) -> Fallible<Option<String>> {
-    if session.in_pinned_project() {
-        let project = session.project().unwrap();
-        let req = &project.manifest().node().unwrap();
-        return Ok(Some(req.to_string()));
+    if let Some(ref image) = session.project_platform() {
+        return Ok(Some(image.node_str.clone()));
     }
     Ok(None)
 }

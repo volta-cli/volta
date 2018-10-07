@@ -20,12 +20,13 @@ failure = "0.1.1"
 failure_derive = "0.1.1"
 notion-fail = { path = "../notion-fail" }
 notion-fail-derive = { path = "../notion-fail-derive" }
-lazycell = { "git" = "https://github.com/dherman/lazycell", "branch" = "borrow_mut_with" }
+lazycell = { git = "https://github.com/dherman/lazycell", branch = "borrow_mut_with" }
 semver = "0.9.0"
 cmdline_words_parser = "0.0.2"
 reqwest = "0.8.5"
 cfg-if = "0.1"
 winfolder = "0.1"
 tempfile = "3.0.2"
-os_info = { "git" = "https://github.com/DarkEld3r/os_info", "rev" = "912a7941cd797e9fca83f4fe858ed684baa5fc40" }
-detect-indent = { "git" = "https://github.com/stefanpenner/detect-indent-rs", "branch" = "master" }
+os_info = { git = "https://github.com/DarkEld3r/os_info", rev = "912a7941cd797e9fca83f4fe858ed684baa5fc40" }
+detect-indent = { git = "https://github.com/stefanpenner/detect-indent-rs", branch = "master" }
+envoy = "0.1.3"

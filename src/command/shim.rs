@@ -4,7 +4,6 @@ use std::fs;
 use std::path::PathBuf;
 
 use console::style;
-use notion_core::project::Project;
 use notion_core::session::{ActivityKind, Session};
 use notion_core::{path, shim};
 use notion_fail::{ExitCode, Fallible, ResultExt};
@@ -151,26 +150,22 @@ fn resolve_shim(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
     }
 }
 
-fn is_node_version_installed(project: &Project, session: &Session) -> Fallible<bool> {
-    let catalog = session.catalog()?;
-    Ok(catalog.node.contains(&project.manifest().node().unwrap()))
+fn is_node_version_installed(version: &Version, session: &Session) -> Fallible<bool> {
+    Ok(session.catalog()?.node.contains(version))
 }
 
 // figure out which version of Node is installed or configured,
 // or which version will be installed if it's not pinned by the project
 fn resolve_node_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
-    if session.in_pinned_project() {
-        let project = session.project().unwrap();
-        let version = &project.manifest().node().unwrap();
-        if is_node_version_installed(&project, &session)? {
+    if let Some(ref image) = session.project_platform() {
+        if is_node_version_installed(&image.node, &session)? {
             // Node is pinned by the project - this shim will use that version
-            let mut bin_path = path::node_version_bin_dir(&version.to_string()).unknown()?;
+            let mut bin_path = path::node_version_bin_dir(&image.node_str).unknown()?;
             bin_path.push(&shim_name);
             return Ok(ShimKind::User(bin_path));
         }
 
-        // not installed, but will install based on the required version
-        return Ok(ShimKind::WillInstall(version.clone()));
+        return Ok(ShimKind::WillInstall(image.node.clone()));
     }
 
     if let Some(user_version) = session.user_node()? {
@@ -182,9 +177,8 @@ fn resolve_node_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind
 }
 
 fn resolve_yarn_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
-    if session.in_pinned_project() {
-        let project = session.project().unwrap();
-        if let Some(ref version) = &project.manifest().yarn() {
+    if let Some(ref image) = session.project_platform() {
+        if let Some(ref version) = image.yarn {
             let catalog = session.catalog()?;
             if catalog.yarn.contains(version) {
                 // Yarn is pinned by the project - this shim will use that version
@@ -196,6 +190,8 @@ fn resolve_yarn_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind
             // not installed, but will install based on the required version
             return Ok(ShimKind::WillInstall(version.clone()));
         }
+
+        return Ok(ShimKind::NotInstalled);
     }
 
     if let Some(ref default_version) = session.catalog()?.yarn.default {
@@ -211,32 +207,13 @@ fn resolve_npx_shims(_session: &Session, _shim_name: &OsStr) -> Fallible<ShimKin
 }
 
 fn resolve_3p_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
-    if session.in_pinned_project() {
-        let project = session.project().unwrap();
+    if let Some(ref project) = session.project() {
         // if this is a local executable, get the path to that
         if project.has_direct_bin(shim_name)? {
             let mut path_to_bin = project.local_bin_dir();
             path_to_bin.push(shim_name);
             return Ok(ShimKind::Project(path_to_bin));
         }
-
-        // if Node is installed, use the bin there
-        if is_node_version_installed(&project, &session)? {
-            let version = project.manifest().node().unwrap();
-            // Node is pinned by the project - this shim will use that version
-            let mut bin_path = path::node_version_3p_bin_dir(&version.to_string())?;
-            bin_path.push(&shim_name);
-            return Ok(ShimKind::User(bin_path));
-        }
-        // if Node is not installed, this shim has not been installed for this node version
-        return Ok(ShimKind::NotInstalled);
     }
-    // if a user Node is configured with Notion, use that executable
-    // otherwise it's a shim to system executables
-    let user_version = session.user_node()?;
-    user_version.map_or(Ok(ShimKind::System), |gv| {
-        let mut bin_path = path::node_version_3p_bin_dir(&gv.to_string())?;
-        bin_path.push(&shim_name);
-        Ok(ShimKind::User(bin_path))
-    })
+    Ok(ShimKind::NotInstalled)
 }
