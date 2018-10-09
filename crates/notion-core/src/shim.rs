@@ -26,6 +26,14 @@ impl SymlinkError {
     }
 }
 
+#[derive(PartialEq)]
+pub enum ShimResult {
+    Created,
+    AlreadyExists,
+    Deleted,
+    DoesntExist,
+}
+
 fn is_3p_shim(name: &str) -> bool {
     match name {
         "node" | "yarn" | "npm" | "npx" => false,
@@ -33,16 +41,14 @@ fn is_3p_shim(name: &str) -> bool {
     }
 }
 
-pub fn create(shim_name: &str) -> Fallible<()> {
+pub fn create(shim_name: &str) -> Fallible<ShimResult> {
     let launchbin = path::launchbin_file()?;
     let shim = path::shim_file(shim_name)?;
     match path::create_file_symlink(launchbin, shim) {
-        Ok(_) => Ok(()),
+        Ok(_) => Ok(ShimResult::Created),
         Err(err) => {
             if err.kind() == io::ErrorKind::AlreadyExists {
-                throw!(SymlinkError {
-                    error: format!("shim `{}` already exists", shim_name),
-                });
+                Ok(ShimResult::AlreadyExists)
             } else {
                 throw!(err.with_context(SymlinkError::from_io_error));
             }
@@ -50,7 +56,7 @@ pub fn create(shim_name: &str) -> Fallible<()> {
     }
 }
 
-pub fn delete(shim_name: &str) -> Fallible<()> {
+pub fn delete(shim_name: &str) -> Fallible<ShimResult> {
     if !is_3p_shim(shim_name) {
         throw!(SymlinkError {
             error: format!("cannot delete `{}`, not a 3rd-party executable", shim_name),
@@ -58,12 +64,10 @@ pub fn delete(shim_name: &str) -> Fallible<()> {
     }
     let shim = path::shim_file(shim_name)?;
     match fs::remove_file(shim) {
-        Ok(_) => Ok(()),
+        Ok(_) => Ok(ShimResult::Deleted),
         Err(err) => {
             if err.kind() == io::ErrorKind::NotFound {
-                throw!(SymlinkError {
-                    error: format!("shim `{}` does not exist", shim_name),
-                });
+                Ok(ShimResult::DoesntExist)
             } else {
                 throw!(err.with_context(SymlinkError::from_io_error));
             }

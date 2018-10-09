@@ -29,6 +29,22 @@ struct NotAPackageError {
     path: String,
 }
 
+/// Thrown when the user tries to create a shim which already exists.
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "shim `{}` already exists", name)]
+#[notion_fail(code = "FileSystemError")]
+struct ShimAlreadyExistsError {
+    name: String,
+}
+
+/// Thrown when the user tries to delete a shim which doesn't exist.
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "shim `{}` does not exist", name)]
+#[notion_fail(code = "FileSystemError")]
+struct ShimDoesntExistError {
+    name: String,
+}
+
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
     arg_path: Option<String>,
@@ -170,12 +186,26 @@ fn print_file_info(file: fs::DirEntry, session: &Session, verbose: bool) -> Fall
 }
 
 fn create(_session: &Session, shim_name: String, _verbose: bool) -> Fallible<()> {
-    shim::create(&shim_name)?;
+    let result = shim::create(&shim_name)?;
+
+    if result == shim::ShimResult::AlreadyExists {
+        throw!(ShimAlreadyExistsError {
+            name: shim_name,
+        });
+    }
+
     Ok(())
 }
 
 fn delete(_session: &Session, shim_name: String, _verbose: bool) -> Fallible<()> {
-    shim::delete(&shim_name)?;
+    let result = shim::delete(&shim_name)?;
+
+    if result == shim::ShimResult::DoesntExist {
+        throw!(ShimDoesntExistError {
+            name: shim_name,
+        });
+    }
+
     Ok(())
 }
 
