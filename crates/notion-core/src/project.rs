@@ -190,30 +190,22 @@ impl Project {
 
     /// Gets the names of the binaries of all direct dependencies and returns them along
     /// with any errors which occurred while doing so.
-    fn dependent_binary_names_fault_tolerant(&self) -> Vec<Result<String, NotionError>> {
+    fn dependent_binary_names_fault_tolerant(&self) -> Vec<Fallible<String>> {
         let mut results = Vec::new();
+        let dependencies = &self.manifest.merged_dependencies();
+        let dependency_paths = dependencies.iter().map(|name| self.get_dependency_path(name));
 
-        match Manifest::for_dir(&self.project_root) {
-            Ok(manifest) => {
-                let dependencies = manifest.merged_dependencies();
-                let dependency_paths = dependencies.iter().map(|name| self.get_dependency_path(name));
-
-                for dependency_path in dependency_paths {
-                    match Manifest::for_dir(&dependency_path) {
-                        Ok(dependency) => {
-                            for (name, _path) in dependency.bin {
-                                results.push(Result::Ok(name.clone()))
-                            }
-                        },
-                        Err(error) => {
-                            results.push(Result::Err(error))
-                        },
+        for dependency_path in dependency_paths {
+            match Manifest::for_dir(&dependency_path) {
+                Ok(dependency) => {
+                    for (name, _path) in dependency.bin {
+                        results.push(Result::Ok(name.clone()))
                     }
-                }
-            },
-            Err(error) => {
-                results.push(Result::Err(error))
-            },
+                },
+                Err(error) => {
+                    results.push(Result::Err(error))
+                },
+            }
         }
 
         results
