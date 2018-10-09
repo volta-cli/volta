@@ -10,9 +10,9 @@ use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use reqwest::header::HttpDate;
 
-use support;
 use support::paths::{self, PathExt};
-use support::process::ProcessBuilder;
+use test_support;
+use test_support::process::ProcessBuilder;
 
 #[cfg(feature = "mock-network")]
 use mockito::{self, mock, Matcher};
@@ -419,7 +419,7 @@ impl Sandbox {
     ///             execs().with_stdout("bar\n"),
     ///         );
     pub fn process<T: AsRef<OsStr>>(&self, program: T) -> ProcessBuilder {
-        let mut p = support::process::process(program);
+        let mut p = test_support::process::process(program);
         p.cwd(self.root())
             // sandbox the Notion environment
             .env("HOME", home_dir())

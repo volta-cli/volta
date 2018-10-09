@@ -35,7 +35,6 @@ impl fmt::Display for ProcessBuilder {
 
 impl ProcessBuilder {
     /// (chainable) Set the executable for the process.
-    #[allow(dead_code)]
     pub fn program<T: AsRef<OsStr>>(&mut self, program: T) -> &mut ProcessBuilder {
         self.program = program.as_ref().to_os_string();
         self
@@ -48,7 +47,6 @@ impl ProcessBuilder {
     }
 
     /// (chainable) Add many args to the args list.
-    #[allow(dead_code)]
     pub fn args<T: AsRef<OsStr>>(&mut self, arguments: &[T]) -> &mut ProcessBuilder {
         self.args
             .extend(arguments.iter().map(|t| t.as_ref().to_os_string()));
@@ -56,7 +54,6 @@ impl ProcessBuilder {
     }
 
     /// (chainable) Replace args with new args list
-    #[allow(dead_code)]
     pub fn args_replace<T: AsRef<OsStr>>(&mut self, arguments: &[T]) -> &mut ProcessBuilder {
         self.args = arguments
             .iter()
@@ -85,13 +82,11 @@ impl ProcessBuilder {
     }
 
     /// Get the executable name.
-    #[allow(dead_code)]
     pub fn get_program(&self) -> &OsString {
         &self.program
     }
 
     /// Get the program arguments
-    #[allow(dead_code)]
     pub fn get_args(&self) -> &[OsString] {
         &self.args
     }
@@ -103,7 +98,6 @@ impl ProcessBuilder {
 
     /// Get an environment variable as the process will see it (will inherit from environment
     /// unless explicitally unset).
-    #[allow(dead_code)]
     pub fn get_env(&self, var: &str) -> Option<OsString> {
         self.env
             .get(var)
@@ -114,13 +108,11 @@ impl ProcessBuilder {
 
     /// Get all environment variables explicitly set or unset for the process (not inherited
     /// vars).
-    #[allow(dead_code)]
     pub fn get_envs(&self) -> &HashMap<String, Option<OsString>> {
         &self.env
     }
 
     /// Run the process, waiting for completion, and mapping non-success exit codes to an error.
-    #[allow(dead_code)]
     pub fn exec(&self) -> Fallible<()> {
         let mut command = self.build_command();
 
@@ -252,3 +244,4 @@ pub fn process_error(
         status.to_string()
     }
 }
+

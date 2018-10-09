@@ -3,10 +3,10 @@ use std::process::Output;
 use std::str;
 use std::usize;
 
-use serde_json::{self, Value};
+use process::{ProcessBuilder, ProcessError};
 
 use hamcrest2::core::{Matcher, MatchResult};
-use support::process::{ProcessBuilder, ProcessError};
+use serde_json::{self, Value};
 
 #[derive(Clone)]
 pub struct Execs {
@@ -28,7 +28,6 @@ pub struct Execs {
 impl Execs {
     /// Verify that stdout is equal to the given lines.
     /// See `lines_match` for supported patterns.
-    #[allow(dead_code)]
     pub fn with_stdout<S: ToString>(mut self, expected: S) -> Execs {
         self.expect_stdout = Some(expected.to_string());
         self
@@ -36,19 +35,16 @@ impl Execs {
 
     /// Verify that stderr is equal to the given lines.
     /// See `lines_match` for supported patterns.
-    #[allow(dead_code)]
     pub fn with_stderr<S: ToString>(mut self, expected: S) -> Execs {
         self._with_stderr(&expected);
         self
     }
 
-    #[allow(dead_code)]
     fn _with_stderr(&mut self, expected: &ToString) {
         self.expect_stderr = Some(expected.to_string());
     }
 
     /// Verify the exit code from the process.
-    #[allow(dead_code)]
     pub fn with_status(mut self, expected: i32) -> Execs {
         self.expect_exit_code = Some(expected);
         self
@@ -57,7 +53,6 @@ impl Execs {
     /// Verify that stdout contains the given contiguous lines somewhere in
     /// its output.
     /// See `lines_match` for supported patterns.
-    #[allow(dead_code)]
     pub fn with_stdout_contains<S: ToString>(mut self, expected: S) -> Execs {
         self.expect_stdout_contains.push(expected.to_string());
         self
@@ -66,7 +61,6 @@ impl Execs {
     /// Verify that stderr contains the given contiguous lines somewhere in
     /// its output.
     /// See `lines_match` for supported patterns.
-    #[allow(dead_code)]
     pub fn with_stderr_contains<S: ToString>(mut self, expected: S) -> Execs {
         self.expect_stderr_contains.push(expected.to_string());
         self
@@ -75,7 +69,6 @@ impl Execs {
     /// Verify that either stdout or stderr contains the given contiguous
     /// lines somewhere in its output.
     /// See `lines_match` for supported patterns.
-    #[allow(dead_code)]
     pub fn with_either_contains<S: ToString>(mut self, expected: S) -> Execs {
         self.expect_either_contains.push(expected.to_string());
         self
@@ -84,7 +77,6 @@ impl Execs {
     /// Verify that stdout contains the given contiguous lines somewhere in
     /// its output, and should be repeated `number` times.
     /// See `lines_match` for supported patterns.
-    #[allow(dead_code)]
     pub fn with_stdout_contains_n<S: ToString>(mut self, expected: S, number: usize) -> Execs {
         self.expect_stdout_contains_n
             .push((expected.to_string(), number));
@@ -94,7 +86,6 @@ impl Execs {
     /// Verify that stdout does not contain the given contiguous lines.
     /// See `lines_match` for supported patterns.
     /// See note on `with_stderr_does_not_contain`.
-    #[allow(dead_code)]
     pub fn with_stdout_does_not_contain<S: ToString>(mut self, expected: S) -> Execs {
         self.expect_stdout_not_contains.push(expected.to_string());
         self
@@ -108,7 +99,6 @@ impl Execs {
     /// your test will pass without verifying the correct behavior. If
     /// possible, write the test first so that it fails, and then implement
     /// your fix/feature to make it pass.
-    #[allow(dead_code)]
     pub fn with_stderr_does_not_contain<S: ToString>(mut self, expected: S) -> Execs {
         self.expect_stderr_not_contains.push(expected.to_string());
         self
@@ -129,7 +119,6 @@ impl Execs {
     ///     [RUNNING] `rustc --crate-name foo [..]
     /// This will randomly fail if the other crate name is `bar`, and the
     /// order changes.
-    #[allow(dead_code)]
     pub fn with_stderr_unordered<S: ToString>(mut self, expected: S) -> Execs {
         self.expect_stderr_unordered.push(expected.to_string());
         self
@@ -143,7 +132,6 @@ impl Execs {
     ///         p.cargo("metadata"),
     ///         execs().with_json(r#"
     ///             {"example": "abc"}
-    ///
     ///             {"example": "def"}
     ///         "#)
     ///      );
@@ -151,7 +139,6 @@ impl Execs {
     /// The order of arrays is ignored.
     /// Strings support patterns described in `lines_match`.
     /// Use `{...}` to match any object.
-    #[allow(dead_code)]
     pub fn with_json(mut self, expected: &str) -> Execs {
         self.expect_json = Some(
             expected
@@ -738,3 +725,4 @@ fn substitute_macros(input: &str) -> String {
     }
     result
 }
+

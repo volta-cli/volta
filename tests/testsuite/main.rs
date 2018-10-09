@@ -2,19 +2,15 @@
 extern crate cfg_if;
 extern crate failure;
 #[macro_use]
-extern crate failure_derive;
-#[macro_use]
 extern crate hamcrest2;
 #[cfg(feature = "mock-network")]
 extern crate mockito;
 extern crate notion_core;
-#[macro_use]
 extern crate notion_fail;
-#[macro_use]
-extern crate notion_fail_derive;
 extern crate rand;
 extern crate reqwest;
 extern crate serde_json;
+extern crate test_support;
 
 mod support;
 

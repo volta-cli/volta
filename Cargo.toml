@@ -46,6 +46,7 @@ result = "1.0.0"
 rand = "0.5"
 cfg-if = "0.1"
 mockito = { "git" = "https://github.com/lipanski/mockito", "rev" = "48c5a93bcf8cc434875ed8aed22bff9623cb1ff4", optional = true }
+test-support = { path = "crates/test-support" }
 
 [dev-dependencies]
 hamcrest2 = "0.2.3"
