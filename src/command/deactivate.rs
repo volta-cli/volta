@@ -1,4 +1,4 @@
-use notion_core::env;
+use notion_core::image::System;
 use notion_core::session::{ActivityKind, Session};
 use notion_core::shell::{CurrentShell, Postscript, Shell};
 use notion_fail::{ExitCode, Fallible};
@@ -45,7 +45,7 @@ Options:
             Deactivate::Deactivate => {
                 let shell = CurrentShell::detect()?;
 
-                let postscript = match env::path_for_system_node()?.into_string() {
+                let postscript = match System::path()?.into_string() {
                     Ok(path) => Postscript::Path(path),
                     Err(_) => unimplemented!(),
                 };

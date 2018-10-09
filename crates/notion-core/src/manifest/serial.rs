@@ -1,4 +1,4 @@
-use super::super::manifest;
+use super::super::{image, manifest};
 use version::VersionSpec;
 
 use notion_fail::Fallible;
@@ -10,6 +10,7 @@ use std::fmt;
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
+use std::rc::Rc;
 
 // wrapper for HashMap to use with deserialization
 #[derive(Debug, PartialEq)]
@@ -50,7 +51,7 @@ pub struct Manifest {
     #[serde(rename = "devDependencies")]
     pub dev_dependencies: HashMap<String, String>,
 
-    pub toolchain: Option<ToolchainManifest>,
+    pub toolchain: Option<Image>,
 
     // the "bin" field can be a map or a string
     // (see https://docs.npmjs.com/files/package.json#bin)
@@ -59,7 +60,7 @@ pub struct Manifest {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ToolchainManifest {
+pub struct Image {
     pub node: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub yarn: Option<String>,
@@ -80,16 +81,16 @@ impl Manifest {
             }
         }
         Ok(manifest::Manifest {
-            toolchain: self.into_toolchain_manifest()?,
+            platform_image: self.into_image()?.map(Rc::new),
             dependencies: self.dependencies,
             dev_dependencies: self.dev_dependencies,
             bin: map,
         })
     }
 
-    pub fn into_toolchain_manifest(&self) -> Fallible<Option<manifest::ToolchainManifest>> {
+    pub fn into_image(&self) -> Fallible<Option<image::Image>> {
         if let Some(toolchain) = &self.toolchain {
-            return Ok(Some(manifest::ToolchainManifest {
+            return Ok(Some(image::Image {
                 node: VersionSpec::parse_version(&toolchain.node)?,
                 node_str: toolchain.node.clone(),
                 yarn: if let Some(yarn) = &toolchain.yarn {
@@ -104,9 +105,9 @@ impl Manifest {
     }
 }
 
-impl ToolchainManifest {
+impl Image {
     pub fn new(node_version: String, yarn_version: Option<String>) -> Self {
-        ToolchainManifest {
+        Image {
             node: node_version,
             yarn: yarn_version,
         }
