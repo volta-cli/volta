@@ -170,6 +170,7 @@ pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
 //                         catalog.toml                user_catalog_file
 
 fn local_data_root() -> Fallible<PathBuf> {
+    // used to sandbox the acceptance test environment
     if let Some(home_dir) = env::home_dir() {
         return Ok(home_dir.join("AppData").join("Local").join("Notion"));
     } else {
