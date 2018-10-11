@@ -422,6 +422,7 @@ impl Sandbox {
         let mut p = test_support::process::process(program);
         p.cwd(self.root())
             // sandbox the Notion environment
+            .env("NOTION_SANDBOX", "true") // used to indicate that Notion is running sandboxed, for directory logic in Windows
             .env("HOME", home_dir())
             .env("USERPROFILE", home_dir()) // windows
             .env("NOTION_HOME", notion_home())

@@ -47,7 +47,9 @@ cfg_if! {
 //             launchscript.exe                        launchscript_file
 
 fn program_data_root() -> Fallible<PathBuf> {
-    if let Ok(notion_data) = env::var("NOTION_DATA_ROOT") {
+    // if this is sandboxed in CI, use the sandboxed ProgramData directory
+    if env::var("NOTION_SANDBOX").is_ok() {
+        let notion_data = env::var("NOTION_DATA_ROOT").unwrap();
         return Ok(PathBuf::from(notion_data).join("Notion"));
     } else {
         #[cfg(windows)]
@@ -170,8 +172,9 @@ pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
 //                         catalog.toml                user_catalog_file
 
 fn local_data_root() -> Fallible<PathBuf> {
-    // used to sandbox the acceptance test environment
-    if let Some(home_dir) = env::home_dir() {
+    // if this is sandboxed in CI, use the sandboxed AppData directory
+    if env::var("NOTION_SANDBOX").is_ok() {
+        let home_dir = env::home_dir().unwrap();
         return Ok(home_dir.join("AppData").join("Local").join("Notion"));
     } else {
         #[cfg(windows)]
