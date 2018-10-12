@@ -114,8 +114,9 @@ install:
 # the "directory does not contain a project or solution file" error.
 build: false
 
-# Uses 'cargo test' to run tests and build. Alternatively, the project may call compiled programs
-#directly or perform other testing commands. Rust will automatically be placed in the PATH
-# environment variable.
+# first, this runs the unit tests for all crates (without mocking the network)
+# - these are run single-threaded because some tests change environment variables, which is not thread-safe
+# next, this runs the acceptance tests, using network mocks
 test_script:
-  - cargo test --all --verbose %cargoflags%
+  - cargo test --package notion-core --package notion-fail --package node-archive --package notion-fail-derive --package progress-read -- --test-threads=1 &&
+    cargo test --features mock-network

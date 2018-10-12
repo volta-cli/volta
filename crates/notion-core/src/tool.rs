@@ -125,7 +125,7 @@ pub struct Yarn(Command);
 
 #[cfg(windows)]
 impl Tool for Script {
-    fn new(session: &mut Session) -> Fallible<Self> {
+    fn new(_session: &mut Session) -> Fallible<Self> {
         throw!(ToolUnimplementedError::new())
     }
 

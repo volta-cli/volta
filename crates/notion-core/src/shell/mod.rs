@@ -5,6 +5,7 @@ use std::str::FromStr;
 
 use semver::Version;
 
+use fs::ensure_containing_dir_exists;
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 
 use env;
@@ -30,6 +31,7 @@ pub trait Shell {
     fn compile_postscript(&self, postscript: &Postscript) -> String;
 
     fn save_postscript(&self, postscript: &Postscript) -> Fallible<()> {
+        ensure_containing_dir_exists(&self.postscript_path())?;
         let mut file = File::create(self.postscript_path()).unknown()?;
         file.write_all(self.compile_postscript(postscript).as_bytes())
             .unknown()?;

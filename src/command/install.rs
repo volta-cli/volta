@@ -20,6 +20,8 @@ pub(crate) enum Install {
     Yarn(VersionSpec),
     Other {
         package: String,
+        // not used
+        #[allow(dead_code)]
         version: VersionSpec,
     },
 }
