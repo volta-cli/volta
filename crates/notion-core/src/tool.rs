@@ -337,14 +337,12 @@ impl Tool for Yarn {
 
     /// Perform any tasks which must be run after the tool runs but before exiting.
     fn finalize(session: &Session, maybe_status: &io::Result<ExitStatus>) {
-        if let Ok(status) = maybe_status {
-            if status.success() {
-                if let Some(project) = session.project() {
-                    let errors = project.autoshim();
+        if let Ok(_) = maybe_status {
+            if let Some(project) = session.project() {
+                let errors = project.autoshim();
 
-                    for error in errors {
-                        display_error(&error);
-                    }
+                for error in errors {
+                    display_error(&error);
                 }
             }
         }
