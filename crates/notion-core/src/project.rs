@@ -251,7 +251,7 @@ impl Project {
 
 #[cfg(test)]
 pub mod tests {
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
     use std::ffi::OsStr;
     use std::path::PathBuf;
 
@@ -278,6 +278,33 @@ pub mod tests {
         expected_bins.insert("bin-1".to_string(), "./lib/cli.js".to_string());
         expected_bins.insert("bin-2".to_string(), "./lib/cli.js".to_string());
         assert_eq!(dep_bins, expected_bins);
+    }
+
+    #[test]
+    fn gets_binary_names() {
+        let project = Project::for_dir(&fixture_path("basic")).unwrap().unwrap();
+        let binary_names = project.dependent_binary_names_fault_tolerant();
+        let mut expected = HashSet::new();
+
+        expected.insert("eslint".to_string());
+        expected.insert("rsvp".to_string());
+        expected.insert("bin-1".to_string());
+        expected.insert("bin-2".to_string());
+
+        let mut iterator = binary_names.iter();
+        let mut actual = HashSet::new();
+
+        while let Some(fallible) = iterator.next() {
+            match fallible {
+                Ok(binary_name) => {
+                    actual.insert(binary_name.clone());
+                },
+
+                Err(error) => panic!("encountered error {:?}", error),
+            }
+        }
+
+        assert_eq!(actual, expected);
     }
 
     #[test]
