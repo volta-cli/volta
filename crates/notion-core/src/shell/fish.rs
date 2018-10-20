@@ -14,7 +14,7 @@ impl Shell for Fish {
     fn compile_postscript(&self, postscript: &Postscript) -> String {
         match postscript {
             &Postscript::Path(ref s) => {
-                format!("set -U fish_user_paths '{}'\n $fish_user_paths", s)
+                format!("set -U fish_user_paths '{}' $fish_user_paths\n", s)
             }
             &Postscript::ToolVersion {
                 ref tool,
