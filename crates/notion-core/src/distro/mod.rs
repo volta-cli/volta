@@ -4,7 +4,7 @@ mod error;
 pub mod node;
 pub mod yarn;
 
-use catalog::Collection;
+use inventory::Collection;
 use notion_fail::Fallible;
 use semver::Version;
 use std::fs::File;

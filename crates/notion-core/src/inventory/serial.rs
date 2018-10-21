@@ -49,8 +49,8 @@ impl Default for YarnCollection {
 }
 
 impl Catalog {
-    pub fn into_catalog(self) -> Fallible<super::Catalog> {
-        Ok(super::Catalog {
+    pub fn into_inventory(self) -> Fallible<super::Inventory> {
+        Ok(super::Inventory {
             node: self.node.into_node_collection().unknown()?,
             yarn: self.yarn.into_yarn_collection().unknown()?,
         })
@@ -97,7 +97,7 @@ impl YarnCollection {
     }
 }
 
-impl super::Catalog {
+impl super::Inventory {
     pub fn to_serial(&self) -> Catalog {
         Catalog {
             node: self.node.to_serial(),

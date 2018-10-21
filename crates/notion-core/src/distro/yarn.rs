@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::string::ToString;
 
 use super::{Distro, Fetched};
-use catalog::YarnCollection;
+use inventory::YarnCollection;
 use distro::error::DownloadError;
 use fs::ensure_containing_dir_exists;
 use node_archive::{self, Archive};

@@ -25,7 +25,7 @@ extern crate serde_derive;
 
 extern crate winfolder;
 
-pub mod catalog;
+pub mod inventory;
 pub mod config;
 mod distro;
 pub mod env;

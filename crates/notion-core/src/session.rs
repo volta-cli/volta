@@ -1,11 +1,11 @@
 //! Provides the `Session` type, which represents the user's state during an
 //! execution of a Notion tool, including their configuration, their current
-//! directory, and the state of the local tool catalog.
+//! directory, and the state of the local inventory.
 
 use std::env::{self, VarError};
 use std::rc::Rc;
 
-use catalog::{Catalog, LazyCatalog};
+use inventory::{Inventory, LazyInventory};
 use config::{Config, LazyConfig};
 use distro::Fetched;
 use image::Image;
@@ -80,10 +80,10 @@ impl NotInPackageError {
 ///     - the current directory
 ///     - the Node project tree that contains the current directory (if any)
 ///     - the Notion configuration settings
-///     - the catalog of locally-installed Notion tools
+///     - the inventory of locally-fetched Notion tools
 pub struct Session {
     config: LazyConfig,
-    catalog: LazyCatalog,
+    inventory: LazyInventory,
     project: Option<Rc<Project>>,
     event_log: EventLog,
 }
@@ -93,7 +93,7 @@ impl Session {
     pub fn new() -> Fallible<Session> {
         Ok(Session {
             config: LazyConfig::new(),
-            catalog: LazyCatalog::new(),
+            inventory: LazyInventory::new(),
             project: Project::for_current_dir()?.map(Rc::new),
             event_log: EventLog::new()?,
         })
@@ -149,14 +149,14 @@ impl Session {
         None
     }
 
-    /// Produces a reference to the current tool catalog.
-    pub fn catalog(&self) -> Fallible<&Catalog> {
-        self.catalog.get()
+    /// Produces a reference to the current inventory.
+    pub fn inventory(&self) -> Fallible<&Inventory> {
+        self.inventory.get()
     }
 
-    /// Produces a mutable reference to the current tool catalog.
-    pub fn catalog_mut(&mut self) -> Fallible<&mut Catalog> {
-        self.catalog.get_mut()
+    /// Produces a mutable reference to the current inventory.
+    pub fn inventory_mut(&mut self) -> Fallible<&mut Inventory> {
+        self.inventory.get_mut()
     }
 
     /// Produces a reference to the configuration.
@@ -166,17 +166,17 @@ impl Session {
 
     /// Ensures that a platform image has been fully fetched and set up.
     pub(crate) fn prepare_image(&mut self, image: &Image) -> Fallible<()> {
-        let catalog = self.catalog.get_mut()?;
+        let inventory = self.inventory.get_mut()?;
 
-        if !catalog.node.contains(&image.node) {
+        if !inventory.node.contains(&image.node) {
             let config = self.config.get()?;
-            let _ = catalog.fetch_node(&VersionSpec::exact(&image.node), config)?;
+            let _ = inventory.fetch_node(&VersionSpec::exact(&image.node), config)?;
         }
 
         if let Some(ref yarn_version) = &image.yarn {
-            if !catalog.yarn.contains(yarn_version) {
+            if !inventory.yarn.contains(yarn_version) {
                 let config = self.config.get()?;
-                let _ = catalog.fetch_yarn(&VersionSpec::exact(yarn_version), config)?;
+                let _ = inventory.fetch_yarn(&VersionSpec::exact(yarn_version), config)?;
             }
         }
 
@@ -186,7 +186,7 @@ impl Session {
     pub fn user_node(&self) -> Fallible<Option<Version>> {
         match env::var("NOTION_NODE_VERSION") {
             Ok(s) => Ok(Some(Version::parse(&s[..]).unknown()?)),
-            Err(VarError::NotPresent) => Ok(self.catalog()?.node.default.clone()),
+            Err(VarError::NotPresent) => Ok(self.inventory()?.node.default.clone()),
             Err(VarError::NotUnicode(_)) => unimplemented!(),
         }
     }
@@ -194,24 +194,24 @@ impl Session {
     /// Fetches a version of Node matching the specified semantic verisoning
     /// requirements.
     pub fn fetch_node(&mut self, matching: &VersionSpec) -> Fallible<Fetched> {
-        let catalog = self.catalog.get_mut()?;
+        let inventory = self.inventory.get_mut()?;
         let config = self.config.get()?;
-        catalog.fetch_node(matching, config)
+        inventory.fetch_node(matching, config)
     }
 
     /// Sets the user toolchain's Node version to one matching the specified semantic versioning
     /// requirements.
     pub fn set_user_node(&mut self, matching: &VersionSpec) -> Fallible<()> {
-        let catalog = self.catalog.get_mut()?;
+        let inventory = self.inventory.get_mut()?;
         let config = self.config.get()?;
-        catalog.set_user_node(matching, config)
+        inventory.set_user_node(matching, config)
     }
 
     /// Returns the version of Node matching the specified semantic versioning requirements.
     pub fn get_matching_node(&self, matching: &VersionSpec) -> Fallible<Version> {
-        let catalog = self.catalog.get()?;
+        let inventory = self.inventory.get()?;
         let config = self.config.get()?;
-        catalog.resolve_node(matching, config)
+        inventory.resolve_node(matching, config)
     }
 
     /// Updates toolchain in package.json with the Node version matching the specified semantic
@@ -227,30 +227,30 @@ impl Session {
     }
 
     pub fn user_yarn(&mut self) -> Fallible<Option<Version>> {
-        Ok(self.catalog()?.yarn.default.clone())
+        Ok(self.inventory()?.yarn.default.clone())
     }
 
     /// Fetches a version of Node matching the specified semantic verisoning
     /// requirements.
     pub fn fetch_yarn(&mut self, matching: &VersionSpec) -> Fallible<Fetched> {
-        let catalog = self.catalog.get_mut()?;
+        let inventory = self.inventory.get_mut()?;
         let config = self.config.get()?;
-        catalog.fetch_yarn(matching, config)
+        inventory.fetch_yarn(matching, config)
     }
 
     /// Sets the Yarn version in the user toolchain to one matching the specified semantic versioning
     /// requirements.
     pub fn set_user_yarn(&mut self, matching: &VersionSpec) -> Fallible<()> {
-        let catalog = self.catalog.get_mut()?;
+        let inventory = self.inventory.get_mut()?;
         let config = self.config.get()?;
-        catalog.set_user_yarn(matching, config)
+        inventory.set_user_yarn(matching, config)
     }
 
     /// Returns the version of Yarn matching the specified semantic versioning requirements
     pub fn get_matching_yarn(&self, matching: &VersionSpec) -> Fallible<Version> {
-        let catalog = self.catalog.get()?;
+        let inventory = self.inventory.get()?;
         let config = self.config.get()?;
-        catalog.resolve_yarn(matching, config)
+        inventory.resolve_yarn(matching, config)
     }
 
     /// Updates toolchain in package.json with the Yarn version matching the specified semantic

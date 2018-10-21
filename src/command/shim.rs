@@ -248,7 +248,7 @@ fn resolve_shim(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
 }
 
 fn is_node_version_installed(version: &Version, session: &Session) -> Fallible<bool> {
-    Ok(session.catalog()?.node.contains(version))
+    Ok(session.inventory()?.node.contains(version))
 }
 
 // figure out which version of Node is installed or configured,
@@ -276,8 +276,8 @@ fn resolve_node_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind
 fn resolve_yarn_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind> {
     if let Some(ref image) = session.project_platform() {
         if let Some(ref version) = image.yarn {
-            let catalog = session.catalog()?;
-            if catalog.yarn.contains(version) {
+            let inventory = session.inventory()?;
+            if inventory.yarn.contains(version) {
                 // Yarn is pinned by the project - this shim will use that version
                 let mut bin_path = path::yarn_version_bin_dir(&version.to_string()).unknown()?;
                 bin_path.push(&shim_name);
@@ -291,7 +291,7 @@ fn resolve_yarn_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind
         return Ok(ShimKind::NotInstalled);
     }
 
-    if let Some(ref default_version) = session.catalog()?.yarn.default {
+    if let Some(ref default_version) = session.inventory()?.yarn.default {
         let mut bin_path = path::yarn_version_bin_dir(&default_version.to_string()).unknown()?;
         bin_path.push(&shim_name);
         return Ok(ShimKind::User(bin_path));

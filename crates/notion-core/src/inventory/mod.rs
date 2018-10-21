@@ -1,4 +1,4 @@
-//! Provides types for working with Notion's local _catalog_, the local repository
+//! Provides types for working with Notion's _inventory_, the local repository
 //! of available tool versions.
 
 use std::collections::{BTreeSet, HashSet};
@@ -61,27 +61,27 @@ cfg_if! {
     }
 }
 
-/// Lazily loaded tool catalog.
-pub struct LazyCatalog {
-    catalog: LazyCell<Catalog>,
+/// Lazily loaded inventory.
+pub struct LazyInventory {
+    inventory: LazyCell<Inventory>,
 }
 
-impl LazyCatalog {
-    /// Constructs a new `LazyCatalog`.
-    pub fn new() -> LazyCatalog {
-        LazyCatalog {
-            catalog: LazyCell::new(),
+impl LazyInventory {
+    /// Constructs a new `LazyInventory`.
+    pub fn new() -> LazyInventory {
+        LazyInventory {
+            inventory: LazyCell::new(),
         }
     }
 
-    /// Forces the loading of the catalog and returns an immutable reference to it.
-    pub fn get(&self) -> Fallible<&Catalog> {
-        self.catalog.try_borrow_with(|| Catalog::current())
+    /// Forces the loading of the inventory and returns an immutable reference to it.
+    pub fn get(&self) -> Fallible<&Inventory> {
+        self.inventory.try_borrow_with(|| Inventory::current())
     }
 
-    /// Forces the loading of the catalog and returns a mutable reference to it.
-    pub fn get_mut(&mut self) -> Fallible<&mut Catalog> {
-        self.catalog.try_borrow_mut_with(|| Catalog::current())
+    /// Forces the loading of the inventory and returns a mutable reference to it.
+    pub fn get_mut(&mut self) -> Fallible<&mut Inventory> {
+        self.inventory.try_borrow_mut_with(|| Inventory::current())
     }
 }
 
@@ -89,7 +89,7 @@ pub struct Collection<D: Distro> {
     /// The currently activated Node version, if any.
     pub default: Option<Version>,
 
-    // A sorted collection of the available versions in the catalog.
+    // A sorted collection of the available versions in the inventory.
     pub versions: BTreeSet<Version>,
 
     pub phantom: PhantomData<D>,
@@ -99,25 +99,24 @@ pub type NodeCollection = Collection<NodeDistro>;
 pub type YarnCollection = Collection<YarnDistro>;
 
 /// The catalog of tool versions available locally.
-pub struct Catalog {
+pub struct Inventory {
     pub node: NodeCollection,
     pub yarn: YarnCollection,
 }
 
-impl Catalog {
-    /// Returns the current tool catalog.
-    fn current() -> Fallible<Catalog> {
+impl Inventory {
+    /// Returns the current inventory.
+    fn current() -> Fallible<Inventory> {
         let path = user_catalog_file()?;
         let src = touch(&path)?.read_into_string().unknown()?;
         src.parse()
     }
 
-    /// Returns a pretty-printed TOML representation of the contents of the catalog.
+    /// Returns a pretty-printed TOML representation of the contents of the inventory.
     pub fn to_string(&self) -> String {
         toml::to_string_pretty(&self.to_serial()).unwrap()
     }
 
-    /// Saves the contents of the catalog to the user's catalog file.
     pub fn save(&self) -> Fallible<()> {
         let path = user_catalog_file()?;
         let mut file = File::create(&path).unknown()?;
@@ -157,7 +156,7 @@ impl Catalog {
         Ok(distro.version().clone())
     }
 
-    /// Uninstalls a specific Node version from the local catalog.
+    /// Uninstalls a specific Node version from the inventory.
     pub fn uninstall_node(&mut self, version: &Version) -> Fallible<()> {
         if self.node.contains(version) {
             let home = path::node_version_dir(&version.to_string())?;
@@ -213,7 +212,7 @@ impl Catalog {
         Ok(distro.version().clone())
     }
 
-    /// Uninstalls a specific Yarn version from the local catalog.
+    /// Uninstalls a specific Yarn version from the inventory.
     pub fn uninstall_yarn(&mut self, version: &Version) -> Fallible<()> {
         if self.yarn.contains(version) {
             let home = path::yarn_version_dir(&version.to_string())?;
@@ -373,12 +372,12 @@ pub struct VersionData {
     pub files: HashSet<String>,
 }
 
-impl FromStr for Catalog {
+impl FromStr for Inventory {
     type Err = NotionError;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
         let serial: serial::Catalog = toml::from_str(src).unknown()?;
-        Ok(serial.into_catalog()?)
+        Ok(serial.into_inventory()?)
     }
 }
 
