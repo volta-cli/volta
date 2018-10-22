@@ -1,3 +1,5 @@
+#![cfg(feature = "notion-dev")]
+
 use std::ffi::OsStr;
 use std::fmt::{self, Display, Formatter};
 use std::fs;
