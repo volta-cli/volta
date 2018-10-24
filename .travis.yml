@@ -1,4 +1,5 @@
 sudo: required
+rust: stable
 language: rust
 cache: cargo
 
@@ -12,13 +13,17 @@ env:
 jobs:
   include:
     - stage: test
-      rust: stable
+      name: "Tests"
       script: |
         # the unit tests for all crates (without mocking the network)
         # run single-threaded because some tests change environment variables, which is not thread-safe
         cargo test --package notion-core --package notion-fail --package node-archive --package notion-fail-derive --package progress-read -- --test-threads=1 &&
         # the acceptance tests, using network mocks
         cargo test --features mock-network
+    - name: "Formatting"
+      # run rustfmt (using a specific locked down version)
+      # to fix any failures in this job run `./dev/unix/rustfmt.sh` and commit the resulting changes
+      script: ./dev/unix/rustfmt.sh --check
     - stage: publish
       # Conditional builds: https://docs.travis-ci.com/user/conditional-builds-stages-jobs/
       if: (branch = master) AND (type = push)
