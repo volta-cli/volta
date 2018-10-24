@@ -59,14 +59,14 @@ Supported Tools:
             .invert()?
             .unwrap_or_default();
 
-        match &arg_tool[..] {
-            "node" => Ok(Install::Node(version)),
-            "yarn" => Ok(Install::Yarn(version)),
-            ref package => Ok(Install::Other {
+        Ok(match &arg_tool[..] {
+            "node" => Install::Node(version),
+            "yarn" => Install::Yarn(version),
+            ref package => Install::Other {
                 package: package.to_string(),
                 version: version,
-            }),
-        }
+            },
+        })
     }
 
     fn run(self, session: &mut Session) -> Fallible<()> {
