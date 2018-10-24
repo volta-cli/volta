@@ -124,19 +124,6 @@ impl Inventory {
         Ok(())
     }
 
-    /// Sets the Node version in the user toolchain to one matching the specified semantic versioning requirements.
-    pub fn set_user_node(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<()> {
-        let fetched = self.fetch_node(matching, config)?;
-        let version = Some(fetched.into_version());
-
-        if self.node.default != version {
-            self.node.default = version;
-            self.save()?;
-        }
-
-        Ok(())
-    }
-
     /// Fetches a Node version matching the specified semantic versioning requirements.
     pub fn fetch_node(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched> {
         let distro = self.node.resolve_remote(matching, config.node.as_ref())?;
@@ -178,20 +165,8 @@ impl Inventory {
         Ok(())
     }
 
-    // ISSUE (#87) Abstract Catalog's activate, install and uninstall methods
-    // And potentially share code between node and yarn
-    /// Sets the Yarn version in the user toolchain to one matching the specified semantic versioning requirements.
-    pub fn set_user_yarn(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<()> {
-        let fetched = self.fetch_yarn(matching, config)?;
-        let version = Some(fetched.into_version());
-
-        if self.yarn.default != version {
-            self.yarn.default = version;
-            self.save()?;
-        }
-
-        Ok(())
-    }
+    // ISSUE (#87) Abstract node vs yarn methods (fetch, etc)
+    // ISSUE (#173) use Tool specs to do the abstracting
 
     /// Fetches a Yarn version matching the specified semantic versioning requirements.
     pub fn fetch_yarn(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched> {

@@ -11,6 +11,7 @@ use distro::Fetched;
 use image::Image;
 use plugin::Publish;
 use project::Project;
+use toolchain::Toolchain;
 use version::VersionSpec;
 
 use std::fmt::{self, Display, Formatter};
@@ -84,6 +85,7 @@ impl NotInPackageError {
 pub struct Session {
     config: LazyConfig,
     inventory: LazyInventory,
+    toolchain: Toolchain,
     project: Option<Rc<Project>>,
     event_log: EventLog,
 }
@@ -94,6 +96,7 @@ impl Session {
         Ok(Session {
             config: LazyConfig::new(),
             inventory: LazyInventory::new(),
+            toolchain: Toolchain::current()?,
             project: Project::for_current_dir()?.map(Rc::new),
             event_log: EventLog::new()?,
         })
@@ -201,10 +204,12 @@ impl Session {
 
     /// Sets the user toolchain's Node version to one matching the specified semantic versioning
     /// requirements.
-    pub fn set_user_node(&mut self, matching: &VersionSpec) -> Fallible<()> {
+    pub fn install_node(&mut self, matching: &VersionSpec) -> Fallible<()> {
         let inventory = self.inventory.get_mut()?;
         let config = self.config.get()?;
-        inventory.set_user_node(matching, config)
+        let version = inventory.fetch_node(matching, config)?.into_version();
+        self.toolchain.set_installed_node(version)?;
+        Ok(())
     }
 
     /// Returns the version of Node matching the specified semantic versioning requirements.
@@ -240,10 +245,12 @@ impl Session {
 
     /// Sets the Yarn version in the user toolchain to one matching the specified semantic versioning
     /// requirements.
-    pub fn set_user_yarn(&mut self, matching: &VersionSpec) -> Fallible<()> {
+    pub fn install_yarn(&mut self, matching: &VersionSpec) -> Fallible<()> {
         let inventory = self.inventory.get_mut()?;
         let config = self.config.get()?;
-        inventory.set_user_yarn(matching, config)
+        let version = inventory.fetch_yarn(matching, config)?.into_version();
+        self.toolchain.set_installed_yarn(version)?;
+        Ok(())
     }
 
     /// Returns the version of Yarn matching the specified semantic versioning requirements

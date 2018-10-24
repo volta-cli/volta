@@ -168,6 +168,9 @@ pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
 //             AppData\
 //                 Local\
 //                     Notion\
+//                         tools\                      tools_dir
+//                             user\                   user_toolchain_dir
+//                                 platform.toml       user_platform_file
 //                         config.toml                 user_config_file
 //                         catalog.toml                user_catalog_file
 
@@ -188,6 +191,18 @@ fn local_data_root() -> Fallible<PathBuf> {
 
 pub fn user_config_file() -> Fallible<PathBuf> {
     Ok(local_data_root()?.join("config.toml"))
+}
+
+pub fn tools_dir() -> Fallible<PathBuf> {
+    Ok(local_data_root()?.join("tools"))
+}
+
+pub fn user_toolchain_dir() -> Fallible<PathBuf> {
+    Ok(tools_dir()?.join("user"))
+}
+
+pub fn user_platform_file() -> Fallible<PathBuf> {
+    Ok(user_toolchain_dir()?.join("platform.toml"))
 }
 
 pub fn user_catalog_file() -> Fallible<PathBuf> {

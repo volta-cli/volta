@@ -60,6 +60,13 @@ cfg_if! {
 //             npm
 //             npx
 //             ...
+//         tools/                                          tools_dir
+//             inventory/
+//             staging/
+//             user/                                       user_toolchain_dir
+//                 bins/
+//                 installed/
+//                 platform.toml                           user_platform_file
 //         notion                                          notion_file
 //         launchbin                                       launchbin_file
 //         launchscript                                    launchscript_file
@@ -149,6 +156,18 @@ pub fn launchscript_file() -> Fallible<PathBuf> {
 
 pub fn user_config_file() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("config.toml"))
+}
+
+pub fn tools_dir() -> Fallible<PathBuf> {
+    Ok(notion_home()?.join("tools"))
+}
+
+pub fn user_toolchain_dir() -> Fallible<PathBuf> {
+    Ok(tools_dir()?.join("user"))
+}
+
+pub fn user_platform_file() -> Fallible<PathBuf> {
+    Ok(user_toolchain_dir()?.join("platform.toml"))
 }
 
 pub fn user_catalog_file() -> Fallible<PathBuf> {
