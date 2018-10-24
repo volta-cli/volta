@@ -188,27 +188,21 @@ fn print_file_info(file: fs::DirEntry, session: &Session, verbose: bool) -> Fall
 }
 
 fn create(_session: &Session, shim_name: String, _verbose: bool) -> Fallible<()> {
-    let result = shim::create(&shim_name)?;
-
-    if result == shim::ShimResult::AlreadyExists {
-        throw!(ShimAlreadyExistsError {
+    match shim::create(&shim_name)? {
+        shim::ShimResult::AlreadyExists => throw!(ShimAlreadyExistsError {
             name: shim_name,
-        });
+        }),
+        _ => Ok(()),
     }
-
-    Ok(())
 }
 
 fn delete(_session: &Session, shim_name: String, _verbose: bool) -> Fallible<()> {
-    let result = shim::delete(&shim_name)?;
-
-    if result == shim::ShimResult::DoesntExist {
-        throw!(ShimDoesntExistError {
+    match shim::delete(&shim_name)? {
+        shim::ShimResult::DoesntExist => throw!(ShimDoesntExistError {
             name: shim_name,
-        });
+        }),
+        _ => Ok(()),
     }
-
-    Ok(())
 }
 
 fn autoshim(session: &Session, maybe_path: Option<PathBuf>, _verbose: bool) -> Fallible<()> {
