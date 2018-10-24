@@ -7,8 +7,8 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use detect_indent;
-use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use image::Image;
+use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use semver::Version;
 use serde::Serialize;
 use serde_json;
@@ -68,24 +68,17 @@ impl Manifest {
 
     /// Returns the pinned verison of Yarn as a Version, if any.
     pub fn yarn(&self) -> Option<Version> {
-        self.platform()
-            .map(|t| t.yarn.clone())
-            .unwrap_or(None)
+        self.platform().map(|t| t.yarn.clone()).unwrap_or(None)
     }
 
     /// Returns the pinned verison of Yarn as a String, if any.
     pub fn yarn_str(&self) -> Option<String> {
-        self.platform()
-            .map(|t| t.yarn_str.clone())
-            .unwrap_or(None)
+        self.platform().map(|t| t.yarn_str.clone()).unwrap_or(None)
     }
 
     /// Writes the input ToolchainManifest to package.json, adding the "toolchain" key if
     /// necessary.
-    pub fn update_toolchain(
-        toolchain: serial::Image,
-        package_file: PathBuf,
-    ) -> Fallible<()> {
+    pub fn update_toolchain(toolchain: serial::Image, package_file: PathBuf) -> Fallible<()> {
         // parse the entire package.json file into a Value
         let file = File::open(&package_file).unknown()?;
         let mut v: serde_json::Value = serde_json::from_reader(file).unknown()?;

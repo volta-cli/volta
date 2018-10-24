@@ -203,8 +203,7 @@ impl Project {
     pub fn pin_yarn_in_toolchain(&self, yarn_version: Version) -> Fallible<()> {
         // update the toolchain yarn version
         if let Some(node_str) = self.manifest().node_str() {
-            let toolchain =
-                serial::Image::new(node_str.clone(), Some(yarn_version.to_string()));
+            let toolchain = serial::Image::new(node_str.clone(), Some(yarn_version.to_string()));
             Manifest::update_toolchain(toolchain, self.package_file())?;
             println!("Pinned yarn to version {} in package.json", yarn_version);
         } else {

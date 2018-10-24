@@ -50,38 +50,33 @@ impl Image {
 pub struct System;
 
 impl System {
-
     /// Produces a modified version of the current `PATH` environment variable that
     /// removes the Notion shims and binaries, to use for running system node and
     /// executables.
     pub fn path() -> Fallible<OsString> {
         let old_path = envoy::path().unwrap_or(envoy::Var::from(""));
 
-        let new_path = old_path
-            .split()
-            .remove(path::shim_dir()?)
-            .join()
-            .unknown()?;
+        let new_path = old_path.split().remove(path::shim_dir()?).join().unknown()?;
 
         Ok(new_path)
     }
-
 }
 
 #[cfg(test)]
 mod test {
 
     use super::*;
+    use semver::Version;
     use std;
     use std::path::PathBuf;
-    use semver::Version;
 
     #[cfg(windows)]
     use winfolder;
 
     fn notion_base() -> PathBuf {
         #[cfg(unix)]
-        return PathBuf::from(std::env::home_dir().expect("Could not get home directory")).join(".notion");
+        return PathBuf::from(std::env::home_dir().expect("Could not get home directory"))
+            .join(".notion");
 
         #[cfg(all(windows, target_arch = "x86"))]
         return winfolder::Folder::ProgramFiles.path().join("Notion");
@@ -131,7 +126,7 @@ mod test {
             node: v123.clone(),
             node_str: v123.to_string(),
             yarn: None,
-            yarn_str: None
+            yarn_str: None,
         };
 
         assert_eq!(
@@ -143,12 +138,15 @@ mod test {
             node: v123.clone(),
             node_str: v123.to_string(),
             yarn: Some(v457.clone()),
-            yarn_str: Some(v457.to_string())
+            yarn_str: Some(v457.to_string()),
         };
 
         assert_eq!(
             with_yarn_image.path().unwrap().into_string().unwrap(),
-            format!("{}:{}:/usr/bin:/blah:/doesnt/matter/bin", expected_node_bin, expected_yarn_bin),
+            format!(
+                "{}:{}:/usr/bin:/blah:/doesnt/matter/bin",
+                expected_node_bin, expected_yarn_bin
+            ),
         );
     }
 
@@ -187,7 +185,7 @@ mod test {
             node: v123.clone(),
             node_str: v123.to_string(),
             yarn: None,
-            yarn_str: None
+            yarn_str: None,
         };
 
         assert_eq!(
@@ -199,12 +197,15 @@ mod test {
             node: v123.clone(),
             node_str: v123.to_string(),
             yarn: Some(v457.clone()),
-            yarn_str: Some(v457.to_string())
+            yarn_str: Some(v457.to_string()),
         };
 
         assert_eq!(
             with_yarn_image.path().unwrap().into_string().unwrap(),
-            format!("{};{};C:\\\\somebin;D:\\\\ProbramFlies", expected_node_bin, expected_yarn_bin),
+            format!(
+                "{};{};C:\\\\somebin;D:\\\\ProbramFlies",
+                expected_node_bin, expected_yarn_bin
+            ),
         );
     }
 
@@ -213,15 +214,15 @@ mod test {
     fn test_system_path() {
         std::env::set_var(
             "PATH",
-            format!(
-                "{}:/usr/bin:/bin",
-                shim_dir().to_string_lossy()
-            ),
+            format!("{}:/usr/bin:/bin", shim_dir().to_string_lossy()),
         );
 
         let expected_path = String::from("/usr/bin:/bin");
 
-        assert_eq!(System::path().unwrap().into_string().unwrap(), expected_path);
+        assert_eq!(
+            System::path().unwrap().into_string().unwrap(),
+            expected_path
+        );
     }
 
     #[test]
@@ -241,7 +242,10 @@ mod test {
 
         let expected_path = String::from("C:\\\\somebin;D:\\\\ProbramFlies");
 
-        assert_eq!(System::path().unwrap().into_string().unwrap(), expected_path);
+        assert_eq!(
+            System::path().unwrap().into_string().unwrap(),
+            expected_path
+        );
     }
 
 }

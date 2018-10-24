@@ -1,6 +1,6 @@
 use hamcrest2::core::Matcher;
-use test_support::matchers::execs;
 use support::sandbox::sandbox;
+use test_support::matchers::execs;
 
 #[test]
 #[cfg(unix)]

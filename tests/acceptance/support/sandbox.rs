@@ -285,8 +285,10 @@ impl SandboxBuilder {
             .collect();
 
         // mock the HEAD request, which gets the file size
-        let head_mock = mock(method_name("HEAD"), Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()))
-            .with_header("Accept-Ranges", "bytes")
+        let head_mock = mock(
+            method_name("HEAD"),
+            Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()),
+        ).with_header("Accept-Ranges", "bytes")
             .with_body(&archive_file_mock)
             .create();
         self.root.mocks.push(head_mock);
@@ -294,15 +296,19 @@ impl SandboxBuilder {
         // mock the "Range: bytes" request, which gets the ISIZE value (last 4 bytes)
         // this will be interpreted as a packed integer value
         // (doesn't really matter - used for progress bar)
-        let range_mock = mock(method_name("GET"), Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()))
-            .match_header("Range", Matcher::Any)
+        let range_mock = mock(
+            method_name("GET"),
+            Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()),
+        ).match_header("Range", Matcher::Any)
             .with_body("1234")
             .create();
         self.root.mocks.push(range_mock);
 
         // mock the file download
-        let file_mock = mock(method_name("GET"), Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()))
-            .match_header("Range", Matcher::Missing)
+        let file_mock = mock(
+            method_name("GET"),
+            Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()),
+        ).match_header("Range", Matcher::Missing)
             .with_body(&archive_file_mock)
             .create();
         self.root.mocks.push(file_mock);

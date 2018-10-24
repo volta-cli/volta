@@ -127,7 +127,7 @@ impl Session {
                     node,
                     node_str,
                     yarn: Some(yarn),
-                    yarn_str: Some(yarn_str)
+                    yarn_str: Some(yarn_str),
                 })));
             }
 
@@ -135,7 +135,7 @@ impl Session {
                 node,
                 node_str,
                 yarn: None,
-                yarn_str: None
+                yarn_str: None,
             })));
         }
         Ok(None)
