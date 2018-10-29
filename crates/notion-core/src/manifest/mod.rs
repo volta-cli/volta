@@ -45,10 +45,23 @@ pub struct Manifest {
 impl Manifest {
     /// Loads and parses a Node manifest for the project rooted at the specified path.
     pub fn for_dir(project_root: &Path) -> Fallible<Manifest> {
-        let file = File::open(project_root.join("package.json"))
-            .with_context(PackageReadError::from_io_error)?;
-        let serial: serial::Manifest = serde_json::de::from_reader(file).unknown()?;
-        serial.into_manifest()
+        let maybe_file = File::open(project_root.join("package.json"));
+
+        match maybe_file {
+            Ok(file) => {
+                let serial: serial::Manifest = serde_json::de::from_reader(file).unknown()?;
+                serial.into_manifest()
+            },
+            Err(error) => {
+                if project_root.is_dir() {
+                    throw!(PackageReadError::from_io_error(&error));
+                }
+
+                throw!(PackageReadError {
+                    error: format!("directory does not exist: {}", project_root.to_string_lossy().into_owned()),
+                });
+            }
+        }
     }
 
     /// Returns a reference to the platform image specified by manifest, if any.

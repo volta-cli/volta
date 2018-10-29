@@ -203,7 +203,9 @@ impl Project {
                     }
                 },
                 Err(error) => {
-                    results.push(Result::Err(error))
+                    if !error.to_string().contains("directory does not exist") {
+                        results.push(Result::Err(error))
+                    }
                 },
             }
         }
