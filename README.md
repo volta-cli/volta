@@ -62,6 +62,14 @@ We use [Discord](https://discordapp.com/) for community discussion. You can use 
 
 Notion is intended to compile with all versions of Rust newer than 1.20.
 
+## Tests
+
+To run the tests in this repo, run the following:
+
+```
+cargo test --all --features mock-network
+```
+
 ## License
 
 Notion is licensed under a [BSD 2-clause license](https://github.com/notion-cli/notion/blob/master/LICENSE).
