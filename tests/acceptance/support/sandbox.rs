@@ -320,7 +320,9 @@ impl SandboxBuilder {
 
         // make sure these directories exist
         ok_or_panic!{ fs::create_dir_all(node_cache_dir()) };
-        ok_or_panic!{ fs::create_dir_all(yarn_cache_dir()) };
+        ok_or_panic!{ fs::create_dir_all(node_inventory_dir()) };
+        ok_or_panic!{ fs::create_dir_all(package_inventory_dir()) };
+        ok_or_panic!{ fs::create_dir_all(yarn_inventory_dir()) };
         ok_or_panic!{ fs::create_dir_all(notion_tmp_dir()) };
 
         // write node and yarn caches
@@ -362,6 +364,21 @@ fn notion_bin_dir() -> PathBuf {
 fn notion_postscript() -> PathBuf {
     notion_tmp_dir().join("notion_tmp_1234.sh")
 }
+fn notion_tools_dir() -> PathBuf {
+    notion_home().join("tools")
+}
+fn inventory_dir() -> PathBuf {
+    notion_tools_dir().join("inventory")
+}
+fn node_inventory_dir() -> PathBuf {
+    inventory_dir().join("node")
+}
+fn yarn_inventory_dir() -> PathBuf {
+    inventory_dir().join("yarn")
+}
+fn package_inventory_dir() -> PathBuf {
+    inventory_dir().join("package")
+}
 #[cfg(unix)]
 fn cache_dir() -> PathBuf {
     notion_home().join("cache")
@@ -372,9 +389,6 @@ fn cache_dir() -> PathBuf {
 }
 fn node_cache_dir() -> PathBuf {
     cache_dir().join("node")
-}
-fn yarn_cache_dir() -> PathBuf {
-    cache_dir().join("yarn")
 }
 fn node_index_file() -> PathBuf {
     node_cache_dir().join("index.json")

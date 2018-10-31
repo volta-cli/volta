@@ -36,12 +36,12 @@ pub struct NodeDistro {
     version: Version,
 }
 
-/// Check if the cached file is valid. It may have been corrupted or interrupted in the middle of
+/// Check if the fetched file is valid. It may have been corrupted or interrupted in the middle of
 /// downloading.
 // ISSUE(#134) - verify checksum
-fn cache_is_valid(cache_file: &PathBuf) -> bool {
-    if cache_file.is_file() {
-        if let Ok(file) = File::open(cache_file) {
+fn distro_is_valid(file: &PathBuf) -> bool {
+    if file.is_file() {
+        if let Ok(file) = File::open(file) {
             match node_archive::load(file) {
                 Ok(_) => return true,
                 Err(_) => return false,
@@ -67,22 +67,22 @@ impl Distro for NodeDistro {
     /// Provision a Node distribution from a remote distributor.
     fn remote(version: Version, url: &str) -> Fallible<Self> {
         let archive_file = path::node_archive_file(&version.to_string());
-        let cache_file = path::node_cache_dir()?.join(&archive_file);
+        let distro_file = path::node_inventory_dir()?.join(&archive_file);
 
-        if cache_is_valid(&cache_file) {
-            return NodeDistro::cached(version, File::open(cache_file).unknown()?);
+        if distro_is_valid(&distro_file) {
+            return NodeDistro::local(version, File::open(distro_file).unknown()?);
         }
 
-        ensure_containing_dir_exists(&cache_file)?;
+        ensure_containing_dir_exists(&distro_file)?;
         Ok(NodeDistro {
-            archive: node_archive::fetch(url, &cache_file)
+            archive: node_archive::fetch(url, &distro_file)
                 .with_context(DownloadError::for_version(version.to_string()))?,
             version: version,
         })
     }
 
     /// Provision a Node distribution from the filesystem.
-    fn cached(version: Version, file: File) -> Fallible<Self> {
+    fn local(version: Version, file: File) -> Fallible<Self> {
         Ok(NodeDistro {
             archive: node_archive::load(file).unknown()?,
             version: version,

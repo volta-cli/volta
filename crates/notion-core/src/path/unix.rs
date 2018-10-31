@@ -44,10 +44,8 @@ cfg_if! {
 //     .notion/
 //         cache/                                          cache_dir
 //             node/                                       node_cache_dir
-//                 node-dist-v4.8.4-linux-x64.tar.gz       archive_file("4.8.4")
-//                 node-dist-v6.11.3-linux-x64.tar.gz
-//                 node-dist-v8.6.0-linux-x64.tar.gz
-//                 ...
+//                 index.json                              node_index_file
+//                 index.json.expires                      node_index_expiry_file
 //         versions/                                       versions_dir
 //             node/                                       node_versions_dir
 //                 4.8.4/                                  node_version_dir("4.8.4")
@@ -61,7 +59,14 @@ cfg_if! {
 //             npx
 //             ...
 //         tools/                                          tools_dir
-//             inventory/
+//             inventory/                                  inventory_dir
+//                 node/                                   node_inventory_dir
+//                     node-dist-v4.8.4-linux-x64.tar.gz   node_archive_file("4.8.4")
+//                     node-dist-v6.11.3-linux-x64.tar.gz
+//                     node-dist-v8.6.0-linux-x64.tar.gz
+//                     ...
+//                 packages                                package_inventory_dir
+//                 yarn                                    yarn_inventory_dir
 //             staging/
 //             user/                                       user_toolchain_dir
 //                 bins/
@@ -82,11 +87,20 @@ pub fn cache_dir() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("cache"))
 }
 
+pub fn node_inventory_dir() -> Fallible<PathBuf> {
+    Ok(inventory_dir()?.join("node"))
+}
+
+pub fn yarn_inventory_dir() -> Fallible<PathBuf> {
+    Ok(inventory_dir()?.join("yarn"))
+}
+
+pub fn package_inventory_dir() -> Fallible<PathBuf> {
+    Ok(inventory_dir()?.join("packages"))
+}
+
 pub fn node_cache_dir() -> Fallible<PathBuf> {
     Ok(cache_dir()?.join("node"))
-}
-pub fn yarn_cache_dir() -> Fallible<PathBuf> {
-    Ok(cache_dir()?.join("yarn"))
 }
 
 pub fn node_index_file() -> Fallible<PathBuf> {
@@ -162,6 +176,10 @@ pub fn tools_dir() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("tools"))
 }
 
+pub fn inventory_dir() -> Fallible<PathBuf> {
+    Ok(tools_dir()?.join("inventory"))
+}
+
 pub fn user_toolchain_dir() -> Fallible<PathBuf> {
     Ok(tools_dir()?.join("user"))
 }
@@ -170,6 +188,7 @@ pub fn user_platform_file() -> Fallible<PathBuf> {
     Ok(user_toolchain_dir()?.join("platform.toml"))
 }
 
+// FIXME: delete this
 pub fn user_catalog_file() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("catalog.toml"))
 }

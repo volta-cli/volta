@@ -1,4 +1,4 @@
-//! Provides types for fetching tool distributions into the Notion catalog.
+//! Provides types for fetching tool distributions into the local inventory.
 
 mod error;
 pub mod node;
@@ -41,7 +41,7 @@ pub trait Distro: Sized {
     fn remote(version: Version, url: &str) -> Fallible<Self>;
 
     /// Provision a distribution from the filesystem.
-    fn cached(version: Version, file: File) -> Fallible<Self>;
+    fn local(version: Version, file: File) -> Fallible<Self>;
 
     /// Produces a reference to this distro's Tool version.
     fn version(&self) -> &Version;
