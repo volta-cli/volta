@@ -67,14 +67,14 @@ Options:
             arg_version,
         }: Args,
     ) -> Fallible<Self> {
-        match &arg_tool[..] {
-            "node" => Ok(Use::Node(VersionSpec::parse(&arg_version)?)),
-            "yarn" => Ok(Use::Yarn(VersionSpec::parse(&arg_version)?)),
-            ref tool => Ok(Use::Other {
+        Ok(match &arg_tool[..] {
+            "node" => Use::Node(VersionSpec::parse(&arg_version)?),
+            "yarn" => Use::Yarn(VersionSpec::parse(&arg_version)?),
+            ref tool => Use::Other {
                 name: tool.to_string(),
                 version: VersionSpec::parse(&arg_version)?,
-            }),
-        }
+            },
+        })
     }
 
     fn run(self, session: &mut Session) -> Fallible<()> {

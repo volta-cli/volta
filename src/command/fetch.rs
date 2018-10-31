@@ -42,16 +42,16 @@ Options:
             arg_version,
         }: Args,
     ) -> Fallible<Self> {
-        match &arg_tool[..] {
-            "node" => Ok(Fetch::Node(VersionSpec::parse(&arg_version)?)),
-            "yarn" => Ok(Fetch::Yarn(VersionSpec::parse(&arg_version)?)),
+        Ok(match &arg_tool[..] {
+            "node" => Fetch::Node(VersionSpec::parse(&arg_version)?),
+            "yarn" => Fetch::Yarn(VersionSpec::parse(&arg_version)?),
             ref tool => {
                 throw!(CliParseError {
                     usage: None,
                     error: format!("no such tool: `{}`", tool),
                 });
             }
-        }
+        })
     }
 
     fn run(self, session: &mut Session) -> Fallible<()> {
