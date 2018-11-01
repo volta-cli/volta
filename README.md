@@ -70,6 +70,18 @@ To run the tests in this repo, run the following:
 cargo test --all --features mock-network
 ```
 
+When running tests in CI we also check that code formatting matches the
+`rustfmt` generated style, follow the steps in the Formatting section below to
+avoid issue.
+
+## Formatting
+
+To ensure your code is formatted correctly, run the following:
+
+```
+./dev/unix/rustfmt.sh
+```
+
 ## License
 
 Notion is licensed under a [BSD 2-clause license](https://github.com/notion-cli/notion/blob/master/LICENSE).
