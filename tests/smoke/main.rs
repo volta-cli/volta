@@ -25,9 +25,3 @@ cfg_if! {
         mod autodownload;
     }
 }
-
-// TODO:
-// mod auto-download-yarn
-// mod autoshim
-// mod user-tools
-// mod project-tools
