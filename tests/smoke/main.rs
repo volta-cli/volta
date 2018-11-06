@@ -19,7 +19,7 @@ mod support;
 // test files
 
 cfg_if! {
-    if #[cfg(feature = "smoke-tests")] {
+    if #[cfg(all(unix, feature = "smoke-tests"))] {
         mod notion_fetch;
         mod notion_install;
         mod autodownload;
