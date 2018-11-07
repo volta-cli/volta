@@ -1,3 +1,11 @@
+/// Smoke tests for Notion, that will be run in CI.
+///
+/// To run these locally:
+/// (CAUTION: this will destroy the Notion installation on the system where this is run)
+///
+/// ```
+/// cargo test --test smoke --features smoke-tests -- --test-threads 1
+/// ```
 #[macro_use]
 extern crate cfg_if;
 extern crate envoy;

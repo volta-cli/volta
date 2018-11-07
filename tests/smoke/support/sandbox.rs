@@ -1,12 +1,11 @@
 use std::env;
 use std::ffi::{OsStr, OsString};
 use std::fs::File;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 use envoy;
 
-// TODO - for paths to things
 use notion_core::path;
 
 use test_support::{self, paths, paths::PathExt, process::ProcessBuilder};
@@ -174,6 +173,46 @@ impl Sandbox {
         split_and_add_args(&mut p, cmd);
         p
     }
+
+    /// Verify that the input Node version has been fetched.
+    pub fn node_version_is_fetched(&self, version: &str) -> bool {
+        let archive_file = path::node_archive_file(version);
+        let cache_dir = ok_or_panic!{ path::node_cache_dir() };
+        cache_dir.join(archive_file).exists()
+    }
+
+    /// Verify that the input Node version has been unpacked.
+    pub fn node_version_is_unpacked(&self, version: &str) -> bool {
+        let unpack_dir = ok_or_panic!{ path::node_version_dir(version) };
+        unpack_dir.exists()
+    }
+
+    /// Verify that the input Node version has been installed.
+    pub fn node_version_is_installed(&self, version: &str) -> bool {
+        let user_catalog = ok_or_panic!{ path::user_catalog_file() };
+        let catalog_contents = read_file_to_string(user_catalog);
+        catalog_contents.contains(format!("[node]\ndefault = '{}'", version).as_str())
+    }
+
+    /// Verify that the input Yarn version has been fetched.
+    pub fn yarn_version_is_fetched(&self, version: &str) -> bool {
+        let archive_file = path::yarn_archive_file(version);
+        let cache_dir = ok_or_panic!{ path::yarn_cache_dir() };
+        cache_dir.join(archive_file).exists()
+    }
+
+    /// Verify that the input Yarn version has been unpacked.
+    pub fn yarn_version_is_unpacked(&self, version: &str) -> bool {
+        let unpack_dir = ok_or_panic!{ path::yarn_version_dir(version) };
+        unpack_dir.exists()
+    }
+
+    /// Verify that the input Yarn version has been installed.
+    pub fn yarn_version_is_installed(&self, version: &str) -> bool {
+        let user_catalog = ok_or_panic!{ path::user_catalog_file() };
+        let catalog_contents = read_file_to_string(user_catalog);
+        catalog_contents.contains(format!("[yarn]\ndefault = '{}'", version).as_str())
+    }
 }
 
 // Generates a sandboxed environment
@@ -216,4 +255,11 @@ fn split_and_add_args(p: &mut ProcessBuilder, s: &str) {
         }
         p.arg(arg);
     }
+}
+
+fn read_file_to_string(file_path: PathBuf) -> String {
+    let mut contents = String::new();
+    let mut file = ok_or_panic!{ File::open(file_path) };
+    ok_or_panic!{ file.read_to_string(&mut contents) };
+    contents
 }

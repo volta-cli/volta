@@ -8,11 +8,12 @@ fn fetch_node() {
         .build();
 
     assert_that!(
-        s.notion("fetch node 9"),
+        s.notion("fetch node 10.4.1"),
         execs()
             .with_status(0)
     );
-    // TODO: more asserts about where things are downloaded
+    assert_eq!(s.node_version_is_fetched("10.4.1"), true);
+    assert_eq!(s.node_version_is_unpacked("10.4.1"), true);
 }
 
 #[test]
@@ -21,9 +22,10 @@ fn fetch_yarn() {
         .build();
 
     assert_that!(
-        s.notion("fetch yarn 1.10"),
+        s.notion("fetch yarn 1.10.1"),
         execs()
             .with_status(0)
     );
-    // TODO: more asserts about where things are downloaded
+    assert_eq!(s.yarn_version_is_fetched("1.10.1"), true);
+    assert_eq!(s.yarn_version_is_unpacked("1.10.1"), true);
 }
