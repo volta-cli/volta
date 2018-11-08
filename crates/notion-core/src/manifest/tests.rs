@@ -1,6 +1,6 @@
 use manifest::Manifest;
 use semver::Version;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 fn fixture_path(fixture_dir: &str) -> PathBuf {
@@ -54,6 +54,20 @@ fn gets_dev_dependencies() {
     );
     expected_deps.insert("eslint".to_string(), "~4.8.0".to_string());
     assert_eq!(dev_dependencies, expected_deps);
+}
+
+#[test]
+fn gets_merged_dependencies() {
+    let project_path = fixture_path("basic");
+    let test_manifest = Manifest::for_dir(&project_path).expect("Could not get manifest");
+
+    let all_deps = test_manifest.merged_dependencies();
+    let mut expected_deps = HashSet::new();
+    expected_deps.insert("@namespace/some-dep".to_string());
+    expected_deps.insert("rsvp".to_string());
+    expected_deps.insert("@namespaced/something-else".to_string());
+    expected_deps.insert("eslint".to_string());
+    assert_eq!(all_deps, expected_deps);
 }
 
 #[test]

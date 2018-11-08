@@ -8,6 +8,7 @@ repository = "https://github.com/notion-cli/notion"
 [features]
 universal-docs = ["notion-core/universal-docs"]
 mock-network = ["mockito", "notion-core/mock-network"]
+notion-dev = []
 
 [[bin]]
 name = "notion"

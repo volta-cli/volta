@@ -1,7 +1,7 @@
 //! Provides the `Project` type, which represents a Node project tree in
 //! the filesystem.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::env;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
@@ -14,6 +14,7 @@ use manifest::Manifest;
 use manifest::serial;
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use semver::Version;
+use shim;
 
 fn is_node_root(dir: &Path) -> bool {
     dir.join("package.json").is_file()
@@ -148,37 +149,35 @@ impl Project {
         Ok(false)
     }
 
-    /// Gets the names of all the direct dependencies of the current project
-    fn all_dependencies(&self) -> Fallible<HashSet<String>> {
-        let manifest = Manifest::for_dir(&self.project_root)?;
-        let mut dependencies = HashSet::new();
-        for (name, _version) in manifest.dependencies.iter() {
-            dependencies.insert(name.clone());
+    /// Automatically shim the binaries of all direct dependencies of this project and
+    /// return a vector of any errors which occurred while doing so.
+    pub fn autoshim(&self) -> Vec<NotionError> {
+        let dependent_binaries = self.dependent_binary_names_fault_tolerant();
+        let mut errors = Vec::new();
+
+        for result in dependent_binaries {
+            match result {
+                Ok(name) => {
+                    if let Err(error) = shim::create(&name) {
+                        errors.push(error);
+                    }
+                },
+                Err(error) => errors.push(error),
+            }
         }
-        for (name, _version) in manifest.dev_dependencies.iter() {
-            dependencies.insert(name.clone());
-        }
-        Ok(dependencies)
+
+        errors
     }
 
     /// Returns a mapping of the names to paths for all the binaries installed
     /// by direct dependencies of the current project.
     fn dependent_binaries(&self) -> Fallible<HashMap<String, String>> {
         let mut dependent_bins = HashMap::new();
-        let all_deps = self.all_dependencies()?;
-        // convert dependency names to the path to each project
-        let all_dep_paths = all_deps
-            .iter()
-            .map(|dep_name| {
-                let mut path_to_pkg = PathBuf::from(&self.project_root);
-                path_to_pkg.push("node_modules");
-                path_to_pkg.push(dep_name);
-                path_to_pkg
-            })
-            .collect::<HashSet<PathBuf>>();
+        let all_deps = Manifest::for_dir(&self.project_root)?.merged_dependencies();
+        let all_dep_paths = all_deps.iter().map(|name| self.get_dependency_path(name));
 
         // use those project paths to get the "bin" info for each project
-        for pkg_path in all_dep_paths.iter() {
+        for pkg_path in all_dep_paths {
             let pkg_info =
                 Manifest::for_dir(&pkg_path).with_context(DepPackageReadError::from_error)?;
             let bin_map = pkg_info.bin;
@@ -187,6 +186,42 @@ impl Project {
             }
         }
         Ok(dependent_bins)
+    }
+
+    /// Gets the names of the binaries of all direct dependencies and returns them along
+    /// with any errors which occurred while doing so.
+    fn dependent_binary_names_fault_tolerant(&self) -> Vec<Fallible<String>> {
+        let mut results = Vec::new();
+        let dependencies = &self.manifest.merged_dependencies();
+        let dependency_paths = dependencies.iter().map(|name| self.get_dependency_path(name));
+
+        for dependency_path in dependency_paths {
+            match Manifest::for_dir(&dependency_path) {
+                Ok(dependency) => {
+                    for (name, _path) in dependency.bin {
+                        results.push(Result::Ok(name.clone()))
+                    }
+                },
+                Err(error) => {
+                    if !error.to_string().contains("directory does not exist") {
+                        results.push(Result::Err(error))
+                    }
+                },
+            }
+        }
+
+        results
+    }
+
+    /// Convert dependency names to the path to each project.
+    fn get_dependency_path(&self, name: &String) -> PathBuf {
+        // TODO(158): Add support for Yarn Plug'n'Play.
+        let mut path = PathBuf::from(&self.project_root);
+
+        path.push("node_modules");
+        path.push(name);
+
+        path
     }
 
     /// Writes the specified version of Node to the `toolchain.node` key in package.json.
@@ -218,8 +253,7 @@ impl Project {
 
 #[cfg(test)]
 pub mod tests {
-    use std::collections::HashMap;
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
     use std::ffi::OsStr;
     use std::path::PathBuf;
 
@@ -230,22 +264,6 @@ pub mod tests {
         cargo_manifest_dir.push("fixtures");
         cargo_manifest_dir.push(fixture_dir);
         cargo_manifest_dir
-    }
-
-    #[test]
-    fn gets_all_dependencies() {
-        let project_path = fixture_path("basic");
-        let test_project = Project::for_dir(&project_path).unwrap().unwrap();
-
-        let all_deps = test_project
-            .all_dependencies()
-            .expect("Could not get dependencies");
-        let mut expected_deps = HashSet::new();
-        expected_deps.insert("@namespace/some-dep".to_string());
-        expected_deps.insert("rsvp".to_string());
-        expected_deps.insert("@namespaced/something-else".to_string());
-        expected_deps.insert("eslint".to_string());
-        assert_eq!(all_deps, expected_deps);
     }
 
     #[test]
@@ -262,6 +280,33 @@ pub mod tests {
         expected_bins.insert("bin-1".to_string(), "./lib/cli.js".to_string());
         expected_bins.insert("bin-2".to_string(), "./lib/cli.js".to_string());
         assert_eq!(dep_bins, expected_bins);
+    }
+
+    #[test]
+    fn gets_binary_names() {
+        let project = Project::for_dir(&fixture_path("basic")).unwrap().unwrap();
+        let binary_names = project.dependent_binary_names_fault_tolerant();
+        let mut expected = HashSet::new();
+
+        expected.insert("eslint".to_string());
+        expected.insert("rsvp".to_string());
+        expected.insert("bin-1".to_string());
+        expected.insert("bin-2".to_string());
+
+        let mut iterator = binary_names.iter();
+        let mut actual = HashSet::new();
+
+        while let Some(fallible) = iterator.next() {
+            match fallible {
+                Ok(binary_name) => {
+                    actual.insert(binary_name.clone());
+                },
+
+                Err(error) => panic!("encountered error {:?}", error),
+            }
+        }
+
+        assert_eq!(actual, expected);
     }
 
     #[test]
@@ -284,5 +329,17 @@ pub mod tests {
         assert!(!test_project
             .has_direct_bin(&OsStr::new("tsserver"))
             .unwrap());
+    }
+
+    #[test]
+    fn maps_dependency_paths() {
+        let project_path = fixture_path("basic");
+        let test_project = Project::for_dir(&project_path).unwrap().unwrap();
+        let mut expected_path = PathBuf::from(project_path);
+
+        expected_path.push("node_modules");
+        expected_path.push("foo");
+
+        assert!(test_project.get_dependency_path(&"foo".to_string()) == expected_path);
     }
 }

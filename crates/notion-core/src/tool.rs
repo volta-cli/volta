@@ -5,7 +5,7 @@ use std::ffi::{OsStr, OsString};
 use std::io;
 use std::marker::Sized;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, ExitStatus};
 
 use notion_fail::{ExitCode, FailExt, Fallible, NotionError, NotionFail};
 use path;
@@ -86,10 +86,14 @@ pub trait Tool: Sized {
     /// Extracts the `Command` from this tool.
     fn command(self) -> Command;
 
+    /// Perform any tasks which must be run after the tool runs but before exiting.
+    fn finalize(_session: &Session, _maybe_status: &io::Result<ExitStatus>) {}
+
     /// Delegates the current process to this tool.
     fn exec(self, mut session: Session) -> ! {
         let mut command = self.command();
         let status = command.status();
+        Self::finalize(&session, &status);
         match status {
             Ok(status) if status.success() => {
                 session.add_event_end(ActivityKind::Tool, ExitCode::Success);
@@ -329,5 +333,18 @@ impl Tool for Yarn {
 
     fn command(self) -> Command {
         self.0
+    }
+
+    /// Perform any tasks which must be run after the tool runs but before exiting.
+    fn finalize(session: &Session, maybe_status: &io::Result<ExitStatus>) {
+        if let Ok(_) = maybe_status {
+            if let Some(project) = session.project() {
+                let errors = project.autoshim();
+
+                for error in errors {
+                    display_error(&error);
+                }
+            }
+        }
     }
 }

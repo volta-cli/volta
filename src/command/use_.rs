@@ -3,6 +3,7 @@
 // could consider something like `r#use` instead.
 
 use notion_core::session::{ActivityKind, Session};
+use notion_core::style::{display_error, display_unknown_error, ErrorContext};
 use notion_core::version::VersionSpec;
 use notion_fail::{ExitCode, Fallible, NotionFail};
 
@@ -85,6 +86,17 @@ Options:
             Use::Yarn(spec) => session.pin_yarn_version(&spec)?,
             Use::Other { name, .. } => throw!(NoCustomUseError::new(name)),
         };
+        if let Some(project) = session.project() {
+            let errors = project.autoshim();
+
+            for error in errors {
+                if error.is_user_friendly() {
+                    display_error(ErrorContext::Notion, &error);
+                } else {
+                    display_unknown_error(ErrorContext::Notion, &error);
+                }
+            }
+        }
         session.add_event_end(ActivityKind::Use, ExitCode::Success);
         Ok(())
     }

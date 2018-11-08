@@ -1,8 +1,10 @@
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::{ExitCode, Fallible};
 
-use command::{Command, CommandName, Config, Current, Deactivate, Fetch, Install, Shim, Use,
+use command::{Command, CommandName, Config, Current, Deactivate, Fetch, Install, Use,
               Version};
+#[cfg(feature = "notion-dev")]
+use command::Shim;
 use {CliParseError, Notion};
 
 #[derive(Debug, Deserialize)]
@@ -63,6 +65,7 @@ Options:
                 Help::Command(CommandName::Version) => Version::USAGE,
                 Help::Command(CommandName::Fetch) => Fetch::USAGE,
                 Help::Command(CommandName::Install) => Install::USAGE,
+                #[cfg(feature = "notion-dev")]
                 Help::Command(CommandName::Shim) => Shim::USAGE,
             }
         );

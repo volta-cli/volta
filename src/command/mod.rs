@@ -14,6 +14,7 @@ pub(crate) use self::deactivate::Deactivate;
 pub(crate) use self::fetch::Fetch;
 pub(crate) use self::help::Help;
 pub(crate) use self::install::Install;
+#[cfg(feature = "notion-dev")]
 pub(crate) use self::shim::Shim;
 pub(crate) use self::use_::Use;
 pub(crate) use self::version::Version;
@@ -38,6 +39,7 @@ pub(crate) enum CommandName {
     Config,
     Current,
     Deactivate,
+    #[cfg(feature = "notion-dev")]
     Shim,
     Help,
     Version,
@@ -55,6 +57,7 @@ impl Display for CommandName {
                 CommandName::Config => "config",
                 CommandName::Deactivate => "deactivate",
                 CommandName::Current => "current",
+                #[cfg(feature = "notion-dev")]
                 CommandName::Shim => "shim",
                 CommandName::Help => "help",
                 CommandName::Version => "version",
@@ -74,6 +77,7 @@ impl FromStr for CommandName {
             "config" => CommandName::Config,
             "current" => CommandName::Current,
             "deactivate" => CommandName::Deactivate,
+            #[cfg(feature = "notion-dev")]
             "shim" => CommandName::Shim,
             "help" => CommandName::Help,
             "version" => CommandName::Version,
