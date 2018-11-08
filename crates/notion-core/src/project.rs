@@ -215,7 +215,7 @@ impl Project {
 
     /// Convert dependency names to the path to each project.
     fn get_dependency_path(&self, name: &String) -> PathBuf {
-        // TODO(158): Add support for Yarn Plug'n'Play.
+        // ISSUE(158): Add support for Yarn Plug'n'Play.
         let mut path = PathBuf::from(&self.project_root);
 
         path.push("node_modules");
