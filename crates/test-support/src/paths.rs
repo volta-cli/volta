@@ -10,7 +10,6 @@ static NEXT_ID: AtomicUsize = ATOMIC_USIZE_INIT;
 
 thread_local!(static TASK_ID: usize = NEXT_ID.fetch_add(1, Ordering::SeqCst));
 
-
 // creates the root directory for the tests (once), and
 // initializes the root and home directories for the current task
 fn init() {
@@ -56,12 +55,15 @@ pub fn home() -> PathBuf {
     root().join("home")
 }
 
-enum Remove { File, Dir }
+enum Remove {
+    File,
+    Dir,
+}
 impl Remove {
     fn to_str(&self) -> &'static str {
         match *self {
             Remove::File => "remove file",
-            Remove::Dir => "remove dir"
+            Remove::Dir => "remove dir",
         }
     }
 
@@ -73,7 +75,7 @@ impl Remove {
         }
         match *self {
             Remove::File => fs::remove_file(path),
-            Remove::Dir => fs::remove_dir(path)
+            Remove::Dir => fs::remove_dir(path),
         }.unwrap_or_else(|e| {
             panic!("failed to {} {}: {}", self.to_str(), path.display(), e);
         })

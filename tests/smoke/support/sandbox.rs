@@ -73,7 +73,9 @@ impl SandboxBuilder {
     /// Add all directories from the current PATH (chainable)
     pub fn with_current_path(mut self) -> Self {
         let current_path = envoy::path().unwrap_or(envoy::Var::from(""));
-        current_path.split().for_each(|path| self.path_dirs.push(path));
+        current_path
+            .split()
+            .for_each(|path| self.path_dirs.push(path));
         self
     }
 
@@ -86,15 +88,15 @@ impl SandboxBuilder {
         self.root.root().mkdir_p();
 
         // make sure these directories exist and are empty
-        ok_or_panic!( path::cache_dir() ).ensure_empty();
-        ok_or_panic!( path::versions_dir() ).ensure_empty();
-        ok_or_panic!( path::shim_dir() ).ensure_empty();
+        ok_or_panic!(path::cache_dir()).ensure_empty();
+        ok_or_panic!(path::versions_dir()).ensure_empty();
+        ok_or_panic!(path::shim_dir()).ensure_empty();
         // and these files do not exist
-        ok_or_panic!( path::notion_file() ).rm();
-        ok_or_panic!( path::launchbin_file() ).rm();
-        ok_or_panic!( path::launchscript_file() ).rm();
-        ok_or_panic!( path::user_config_file() ).rm();
-        ok_or_panic!( path::user_catalog_file() ).rm();
+        ok_or_panic!(path::notion_file()).rm();
+        ok_or_panic!(path::launchbin_file()).rm();
+        ok_or_panic!(path::launchscript_file()).rm();
+        ok_or_panic!(path::user_config_file()).rm();
+        ok_or_panic!(path::user_catalog_file()).rm();
 
         // write files
         for file_builder in self.files {

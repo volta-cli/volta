@@ -14,7 +14,10 @@ pub(crate) struct DownloadError {
 }
 
 impl DownloadError {
-    pub(crate) fn for_version(version: String, from_url: String) -> impl FnOnce(&failure::Error) -> DownloadError {
+    pub(crate) fn for_version(
+        version: String,
+        from_url: String,
+    ) -> impl FnOnce(&failure::Error) -> DownloadError {
         move |error| DownloadError {
             version: version,
             from_url: from_url,

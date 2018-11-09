@@ -5,7 +5,7 @@ use std::usize;
 
 use process::{ProcessBuilder, ProcessError};
 
-use hamcrest2::core::{Matcher, MatchResult};
+use hamcrest2::core::{MatchResult, Matcher};
 use serde_json::{self, Value};
 
 #[derive(Clone)]
@@ -725,4 +725,3 @@ fn substitute_macros(input: &str) -> String {
     }
     result
 }
-
