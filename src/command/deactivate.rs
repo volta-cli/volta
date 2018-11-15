@@ -46,7 +46,7 @@ Options:
                 let shell = CurrentShell::detect()?;
 
                 let postscript = match System::path()?.into_string() {
-                    Ok(path) => Postscript::Path(path),
+                    Ok(path) => Postscript::Deactivate(path),
                     Err(_) => unimplemented!(),
                 };
 
