@@ -41,13 +41,13 @@ and then follow the setup steps above.
 There's a sample `package.json` in this repo so just cd into the repo and run:
 
 ```sh
-$ node -e 'console.log(`this project uses node v${process.version}`)'
+$ node -e 'console.log(`this project uses node ${process.version}`)'
 Installing v6.11.3 [=============>           ]  50%
 this project uses node v6.11.3
-$ node -e 'console.log(`this project uses node v${process.version}`)'
+$ node -e 'console.log(`this project uses node ${process.version}`)'
 this project uses node v6.11.3
 $ notion uninstall 6.11.3
-$ node -e 'console.log(`this project uses node v${process.version}`)'
+$ node -e 'console.log(`this project uses node ${process.version}`)'
 Installing v6.11.3 [==================>      ]  76%
 this project uses node v6.11.3
 ```
