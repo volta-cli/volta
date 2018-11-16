@@ -1,6 +1,6 @@
 use hamcrest2::core::Matcher;
-use test_support::matchers::execs;
 use support::sandbox::sandbox;
+use test_support::matchers::execs;
 
 #[test]
 #[cfg(unix)]
@@ -15,6 +15,6 @@ fn deactivate_bash() {
 
     assert_eq!(
         s.read_postscript(),
-        "export PATH='/usr/bin:/usr/local/bin'\n",
+        "export PATH='/usr/bin:/usr/local/bin'\nunset NOTION_HOME\n",
     )
 }

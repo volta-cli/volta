@@ -15,7 +15,7 @@ mod bash;
 pub(crate) use self::bash::Bash;
 
 pub enum Postscript {
-    Path(String),
+    Deactivate(String),
     ToolVersion { tool: String, version: Version },
 }
 
@@ -107,14 +107,16 @@ pub mod tests {
         let bash = CurrentShell::from_str("bash").expect("Could not create bash shell");
 
         assert_eq!(
-            bash.compile_postscript(&Postscript::Path("some:path".to_string())),
-            "export PATH='some:path'\n"
+            bash.compile_postscript(&Postscript::Deactivate("some:path".to_string())),
+            "export PATH='some:path'\nunset NOTION_HOME\n"
         );
 
         // ISSUE(#99): proper escaping
         assert_eq!(
-            bash.compile_postscript(&Postscript::Path("/path:/with:/single'quotes'".to_string())),
-            "export PATH='/path:/with:/single'quotes''\n"
+            bash.compile_postscript(&Postscript::Deactivate(
+                "/path:/with:/single'quotes'".to_string()
+            )),
+            "export PATH='/path:/with:/single'quotes''\nunset NOTION_HOME\n"
         );
 
         assert_eq!(
