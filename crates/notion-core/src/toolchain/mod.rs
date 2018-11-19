@@ -5,6 +5,7 @@ use readext::ReadExt;
 use semver::Version;
 use toml;
 
+use distro::node::NodeVersion;
 use fs::touch;
 use image::Image;
 use path::user_platform_file;
@@ -27,14 +28,27 @@ impl Toolchain {
         })
     }
 
-    pub fn set_installed_node(&mut self, version: Version) -> Fallible<()> {
+    pub fn get_installed_node(&self) -> Option<NodeVersion> {
+        self.platform.as_ref().map(|ref platform| {
+            NodeVersion {
+                node: platform.node.clone(),
+                npm: platform.npm.clone()
+            }
+        })
+    }
+
+    pub fn set_installed_node(&mut self, version: NodeVersion) -> Fallible<()> {
         let mut dirty = false;
 
         if let &mut Some(ref mut platform) = &mut self.platform {
-            if platform.node != version {
-                let node_str = version.to_string();
-                platform.node = version;
+            if (platform.node != version.node) || (platform.npm != version.npm) {
+                let node_str = version.node.to_string();
+                platform.node = version.node;
                 platform.node_str = node_str;
+
+                let npm_str = version.npm.to_string();
+                platform.npm = version.npm;
+                platform.npm_str = npm_str;
                 dirty = true;
             }
         }
@@ -44,6 +58,10 @@ impl Toolchain {
         }
 
         Ok(())
+    }
+
+    pub fn get_installed_yarn(&self) -> Option<Version> {
+        self.platform.as_ref().and_then(|ref platform| { platform.yarn.clone() })
     }
 
     pub fn set_installed_yarn(&mut self, version: Version) -> Fallible<()> {

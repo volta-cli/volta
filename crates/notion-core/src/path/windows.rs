@@ -172,7 +172,6 @@ pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
 //                             user\                   user_toolchain_dir
 //                                 platform.toml       user_platform_file
 //                         config.toml                 user_config_file
-//                         catalog.toml                user_catalog_file
 
 fn local_data_root() -> Fallible<PathBuf> {
     // if this is sandboxed in CI, use the sandboxed AppData directory
@@ -203,10 +202,6 @@ pub fn user_toolchain_dir() -> Fallible<PathBuf> {
 
 pub fn user_platform_file() -> Fallible<PathBuf> {
     Ok(user_toolchain_dir()?.join("platform.toml"))
-}
-
-pub fn user_catalog_file() -> Fallible<PathBuf> {
-    Ok(local_data_root()?.join("catalog.toml"))
 }
 
 pub fn create_file_symlink(src: PathBuf, dst: PathBuf) -> Result<(), io::Error> {

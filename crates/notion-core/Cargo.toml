@@ -32,3 +32,4 @@ os_info = "1.1.0"
 detect-indent = { git = "https://github.com/stefanpenner/detect-indent-rs", branch = "master" }
 envoy = "0.1.3"
 mockito = { git = "https://github.com/lipanski/mockito", rev = "48c5a93bcf8cc434875ed8aed22bff9623cb1ff4", optional = true }
+regex = "1.0.6"

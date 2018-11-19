@@ -52,17 +52,19 @@ fn distro_is_valid(file: &PathBuf) -> bool {
 }
 
 impl Distro for YarnDistro {
+    type VersionDetails = Version;
+
     /// Provision a distribution from the public Yarn distributor (`https://yarnpkg.com`).
     fn public(version: Version) -> Fallible<Self> {
-        let archive_file = path::yarn_archive_file(&version.to_string());
-        let url = format!("{}/{}", public_yarn_server_root(), archive_file);
+        let distro_file_name = path::yarn_distro_file_name(&version.to_string());
+        let url = format!("{}/{}", public_yarn_server_root(), distro_file_name);
         YarnDistro::remote(version, &url)
     }
 
     /// Provision a distribution from a remote distributor.
     fn remote(version: Version, url: &str) -> Fallible<Self> {
-        let archive_file = path::yarn_archive_file(&version.to_string());
-        let distro_file = path::yarn_inventory_dir()?.join(&archive_file);
+        let distro_file_name = path::yarn_distro_file_name(&version.to_string());
+        let distro_file = path::yarn_inventory_dir()?.join(&distro_file_name);
 
         if distro_is_valid(&distro_file) {
             return YarnDistro::local(version, File::open(distro_file).unknown()?);
@@ -91,12 +93,12 @@ impl Distro for YarnDistro {
 
     /// Fetches this version of Yarn. (It is left to the responsibility of the `YarnCollection`
     /// to update its state after fetching succeeds.)
-    fn fetch(self, collection: &YarnCollection) -> Fallible<Fetched> {
+    fn fetch(self, collection: &YarnCollection) -> Fallible<Fetched<Version>> {
         if collection.contains(&self.version) {
             return Ok(Fetched::Already(self.version));
         }
 
-        let dest = path::yarn_versions_dir()?;
+        let dest = path::yarn_image_root_dir()?;
         let bar = progress_bar(
             Action::Fetching,
             &format!("v{}", self.version),
@@ -113,8 +115,8 @@ impl Distro for YarnDistro {
 
         let version_string = self.version.to_string();
         rename(
-            dest.join(path::yarn_archive_root_dir(&version_string)),
-            path::yarn_version_dir(&version_string)?,
+            dest.join(path::yarn_archive_root_dir_name(&version_string)),
+            path::yarn_image_dir(&version_string)?,
         ).unknown()?;
 
         bar.finish_and_clear();

@@ -1,6 +1,8 @@
 //! Provides functions for determining the paths of files and directories
 //! in a standard Notion layout.
 
+use std::path::{Path, PathBuf};
+
 cfg_if! {
     if #[cfg(feature = "universal-docs")] {
         #[doc(cfg(unix))]
@@ -19,19 +21,31 @@ cfg_if! {
     }
 }
 
-pub fn node_archive_file(version: &str) -> String {
-    format!("{}.{}", node_archive_root_dir(version), archive_extension())
+pub fn node_distro_file_name(version: &str) -> String {
+    format!("{}.{}", node_archive_root_dir_name(version), archive_extension())
 }
 
-pub fn node_archive_root_dir(version: &str) -> String {
+pub fn node_npm_version_file_name(version: &str) -> String {
+    format!("node-v{}-npm", version)
+}
+
+pub fn node_archive_root_dir_name(version: &str) -> String {
     format!("node-v{}-{}-{}", version, OS, ARCH)
 }
 
-pub fn yarn_archive_file(version: &str) -> String {
-    format!("{}.{}", yarn_archive_root_dir(version), archive_extension())
+pub fn node_archive_npm_package_json_path(version: &str) -> PathBuf {
+    Path::new(&node_archive_root_dir_name(version))
+        .join("lib")
+        .join("node_modules")
+        .join("npm")
+        .join("package.json")
 }
 
-pub fn yarn_archive_root_dir(version: &str) -> String {
+pub fn yarn_distro_file_name(version: &str) -> String {
+    format!("{}.{}", yarn_archive_root_dir_name(version), archive_extension())
+}
+
+pub fn yarn_archive_root_dir_name(version: &str) -> String {
     format!("yarn-v{}", version)
 }
 
@@ -43,7 +57,7 @@ pub mod tests {
     #[test]
     fn test_node_archive_file() {
         assert_eq!(
-            node_archive_file("1.2.3"),
+            node_distro_file_name("1.2.3"),
             format!("node-v1.2.3-{}-{}.{}", OS, ARCH, archive_extension())
         );
     }
@@ -51,7 +65,7 @@ pub mod tests {
     #[test]
     fn test_node_archive_root_dir() {
         assert_eq!(
-            node_archive_root_dir("1.2.3"),
+            node_archive_root_dir_name("1.2.3"),
             format!("node-v1.2.3-{}-{}", OS, ARCH)
         );
     }
@@ -59,13 +73,13 @@ pub mod tests {
     #[test]
     fn yarn_node_archive_file() {
         assert_eq!(
-            yarn_archive_file("1.2.3"),
+            yarn_distro_file_name("1.2.3"),
             format!("yarn-v1.2.3.{}", archive_extension())
         );
     }
 
     #[test]
     fn yarn_node_archive_root_dir() {
-        assert_eq!(yarn_archive_root_dir("1.2.3"), "yarn-v1.2.3".to_string());
+        assert_eq!(yarn_archive_root_dir_name("1.2.3"), "yarn-v1.2.3".to_string());
     }
 }

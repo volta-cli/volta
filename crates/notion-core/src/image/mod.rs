@@ -13,6 +13,10 @@ pub struct Image {
     pub node: Version,
     /// The pinned version of Node as a string.
     pub node_str: String,
+    /// The pinned version of npm, under the `toolchain.npm` key.
+    pub npm: Version,
+    /// The pinned version of npm as a string.
+    pub npm_str: String,
     /// The pinned version of Yarn, under the `toolchain.yarn` key.
     pub yarn: Option<Version>,
     /// The pinned version of Yarn as a string.
@@ -21,9 +25,9 @@ pub struct Image {
 
 impl Image {
     pub fn bins(&self) -> Fallible<Vec<PathBuf>> {
-        let mut bins = vec![path::node_version_bin_dir(&self.node_str)?];
+        let mut bins = vec![path::node_image_bin_dir(&self.node_str, &self.npm_str)?];
         if let Some(ref yarn_str) = self.yarn_str {
-            bins.push(path::yarn_version_bin_dir(yarn_str)?);
+            bins.push(path::yarn_image_bin_dir(yarn_str)?);
         }
         Ok(bins)
     }
@@ -111,14 +115,17 @@ mod test {
         );
 
         let node_bin = notion_base()
-            .join("versions")
+            .join("tools")
+            .join("image")
             .join("node")
             .join("1.2.3")
+            .join("6.4.3")
             .join("bin");
         let expected_node_bin = node_bin.as_path().to_str().unwrap();
 
         let yarn_bin = notion_base()
-            .join("versions")
+            .join("tools")
+            .join("image")
             .join("yarn")
             .join("4.5.7")
             .join("bin");
@@ -126,10 +133,13 @@ mod test {
 
         let v123 = Version::parse("1.2.3").unwrap();
         let v457 = Version::parse("4.5.7").unwrap();
+        let v643 = Version::parse("6.4.3").unwrap();
 
         let no_yarn_image = Image {
             node: v123.clone(),
             node_str: v123.to_string(),
+            npm: v643.clone(),
+            npm_str: v643.to_string(),
             yarn: None,
             yarn_str: None
         };
@@ -142,6 +152,8 @@ mod test {
         let with_yarn_image = Image {
             node: v123.clone(),
             node_str: v123.to_string(),
+            npm: v643.clone(),
+            npm_str: v643.to_string(),
             yarn: Some(v457.clone()),
             yarn_str: Some(v457.to_string())
         };

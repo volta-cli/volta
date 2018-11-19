@@ -2,28 +2,26 @@
 //! of available tool versions.
 
 use std::collections::{BTreeSet, HashSet};
-use std::fs::{remove_dir_all, File};
-use std::io::{self, Write};
+use std::fs::File;
+use std::io::Write;
 use std::marker::PhantomData;
 use std::str::FromStr;
 use std::string::ToString;
 use std::time::{Duration, SystemTime};
 
 use lazycell::LazyCell;
-use readext::ReadExt;
 use reqwest;
 use reqwest::header::{CacheControl, CacheDirective, Expires, HttpDate};
 use serde_json;
 use tempfile::NamedTempFile;
-use toml;
 
 use config::{Config, ToolConfig};
-use distro::node::NodeDistro;
+use distro::node::{NodeDistro, NodeVersion};
 use distro::yarn::YarnDistro;
 use distro::{Distro, Fetched};
-use fs::{ensure_containing_dir_exists, read_file_opt, touch};
+use fs::{ensure_containing_dir_exists, read_file_opt};
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
-use path::{self, user_catalog_file};
+use path;
 use semver::{Version, VersionReq};
 use style::progress_spinner;
 use version::VersionSpec;
@@ -86,9 +84,6 @@ impl LazyInventory {
 }
 
 pub struct Collection<D: Distro> {
-    /// The currently activated Node version, if any.
-    pub default: Option<Version>,
-
     // A sorted collection of the available versions in the inventory.
     pub versions: BTreeSet<Version>,
 
@@ -98,7 +93,7 @@ pub struct Collection<D: Distro> {
 pub type NodeCollection = Collection<NodeDistro>;
 pub type YarnCollection = Collection<YarnDistro>;
 
-/// The catalog of tool versions available locally.
+/// The inventory of locally available tool versions.
 pub struct Inventory {
     pub node: NodeCollection,
     pub yarn: YarnCollection,
@@ -107,106 +102,37 @@ pub struct Inventory {
 impl Inventory {
     /// Returns the current inventory.
     fn current() -> Fallible<Inventory> {
-        let path = user_catalog_file()?;
-        let src = touch(&path)?.read_into_string().unknown()?;
-        src.parse()
-    }
-
-    /// Returns a pretty-printed TOML representation of the contents of the inventory.
-    pub fn to_string(&self) -> String {
-        toml::to_string_pretty(&self.to_serial()).unwrap()
-    }
-
-    pub fn save(&self) -> Fallible<()> {
-        let path = user_catalog_file()?;
-        let mut file = File::create(&path).unknown()?;
-        file.write_all(self.to_string().as_bytes()).unknown()?;
-        Ok(())
+        Ok(Inventory {
+            node: NodeCollection::load()?,
+            yarn: YarnCollection::load()?,
+        })
     }
 
     /// Fetches a Node version matching the specified semantic versioning requirements.
-    pub fn fetch_node(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched> {
+    pub fn fetch_node(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<NodeVersion>> {
         let distro = self.node.resolve_remote(matching, config.node.as_ref())?;
         let fetched = distro.fetch(&self.node).unknown()?;
 
-        if let &Fetched::Now(ref version) = &fetched {
+        if let &Fetched::Now(NodeVersion { node: ref version, .. }) = &fetched {
             self.node.versions.insert(version.clone());
-            self.save()?;
         }
 
         Ok(fetched)
-    }
-
-    /// Resolves a Node version matching the specified semantic versioning requirements.
-    pub fn resolve_node(&self, matching: &VersionSpec, config: &Config) -> Fallible<Version> {
-        let distro = self.node.resolve_remote(&matching, config.node.as_ref())?;
-        Ok(distro.version().clone())
-    }
-
-    /// Uninstalls a specific Node version from the inventory.
-    pub fn uninstall_node(&mut self, version: &Version) -> Fallible<()> {
-        if self.node.contains(version) {
-            let home = path::node_version_dir(&version.to_string())?;
-
-            if !home.is_dir() {
-                Err(io::Error::new(
-                    io::ErrorKind::NotFound,
-                    format!("{} is not a directory", home.to_string_lossy()),
-                )).unknown()?;
-            }
-
-            remove_dir_all(home).unknown()?;
-
-            self.node.versions.remove(version);
-
-            self.save()?;
-        }
-
-        Ok(())
     }
 
     // ISSUE (#87) Abstract node vs yarn methods (fetch, etc)
     // ISSUE (#173) use Tool specs to do the abstracting
 
     /// Fetches a Yarn version matching the specified semantic versioning requirements.
-    pub fn fetch_yarn(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched> {
+    pub fn fetch_yarn(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<Version>> {
         let distro = self.yarn.resolve_remote(&matching, config.yarn.as_ref())?;
         let fetched = distro.fetch(&self.yarn).unknown()?;
 
         if let &Fetched::Now(ref version) = &fetched {
             self.yarn.versions.insert(version.clone());
-            self.save()?;
         }
 
         Ok(fetched)
-    }
-
-    /// Resolves a Yarn version matching the specified semantic versioning requirements.
-    pub fn resolve_yarn(&self, matching: &VersionSpec, config: &Config) -> Fallible<Version> {
-        let distro = self.yarn.resolve_remote(&matching, config.yarn.as_ref())?;
-        Ok(distro.version().clone())
-    }
-
-    /// Uninstalls a specific Yarn version from the inventory.
-    pub fn uninstall_yarn(&mut self, version: &Version) -> Fallible<()> {
-        if self.yarn.contains(version) {
-            let home = path::yarn_version_dir(&version.to_string())?;
-
-            if !home.is_dir() {
-                Err(io::Error::new(
-                    io::ErrorKind::NotFound,
-                    format!("{} is not a directory", home.to_string_lossy()),
-                )).unknown()?;
-            }
-
-            remove_dir_all(home).unknown()?;
-
-            self.yarn.versions.remove(version);
-
-            self.save()?;
-        }
-
-        Ok(())
     }
 }
 
@@ -283,10 +209,10 @@ impl Resolve<NodeDistro> for NodeCollection {
                 }
                 VersionSpec::Semver(ref matching) => {
                     // ISSUE #34: also make sure this OS is available for this version
-                    entries.find(|&(ref k, _)| matching.matches(k))
+                    entries.find(|&Entry { version: ref v, .. }| matching.matches(v))
                 }
             };
-            entry.map(|(k, _)| k)
+            entry.map(|Entry { version, .. }| version)
         };
 
         if let Some(version) = version_opt {
@@ -339,21 +265,18 @@ impl Resolve<YarnDistro> for YarnCollection {
 
 /// The index of the public Node server.
 pub struct Index {
-    entries: Vec<(Version, VersionData)>,
+    entries: Vec<Entry>,
+}
+
+pub struct Entry {
+    pub version: Version,
+    pub npm: Version,
+    pub files: NodeDistroFiles
 }
 
 /// The set of available files on the public Node server for a given Node version.
-pub struct VersionData {
+pub struct NodeDistroFiles {
     pub files: HashSet<String>,
-}
-
-impl FromStr for Inventory {
-    type Err = NotionError;
-
-    fn from_str(src: &str) -> Result<Self, Self::Err> {
-        let serial: serial::Catalog = toml::from_str(src).unknown()?;
-        Ok(serial.into_inventory()?)
-    }
 }
 
 /// Reads a public index from the Node cache, if it exists and hasn't expired.

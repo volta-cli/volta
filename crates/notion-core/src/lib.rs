@@ -12,6 +12,7 @@ extern crate lazycell;
 extern crate mockito;
 extern crate node_archive;
 extern crate readext;
+extern crate regex;
 extern crate reqwest;
 extern crate semver;
 extern crate serde_json;

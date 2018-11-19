@@ -62,6 +62,7 @@ pub struct Manifest {
 #[derive(Serialize, Deserialize)]
 pub struct Image {
     pub node: String,
+    pub npm: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub yarn: Option<String>,
 }
@@ -93,6 +94,8 @@ impl Manifest {
             return Ok(Some(image::Image {
                 node: VersionSpec::parse_version(&toolchain.node)?,
                 node_str: toolchain.node.clone(),
+                npm: VersionSpec::parse_version(&toolchain.npm)?,
+                npm_str: toolchain.npm.clone(),
                 yarn: if let Some(yarn) = &toolchain.yarn {
                     Some(VersionSpec::parse_version(&yarn)?)
                 } else {
@@ -106,9 +109,10 @@ impl Manifest {
 }
 
 impl Image {
-    pub fn new(node_version: String, yarn_version: Option<String>) -> Self {
+    pub fn new(node_version: String, npm_version: String, yarn_version: Option<String>) -> Self {
         Image {
             node: node_version,
+            npm: npm_version,
             yarn: yarn_version,
         }
     }
@@ -208,6 +212,7 @@ pub mod tests {
             "devDependencies": { "somethingElse": "1.2.3" },
             "toolchain": {
                 "node": "0.10.5",
+                "npm": "1.2.18",
                 "yarn": "1.2.1"
             },
             "bin": {
@@ -283,7 +288,8 @@ pub mod tests {
 
         let package_node_only = r#"{
             "toolchain": {
-                "node": "0.10.5"
+                "node": "0.10.5",
+                "npm": "1.2.18"
             }
         }"#;
         let manifest_node_only: Manifest =
@@ -304,6 +310,7 @@ pub mod tests {
         let package_node_and_yarn = r#"{
             "toolchain": {
                 "node": "0.10.5",
+                "npm": "1.2.18",
                 "yarn": "1.2.1"
             }
         }"#;

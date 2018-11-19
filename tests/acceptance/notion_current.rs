@@ -35,22 +35,6 @@ fn pinned_project() {
 }
 
 #[test]
-fn pinned_project_with_user_node_env() {
-    let s = sandbox()
-        .package_json(&package_json_with_pinned_node("1.7.19"))
-        .env("NOTION_NODE_VERSION", "2.18.5")
-        .build();
-
-    assert_that!(
-        s.notion("current"),
-        execs()
-            .with_status(0)
-            .with_stdout_contains("project: v1.7.19 (active)")
-            .with_stdout_contains("user: v2.18.5")
-    );
-}
-
-#[test]
 fn pinned_project_with_user_node_default() {
     let s = sandbox()
         .package_json(&package_json_with_pinned_node("1.7.19"))
@@ -84,21 +68,6 @@ fn unpinned_project() {
 }
 
 #[test]
-fn unpinned_project_with_user_node_env() {
-    let s = sandbox()
-        .package_json(BASIC_PACKAGE_JSON)
-        .env("NOTION_NODE_VERSION", "2.18.5")
-        .build();
-
-    assert_that!(
-        s.notion("current"),
-        execs()
-            .with_status(0)
-            .with_stdout_contains("user: v2.18.5 (active)")
-    );
-}
-
-#[test]
 fn unpinned_project_with_user_node_default() {
     let s = sandbox()
         .package_json(BASIC_PACKAGE_JSON)
@@ -127,18 +96,6 @@ fn no_project() {
         execs()
             .with_status(ExitCode::NoVersionMatch as i32)
             .with_stderr("error: no versions found")
-    );
-}
-
-#[test]
-fn no_project_with_user_node_env() {
-    let s = sandbox().env("NOTION_NODE_VERSION", "2.18.5").build();
-
-    assert_that!(
-        s.notion("current"),
-        execs()
-            .with_status(0)
-            .with_stdout_contains("user: v2.18.5 (active)")
     );
 }
 

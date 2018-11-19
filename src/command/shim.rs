@@ -265,7 +265,7 @@ fn resolve_node_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind
         return Ok(ShimKind::WillInstall(image.node.clone()));
     }
 
-    if let Some(user_version) = session.user_node()? {
+    if let Some(user_version) = session.user_node() {
         let mut bin_path = path::node_version_bin_dir(&user_version.to_string()).unknown()?;
         bin_path.push(&shim_name);
         return Ok(ShimKind::User(bin_path));
@@ -291,8 +291,8 @@ fn resolve_yarn_shims(session: &Session, shim_name: &OsStr) -> Fallible<ShimKind
         return Ok(ShimKind::NotInstalled);
     }
 
-    if let Some(ref default_version) = session.inventory()?.yarn.default {
-        let mut bin_path = path::yarn_version_bin_dir(&default_version.to_string()).unknown()?;
+    if let Some(ref user_yarn) = session.user_yarn() {
+        let mut bin_path = path::yarn_version_bin_dir(&user_yarn.to_string()).unknown()?;
         bin_path.push(&shim_name);
         return Ok(ShimKind::User(bin_path));
     }

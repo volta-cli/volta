@@ -2,12 +2,12 @@
 //! execution of a Notion tool, including their configuration, their current
 //! directory, and the state of the local inventory.
 
-use std::env::{self, VarError};
 use std::rc::Rc;
 
 use inventory::{Inventory, LazyInventory};
 use config::{Config, LazyConfig};
 use distro::Fetched;
+use distro::node::NodeVersion;
 use image::Image;
 use plugin::Publish;
 use project::Project;
@@ -18,7 +18,7 @@ use std::fmt::{self, Display, Formatter};
 use std::process::exit;
 
 use event::EventLog;
-use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
+use notion_fail::{ExitCode, Fallible, NotionError, NotionFail};
 use semver::Version;
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
@@ -120,15 +120,18 @@ impl Session {
     }
 
     pub fn user_platform(&mut self) -> Fallible<Option<Rc<Image>>> {
-        if let Some(node) = self.user_node()? {
+        if let Some(NodeVersion { node, npm }) = self.user_node() {
             let node_str = node.to_string();
+            let npm_str = npm.to_string();
 
-            if let Some(yarn) = self.user_yarn()? {
+            if let Some(yarn) = self.user_yarn() {
                 let yarn_str = yarn.to_string();
 
                 return Ok(Some(Rc::new(Image {
                     node,
                     node_str,
+                    npm,
+                    npm_str,
                     yarn: Some(yarn),
                     yarn_str: Some(yarn_str)
                 })));
@@ -137,6 +140,8 @@ impl Session {
             return Ok(Some(Rc::new(Image {
                 node,
                 node_str,
+                npm,
+                npm_str,
                 yarn: None,
                 yarn_str: None
             })));
@@ -186,17 +191,13 @@ impl Session {
         Ok(())
     }
 
-    pub fn user_node(&self) -> Fallible<Option<Version>> {
-        match env::var("NOTION_NODE_VERSION") {
-            Ok(s) => Ok(Some(Version::parse(&s[..]).unknown()?)),
-            Err(VarError::NotPresent) => Ok(self.inventory()?.node.default.clone()),
-            Err(VarError::NotUnicode(_)) => unimplemented!(),
-        }
+    pub fn user_node(&self) -> Option<NodeVersion> {
+        self.toolchain.get_installed_node().map(|ref nv| nv.clone())
     }
 
     /// Fetches a version of Node matching the specified semantic verisoning
     /// requirements.
-    pub fn fetch_node(&mut self, matching: &VersionSpec) -> Fallible<Fetched> {
+    pub fn fetch_node(&mut self, matching: &VersionSpec) -> Fallible<Fetched<NodeVersion>> {
         let inventory = self.inventory.get_mut()?;
         let config = self.config.get()?;
         inventory.fetch_node(matching, config)
@@ -212,18 +213,11 @@ impl Session {
         Ok(())
     }
 
-    /// Returns the version of Node matching the specified semantic versioning requirements.
-    pub fn get_matching_node(&self, matching: &VersionSpec) -> Fallible<Version> {
-        let inventory = self.inventory.get()?;
-        let config = self.config.get()?;
-        inventory.resolve_node(matching, config)
-    }
-
     /// Updates toolchain in package.json with the Node version matching the specified semantic
     /// versioning requirements.
-    pub fn pin_node_version(&self, matching: &VersionSpec) -> Fallible<()> {
+    pub fn pin_node_version(&mut self, matching: &VersionSpec) -> Fallible<()> {
         if let Some(ref project) = self.project() {
-            let node_version = self.get_matching_node(matching)?;
+            let node_version = self.fetch_node(matching)?.into_version();
             project.pin_node_in_toolchain(node_version)?;
         } else {
             throw!(NotInPackageError::new());
@@ -231,13 +225,13 @@ impl Session {
         Ok(())
     }
 
-    pub fn user_yarn(&mut self) -> Fallible<Option<Version>> {
-        Ok(self.inventory()?.yarn.default.clone())
+    pub fn user_yarn(&mut self) -> Option<Version> {
+        self.toolchain.get_installed_yarn().map(|ref v| v.clone())
     }
 
     /// Fetches a version of Node matching the specified semantic verisoning
     /// requirements.
-    pub fn fetch_yarn(&mut self, matching: &VersionSpec) -> Fallible<Fetched> {
+    pub fn fetch_yarn(&mut self, matching: &VersionSpec) -> Fallible<Fetched<Version>> {
         let inventory = self.inventory.get_mut()?;
         let config = self.config.get()?;
         inventory.fetch_yarn(matching, config)
@@ -253,18 +247,11 @@ impl Session {
         Ok(())
     }
 
-    /// Returns the version of Yarn matching the specified semantic versioning requirements
-    pub fn get_matching_yarn(&self, matching: &VersionSpec) -> Fallible<Version> {
-        let inventory = self.inventory.get()?;
-        let config = self.config.get()?;
-        inventory.resolve_yarn(matching, config)
-    }
-
     /// Updates toolchain in package.json with the Yarn version matching the specified semantic
     /// versioning requirements.
-    pub fn pin_yarn_version(&self, matching: &VersionSpec) -> Fallible<()> {
+    pub fn pin_yarn_version(&mut self, matching: &VersionSpec) -> Fallible<()> {
         if let Some(ref project) = self.project() {
-            let yarn_version = self.get_matching_yarn(matching)?;
+            let yarn_version = self.fetch_yarn(matching)?.into_version();
             project.pin_yarn_in_toolchain(yarn_version)?;
         } else {
             throw!(NotInPackageError::new());

@@ -1,6 +1,6 @@
 //! Provides utilities for operating on the filesystem.
 
-use std::fs::{self, create_dir_all, File};
+use std::fs::{self, create_dir_all, read_dir, DirEntry, File, Metadata};
 use std::io::{self, ErrorKind};
 use std::path::{Path, PathBuf};
 
@@ -59,4 +59,15 @@ pub fn read_file_opt(path: &PathBuf) -> io::Result<Option<String>> {
             _ => Err(error),
         },
     }
+}
+
+pub fn read_dir_eager(dir: &Path) -> Fallible<impl Iterator<Item = (DirEntry, Metadata)>> {
+    Ok(read_dir(dir).unknown()?
+        .map(|entry| {
+            let entry = entry.unknown()?;
+            let metadata = entry.metadata().unknown()?;
+            Ok((entry, metadata))
+        })
+        .collect::<Fallible<Vec<(DirEntry, Metadata)>>>()?
+        .into_iter())
 }

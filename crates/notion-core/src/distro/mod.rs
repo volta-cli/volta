@@ -10,23 +10,23 @@ use semver::Version;
 use std::fs::File;
 
 /// The result of a requested installation.
-pub enum Fetched {
+pub enum Fetched<V> {
     /// Indicates that the given tool was already installed.
-    Already(Version),
+    Already(V),
     /// Indicates that the given tool was not already installed but has now been installed.
-    Now(Version),
+    Now(V),
 }
 
-impl Fetched {
+impl<V> Fetched<V> {
     /// Consumes this value and produces the installed version.
-    pub fn into_version(self) -> Version {
+    pub fn into_version(self) -> V {
         match self {
             Fetched::Already(version) | Fetched::Now(version) => version,
         }
     }
 
     /// Produces a reference to the installed version.
-    pub fn version(&self) -> &Version {
+    pub fn version(&self) -> &V {
         match self {
             &Fetched::Already(ref version) | &Fetched::Now(ref version) => version,
         }
@@ -34,6 +34,8 @@ impl Fetched {
 }
 
 pub trait Distro: Sized {
+    type VersionDetails;
+
     /// Provision a distribution from the public distributor (e.g. `https://nodejs.org`).
     fn public(version: Version) -> Fallible<Self>;
 
@@ -48,5 +50,5 @@ pub trait Distro: Sized {
 
     /// Fetches this version of the Tool. (It is left to the responsibility of the `Collection`
     /// to update its state after fetching succeeds.)
-    fn fetch(self, catalog: &Collection<Self>) -> Fallible<Fetched>;
+    fn fetch(self, collection: &Collection<Self>) -> Fallible<Fetched<Self::VersionDetails>>;
 }
