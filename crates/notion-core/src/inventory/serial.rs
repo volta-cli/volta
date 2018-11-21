@@ -67,10 +67,10 @@ impl YarnCollection {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Index(Vec<Entry>);
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Entry {
     pub version: String,
     pub npm: Option<String>,

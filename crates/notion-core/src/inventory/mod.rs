@@ -268,6 +268,7 @@ pub struct Index {
     entries: Vec<Entry>,
 }
 
+#[derive(Debug)]
 pub struct Entry {
     pub version: Version,
     pub npm: Version,
@@ -275,6 +276,7 @@ pub struct Entry {
 }
 
 /// The set of available files on the public Node server for a given Node version.
+#[derive(Debug)]
 pub struct NodeDistroFiles {
     pub files: HashSet<String>,
 }
