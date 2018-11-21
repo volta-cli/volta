@@ -170,10 +170,10 @@ impl SandboxBuilder {
         self
     }
 
-    /// Set the catalog.toml for the sandbox (chainable)
-    pub fn catalog(mut self, contents: &str) -> Self {
+    /// Set the platform.toml for the sandbox (chainable)
+    pub fn platform(mut self, contents: &str) -> Self {
         self.files
-            .push(FileBuilder::new(user_catalog_file(), contents));
+            .push(FileBuilder::new(user_platform_file(), contents));
         self
     }
 
@@ -370,6 +370,9 @@ fn notion_tools_dir() -> PathBuf {
 fn inventory_dir() -> PathBuf {
     notion_tools_dir().join("inventory")
 }
+fn user_dir() -> PathBuf {
+    notion_tools_dir().join("user")
+}
 fn node_inventory_dir() -> PathBuf {
     inventory_dir().join("node")
 }
@@ -400,17 +403,8 @@ fn package_json_file(mut root: PathBuf) -> PathBuf {
     root.push("package.json");
     root
 }
-#[cfg(unix)]
-fn user_catalog_file() -> PathBuf {
-    notion_home().join("catalog.toml")
-}
-#[cfg(windows)]
-fn local_data_root() -> PathBuf {
-    home_dir().join("AppData").join("Local").join("Notion")
-}
-#[cfg(windows)]
-fn user_catalog_file() -> PathBuf {
-    local_data_root().join("catalog.toml")
+fn user_platform_file() -> PathBuf {
+    user_dir().join("platform.toml")
 }
 
 pub struct Sandbox {

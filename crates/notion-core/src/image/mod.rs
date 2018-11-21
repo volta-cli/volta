@@ -8,6 +8,7 @@ use notion_fail::{Fallible, ResultExt};
 use path;
 
 /// A platform image.
+#[derive(Debug)]
 pub struct Image {
     /// The pinned version of Node, under the `toolchain.node` key.
     pub node: Version,
