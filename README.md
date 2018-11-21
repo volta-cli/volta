@@ -38,7 +38,7 @@ and then follow the setup steps above.
 
 ## Demo
 
-There's a sample `package.json` in this repo so just cd into the repo and run:
+There's a sample `package.json` at `dev` directory of this repo so just cd into `dev` of the repo and run:
 
 ```sh
 $ node -e 'console.log(`this project uses node ${process.version}`)'
