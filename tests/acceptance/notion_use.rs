@@ -34,10 +34,10 @@ fn package_json_with_pinned_node_yarn(node_version: &str, yarn_version: &str) ->
 }
 
 const NODE_VERSION_INFO: &'static str = r#"[
-{"version":"v10.18.11","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]},
-{"version":"v10.13.12","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]},
-{"version":"v9.13.2","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]},
-{"version":"v8.8.923","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]}
+{"version":"v10.18.11","npm":"6.4.1","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]},
+{"version":"v10.13.12","npm":"6.4.1","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]},
+{"version":"v9.13.2","npm":"5.6.10","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]},
+{"version":"v8.8.923","npm":"5.4.27","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]}
 ]"#;
 
 #[test]
