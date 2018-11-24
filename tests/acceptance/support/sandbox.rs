@@ -132,6 +132,12 @@ pub struct SandboxBuilder {
     path_dirs: Vec<PathBuf>,
 }
 
+pub struct ArchiveFixture {
+    pub version: &'static str,
+    pub compressed_size: u32,
+    pub uncompressed_size: u32,
+}
+
 impl SandboxBuilder {
     /// Root of the project, ex: `/path/to/cargo/target/integration_test/t0/foo`
     pub fn root(&self) -> PathBuf {
@@ -209,47 +215,52 @@ impl SandboxBuilder {
         self
     }
 
-    /// Setup mocks to return info about the node archive file (chainable)
-    pub fn node_archive_mocks(mut self) -> Self {
+    pub fn node_archive_mock(mut self, fixture: &ArchiveFixture) -> Self {
         // ISSUE(#145): this should actually use a real http server instead of these mocks
 
-        // generate a "file" that is 200 bytes long
-        let mut rng = thread_rng();
-        let archive_file_mock: String = iter::repeat(())
-            .map(|()| rng.sample(Alphanumeric))
-            .take(200)
-            .collect();
+        let server_path = format!("/v{}/node-v{}-darwin-x64.tar.gz", fixture.version, fixture.version);
+        let fixture_path = format!("tests/fixtures/node-v{}-darwin-x64.tar.gz", fixture.version);
 
-        // mock the HEAD request, which gets the file size
-        let head_mock = mock(
-            method_name("HEAD"),
-            Matcher::Regex(r"^/v\d+.\d+.\d+/node-v\d+.\d+.\d+".to_string()),
-        ).with_header("Accept-Ranges", "bytes")
-            .with_body(&archive_file_mock)
+        let head_mock = mock("HEAD", &server_path[..])
+            .with_header("Accept-Ranges", "bytes")
+            // Workaround for https://github.com/lipanski/mockito/issues/52: the only way
+            // to get the right "Content-Length" header is to add the file to the body so
+            // Mockito computes the right file size.
+            .with_body_from_file(&fixture_path)
             .create();
         self.root.mocks.push(head_mock);
 
-        // mock the "Range: bytes" request, which gets the ISIZE value (last 4 bytes)
-        // this will be interpreted as a packed integer value
-        // (doesn't really matter - used for progress bar)
-        let range_mock = mock(
-            method_name("GET"),
-            Matcher::Regex(r"^/v\d+.\d+.\d+/node-v\d+.\d+.\d+".to_string()),
-        ).match_header("Range", Matcher::Any)
-            .with_body("1234")
+        // This can be abstracted when https://github.com/rust-lang/rust/issues/52963 lands.
+        let uncompressed_size_bytes: [u8; 4] = [
+            ((fixture.uncompressed_size & 0xff000000) >> 24) as u8,
+            ((fixture.uncompressed_size & 0x00ff0000) >> 16) as u8,
+            ((fixture.uncompressed_size & 0x0000ff00) >>  8) as u8,
+            ((fixture.uncompressed_size & 0x000000ff)      ) as u8
+        ];
+
+        let range_mock = mock("GET", &server_path[..])
+            .match_header("Range", Matcher::Any)
+            .with_header("Content-Length", "4")
+            .with_body(&uncompressed_size_bytes)
             .create();
         self.root.mocks.push(range_mock);
 
-        // mock the file download
-        let file_mock = mock(
-            method_name("GET"),
-            Matcher::Regex(r"^/v\d+.\d+.\d+/node-v\d+.\d+.\d+".to_string()),
-        ).match_header("Range", Matcher::Missing)
-            .with_body(&archive_file_mock)
+        let file_mock = mock("GET", &server_path[..])
+            .match_header("Range", Matcher::Missing)
+            .with_header("Content-Length", &format!("{}", fixture.compressed_size))
+            .with_body_from_file(&fixture_path)
             .create();
         self.root.mocks.push(file_mock);
 
         self
+    }
+
+    pub fn node_archive_mocks(self, fixtures: &[ArchiveFixture]) -> Self {
+        let mut this = self;
+        for fixture in fixtures {
+            this = this.node_archive_mock(fixture);
+        }
+        this
     }
 
     /// Setup mock to return the available yarn versions (chainable)
