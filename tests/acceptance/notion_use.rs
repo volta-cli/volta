@@ -1,24 +1,12 @@
 use hamcrest2::core::Matcher;
 use test_support::matchers::execs;
-use support::sandbox::{sandbox, ArchiveFixture};
+use support::sandbox::{sandbox, DistroMetadata, NodeFixture, YarnFixture};
 
 use notion_fail::ExitCode;
 
 const BASIC_PACKAGE_JSON: &'static str = r#"{
   "name": "test-package"
 }"#;
-
-fn package_json_with_pinned_node(version: &str) -> String {
-    format!(
-        r#"{{
-  "name": "test-package",
-  "toolchain": {{
-    "node": "{}"
-  }}
-}}"#,
-        version
-    )
-}
 
 fn package_json_with_pinned_node_npm(node: &str, npm: &str) -> String {
     format!(
@@ -34,47 +22,73 @@ fn package_json_with_pinned_node_npm(node: &str, npm: &str) -> String {
     )
 }
 
-fn package_json_with_pinned_node_yarn(node_version: &str, yarn_version: &str) -> String {
+fn package_json_with_pinned_node_npm_yarn(node_version: &str, npm_version: &str, yarn_version: &str) -> String {
     format!(
         r#"{{
   "name": "test-package",
   "toolchain": {{
     "node": "{}",
+    "npm": "{}",
     "yarn": "{}"
   }}
 }}"#,
-        node_version, yarn_version
+        node_version, npm_version, yarn_version
     )
 }
 
 const NODE_VERSION_INFO: &'static str = r#"[
-{"version":"v10.9.0","npm":"6.2.0","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]},
-{"version":"v9.11.2","npm":"5.6.0","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]},
-{"version":"v8.9.4","npm":"5.6.0","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]},
-{"version":"v6.11.1","npm":"3.10.10","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]}
+{"version":"v10.99.1040","npm":"6.2.26","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]},
+{"version":"v9.27.6","npm":"5.6.17","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]},
+{"version":"v8.9.10","npm":"5.6.7","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]},
+{"version":"v6.19.62","npm":"3.10.1066","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]}
 ]
 "#;
 
-const NODE_VERSION_FIXTURES: [ArchiveFixture; 4] = [
-    ArchiveFixture {
-        version: "10.9.0",
-        compressed_size: 16266798,
-        uncompressed_size: 0x00daaa03,
+const NODE_VERSION_FIXTURES: [DistroMetadata; 4] = [
+    DistroMetadata {
+        version: "10.99.1040",
+        compressed_size: 273,
+        uncompressed_size: 0x00280000,
     },
-    ArchiveFixture {
-        version: "9.11.2",
-        compressed_size: 16153641,
-        uncompressed_size: 0x0010ac03,
+    DistroMetadata {
+        version: "9.27.6",
+        compressed_size: 272,
+        uncompressed_size: 0x00280000,
     },
-    ArchiveFixture {
-        version: "8.9.4",
-        compressed_size: 16142777,
-        uncompressed_size: 0x0046ac03,
+    DistroMetadata {
+        version: "8.9.10",
+        compressed_size: 272,
+        uncompressed_size: 0x00280000,
     },
-    ArchiveFixture {
-        version: "6.11.1",
-        compressed_size: 11927174,
-        uncompressed_size: 0x001eb002,
+    DistroMetadata {
+        version: "6.19.62",
+        compressed_size: 273,
+        uncompressed_size: 0x00280000,
+    },
+];
+
+const YARN_VERSION_INFO: &'static str = r#"[ "1.2.42", "1.4.159", "1.7.71", "1.12.99" ]"#;
+
+const YARN_VERSION_FIXTURES: [DistroMetadata; 4] = [
+    DistroMetadata {
+        version: "1.12.99",
+        compressed_size: 178,
+        uncompressed_size: 0x00280000,
+    },
+    DistroMetadata {
+        version: "1.7.71",
+        compressed_size: 176,
+        uncompressed_size: 0x00280000,
+    },
+    DistroMetadata {
+        version: "1.4.159",
+        compressed_size: 177,
+        uncompressed_size: 0x00280000,
+    },
+    DistroMetadata {
+        version: "1.2.42",
+        compressed_size: 174,
+        uncompressed_size: 0x00280000,
     },
 ];
 
@@ -83,19 +97,19 @@ fn use_node() {
     let s = sandbox()
         .package_json(BASIC_PACKAGE_JSON)
         .node_available_versions(NODE_VERSION_INFO)
-        .node_archive_mocks(&NODE_VERSION_FIXTURES)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
         .build();
 
     assert_that!(
         s.notion("use node 6"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Pinned node to version 6.11.1 in package.json")
+            .with_stdout_contains("Pinned node to version 6.19.62 in package.json")
     );
 
     assert_eq!(
         s.read_package_json(),
-        package_json_with_pinned_node_npm("6.11.1", "3.10.10"),
+        package_json_with_pinned_node_npm("6.19.62", "3.10.1066"),
     )
 }
 
@@ -104,19 +118,19 @@ fn use_node_latest() {
     let s = sandbox()
         .package_json(BASIC_PACKAGE_JSON)
         .node_available_versions(NODE_VERSION_INFO)
-        .node_archive_mocks(&NODE_VERSION_FIXTURES)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
         .build();
 
     assert_that!(
         s.notion("use node latest"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Pinned node to version 10.9.0 in package.json")
+            .with_stdout_contains("Pinned node to version 10.99.1040 in package.json")
     );
 
     assert_eq!(
         s.read_package_json(),
-        package_json_with_pinned_node_npm("10.9.0", "6.2.0"),
+        package_json_with_pinned_node_npm("10.99.1040", "6.2.26"),
     )
 }
 
@@ -124,8 +138,8 @@ fn use_node_latest() {
 fn use_yarn_no_node() {
     let s = sandbox()
         .package_json(BASIC_PACKAGE_JSON)
-        .yarn_available_versions(r#"[ "1.0.0", "1.0.1", "1.2.0", "1.4.0", "1.9.2", "1.9.4" ]"#)
-        .yarn_archive_mocks()
+        .yarn_available_versions(YARN_VERSION_INFO)
+        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
         .build();
 
     assert_that!(
@@ -141,41 +155,41 @@ fn use_yarn_no_node() {
 #[test]
 fn use_yarn() {
     let s = sandbox()
-        .package_json(&package_json_with_pinned_node("1.2.3"))
-        .yarn_available_versions(r#"[ "1.0.0", "1.0.1", "1.2.0", "1.4.0", "1.9.2", "1.9.4" ]"#)
-        .yarn_archive_mocks()
+        .package_json(&package_json_with_pinned_node_npm("1.2.3", "1.0.7"))
+        .yarn_available_versions(YARN_VERSION_INFO)
+        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
         .build();
 
     assert_that!(
         s.notion("use yarn 1.4"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Pinned yarn to version 1.4.0 in package.json")
+            .with_stdout_contains("Pinned yarn to version 1.4.159 in package.json")
     );
 
     assert_eq!(
         s.read_package_json(),
-        package_json_with_pinned_node_yarn("1.2.3", "1.4.0"),
+        package_json_with_pinned_node_npm_yarn("1.2.3", "1.0.7", "1.4.159"),
     )
 }
 
 #[test]
 fn use_yarn_latest() {
     let s = sandbox()
-        .package_json(&package_json_with_pinned_node("1.2.3"))
-        .yarn_latest("1.2.0")
-        .yarn_archive_mocks()
+        .package_json(&package_json_with_pinned_node_npm("1.2.3", "1.0.7"))
+        .yarn_latest("1.2.42")
+        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
         .build();
 
     assert_that!(
         s.notion("use yarn latest"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Pinned yarn to version 1.2.0 in package.json")
+            .with_stdout_contains("Pinned yarn to version 1.2.42 in package.json")
     );
 
     assert_eq!(
         s.read_package_json(),
-        package_json_with_pinned_node_yarn("1.2.3", "1.2.0"),
+        package_json_with_pinned_node_npm_yarn("1.2.3", "1.0.7", "1.2.42"),
     )
 }

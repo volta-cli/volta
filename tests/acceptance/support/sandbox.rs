@@ -2,12 +2,9 @@ use std::env;
 use std::ffi::{OsStr, OsString};
 use std::fs::{self, File};
 use std::io::{Read, Write};
-use std::iter;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
 use reqwest::header::HttpDate;
 
 use support::paths::{self, PathExt};
@@ -132,10 +129,62 @@ pub struct SandboxBuilder {
     path_dirs: Vec<PathBuf>,
 }
 
-pub struct ArchiveFixture {
+pub trait DistroFixture: From<DistroMetadata> {
+    fn server_path(&self) -> String;
+    fn fixture_path(&self) -> String;
+    fn metadata(&self) -> &DistroMetadata;
+}
+
+#[derive(Clone)]
+pub struct DistroMetadata {
     pub version: &'static str,
     pub compressed_size: u32,
     pub uncompressed_size: u32,
+}
+
+pub struct NodeFixture {
+    pub metadata: DistroMetadata,
+}
+
+pub struct YarnFixture {
+    pub metadata: DistroMetadata,
+}
+
+impl From<DistroMetadata> for NodeFixture {
+    fn from(metadata: DistroMetadata) -> Self { Self { metadata } }
+}
+
+impl From<DistroMetadata> for YarnFixture {
+    fn from(metadata: DistroMetadata) -> Self { Self { metadata } }
+}
+
+impl DistroFixture for NodeFixture {
+    fn server_path(&self) -> String {
+        let version = &self.metadata.version;
+        format!("/v{}/node-v{}-darwin-x64.tar.gz", version, version)
+    }
+
+    fn fixture_path(&self) -> String {
+        format!("tests/fixtures/node-v{}-darwin-x64.tar.gz", self.metadata.version)
+    }
+
+    fn metadata(&self) -> &DistroMetadata {
+        &self.metadata
+    }
+}
+
+impl DistroFixture for YarnFixture {
+    fn server_path(&self) -> String {
+        format!("/yarn-v{}.tar.gz", self.metadata.version)
+    }
+
+    fn fixture_path(&self) -> String {
+        format!("tests/fixtures/yarn-v{}.tar.gz", self.metadata.version)
+    }
+
+    fn metadata(&self) -> &DistroMetadata {
+        &self.metadata
+    }
 }
 
 impl SandboxBuilder {
@@ -215,54 +264,6 @@ impl SandboxBuilder {
         self
     }
 
-    pub fn node_archive_mock(mut self, fixture: &ArchiveFixture) -> Self {
-        // ISSUE(#145): this should actually use a real http server instead of these mocks
-
-        let server_path = format!("/v{}/node-v{}-darwin-x64.tar.gz", fixture.version, fixture.version);
-        let fixture_path = format!("tests/fixtures/node-v{}-darwin-x64.tar.gz", fixture.version);
-
-        let head_mock = mock("HEAD", &server_path[..])
-            .with_header("Accept-Ranges", "bytes")
-            // Workaround for https://github.com/lipanski/mockito/issues/52: the only way
-            // to get the right "Content-Length" header is to add the file to the body so
-            // Mockito computes the right file size.
-            .with_body_from_file(&fixture_path)
-            .create();
-        self.root.mocks.push(head_mock);
-
-        // This can be abstracted when https://github.com/rust-lang/rust/issues/52963 lands.
-        let uncompressed_size_bytes: [u8; 4] = [
-            ((fixture.uncompressed_size & 0xff000000) >> 24) as u8,
-            ((fixture.uncompressed_size & 0x00ff0000) >> 16) as u8,
-            ((fixture.uncompressed_size & 0x0000ff00) >>  8) as u8,
-            ((fixture.uncompressed_size & 0x000000ff)      ) as u8
-        ];
-
-        let range_mock = mock("GET", &server_path[..])
-            .match_header("Range", Matcher::Any)
-            .with_header("Content-Length", "4")
-            .with_body(&uncompressed_size_bytes)
-            .create();
-        self.root.mocks.push(range_mock);
-
-        let file_mock = mock("GET", &server_path[..])
-            .match_header("Range", Matcher::Missing)
-            .with_header("Content-Length", &format!("{}", fixture.compressed_size))
-            .with_body_from_file(&fixture_path)
-            .create();
-        self.root.mocks.push(file_mock);
-
-        self
-    }
-
-    pub fn node_archive_mocks(self, fixtures: &[ArchiveFixture]) -> Self {
-        let mut this = self;
-        for fixture in fixtures {
-            this = this.node_archive_mock(fixture);
-        }
-        this
-    }
-
     /// Setup mock to return the available yarn versions (chainable)
     pub fn yarn_available_versions(mut self, body: &str) -> Self {
         let mock = mock(method_name("GET"), "/yarn-releases/index.json")
@@ -284,41 +285,54 @@ impl SandboxBuilder {
         self
     }
 
-    /// Setup mocks to return info about the yarn archive file (chainable)
-    pub fn yarn_archive_mocks(mut self) -> Self {
+    fn distro_mock<T: DistroFixture>(mut self, fx: &T) -> Self {
         // ISSUE(#145): this should actually use a real http server instead of these mocks
 
-        // generate a "file" that is 200 bytes long
-        let mut rng = thread_rng();
-        let archive_file_mock: String = iter::repeat(())
-            .map(|()| rng.sample(Alphanumeric))
-            .take(200)
-            .collect();
+        let server_path = fx.server_path();
+        let fixture_path = fx.fixture_path();
 
-        // mock the HEAD request, which gets the file size
-        let head_mock = mock(method_name("HEAD"), Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()))
+        let head_mock = mock("HEAD", &server_path[..])
             .with_header("Accept-Ranges", "bytes")
-            .with_body(&archive_file_mock)
+            // Workaround for https://github.com/lipanski/mockito/issues/52: the only way
+            // to get the right "Content-Length" header is to add the file to the body so
+            // Mockito computes the right file size.
+            .with_body_from_file(&fixture_path)
             .create();
         self.root.mocks.push(head_mock);
 
-        // mock the "Range: bytes" request, which gets the ISIZE value (last 4 bytes)
-        // this will be interpreted as a packed integer value
-        // (doesn't really matter - used for progress bar)
-        let range_mock = mock(method_name("GET"), Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()))
+        let metadata = fx.metadata();
+
+        // This can be abstracted when https://github.com/rust-lang/rust/issues/52963 lands.
+        let uncompressed_size_bytes: [u8; 4] = [
+            ((metadata.uncompressed_size & 0xff000000) >> 24) as u8,
+            ((metadata.uncompressed_size & 0x00ff0000) >> 16) as u8,
+            ((metadata.uncompressed_size & 0x0000ff00) >>  8) as u8,
+            ((metadata.uncompressed_size & 0x000000ff)      ) as u8
+        ];
+
+        let range_mock = mock("GET", &server_path[..])
             .match_header("Range", Matcher::Any)
-            .with_body("1234")
+            .with_header("Content-Length", "4")
+            .with_body(&uncompressed_size_bytes)
             .create();
         self.root.mocks.push(range_mock);
 
-        // mock the file download
-        let file_mock = mock(method_name("GET"), Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()))
+        let file_mock = mock("GET", &server_path[..])
             .match_header("Range", Matcher::Missing)
-            .with_body(&archive_file_mock)
+            .with_header("Content-Length", &format!("{}", metadata.compressed_size))
+            .with_body_from_file(&fixture_path)
             .create();
         self.root.mocks.push(file_mock);
 
         self
+    }
+
+    pub fn distro_mocks<T: DistroFixture>(self, fixtures: &[DistroMetadata]) -> Self {
+        let mut this = self;
+        for fixture in fixtures {
+            this = this.distro_mock::<T>(&fixture.clone().into());
+        }
+        this
     }
 
     /// Create the project
