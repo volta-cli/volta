@@ -79,7 +79,7 @@ impl EnvVar {
     }
 }
 
-// catalog.toml
+// used to construct sandboxed package.json and platform.toml
 #[derive(PartialEq, Clone)]
 pub struct FileBuilder {
     path: PathBuf,
