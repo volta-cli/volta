@@ -291,7 +291,9 @@ impl SandboxBuilder {
         // ISSUE(#145): this should actually use a real http server instead of these mocks
 
         let server_path = fx.server_path();
+        eprintln!("Mocked server path:  {}", server_path);
         let fixture_path = fx.fixture_path();
+        eprintln!("Mocked fixture path: {}", fixture_path);
 
         let head_mock = mock("HEAD", &server_path[..])
             .with_header("Accept-Ranges", "bytes")
