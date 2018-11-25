@@ -167,7 +167,7 @@ impl DistroFixture for NodeFixture {
     }
 
     fn fixture_path(&self) -> String {
-        format!("tests/fixtures/node-v{}.tar.gz", self.metadata.version)
+        format!("tests/fixtures/node-v{}-{}-{}.tar.gz", self.metadata.version, OS, ARCH)
     }
 
     fn metadata(&self) -> &DistroMetadata {

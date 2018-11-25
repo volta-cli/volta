@@ -44,6 +44,7 @@ const NODE_VERSION_INFO: &'static str = r#"[
 ]
 "#;
 
+#[cfg(target_os = "macos")]
 const NODE_VERSION_FIXTURES: [DistroMetadata; 4] = [
     DistroMetadata {
         version: "10.99.1040",
@@ -58,6 +59,30 @@ const NODE_VERSION_FIXTURES: [DistroMetadata; 4] = [
     DistroMetadata {
         version: "8.9.10",
         compressed_size: 272,
+        uncompressed_size: 0x00280000,
+    },
+    DistroMetadata {
+        version: "6.19.62",
+        compressed_size: 273,
+        uncompressed_size: 0x00280000,
+    },
+];
+
+#[cfg(target_os = "linux")]
+const NODE_VERSION_FIXTURES: [DistroMetadata; 4] = [
+    DistroMetadata {
+        version: "10.99.1040",
+        compressed_size: 273,
+        uncompressed_size: 0x00280000,
+    },
+    DistroMetadata {
+        version: "9.27.6",
+        compressed_size: 272,
+        uncompressed_size: 0x00280000,
+    },
+    DistroMetadata {
+        version: "8.9.10",
+        compressed_size: 270,
         uncompressed_size: 0x00280000,
     },
     DistroMetadata {
