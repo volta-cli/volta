@@ -47,7 +47,6 @@ struct MissingHeaderError {
 /// Determines the length of an HTTP response's content in bytes, using
 /// the HTTP `"Content-Length"` header.
 fn content_length(response: &Response) -> Result<u64, failure::Error> {
-    eprintln!("headers: {:?}", response.headers());
     Ok(match response.headers().get::<ContentLength>() {
         Some(content_length) => **content_length,
         None => {

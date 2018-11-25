@@ -11,6 +11,8 @@ use support::paths::{self, PathExt};
 use test_support;
 use test_support::process::ProcessBuilder;
 
+use notion_core::path::{OS, ARCH};
+
 #[cfg(feature = "mock-network")]
 use mockito::{self, mock, Matcher};
 
@@ -161,11 +163,11 @@ impl From<DistroMetadata> for YarnFixture {
 impl DistroFixture for NodeFixture {
     fn server_path(&self) -> String {
         let version = &self.metadata.version;
-        format!("/v{}/node-v{}-darwin-x64.tar.gz", version, version)
+        format!("/v{}/node-v{}-{}-{}.tar.gz", version, version, OS, ARCH)
     }
 
     fn fixture_path(&self) -> String {
-        format!("tests/fixtures/node-v{}-darwin-x64.tar.gz", self.metadata.version)
+        format!("tests/fixtures/node-v{}.tar.gz", self.metadata.version)
     }
 
     fn metadata(&self) -> &DistroMetadata {
@@ -462,7 +464,7 @@ impl Sandbox {
             .env("NOTION_DATA_ROOT", notion_home()) // windows
             .env("PATH", &self.path)
             .env("NOTION_POSTSCRIPT", notion_postscript())
-            //.env_remove("NOTION_DEV")
+            .env_remove("NOTION_DEV")
             .env_remove("NOTION_SHELL")
             .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
 
