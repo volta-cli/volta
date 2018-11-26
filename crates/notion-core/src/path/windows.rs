@@ -66,22 +66,6 @@ cfg_if! {
 //         launchscript.exe                                launchscript_file
 //         config.toml                                     user_config_file
 
-fn program_data_root() -> Fallible<PathBuf> {
-    // if this is sandboxed in CI, use the sandboxed ProgramData directory
-    if env::var("NOTION_SANDBOX").is_ok() {
-        let notion_data = env::var("NOTION_DATA_ROOT").unwrap();
-        return Ok(PathBuf::from(notion_data).join("Notion"));
-    } else {
-        #[cfg(windows)]
-        return Ok(winfolder::Folder::ProgramData.path().join("Notion"));
-
-        // "universal-docs" is built on a Unix machine, so we can't include Windows-specific libs
-        #[cfg(feature = "universal-docs")]
-        unimplemented!()
-    }
-
-}
-
 pub fn cache_dir() -> Fallible<PathBuf> {
     Ok(local_data_root()?.join("cache"))
 }
@@ -138,12 +122,12 @@ pub fn node_image_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
     Ok(node_image_dir(node, npm)?.join("bin"))
 }
 
-pub fn yarn_version_bin_dir(version: &str) -> Fallible<PathBuf> {
-    Ok(yarn_version_dir(version)?.join("bin"))
+pub fn yarn_image_bin_dir(version: &str) -> Fallible<PathBuf> {
+    Ok(yarn_image_dir(version)?.join("bin"))
 }
 
 // 3rd-party binaries installed globally for this node version
-pub fn node_image_3p_bin_dir(_version: &str) -> Fallible<PathBuf> {
+pub fn node_image_3p_bin_dir(_node: &str, _npm: &str) -> Fallible<PathBuf> {
     // ISSUE (#90) Figure out where binaries are globally installed on Windows
     unimplemented!("global 3rd party executables not yet implemented for Windows")
 }
@@ -169,11 +153,11 @@ pub fn launchscript_file() -> Fallible<PathBuf> {
 }
 
 pub fn notion_file() -> Fallible<PathBuf> {
-    Ok(program_files_root()?.join("notion.exe"))
+    Ok(local_data_root()?.join("notion.exe"))
 }
 
 pub fn shim_dir() -> Fallible<PathBuf> {
-    Ok(program_files_root()?.join("bin"))
+    Ok(local_data_root()?.join("bin"))
 }
 
 pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {

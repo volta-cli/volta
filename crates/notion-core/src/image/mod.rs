@@ -88,20 +88,12 @@ mod test {
         #[cfg(unix)]
         return PathBuf::from(std::env::home_dir().expect("Could not get home directory")).join(".notion");
 
-        #[cfg(all(windows, target_arch = "x86"))]
-        return winfolder::Folder::ProgramFiles.path().join("Notion");
-
-        #[cfg(all(windows, target_arch = "x86_64"))]
-        return winfolder::Folder::ProgramFilesX64.path().join("Notion");
+        #[cfg(windows)]
+        return winfolder::Folder::LocalAppData.path().join("Notion");
     }
 
     fn shim_dir() -> PathBuf {
         notion_base().join("bin")
-    }
-
-    #[cfg(windows)]
-    fn program_data_root() -> PathBuf {
-        winfolder::Folder::ProgramData.path().join("Notion")
     }
 
     #[test]
@@ -180,14 +172,17 @@ mod test {
 
         std::env::set_var("PATH", path_with_shims);
 
-        let node_bin = program_data_root()
-            .join("versions")
+        let node_bin = notion_base()
+            .join("tools")
+            .join("image")
             .join("node")
-            .join("1.2.3");
+            .join("1.2.3")
+            .join("6.4.3");
         let expected_node_bin = node_bin.as_path().to_str().unwrap();
 
-        let yarn_bin = program_data_root()
-            .join("versions")
+        let yarn_bin = notion_base()
+            .join("tools")
+            .join("image")
             .join("yarn")
             .join("4.5.7")
             .join("bin");
@@ -195,10 +190,13 @@ mod test {
 
         let v123 = Version::parse("1.2.3").unwrap();
         let v457 = Version::parse("4.5.7").unwrap();
+        let v643 = Version::parse("6.4.3").unwrap();
 
         let no_yarn_image = Image {
             node: v123.clone(),
             node_str: v123.to_string(),
+            npm: v643.clone(),
+            npm_str: v643.to_string(),
             yarn: None,
             yarn_str: None
         };
@@ -211,6 +209,8 @@ mod test {
         let with_yarn_image = Image {
             node: v123.clone(),
             node_str: v123.to_string(),
+            npm: v643.clone(),
+            npm_str: v643.to_string(),
             yarn: Some(v457.clone()),
             yarn_str: Some(v457.to_string())
         };
