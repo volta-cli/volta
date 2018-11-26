@@ -34,9 +34,9 @@ os: Visual Studio 2015
 # matrix entries to test different combinations of features.
 environment:
   fast_finish: true
-  matrix:
   NOTION_DEV: 1
   RUST_BACKTRACE: full
+  matrix:
 
 ### MSVC Toolchains ###
 
