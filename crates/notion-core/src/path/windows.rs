@@ -119,7 +119,7 @@ pub fn node_image_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
 }
 
 pub fn node_image_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
-    Ok(node_image_dir(node, npm)?.join("bin"))
+    node_image_dir(node, npm)
 }
 
 // 3rd-party binaries installed globally for this node version
