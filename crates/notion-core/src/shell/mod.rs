@@ -15,6 +15,7 @@ mod bash;
 pub(crate) use self::bash::Bash;
 
 pub enum Postscript {
+    Activate(String),
     Deactivate(String),
     ToolVersion { tool: String, version: Version },
 }
@@ -125,6 +126,11 @@ pub mod tests {
                 version: Version::parse("2.4.5").unwrap()
             }),
             "export NOTION_TEST_VERSION=2.4.5\n"
+        );
+
+        assert_eq!(
+            bash.compile_postscript(&Postscript::Activate("some:path".to_string())),
+            "export PATH='some:path'\nexport NOTION_HOME=\"${HOME}/.notion\"\n"
         );
     }
 }

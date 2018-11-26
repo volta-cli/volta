@@ -66,6 +66,20 @@ impl System {
         Ok(new_path)
     }
 
+    /// Reproduces the Notion-enabled `PATH` environment variable for situations where
+    /// Notion has been deactivated
+    pub fn enabled_path() -> Fallible<OsString> {
+        let old_path = envoy::path().unwrap_or(envoy::Var::from(""));
+        let shim_dir = path::shim_dir()?;
+
+        let mut parts = old_path.split();
+
+        if !old_path.split().any(|part| part == shim_dir) {
+            parts = parts.prefix(vec![shim_dir]);
+        }
+
+        Ok(parts.join().unknown()?)
+    }
 }
 
 #[cfg(test)]
@@ -244,4 +258,47 @@ mod test {
         assert_eq!(System::path().unwrap().into_string().unwrap(), expected_path);
     }
 
+    #[test]
+    #[cfg(unix)]
+    fn test_system_enabled_path() {
+        let mut pathbufs: Vec<PathBuf> = Vec::new();
+        pathbufs.push(shim_dir());
+        pathbufs.push(PathBuf::from("/usr/bin"));
+        pathbufs.push(PathBuf::from("/bin"));
+
+        let expected_path = std::env::join_paths(pathbufs.iter())
+            .unwrap()
+            .into_string()
+            .expect("Could not create path containing shim dir");
+
+        // If the path already contains the shim dir, there shouldn't be any changes
+        std::env::set_var("PATH", expected_path.clone());
+        assert_eq!(System::enabled_path().unwrap().into_string().unwrap(), expected_path);
+
+        // If the path doesn't contain the shim dir, it should be prefixed onto the existing path
+        std::env::set_var("PATH", "/usr/bin:/bin");
+        assert_eq!(System::enabled_path().unwrap().into_string().unwrap(), expected_path);
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_system_enabled_path() {
+        let mut pathbufs: Vec<PathBuf> = Vec::new();
+        pathbufs.push(shim_dir());
+        pathbufs.push(PathBuf::from("C:\\\\somebin"));
+        pathbufs.push(PathBuf::from("D:\\\\Program Files"));
+
+        let expected_path = std::env::join_paths(pathbufs.iter())
+            .unwrap()
+            .into_string()
+            .expect("Could not create path containing shim dir");
+
+        // If the path already contains the shim dir, there shouldn't be any changes
+        std::env::set_var("PATH", expected_path.clone());
+        assert_eq!(System::enabled_path().unwrap().into_string().unwrap(), expected_path);
+
+        // If the path doesn't contain the shim dir, it should be prefixed onto the existing path
+        std::env::set_var("PATH", "C:\\\\somebin;D:\\\\Program Files");
+        assert_eq!(System::enabled_path().unwrap().into_string().unwrap(), expected_path);
+    }
 }

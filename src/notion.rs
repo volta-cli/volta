@@ -25,8 +25,8 @@ use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error, ErrorContext};
 use notion_fail::{ExitCode, FailExt, Fallible, NotionError};
 
-use command::{Command, CommandName, Config, Current, Deactivate, Fetch, Help, Install, Use,
-              Version};
+use command::{Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Help,
+              Install, Use, Version};
 #[cfg(feature = "notion-dev")]
 use command::Shim;
 use error::{CliParseError, CommandUnimplementedError, DocoptExt, NotionErrorExt};
@@ -67,7 +67,8 @@ Some common notion commands are:
     use            Select a tool for the current project's toolchain
     config         Get or set configuration values
     current        Display the currently activated Node version
-    deactivate     Remove Notion from the current shell
+    deactivate     Disable Notion in the current shell
+    activate       Re-Enable Notion in the current shell
     help           Display this message
     version        Print version info and exit
 
@@ -180,6 +181,7 @@ See 'notion help <command>' for more information on a specific command.
             CommandName::Config => Config::go(self, session),
             CommandName::Current => Current::go(self, session),
             CommandName::Deactivate => Deactivate::go(self, session),
+            CommandName::Activate => Activate::go(self, session),
             #[cfg(feature = "notion-dev")]
             CommandName::Shim => Shim::go(self, session),
             CommandName::Help => Help::go(self, session),
