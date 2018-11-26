@@ -122,10 +122,6 @@ pub fn node_image_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
     Ok(node_image_dir(node, npm)?.join("bin"))
 }
 
-pub fn yarn_image_bin_dir(version: &str) -> Fallible<PathBuf> {
-    Ok(yarn_image_dir(version)?.join("bin"))
-}
-
 // 3rd-party binaries installed globally for this node version
 pub fn node_image_3p_bin_dir(_node: &str, _npm: &str) -> Fallible<PathBuf> {
     // ISSUE (#90) Figure out where binaries are globally installed on Windows
