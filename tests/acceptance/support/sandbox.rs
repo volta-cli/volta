@@ -11,7 +11,7 @@ use support::paths::{self, PathExt};
 use test_support;
 use test_support::process::ProcessBuilder;
 
-use notion_core::path::{OS, ARCH};
+use notion_core::path::{OS, ARCH, archive_extension};
 
 #[cfg(feature = "mock-network")]
 use mockito::{self, mock, Matcher};
@@ -141,7 +141,7 @@ pub trait DistroFixture: From<DistroMetadata> {
 pub struct DistroMetadata {
     pub version: &'static str,
     pub compressed_size: u32,
-    pub uncompressed_size: u32,
+    pub uncompressed_size: Option<u32>,
 }
 
 pub struct NodeFixture {
@@ -163,11 +163,14 @@ impl From<DistroMetadata> for YarnFixture {
 impl DistroFixture for NodeFixture {
     fn server_path(&self) -> String {
         let version = &self.metadata.version;
-        format!("/v{}/node-v{}-{}-{}.tar.gz", version, version, OS, ARCH)
+        let extension = archive_extension();
+        format!("/v{}/node-v{}-{}-{}.{}", version, version, OS, ARCH, extension)
     }
 
     fn fixture_path(&self) -> String {
-        format!("tests/fixtures/node-v{}-{}-{}.tar.gz", self.metadata.version, OS, ARCH)
+        let version = &self.metadata.version;
+        let extension = archive_extension();
+        format!("tests/fixtures/node-v{}-{}-{}.{}", version, OS, ARCH, extension)
     }
 
     fn metadata(&self) -> &DistroMetadata {
@@ -295,35 +298,35 @@ impl SandboxBuilder {
         let fixture_path = fx.fixture_path();
         eprintln!("Mocked fixture path: {}", fixture_path);
 
-        let head_mock = mock("HEAD", &server_path[..])
-            .with_header("Accept-Ranges", "bytes")
-            // Workaround for https://github.com/lipanski/mockito/issues/52: the only way
-            // to get the right "Content-Length" header is to add the file to the body so
-            // Mockito computes the right file size.
-            .with_body_from_file(&fixture_path)
-            .create();
-        self.root.mocks.push(head_mock);
-
         let metadata = fx.metadata();
 
-        // This can be abstracted when https://github.com/rust-lang/rust/issues/52963 lands.
-        let uncompressed_size_bytes: [u8; 4] = [
-            ((metadata.uncompressed_size & 0xff000000) >> 24) as u8,
-            ((metadata.uncompressed_size & 0x00ff0000) >> 16) as u8,
-            ((metadata.uncompressed_size & 0x0000ff00) >>  8) as u8,
-            ((metadata.uncompressed_size & 0x000000ff)      ) as u8
-        ];
+        if let Some(uncompressed_size) = metadata.uncompressed_size {
+            let head_mock = mock("HEAD", &server_path[..])
+                .with_header("Accept-Ranges", "bytes")
+                // Workaround for https://github.com/lipanski/mockito/issues/52: the only way
+                // to get the right "Content-Length" header is to add the file to the body so
+                // Mockito computes the right file size.
+                .with_body_from_file(&fixture_path)
+                .create();
+            self.root.mocks.push(head_mock);
 
-        let range_mock = mock("GET", &server_path[..])
-            .match_header("Range", Matcher::Any)
-            .with_header("Content-Length", "4")
-            .with_body(&uncompressed_size_bytes)
-            .create();
-        self.root.mocks.push(range_mock);
+            // This can be abstracted when https://github.com/rust-lang/rust/issues/52963 lands.
+            let uncompressed_size_bytes: [u8; 4] = [
+                ((uncompressed_size & 0xff000000) >> 24) as u8,
+                ((uncompressed_size & 0x00ff0000) >> 16) as u8,
+                ((uncompressed_size & 0x0000ff00) >>  8) as u8,
+                ((uncompressed_size & 0x000000ff)      ) as u8
+            ];
+
+            let range_mock = mock("GET", &server_path[..])
+                .match_header("Range", Matcher::Any)
+                .with_body(&uncompressed_size_bytes)
+                .create();
+            self.root.mocks.push(range_mock);
+        }
 
         let file_mock = mock("GET", &server_path[..])
             .match_header("Range", Matcher::Missing)
-            .with_header("Content-Length", &format!("{}", metadata.compressed_size))
             .with_body_from_file(&fixture_path)
             .create();
         self.root.mocks.push(file_mock);

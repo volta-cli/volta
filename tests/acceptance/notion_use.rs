@@ -44,53 +44,81 @@ const NODE_VERSION_INFO: &'static str = r#"[
 ]
 "#;
 
-#[cfg(target_os = "macos")]
-const NODE_VERSION_FIXTURES: [DistroMetadata; 4] = [
-    DistroMetadata {
-        version: "10.99.1040",
-        compressed_size: 273,
-        uncompressed_size: 0x00280000,
-    },
-    DistroMetadata {
-        version: "9.27.6",
-        compressed_size: 272,
-        uncompressed_size: 0x00280000,
-    },
-    DistroMetadata {
-        version: "8.9.10",
-        compressed_size: 272,
-        uncompressed_size: 0x00280000,
-    },
-    DistroMetadata {
-        version: "6.19.62",
-        compressed_size: 273,
-        uncompressed_size: 0x00280000,
-    },
-];
 
-#[cfg(target_os = "linux")]
-const NODE_VERSION_FIXTURES: [DistroMetadata; 4] = [
-    DistroMetadata {
-        version: "10.99.1040",
-        compressed_size: 273,
-        uncompressed_size: 0x00280000,
-    },
-    DistroMetadata {
-        version: "9.27.6",
-        compressed_size: 272,
-        uncompressed_size: 0x00280000,
-    },
-    DistroMetadata {
-        version: "8.9.10",
-        compressed_size: 270,
-        uncompressed_size: 0x00280000,
-    },
-    DistroMetadata {
-        version: "6.19.62",
-        compressed_size: 273,
-        uncompressed_size: 0x00280000,
-    },
-];
+cfg_if! {
+    if #[cfg(target_os = "macos")] {
+        const NODE_VERSION_FIXTURES: [DistroMetadata; 4] = [
+            DistroMetadata {
+                version: "10.99.1040",
+                compressed_size: 273,
+                uncompressed_size: Some(0x00280000),
+            },
+            DistroMetadata {
+                version: "9.27.6",
+                compressed_size: 272,
+                uncompressed_size: Some(0x00280000),
+            },
+            DistroMetadata {
+                version: "8.9.10",
+                compressed_size: 272,
+                uncompressed_size: Some(0x00280000),
+            },
+            DistroMetadata {
+                version: "6.19.62",
+                compressed_size: 273,
+                uncompressed_size: Some(0x00280000),
+            },
+        ];
+    } else if #[cfg(target_os = "linux")] {
+        const NODE_VERSION_FIXTURES: [DistroMetadata; 4] = [
+            DistroMetadata {
+                version: "10.99.1040",
+                compressed_size: 273,
+                uncompressed_size: Some(0x00280000),
+            },
+            DistroMetadata {
+                version: "9.27.6",
+                compressed_size: 272,
+                uncompressed_size: Some(0x00280000),
+            },
+            DistroMetadata {
+                version: "8.9.10",
+                compressed_size: 270,
+                uncompressed_size: Some(0x00280000),
+            },
+            DistroMetadata {
+                version: "6.19.62",
+                compressed_size: 273,
+                uncompressed_size: Some(0x00280000),
+            },
+        ];
+    } else if #[cfg(target_os = "windows")] {
+        const NODE_VERSION_FIXTURES: [DistroMetadata; 4] = [
+            DistroMetadata {
+                version: "10.99.1040",
+                compressed_size: 1096,
+                uncompressed_size: None,
+            },
+            DistroMetadata {
+                version: "9.27.6",
+                compressed_size: 1068,
+                uncompressed_size: None,
+            },
+            DistroMetadata {
+                version: "8.9.10",
+                compressed_size: 1055,
+                uncompressed_size: None,
+            },
+            DistroMetadata {
+                version: "6.19.62",
+                compressed_size: 1056,
+                uncompressed_size: None,
+            },
+        ];
+    } else {
+        compile_error!("Unsupported target_os for tests (expected 'macos', 'linux', or 'windows').");
+    }
+}
 
 const YARN_VERSION_INFO: &'static str = r#"[ "1.2.42", "1.4.159", "1.7.71", "1.12.99" ]"#;
 
@@ -98,22 +126,22 @@ const YARN_VERSION_FIXTURES: [DistroMetadata; 4] = [
     DistroMetadata {
         version: "1.12.99",
         compressed_size: 178,
-        uncompressed_size: 0x00280000,
+        uncompressed_size: Some(0x00280000),
     },
     DistroMetadata {
         version: "1.7.71",
         compressed_size: 176,
-        uncompressed_size: 0x00280000,
+        uncompressed_size: Some(0x00280000),
     },
     DistroMetadata {
         version: "1.4.159",
         compressed_size: 177,
-        uncompressed_size: 0x00280000,
+        uncompressed_size: Some(0x00280000),
     },
     DistroMetadata {
         version: "1.2.42",
         compressed_size: 174,
-        uncompressed_size: 0x00280000,
+        uncompressed_size: Some(0x00280000),
     },
 ];
 
