@@ -35,6 +35,8 @@ os: Visual Studio 2015
 environment:
   fast_finish: true
   matrix:
+  NOTION_DEV: 1
+  RUST_BACKTRACE: full
 
 ### MSVC Toolchains ###
 
