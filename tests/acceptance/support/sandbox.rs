@@ -384,8 +384,13 @@ impl SandboxBuilder {
 fn home_dir() -> PathBuf {
     paths::home()
 }
+#[cfg(unix)]
 fn notion_home() -> PathBuf {
     home_dir().join(".notion")
+}
+#[cfg(windows)]
+fn notion_home() -> PathBuf {
+    home_dir().join("AppData").join("Local").join("Notion")
 }
 fn notion_tmp_dir() -> PathBuf {
     notion_home().join("tmp")
@@ -414,13 +419,8 @@ fn yarn_inventory_dir() -> PathBuf {
 fn package_inventory_dir() -> PathBuf {
     inventory_dir().join("package")
 }
-#[cfg(unix)]
 fn cache_dir() -> PathBuf {
     notion_home().join("cache")
-}
-#[cfg(windows)]
-fn cache_dir() -> PathBuf {
-    home_dir().join("Notion").join("cache")
 }
 fn node_cache_dir() -> PathBuf {
     cache_dir().join("node")
@@ -466,7 +466,6 @@ impl Sandbox {
             .env("HOME", home_dir())
             .env("USERPROFILE", home_dir()) // windows
             .env("NOTION_HOME", notion_home())
-            .env("NOTION_DATA_ROOT", notion_home()) // windows
             .env("PATH", &self.path)
             .env("NOTION_POSTSCRIPT", notion_postscript())
             //.env_remove("NOTION_DEV")
