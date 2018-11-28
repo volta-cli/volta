@@ -19,6 +19,14 @@ name = "node"
 path = "src/node.rs"
 
 [[bin]]
+name = "npm"
+path = "src/npm.rs"
+
+[[bin]]
+name = "npx"
+path = "src/npx.rs"
+
+[[bin]]
 name = "yarn"
 path = "src/yarn.rs"
 

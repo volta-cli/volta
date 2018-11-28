@@ -17,6 +17,12 @@ pub enum ErrorContext {
     Shim,
 }
 
+/// Displays a warning to stderr.
+pub fn display_warning<W: Display>(warning: &W) {
+    eprint!("{} ", style("warning:").yellow().bold());
+    eprintln!("{}", warning);
+}
+
 /// Displays an error to stderr.
 pub fn display_error<E: Display>(cx: ErrorContext, err: &E) {
     display_error_prefix(cx);

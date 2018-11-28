@@ -14,6 +14,18 @@ notion_unpack_node() {
 END_BINARY_PAYLOAD
 }
 
+notion_unpack_npm() {
+  base64 --decode <<'END_BINARY_PAYLOAD'
+<PLACEHOLDER_NPM_PAYLOAD>
+END_BINARY_PAYLOAD
+}
+
+notion_unpack_npx() {
+  base64 --decode <<'END_BINARY_PAYLOAD'
+<PLACEHOLDER_NPX_PAYLOAD>
+END_BINARY_PAYLOAD
+}
+
 notion_unpack_yarn() {
   base64 --decode <<'END_BINARY_PAYLOAD'
 <PLACEHOLDER_YARN_PAYLOAD>
@@ -71,16 +83,20 @@ notion_create_binaries() {
 
   INSTALL_DIR="$(notion_install_dir)"
 
+  # Remove any existing symlinks for npm and npx so that the binaries can be installed
+  # using -f so there is no error if the files don't exist
+  rm -f "${INSTALL_DIR}"/bin/npm
+  rm -f "${INSTALL_DIR}"/bin/npx
+
+
   notion_unpack_notion        > "${INSTALL_DIR}"/notion
   notion_unpack_node          > "${INSTALL_DIR}"/bin/node
+  notion_unpack_npm           > "${INSTALL_DIR}"/bin/npm
+  notion_unpack_npx           > "${INSTALL_DIR}"/bin/npx
   notion_unpack_yarn          > "${INSTALL_DIR}"/bin/yarn
   notion_unpack_launchscript  > "${INSTALL_DIR}"/launchscript
   notion_unpack_launchbin     > "${INSTALL_DIR}"/launchbin
   notion_unpack_bash_launcher > "${INSTALL_DIR}"/load.sh
-
-  # using -f so that there is no error if the target already exists (for reinstall)
-  ln -sf "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/bin/npm
-  ln -sf "${INSTALL_DIR}"/launchscript "${INSTALL_DIR}"/bin/npx
 
   chmod 755 "${INSTALL_DIR}/"/notion "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}"/launch*
 }
