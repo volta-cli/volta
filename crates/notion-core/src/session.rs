@@ -174,8 +174,10 @@ impl Session {
         }
 
         if let Some(ref yarn_version) = &image.yarn {
-            let config = self.config.get()?;
-            let _ = catalog.fetch_yarn(&VersionSpec::exact(yarn_version), config)?;
+            if !catalog.yarn.contains(yarn_version) {
+                let config = self.config.get()?;
+                let _ = catalog.fetch_yarn(&VersionSpec::exact(yarn_version), config)?;
+            }
         }
 
         Ok(())
