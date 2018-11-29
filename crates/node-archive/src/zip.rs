@@ -34,7 +34,9 @@ impl Zip<File> {
     /// Initiate fetching of a Node zip archive from the given URL, returning
     /// a `Remote` data source.
     pub fn fetch(url: &str, cache_file: &Path) -> Result<Self, failure::Error> {
+        eprintln!("OOGY {:?} ==> {:?}", url, cache_file);
         let mut response = reqwest::get(url)?;
+        eprintln!("BOOGY {:?}", response);
 
         if !response.status().is_success() {
             Err(super::HttpError { code: response.status() })?;
@@ -45,7 +47,7 @@ impl Zip<File> {
             copy(&mut response, &mut file)?;
         }
 
-        let file = File::create(cache_file)?;
+        let file = File::open(cache_file)?;
         let compressed_size = file.metadata()?.len();
 
         Ok(Zip {
