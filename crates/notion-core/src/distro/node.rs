@@ -6,10 +6,10 @@ use std::path::{Path, PathBuf};
 use std::string::ToString;
 
 use super::{Distro, Fetched};
+use archive::{self, Archive};
 use inventory::NodeCollection;
 use distro::error::DownloadError;
 use fs::ensure_containing_dir_exists;
-use node_archive::{self, Archive};
 use path;
 use style::{progress_bar, Action};
 use tempfile::tempdir;
@@ -56,7 +56,7 @@ pub struct NodeVersion {
 fn distro_is_valid(file: &PathBuf) -> bool {
     if file.is_file() {
         if let Ok(file) = File::open(file) {
-            match node_archive::load(file) {
+            match archive::load_native(file) {
                 Ok(_) => return true,
                 Err(_) => return false,
             }
@@ -107,7 +107,7 @@ impl Distro for NodeDistro {
 
         ensure_containing_dir_exists(&distro_file)?;
         Ok(NodeDistro {
-            archive: node_archive::fetch(url, &distro_file)
+            archive: archive::fetch_native(url, &distro_file)
                 .with_context(DownloadError::for_version(version.to_string()))?,
             version: version,
         })
@@ -116,7 +116,7 @@ impl Distro for NodeDistro {
     /// Provision a Node distribution from the filesystem.
     fn local(version: Version, file: File) -> Fallible<Self> {
         Ok(NodeDistro {
-            archive: node_archive::load(file).unknown()?,
+            archive: archive::load_native(file).unknown()?,
             version: version,
         })
     }

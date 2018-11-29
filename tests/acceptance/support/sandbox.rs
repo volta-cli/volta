@@ -259,8 +259,6 @@ impl SandboxBuilder {
 
     /// Setup mock to return the available node versions (chainable)
     pub fn node_available_versions(mut self, body: &str) -> Self {
-        let body = format!("{}\r\n", body.replace('\n', "\r\n"));
-        eprintln!("NODE AVAILABLE VERSIONS: {:?}\n\n", body);
         let mock = mock(method_name("GET"), "/node-dist/index.json")
             .with_status(200)
             .with_header("content-type", "application/json")
@@ -273,8 +271,6 @@ impl SandboxBuilder {
 
     /// Setup mock to return the available yarn versions (chainable)
     pub fn yarn_available_versions(mut self, body: &str) -> Self {
-        let body = format!("{}\r\n", body.replace('\n', "\r\n"));
-        eprintln!("YARN AVAILABLE VERSIONS: {:?}\n\n", body);
         let mock = mock(method_name("GET"), "/yarn-releases/index.json")
             .with_status(200)
             .with_header("content-type", "application/json")
@@ -298,9 +294,7 @@ impl SandboxBuilder {
         // ISSUE(#145): this should actually use a real http server instead of these mocks
 
         let server_path = fx.server_path();
-        eprintln!("Mocked server path:  {}", server_path);
         let fixture_path = fx.fixture_path();
-        eprintln!("Mocked fixture path: {}", fixture_path);
 
         let metadata = fx.metadata();
 

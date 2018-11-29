@@ -319,8 +319,6 @@ fn resolve_node_versions() -> Result<serial::Index, NotionError> {
     match read_cached_opt().unknown()? {
         Some(serial) => Ok(serial),
         None => {
-            eprintln!("PUBLIC REGISTRY: {}\n\n", public_node_version_index());
-
             let spinner = progress_spinner(&format!(
                 "Fetching public registry: {}",
                 public_node_version_index()
@@ -361,7 +359,6 @@ fn resolve_node_versions() -> Result<serial::Index, NotionError> {
             ensure_containing_dir_exists(&index_expiry_file)?;
             expiry.persist(index_expiry_file).unknown()?;
 
-            eprintln!("PUBLIC REGISTRY CONTENTS: {:?}\n\n", response);
             let serial: serial::Index = serde_json::de::from_str(&response_text).unknown()?;
 
             spinner.finish_and_clear();

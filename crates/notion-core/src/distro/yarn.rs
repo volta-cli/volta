@@ -5,10 +5,10 @@ use std::path::PathBuf;
 use std::string::ToString;
 
 use super::{Distro, Fetched};
+use archive::{Archive, Tarball};
 use inventory::YarnCollection;
 use distro::error::DownloadError;
 use fs::ensure_containing_dir_exists;
-use node_archive::{self, Archive};
 use path;
 use style::{progress_bar, Action};
 
@@ -42,7 +42,7 @@ pub struct YarnDistro {
 fn distro_is_valid(file: &PathBuf) -> bool {
     if file.is_file() {
         if let Ok(file) = File::open(file) {
-            match node_archive::load(file) {
+            match Tarball::load(file) {
                 Ok(_) => return true,
                 Err(_) => return false,
             }
@@ -72,7 +72,7 @@ impl Distro for YarnDistro {
 
         ensure_containing_dir_exists(&distro_file)?;
         Ok(YarnDistro {
-            archive: node_archive::fetch(url, &distro_file)
+            archive: Tarball::fetch(url, &distro_file)
                 .with_context(DownloadError::for_version(version.to_string()))?,
             version: version,
         })
@@ -81,7 +81,7 @@ impl Distro for YarnDistro {
     /// Provision a distribution from the filesystem.
     fn local(version: Version, file: File) -> Fallible<Self> {
         Ok(YarnDistro {
-            archive: node_archive::load(file).unknown()?,
+            archive: Tarball::load(file).unknown()?,
             version: version,
         })
     }

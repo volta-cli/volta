@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["David Herman <david.herman@gmail.com>"]
 
 [features]
-universal-docs = ["node-archive/universal-docs"]
+universal-docs = ["archive/universal-docs"]
 mock-network = ["mockito"]
 
 [dependencies]
@@ -16,7 +16,7 @@ readext = "0.1.0"
 serde_json = { version = "1.0.3", features = ["preserve_order"] }
 serde = "1.0.27"
 serde_derive = "1.0.27"
-node-archive = { path = "../node-archive" }
+archive = { path = "../archive" }
 failure = "0.1.1"
 failure_derive = "0.1.1"
 notion-fail = { path = "../notion-fail" }
