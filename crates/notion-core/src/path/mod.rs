@@ -74,7 +74,7 @@ pub mod tests {
     fn yarn_node_archive_file() {
         assert_eq!(
             yarn_distro_file_name("1.2.3"),
-            format!("yarn-v1.2.3.{}", archive_extension())
+            "yarn-v1.2.3.tar.gz"
         );
     }
 
