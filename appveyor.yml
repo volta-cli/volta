@@ -120,5 +120,5 @@ build: false
 # - these are run single-threaded because some tests change environment variables, which is not thread-safe
 # next, this runs the acceptance tests, using network mocks
 test_script:
-  - cargo test --package notion-core --package notion-fail --package node-archive --package notion-fail-derive --package progress-read -- --test-threads=1 &&
+  - cargo test --package notion-core --package notion-fail --package archive --package notion-fail-derive --package progress-read -- --test-threads=1 &&
     cargo test --features mock-network
