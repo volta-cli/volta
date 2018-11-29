@@ -42,7 +42,7 @@ pub fn node_archive_npm_package_json_path(version: &str) -> PathBuf {
 }
 
 pub fn yarn_distro_file_name(version: &str) -> String {
-    format!("{}.{}", yarn_archive_root_dir_name(version), archive_extension())
+    format!("{}.tar.gz", yarn_archive_root_dir_name(version))
 }
 
 pub fn yarn_archive_root_dir_name(version: &str) -> String {
