@@ -259,7 +259,7 @@ impl SandboxBuilder {
 
     /// Setup mock to return the available node versions (chainable)
     pub fn node_available_versions(mut self, body: &str) -> Self {
-        let mock = mock(method_name("GET"), "/node-dist/index.json")
+        let mock = mock("GET", "/node-dist/index.json")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(body)
@@ -271,7 +271,7 @@ impl SandboxBuilder {
 
     /// Setup mock to return the available yarn versions (chainable)
     pub fn yarn_available_versions(mut self, body: &str) -> Self {
-        let mock = mock(method_name("GET"), "/yarn-releases/index.json")
+        let mock = mock("GET", "/yarn-releases/index.json")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(body)
@@ -282,7 +282,7 @@ impl SandboxBuilder {
 
     /// Setup mock to return the latest version of yarn (chainable)
     pub fn yarn_latest(mut self, version: &str) -> Self {
-        let mock = mock(method_name("GET"), "/yarn-latest")
+        let mock = mock("GET", "/yarn-latest")
             .with_status(200)
             .with_body(version)
             .create();
