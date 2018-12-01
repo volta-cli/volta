@@ -47,7 +47,6 @@ pub mod toolchain;
 pub mod version;
 
 extern crate failure;
-#[macro_use]
 extern crate failure_derive;
 #[macro_use]
 extern crate notion_fail;

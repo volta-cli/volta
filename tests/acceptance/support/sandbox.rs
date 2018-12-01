@@ -26,6 +26,7 @@ struct CacheBuilder {
 }
 
 impl CacheBuilder {
+    #[allow(dead_code)]
     pub fn new(path: PathBuf, expiry_path: PathBuf, contents: &str, expired: bool) -> CacheBuilder {
         CacheBuilder {
             path,
@@ -107,19 +108,6 @@ impl FileBuilder {
 
     fn dirname(&self) -> &Path {
         self.path.parent().unwrap()
-    }
-}
-
-// because the http request methods from reqwest show up as <unknown> in mockito
-cfg_if! {
-    if #[cfg(all(windows, target_arch = "x86_64"))] {
-        fn method_name(_method: &str) -> &str {
-            "<UNKNOWN>"
-        }
-    } else {
-        fn method_name(method: &str) -> &str {
-            method
-        }
     }
 }
 
@@ -212,6 +200,7 @@ impl SandboxBuilder {
         }
     }
 
+    #[allow(dead_code)]
     /// Set the Node cache for the sandbox (chainable)
     pub fn node_cache(mut self, cache: &str, expired: bool) -> Self {
         self.caches.push(CacheBuilder::new(
@@ -238,11 +227,8 @@ impl SandboxBuilder {
     }
 
     /// Set the shell for the sandbox (chainable)
-    pub fn notion_shell(mut self, shell_name: &str) -> Self {
-        self.root
-            .env_vars
-            .push(EnvVar::new("NOTION_SHELL", shell_name));
-        self
+    pub fn notion_shell(self, shell_name: &str) -> Self {
+        self.env("NOTION_SHELL", shell_name)
     }
 
     /// Set an environment variable for the sandbox (chainable)
@@ -423,9 +409,11 @@ fn cache_dir() -> PathBuf {
 fn node_cache_dir() -> PathBuf {
     cache_dir().join("node")
 }
+#[allow(dead_code)]
 fn node_index_file() -> PathBuf {
     node_cache_dir().join("index.json")
 }
+#[allow(dead_code)]
 fn node_index_expiry_file() -> PathBuf {
     node_cache_dir().join("index.json.expires")
 }
