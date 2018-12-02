@@ -79,4 +79,4 @@ Notion is licensed under a [BSD 2-clause license](https://github.com/notion-cli/
 Contribution to Notion is organized under the terms of the [Contributor Covenant Code of Conduct](https://github.com/notion-cli/notion/blob/master/CODE_OF_CONDUCT.md).
 The maintainer of Notion, Dave Herman, personally promises to work actively to uphold that code of conduct.
 We aim to foster a community that is welcoming, inclusive, empathetic, and kind.
-If you share those goals and want to have a ton of building cool JavaScript tools and playing with Rust, we invite you to join us!
+If you share those goals and want to have a ton of fun building cool JavaScript tools and playing with Rust, we invite you to join us!
