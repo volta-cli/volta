@@ -120,30 +120,17 @@ impl Session {
     }
 
     pub fn user_platform(&mut self) -> Fallible<Option<Rc<Image>>> {
-        if let Some(NodeVersion { runtime, npm }) = self.user_node() {
-            let node_str = runtime.to_string();
-            let npm_str = npm.to_string();
-
+        if let Some(node) = self.user_node() {
             if let Some(yarn) = self.user_yarn() {
-                let yarn_str = yarn.to_string();
-
                 return Ok(Some(Rc::new(Image {
-                    node: runtime,
-                    node_str,
-                    npm,
-                    npm_str,
+                    node,
                     yarn: Some(yarn),
-                    yarn_str: Some(yarn_str)
                 })));
             }
 
             return Ok(Some(Rc::new(Image {
-                node: runtime,
-                node_str,
-                npm,
-                npm_str,
+                node,
                 yarn: None,
-                yarn_str: None
             })));
         }
         Ok(None)
@@ -176,9 +163,9 @@ impl Session {
     pub(crate) fn prepare_image(&mut self, image: &Image) -> Fallible<()> {
         let inventory = self.inventory.get_mut()?;
 
-        if !inventory.node.contains(&image.node) {
+        if !inventory.node.contains(&image.node.runtime) {
             let config = self.config.get()?;
-            let _ = inventory.fetch_node(&VersionSpec::exact(&image.node), config)?;
+            let _ = inventory.fetch_node(&VersionSpec::exact(&image.node.runtime), config)?;
         }
 
         if let Some(ref yarn_version) = &image.yarn {

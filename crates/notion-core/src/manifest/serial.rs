@@ -1,6 +1,7 @@
 use super::super::{image, manifest};
 use version::VersionSpec;
 
+use distro::node::NodeVersion;
 use notion_fail::Fallible;
 
 use serde::de::{Deserialize, Deserializer, Error, MapAccess, Visitor};
@@ -92,16 +93,15 @@ impl Manifest {
     pub fn into_image(&self) -> Fallible<Option<image::Image>> {
         if let Some(toolchain) = &self.toolchain {
             return Ok(Some(image::Image {
-                node: VersionSpec::parse_version(&toolchain.node)?,
-                node_str: toolchain.node.clone(),
-                npm: VersionSpec::parse_version(&toolchain.npm)?,
-                npm_str: toolchain.npm.clone(),
+                node: NodeVersion {
+                    runtime: VersionSpec::parse_version(&toolchain.node)?,
+                    npm: VersionSpec::parse_version(&toolchain.npm)?,
+                },
                 yarn: if let Some(yarn) = &toolchain.yarn {
                     Some(VersionSpec::parse_version(&yarn)?)
                 } else {
                     None
                 },
-                yarn_str: toolchain.yarn.clone(),
             }));
         }
         Ok(None)

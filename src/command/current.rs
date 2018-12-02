@@ -111,7 +111,7 @@ Options:
 
 fn project_node_version(session: &Session) -> Fallible<Option<String>> {
     if let Some(ref image) = session.project_platform() {
-        return Ok(Some(image.node_str.clone()));
+        return Ok(Some(image.node.runtime.to_string()));
     }
     Ok(None)
 }

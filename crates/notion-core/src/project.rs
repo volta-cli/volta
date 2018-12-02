@@ -242,7 +242,7 @@ impl Project {
         // update the toolchain yarn version
         if let Some(image) = self.manifest().platform() {
             let toolchain =
-                serial::Image::new(image.node_str.clone(), image.npm_str.clone(), Some(yarn_version.to_string()));
+                serial::Image::new(image.node.runtime.to_string(), image.node.npm.to_string(), Some(yarn_version.to_string()));
             Manifest::update_toolchain(toolchain, self.package_file())?;
             println!("Pinned yarn to version {} in package.json", yarn_version);
         } else {

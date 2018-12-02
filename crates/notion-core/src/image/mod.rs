@@ -4,31 +4,27 @@ use std::path::PathBuf;
 use envoy;
 use semver::Version;
 
+use distro::node::NodeVersion;
 use notion_fail::{Fallible, ResultExt};
 use path;
 
 /// A platform image.
-#[derive(Debug)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub struct Image {
-    /// The pinned version of Node, under the `toolchain.node` key.
-    pub node: Version,
-    /// The pinned version of Node as a string.
-    pub node_str: String,
-    /// The pinned version of npm, under the `toolchain.npm` key.
-    pub npm: Version,
-    /// The pinned version of npm as a string.
-    pub npm_str: String,
-    /// The pinned version of Yarn, under the `toolchain.yarn` key.
+    /// The pinned version of Node.
+    pub node: NodeVersion,
+    /// The pinned version of Yarn, if any.
     pub yarn: Option<Version>,
-    /// The pinned version of Yarn as a string.
-    pub yarn_str: Option<String>,
 }
 
 impl Image {
     pub fn bins(&self) -> Fallible<Vec<PathBuf>> {
-        let mut bins = vec![path::node_image_bin_dir(&self.node_str, &self.npm_str)?];
-        if let Some(ref yarn_str) = self.yarn_str {
-            bins.push(path::yarn_image_bin_dir(yarn_str)?);
+        let node_str = self.node.runtime.to_string();
+        let npm_str = self.node.npm.to_string();
+        let mut bins = vec![path::node_image_bin_dir(&node_str, &npm_str)?];
+        if let Some(ref yarn) = self.yarn {
+            let yarn_str = yarn.to_string();
+            bins.push(path::yarn_image_bin_dir(&yarn_str)?);
         }
         Ok(bins)
     }
@@ -129,12 +125,8 @@ mod test {
         let v643 = Version::parse("6.4.3").unwrap();
 
         let no_yarn_image = Image {
-            node: v123.clone(),
-            node_str: v123.to_string(),
-            npm: v643.clone(),
-            npm_str: v643.to_string(),
+            node: NodeVersion { runtime: v123.clone(), npm: v643.clone() },
             yarn: None,
-            yarn_str: None
         };
 
         assert_eq!(
@@ -143,12 +135,8 @@ mod test {
         );
 
         let with_yarn_image = Image {
-            node: v123.clone(),
-            node_str: v123.to_string(),
-            npm: v643.clone(),
-            npm_str: v643.to_string(),
+            node: NodeVersion { runtime: v123.clone(), npm: v643.clone() },
             yarn: Some(v457.clone()),
-            yarn_str: Some(v457.to_string())
         };
 
         assert_eq!(
