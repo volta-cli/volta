@@ -31,7 +31,7 @@ impl Toolchain {
     pub fn get_installed_node(&self) -> Option<NodeVersion> {
         self.platform.as_ref().map(|ref platform| {
             NodeVersion {
-                node: platform.node.clone(),
+                runtime: platform.node.clone(),
                 npm: platform.npm.clone()
             }
         })
@@ -41,9 +41,9 @@ impl Toolchain {
         let mut dirty = false;
 
         if let &mut Some(ref mut platform) = &mut self.platform {
-            if (platform.node != version.node) || (platform.npm != version.npm) {
-                let node_str = version.node.to_string();
-                platform.node = version.node;
+            if (platform.node != version.runtime) || (platform.npm != version.npm) {
+                let node_str = version.runtime.to_string();
+                platform.node = version.runtime;
                 platform.node_str = node_str;
 
                 let npm_str = version.npm.to_string();

@@ -113,7 +113,7 @@ impl Inventory {
         let distro = self.node.resolve_remote(matching, config.node.as_ref())?;
         let fetched = distro.fetch(&self.node).unknown()?;
 
-        if let &Fetched::Now(NodeVersion { node: ref version, .. }) = &fetched {
+        if let &Fetched::Now(NodeVersion { runtime: ref version, .. }) = &fetched {
             self.node.versions.insert(version.clone());
         }
 

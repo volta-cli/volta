@@ -44,9 +44,9 @@ pub struct NodeDistro {
 /// Node installation.
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub struct NodeVersion {
-    /// The version of Node.
-    pub node: Version,
-    /// The globally-installed npm version.
+    /// The version of Node itself.
+    pub runtime: Version,
+    /// The npm version globally installed with the Node distro.
     pub npm: Version,
 }
 
@@ -134,7 +134,7 @@ impl Distro for NodeDistro {
             let npm = path::node_inventory_dir()?.join(&filename);
 
             return Ok(Fetched::Already(NodeVersion {
-                node: self.version,
+                runtime: self.version,
                 npm: read_to_string(npm).unknown()?.parse().unknown()?
             }));
         }
@@ -182,7 +182,7 @@ impl Distro for NodeDistro {
 
         bar.finish_and_clear();
         Ok(Fetched::Now(NodeVersion {
-            node: self.version,
+            runtime: self.version,
             npm
         }))
     }

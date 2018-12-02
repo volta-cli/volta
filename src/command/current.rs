@@ -117,5 +117,5 @@ fn project_node_version(session: &Session) -> Fallible<Option<String>> {
 }
 
 fn user_node_version(session: &Session) -> Option<String> {
-    session.user_node().clone().map(|nv| nv.node.to_string())
+    session.user_node().clone().map(|nv| nv.runtime.to_string())
 }

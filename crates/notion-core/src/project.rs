@@ -229,11 +229,11 @@ impl Project {
     pub fn pin_node_in_toolchain(&self, node_version: NodeVersion) -> Fallible<()> {
         // update the toolchain node version
         let toolchain = serial::Image::new(
-            node_version.node.to_string(),
+            node_version.runtime.to_string(),
             node_version.npm.to_string(),
             self.manifest().yarn_str().clone());
         Manifest::update_toolchain(toolchain, self.package_file())?;
-        println!("Pinned node to version {} in package.json", node_version.node);
+        println!("Pinned node to version {} in package.json", node_version.runtime);
         Ok(())
     }
 

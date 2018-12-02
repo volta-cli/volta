@@ -120,15 +120,15 @@ impl Session {
     }
 
     pub fn user_platform(&mut self) -> Fallible<Option<Rc<Image>>> {
-        if let Some(NodeVersion { node, npm }) = self.user_node() {
-            let node_str = node.to_string();
+        if let Some(NodeVersion { runtime, npm }) = self.user_node() {
+            let node_str = runtime.to_string();
             let npm_str = npm.to_string();
 
             if let Some(yarn) = self.user_yarn() {
                 let yarn_str = yarn.to_string();
 
                 return Ok(Some(Rc::new(Image {
-                    node,
+                    node: runtime,
                     node_str,
                     npm,
                     npm_str,
@@ -138,7 +138,7 @@ impl Session {
             }
 
             return Ok(Some(Rc::new(Image {
-                node,
+                node: runtime,
                 node_str,
                 npm,
                 npm_str,
