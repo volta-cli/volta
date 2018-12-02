@@ -11,6 +11,12 @@ use super::{NodeCollection, YarnCollection};
 use regex::Regex;
 use semver::Version;
 
+/// Reads the contents of a directory and returns the set of all versions found
+/// in the directory's listing by matching filenames against the specified regex
+/// and parsing the `version` named capture as a semantic version.
+///
+/// The regex should contain the `version` named capture by using the Rust regex
+/// syntax `?P<version>`.
 fn versions_matching(dir: &Path, re: &Regex) -> Fallible<BTreeSet<Version>> {
     Ok(read_dir_eager(dir)?
         .filter(|(_, metadata)| {
