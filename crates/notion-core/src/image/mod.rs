@@ -181,12 +181,8 @@ mod test {
         let v643 = Version::parse("6.4.3").unwrap();
 
         let no_yarn_image = Image {
-            node: v123.clone(),
-            node_str: v123.to_string(),
-            npm: v643.clone(),
-            npm_str: v643.to_string(),
+            node: NodeVersion { runtime: v123.clone(), npm: v643.clone() },
             yarn: None,
-            yarn_str: None
         };
 
         assert_eq!(
@@ -195,12 +191,8 @@ mod test {
         );
 
         let with_yarn_image = Image {
-            node: v123.clone(),
-            node_str: v123.to_string(),
-            npm: v643.clone(),
-            npm_str: v643.to_string(),
+            node: NodeVersion { runtime: v123.clone(), npm: v643.clone() },
             yarn: Some(v457.clone()),
-            yarn_str: Some(v457.to_string())
         };
 
         assert_eq!(
