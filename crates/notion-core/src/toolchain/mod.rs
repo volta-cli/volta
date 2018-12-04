@@ -35,11 +35,17 @@ impl Toolchain {
     pub fn set_installed_node(&mut self, version: NodeVersion) -> Fallible<()> {
         let mut dirty = false;
 
-        if let &mut Some(ref mut platform) = &mut self.platform {
+        if let Some(ref mut platform) = self.platform {
             if platform.node != version {
                 platform.node = version;
                 dirty = true;
             }
+        } else {
+            self.platform = Some(Image {
+                node: version,
+                yarn: None,
+            });
+            dirty = true;
         }
 
         if dirty {
