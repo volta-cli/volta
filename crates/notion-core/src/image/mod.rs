@@ -72,13 +72,11 @@ impl System {
         let old_path = envoy::path().unwrap_or(envoy::Var::from(""));
         let shim_dir = path::shim_dir()?;
 
-        let mut parts = old_path.split();
-
         if !old_path.split().any(|part| part == shim_dir) {
-            parts = parts.prefix(vec![shim_dir]);
+            Ok(old_path.split().prefix_entry(shim_dir).join().unknown()?)
+        } else {
+            Ok(OsString::from(old_path))
         }
-
-        Ok(parts.join().unknown()?)
     }
 }
 
