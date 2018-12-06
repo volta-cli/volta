@@ -28,11 +28,11 @@ impl Toolchain {
         })
     }
 
-    pub fn get_installed_node(&self) -> Option<NodeVersion> {
+    pub fn get_active_node(&self) -> Option<NodeVersion> {
         self.platform.as_ref().map(|ref p| { p.node.clone() })
     }
 
-    pub fn set_installed_node(&mut self, version: NodeVersion) -> Fallible<()> {
+    pub fn set_active_node(&mut self, version: NodeVersion) -> Fallible<()> {
         let mut dirty = false;
 
         if let Some(ref mut platform) = self.platform {
@@ -55,11 +55,11 @@ impl Toolchain {
         Ok(())
     }
 
-    pub fn get_installed_yarn(&self) -> Option<Version> {
+    pub fn get_active_yarn(&self) -> Option<Version> {
         self.platform.as_ref().and_then(|ref platform| { platform.yarn.clone() })
     }
 
-    pub fn set_installed_yarn(&mut self, version: Version) -> Fallible<()> {
+    pub fn set_active_yarn(&mut self, version: Version) -> Fallible<()> {
         let mut dirty = false;
 
         if let &mut Some(ref mut platform) = &mut self.platform {

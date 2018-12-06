@@ -179,7 +179,7 @@ impl Session {
     }
 
     pub fn user_node(&self) -> Option<NodeVersion> {
-        self.toolchain.get_installed_node().map(|ref nv| nv.clone())
+        self.toolchain.get_active_node().map(|ref nv| nv.clone())
     }
 
     /// Fetches a version of Node matching the specified semantic verisoning
@@ -196,7 +196,7 @@ impl Session {
         let inventory = self.inventory.get_mut()?;
         let config = self.config.get()?;
         let version = inventory.fetch_node(matching, config)?.into_version();
-        self.toolchain.set_installed_node(version)?;
+        self.toolchain.set_active_node(version)?;
         Ok(())
     }
 
@@ -213,7 +213,7 @@ impl Session {
     }
 
     pub fn user_yarn(&mut self) -> Option<Version> {
-        self.toolchain.get_installed_yarn().map(|ref v| v.clone())
+        self.toolchain.get_active_yarn().map(|ref v| v.clone())
     }
 
     /// Fetches a version of Node matching the specified semantic verisoning
@@ -230,7 +230,7 @@ impl Session {
         let inventory = self.inventory.get_mut()?;
         let config = self.config.get()?;
         let version = inventory.fetch_yarn(matching, config)?.into_version();
-        self.toolchain.set_installed_yarn(version)?;
+        self.toolchain.set_active_yarn(version)?;
         Ok(())
     }
 
