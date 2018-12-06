@@ -27,7 +27,7 @@ cfg_if! {
     }
 }
 
-// C:\Users\dherman\AppData\Local\
+// C:\Users\johndoe\AppData\Local\
 //     Notion\
 //         cache\                                          cache_dir
 //             node\                                       node_cache_dir
