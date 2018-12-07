@@ -9,51 +9,51 @@ use command::{Command, CommandName, Help};
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args;
 
-pub(crate) enum Deactivate {
+pub(crate) enum Activate {
     Help,
-    Deactivate,
+    Activate
 }
 
-impl Command for Deactivate {
+impl Command for Activate {
     type Args = Args;
 
     const USAGE: &'static str = "
-Disable Notion in the current shell
+Re-Enable Notion in the current shell
 
 Usage:
-    notion deactivate
-    notion deactivate -h | --help
+    notion activate
+    notion activate -h | --help
 
 Options:
     -h, --help     Display this message
 ";
 
     fn help() -> Self {
-        Deactivate::Help
+        Activate::Help
     }
 
-    fn parse(_: Notion, _: Args) -> Fallible<Self> {
-        Ok(Deactivate::Deactivate)
+    fn parse(_: Notion, _:Args) -> Fallible<Self> {
+        Ok(Activate::Activate)
     }
 
     fn run(self, session: &mut Session) -> Fallible<()> {
-        session.add_event_start(ActivityKind::Deactivate);
+        session.add_event_start(ActivityKind::Activate);
         match self {
-            Deactivate::Help => {
-                Help::Command(CommandName::Deactivate).run(session)?;
+            Activate::Help => {
+                Help::Command(CommandName::Activate).run(session)?;
             }
-            Deactivate::Deactivate => {
+            Activate::Activate => {
                 let shell = CurrentShell::detect()?;
 
-                let postscript = match System::path()?.into_string() {
-                    Ok(path) => Postscript::Deactivate(path),
+                let postscript = match System::enabled_path()?.into_string() {
+                    Ok(path) => Postscript::Activate(path),
                     Err(_) => unimplemented!(),
                 };
 
                 shell.save_postscript(&postscript)?;
             }
-        };
-        session.add_event_end(ActivityKind::Deactivate, ExitCode::Success);
+        }
+        session.add_event_end(ActivityKind::Activate, ExitCode::Success);
         Ok(())
     }
 }
