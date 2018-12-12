@@ -269,11 +269,17 @@ mod test {
 
         // If the path already contains the shim dir, there shouldn't be any changes
         std::env::set_var("PATH", expected_path.clone());
-        assert_eq!(System::enabled_path().unwrap().into_string().unwrap(), expected_path);
+        assert_eq!(
+            System::enabled_path().unwrap().into_string().unwrap(),
+            expected_path
+        );
 
         // If the path doesn't contain the shim dir, it should be prefixed onto the existing path
         std::env::set_var("PATH", "/usr/bin:/bin");
-        assert_eq!(System::enabled_path().unwrap().into_string().unwrap(), expected_path);
+        assert_eq!(
+            System::enabled_path().unwrap().into_string().unwrap(),
+            expected_path
+        );
     }
 
     #[test]
@@ -291,10 +297,16 @@ mod test {
 
         // If the path already contains the shim dir, there shouldn't be any changes
         std::env::set_var("PATH", expected_path.clone());
-        assert_eq!(System::enabled_path().unwrap().into_string().unwrap(), expected_path);
+        assert_eq!(
+            System::enabled_path().unwrap().into_string().unwrap(),
+            expected_path
+        );
 
         // If the path doesn't contain the shim dir, it should be prefixed onto the existing path
         std::env::set_var("PATH", "C:\\\\somebin;D:\\\\Program Files");
-        assert_eq!(System::enabled_path().unwrap().into_string().unwrap(), expected_path);
+        assert_eq!(
+            System::enabled_path().unwrap().into_string().unwrap(),
+            expected_path
+        );
     }
 }

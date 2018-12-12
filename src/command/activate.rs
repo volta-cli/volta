@@ -11,7 +11,7 @@ pub(crate) struct Args;
 
 pub(crate) enum Activate {
     Help,
-    Activate
+    Activate,
 }
 
 impl Command for Activate {
@@ -32,7 +32,7 @@ Options:
         Activate::Help
     }
 
-    fn parse(_: Notion, _:Args) -> Fallible<Self> {
+    fn parse(_: Notion, _: Args) -> Fallible<Self> {
         Ok(Activate::Activate)
     }
 
