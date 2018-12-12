@@ -40,21 +40,21 @@ impl FileBuilder {
 }
 
 #[must_use]
-pub struct SandboxBuilder {
-    root: Sandbox,
+pub struct TempProjectBuilder {
+    root: TempProject,
     files: Vec<FileBuilder>,
     path_dirs: Vec<PathBuf>,
 }
 
-impl SandboxBuilder {
+impl TempProjectBuilder {
     /// Root of the project, ex: `/path/to/cargo/target/smoke_test/t0/foo`
     pub fn root(&self) -> PathBuf {
         self.root.root()
     }
 
-    pub fn new(root: PathBuf) -> SandboxBuilder {
-        SandboxBuilder {
-            root: Sandbox {
+    pub fn new(root: PathBuf) -> TempProjectBuilder {
+        TempProjectBuilder {
+            root: TempProject {
                 root,
                 path: OsString::new(),
             },
@@ -63,7 +63,7 @@ impl SandboxBuilder {
         }
     }
 
-    /// Set the package.json for the sandbox (chainable)
+    /// Set the package.json for the temporary project (chainable)
     pub fn package_json(mut self, contents: &str) -> Self {
         let package_file = package_json_file(self.root());
         self.files.push(FileBuilder::new(package_file, contents));
@@ -80,8 +80,8 @@ impl SandboxBuilder {
     }
 
     /// Create the project
-    pub fn build(mut self) -> Sandbox {
-        // First, clean the sandbox directory if it already exists
+    pub fn build(mut self) -> TempProject {
+        // First, clean the temporary project directory if it already exists
         self.rm_root();
 
         // Create the empty directory
@@ -106,7 +106,7 @@ impl SandboxBuilder {
         // join dirs for the path (notion bin path is already first)
         self.root.path = env::join_paths(self.path_dirs.iter()).unwrap();
 
-        let SandboxBuilder { root, .. } = self;
+        let TempProjectBuilder { root, .. } = self;
         root
     }
 
@@ -115,19 +115,19 @@ impl SandboxBuilder {
     }
 }
 
-// files and dirs in the sandbox
+// files and dirs in the temporary project
 
 fn package_json_file(mut root: PathBuf) -> PathBuf {
     root.push("package.json");
     root
 }
 
-pub struct Sandbox {
+pub struct TempProject {
     root: PathBuf,
     path: OsString,
 }
 
-impl Sandbox {
+impl TempProject {
     /// Root of the project, ex: `/path/to/cargo/target/integration_test/t0/foo`
     pub fn root(&self) -> PathBuf {
         self.root.clone()
@@ -217,9 +217,9 @@ impl Sandbox {
     }
 }
 
-// Generates a sandboxed environment
-pub fn sandbox() -> SandboxBuilder {
-    SandboxBuilder::new(paths::root().join("sandbox"))
+// Generates a temporary project environment
+pub fn temp_project() -> TempProjectBuilder {
+    TempProjectBuilder::new(paths::root().join("temp-project"))
 }
 
 // Path to compiled executables

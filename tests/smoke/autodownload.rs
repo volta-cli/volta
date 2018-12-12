@@ -1,6 +1,6 @@
 use hamcrest2::core::Matcher;
 use test_support::matchers::execs;
-use support::sandbox::sandbox;
+use support::temp_project::temp_project;
 
 fn package_json_with_pinned_node(version: &str) -> String {
     format!(
@@ -29,7 +29,7 @@ fn package_json_with_pinned_node_yarn(node_version: &str, yarn_version: &str) ->
 
 #[test]
 fn autodownload_node() {
-    let s = sandbox()
+    let s = temp_project()
         .package_json(&package_json_with_pinned_node("10.11.0"))
         .build();
 
@@ -43,7 +43,7 @@ fn autodownload_node() {
 
 #[test]
 fn autodownload_yarn() {
-    let s = sandbox()
+    let s = temp_project()
         .package_json(&package_json_with_pinned_node_yarn("10.11.0", "1.10.1"))
         .with_current_path()
         .build();

@@ -1,10 +1,10 @@
 use hamcrest2::core::Matcher;
 use test_support::matchers::execs;
-use support::sandbox::sandbox;
+use support::temp_project::temp_project;
 
 #[test]
 fn fetch_node() {
-    let s = sandbox()
+    let s = temp_project()
         .build();
 
     assert_that!(
@@ -18,7 +18,7 @@ fn fetch_node() {
 
 #[test]
 fn fetch_yarn() {
-    let s = sandbox()
+    let s = temp_project()
         .build();
 
     assert_that!(
