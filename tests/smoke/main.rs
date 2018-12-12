@@ -6,6 +6,10 @@
 /// ```
 /// cargo test --test smoke --features smoke-tests -- --test-threads 1
 /// ```
+///
+/// Also note that each test uses a different version of node and yarn. This is to prevent
+/// false positives if the tests are not cleaned up correctly. Any new tests should use
+/// different versions of node and yarn.
 #[macro_use]
 extern crate cfg_if;
 extern crate envoy;
