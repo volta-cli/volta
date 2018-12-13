@@ -1,6 +1,7 @@
 use super::super::{image, manifest};
 use version::VersionSpec;
 
+use distro::node::NodeVersion;
 use notion_fail::Fallible;
 
 use serde::de::{Deserialize, Deserializer, Error, MapAccess, Visitor};
@@ -62,6 +63,7 @@ pub struct Manifest {
 #[derive(Serialize, Deserialize)]
 pub struct Image {
     pub node: String,
+    pub npm: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub yarn: Option<String>,
 }
@@ -91,14 +93,15 @@ impl Manifest {
     pub fn into_image(&self) -> Fallible<Option<image::Image>> {
         if let Some(toolchain) = &self.toolchain {
             return Ok(Some(image::Image {
-                node: VersionSpec::parse_version(&toolchain.node)?,
-                node_str: toolchain.node.clone(),
+                node: NodeVersion {
+                    runtime: VersionSpec::parse_version(&toolchain.node)?,
+                    npm: VersionSpec::parse_version(&toolchain.npm)?,
+                },
                 yarn: if let Some(yarn) = &toolchain.yarn {
                     Some(VersionSpec::parse_version(&yarn)?)
                 } else {
                     None
                 },
-                yarn_str: toolchain.yarn.clone(),
             }));
         }
         Ok(None)
@@ -106,9 +109,10 @@ impl Manifest {
 }
 
 impl Image {
-    pub fn new(node_version: String, yarn_version: Option<String>) -> Self {
+    pub fn new(node_version: String, npm_version: String, yarn_version: Option<String>) -> Self {
         Image {
             node: node_version,
+            npm: npm_version,
             yarn: yarn_version,
         }
     }
@@ -208,6 +212,7 @@ pub mod tests {
             "devDependencies": { "somethingElse": "1.2.3" },
             "toolchain": {
                 "node": "0.10.5",
+                "npm": "1.2.18",
                 "yarn": "1.2.1"
             },
             "bin": {
@@ -283,7 +288,8 @@ pub mod tests {
 
         let package_node_only = r#"{
             "toolchain": {
-                "node": "0.10.5"
+                "node": "0.10.5",
+                "npm": "1.2.18"
             }
         }"#;
         let manifest_node_only: Manifest =
@@ -304,6 +310,7 @@ pub mod tests {
         let package_node_and_yarn = r#"{
             "toolchain": {
                 "node": "0.10.5",
+                "npm": "1.2.18",
                 "yarn": "1.2.1"
             }
         }"#;

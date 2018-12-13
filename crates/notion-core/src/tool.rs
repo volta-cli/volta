@@ -232,7 +232,9 @@ impl Tool for Binary {
         if let Some(ref platform) = session.user_platform()? {
             // use the full path to the binary
             // ISSUE (#160): Look up the platform image bound to the user tool.
-            let mut third_p_bin_dir = path::node_version_3p_bin_dir(&platform.node_str)?;
+            let node_str = platform.node.runtime.to_string();
+            let npm_str = platform.node.npm.to_string();
+            let mut third_p_bin_dir = path::node_image_3p_bin_dir(&node_str, &npm_str)?;
             third_p_bin_dir.push(&exe);
             return Ok(Self::from_components(
                 &third_p_bin_dir.as_os_str(),

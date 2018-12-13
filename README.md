@@ -70,6 +70,10 @@ To run the tests in this repo, run the following:
 cargo test --all --features mock-network
 ```
 
+## Development Tips
+
+When developing, we suggest you set the `NOTION_DEV` environment variable to `1` and the `RUST_BACKTRACE` environment variable to `full`. This will provide extra diagnostic information to stderr on crashes. We have an [issue on file](https://github.com/notion-cli/notion/issues/215) to improve the quality of diagnostics.
+
 ## License
 
 Notion is licensed under a [BSD 2-clause license](https://github.com/notion-cli/notion/blob/master/LICENSE).

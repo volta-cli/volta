@@ -2,17 +2,16 @@ use std::env;
 use std::ffi::{OsStr, OsString};
 use std::fs::{self, File};
 use std::io::{Read, Write};
-use std::iter;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
 use reqwest::header::HttpDate;
 
 use support::paths::{self, PathExt};
 use test_support;
 use test_support::process::ProcessBuilder;
+
+use notion_core::path::{OS, ARCH, archive_extension};
 
 #[cfg(feature = "mock-network")]
 use mockito::{self, mock, Matcher};
@@ -27,6 +26,7 @@ struct CacheBuilder {
 }
 
 impl CacheBuilder {
+    #[allow(dead_code)]
     pub fn new(path: PathBuf, expiry_path: PathBuf, contents: &str, expired: bool) -> CacheBuilder {
         CacheBuilder {
             path,
@@ -82,7 +82,7 @@ impl EnvVar {
     }
 }
 
-// catalog.toml
+// used to construct sandboxed package.json and platform.toml
 #[derive(PartialEq, Clone)]
 pub struct FileBuilder {
     path: PathBuf,
@@ -111,25 +111,73 @@ impl FileBuilder {
     }
 }
 
-// because the http request methods from reqwest show up as <unknown> in mockito
-cfg_if! {
-    if #[cfg(all(windows, target_arch = "x86_64"))] {
-        fn method_name(_method: &str) -> &str {
-            "<UNKNOWN>"
-        }
-    } else {
-        fn method_name(method: &str) -> &str {
-            method
-        }
-    }
-}
-
 #[must_use]
 pub struct SandboxBuilder {
     root: Sandbox,
     files: Vec<FileBuilder>,
     caches: Vec<CacheBuilder>,
     path_dirs: Vec<PathBuf>,
+}
+
+pub trait DistroFixture: From<DistroMetadata> {
+    fn server_path(&self) -> String;
+    fn fixture_path(&self) -> String;
+    fn metadata(&self) -> &DistroMetadata;
+}
+
+#[derive(Clone)]
+pub struct DistroMetadata {
+    pub version: &'static str,
+    pub compressed_size: u32,
+    pub uncompressed_size: Option<u32>,
+}
+
+pub struct NodeFixture {
+    pub metadata: DistroMetadata,
+}
+
+pub struct YarnFixture {
+    pub metadata: DistroMetadata,
+}
+
+impl From<DistroMetadata> for NodeFixture {
+    fn from(metadata: DistroMetadata) -> Self { Self { metadata } }
+}
+
+impl From<DistroMetadata> for YarnFixture {
+    fn from(metadata: DistroMetadata) -> Self { Self { metadata } }
+}
+
+impl DistroFixture for NodeFixture {
+    fn server_path(&self) -> String {
+        let version = &self.metadata.version;
+        let extension = archive_extension();
+        format!("/v{}/node-v{}-{}-{}.{}", version, version, OS, ARCH, extension)
+    }
+
+    fn fixture_path(&self) -> String {
+        let version = &self.metadata.version;
+        let extension = archive_extension();
+        format!("tests/fixtures/node-v{}-{}-{}.{}", version, OS, ARCH, extension)
+    }
+
+    fn metadata(&self) -> &DistroMetadata {
+        &self.metadata
+    }
+}
+
+impl DistroFixture for YarnFixture {
+    fn server_path(&self) -> String {
+        format!("/yarn-v{}.tar.gz", self.metadata.version)
+    }
+
+    fn fixture_path(&self) -> String {
+        format!("tests/fixtures/yarn-v{}.tar.gz", self.metadata.version)
+    }
+
+    fn metadata(&self) -> &DistroMetadata {
+        &self.metadata
+    }
 }
 
 impl SandboxBuilder {
@@ -152,6 +200,7 @@ impl SandboxBuilder {
         }
     }
 
+    #[allow(dead_code)]
     /// Set the Node cache for the sandbox (chainable)
     pub fn node_cache(mut self, cache: &str, expired: bool) -> Self {
         self.caches.push(CacheBuilder::new(
@@ -170,19 +219,16 @@ impl SandboxBuilder {
         self
     }
 
-    /// Set the catalog.toml for the sandbox (chainable)
-    pub fn catalog(mut self, contents: &str) -> Self {
+    /// Set the platform.toml for the sandbox (chainable)
+    pub fn platform(mut self, contents: &str) -> Self {
         self.files
-            .push(FileBuilder::new(user_catalog_file(), contents));
+            .push(FileBuilder::new(user_platform_file(), contents));
         self
     }
 
     /// Set the shell for the sandbox (chainable)
-    pub fn notion_shell(mut self, shell_name: &str) -> Self {
-        self.root
-            .env_vars
-            .push(EnvVar::new("NOTION_SHELL", shell_name));
-        self
+    pub fn notion_shell(self, shell_name: &str) -> Self {
+        self.env("NOTION_SHELL", shell_name)
     }
 
     /// Set an environment variable for the sandbox (chainable)
@@ -199,7 +245,7 @@ impl SandboxBuilder {
 
     /// Setup mock to return the available node versions (chainable)
     pub fn node_available_versions(mut self, body: &str) -> Self {
-        let mock = mock(method_name("GET"), "/node-dist/index.json")
+        let mock = mock("GET", "/node-dist/index.json")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(body)
@@ -209,52 +255,9 @@ impl SandboxBuilder {
         self
     }
 
-    /// Setup mocks to return info about the node archive file (chainable)
-    pub fn node_archive_mocks(mut self) -> Self {
-        // ISSUE(#145): this should actually use a real http server instead of these mocks
-
-        // generate a "file" that is 200 bytes long
-        let mut rng = thread_rng();
-        let archive_file_mock: String = iter::repeat(())
-            .map(|()| rng.sample(Alphanumeric))
-            .take(200)
-            .collect();
-
-        // mock the HEAD request, which gets the file size
-        let head_mock = mock(
-            method_name("HEAD"),
-            Matcher::Regex(r"^/v\d+.\d+.\d+/node-v\d+.\d+.\d+".to_string()),
-        ).with_header("Accept-Ranges", "bytes")
-            .with_body(&archive_file_mock)
-            .create();
-        self.root.mocks.push(head_mock);
-
-        // mock the "Range: bytes" request, which gets the ISIZE value (last 4 bytes)
-        // this will be interpreted as a packed integer value
-        // (doesn't really matter - used for progress bar)
-        let range_mock = mock(
-            method_name("GET"),
-            Matcher::Regex(r"^/v\d+.\d+.\d+/node-v\d+.\d+.\d+".to_string()),
-        ).match_header("Range", Matcher::Any)
-            .with_body("1234")
-            .create();
-        self.root.mocks.push(range_mock);
-
-        // mock the file download
-        let file_mock = mock(
-            method_name("GET"),
-            Matcher::Regex(r"^/v\d+.\d+.\d+/node-v\d+.\d+.\d+".to_string()),
-        ).match_header("Range", Matcher::Missing)
-            .with_body(&archive_file_mock)
-            .create();
-        self.root.mocks.push(file_mock);
-
-        self
-    }
-
     /// Setup mock to return the available yarn versions (chainable)
     pub fn yarn_available_versions(mut self, body: &str) -> Self {
-        let mock = mock(method_name("GET"), "/yarn-releases/index.json")
+        let mock = mock("GET", "/yarn-releases/index.json")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(body)
@@ -265,7 +268,7 @@ impl SandboxBuilder {
 
     /// Setup mock to return the latest version of yarn (chainable)
     pub fn yarn_latest(mut self, version: &str) -> Self {
-        let mock = mock(method_name("GET"), "/yarn-latest")
+        let mock = mock("GET", "/yarn-latest")
             .with_status(200)
             .with_body(version)
             .create();
@@ -273,41 +276,54 @@ impl SandboxBuilder {
         self
     }
 
-    /// Setup mocks to return info about the yarn archive file (chainable)
-    pub fn yarn_archive_mocks(mut self) -> Self {
+    fn distro_mock<T: DistroFixture>(mut self, fx: &T) -> Self {
         // ISSUE(#145): this should actually use a real http server instead of these mocks
 
-        // generate a "file" that is 200 bytes long
-        let mut rng = thread_rng();
-        let archive_file_mock: String = iter::repeat(())
-            .map(|()| rng.sample(Alphanumeric))
-            .take(200)
-            .collect();
+        let server_path = fx.server_path();
+        let fixture_path = fx.fixture_path();
 
-        // mock the HEAD request, which gets the file size
-        let head_mock = mock(method_name("HEAD"), Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()))
-            .with_header("Accept-Ranges", "bytes")
-            .with_body(&archive_file_mock)
-            .create();
-        self.root.mocks.push(head_mock);
+        let metadata = fx.metadata();
 
-        // mock the "Range: bytes" request, which gets the ISIZE value (last 4 bytes)
-        // this will be interpreted as a packed integer value
-        // (doesn't really matter - used for progress bar)
-        let range_mock = mock(method_name("GET"), Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()))
-            .match_header("Range", Matcher::Any)
-            .with_body("1234")
-            .create();
-        self.root.mocks.push(range_mock);
+        if let Some(uncompressed_size) = metadata.uncompressed_size {
+            let head_mock = mock("HEAD", &server_path[..])
+                .with_header("Accept-Ranges", "bytes")
+                // Workaround for https://github.com/lipanski/mockito/issues/52: the only way
+                // to get the right "Content-Length" header is to add the file to the body so
+                // Mockito computes the right file size.
+                .with_body_from_file(&fixture_path)
+                .create();
+            self.root.mocks.push(head_mock);
 
-        // mock the file download
-        let file_mock = mock(method_name("GET"), Matcher::Regex(r"^/yarn-v\d+.\d+.\d+".to_string()))
+            // This can be abstracted when https://github.com/rust-lang/rust/issues/52963 lands.
+            let uncompressed_size_bytes: [u8; 4] = [
+                ((uncompressed_size & 0xff000000) >> 24) as u8,
+                ((uncompressed_size & 0x00ff0000) >> 16) as u8,
+                ((uncompressed_size & 0x0000ff00) >>  8) as u8,
+                ((uncompressed_size & 0x000000ff)      ) as u8
+            ];
+
+            let range_mock = mock("GET", &server_path[..])
+                .match_header("Range", Matcher::Any)
+                .with_body(&uncompressed_size_bytes)
+                .create();
+            self.root.mocks.push(range_mock);
+        }
+
+        let file_mock = mock("GET", &server_path[..])
             .match_header("Range", Matcher::Missing)
-            .with_body(&archive_file_mock)
+            .with_body_from_file(&fixture_path)
             .create();
         self.root.mocks.push(file_mock);
 
         self
+    }
+
+    pub fn distro_mocks<T: DistroFixture>(self, fixtures: &[DistroMetadata]) -> Self {
+        let mut this = self;
+        for fixture in fixtures {
+            this = this.distro_mock::<T>(&fixture.clone().into());
+        }
+        this
     }
 
     /// Create the project
@@ -320,7 +336,9 @@ impl SandboxBuilder {
 
         // make sure these directories exist
         ok_or_panic!{ fs::create_dir_all(node_cache_dir()) };
-        ok_or_panic!{ fs::create_dir_all(yarn_cache_dir()) };
+        ok_or_panic!{ fs::create_dir_all(node_inventory_dir()) };
+        ok_or_panic!{ fs::create_dir_all(package_inventory_dir()) };
+        ok_or_panic!{ fs::create_dir_all(yarn_inventory_dir()) };
         ok_or_panic!{ fs::create_dir_all(notion_tmp_dir()) };
 
         // write node and yarn caches
@@ -350,8 +368,13 @@ impl SandboxBuilder {
 fn home_dir() -> PathBuf {
     paths::home()
 }
+#[cfg(unix)]
 fn notion_home() -> PathBuf {
     home_dir().join(".notion")
+}
+#[cfg(windows)]
+fn notion_home() -> PathBuf {
+    home_dir().join("AppData").join("Local").join("Notion")
 }
 fn notion_tmp_dir() -> PathBuf {
     notion_home().join("tmp")
@@ -362,23 +385,35 @@ fn notion_bin_dir() -> PathBuf {
 fn notion_postscript() -> PathBuf {
     notion_tmp_dir().join("notion_tmp_1234.sh")
 }
-#[cfg(unix)]
+fn notion_tools_dir() -> PathBuf {
+    notion_home().join("tools")
+}
+fn inventory_dir() -> PathBuf {
+    notion_tools_dir().join("inventory")
+}
+fn user_dir() -> PathBuf {
+    notion_tools_dir().join("user")
+}
+fn node_inventory_dir() -> PathBuf {
+    inventory_dir().join("node")
+}
+fn yarn_inventory_dir() -> PathBuf {
+    inventory_dir().join("yarn")
+}
+fn package_inventory_dir() -> PathBuf {
+    inventory_dir().join("package")
+}
 fn cache_dir() -> PathBuf {
     notion_home().join("cache")
-}
-#[cfg(windows)]
-fn cache_dir() -> PathBuf {
-    home_dir().join("Notion").join("cache")
 }
 fn node_cache_dir() -> PathBuf {
     cache_dir().join("node")
 }
-fn yarn_cache_dir() -> PathBuf {
-    cache_dir().join("yarn")
-}
+#[allow(dead_code)]
 fn node_index_file() -> PathBuf {
     node_cache_dir().join("index.json")
 }
+#[allow(dead_code)]
 fn node_index_expiry_file() -> PathBuf {
     node_cache_dir().join("index.json.expires")
 }
@@ -386,17 +421,8 @@ fn package_json_file(mut root: PathBuf) -> PathBuf {
     root.push("package.json");
     root
 }
-#[cfg(unix)]
-fn user_catalog_file() -> PathBuf {
-    notion_home().join("catalog.toml")
-}
-#[cfg(windows)]
-fn local_data_root() -> PathBuf {
-    home_dir().join("AppData").join("Local").join("Notion")
-}
-#[cfg(windows)]
-fn user_catalog_file() -> PathBuf {
-    local_data_root().join("catalog.toml")
+fn user_platform_file() -> PathBuf {
+    user_dir().join("platform.toml")
 }
 
 pub struct Sandbox {
@@ -426,11 +452,8 @@ impl Sandbox {
             .env("HOME", home_dir())
             .env("USERPROFILE", home_dir()) // windows
             .env("NOTION_HOME", notion_home())
-            .env("NOTION_DATA_ROOT", notion_home()) // windows
             .env("PATH", &self.path)
             .env("NOTION_POSTSCRIPT", notion_postscript())
-            .env_remove("NOTION_DEV")
-            .env_remove("NOTION_NODE_VERSION")
             .env_remove("NOTION_SHELL")
             .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
 

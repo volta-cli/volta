@@ -1,7 +1,6 @@
 extern crate console;
 extern crate docopt;
 extern crate failure;
-#[macro_use]
 extern crate failure_derive;
 extern crate notion_core;
 #[macro_use]

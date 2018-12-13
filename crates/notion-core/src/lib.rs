@@ -2,6 +2,7 @@
 
 #![cfg_attr(feature = "universal-docs", feature(doc_cfg))]
 
+extern crate archive;
 extern crate cmdline_words_parser;
 extern crate console;
 extern crate detect_indent;
@@ -10,8 +11,8 @@ extern crate indicatif;
 extern crate lazycell;
 #[cfg(feature = "mock-network")]
 extern crate mockito;
-extern crate node_archive;
 extern crate readext;
+extern crate regex;
 extern crate reqwest;
 extern crate semver;
 extern crate serde_json;
@@ -25,7 +26,7 @@ extern crate serde_derive;
 
 extern crate winfolder;
 
-pub mod catalog;
+pub mod inventory;
 pub mod config;
 mod distro;
 pub mod env;
@@ -42,10 +43,10 @@ pub mod shell;
 pub mod shim;
 pub mod style;
 pub mod tool;
+pub mod toolchain;
 pub mod version;
 
 extern crate failure;
-#[macro_use]
 extern crate failure_derive;
 #[macro_use]
 extern crate notion_fail;

@@ -53,15 +53,25 @@ notion_create_tree() {
   #     .notion/
   #         cache/
   #             node/
-  #         versions/
-  #             node/
+  #         tools/
+  #             inventory/
+  #                 node/
+  #                 packages/
+  #                 yarn/
+  #             image/
+  #                 node/
+  #                 yarn/
+  #             user/
   #         bin/
   #         tmp/
 
   mkdir -p "${INSTALL_DIR}"/cache/node
-  mkdir -p "${INSTALL_DIR}"/cache/yarn
-  mkdir -p "${INSTALL_DIR}"/versions/node
-  mkdir -p "${INSTALL_DIR}"/versions/yarn
+  mkdir -p "${INSTALL_DIR}"/tools/inventory/node
+  mkdir -p "${INSTALL_DIR}"/tools/inventory/packages
+  mkdir -p "${INSTALL_DIR}"/tools/inventory/yarn
+  mkdir -p "${INSTALL_DIR}"/tools/image/node
+  mkdir -p "${INSTALL_DIR}"/tools/image/yarn
+  mkdir -p "${INSTALL_DIR}"/tools/user
   mkdir -p "${INSTALL_DIR}"/bin
   mkdir -p "${INSTALL_DIR}"/tmp
 }

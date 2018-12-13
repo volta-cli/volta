@@ -79,12 +79,12 @@ impl Manifest {
 
     /// Returns the pinned version of Node as a Version, if any.
     pub fn node(&self) -> Option<Version> {
-        self.platform().map(|t| t.node.clone())
+        self.platform().map(|t| t.node.runtime.clone())
     }
 
     /// Returns the pinned verison of Node as a String, if any.
     pub fn node_str(&self) -> Option<String> {
-        self.platform().map(|t| t.node_str.clone())
+        self.platform().map(|t| t.node.runtime.to_string())
     }
 
     /// Returns the pinned verison of Yarn as a Version, if any.
@@ -97,8 +97,7 @@ impl Manifest {
     /// Returns the pinned verison of Yarn as a String, if any.
     pub fn yarn_str(&self) -> Option<String> {
         self.platform()
-            .map(|t| t.yarn_str.clone())
-            .unwrap_or(None)
+            .and_then(|t| t.yarn.as_ref().map(|yarn| yarn.to_string()))
     }
 
     /// Writes the input ToolchainManifest to package.json, adding the "toolchain" key if
