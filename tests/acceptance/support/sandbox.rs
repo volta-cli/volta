@@ -454,7 +454,6 @@ impl Sandbox {
             .env("NOTION_HOME", notion_home())
             .env("PATH", &self.path)
             .env("NOTION_POSTSCRIPT", notion_postscript())
-            //.env_remove("NOTION_DEV")
             .env_remove("NOTION_SHELL")
             .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
 

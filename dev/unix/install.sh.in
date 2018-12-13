@@ -66,7 +66,6 @@ notion_create_tree() {
   #         tmp/
 
   mkdir -p "${INSTALL_DIR}"/cache/node
-  mkdir -p "${INSTALL_DIR}"/cache/yarn
   mkdir -p "${INSTALL_DIR}"/tools/inventory/node
   mkdir -p "${INSTALL_DIR}"/tools/inventory/packages
   mkdir -p "${INSTALL_DIR}"/tools/inventory/yarn
