@@ -14,7 +14,6 @@
 extern crate cfg_if;
 extern crate envoy;
 extern crate failure;
-#[macro_use]
 extern crate hamcrest2;
 #[cfg(feature = "mock-network")]
 extern crate mockito;
