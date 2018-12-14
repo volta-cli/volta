@@ -27,43 +27,47 @@ cfg_if! {
     }
 }
 
-// C:\
-//     ProgramData\
-//         Notion\
-//             cache\                                  cache_dir
-//                 node\                               node_cache_dir
-//                     node-v4.8.4-win-x64.zip         archive_file("4.8.4")
-//                     node-v6.11.3-win-x64.zip
-//                     node-v8.6.0-win-x64.zip
+// C:\Users\johndoe\AppData\Local\
+//     Notion\
+//         cache\                                          cache_dir
+//             node\                                       node_cache_dir
+//                 index.json                              node_index_file
+//                 index.json.expires                      node_index_expiry_file
+//         bin\                                            shim_dir
+//             node                                        shim_file("node")
+//             npm
+//             npx
+//             ...
+//         tools\                                          tools_dir
+//             inventory\                                  inventory_dir
+//                 node\                                   node_inventory_dir
+//                     node-v4.8.4-win-x64.zip             node_archive_file("4.8.4")
+//                     node-v4.8.4-npm                     node_npm_version_file("4.8.4")
 //                     ...
-//             versions\                               versions_dir
-//                 node\                               node_versions_dir
-//                     4.8.4\                          node_version_dir("4.8.4")
-//                                                     node_version_bin_dir("4.8.4")
-//                     6.11.3\
-//                     8.6.0\
-//                     ...
-//             launchbin.exe                           launchbin_file
-//             launchscript.exe                        launchscript_file
-
-fn program_data_root() -> Fallible<PathBuf> {
-    // if this is sandboxed in CI, use the sandboxed ProgramData directory
-    if env::var("NOTION_SANDBOX").is_ok() {
-        let notion_data = env::var("NOTION_DATA_ROOT").unwrap();
-        return Ok(PathBuf::from(notion_data).join("Notion"));
-    } else {
-        #[cfg(windows)]
-        return Ok(winfolder::Folder::ProgramData.path().join("Notion"));
-
-        // "universal-docs" is built on a Unix machine, so we can't include Windows-specific libs
-        #[cfg(feature = "universal-docs")]
-        unimplemented!()
-    }
-
-}
+//                 packages\                               package_inventory_dir
+//                 yarn\                                   yarn_inventory_dir
+//             image\                                      image_dir
+//                 node\                                   node_image_root_dir
+//                     10.13.0\
+//                         6.4.0\                          node_image_dir("10.13.0", "6.4.0")
+//                                                         node_image_bin_dir("10.13.0", "6.4.0")
+//                 yarn\                                   yarn_image_root_dir
+//                     1.7.0\                              yarn_image_dir("1.7.0")
+//             user\                                       user_toolchain_dir
+//                 bins\
+//                     ember ~> ..\packages\ember-cli
+//                 packages\
+//                     ember-cli\
+//                         package.toml
+//                         contents\
+//                 platform.toml                           user_platform_file
+//         notion.exe                                      notion_file
+//         launchbin.exe                                   launchbin_file
+//         launchscript.exe                                launchscript_file
+//         config.toml                                     user_config_file
 
 pub fn cache_dir() -> Fallible<PathBuf> {
-    Ok(program_data_root()?.join("cache"))
+    Ok(local_data_root()?.join("cache"))
 }
 
 pub fn node_cache_dir() -> Fallible<PathBuf> {
@@ -86,90 +90,75 @@ pub fn archive_extension() -> String {
     String::from("zip")
 }
 
-pub fn versions_dir() -> Fallible<PathBuf> {
-    Ok(program_data_root()?.join("versions"))
+pub fn inventory_dir() -> Fallible<PathBuf> {
+    Ok(tools_dir()?.join("inventory"))
 }
 
-pub fn node_versions_dir() -> Fallible<PathBuf> {
-    Ok(versions_dir()?.join("node"))
+pub fn node_inventory_dir() -> Fallible<PathBuf> {
+    Ok(inventory_dir()?.join("node"))
 }
 
-pub fn yarn_versions_dir() -> Fallible<PathBuf> {
-    Ok(versions_dir()?.join("yarn"))
+pub fn yarn_inventory_dir() -> Fallible<PathBuf> {
+    Ok(inventory_dir()?.join("yarn"))
 }
 
-pub fn node_version_dir(version: &str) -> Fallible<PathBuf> {
-    Ok(node_versions_dir()?.join(version))
+pub fn package_inventory_dir() -> Fallible<PathBuf> {
+    Ok(inventory_dir()?.join("packages"))
 }
 
-pub fn yarn_version_dir(version: &str) -> Fallible<PathBuf> {
-    Ok(yarn_versions_dir()?.join(version))
+pub fn image_dir() -> Fallible<PathBuf> {
+    Ok(tools_dir()?.join("image"))
 }
 
-pub fn node_version_bin_dir(version: &str) -> Fallible<PathBuf> {
-    node_version_dir(version)
+pub fn node_image_root_dir() -> Fallible<PathBuf> {
+    Ok(image_dir()?.join("node"))
 }
 
-pub fn yarn_version_bin_dir(version: &str) -> Fallible<PathBuf> {
-    Ok(yarn_version_dir(version)?.join("bin"))
+pub fn node_image_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
+    Ok(node_image_root_dir()?.join(node).join(npm))
+}
+
+pub fn node_image_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
+    node_image_dir(node, npm)
 }
 
 // 3rd-party binaries installed globally for this node version
-pub fn node_version_3p_bin_dir(_version: &str) -> Fallible<PathBuf> {
+pub fn node_image_3p_bin_dir(_node: &str, _npm: &str) -> Fallible<PathBuf> {
     // ISSUE (#90) Figure out where binaries are globally installed on Windows
     unimplemented!("global 3rd party executables not yet implemented for Windows")
 }
 
+pub fn yarn_image_root_dir() -> Fallible<PathBuf> {
+    Ok(image_dir()?.join("yarn"))
+}
+
+pub fn yarn_image_dir(version: &str) -> Fallible<PathBuf> {
+    Ok(yarn_image_root_dir()?.join(version))
+}
+
+pub fn yarn_image_bin_dir(version: &str) -> Fallible<PathBuf> {
+    Ok(yarn_image_dir(version)?.join("bin"))
+}
+
 pub fn launchbin_file() -> Fallible<PathBuf> {
-    Ok(program_data_root()?.join("launchbin.exe"))
+    Ok(local_data_root()?.join("launchbin.exe"))
 }
 
 pub fn launchscript_file() -> Fallible<PathBuf> {
-    Ok(program_data_root()?.join("launchscript.exe"))
-}
-
-// C:\
-//     Program Files\
-//         Notion\
-//             notion.exe                              notion_file
-//             bin\                                    shim_dir
-//                 node.exe                            shim_file("node")
-//                 npm.exe
-//                 npx.exe
-//                 ...
-
-fn program_files_root() -> Fallible<PathBuf> {
-    #[cfg(all(windows, target_arch = "x86"))]
-    return Ok(winfolder::Folder::ProgramFiles.path().join("Notion"));
-
-    #[cfg(all(windows, target_arch = "x86_64"))]
-    return Ok(winfolder::Folder::ProgramFilesX64.path().join("Notion"));
-
-    // "universal-docs" is built on a Unix machine, so we can't include Windows-specific libs
-    #[cfg(feature = "universal-docs")]
-    unimplemented!()
+    Ok(local_data_root()?.join("launchscript.exe"))
 }
 
 pub fn notion_file() -> Fallible<PathBuf> {
-    Ok(program_files_root()?.join("notion.exe"))
+    Ok(local_data_root()?.join("notion.exe"))
 }
 
 pub fn shim_dir() -> Fallible<PathBuf> {
-    Ok(program_files_root()?.join("bin"))
+    Ok(local_data_root()?.join("bin"))
 }
 
 pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
     Ok(shim_dir()?.join(&format!("{}.exe", toolname)))
 }
-
-// C:\
-//     Users\
-//         dherman\
-//             AppData\
-//                 Local\
-//                     Notion\
-//                         config.toml                 user_config_file
-//                         catalog.toml                user_catalog_file
 
 fn local_data_root() -> Fallible<PathBuf> {
     // if this is sandboxed in CI, use the sandboxed AppData directory
@@ -190,8 +179,16 @@ pub fn user_config_file() -> Fallible<PathBuf> {
     Ok(local_data_root()?.join("config.toml"))
 }
 
-pub fn user_catalog_file() -> Fallible<PathBuf> {
-    Ok(local_data_root()?.join("catalog.toml"))
+pub fn tools_dir() -> Fallible<PathBuf> {
+    Ok(local_data_root()?.join("tools"))
+}
+
+pub fn user_toolchain_dir() -> Fallible<PathBuf> {
+    Ok(tools_dir()?.join("user"))
+}
+
+pub fn user_platform_file() -> Fallible<PathBuf> {
+    Ok(user_toolchain_dir()?.join("platform.toml"))
 }
 
 pub fn create_file_symlink(src: PathBuf, dst: PathBuf) -> Result<(), io::Error> {

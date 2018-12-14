@@ -1,3 +1,4 @@
+mod activate;
 mod config;
 mod current;
 mod deactivate;
@@ -8,6 +9,7 @@ mod shim;
 mod use_;
 mod version;
 
+pub(crate) use self::activate::Activate;
 pub(crate) use self::config::Config;
 pub(crate) use self::current::Current;
 pub(crate) use self::deactivate::Deactivate;
@@ -39,6 +41,7 @@ pub(crate) enum CommandName {
     Config,
     Current,
     Deactivate,
+    Activate,
     #[cfg(feature = "notion-dev")]
     Shim,
     Help,
@@ -56,6 +59,7 @@ impl Display for CommandName {
                 CommandName::Use => "use",
                 CommandName::Config => "config",
                 CommandName::Deactivate => "deactivate",
+                CommandName::Activate => "activate",
                 CommandName::Current => "current",
                 #[cfg(feature = "notion-dev")]
                 CommandName::Shim => "shim",
@@ -77,6 +81,7 @@ impl FromStr for CommandName {
             "config" => CommandName::Config,
             "current" => CommandName::Current,
             "deactivate" => CommandName::Deactivate,
+            "activate" => CommandName::Activate,
             #[cfg(feature = "notion-dev")]
             "shim" => CommandName::Shim,
             "help" => CommandName::Help,

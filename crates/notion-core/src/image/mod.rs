@@ -4,26 +4,27 @@ use std::path::PathBuf;
 use envoy;
 use semver::Version;
 
+use distro::node::NodeVersion;
 use notion_fail::{Fallible, ResultExt};
 use path;
 
 /// A platform image.
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub struct Image {
-    /// The pinned version of Node, under the `toolchain.node` key.
-    pub node: Version,
-    /// The pinned version of Node as a string.
-    pub node_str: String,
-    /// The pinned version of Yarn, under the `toolchain.yarn` key.
+    /// The pinned version of Node.
+    pub node: NodeVersion,
+    /// The pinned version of Yarn, if any.
     pub yarn: Option<Version>,
-    /// The pinned version of Yarn as a string.
-    pub yarn_str: Option<String>,
 }
 
 impl Image {
     pub fn bins(&self) -> Fallible<Vec<PathBuf>> {
-        let mut bins = vec![path::node_version_bin_dir(&self.node_str)?];
-        if let Some(ref yarn_str) = self.yarn_str {
-            bins.push(path::yarn_version_bin_dir(yarn_str)?);
+        let node_str = self.node.runtime.to_string();
+        let npm_str = self.node.npm.to_string();
+        let mut bins = vec![path::node_image_bin_dir(&node_str, &npm_str)?];
+        if let Some(ref yarn) = self.yarn {
+            let yarn_str = yarn.to_string();
+            bins.push(path::yarn_image_bin_dir(&yarn_str)?);
         }
         Ok(bins)
     }
@@ -66,6 +67,18 @@ impl System {
         Ok(new_path)
     }
 
+    /// Reproduces the Notion-enabled `PATH` environment variable for situations where
+    /// Notion has been deactivated
+    pub fn enabled_path() -> Fallible<OsString> {
+        let old_path = envoy::path().unwrap_or(envoy::Var::from(""));
+        let shim_dir = path::shim_dir()?;
+
+        if !old_path.split().any(|part| part == shim_dir) {
+            Ok(old_path.split().prefix_entry(shim_dir).join().unknown()?)
+        } else {
+            Ok(OsString::from(old_path))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -83,20 +96,12 @@ mod test {
         #[cfg(unix)]
         return PathBuf::from(std::env::home_dir().expect("Could not get home directory")).join(".notion");
 
-        #[cfg(all(windows, target_arch = "x86"))]
-        return winfolder::Folder::ProgramFiles.path().join("Notion");
-
-        #[cfg(all(windows, target_arch = "x86_64"))]
-        return winfolder::Folder::ProgramFilesX64.path().join("Notion");
+        #[cfg(windows)]
+        return winfolder::Folder::LocalAppData.path().join("Notion");
     }
 
     fn shim_dir() -> PathBuf {
         notion_base().join("bin")
-    }
-
-    #[cfg(windows)]
-    fn program_data_root() -> PathBuf {
-        winfolder::Folder::ProgramData.path().join("Notion")
     }
 
     #[test]
@@ -111,14 +116,17 @@ mod test {
         );
 
         let node_bin = notion_base()
-            .join("versions")
+            .join("tools")
+            .join("image")
             .join("node")
             .join("1.2.3")
+            .join("6.4.3")
             .join("bin");
         let expected_node_bin = node_bin.as_path().to_str().unwrap();
 
         let yarn_bin = notion_base()
-            .join("versions")
+            .join("tools")
+            .join("image")
             .join("yarn")
             .join("4.5.7")
             .join("bin");
@@ -126,12 +134,11 @@ mod test {
 
         let v123 = Version::parse("1.2.3").unwrap();
         let v457 = Version::parse("4.5.7").unwrap();
+        let v643 = Version::parse("6.4.3").unwrap();
 
         let no_yarn_image = Image {
-            node: v123.clone(),
-            node_str: v123.to_string(),
+            node: NodeVersion { runtime: v123.clone(), npm: v643.clone() },
             yarn: None,
-            yarn_str: None
         };
 
         assert_eq!(
@@ -140,10 +147,8 @@ mod test {
         );
 
         let with_yarn_image = Image {
-            node: v123.clone(),
-            node_str: v123.to_string(),
+            node: NodeVersion { runtime: v123.clone(), npm: v643.clone() },
             yarn: Some(v457.clone()),
-            yarn_str: Some(v457.to_string())
         };
 
         assert_eq!(
@@ -167,14 +172,17 @@ mod test {
 
         std::env::set_var("PATH", path_with_shims);
 
-        let node_bin = program_data_root()
-            .join("versions")
+        let node_bin = notion_base()
+            .join("tools")
+            .join("image")
             .join("node")
-            .join("1.2.3");
+            .join("1.2.3")
+            .join("6.4.3");
         let expected_node_bin = node_bin.as_path().to_str().unwrap();
 
-        let yarn_bin = program_data_root()
-            .join("versions")
+        let yarn_bin = notion_base()
+            .join("tools")
+            .join("image")
             .join("yarn")
             .join("4.5.7")
             .join("bin");
@@ -182,12 +190,11 @@ mod test {
 
         let v123 = Version::parse("1.2.3").unwrap();
         let v457 = Version::parse("4.5.7").unwrap();
+        let v643 = Version::parse("6.4.3").unwrap();
 
         let no_yarn_image = Image {
-            node: v123.clone(),
-            node_str: v123.to_string(),
+            node: NodeVersion { runtime: v123.clone(), npm: v643.clone() },
             yarn: None,
-            yarn_str: None
         };
 
         assert_eq!(
@@ -196,10 +203,8 @@ mod test {
         );
 
         let with_yarn_image = Image {
-            node: v123.clone(),
-            node_str: v123.to_string(),
+            node: NodeVersion { runtime: v123.clone(), npm: v643.clone() },
             yarn: Some(v457.clone()),
-            yarn_str: Some(v457.to_string())
         };
 
         assert_eq!(
@@ -244,4 +249,47 @@ mod test {
         assert_eq!(System::path().unwrap().into_string().unwrap(), expected_path);
     }
 
+    #[test]
+    #[cfg(unix)]
+    fn test_system_enabled_path() {
+        let mut pathbufs: Vec<PathBuf> = Vec::new();
+        pathbufs.push(shim_dir());
+        pathbufs.push(PathBuf::from("/usr/bin"));
+        pathbufs.push(PathBuf::from("/bin"));
+
+        let expected_path = std::env::join_paths(pathbufs.iter())
+            .unwrap()
+            .into_string()
+            .expect("Could not create path containing shim dir");
+
+        // If the path already contains the shim dir, there shouldn't be any changes
+        std::env::set_var("PATH", expected_path.clone());
+        assert_eq!(System::enabled_path().unwrap().into_string().unwrap(), expected_path);
+
+        // If the path doesn't contain the shim dir, it should be prefixed onto the existing path
+        std::env::set_var("PATH", "/usr/bin:/bin");
+        assert_eq!(System::enabled_path().unwrap().into_string().unwrap(), expected_path);
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_system_enabled_path() {
+        let mut pathbufs: Vec<PathBuf> = Vec::new();
+        pathbufs.push(shim_dir());
+        pathbufs.push(PathBuf::from("C:\\\\somebin"));
+        pathbufs.push(PathBuf::from("D:\\\\Program Files"));
+
+        let expected_path = std::env::join_paths(pathbufs.iter())
+            .unwrap()
+            .into_string()
+            .expect("Could not create path containing shim dir");
+
+        // If the path already contains the shim dir, there shouldn't be any changes
+        std::env::set_var("PATH", expected_path.clone());
+        assert_eq!(System::enabled_path().unwrap().into_string().unwrap(), expected_path);
+
+        // If the path doesn't contain the shim dir, it should be prefixed onto the existing path
+        std::env::set_var("PATH", "C:\\\\somebin;D:\\\\Program Files");
+        assert_eq!(System::enabled_path().unwrap().into_string().unwrap(), expected_path);
+    }
 }

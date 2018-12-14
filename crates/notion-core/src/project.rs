@@ -9,6 +9,7 @@ use std::rc::Rc;
 
 use lazycell::LazyCell;
 
+use distro::node::NodeVersion;
 use image::Image;
 use manifest::Manifest;
 use manifest::serial;
@@ -225,21 +226,23 @@ impl Project {
     }
 
     /// Writes the specified version of Node to the `toolchain.node` key in package.json.
-    pub fn pin_node_in_toolchain(&self, node_version: Version) -> Fallible<()> {
+    pub fn pin_node_in_toolchain(&self, node_version: NodeVersion) -> Fallible<()> {
         // update the toolchain node version
-        let toolchain =
-            serial::Image::new(node_version.to_string(), self.manifest().yarn_str().clone());
+        let toolchain = serial::Image::new(
+            node_version.runtime.to_string(),
+            node_version.npm.to_string(),
+            self.manifest().yarn_str().clone());
         Manifest::update_toolchain(toolchain, self.package_file())?;
-        println!("Pinned node to version {} in package.json", node_version);
+        println!("Pinned node to version {} in package.json", node_version.runtime);
         Ok(())
     }
 
     /// Writes the specified version of Yarn to the `toolchain.yarn` key in package.json.
     pub fn pin_yarn_in_toolchain(&self, yarn_version: Version) -> Fallible<()> {
         // update the toolchain yarn version
-        if let Some(node_str) = self.manifest().node_str() {
+        if let Some(image) = self.manifest().platform() {
             let toolchain =
-                serial::Image::new(node_str.clone(), Some(yarn_version.to_string()));
+                serial::Image::new(image.node.runtime.to_string(), image.node.npm.to_string(), Some(yarn_version.to_string()));
             Manifest::update_toolchain(toolchain, self.package_file())?;
             println!("Pinned yarn to version {} in package.json", yarn_version);
         } else {

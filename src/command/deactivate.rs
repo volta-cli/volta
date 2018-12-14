@@ -18,7 +18,7 @@ impl Command for Deactivate {
     type Args = Args;
 
     const USAGE: &'static str = "
-Remove Notion from the current shell
+Disable Notion in the current shell
 
 Usage:
     notion deactivate

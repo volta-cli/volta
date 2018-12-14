@@ -1,29 +1,27 @@
-//! Provides types for working with Notion's local _catalog_, the local repository
+//! Provides types for working with Notion's _inventory_, the local repository
 //! of available tool versions.
 
 use std::collections::{BTreeSet, HashSet};
-use std::fs::{remove_dir_all, File};
-use std::io::{self, Write};
+use std::fs::File;
+use std::io::Write;
 use std::marker::PhantomData;
 use std::str::FromStr;
 use std::string::ToString;
 use std::time::{Duration, SystemTime};
 
 use lazycell::LazyCell;
-use readext::ReadExt;
 use reqwest;
 use reqwest::header::{CacheControl, CacheDirective, Expires, HttpDate};
 use serde_json;
 use tempfile::NamedTempFile;
-use toml;
 
 use config::{Config, ToolConfig};
-use distro::node::NodeDistro;
+use distro::node::{NodeDistro, NodeVersion};
 use distro::yarn::YarnDistro;
 use distro::{Distro, Fetched};
-use fs::{ensure_containing_dir_exists, read_file_opt, touch};
+use fs::{ensure_containing_dir_exists, read_file_opt};
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
-use path::{self, user_catalog_file};
+use path;
 use semver::{Version, VersionReq};
 use style::progress_spinner;
 use version::VersionSpec;
@@ -61,35 +59,32 @@ cfg_if! {
     }
 }
 
-/// Lazily loaded tool catalog.
-pub struct LazyCatalog {
-    catalog: LazyCell<Catalog>,
+/// Lazily loaded inventory.
+pub struct LazyInventory {
+    inventory: LazyCell<Inventory>,
 }
 
-impl LazyCatalog {
-    /// Constructs a new `LazyCatalog`.
-    pub fn new() -> LazyCatalog {
-        LazyCatalog {
-            catalog: LazyCell::new(),
+impl LazyInventory {
+    /// Constructs a new `LazyInventory`.
+    pub fn new() -> LazyInventory {
+        LazyInventory {
+            inventory: LazyCell::new(),
         }
     }
 
-    /// Forces the loading of the catalog and returns an immutable reference to it.
-    pub fn get(&self) -> Fallible<&Catalog> {
-        self.catalog.try_borrow_with(|| Catalog::current())
+    /// Forces the loading of the inventory and returns an immutable reference to it.
+    pub fn get(&self) -> Fallible<&Inventory> {
+        self.inventory.try_borrow_with(|| Inventory::current())
     }
 
-    /// Forces the loading of the catalog and returns a mutable reference to it.
-    pub fn get_mut(&mut self) -> Fallible<&mut Catalog> {
-        self.catalog.try_borrow_mut_with(|| Catalog::current())
+    /// Forces the loading of the inventory and returns a mutable reference to it.
+    pub fn get_mut(&mut self) -> Fallible<&mut Inventory> {
+        self.inventory.try_borrow_mut_with(|| Inventory::current())
     }
 }
 
 pub struct Collection<D: Distro> {
-    /// The currently activated Node version, if any.
-    pub default: Option<Version>,
-
-    // A sorted collection of the available versions in the catalog.
+    // A sorted collection of the available versions in the inventory.
     pub versions: BTreeSet<Version>,
 
     pub phantom: PhantomData<D>,
@@ -98,141 +93,46 @@ pub struct Collection<D: Distro> {
 pub type NodeCollection = Collection<NodeDistro>;
 pub type YarnCollection = Collection<YarnDistro>;
 
-/// The catalog of tool versions available locally.
-pub struct Catalog {
+/// The inventory of locally available tool versions.
+pub struct Inventory {
     pub node: NodeCollection,
     pub yarn: YarnCollection,
 }
 
-impl Catalog {
-    /// Returns the current tool catalog.
-    fn current() -> Fallible<Catalog> {
-        let path = user_catalog_file()?;
-        let src = touch(&path)?.read_into_string().unknown()?;
-        src.parse()
-    }
-
-    /// Returns a pretty-printed TOML representation of the contents of the catalog.
-    pub fn to_string(&self) -> String {
-        toml::to_string_pretty(&self.to_serial()).unwrap()
-    }
-
-    /// Saves the contents of the catalog to the user's catalog file.
-    pub fn save(&self) -> Fallible<()> {
-        let path = user_catalog_file()?;
-        let mut file = File::create(&path).unknown()?;
-        file.write_all(self.to_string().as_bytes()).unknown()?;
-        Ok(())
-    }
-
-    /// Sets the Node version in the user toolchain to one matching the specified semantic versioning requirements.
-    pub fn set_user_node(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<()> {
-        let fetched = self.fetch_node(matching, config)?;
-        let version = Some(fetched.into_version());
-
-        if self.node.default != version {
-            self.node.default = version;
-            self.save()?;
-        }
-
-        Ok(())
+impl Inventory {
+    /// Returns the current inventory.
+    fn current() -> Fallible<Inventory> {
+        Ok(Inventory {
+            node: NodeCollection::load()?,
+            yarn: YarnCollection::load()?,
+        })
     }
 
     /// Fetches a Node version matching the specified semantic versioning requirements.
-    pub fn fetch_node(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched> {
+    pub fn fetch_node(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<NodeVersion>> {
         let distro = self.node.resolve_remote(matching, config.node.as_ref())?;
         let fetched = distro.fetch(&self.node).unknown()?;
 
-        if let &Fetched::Now(ref version) = &fetched {
+        if let &Fetched::Now(NodeVersion { runtime: ref version, .. }) = &fetched {
             self.node.versions.insert(version.clone());
-            self.save()?;
         }
 
         Ok(fetched)
     }
 
-    /// Resolves a Node version matching the specified semantic versioning requirements.
-    pub fn resolve_node(&self, matching: &VersionSpec, config: &Config) -> Fallible<Version> {
-        let distro = self.node.resolve_remote(&matching, config.node.as_ref())?;
-        Ok(distro.version().clone())
-    }
-
-    /// Uninstalls a specific Node version from the local catalog.
-    pub fn uninstall_node(&mut self, version: &Version) -> Fallible<()> {
-        if self.node.contains(version) {
-            let home = path::node_version_dir(&version.to_string())?;
-
-            if !home.is_dir() {
-                Err(io::Error::new(
-                    io::ErrorKind::NotFound,
-                    format!("{} is not a directory", home.to_string_lossy()),
-                )).unknown()?;
-            }
-
-            remove_dir_all(home).unknown()?;
-
-            self.node.versions.remove(version);
-
-            self.save()?;
-        }
-
-        Ok(())
-    }
-
-    // ISSUE (#87) Abstract Catalog's activate, install and uninstall methods
-    // And potentially share code between node and yarn
-    /// Sets the Yarn version in the user toolchain to one matching the specified semantic versioning requirements.
-    pub fn set_user_yarn(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<()> {
-        let fetched = self.fetch_yarn(matching, config)?;
-        let version = Some(fetched.into_version());
-
-        if self.yarn.default != version {
-            self.yarn.default = version;
-            self.save()?;
-        }
-
-        Ok(())
-    }
+    // ISSUE (#87) Abstract node vs yarn methods (fetch, etc)
+    // ISSUE (#173) use Tool specs to do the abstracting
 
     /// Fetches a Yarn version matching the specified semantic versioning requirements.
-    pub fn fetch_yarn(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched> {
+    pub fn fetch_yarn(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<Version>> {
         let distro = self.yarn.resolve_remote(&matching, config.yarn.as_ref())?;
         let fetched = distro.fetch(&self.yarn).unknown()?;
 
         if let &Fetched::Now(ref version) = &fetched {
             self.yarn.versions.insert(version.clone());
-            self.save()?;
         }
 
         Ok(fetched)
-    }
-
-    /// Resolves a Yarn version matching the specified semantic versioning requirements.
-    pub fn resolve_yarn(&self, matching: &VersionSpec, config: &Config) -> Fallible<Version> {
-        let distro = self.yarn.resolve_remote(&matching, config.yarn.as_ref())?;
-        Ok(distro.version().clone())
-    }
-
-    /// Uninstalls a specific Yarn version from the local catalog.
-    pub fn uninstall_yarn(&mut self, version: &Version) -> Fallible<()> {
-        if self.yarn.contains(version) {
-            let home = path::yarn_version_dir(&version.to_string())?;
-
-            if !home.is_dir() {
-                Err(io::Error::new(
-                    io::ErrorKind::NotFound,
-                    format!("{} is not a directory", home.to_string_lossy()),
-                )).unknown()?;
-            }
-
-            remove_dir_all(home).unknown()?;
-
-            self.yarn.versions.remove(version);
-
-            self.save()?;
-        }
-
-        Ok(())
     }
 }
 
@@ -309,10 +209,10 @@ impl Resolve<NodeDistro> for NodeCollection {
                 }
                 VersionSpec::Semver(ref matching) => {
                     // ISSUE #34: also make sure this OS is available for this version
-                    entries.find(|&(ref k, _)| matching.matches(k))
+                    entries.find(|&Entry { version: ref v, .. }| matching.matches(v))
                 }
             };
-            entry.map(|(k, _)| k)
+            entry.map(|Entry { version, .. }| version)
         };
 
         if let Some(version) = version_opt {
@@ -365,21 +265,20 @@ impl Resolve<YarnDistro> for YarnCollection {
 
 /// The index of the public Node server.
 pub struct Index {
-    entries: Vec<(Version, VersionData)>,
+    entries: Vec<Entry>,
+}
+
+#[derive(Debug)]
+pub struct Entry {
+    pub version: Version,
+    pub npm: Version,
+    pub files: NodeDistroFiles
 }
 
 /// The set of available files on the public Node server for a given Node version.
-pub struct VersionData {
+#[derive(Debug)]
+pub struct NodeDistroFiles {
     pub files: HashSet<String>,
-}
-
-impl FromStr for Catalog {
-    type Err = NotionError;
-
-    fn from_str(src: &str) -> Result<Self, Self::Err> {
-        let serial: serial::Catalog = toml::from_str(src).unknown()?;
-        Ok(serial.into_catalog()?)
-    }
 }
 
 /// Reads a public index from the Node cache, if it exists and hasn't expired.

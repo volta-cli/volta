@@ -16,9 +16,9 @@ jobs:
       script:
         # the unit tests for all crates (without mocking the network)
         # run single-threaded because some tests change environment variables, which is not thread-safe
-        - cargo test --package notion-core --package notion-fail --package node-archive --package notion-fail-derive --package progress-read -- --test-threads=1
+        - cargo test --package notion-core --package notion-fail --package archive --package notion-fail-derive --package progress-read -- --test-threads=1
         # the acceptance tests, using network mocks
-        - cargo test --features mock-network
+        - NOTION_DEV=1 RUST_BACKTRACE=full cargo test --features mock-network
     - stage: publish
       # Conditional builds: https://docs.travis-ci.com/user/conditional-builds-stages-jobs/
       if: (branch = master) AND (type = push)
@@ -31,7 +31,7 @@ jobs:
       script:
         - cargo doc -p progress-read --no-deps
         - cargo doc -p notion-fail --no-deps
-        - cargo doc --features universal-docs -p node-archive --no-deps
+        - cargo doc --features universal-docs -p archive --no-deps
         - cargo doc --features universal-docs -p notion-core --no-deps
         - cargo doc --features universal-docs --no-deps
         - mkdir -p publish

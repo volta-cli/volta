@@ -8,66 +8,47 @@ const BASIC_PACKAGE_JSON: &'static str = r#"{
   "name": "test-package"
 }"#;
 
-fn package_json_with_pinned_node(version: &str) -> String {
+fn package_json_with_pinned_node(node: &str, npm: &str) -> String {
     format!(
         r#"{{
   "name": "test-package",
   "toolchain": {{
-    "node": "{}"
+    "node": "{}",
+    "npm": "{}"
   }}
 }}"#,
-        version
+        node,
+        npm
     )
 }
 
 #[test]
 fn pinned_project() {
     let s = sandbox()
-        .package_json(&package_json_with_pinned_node("1.7.19"))
+        .package_json(&package_json_with_pinned_node("4.1.0", "2.14.3"))
         .build();
 
     assert_that!(
         s.notion("current"),
         execs()
             .with_status(0)
-            .with_stdout_contains("project: v1.7.19 (active)")
-    );
-}
-
-#[test]
-fn pinned_project_with_user_node_env() {
-    let s = sandbox()
-        .package_json(&package_json_with_pinned_node("1.7.19"))
-        .env("NOTION_NODE_VERSION", "2.18.5")
-        .build();
-
-    assert_that!(
-        s.notion("current"),
-        execs()
-            .with_status(0)
-            .with_stdout_contains("project: v1.7.19 (active)")
-            .with_stdout_contains("user: v2.18.5")
+            .with_stdout_contains("project: v4.1.0 (active)")
     );
 }
 
 #[test]
 fn pinned_project_with_user_node_default() {
     let s = sandbox()
-        .package_json(&package_json_with_pinned_node("1.7.19"))
-        .catalog(
-            r#"[node]
-default = '9.12.11'
-versions = [ '9.12.11' ]
-"#,
-        )
+        .package_json(&package_json_with_pinned_node("4.1.0", "2.14.3"))
+        .platform("node = [ '9.11.2', '5.6.0' ]")
         .build();
 
     assert_that!(
         s.notion("current"),
         execs()
             .with_status(0)
-            .with_stdout_contains("project: v1.7.19 (active)")
-            .with_stdout_contains("user: v9.12.11")
+            .with_stdout_contains("project: v4.1.0 (active)")
+            .with_stdout_contains("user: v9.11.2")
     );
 }
 
@@ -84,37 +65,17 @@ fn unpinned_project() {
 }
 
 #[test]
-fn unpinned_project_with_user_node_env() {
-    let s = sandbox()
-        .package_json(BASIC_PACKAGE_JSON)
-        .env("NOTION_NODE_VERSION", "2.18.5")
-        .build();
-
-    assert_that!(
-        s.notion("current"),
-        execs()
-            .with_status(0)
-            .with_stdout_contains("user: v2.18.5 (active)")
-    );
-}
-
-#[test]
 fn unpinned_project_with_user_node_default() {
     let s = sandbox()
         .package_json(BASIC_PACKAGE_JSON)
-        .catalog(
-            r#"[node]
-default = '9.12.11'
-versions = [ '9.12.11' ]
-"#,
-        )
+        .platform("node = [ '9.11.2', '5.6.0' ]")
         .build();
 
     assert_that!(
         s.notion("current"),
         execs()
             .with_status(0)
-            .with_stdout_contains("user: v9.12.11 (active)")
+            .with_stdout_contains("user: v9.11.2 (active)")
     );
 }
 
@@ -131,32 +92,15 @@ fn no_project() {
 }
 
 #[test]
-fn no_project_with_user_node_env() {
-    let s = sandbox().env("NOTION_NODE_VERSION", "2.18.5").build();
-
-    assert_that!(
-        s.notion("current"),
-        execs()
-            .with_status(0)
-            .with_stdout_contains("user: v2.18.5 (active)")
-    );
-}
-
-#[test]
 fn no_project_with_user_node_default() {
     let s = sandbox()
-        .catalog(
-            r#"[node]
-default = '9.12.11'
-versions = [ '9.12.11' ]
-"#,
-        )
+        .platform("node = [ '9.11.2', '5.6.0' ]")
         .build();
 
     assert_that!(
         s.notion("current"),
         execs()
             .with_status(0)
-            .with_stdout_contains("user: v9.12.11 (active)")
+            .with_stdout_contains("user: v9.11.2 (active)")
     );
 }

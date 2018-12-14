@@ -1,7 +1,7 @@
 //! Provides types and functions for fetching and unpacking a Node installation
 //! zip file in Windows operating systems.
 
-use std::io::{self, Read, Seek, copy};
+use std::io::copy;
 use std::path::Path;
 use std::fs::{File, create_dir_all};
 
@@ -14,26 +14,26 @@ use failure;
 
 use super::Archive;
 
-pub struct Zip<S: Read + Seek> {
+pub struct Zip {
     compressed_size: u64,
-    data: S
+    data: File
 }
 
-impl Zip<File> {
+impl Zip {
 
     /// Loads a cached Node zip archive from the specified file.
-    pub fn load(source: File) -> io::Result<Self> {
+    pub fn load(source: File) -> Result<Box<Archive>, failure::Error> {
         let compressed_size = source.metadata()?.len();
 
-        Ok(Zip {
+        Ok(Box::new(Zip {
             compressed_size,
             data: source
-        })
+        }))
     }
 
     /// Initiate fetching of a Node zip archive from the given URL, returning
     /// a `Remote` data source.
-    pub fn fetch(url: &str, cache_file: &Path) -> Result<Self, failure::Error> {
+    pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<Archive>, failure::Error> {
         let mut response = reqwest::get(url)?;
 
         if !response.status().is_success() {
@@ -45,18 +45,18 @@ impl Zip<File> {
             copy(&mut response, &mut file)?;
         }
 
-        let file = File::create(cache_file)?;
+        let file = File::open(cache_file)?;
         let compressed_size = file.metadata()?.len();
 
-        Ok(Zip {
+        Ok(Box::new(Zip {
             compressed_size,
             data: file
-        })
+        }))
     }
 
 }
 
-impl<S: Read + Seek> Archive for Zip<S> {
+impl Archive for Zip {
     fn compressed_size(&self) -> u64 { self.compressed_size }
     fn uncompressed_size(&self) -> Option<u64> { None }
     fn unpack(self: Box<Self>, dest: &Path, progress: &mut FnMut(&(), usize)) -> Result<(), failure::Error> {
@@ -113,6 +113,6 @@ pub mod tests {
         let test_file = File::open(test_file_path).expect("Couldn't open test file");
         let zip = Zip::load(test_file).expect("Failed to load zip file");
 
-        assert_eq!(zip.compressed_size, 214);
+        assert_eq!(zip.compressed_size(), 214);
     }
 }

@@ -17,25 +17,10 @@ use failure;
 use super::Archive;
 
 /// A Node installation tarball.
-pub struct Tarball<S: Read> {
+pub struct Tarball {
     compressed_size: u64,
     uncompressed_size: u64,
-    data: S
-}
-
-impl Tarball<File> {
-
-    /// Loads a cached Node tarball from the specified file.
-    pub fn load(mut source: File) -> Result<Self, failure::Error> {
-        let uncompressed_size = load_uncompressed_size(&mut source)?;
-        let compressed_size = source.metadata()?.len();
-        Ok(Tarball {
-            uncompressed_size,
-            compressed_size,
-            data: source
-        })
-    }
-
+    data: Box<Read>
 }
 
 #[derive(Fail, Debug)]
@@ -55,12 +40,23 @@ fn content_length(response: &Response) -> Result<u64, failure::Error> {
     })
 }
 
-impl Tarball<TeeReader<reqwest::Response, File>> {
+impl Tarball {
 
-    /// Initiate fetching of a Node tarball from the given URL, returning
-    /// a tarball that can be streamed (and that tees its data to a cache
+    /// Loads a tarball from the specified file.
+    pub fn load(mut source: File) -> Result<Box<Archive>, failure::Error> {
+        let uncompressed_size = load_uncompressed_size(&mut source)?;
+        let compressed_size = source.metadata()?.len();
+        Ok(Box::new(Tarball {
+            uncompressed_size,
+            compressed_size,
+            data: Box::new(source)
+        }))
+    }
+
+    /// Initiate fetching of a tarball from the given URL, returning a
+    /// tarball that can be streamed (and that tees its data to a local
     /// file as it streams).
-    pub fn fetch(url: &str, cache_file: &Path) -> Result<Self, failure::Error> {
+    pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<Archive>, failure::Error> {
         let uncompressed_size = fetch_uncompressed_size(url)?;
         let response = reqwest::get(url)?;
 
@@ -70,18 +66,18 @@ impl Tarball<TeeReader<reqwest::Response, File>> {
 
         let compressed_size = content_length(&response)?;
         let file = File::create(cache_file)?;
-        let data = TeeReader::new(response, file);
+        let data = Box::new(TeeReader::new(response, file));
 
-        Ok(Tarball {
+        Ok(Box::new(Tarball {
             uncompressed_size,
             compressed_size,
             data
-        })
+        }))
     }
 
 }
 
-impl<S: Read> Archive for Tarball<S> {
+impl Archive for Tarball {
     fn compressed_size(&self) -> u64 { self.compressed_size }
     fn uncompressed_size(&self) -> Option<u64> { Some(self.uncompressed_size) }
     fn unpack(self: Box<Self>, dest: &Path, progress: &mut FnMut(&(), usize)) -> Result<(), failure::Error> {
@@ -217,7 +213,7 @@ pub mod tests {
         let test_file = File::open(test_file_path).expect("Couldn't open test file");
         let tarball = Tarball::load(test_file).expect("Failed to load tarball");
 
-        assert_eq!(tarball.uncompressed_size, 10240);
-        assert_eq!(tarball.compressed_size, 402);
+        assert_eq!(tarball.uncompressed_size(), Some(10240));
+        assert_eq!(tarball.compressed_size(), 402);
     }
 }

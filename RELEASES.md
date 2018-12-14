@@ -1,3 +1,10 @@
+# Version 0.1.5
+
+- Autoshimming! (#163)
+- `notion deactivate` also unsets `NOTION_HOME` (#195)
+- Implemented `notion activate` (#201)
+- Fix for Yarn over-fetching bug (#203)
+
 # Version 0.1.4
 
 - Fix for `package.json` parsing bug (#156)

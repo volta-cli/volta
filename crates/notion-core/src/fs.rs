@@ -1,6 +1,6 @@
 //! Provides utilities for operating on the filesystem.
 
-use std::fs::{self, create_dir_all, File};
+use std::fs::{self, create_dir_all, read_dir, DirEntry, File, Metadata};
 use std::io::{self, ErrorKind};
 use std::path::{Path, PathBuf};
 
@@ -59,4 +59,25 @@ pub fn read_file_opt(path: &PathBuf) -> io::Result<Option<String>> {
             _ => Err(error),
         },
     }
+}
+
+/// Reads the full contents of a directory, eagerly extracting each directory entry
+/// and its metadata and returning an iterator over them. Returns `Error` if any of
+/// these steps fails.
+///
+/// This function makes it easier to write high level logic for manipulating the
+/// contents of directories (map, filter, etc).
+///
+/// Note that this function allocates an intermediate vector of directory entries to
+/// construct the iterator from, so if a directory is expected to be very large, it
+/// will allocate temporary data proportional to the number of entries.
+pub fn read_dir_eager(dir: &Path) -> Fallible<impl Iterator<Item = (DirEntry, Metadata)>> {
+    Ok(read_dir(dir).unknown()?
+        .map(|entry| {
+            let entry = entry.unknown()?;
+            let metadata = entry.metadata().unknown()?;
+            Ok((entry, metadata))
+        })
+        .collect::<Fallible<Vec<(DirEntry, Metadata)>>>()?
+        .into_iter())
 }

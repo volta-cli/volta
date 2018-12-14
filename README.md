@@ -70,6 +70,10 @@ To run the tests in this repo, run the following:
 cargo test --all --features mock-network
 ```
 
+## Development Tips
+
+When developing, we suggest you set the `NOTION_DEV` environment variable to `1` and the `RUST_BACKTRACE` environment variable to `full`. This will provide extra diagnostic information to stderr on crashes. We have an [issue on file](https://github.com/notion-cli/notion/issues/215) to improve the quality of diagnostics.
+
 ## License
 
 Notion is licensed under a [BSD 2-clause license](https://github.com/notion-cli/notion/blob/master/LICENSE).
@@ -79,4 +83,4 @@ Notion is licensed under a [BSD 2-clause license](https://github.com/notion-cli/
 Contribution to Notion is organized under the terms of the [Contributor Covenant Code of Conduct](https://github.com/notion-cli/notion/blob/master/CODE_OF_CONDUCT.md).
 The maintainer of Notion, Dave Herman, personally promises to work actively to uphold that code of conduct.
 We aim to foster a community that is welcoming, inclusive, empathetic, and kind.
-If you share those goals and want to have a ton of building cool JavaScript tools and playing with Rust, we invite you to join us!
+If you share those goals and want to have a ton of fun building cool JavaScript tools and playing with Rust, we invite you to join us!

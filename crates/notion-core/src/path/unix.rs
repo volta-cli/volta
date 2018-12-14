@@ -44,27 +44,40 @@ cfg_if! {
 //     .notion/
 //         cache/                                          cache_dir
 //             node/                                       node_cache_dir
-//                 node-dist-v4.8.4-linux-x64.tar.gz       archive_file("4.8.4")
-//                 node-dist-v6.11.3-linux-x64.tar.gz
-//                 node-dist-v8.6.0-linux-x64.tar.gz
-//                 ...
-//         versions/                                       versions_dir
-//             node/                                       node_versions_dir
-//                 4.8.4/                                  node_version_dir("4.8.4")
-//                   bin/                                  node_version_bin_dir("4.8.4")
-//                 6.11.3/
-//                 8.6.0/
-//                 ...
+//                 index.json                              node_index_file
+//                 index.json.expires                      node_index_expiry_file
 //         bin/                                            shim_dir
 //             node                                        shim_file("node")
 //             npm
 //             npx
 //             ...
+//         tools/                                          tools_dir
+//             inventory/                                  inventory_dir
+//                 node/                                   node_inventory_dir
+//                     node-v4.8.4-linux-x64.tar.gz        node_archive_file("4.8.4")
+//                     node-v4.8.4-npm                     node_npm_version_file("4.8.4")
+//                     ...
+//                 packages/                               package_inventory_dir
+//                 yarn/                                   yarn_inventory_dir
+//             image/                                      image_dir
+//                 node/                                   node_image_root_dir
+//                     10.13.0/
+//                         6.4.0/                          node_image_dir("10.13.0", "6.4.0")
+//                             bin/                        node_image_bin_dir("10.13.0", "6.4.0")
+//                 yarn/                                   yarn_image_root_dir
+//                     1.7.0/                              yarn_image_dir("1.7.0")
+//             user/                                       user_toolchain_dir
+//                 bins/
+//                     ember ~> ../packages/ember-cli
+//                 packages/
+//                     ember-cli/
+//                         package.toml
+//                         contents/
+//                 platform.toml                           user_platform_file
 //         notion                                          notion_file
 //         launchbin                                       launchbin_file
 //         launchscript                                    launchscript_file
 //         config.toml                                     user_config_file
-//         catalog.toml                                    user_catalog_file
 
 fn notion_home() -> Fallible<PathBuf> {
     let home = env::home_dir().ok_or(NoHomeEnvVar)?;
@@ -75,11 +88,20 @@ pub fn cache_dir() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("cache"))
 }
 
+pub fn node_inventory_dir() -> Fallible<PathBuf> {
+    Ok(inventory_dir()?.join("node"))
+}
+
+pub fn yarn_inventory_dir() -> Fallible<PathBuf> {
+    Ok(inventory_dir()?.join("yarn"))
+}
+
+pub fn package_inventory_dir() -> Fallible<PathBuf> {
+    Ok(inventory_dir()?.join("packages"))
+}
+
 pub fn node_cache_dir() -> Fallible<PathBuf> {
     Ok(cache_dir()?.join("node"))
-}
-pub fn yarn_cache_dir() -> Fallible<PathBuf> {
-    Ok(cache_dir()?.join("yarn"))
 }
 
 pub fn node_index_file() -> Fallible<PathBuf> {
@@ -94,37 +116,37 @@ pub fn archive_extension() -> String {
     String::from("tar.gz")
 }
 
-pub fn versions_dir() -> Fallible<PathBuf> {
-    Ok(notion_home()?.join("versions"))
+pub fn image_dir() -> Fallible<PathBuf> {
+    Ok(tools_dir()?.join("image"))
 }
 
-pub fn node_versions_dir() -> Fallible<PathBuf> {
-    Ok(versions_dir()?.join("node"))
+pub fn node_image_root_dir() -> Fallible<PathBuf> {
+    Ok(image_dir()?.join("node"))
 }
 
-pub fn yarn_versions_dir() -> Fallible<PathBuf> {
-    Ok(versions_dir()?.join("yarn"))
+pub fn node_image_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
+    Ok(node_image_root_dir()?.join(node).join(npm))
 }
 
-pub fn node_version_dir(version: &str) -> Fallible<PathBuf> {
-    Ok(node_versions_dir()?.join(version))
-}
-
-pub fn yarn_version_dir(version: &str) -> Fallible<PathBuf> {
-    Ok(yarn_versions_dir()?.join(version))
-}
-
-pub fn node_version_bin_dir(version: &str) -> Fallible<PathBuf> {
-    Ok(node_version_dir(version)?.join("bin"))
-}
-
-pub fn yarn_version_bin_dir(version: &str) -> Fallible<PathBuf> {
-    Ok(yarn_version_dir(version)?.join("bin"))
+pub fn node_image_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
+    Ok(node_image_dir(node, npm)?.join("bin"))
 }
 
 // 3rd-party binaries installed globally for this node version
-pub fn node_version_3p_bin_dir(version: &str) -> Fallible<PathBuf> {
-    Ok(node_version_dir(version)?.join("lib/node_modules/.bin"))
+pub fn node_image_3p_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
+    Ok(node_image_dir(node, npm)?.join("lib/node_modules/.bin"))
+}
+
+pub fn yarn_image_root_dir() -> Fallible<PathBuf> {
+    Ok(image_dir()?.join("yarn"))
+}
+
+pub fn yarn_image_dir(version: &str) -> Fallible<PathBuf> {
+    Ok(yarn_image_root_dir()?.join(version))
+}
+
+pub fn yarn_image_bin_dir(version: &str) -> Fallible<PathBuf> {
+    Ok(yarn_image_dir(version)?.join("bin"))
 }
 
 pub fn notion_file() -> Fallible<PathBuf> {
@@ -151,8 +173,20 @@ pub fn user_config_file() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("config.toml"))
 }
 
-pub fn user_catalog_file() -> Fallible<PathBuf> {
-    Ok(notion_home()?.join("catalog.toml"))
+pub fn tools_dir() -> Fallible<PathBuf> {
+    Ok(notion_home()?.join("tools"))
+}
+
+pub fn inventory_dir() -> Fallible<PathBuf> {
+    Ok(tools_dir()?.join("inventory"))
+}
+
+pub fn user_toolchain_dir() -> Fallible<PathBuf> {
+    Ok(tools_dir()?.join("user"))
+}
+
+pub fn user_platform_file() -> Fallible<PathBuf> {
+    Ok(user_toolchain_dir()?.join("platform.toml"))
 }
 
 pub fn create_file_symlink(src: PathBuf, dst: PathBuf) -> Result<(), io::Error> {
