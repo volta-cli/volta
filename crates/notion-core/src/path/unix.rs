@@ -54,7 +54,7 @@ cfg_if! {
 //         tools/                                          tools_dir
 //             inventory/                                  inventory_dir
 //                 node/                                   node_inventory_dir
-//                     node-v4.8.4-linux-x64.tar.gz        node_archive_file("4.8.4")
+//                     node-v4.8.4-linux-x64.tar.gz        node_distro_file_name("4.8.4")
 //                     node-v4.8.4-npm                     node_npm_version_file("4.8.4")
 //                     ...
 //                 packages/                               package_inventory_dir

@@ -183,42 +183,42 @@ impl TempProject {
 
     /// Verify that the input Node version has been fetched.
     pub fn node_version_is_fetched(&self, version: &str) -> bool {
-        let archive_file = path::node_archive_file(version);
-        let cache_dir = ok_or_panic!{ path::node_cache_dir() };
-        cache_dir.join(archive_file).exists()
+        let distro_file_name = path::node_distro_file_name(version);
+        let inventory_dir = ok_or_panic!{ path::node_inventory_dir() };
+        inventory_dir.join(distro_file_name).exists()
     }
 
     /// Verify that the input Node version has been unpacked.
-    pub fn node_version_is_unpacked(&self, version: &str) -> bool {
-        let unpack_dir = ok_or_panic!{ path::node_version_dir(version) };
+    pub fn node_version_is_unpacked(&self, version: &str, npm_version: &str) -> bool {
+        let unpack_dir = ok_or_panic!{ path::node_image_bin_dir(version, npm_version) };
         unpack_dir.exists()
     }
 
     /// Verify that the input Node version has been installed.
     pub fn node_version_is_installed(&self, version: &str) -> bool {
-        let user_catalog = ok_or_panic!{ path::user_catalog_file() };
-        let catalog_contents = read_file_to_string(user_catalog);
-        catalog_contents.contains(format!("[node]\ndefault = '{}'", version).as_str())
+        let user_platform = ok_or_panic!{ path::user_platform_file() };
+        let platform_contents = read_file_to_string(user_platform);
+        platform_contents.contains(format!("[node]\ndefault = '{}'", version).as_str())
     }
 
     /// Verify that the input Yarn version has been fetched.
     pub fn yarn_version_is_fetched(&self, version: &str) -> bool {
-        let archive_file = path::yarn_archive_file(version);
-        let cache_dir = ok_or_panic!{ path::yarn_cache_dir() };
-        cache_dir.join(archive_file).exists()
+        let distro_file_name = path::yarn_distro_file_name(version);
+        let inventory_dir = ok_or_panic!{ path::yarn_inventory_dir() };
+        inventory_dir.join(distro_file_name).exists()
     }
 
     /// Verify that the input Yarn version has been unpacked.
     pub fn yarn_version_is_unpacked(&self, version: &str) -> bool {
-        let unpack_dir = ok_or_panic!{ path::yarn_version_dir(version) };
+        let unpack_dir = ok_or_panic!{ path::yarn_image_dir(version) };
         unpack_dir.exists()
     }
 
     /// Verify that the input Yarn version has been installed.
     pub fn yarn_version_is_installed(&self, version: &str) -> bool {
-        let user_catalog = ok_or_panic!{ path::user_catalog_file() };
-        let catalog_contents = read_file_to_string(user_catalog);
-        catalog_contents.contains(format!("[yarn]\ndefault = '{}'", version).as_str())
+        let user_platform = ok_or_panic!{ path::user_platform_file() };
+        let platform_contents = read_file_to_string(user_platform);
+        platform_contents.contains(format!("[yarn]\ndefault = '{}'", version).as_str())
     }
 }
 
