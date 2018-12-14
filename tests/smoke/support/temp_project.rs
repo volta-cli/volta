@@ -195,10 +195,10 @@ impl TempProject {
     }
 
     /// Verify that the input Node version has been installed.
-    pub fn node_version_is_installed(&self, version: &str) -> bool {
+    pub fn node_version_is_installed(&self, version: &str, npm_version: &str) -> bool {
         let user_platform = ok_or_panic!{ path::user_platform_file() };
         let platform_contents = read_file_to_string(user_platform);
-        platform_contents.contains(format!("[node]\ndefault = '{}'", version).as_str())
+        platform_contents.contains(format!("[node]\nruntime = '{}'\nnpm = '{}'", version, npm_version).as_str())
     }
 
     /// Verify that the input Yarn version has been fetched.

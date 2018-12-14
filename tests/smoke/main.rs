@@ -4,7 +4,7 @@
 /// (CAUTION: this will destroy the Notion installation on the system where this is run)
 ///
 /// ```
-/// cargo test --test smoke --features smoke-tests -- --test-threads 1
+/// NOTION_DEV=1 cargo test --test smoke --features smoke-tests -- --test-threads 1
 /// ```
 ///
 /// Also note that each test uses a different version of node and yarn. This is to prevent
@@ -14,6 +14,7 @@
 extern crate cfg_if;
 extern crate envoy;
 extern crate failure;
+#[macro_use]
 extern crate hamcrest2;
 #[cfg(feature = "mock-network")]
 extern crate mockito;

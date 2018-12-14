@@ -4,28 +4,29 @@ use support::temp_project::temp_project;
 
 #[test]
 fn fetch_node() {
-    let s = temp_project()
+    let p = temp_project()
         .build();
 
     assert_that!(
-        s.notion("fetch node 10.4.1"),
+        p.notion("fetch node 10.4.1"),
         execs()
             .with_status(0)
     );
-    assert_eq!(s.node_version_is_fetched("10.4.1"), true);
-    assert_eq!(s.node_version_is_unpacked("10.4.1"), true);
+    // node 10.4.1 comes with npm 6.1.0
+    assert_eq!(p.node_version_is_fetched("10.4.1"), true);
+    assert_eq!(p.node_version_is_unpacked("10.4.1","6.1.0"), true);
 }
 
 #[test]
 fn fetch_yarn() {
-    let s = temp_project()
+    let p = temp_project()
         .build();
 
     assert_that!(
-        s.notion("fetch yarn 1.10.1"),
+        p.notion("fetch yarn 1.10.1"),
         execs()
             .with_status(0)
     );
-    assert_eq!(s.yarn_version_is_fetched("1.10.1"), true);
-    assert_eq!(s.yarn_version_is_unpacked("1.10.1"), true);
+    assert_eq!(p.yarn_version_is_fetched("1.10.1"), true);
+    assert_eq!(p.yarn_version_is_unpacked("1.10.1"), true);
 }
