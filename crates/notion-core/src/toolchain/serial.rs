@@ -5,13 +5,13 @@ use notion_fail::{Fallible, ResultExt};
 
 use semver::Version;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct NodeVersion {
-    runtime: String,
-    npm: String,
+    pub runtime: String,
+    pub npm: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Platform {
     #[serde(default)]
     pub yarn: Option<String>,
@@ -35,7 +35,7 @@ impl Platform {
 
                 Some(Image { node, yarn })
             }
-            None => None
+            None => None,
         })
     }
 }
@@ -47,7 +47,7 @@ impl Image {
             node: Some(NodeVersion {
                 runtime: self.node.runtime.to_string(),
                 npm: self.node.npm.to_string(),
-            })
+            }),
         }
     }
 }
