@@ -14,9 +14,9 @@ pub struct NodeVersion {
 #[derive(Serialize, Deserialize)]
 pub struct Platform {
     #[serde(default)]
-    node: Option<NodeVersion>,
+    pub yarn: Option<String>,
     #[serde(default)]
-    yarn: Option<String>,
+    pub node: Option<NodeVersion>,
 }
 
 impl Platform {
@@ -43,11 +43,11 @@ impl Platform {
 impl Image {
     pub fn to_serial(&self) -> Platform {
         Platform {
+            yarn: self.yarn.as_ref().map(|yarn| yarn.to_string()),
             node: Some(NodeVersion {
                 runtime: self.node.runtime.to_string(),
                 npm: self.node.npm.to_string(),
-            }),
-            yarn: self.yarn.as_ref().map(|yarn| yarn.to_string())
+            })
         }
     }
 }
