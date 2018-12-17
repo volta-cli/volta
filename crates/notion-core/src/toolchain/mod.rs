@@ -22,7 +22,7 @@ impl Toolchain {
         let path = user_platform_file()?;
         let src = touch(&path)?.read_into_string().unknown()?;
         Ok(Toolchain {
-            platform: serial::Platform::from_toml(src)?.into_image()?,
+            platform: serial::Platform::from_json(src)?.into_image()?,
         })
     }
 
@@ -81,7 +81,7 @@ impl Toolchain {
         let mut file = File::create(&path).unknown()?;
         match &self.platform {
             &Some(ref platform) => {
-                let src = platform.to_serial().to_toml()?;
+                let src = platform.to_serial().to_json()?;
                 file.write_all(src.as_bytes()).unknown()?;
             }
             &None => {

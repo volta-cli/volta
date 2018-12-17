@@ -60,7 +60,7 @@ cfg_if! {
 //                     ember-cli\
 //                         package.toml
 //                         contents\
-//                 platform.toml                           user_platform_file
+//                 platform.json                           user_platform_file
 //         notion.exe                                      notion_file
 //         launchbin.exe                                   launchbin_file
 //         launchscript.exe                                launchscript_file
@@ -188,7 +188,7 @@ pub fn user_toolchain_dir() -> Fallible<PathBuf> {
 }
 
 pub fn user_platform_file() -> Fallible<PathBuf> {
-    Ok(user_toolchain_dir()?.join("platform.toml"))
+    Ok(user_toolchain_dir()?.join("platform.json"))
 }
 
 pub fn create_file_symlink(src: PathBuf, dst: PathBuf) -> Result<(), io::Error> {

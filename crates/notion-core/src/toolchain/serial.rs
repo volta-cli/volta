@@ -4,7 +4,7 @@ use distro;
 use notion_fail::{Fallible, ResultExt};
 
 use semver::Version;
-use toml;
+use serde_json;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct NodeVersion {
@@ -15,9 +15,9 @@ pub struct NodeVersion {
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Platform {
     #[serde(default)]
-    pub yarn: Option<String>,
-    #[serde(default)]
     pub node: Option<NodeVersion>,
+    #[serde(default)]
+    pub yarn: Option<String>,
 }
 
 impl Platform {
@@ -40,25 +40,29 @@ impl Platform {
         })
     }
 
-    /// Deserialize the input TOML String into a Platform
-    pub fn from_toml(src: String) -> Fallible<Self> {
-        toml::from_str(&src).unknown()
+    /// Deserialize the input JSON String into a Platform
+    pub fn from_json(src: String) -> Fallible<Self> {
+        if src.is_empty() {
+            serde_json::de::from_str("{}").unknown()
+        } else {
+            serde_json::de::from_str(&src).unknown()
+        }
     }
 
-    /// Serialize the Platform to a TOML String
-    pub fn to_toml(self) -> Fallible<String> {
-        toml::to_string_pretty(&self).unknown()
+    /// Serialize the Platform to a JSON String
+    pub fn to_json(self) -> Fallible<String> {
+        serde_json::to_string_pretty(&self).unknown()
     }
 }
 
 impl Image {
     pub fn to_serial(&self) -> Platform {
         Platform {
-            yarn: self.yarn.as_ref().map(|yarn| yarn.to_string()),
             node: Some(NodeVersion {
                 runtime: self.node.runtime.to_string(),
                 npm: self.node.npm.to_string(),
             }),
+            yarn: self.yarn.as_ref().map(|yarn| yarn.to_string()),
         }
     }
 }
@@ -72,17 +76,21 @@ pub mod tests {
     use image;
     use semver;
 
-    const BASIC_TOML_STR: &'static str = r#"yarn = '1.2.3'
+    // NOTE: serde_json is required with the "preserve_order" feature in Cargo.toml,
+    // so these tests will serialized/deserialize in a predictable order
 
-[node]
-runtime = '4.5.6'
-npm = '7.8.9'
-"#;
+    const BASIC_JSON_STR: &'static str = r#"{
+  "node": {
+    "runtime": "4.5.6",
+    "npm": "7.8.9"
+  },
+  "yarn": "1.2.3"
+}"#;
 
     #[test]
-    fn test_from_toml() {
-        let toml_str = BASIC_TOML_STR.to_string();
-        let platform = Platform::from_toml(toml_str).expect("could not parse TOML string");
+    fn test_from_json() {
+        let json_str = BASIC_JSON_STR.to_string();
+        let platform = Platform::from_json(json_str).expect("could not parse JSON string");
         let expected_platform = Platform {
             yarn: Some("1.2.3".to_string()),
             node: Some(NodeVersion {
@@ -94,7 +102,18 @@ npm = '7.8.9'
     }
 
     #[test]
-    fn test_to_toml() {
+    fn test_from_json_empty_string() {
+        let json_str = "".to_string();
+        let platform = Platform::from_json(json_str).expect("could not parse JSON string");
+        let expected_platform = Platform {
+            node: None,
+            yarn: None,
+        };
+        assert_eq!(platform, expected_platform);
+    }
+
+    #[test]
+    fn test_to_json() {
         let platform = image::Image {
             yarn: Some(semver::Version::parse("1.2.3").expect("could not parse semver version")),
             node: distro::node::NodeVersion {
@@ -102,8 +121,8 @@ npm = '7.8.9'
                 npm: semver::Version::parse("7.8.9").expect("could not parse semver version"),
             },
         };
-        let toml_str = platform.to_serial().to_toml().expect("could not serialize platform to TOML");
-        let expected_toml_str = BASIC_TOML_STR.to_string();
-        assert_eq!(toml_str, expected_toml_str);
+        let json_str = platform.to_serial().to_json().expect("could not serialize platform to JSON");
+        let expected_json_str = BASIC_JSON_STR.to_string();
+        assert_eq!(json_str, expected_json_str);
     }
 }

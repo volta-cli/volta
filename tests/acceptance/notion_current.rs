@@ -40,7 +40,7 @@ fn pinned_project() {
 fn pinned_project_with_user_node_default() {
     let s = sandbox()
         .package_json(&package_json_with_pinned_node("4.1.0", "2.14.3"))
-        .platform("node = [ '9.11.2', '5.6.0' ]")
+        .platform(r#"{"node":{"runtime":"9.11.2","npm":"5.6.0"}}"#)
         .build();
 
     assert_that!(
@@ -68,7 +68,7 @@ fn unpinned_project() {
 fn unpinned_project_with_user_node_default() {
     let s = sandbox()
         .package_json(BASIC_PACKAGE_JSON)
-        .platform("node = [ '9.11.2', '5.6.0' ]")
+        .platform(r#"{"node":{"runtime":"9.11.2","npm":"5.6.0"}}"#)
         .build();
 
     assert_that!(
@@ -94,7 +94,7 @@ fn no_project() {
 #[test]
 fn no_project_with_user_node_default() {
     let s = sandbox()
-        .platform("node = [ '9.11.2', '5.6.0' ]")
+        .platform(r#"{"node":{"runtime":"9.11.2","npm":"5.6.0"}}"#)
         .build();
 
     assert_that!(
