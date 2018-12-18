@@ -3,7 +3,6 @@ use std::io::Write;
 
 use readext::ReadExt;
 use semver::Version;
-use toml;
 
 use distro::node::NodeVersion;
 use fs::touch;
@@ -22,14 +21,13 @@ impl Toolchain {
     pub fn current() -> Fallible<Toolchain> {
         let path = user_platform_file()?;
         let src = touch(&path)?.read_into_string().unknown()?;
-        let serial: serial::Platform = toml::from_str(&src).unknown()?;
         Ok(Toolchain {
-            platform: serial.into_image()?
+            platform: serial::Platform::from_json(src)?.into_image()?,
         })
     }
 
     pub fn get_active_node(&self) -> Option<NodeVersion> {
-        self.platform.as_ref().map(|ref p| { p.node.clone() })
+        self.platform.as_ref().map(|ref p| p.node.clone())
     }
 
     pub fn set_active_node(&mut self, version: NodeVersion) -> Fallible<()> {
@@ -56,7 +54,9 @@ impl Toolchain {
     }
 
     pub fn get_active_yarn(&self) -> Option<Version> {
-        self.platform.as_ref().and_then(|ref platform| { platform.yarn.clone() })
+        self.platform
+            .as_ref()
+            .and_then(|ref platform| platform.yarn.clone())
     }
 
     pub fn set_active_yarn(&mut self, version: Version) -> Fallible<()> {
@@ -81,7 +81,7 @@ impl Toolchain {
         let mut file = File::create(&path).unknown()?;
         match &self.platform {
             &Some(ref platform) => {
-                let src = toml::to_string_pretty(&platform.to_serial()).unwrap();
+                let src = platform.to_serial().to_json()?;
                 file.write_all(src.as_bytes()).unknown()?;
             }
             &None => {
@@ -91,3 +91,4 @@ impl Toolchain {
         Ok(())
     }
 }
+

@@ -4,19 +4,20 @@ use distro;
 use notion_fail::{Fallible, ResultExt};
 
 use semver::Version;
+use serde_json;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct NodeVersion {
-    runtime: String,
-    npm: String,
+    pub runtime: String,
+    pub npm: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Platform {
     #[serde(default)]
-    node: Option<NodeVersion>,
+    pub node: Option<NodeVersion>,
     #[serde(default)]
-    yarn: Option<String>,
+    pub yarn: Option<String>,
 }
 
 impl Platform {
@@ -35,8 +36,22 @@ impl Platform {
 
                 Some(Image { node, yarn })
             }
-            None => None
+            None => None,
         })
+    }
+
+    /// Deserialize the input JSON String into a Platform
+    pub fn from_json(src: String) -> Fallible<Self> {
+        if src.is_empty() {
+            serde_json::de::from_str("{}").unknown()
+        } else {
+            serde_json::de::from_str(&src).unknown()
+        }
+    }
+
+    /// Serialize the Platform to a JSON String
+    pub fn to_json(self) -> Fallible<String> {
+        serde_json::to_string_pretty(&self).unknown()
     }
 }
 
@@ -47,7 +62,67 @@ impl Image {
                 runtime: self.node.runtime.to_string(),
                 npm: self.node.npm.to_string(),
             }),
-            yarn: self.yarn.as_ref().map(|yarn| yarn.to_string())
+            yarn: self.yarn.as_ref().map(|yarn| yarn.to_string()),
         }
+    }
+}
+
+
+#[cfg(test)]
+pub mod tests {
+
+    use super::*;
+    use distro;
+    use image;
+    use semver;
+
+    // NOTE: serde_json is required with the "preserve_order" feature in Cargo.toml,
+    // so these tests will serialized/deserialize in a predictable order
+
+    const BASIC_JSON_STR: &'static str = r#"{
+  "node": {
+    "runtime": "4.5.6",
+    "npm": "7.8.9"
+  },
+  "yarn": "1.2.3"
+}"#;
+
+    #[test]
+    fn test_from_json() {
+        let json_str = BASIC_JSON_STR.to_string();
+        let platform = Platform::from_json(json_str).expect("could not parse JSON string");
+        let expected_platform = Platform {
+            yarn: Some("1.2.3".to_string()),
+            node: Some(NodeVersion {
+                runtime: "4.5.6".to_string(),
+                npm: "7.8.9".to_string(),
+            }),
+        };
+        assert_eq!(platform, expected_platform);
+    }
+
+    #[test]
+    fn test_from_json_empty_string() {
+        let json_str = "".to_string();
+        let platform = Platform::from_json(json_str).expect("could not parse JSON string");
+        let expected_platform = Platform {
+            node: None,
+            yarn: None,
+        };
+        assert_eq!(platform, expected_platform);
+    }
+
+    #[test]
+    fn test_to_json() {
+        let platform = image::Image {
+            yarn: Some(semver::Version::parse("1.2.3").expect("could not parse semver version")),
+            node: distro::node::NodeVersion {
+                runtime: semver::Version::parse("4.5.6").expect("could not parse semver version"),
+                npm: semver::Version::parse("7.8.9").expect("could not parse semver version"),
+            },
+        };
+        let json_str = platform.to_serial().to_json().expect("could not serialize platform to JSON");
+        let expected_json_str = BASIC_JSON_STR.to_string();
+        assert_eq!(json_str, expected_json_str);
     }
 }

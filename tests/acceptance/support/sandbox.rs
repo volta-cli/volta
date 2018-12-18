@@ -82,7 +82,7 @@ impl EnvVar {
     }
 }
 
-// used to construct sandboxed package.json and platform.toml
+// used to construct sandboxed package.json and platform.json
 #[derive(PartialEq, Clone)]
 pub struct FileBuilder {
     path: PathBuf,
@@ -219,7 +219,7 @@ impl SandboxBuilder {
         self
     }
 
-    /// Set the platform.toml for the sandbox (chainable)
+    /// Set the platform.json for the sandbox (chainable)
     pub fn platform(mut self, contents: &str) -> Self {
         self.files
             .push(FileBuilder::new(user_platform_file(), contents));
@@ -422,7 +422,7 @@ fn package_json_file(mut root: PathBuf) -> PathBuf {
     root
 }
 fn user_platform_file() -> PathBuf {
-    user_dir().join("platform.toml")
+    user_dir().join("platform.json")
 }
 
 pub struct Sandbox {
