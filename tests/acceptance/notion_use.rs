@@ -120,7 +120,13 @@ cfg_if! {
     }
 }
 
-const YARN_VERSION_INFO: &'static str = r#"[ "1.2.42", "1.4.159", "1.7.71", "1.12.99" ]"#;
+const YARN_VERSION_INFO: &'static str = r#"[
+{"tag_name":"v1.2.42","assets":[{"name":"yarn-v1.2.42.tar.gz"}]},
+{"tag_name":"v1.3.1","assets":[{"name":"yarn-v1.3.1.msi"}]},
+{"tag_name":"v1.4.159","assets":[{"name":"yarn-v1.4.159.tar.gz"}]},
+{"tag_name":"v1.7.71","assets":[{"name":"yarn-v1.7.71.tar.gz"}]},
+{"tag_name":"v1.12.99","assets":[{"name":"yarn-v1.12.99.tar.gz"}]}
+]"#;
 
 const YARN_VERSION_FIXTURES: [DistroMetadata; 4] = [
     DistroMetadata {
@@ -244,5 +250,27 @@ fn use_yarn_latest() {
     assert_eq!(
         s.read_package_json(),
         package_json_with_pinned_node_npm_yarn("1.2.3", "1.0.7", "1.2.42"),
+    )
+}
+
+#[test]
+fn use_yarn_incomplete_release() {
+    let s = sandbox()
+        .package_json(&package_json_with_pinned_node_npm("1.2.3", "1.0.7"))
+        .yarn_available_versions(YARN_VERSION_INFO)
+        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .build();
+
+    // Yarn 1.3.1 was an incomplete release with no released tarball.
+    assert_that!(
+        s.notion("use yarn 1.3.1"),
+        execs()
+            .with_status(4)
+            .with_stderr_contains("error: No Yarn version found for = 1.3.1")
+    );
+
+    assert_eq!(
+        s.read_package_json(),
+        package_json_with_pinned_node_npm("1.2.3", "1.0.7"),
     )
 }

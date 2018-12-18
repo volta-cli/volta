@@ -50,7 +50,7 @@ cfg_if! {
         }
         /// Return the URL of the index of available Yarn versions on the public git repository.
         fn public_yarn_version_index() -> String {
-            "https://github.com/notion-cli/yarn-releases/raw/master/index.json".to_string()
+            "https://api.github.com/repos/yarnpkg/yarn/releases".to_string()
         }
         /// URL of the latest Yarn version on the public yarnpkg.com
         fn public_yarn_latest_version() -> String {
@@ -198,7 +198,7 @@ impl RegistryFetchError {
 impl Resolve<NodeDistro> for NodeCollection {
     fn resolve_public(&self, matching: &VersionSpec) -> Fallible<NodeDistro> {
         let version_opt = {
-            let index: Index = resolve_node_versions()?.into_index()?;
+            let index: NodeIndex = resolve_node_versions()?.into_index()?;
             let mut entries = index.entries.into_iter();
             let entry = match *matching {
                 VersionSpec::Latest => {
@@ -209,10 +209,10 @@ impl Resolve<NodeDistro> for NodeCollection {
                 }
                 VersionSpec::Semver(ref matching) => {
                     // ISSUE #34: also make sure this OS is available for this version
-                    entries.find(|&Entry { version: ref v, .. }| matching.matches(v))
+                    entries.find(|&NodeEntry { version: ref v, .. }| matching.matches(v))
                 }
             };
-            entry.map(|Entry { version, .. }| version)
+            entry.map(|NodeEntry { version, .. }| version)
         };
 
         if let Some(version) = version_opt {
@@ -233,21 +233,21 @@ impl Resolve<YarnDistro> for YarnCollection {
                 let mut response: reqwest::Response =
                     reqwest::get(public_yarn_latest_version().as_str())
                         .with_context(RegistryFetchError::from_error)?;
-                response.text().unknown()?
+                Version::parse(&response.text().unknown()?).unknown()?
             }
             VersionSpec::Semver(ref matching) => {
                 let spinner = progress_spinner(&format!(
                     "Fetching public registry: {}",
                     public_yarn_version_index()
                 ));
-                let releases: Vec<String> = reqwest::get(public_yarn_version_index().as_str())
+                let releases: serial::YarnIndex = reqwest::get(public_yarn_version_index().as_str())
                     .with_context(RegistryFetchError::from_error)?
                     .json()
                     .unknown()?;
+                let releases = releases.into_index()?.entries;
                 spinner.finish_and_clear();
-                let version = releases.into_iter().find(|v| {
-                    let v = Version::parse(v).unwrap();
-                    matching.matches(&v)
+                let version = releases.into_iter().rev().find(|v| {
+                    matching.matches(v)
                 });
 
                 if let Some(version) = version {
@@ -259,20 +259,25 @@ impl Resolve<YarnDistro> for YarnCollection {
                 }
             }
         };
-        YarnDistro::public(Version::parse(&version).unknown()?)
+        YarnDistro::public(version)
     }
 }
 
 /// The index of the public Node server.
-pub struct Index {
-    entries: Vec<Entry>,
+pub struct NodeIndex {
+    entries: Vec<NodeEntry>,
 }
 
 #[derive(Debug)]
-pub struct Entry {
+pub struct NodeEntry {
     pub version: Version,
     pub npm: Version,
     pub files: NodeDistroFiles
+}
+
+/// The public Yarn index.
+pub struct YarnIndex {
+    entries: BTreeSet<Version>,
 }
 
 /// The set of available files on the public Node server for a given Node version.
@@ -282,7 +287,7 @@ pub struct NodeDistroFiles {
 }
 
 /// Reads a public index from the Node cache, if it exists and hasn't expired.
-fn read_cached_opt() -> Fallible<Option<serial::Index>> {
+fn read_cached_opt() -> Fallible<Option<serial::NodeIndex>> {
     let expiry: Option<String> = read_file_opt(&path::node_index_expiry_file()?).unknown()?;
 
     if let Some(string) = expiry {
@@ -315,7 +320,7 @@ fn max_age(response: &reqwest::Response) -> u32 {
     4 * 60 * 60
 }
 
-fn resolve_node_versions() -> Result<serial::Index, NotionError> {
+fn resolve_node_versions() -> Result<serial::NodeIndex, NotionError> {
     match read_cached_opt().unknown()? {
         Some(serial) => Ok(serial),
         None => {
@@ -359,7 +364,7 @@ fn resolve_node_versions() -> Result<serial::Index, NotionError> {
             ensure_containing_dir_exists(&index_expiry_file)?;
             expiry.persist(index_expiry_file).unknown()?;
 
-            let serial: serial::Index = serde_json::de::from_str(&response_text).unknown()?;
+            let serial: serial::NodeIndex = serde_json::de::from_str(&response_text).unknown()?;
 
             spinner.finish_and_clear();
             Ok(serial)

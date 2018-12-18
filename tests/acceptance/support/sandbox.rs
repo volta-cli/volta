@@ -168,7 +168,8 @@ impl DistroFixture for NodeFixture {
 
 impl DistroFixture for YarnFixture {
     fn server_path(&self) -> String {
-        format!("/yarn-v{}.tar.gz", self.metadata.version)
+        let version = &self.metadata.version;
+        format!("/v{}/yarn-v{}.tar.gz", version, version)
     }
 
     fn fixture_path(&self) -> String {
@@ -285,15 +286,6 @@ impl SandboxBuilder {
         let metadata = fx.metadata();
 
         if let Some(uncompressed_size) = metadata.uncompressed_size {
-            let head_mock = mock("HEAD", &server_path[..])
-                .with_header("Accept-Ranges", "bytes")
-                // Workaround for https://github.com/lipanski/mockito/issues/52: the only way
-                // to get the right "Content-Length" header is to add the file to the body so
-                // Mockito computes the right file size.
-                .with_body_from_file(&fixture_path)
-                .create();
-            self.root.mocks.push(head_mock);
-
             // This can be abstracted when https://github.com/rust-lang/rust/issues/52963 lands.
             let uncompressed_size_bytes: [u8; 4] = [
                 ((uncompressed_size & 0xff000000) >> 24) as u8,
@@ -311,6 +303,7 @@ impl SandboxBuilder {
 
         let file_mock = mock("GET", &server_path[..])
             .match_header("Range", Matcher::Missing)
+            .with_header("Accept-Ranges", "bytes")
             .with_body_from_file(&fixture_path)
             .create();
         self.root.mocks.push(file_mock);

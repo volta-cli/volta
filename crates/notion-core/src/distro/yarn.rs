@@ -25,7 +25,7 @@ cfg_if! {
         }
     } else {
         fn public_yarn_server_root() -> String {
-            "https://github.com/notion-cli/yarn-releases/raw/master/dist".to_string()
+            "https://github.com/yarnpkg/yarn/releases/download".to_string()
         }
     }
 }
@@ -56,8 +56,9 @@ impl Distro for YarnDistro {
 
     /// Provision a distribution from the public Yarn distributor (`https://yarnpkg.com`).
     fn public(version: Version) -> Fallible<Self> {
-        let distro_file_name = path::yarn_distro_file_name(&version.to_string());
-        let url = format!("{}/{}", public_yarn_server_root(), distro_file_name);
+        let version_str = version.to_string();
+        let distro_file_name = path::yarn_distro_file_name(&version_str);
+        let url = format!("{}/v{}/{}", public_yarn_server_root(), version_str, distro_file_name);
         YarnDistro::remote(version, &url)
     }
 
