@@ -57,7 +57,6 @@ impl Tarball {
     /// tarball that can be streamed (and that tees its data to a local
     /// file as it streams).
     pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<Archive>, failure::Error> {
-        let uncompressed_size = fetch_uncompressed_size(url)?;
         let response = reqwest::get(url)?;
 
         if !response.status().is_success() {
@@ -65,6 +64,11 @@ impl Tarball {
         }
 
         let compressed_size = content_length(&response)?;
+
+        ensure_accepts_byte_ranges(&response)?;
+
+        let uncompressed_size = fetch_uncompressed_size(url, compressed_size)?;
+
         let file = File::create(cache_file)?;
         let data = Box::new(TeeReader::new(response, file));
 
@@ -86,16 +90,6 @@ impl Archive for Tarball {
         tarball.unpack(dest)?;
         Ok(())
     }
-}
-
-/// Fetches just the headers of a URL.
-fn headers_only(url: &str) -> Result<Response, failure::Error> {
-    let client = reqwest::Client::new()?;
-    let response = client.head(url)?.send()?;
-    if !response.status().is_success() {
-        Err(super::HttpError { code: response.status() })?;
-    }
-    Ok(response)
 }
 
 // From http://www.gzip.org/zlib/rfc-gzip.html#member-format
@@ -166,21 +160,22 @@ fn load_isize(file: &mut File) -> Result<[u8; 4], failure::Error> {
 #[fail(display = "HTTP server does not accept byte range requests")]
 struct ByteRangesNotAcceptedError;
 
-/// Determines the uncompressed size of a gzip file hosted at the specified
-/// URL by fetching just the metadata associated with the file. This makes
-/// two round-trips to the server, so it is only more efficient than simply
-/// downloading the file if the file is large enough that downloading it is
-/// slower than the extra round trips.
-fn fetch_uncompressed_size(url: &str) -> Result<u64, failure::Error> {
-    let response = headers_only(url)?;
-
+fn ensure_accepts_byte_ranges(response: &Response) -> Result<(), failure::Error> {
     if !response.headers().get::<AcceptRanges>()
         .map(|v| v.iter().any(|unit| *unit == RangeUnit::Bytes))
-        .unwrap_or(false) {
+        .unwrap_or(false)
+    {
         Err(ByteRangesNotAcceptedError)?;
     }
+    Ok(())
+}
 
-    let len = content_length(&response)?;
+/// Determines the uncompressed size of a gzip file hosted at the specified
+/// URL by fetching just the metadata associated with the file. This makes
+/// an extra round-trip to the server, so it's only more efficient than just
+/// downloading the file if the file is large enough that downloading it is
+/// slower than the extra round trips.
+fn fetch_uncompressed_size(url: &str, len: u64) -> Result<u64, failure::Error> {
     let packed = fetch_isize(url, len)?;
     Ok(unpack_isize(packed))
 }

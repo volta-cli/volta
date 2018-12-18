@@ -74,35 +74,85 @@ impl YarnCollection {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Index(Vec<Entry>);
+pub struct NodeIndex(Vec<NodeEntry>);
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Entry {
+pub struct NodeEntry {
     pub version: String,
     pub npm: Option<String>,
     pub files: Vec<String>,
 }
 
-impl Index {
-    pub fn into_index(self) -> Fallible<super::Index> {
+fn trim_version(s: &str) -> &str {
+    let s = s.trim();
+    if s.starts_with('v') {
+        s[1..].trim()
+    } else {
+        s
+    }
+}
+
+impl NodeIndex {
+    pub fn into_index(self) -> Fallible<super::NodeIndex> {
         let mut entries = Vec::new();
         for entry in self.0 {
             if let Some(npm) = entry.npm {
                 let data = super::NodeDistroFiles {
                     files: HashSet::from_iter(entry.files.into_iter()),
                 };
-                let mut version = &entry.version[..];
-                version = version.trim();
-                if version.starts_with('v') {
-                    version = &version[1..];
-                }
-                entries.push(super::Entry {
+                let version = trim_version(&entry.version[..]);
+                entries.push(super::NodeEntry {
                     version: Version::parse(version).unknown()?,
                     npm: Version::parse(&npm).unknown()?,
                     files: data
                 });
             }
         }
-        Ok(super::Index { entries })
+        Ok(super::NodeIndex { entries })
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct YarnIndex(Vec<YarnEntry>);
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct YarnEntry {
+    /// Yarn releases are given a tag name of the form "v$version" where $version
+    /// is the release's version string.
+    pub tag_name: String,
+
+    /// The GitHub API provides a list of assets. Some Yarn releases don't include
+    /// a tarball, so we don't support them and remove them from the set of available
+    /// Yarn versions.
+    pub assets: Vec<YarnAsset>,
+}
+
+impl YarnEntry {
+    /// Is this entry a full release, i.e., does this entry's asset list include a
+    /// proper release tarball?
+    fn is_full_release(&self) -> bool {
+        let release_filename = &format!("yarn-{}.tar.gz", self.tag_name)[..];
+        self.assets
+            .iter()
+            .any(|&YarnAsset { ref name }| { name == release_filename })
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct YarnAsset {
+    /// The filename of an asset included in a Yarn GitHub release.
+    pub name: String,
+}
+
+impl YarnIndex {
+    pub fn into_index(self) -> Fallible<super::YarnIndex> {
+        let mut entries = BTreeSet::new();
+        for entry in self.0 {
+            if entry.is_full_release() {
+                let version = trim_version(&entry.tag_name[..]);
+                entries.insert(Version::parse(version).unknown()?);
+            }
+        }
+        Ok(super::YarnIndex { entries })
     }
 }
