@@ -1,10 +1,10 @@
 use std::env;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
-use envoy;
+use serde_json;
 
 use notion_core::path;
 
@@ -43,7 +43,6 @@ impl FileBuilder {
 pub struct TempProjectBuilder {
     root: TempProject,
     files: Vec<FileBuilder>,
-    path_dirs: Vec<PathBuf>,
 }
 
 impl TempProjectBuilder {
@@ -54,12 +53,8 @@ impl TempProjectBuilder {
 
     pub fn new(root: PathBuf) -> TempProjectBuilder {
         TempProjectBuilder {
-            root: TempProject {
-                root,
-                path: OsString::new(),
-            },
+            root: TempProject { root },
             files: vec![],
-            path_dirs: vec![],
         }
     }
 
@@ -70,17 +65,8 @@ impl TempProjectBuilder {
         self
     }
 
-    /// Add all directories from the current PATH (chainable)
-    pub fn with_current_path(mut self) -> Self {
-        let current_path = envoy::path().unwrap_or(envoy::Var::from(""));
-        current_path
-            .split()
-            .for_each(|path| self.path_dirs.push(path));
-        self
-    }
-
     /// Create the project
-    pub fn build(mut self) -> TempProject {
+    pub fn build(self) -> TempProject {
         // First, clean the temporary project directory if it already exists
         self.rm_root();
 
@@ -108,9 +94,6 @@ impl TempProjectBuilder {
             file_builder.build();
         }
 
-        // join dirs for the path (notion bin path is already first)
-        self.root.path = env::join_paths(self.path_dirs.iter()).unwrap();
-
         let TempProjectBuilder { root, .. } = self;
         root
     }
@@ -129,7 +112,6 @@ fn package_json_file(mut root: PathBuf) -> PathBuf {
 
 pub struct TempProject {
     root: PathBuf,
-    path: OsString,
 }
 
 impl TempProject {
@@ -148,10 +130,7 @@ impl TempProject {
         let mut p = test_support::process::process(program);
         p.cwd(self.root())
             // setup the Notion environment
-            .env("PATH", &self.path)
-            .env_remove("NOTION_DEV")
             .env_remove("NOTION_NODE_VERSION")
-            .env_remove("NOTION_SHELL")
             .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
 
         p
@@ -195,10 +174,13 @@ impl TempProject {
     }
 
     /// Verify that the input Node version has been installed.
-    pub fn node_version_is_installed(&self, version: &str, npm_version: &str) -> bool {
+    pub fn assert_node_version_is_installed(&self, version: &str, npm_version: &str) -> () {
         let user_platform = ok_or_panic!{ path::user_platform_file() };
         let platform_contents = read_file_to_string(user_platform);
-        platform_contents.contains(format!("[node]\nruntime = '{}'\nnpm = '{}'", version, npm_version).as_str())
+        let json_contents: serde_json::Value =
+            serde_json::from_str(&platform_contents).expect("could not parse platform.json");
+        assert_eq!(json_contents["node"]["runtime"], version);
+        assert_eq!(json_contents["node"]["npm"], npm_version);
     }
 
     /// Verify that the input Yarn version has been fetched.
@@ -215,10 +197,12 @@ impl TempProject {
     }
 
     /// Verify that the input Yarn version has been installed.
-    pub fn yarn_version_is_installed(&self, version: &str) -> bool {
+    pub fn assert_yarn_version_is_installed(&self, version: &str) -> () {
         let user_platform = ok_or_panic!{ path::user_platform_file() };
         let platform_contents = read_file_to_string(user_platform);
-        platform_contents.contains(format!("[yarn]\ndefault = '{}'", version).as_str())
+        let json_contents: serde_json::Value =
+            serde_json::from_str(&platform_contents).expect("could not parse platform.json");
+        assert_eq!(json_contents["yarn"], version);
     }
 }
 
