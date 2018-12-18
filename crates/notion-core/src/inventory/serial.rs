@@ -134,8 +134,7 @@ impl YarnEntry {
         let release_filename = &format!("yarn-{}.tar.gz", self.tag_name)[..];
         self.assets
             .iter()
-            .find(|&&YarnAsset { ref name }| { name == release_filename })
-            .is_some()
+            .any(|&YarnAsset { ref name }| { name == release_filename })
     }
 }
 
