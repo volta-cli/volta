@@ -104,7 +104,15 @@ mod test {
         notion_base().join("bin")
     }
 
+    // Since unit tests are run in parallel, tests that modify the PATH environment variable are subject to race conditions
+    // To prevent that, ensure that all tests that rely on PATH are run in serial by adding them to this meta-test
     #[test]
+    fn test_paths() {
+        test_image_path();
+        test_system_path();
+        test_system_enabled_path();
+    }
+
     #[cfg(unix)]
     fn test_image_path() {
         std::env::set_var(
@@ -157,7 +165,6 @@ mod test {
         );
     }
 
-    #[test]
     #[cfg(windows)]
     fn test_image_path() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
@@ -213,7 +220,6 @@ mod test {
         );
     }
 
-    #[test]
     #[cfg(unix)]
     fn test_system_path() {
         std::env::set_var(
@@ -229,7 +235,6 @@ mod test {
         assert_eq!(System::path().unwrap().into_string().unwrap(), expected_path);
     }
 
-    #[test]
     #[cfg(windows)]
     fn test_system_path() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
@@ -249,7 +254,6 @@ mod test {
         assert_eq!(System::path().unwrap().into_string().unwrap(), expected_path);
     }
 
-    #[test]
     #[cfg(unix)]
     fn test_system_enabled_path() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
@@ -271,7 +275,6 @@ mod test {
         assert_eq!(System::enabled_path().unwrap().into_string().unwrap(), expected_path);
     }
 
-    #[test]
     #[cfg(windows)]
     fn test_system_enabled_path() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
