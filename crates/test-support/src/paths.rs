@@ -75,7 +75,7 @@ impl Remove {
         }
         match *self {
             Remove::File => fs::remove_file(path),
-            Remove::Dir => fs::remove_dir(path),
+            Remove::Dir => fs::remove_dir_all(path), // ensure all dir contents are removed
         }.unwrap_or_else(|e| {
             panic!("failed to {} {}: {}", self.to_str(), path.display(), e);
         })
