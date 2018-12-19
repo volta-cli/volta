@@ -45,6 +45,7 @@ fn autodownload_node() {
 }
 
 #[test]
+#[ignore] // ISSUE (#227) - This fails in CI because of the github API rate limit
 fn autodownload_yarn() {
     let p = temp_project()
         .package_json(&package_json_with_pinned_node_npm_yarn("10.11.0", "6.4.1", "1.10.1"))
