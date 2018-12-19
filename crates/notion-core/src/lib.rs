@@ -6,6 +6,7 @@ extern crate archive;
 extern crate cmdline_words_parser;
 extern crate console;
 extern crate detect_indent;
+extern crate dirs;
 extern crate envoy;
 extern crate indicatif;
 extern crate lazycell;
