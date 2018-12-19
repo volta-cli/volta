@@ -84,13 +84,20 @@ mod test {
     use std;
     use std::path::PathBuf;
 
+    #[cfg(unix)]
+    use dirs;
+
     #[cfg(windows)]
     use winfolder;
 
     fn notion_base() -> PathBuf {
         #[cfg(unix)]
+<<<<<<< HEAD
         return PathBuf::from(std::env::home_dir().expect("Could not get home directory"))
             .join(".notion");
+=======
+        return PathBuf::from(dirs::home_dir().expect("Could not get home directory")).join(".notion");
+>>>>>>> Fix Windows compile errors and warnings, and eliminate another use of `std::env::home_dir()`.
 
         #[cfg(windows)]
         return winfolder::Folder::LocalAppData.path().join("Notion");
