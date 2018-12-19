@@ -6,7 +6,7 @@ mod fetch;
 mod help;
 mod install;
 mod shim;
-mod use_;
+mod pin;
 mod version;
 
 pub(crate) use self::activate::Activate;
@@ -18,7 +18,7 @@ pub(crate) use self::help::Help;
 pub(crate) use self::install::Install;
 #[cfg(feature = "notion-dev")]
 pub(crate) use self::shim::Shim;
-pub(crate) use self::use_::Use;
+pub(crate) use self::pin::Pin;
 pub(crate) use self::version::Version;
 
 use docopt::Docopt;
@@ -37,7 +37,7 @@ use std::str::FromStr;
 pub(crate) enum CommandName {
     Fetch,
     Install,
-    Use,
+    Pin,
     Config,
     Current,
     Deactivate,
@@ -56,7 +56,7 @@ impl Display for CommandName {
             match *self {
                 CommandName::Fetch => "fetch",
                 CommandName::Install => "install",
-                CommandName::Use => "use",
+                CommandName::Pin => "pin",
                 CommandName::Config => "config",
                 CommandName::Deactivate => "deactivate",
                 CommandName::Activate => "activate",
@@ -77,7 +77,7 @@ impl FromStr for CommandName {
         Ok(match s {
             "fetch" => CommandName::Fetch,
             "install" => CommandName::Install,
-            "use" => CommandName::Use,
+            "pin" => CommandName::Pin,
             "config" => CommandName::Config,
             "current" => CommandName::Current,
             "deactivate" => CommandName::Deactivate,

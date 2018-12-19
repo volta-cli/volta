@@ -2,7 +2,7 @@ use notion_core::session::{ActivityKind, Session};
 use notion_fail::{ExitCode, Fallible};
 
 use command::{Command, CommandName, Config, Current, Activate, Deactivate, Fetch,
-              Install, Use, Version};
+              Install, Pin, Version};
 #[cfg(feature = "notion-dev")]
 use command::Shim;
 use {CliParseError, Notion};
@@ -57,7 +57,7 @@ Options:
             "{}",
             match self {
                 Help::Notion => Notion::USAGE,
-                Help::Command(CommandName::Use) => Use::USAGE,
+                Help::Command(CommandName::Pin) => Pin::USAGE,
                 Help::Command(CommandName::Config) => Config::USAGE,
                 Help::Command(CommandName::Current) => Current::USAGE,
                 Help::Command(CommandName::Deactivate) => Deactivate::USAGE,

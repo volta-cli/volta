@@ -1,7 +1,3 @@
-// Rust doesn't allow using keywords as module names so we have to call this `use_`.
-// With https://github.com/rust-lang/rfcs/blob/master/text/2151-raw-identifiers.md we
-// could consider something like `r#use` instead.
-
 use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error, ErrorContext};
 use notion_core::version::VersionSpec;
@@ -21,17 +17,17 @@ pub(crate) struct Args {
 #[fail(display = "pinning tool '{}' not yet implemented - for now you can manually edit package.json",
        name)]
 #[notion_fail(code = "NotYetImplemented")]
-pub(crate) struct NoCustomUseError {
+pub(crate) struct NoCustomPinError {
     pub(crate) name: String,
 }
 
-impl NoCustomUseError {
+impl NoCustomPinError {
     pub(crate) fn new(name: String) -> Self {
-        NoCustomUseError { name: name }
+        NoCustomPinError { name: name }
     }
 }
 
-pub(crate) enum Use {
+pub(crate) enum Pin {
     Help,
     Node(VersionSpec),
     Yarn(VersionSpec),
@@ -43,22 +39,22 @@ pub(crate) enum Use {
     },
 }
 
-impl Command for Use {
+impl Command for Pin {
     type Args = Args;
 
     const USAGE: &'static str = "
 Select a tool for the current project's toolchain
 
 Usage:
-    notion use <tool> <version>
-    notion use -h | --help
+    notion pin <tool> <version>
+    notion pin -h | --help
 
 Options:
     -h, --help     Display this message
 ";
 
     fn help() -> Self {
-        Use::Help
+        Pin::Help
     }
 
     fn parse(
@@ -69,9 +65,9 @@ Options:
         }: Args,
     ) -> Fallible<Self> {
         Ok(match &arg_tool[..] {
-            "node" => Use::Node(VersionSpec::parse(&arg_version)?),
-            "yarn" => Use::Yarn(VersionSpec::parse(&arg_version)?),
-            ref tool => Use::Other {
+            "node" => Pin::Node(VersionSpec::parse(&arg_version)?),
+            "yarn" => Pin::Yarn(VersionSpec::parse(&arg_version)?),
+            ref tool => Pin::Other {
                 name: tool.to_string(),
                 version: VersionSpec::parse(&arg_version)?,
             },
@@ -79,12 +75,12 @@ Options:
     }
 
     fn run(self, session: &mut Session) -> Fallible<()> {
-        session.add_event_start(ActivityKind::Use);
+        session.add_event_start(ActivityKind::Pin);
         match self {
-            Use::Help => Help::Command(CommandName::Use).run(session)?,
-            Use::Node(spec) => session.pin_node_version(&spec)?,
-            Use::Yarn(spec) => session.pin_yarn_version(&spec)?,
-            Use::Other { name, .. } => throw!(NoCustomUseError::new(name)),
+            Pin::Help => Help::Command(CommandName::Pin).run(session)?,
+            Pin::Node(spec) => session.pin_node_version(&spec)?,
+            Pin::Yarn(spec) => session.pin_yarn_version(&spec)?,
+            Pin::Other { name, .. } => throw!(NoCustomPinError::new(name)),
         };
         if let Some(project) = session.project() {
             let errors = project.autoshim();
@@ -97,7 +93,7 @@ Options:
                 }
             }
         }
-        session.add_event_end(ActivityKind::Use, ExitCode::Success);
+        session.add_event_end(ActivityKind::Pin, ExitCode::Success);
         Ok(())
     }
 }
