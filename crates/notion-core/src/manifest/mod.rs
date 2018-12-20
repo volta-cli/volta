@@ -7,8 +7,8 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use detect_indent;
-use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use image::Image;
+use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use semver::Version;
 use serde::Serialize;
 use serde_json;
@@ -51,14 +51,17 @@ impl Manifest {
             Ok(file) => {
                 let serial: serial::Manifest = serde_json::de::from_reader(file).unknown()?;
                 serial.into_manifest()
-            },
+            }
             Err(error) => {
                 if project_root.is_dir() {
                     throw!(PackageReadError::from_io_error(&error));
                 }
 
                 throw!(PackageReadError {
-                    error: format!("directory does not exist: {}", project_root.to_string_lossy().into_owned()),
+                    error: format!(
+                        "directory does not exist: {}",
+                        project_root.to_string_lossy().into_owned()
+                    ),
                 });
             }
         }
@@ -71,7 +74,8 @@ impl Manifest {
 
     /// Gets the names of all the direct dependencies in the manifest.
     pub fn merged_dependencies(&self) -> HashSet<String> {
-        self.dependencies.iter()
+        self.dependencies
+            .iter()
             .chain(self.dev_dependencies.iter())
             .map(|(name, _version)| name.clone())
             .collect()
@@ -89,9 +93,7 @@ impl Manifest {
 
     /// Returns the pinned verison of Yarn as a Version, if any.
     pub fn yarn(&self) -> Option<Version> {
-        self.platform()
-            .map(|t| t.yarn.clone())
-            .unwrap_or(None)
+        self.platform().map(|t| t.yarn.clone()).unwrap_or(None)
     }
 
     /// Returns the pinned verison of Yarn as a String, if any.
@@ -102,10 +104,7 @@ impl Manifest {
 
     /// Writes the input ToolchainManifest to package.json, adding the "toolchain" key if
     /// necessary.
-    pub fn update_toolchain(
-        toolchain: serial::Image,
-        package_file: PathBuf,
-    ) -> Fallible<()> {
+    pub fn update_toolchain(toolchain: serial::Image, package_file: PathBuf) -> Fallible<()> {
         // parse the entire package.json file into a Value
         let file = File::open(&package_file).unknown()?;
         let mut v: serde_json::Value = serde_json::from_reader(file).unknown()?;

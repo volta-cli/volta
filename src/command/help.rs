@@ -1,10 +1,10 @@
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::{ExitCode, Fallible};
 
-use command::{Command, CommandName, Config, Current, Activate, Deactivate, Fetch,
-              Install, Pin, Version};
 #[cfg(feature = "notion-dev")]
 use command::Shim;
+use command::{Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Install, Pin,
+              Version};
 use {CliParseError, Notion};
 
 #[derive(Debug, Deserialize)]

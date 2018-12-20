@@ -162,7 +162,7 @@ impl Project {
                     if let Err(error) = shim::create(&name) {
                         errors.push(error);
                     }
-                },
+                }
                 Err(error) => errors.push(error),
             }
         }
@@ -194,7 +194,9 @@ impl Project {
     fn dependent_binary_names_fault_tolerant(&self) -> Vec<Fallible<String>> {
         let mut results = Vec::new();
         let dependencies = &self.manifest.merged_dependencies();
-        let dependency_paths = dependencies.iter().map(|name| self.get_dependency_path(name));
+        let dependency_paths = dependencies
+            .iter()
+            .map(|name| self.get_dependency_path(name));
 
         for dependency_path in dependency_paths {
             match Manifest::for_dir(&dependency_path) {
@@ -202,12 +204,12 @@ impl Project {
                     for (name, _path) in dependency.bin {
                         results.push(Result::Ok(name.clone()))
                     }
-                },
+                }
                 Err(error) => {
                     if !error.to_string().contains("directory does not exist") {
                         results.push(Result::Err(error))
                     }
-                },
+                }
             }
         }
 
@@ -303,7 +305,7 @@ pub mod tests {
             match fallible {
                 Ok(binary_name) => {
                     actual.insert(binary_name.clone());
-                },
+                }
 
                 Err(error) => panic!("encountered error {:?}", error),
             }

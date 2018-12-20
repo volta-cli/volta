@@ -189,18 +189,14 @@ fn print_file_info(file: fs::DirEntry, session: &Session, verbose: bool) -> Fall
 
 fn create(_session: &Session, shim_name: String, _verbose: bool) -> Fallible<()> {
     match shim::create(&shim_name)? {
-        shim::ShimResult::AlreadyExists => throw!(ShimAlreadyExistsError {
-            name: shim_name,
-        }),
+        shim::ShimResult::AlreadyExists => throw!(ShimAlreadyExistsError { name: shim_name }),
         _ => Ok(()),
     }
 }
 
 fn delete(_session: &Session, shim_name: String, _verbose: bool) -> Fallible<()> {
     match shim::delete(&shim_name)? {
-        shim::ShimResult::DoesntExist => throw!(ShimDoesntExistError {
-            name: shim_name,
-        }),
+        shim::ShimResult::DoesntExist => throw!(ShimDoesntExistError { name: shim_name }),
         _ => Ok(()),
     }
 }

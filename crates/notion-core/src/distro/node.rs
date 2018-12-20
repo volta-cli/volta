@@ -108,7 +108,7 @@ impl Distro for NodeDistro {
         ensure_containing_dir_exists(&distro_file)?;
         Ok(NodeDistro {
             archive: archive::fetch_native(url, &distro_file)
-                .with_context(DownloadError::for_version(version.to_string()))?,
+                .with_context(DownloadError::for_version(version.to_string(), url.to_string()))?,
             version: version,
         })
     }

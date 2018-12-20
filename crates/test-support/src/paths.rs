@@ -5,13 +5,12 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use std::sync::{Once, ONCE_INIT};
 
-static ACCEPTANCE_TEST_DIR: &'static str = "acceptance_test";
+static SMOKE_TEST_DIR: &'static str = "smoke_test";
 static NEXT_ID: AtomicUsize = ATOMIC_USIZE_INIT;
 
 thread_local!(static TASK_ID: usize = NEXT_ID.fetch_add(1, Ordering::SeqCst));
 
-
-// creates the root directory for the acceptancce tests (once), and
+// creates the root directory for the tests (once), and
 // initializes the root and home directories for the current task
 fn init() {
     static GLOBAL_INIT: Once = ONCE_INIT;
@@ -29,7 +28,7 @@ fn init() {
     })
 }
 
-// the root directory for the acceptance tests, in `target/acceptance_test`
+// the root directory for the smoke tests, in `target/smoke_test`
 fn global_root() -> PathBuf {
     let mut path = ok_or_panic!{ env::current_exe() };
     path.pop(); // chop off exe name
@@ -44,7 +43,7 @@ fn global_root() -> PathBuf {
         path.pop();
     }
 
-    path.join(ACCEPTANCE_TEST_DIR)
+    path.join(SMOKE_TEST_DIR)
 }
 
 pub fn root() -> PathBuf {
@@ -56,12 +55,15 @@ pub fn home() -> PathBuf {
     root().join("home")
 }
 
-enum Remove { File, Dir }
+enum Remove {
+    File,
+    Dir,
+}
 impl Remove {
     fn to_str(&self) -> &'static str {
         match *self {
             Remove::File => "remove file",
-            Remove::Dir => "remove dir"
+            Remove::Dir => "remove dir",
         }
     }
 
@@ -73,7 +75,7 @@ impl Remove {
         }
         match *self {
             Remove::File => fs::remove_file(path),
-            Remove::Dir => fs::remove_dir(path)
+            Remove::Dir => fs::remove_dir_all(path), // ensure all dir contents are removed
         }.unwrap_or_else(|e| {
             panic!("failed to {} {}: {}", self.to_str(), path.display(), e);
         })
@@ -81,11 +83,25 @@ impl Remove {
 }
 
 pub trait PathExt {
+    fn rm(&self);
     fn rm_rf(&self);
+    fn rm_contents(&self);
+    fn ensure_empty(&self);
     fn mkdir_p(&self);
 }
 
 impl PathExt for Path {
+    // delete a file if it exists
+    fn rm(&self) {
+        if !self.exists() {
+            return;
+        }
+        // On windows we can't remove a readonly file, and git will
+        // often clone files as readonly. As a result, we have some
+        // special logic to remove readonly files on windows.
+        Remove::File.at(self);
+    }
+
     /* Technically there is a potential race condition, but we don't
      * care all that much for our tests
      */
@@ -93,21 +109,29 @@ impl PathExt for Path {
         if !self.exists() {
             return;
         }
+        self.rm_contents();
+        Remove::Dir.at(self);
+    }
 
+    // remove directory contents but not the directory itself
+    fn rm_contents(&self) {
         for file in ok_or_panic!{ fs::read_dir(self) } {
             let file = ok_or_panic!{ file };
             if file.file_type().map(|m| m.is_dir()).unwrap_or(false) {
                 file.path().rm_rf();
             } else {
-                // On windows we can't remove a readonly file, and git will
-                // often clone files as readonly. As a result, we have some
-                // special logic to remove readonly files on windows.
-                Remove::File.at(&file.path());
+                file.path().rm();
             }
         }
-        Remove::Dir.at(self);
     }
 
+    // ensure the directory is created and empty
+    fn ensure_empty(&self) {
+        self.mkdir_p();
+        self.rm_contents();
+    }
+
+    // create all paths up to the input path
     fn mkdir_p(&self) {
         fs::create_dir_all(self)
             .unwrap_or_else(|e| panic!("failed to mkdir_p {}: {}", self.display(), e))

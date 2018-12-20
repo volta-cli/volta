@@ -9,6 +9,7 @@ repository = "https://github.com/notion-cli/notion"
 universal-docs = ["notion-core/universal-docs"]
 mock-network = ["mockito", "notion-core/mock-network"]
 notion-dev = []
+smoke-tests = []
 
 [[bin]]
 name = "notion"
@@ -59,5 +60,6 @@ test-support = { path = "crates/test-support" }
 
 [dev-dependencies]
 hamcrest2 = "0.2.3"
+envoy = "0.1.3"
 
 [workspace]
