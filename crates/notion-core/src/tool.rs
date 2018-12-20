@@ -225,7 +225,7 @@ impl Tool for Binary {
                         &path_to_bin.as_os_str(),
                         args,
                         &platform.path()?,
-                    ))
+                    ));
                 }
 
                 // if there's no user platform selected, fail.
@@ -289,7 +289,8 @@ No {} version selected.
 
 See `notion help use` for help adding {} to a project toolchain.
 
-See `notion help install` for help adding {} to your personal toolchain."#, tool, tool, tool)]
+See `notion help install` for help adding {} to your personal toolchain."#,
+       tool, tool, tool)]
 #[notion_fail(code = "NoVersionMatch")]
 struct NoSuchToolError {
     tool: String,

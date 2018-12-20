@@ -55,7 +55,7 @@ pub mod tests {
     use super::*;
 
     #[test]
-    fn test_node_archive_file() {
+    fn test_node_distro_file_name() {
         assert_eq!(
             node_distro_file_name("1.2.3"),
             format!("node-v1.2.3-{}-{}.{}", OS, ARCH, archive_extension())
@@ -71,7 +71,7 @@ pub mod tests {
     }
 
     #[test]
-    fn yarn_node_archive_file() {
+    fn test_yarn_distro_file_name() {
         assert_eq!(
             yarn_distro_file_name("1.2.3"),
             "yarn-v1.2.3.tar.gz"

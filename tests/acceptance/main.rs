@@ -10,6 +10,7 @@ extern crate notion_fail;
 extern crate rand;
 extern crate reqwest;
 extern crate serde_json;
+#[macro_use]
 extern crate test_support;
 
 mod support;

@@ -19,6 +19,8 @@ jobs:
         - cargo test --package notion-core --package notion-fail --package archive --package notion-fail-derive --package progress-read -- --test-threads=1
         # the acceptance tests, using network mocks
         - NOTION_DEV=1 RUST_BACKTRACE=full cargo test --features mock-network
+        # smoke tests: real data and no mocks
+        - NOTION_DEV=1 RUST_BACKTRACE=full cargo test --test smoke --features smoke-tests -- --test-threads 1
     - stage: publish
       # Conditional builds: https://docs.travis-ci.com/user/conditional-builds-stages-jobs/
       if: (branch = master) AND (type = push)

@@ -13,9 +13,10 @@ impl Shell for Bash {
 
     fn compile_postscript(&self, postscript: &Postscript) -> String {
         match postscript {
-            &Postscript::Activate(ref s) => {
-                format!("export PATH='{}'\nexport NOTION_HOME=\"${{HOME}}/.notion\"\n", s)
-            }
+            &Postscript::Activate(ref s) => format!(
+                "export PATH='{}'\nexport NOTION_HOME=\"${{HOME}}/.notion\"\n",
+                s
+            ),
             &Postscript::Deactivate(ref s) => {
                 // ISSUE(#99): proper escaping
                 format!("export PATH='{}'\nunset NOTION_HOME\n", s)
