@@ -20,7 +20,7 @@ use distro::node::{NodeDistro, NodeVersion};
 use distro::yarn::YarnDistro;
 use distro::{Distro, Fetched};
 use fs::{ensure_containing_dir_exists, read_file_opt};
-use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
+use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use path;
 use semver::{Version, VersionReq};
 use style::progress_spinner;
@@ -195,24 +195,26 @@ impl RegistryFetchError {
     }
 }
 
+fn match_node_version(predicate: impl Fn(&NodeEntry) -> bool) -> Fallible<Option<Version>> {
+    let index: NodeIndex = resolve_node_versions()?.into_index()?;
+    let mut entries = index.entries.into_iter();
+    Ok(entries.find(predicate).map(|NodeEntry { version, .. }| version))
+}
+
 impl Resolve<NodeDistro> for NodeCollection {
     fn resolve_public(&self, matching: &VersionSpec) -> Fallible<NodeDistro> {
-        let version_opt = {
-            let index: NodeIndex = resolve_node_versions()?.into_index()?;
-            let mut entries = index.entries.into_iter();
-            let entry = match *matching {
-                VersionSpec::Latest => {
-                    // NOTE: This assumes the registry always produces a list in sorted order
-                    //       from newest to oldest. This should be specified as a requirement
-                    //       when we document the plugin API.
-                    entries.next()
-                }
-                VersionSpec::Semver(ref matching) => {
-                    // ISSUE #34: also make sure this OS is available for this version
-                    entries.find(|&NodeEntry { version: ref v, .. }| matching.matches(v))
-                }
-            };
-            entry.map(|NodeEntry { version, .. }| version)
+        let version_opt = match *matching {
+            VersionSpec::Latest => {
+                // NOTE: This assumes the registry always produces a list in sorted order
+                //       from newest to oldest. This should be specified as a requirement
+                //       when we document the plugin API.
+                match_node_version(|_| true)?
+            }
+            VersionSpec::Semver(ref matching) => {
+                // ISSUE #34: also make sure this OS is available for this version
+                match_node_version(|&NodeEntry { version: ref v, .. }| matching.matches(v))?
+            }
+            VersionSpec::Exact(ref exact) => Some(exact.clone())
         };
 
         if let Some(version) = version_opt {
@@ -257,7 +259,8 @@ impl Resolve<YarnDistro> for YarnCollection {
                         matching: matching.clone(),
                     });
                 }
-            }
+            },
+            VersionSpec::Exact(ref exact) => exact.clone()
         };
         YarnDistro::public(version)
     }
@@ -320,8 +323,8 @@ fn max_age(response: &reqwest::Response) -> u32 {
     4 * 60 * 60
 }
 
-fn resolve_node_versions() -> Result<serial::NodeIndex, NotionError> {
-    match read_cached_opt().unknown()? {
+fn resolve_node_versions() -> Fallible<serial::NodeIndex> {
+    match read_cached_opt()? {
         Some(serial) => Ok(serial),
         None => {
             let spinner = progress_spinner(&format!(
