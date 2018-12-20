@@ -8,7 +8,7 @@ use std::string::ToString;
 use super::{Distro, Fetched};
 use archive::{self, Archive};
 use inventory::NodeCollection;
-use distro::error::DownloadError;
+use distro::error::{DownloadError, Tool};
 use fs::ensure_containing_dir_exists;
 use path;
 use style::{progress_bar, Action};
@@ -108,7 +108,7 @@ impl Distro for NodeDistro {
         ensure_containing_dir_exists(&distro_file)?;
         Ok(NodeDistro {
             archive: archive::fetch_native(url, &distro_file)
-                .with_context(DownloadError::for_version(version.to_string(), url.to_string()))?,
+                .with_context(DownloadError::for_tool_version(Tool::Node, version.to_string(), url.to_string()))?,
             version: version,
         })
     }

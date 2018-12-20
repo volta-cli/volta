@@ -26,8 +26,8 @@ extern crate failure_derive;
 
 #[derive(Fail, Debug)]
 #[fail(display = "HTTP failure ({})", code)]
-pub(crate) struct HttpError {
-    code: ::reqwest::StatusCode,
+pub struct HttpError {
+    pub code: ::reqwest::StatusCode,
 }
 
 pub use tarball::Tarball;
