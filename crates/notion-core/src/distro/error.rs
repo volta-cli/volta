@@ -67,21 +67,3 @@ impl DownloadError {
         }
     }
 }
-
-// impl DownloadError {
-//     pub(crate) fn for_node_version(version: String) -> impl FnOnce(&failure::Error) -> DownloadError {
-//         move |error| DownloadError {
-//             tool: "Node".to_string(),
-//             version: version,
-//             error: error.to_string(),
-//         }
-//     }
-
-//     pub(crate) fn for_yarn_version(version: String) -> impl FnOnce(&failure::Error) -> DownloadError {
-//         move |error| DownloadError {
-//             tool: "Yarn".to_string(),
-//             version: version,
-//             error: error.to_string(),
-//         }
-//     }
-// }
