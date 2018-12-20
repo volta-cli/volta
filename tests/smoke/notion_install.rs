@@ -24,7 +24,6 @@ fn install_node() {
 }
 
 #[test]
-#[ignore] // ISSUE (#227) - This fails in CI because of the github API rate limit
 fn install_yarn() {
     let p = temp_project()
         .build();
