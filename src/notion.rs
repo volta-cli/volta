@@ -27,7 +27,7 @@ use notion_fail::{ExitCode, FailExt, Fallible, NotionError};
 #[cfg(feature = "notion-dev")]
 use command::Shim;
 use command::{Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Help, Install,
-              Pin, Version};
+              Pin, Use, Version};
 use error::{CliParseError, CommandUnimplementedError, DocoptExt, NotionErrorExt};
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -177,6 +177,7 @@ See 'notion help <command>' for more information on a specific command.
             CommandName::Fetch => Fetch::go(self, session),
             CommandName::Install => Install::go(self, session),
             CommandName::Pin => Pin::go(self, session),
+            CommandName::Use => Use::go(self, session),
             CommandName::Config => Config::go(self, session),
             CommandName::Current => Current::go(self, session),
             CommandName::Deactivate => Deactivate::go(self, session),
