@@ -1,0 +1,13 @@
+[package]
+name = "notion-layout-macro"
+version = "0.1.0"
+authors = ["David Herman <david.herman@gmail.com>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "0.15.26"
+quote = "0.6"
+proc-macro2 = "0.4.24"

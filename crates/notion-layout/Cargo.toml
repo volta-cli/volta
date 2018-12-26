@@ -1,0 +1,7 @@
+[package]
+name = "notion-layout"
+version = "0.1.0"
+authors = ["David Herman <david.herman@gmail.com>"]
+
+[dependencies]
+notion-layout-macro = { path = "../notion-layout-macro" }
