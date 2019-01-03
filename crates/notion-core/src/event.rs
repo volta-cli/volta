@@ -156,9 +156,9 @@ pub mod tests {
         assert_eq!(event_log.events.len(), 1);
         assert_eq!(event_log.events[0].name, "current");
 
-        event_log.add_event_end(ActivityKind::Use, ExitCode::NetworkError);
+        event_log.add_event_end(ActivityKind::Pin, ExitCode::NetworkError);
         assert_eq!(event_log.events.len(), 2);
-        assert_eq!(event_log.events[1].name, "use");
+        assert_eq!(event_log.events[1].name, "pin");
 
         event_log.add_event_tool_end(ActivityKind::Version, 12);
         assert_eq!(event_log.events.len(), 3);

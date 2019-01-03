@@ -287,7 +287,7 @@ fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
 #[fail(display = r#"
 No {} version selected.
 
-See `notion help use` for help adding {} to a project toolchain.
+See `notion help pin` for help adding {} to a project toolchain.
 
 See `notion help install` for help adding {} to your personal toolchain."#,
        tool, tool, tool)]

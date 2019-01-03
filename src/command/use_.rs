@@ -2,102 +2,47 @@
 // With https://github.com/rust-lang/rfcs/blob/master/text/2151-raw-identifiers.md we
 // could consider something like `r#use` instead.
 
-use notion_core::session::{ActivityKind, Session};
-use notion_core::style::{display_error, display_unknown_error, ErrorContext};
-use notion_core::version::VersionSpec;
-use notion_fail::{ExitCode, Fallible, NotionFail};
+use notion_core::session::Session;
+use notion_fail::Fallible;
 
 use Notion;
-use command::{Command, CommandName, Help};
+use command::Command;
+use error::CliParseError;
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct Args {
-    arg_tool: String,
-    arg_version: String,
-}
-
-// error message for using tools that are not node|yarn
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "pinning tool '{}' not yet implemented - for now you can manually edit package.json",
-       name)]
-#[notion_fail(code = "NotYetImplemented")]
-pub(crate) struct NoCustomUseError {
-    pub(crate) name: String,
-}
-
-impl NoCustomUseError {
-    pub(crate) fn new(name: String) -> Self {
-        NoCustomUseError { name: name }
-    }
-}
+pub(crate) struct Args;
 
 pub(crate) enum Use {
     Help,
-    Node(VersionSpec),
-    Yarn(VersionSpec),
-    Other {
-        name: String,
-        // not currently used
-        #[allow(dead_code)]
-        version: VersionSpec,
-    },
+    Use,
 }
 
 impl Command for Use {
     type Args = Args;
 
     const USAGE: &'static str = "
-Select a tool for the current project's toolchain
+To install a tool in your user toolchain, use 'notion install'
+To pin a tool in a project toolchain, use 'notion pin'
 
-Usage:
-    notion use <tool> <version>
-    notion use -h | --help
-
-Options:
-    -h, --help     Display this message
+See 'notion --help' for more information.
 ";
 
     fn help() -> Self {
         Use::Help
     }
 
-    fn parse(
-        _: Notion,
-        Args {
-            arg_tool,
-            arg_version,
-        }: Args,
-    ) -> Fallible<Self> {
-        Ok(match &arg_tool[..] {
-            "node" => Use::Node(VersionSpec::parse(&arg_version)?),
-            "yarn" => Use::Yarn(VersionSpec::parse(&arg_version)?),
-            ref tool => Use::Other {
-                name: tool.to_string(),
-                version: VersionSpec::parse(&arg_version)?,
-            },
-        })
+    fn parse(_: Notion, _: Args) -> Fallible<Self> {
+        Ok(Use::Use)
     }
 
-    fn run(self, session: &mut Session) -> Fallible<()> {
-        session.add_event_start(ActivityKind::Use);
-        match self {
-            Use::Help => Help::Command(CommandName::Use).run(session)?,
-            Use::Node(spec) => session.pin_node_version(&spec)?,
-            Use::Yarn(spec) => session.pin_yarn_version(&spec)?,
-            Use::Other { name, .. } => throw!(NoCustomUseError::new(name)),
-        };
-        if let Some(project) = session.project() {
-            let errors = project.autoshim();
-
-            for error in errors {
-                if error.is_user_friendly() {
-                    display_error(ErrorContext::Notion, &error);
-                } else {
-                    display_unknown_error(ErrorContext::Notion, &error);
-                }
-            }
-        }
-        session.add_event_end(ActivityKind::Use, ExitCode::Success);
+    fn run(self, _: &mut Session) -> Fallible<()> {
         Ok(())
+    }
+
+    fn go(_: Notion, _: &mut Session) -> Fallible<()> {
+        throw!(CliParseError {
+            usage: None,
+            error: format!("no such command: `use`\n{}", Use::USAGE)
+        });
     }
 }
