@@ -7,7 +7,7 @@ use failure;
 use reqwest::StatusCode;
 use std::fmt;
 
-// Once Issue #173 is implemented, we can use the ToolSpec struct to differentiate tools
+// ISSUE #173: Once it's implemented, we can use the ToolSpec struct to differentiate tools
 #[derive(Debug)]
 pub(crate) enum Tool {
     Node,
@@ -53,16 +53,19 @@ impl DownloadError {
         version: String,
         from_url: String
     ) -> impl FnOnce(&failure::Error) -> DownloadError {
-        move |error| match error.downcast_ref::<HttpError>() {
-            Some(HttpError { code }) if *code == StatusCode::NotFound => DownloadError::NotFound {
-                tool: tool,
-                version: version,
-            },
-            _ => DownloadError::Other {
-                tool: tool,
-                version: version,
-                from_url: from_url,
-                error: error.to_string(),
+        move |error| {
+            if let Some(HttpError { code: StatusCode::NotFound }) = error.downcast_ref::<HttpError>() {
+                DownloadError::NotFound {
+                    tool: tool,
+                    version: version,
+                }
+            } else {
+                DownloadError::Other {
+                    tool: tool,
+                    version: version,
+                    from_url: from_url,
+                    error: error.to_string(),
+                }
             }
         }
     }
