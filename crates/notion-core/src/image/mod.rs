@@ -80,32 +80,10 @@ impl System {
 mod test {
 
     use super::*;
+    use path::{notion_home, shim_dir};
     use semver::Version;
     use std;
     use std::path::PathBuf;
-
-    #[cfg(unix)]
-    use dirs;
-
-    #[cfg(windows)]
-    use winfolder;
-
-    fn notion_base() -> PathBuf {
-        #[cfg(unix)]
-<<<<<<< HEAD
-        return PathBuf::from(std::env::home_dir().expect("Could not get home directory"))
-            .join(".notion");
-=======
-        return PathBuf::from(dirs::home_dir().expect("Could not get home directory")).join(".notion");
->>>>>>> Fix Windows compile errors and warnings, and eliminate another use of `std::env::home_dir()`.
-
-        #[cfg(windows)]
-        return winfolder::Folder::LocalAppData.path().join("Notion");
-    }
-
-    fn shim_dir() -> PathBuf {
-        notion_base().join("bin")
-    }
 
     // Since unit tests are run in parallel, tests that modify the PATH environment variable are subject to race conditions
     // To prevent that, ensure that all tests that rely on PATH are run in serial by adding them to this meta-test
@@ -122,11 +100,11 @@ mod test {
             "PATH",
             format!(
                 "/usr/bin:/blah:{}:/doesnt/matter/bin",
-                shim_dir().to_string_lossy()
+                shim_dir().unwrap().to_string_lossy()
             ),
         );
 
-        let node_bin = notion_base()
+        let node_bin = notion_home().unwrap()
             .join("tools")
             .join("image")
             .join("node")
@@ -135,7 +113,7 @@ mod test {
             .join("bin");
         let expected_node_bin = node_bin.as_path().to_str().unwrap();
 
-        let yarn_bin = notion_base()
+        let yarn_bin = notion_home().unwrap()
             .join("tools")
             .join("image")
             .join("yarn")
@@ -185,7 +163,7 @@ mod test {
 
         std::env::set_var("PATH", path_with_shims);
 
-        let node_bin = notion_base()
+        let node_bin = notion_home().unwrap()
             .join("tools")
             .join("image")
             .join("node")
@@ -193,7 +171,7 @@ mod test {
             .join("6.4.3");
         let expected_node_bin = node_bin.as_path().to_str().unwrap();
 
-        let yarn_bin = notion_base()
+        let yarn_bin = notion_home().unwrap()
             .join("tools")
             .join("image")
             .join("yarn")
@@ -233,7 +211,7 @@ mod test {
     fn test_system_path() {
         std::env::set_var(
             "PATH",
-            format!("{}:/usr/bin:/bin", shim_dir().to_string_lossy()),
+            format!("{}:/usr/bin:/bin", shim_dir().unwrap().to_string_lossy()),
         );
 
         let expected_path = String::from("/usr/bin:/bin");
@@ -269,7 +247,7 @@ mod test {
     #[cfg(unix)]
     fn test_system_enabled_path() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
-        pathbufs.push(shim_dir());
+        pathbufs.push(shim_dir().unwrap());
         pathbufs.push(PathBuf::from("/usr/bin"));
         pathbufs.push(PathBuf::from("/bin"));
 
