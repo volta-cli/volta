@@ -60,7 +60,11 @@ impl FromStr for VersionSpec {
             return Ok(VersionSpec::Latest);
         }
 
-        Ok(VersionSpec::Semver(parse_requirements(s)?))
+        if let Ok(ref exact) = VersionSpec::parse_version(s) {
+            Ok(VersionSpec::exact(exact))
+        } else {
+            Ok(VersionSpec::Semver(parse_requirements(s)?))
+        }
     }
 }
 

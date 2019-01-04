@@ -27,11 +27,23 @@ impl fmt::Display for Tool {
     }
 }
 
-#[derive(Debug, Fail, NotionFail)]
-#[notion_fail(code = "NetworkError")]
+#[derive(Debug, Fail)]
 pub(crate) enum DownloadError {
     NotFound { tool: Tool, version: String },
     Other { tool: Tool, version: String, from_url: String, error: String },
+}
+
+impl NotionFail for DownloadError {
+    fn is_user_friendly(&self) -> bool {
+        true
+    }
+
+    fn exit_code(&self) -> ExitCode {
+        match self {
+            DownloadError::NotFound { .. } => ExitCode::NoVersionMatch,
+            DownloadError::Other { .. } => ExitCode::NetworkError,
+        }
+    }
 }
 
 impl fmt::Display for DownloadError {

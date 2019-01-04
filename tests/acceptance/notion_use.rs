@@ -254,19 +254,17 @@ fn use_yarn_latest() {
 }
 
 #[test]
-fn use_yarn_incomplete_release() {
+fn use_yarn_missing_release() {
     let s = sandbox()
         .package_json(&package_json_with_pinned_node_npm("1.2.3", "1.0.7"))
-        .yarn_available_versions(YARN_VERSION_INFO)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .mock_not_found()
         .build();
 
-    // Yarn 1.3.1 was an incomplete release with no released tarball.
     assert_that!(
         s.notion("use yarn 1.3.1"),
         execs()
             .with_status(4)
-            .with_stderr_contains("error: No Yarn version found for = 1.3.1")
+            .with_stderr_contains("error: Yarn version 1.3.1 not found")
     );
 
     assert_eq!(
