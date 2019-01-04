@@ -152,7 +152,7 @@ mod test {
     #[cfg(windows)]
     fn test_image_path() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
-        pathbufs.push(shim_dir());
+        pathbufs.push(shim_dir().unwrap());
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
         pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
 
@@ -225,7 +225,7 @@ mod test {
     #[cfg(windows)]
     fn test_system_path() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
-        pathbufs.push(shim_dir());
+        pathbufs.push(shim_dir().unwrap());
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
         pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
 
@@ -274,7 +274,7 @@ mod test {
     #[cfg(windows)]
     fn test_system_enabled_path() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
-        pathbufs.push(shim_dir());
+        pathbufs.push(shim_dir().unwrap());
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
         pathbufs.push(PathBuf::from("D:\\\\Program Files"));
 
