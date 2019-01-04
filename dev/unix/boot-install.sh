@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 
 notion_get_latest_release() {
-    local repo
-    repo=$1
-    curl --silent https://api.github.com/repos/${repo}/releases | fgrep '"tag_name"' | head -1 | awk '{ print $2; }' | sed -e 's/,//' -e 's/"//g' -e 's/^v//'
+  curl --silent https://www.notionjs.com/latest-version
 }
 
 notion_eprintf() {
@@ -39,8 +37,7 @@ notion_cleanup() {
   unset -f notion_get_latest_release notion_eprintf notion_info notion_error notion_warning notion_exit notion_cleanup
 }
 
-NOTION_REPO=notion-cli/notion
-NOTION_LATEST_VERSION=$(notion_get_latest_release ${NOTION_REPO})
+NOTION_LATEST_VERSION=$(notion_get_latest_release)
 
 case $(uname) in
     Linux)
