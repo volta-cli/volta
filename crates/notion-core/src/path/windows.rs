@@ -1,15 +1,16 @@
 //! Provides functions for determining the paths of files and directories
 //! in a standard Notion layout in Windows operating systems.
 
-use std::env;
 use std::path::PathBuf;
 #[cfg(windows)]
 use std::os::windows;
 use std::io;
 
-use winfolder;
+use dirs;
 
-use notion_fail::Fallible;
+use notion_fail::{ExitCode, Fallible, NotionFail};
+
+use super::{notion_home, node_image_dir, shim_dir};
 
 // These are taken from: https://nodejs.org/dist/index.json and are used
 // by `path::archive_root_dir` to determine the root directory of the
@@ -26,6 +27,11 @@ cfg_if! {
         compile_error!("Unsupported target_arch variant of Windows (expected 'x86' or 'x64').");
     }
 }
+
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "Windows LocalAppData directory not found")]
+#[notion_fail(code = "EnvironmentError")]
+pub(crate) struct NoDataLocalDir;
 
 // C:\Users\johndoe\AppData\Local\
 //     Notion\
@@ -66,56 +72,13 @@ cfg_if! {
 //         launchscript.exe                                launchscript_file
 //         config.toml                                     user_config_file
 
-pub fn cache_dir() -> Fallible<PathBuf> {
-    Ok(local_data_root()?.join("cache"))
-}
-
-pub fn node_cache_dir() -> Fallible<PathBuf> {
-    Ok(cache_dir()?.join("node"))
-}
-
-pub fn yarn_cache_dir() -> Fallible<PathBuf> {
-    Ok(cache_dir()?.join("yarn"))
-}
-
-pub fn node_index_file() -> Fallible<PathBuf> {
-    Ok(node_cache_dir()?.join("index.json"))
-}
-
-pub fn node_index_expiry_file() -> Fallible<PathBuf> {
-    Ok(node_cache_dir()?.join("index.json.expires"))
+pub fn default_notion_home() -> Fallible<PathBuf> {
+    let home = dirs::data_local_dir().ok_or(NoDataLocalDir)?;
+    Ok(home.join("Notion"))
 }
 
 pub fn archive_extension() -> String {
     String::from("zip")
-}
-
-pub fn inventory_dir() -> Fallible<PathBuf> {
-    Ok(tools_dir()?.join("inventory"))
-}
-
-pub fn node_inventory_dir() -> Fallible<PathBuf> {
-    Ok(inventory_dir()?.join("node"))
-}
-
-pub fn yarn_inventory_dir() -> Fallible<PathBuf> {
-    Ok(inventory_dir()?.join("yarn"))
-}
-
-pub fn package_inventory_dir() -> Fallible<PathBuf> {
-    Ok(inventory_dir()?.join("packages"))
-}
-
-pub fn image_dir() -> Fallible<PathBuf> {
-    Ok(tools_dir()?.join("image"))
-}
-
-pub fn node_image_root_dir() -> Fallible<PathBuf> {
-    Ok(image_dir()?.join("node"))
-}
-
-pub fn node_image_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
-    Ok(node_image_root_dir()?.join(node).join(npm))
 }
 
 pub fn node_image_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
@@ -128,67 +91,20 @@ pub fn node_image_3p_bin_dir(_node: &str, _npm: &str) -> Fallible<PathBuf> {
     unimplemented!("global 3rd party executables not yet implemented for Windows")
 }
 
-pub fn yarn_image_root_dir() -> Fallible<PathBuf> {
-    Ok(image_dir()?.join("yarn"))
-}
-
-pub fn yarn_image_dir(version: &str) -> Fallible<PathBuf> {
-    Ok(yarn_image_root_dir()?.join(version))
-}
-
-pub fn yarn_image_bin_dir(version: &str) -> Fallible<PathBuf> {
-    Ok(yarn_image_dir(version)?.join("bin"))
-}
-
 pub fn launchbin_file() -> Fallible<PathBuf> {
-    Ok(local_data_root()?.join("launchbin.exe"))
+    Ok(notion_home()?.join("launchbin.exe"))
 }
 
 pub fn launchscript_file() -> Fallible<PathBuf> {
-    Ok(local_data_root()?.join("launchscript.exe"))
+    Ok(notion_home()?.join("launchscript.exe"))
 }
 
 pub fn notion_file() -> Fallible<PathBuf> {
-    Ok(local_data_root()?.join("notion.exe"))
-}
-
-pub fn shim_dir() -> Fallible<PathBuf> {
-    Ok(local_data_root()?.join("bin"))
+    Ok(notion_home()?.join("notion.exe"))
 }
 
 pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
     Ok(shim_dir()?.join(&format!("{}.exe", toolname)))
-}
-
-fn local_data_root() -> Fallible<PathBuf> {
-    // if this is sandboxed in CI, use the sandboxed AppData directory
-    if env::var("NOTION_SANDBOX").is_ok() {
-        let home_dir = env::home_dir().unwrap();
-        return Ok(home_dir.join("AppData").join("Local").join("Notion"));
-    } else {
-        #[cfg(windows)]
-        return Ok(winfolder::Folder::LocalAppData.path().join("Notion"));
-
-        // "universal-docs" is built on a Unix machine, so we can't include Windows-specific libs
-        #[cfg(feature = "universal-docs")]
-        unimplemented!()
-    }
-}
-
-pub fn user_config_file() -> Fallible<PathBuf> {
-    Ok(local_data_root()?.join("config.toml"))
-}
-
-pub fn tools_dir() -> Fallible<PathBuf> {
-    Ok(local_data_root()?.join("tools"))
-}
-
-pub fn user_toolchain_dir() -> Fallible<PathBuf> {
-    Ok(tools_dir()?.join("user"))
-}
-
-pub fn user_platform_file() -> Fallible<PathBuf> {
-    Ok(user_toolchain_dir()?.join("platform.json"))
 }
 
 pub fn create_file_symlink(src: PathBuf, dst: PathBuf) -> Result<(), io::Error> {
