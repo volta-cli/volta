@@ -152,7 +152,7 @@ const YARN_VERSION_FIXTURES: [DistroMetadata; 4] = [
 ];
 
 #[test]
-fn use_node() {
+fn pin_node() {
     let s = sandbox()
         .package_json(BASIC_PACKAGE_JSON)
         .node_available_versions(NODE_VERSION_INFO)
@@ -160,7 +160,7 @@ fn use_node() {
         .build();
 
     assert_that!(
-        s.notion("use node 6"),
+        s.notion("pin node 6"),
         execs()
             .with_status(0)
             .with_stdout_contains("Pinned node to version 6.19.62 in package.json")
@@ -173,7 +173,7 @@ fn use_node() {
 }
 
 #[test]
-fn use_node_latest() {
+fn pin_node_latest() {
     let s = sandbox()
         .package_json(BASIC_PACKAGE_JSON)
         .node_available_versions(NODE_VERSION_INFO)
@@ -181,7 +181,7 @@ fn use_node_latest() {
         .build();
 
     assert_that!(
-        s.notion("use node latest"),
+        s.notion("pin node latest"),
         execs()
             .with_status(0)
             .with_stdout_contains("Pinned node to version 10.99.1040 in package.json")
@@ -194,7 +194,7 @@ fn use_node_latest() {
 }
 
 #[test]
-fn use_yarn_no_node() {
+fn pin_yarn_no_node() {
     let s = sandbox()
         .package_json(BASIC_PACKAGE_JSON)
         .yarn_available_versions(YARN_VERSION_INFO)
@@ -202,7 +202,7 @@ fn use_yarn_no_node() {
         .build();
 
     assert_that!(
-        s.notion("use yarn 1.4"),
+        s.notion("pin yarn 1.4"),
         execs()
             .with_status(ExitCode::ConfigurationError as i32)
             .with_stderr_contains("error: There is no pinned node version for this project")
@@ -212,7 +212,7 @@ fn use_yarn_no_node() {
 }
 
 #[test]
-fn use_yarn() {
+fn pin_yarn() {
     let s = sandbox()
         .package_json(&package_json_with_pinned_node_npm("1.2.3", "1.0.7"))
         .yarn_available_versions(YARN_VERSION_INFO)
@@ -220,7 +220,7 @@ fn use_yarn() {
         .build();
 
     assert_that!(
-        s.notion("use yarn 1.4"),
+        s.notion("pin yarn 1.4"),
         execs()
             .with_status(0)
             .with_stdout_contains("Pinned yarn to version 1.4.159 in package.json")
@@ -233,7 +233,7 @@ fn use_yarn() {
 }
 
 #[test]
-fn use_yarn_latest() {
+fn pin_yarn_latest() {
     let s = sandbox()
         .package_json(&package_json_with_pinned_node_npm("1.2.3", "1.0.7"))
         .yarn_latest("1.2.42")
@@ -241,7 +241,7 @@ fn use_yarn_latest() {
         .build();
 
     assert_that!(
-        s.notion("use yarn latest"),
+        s.notion("pin yarn latest"),
         execs()
             .with_status(0)
             .with_stdout_contains("Pinned yarn to version 1.2.42 in package.json")
@@ -254,14 +254,14 @@ fn use_yarn_latest() {
 }
 
 #[test]
-fn use_yarn_missing_release() {
+fn pin_yarn_missing_release() {
     let s = sandbox()
         .package_json(&package_json_with_pinned_node_npm("1.2.3", "1.0.7"))
         .mock_not_found()
         .build();
 
     assert_that!(
-        s.notion("use yarn 1.3.1"),
+        s.notion("pin yarn 1.3.1"),
         execs()
             .with_status(4)
             .with_stderr_contains("error: Yarn version 1.3.1 not found")

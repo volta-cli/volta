@@ -27,7 +27,7 @@ use notion_fail::{ExitCode, FailExt, Fallible, NotionError};
 #[cfg(feature = "notion-dev")]
 use command::Shim;
 use command::{Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Help, Install,
-              Use, Version};
+              Pin, Use, Version};
 use error::{CliParseError, CommandUnimplementedError, DocoptExt, NotionErrorExt};
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -63,7 +63,7 @@ Options:
 Some common notion commands are:
     fetch          Fetch a tool to the local machine
     install        Install a tool in the user toolchain
-    use            Select a tool for the current project's toolchain
+    pin            Select a tool for the current project's toolchain
     config         Get or set configuration values
     current        Display the currently activated Node version
     deactivate     Disable Notion in the current shell
@@ -176,6 +176,7 @@ See 'notion help <command>' for more information on a specific command.
         match self.command {
             CommandName::Fetch => Fetch::go(self, session),
             CommandName::Install => Install::go(self, session),
+            CommandName::Pin => Pin::go(self, session),
             CommandName::Use => Use::go(self, session),
             CommandName::Config => Config::go(self, session),
             CommandName::Current => Current::go(self, session),
