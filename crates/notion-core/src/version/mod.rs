@@ -13,6 +13,7 @@ use self::serial::parse_requirements;
 pub enum VersionSpec {
     Latest,
     Semver(VersionReq),
+    Exact(Version),
 }
 
 impl fmt::Display for VersionSpec {
@@ -20,6 +21,7 @@ impl fmt::Display for VersionSpec {
         match *self {
             VersionSpec::Latest => write!(f, "latest"),
             VersionSpec::Semver(ref req) => req.fmt(f),
+            VersionSpec::Exact(ref version) => version.fmt(f),
         }
     }
 }
@@ -32,7 +34,7 @@ impl Default for VersionSpec {
 
 impl VersionSpec {
     pub fn exact(version: &Version) -> Self {
-        VersionSpec::Semver(VersionReq::exact(version))
+        VersionSpec::Exact(version.clone())
     }
 
     pub fn parse(s: impl AsRef<str>) -> Fallible<Self> {
@@ -58,7 +60,11 @@ impl FromStr for VersionSpec {
             return Ok(VersionSpec::Latest);
         }
 
-        Ok(VersionSpec::Semver(parse_requirements(s)?))
+        if let Ok(ref exact) = VersionSpec::parse_version(s) {
+            Ok(VersionSpec::exact(exact))
+        } else {
+            Ok(VersionSpec::Semver(parse_requirements(s)?))
+        }
     }
 }
 

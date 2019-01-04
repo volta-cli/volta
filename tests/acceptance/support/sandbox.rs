@@ -275,6 +275,17 @@ impl SandboxBuilder {
         self
     }
 
+    /// Setup mock to return a 404 for any GET request
+    /// Note: Mocks are matched in reverse order, so any created _after_ this will work
+    ///       While those created before will not
+    pub fn mock_not_found(mut self) -> Self {
+        let mock = mock("GET", Matcher::Any)
+            .with_status(404)
+            .create();
+        self.root.mocks.push(mock);
+        self
+    }
+
     fn distro_mock<T: DistroFixture>(mut self, fx: &T) -> Self {
         // ISSUE(#145): this should actually use a real http server instead of these mocks
 
