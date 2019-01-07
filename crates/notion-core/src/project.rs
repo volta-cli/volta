@@ -13,7 +13,7 @@ use distro::node::NodeVersion;
 use manifest::Manifest;
 use manifest::serial;
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
-use platform::Image;
+use platform::PlatformSpec;
 use semver::Version;
 use shim;
 
@@ -114,7 +114,7 @@ impl Project {
     }
 
     /// Returns the pinned platform image, if any.
-    pub fn platform(&self) -> Option<Rc<Image>> {
+    pub fn platform(&self) -> Option<Rc<PlatformSpec>> {
         self.manifest.platform()
     }
 

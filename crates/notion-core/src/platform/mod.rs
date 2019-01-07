@@ -8,6 +8,15 @@ use distro::node::NodeVersion;
 use notion_fail::{Fallible, ResultExt};
 use path;
 
+/// A specification of tool versions needed for a platform
+#[derive(Eq, PartialEq, Clone, Debug)]
+pub struct PlatformSpec {
+    /// The pinned version of Node.
+    pub node: NodeVersion,
+    /// The pinned version of Yarn, if any.
+    pub yarn: Option<Version>,
+}
+
 /// A platform image.
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub struct Image {

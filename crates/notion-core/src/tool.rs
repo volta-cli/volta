@@ -212,19 +212,21 @@ impl Tool for Binary {
 
                 // if we're in a pinned project, use the project's platform.
                 if let Some(ref platform) = session.project_platform() {
+                    let image = session.prepare_image(platform)?;
                     return Ok(Self::from_components(
                         &path_to_bin.as_os_str(),
                         args,
-                        &platform.path()?,
+                        &image.path()?,
                     ));
                 }
 
                 // otherwise use the user platform.
                 if let Some(ref platform) = session.user_platform()? {
+                    let image = session.prepare_image(platform)?;
                     return Ok(Self::from_components(
                         &path_to_bin.as_os_str(),
                         args,
-                        &platform.path()?,
+                        &image.path()?,
                     ));
                 }
 
@@ -239,14 +241,15 @@ impl Tool for Binary {
         if let Some(ref platform) = session.user_platform()? {
             // use the full path to the binary
             // ISSUE (#160): Look up the platform image bound to the user tool.
-            let node_str = platform.node.runtime.to_string();
-            let npm_str = platform.node.npm.to_string();
+            let image = session.prepare_image(platform)?;
+            let node_str = image.node.runtime.to_string();
+            let npm_str = image.node.npm.to_string();
             let mut third_p_bin_dir = path::node_image_3p_bin_dir(&node_str, &npm_str)?;
             third_p_bin_dir.push(&exe);
             return Ok(Self::from_components(
                 &third_p_bin_dir.as_os_str(),
                 args,
-                &platform.path()?,
+                &image.path()?,
             ));
         };
 
@@ -303,8 +306,8 @@ impl Tool for Node {
         let mut args = args_os();
         let exe = arg0(&mut args)?;
         if let Some(ref platform) = session.current_platform()? {
-            session.prepare_image(platform)?;
-            Ok(Self::from_components(&exe, args, &platform.path()?))
+            let image = session.prepare_image(platform)?;
+            Ok(Self::from_components(&exe, args, &image.path()?))
         } else {
             throw!(NoSuchToolError {
                 tool: "Node".to_string()
@@ -328,8 +331,8 @@ impl Tool for Yarn {
         let mut args = args_os();
         let exe = arg0(&mut args)?;
         if let Some(ref platform) = session.current_platform()? {
-            session.prepare_image(platform)?;
-            Ok(Self::from_components(&exe, args, &platform.path()?))
+            let image = session.prepare_image(platform)?;
+            Ok(Self::from_components(&exe, args, &image.path()?))
         } else {
             throw!(NoSuchToolError {
                 tool: "Yarn".to_string()
@@ -366,8 +369,8 @@ impl Tool for Npm {
         let mut args = args_os();
         let exe = arg0(&mut args)?;
         if let Some(ref platform) = session.current_platform()? {
-            session.prepare_image(platform)?;
-            Ok(Self::from_components(&exe, args, &platform.path()?))
+            let image = session.prepare_image(platform)?;
+            Ok(Self::from_components(&exe, args, &image.path()?))
         } else {
             // Using 'Node' as the tool name since the npm version is derived from the Node version
             // This way the error message will prompt the user to add 'Node' to their toolchain, instead of 'npm'
@@ -415,15 +418,15 @@ impl Tool for Npx {
         let mut args = args_os();
         let exe = arg0(&mut args)?;
         if let Some(ref platform) = session.current_platform()? {
-            session.prepare_image(platform)?;
+            let image = session.prepare_image(platform)?;
 
             // npx was only included with Node >= 8.2.0. If less than that, we should include a helpful error message
             let required_node = VersionSpec::parse_requirements(">= 5.2.0")?;
-            if required_node.matches(&platform.node.npm) {
-                Ok(Self::from_components(&exe, args, &platform.path()?))
+            if required_node.matches(&image.node.npm) {
+                Ok(Self::from_components(&exe, args, &image.path()?))
             } else {
                 throw!(NpxNotAvailableError {
-                    version: platform.node.npm.to_string()
+                    version: image.node.npm.to_string()
                 });
             }
         } else {

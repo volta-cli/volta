@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 use detect_indent;
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
-use platform::Image;
+use platform::PlatformSpec;
 use semver::Version;
 use serde::Serialize;
 use serde_json;
@@ -33,7 +33,7 @@ impl PackageReadError {
 /// A Node manifest file.
 pub struct Manifest {
     /// The platform image specified by the `toolchain` section.
-    pub platform_image: Option<Rc<Image>>,
+    pub platform: Option<Rc<PlatformSpec>>,
     /// The `dependencies` section.
     pub dependencies: HashMap<String, String>,
     /// The `devDependencies` section.
@@ -68,8 +68,8 @@ impl Manifest {
     }
 
     /// Returns a reference to the platform image specified by manifest, if any.
-    pub fn platform(&self) -> Option<Rc<Image>> {
-        self.platform_image.as_ref().map(|p| p.clone())
+    pub fn platform(&self) -> Option<Rc<PlatformSpec>> {
+        self.platform.as_ref().map(|p| p.clone())
     }
 
     /// Gets the names of all the direct dependencies in the manifest.
