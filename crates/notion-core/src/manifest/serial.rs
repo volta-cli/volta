@@ -1,4 +1,4 @@
-use super::super::{image, manifest};
+use super::super::{manifest, platform};
 use version::VersionSpec;
 
 use distro::node::NodeVersion;
@@ -90,9 +90,9 @@ impl Manifest {
         })
     }
 
-    pub fn into_image(&self) -> Fallible<Option<image::Image>> {
+    pub fn into_image(&self) -> Fallible<Option<platform::Image>> {
         if let Some(toolchain) = &self.toolchain {
-            return Ok(Some(image::Image {
+            return Ok(Some(platform::Image {
                 node: NodeVersion {
                     runtime: VersionSpec::parse_version(&toolchain.node)?,
                     npm: VersionSpec::parse_version(&toolchain.npm)?,

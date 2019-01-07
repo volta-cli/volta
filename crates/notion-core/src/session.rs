@@ -8,7 +8,7 @@ use inventory::{Inventory, LazyInventory};
 use config::{Config, LazyConfig};
 use distro::Fetched;
 use distro::node::NodeVersion;
-use image::Image;
+use platform::Image;
 use plugin::Publish;
 use project::Project;
 use toolchain::Toolchain;

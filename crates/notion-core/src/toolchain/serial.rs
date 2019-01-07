@@ -1,4 +1,4 @@
-use image::Image;
+use platform::Image;
 
 use distro;
 use notion_fail::{Fallible, ResultExt};
@@ -73,7 +73,7 @@ pub mod tests {
 
     use super::*;
     use distro;
-    use image;
+    use platform;
     use semver;
 
     // NOTE: serde_json is required with the "preserve_order" feature in Cargo.toml,
@@ -114,7 +114,7 @@ pub mod tests {
 
     #[test]
     fn test_to_json() {
-        let platform = image::Image {
+        let platform = platform::Image {
             yarn: Some(semver::Version::parse("1.2.3").expect("could not parse semver version")),
             node: distro::node::NodeVersion {
                 runtime: semver::Version::parse("4.5.6").expect("could not parse semver version"),

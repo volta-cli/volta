@@ -10,10 +10,10 @@ use std::rc::Rc;
 use lazycell::LazyCell;
 
 use distro::node::NodeVersion;
-use image::Image;
 use manifest::Manifest;
 use manifest::serial;
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
+use platform::Image;
 use semver::Version;
 use shim;
 

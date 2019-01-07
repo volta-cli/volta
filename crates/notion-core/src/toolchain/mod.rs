@@ -6,8 +6,8 @@ use semver::Version;
 
 use distro::node::NodeVersion;
 use fs::touch;
-use image::Image;
 use path::user_platform_file;
+use platform::Image;
 
 use notion_fail::{Fallible, ResultExt};
 

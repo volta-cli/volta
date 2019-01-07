@@ -7,8 +7,8 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use detect_indent;
-use image::Image;
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
+use platform::Image;
 use semver::Version;
 use serde::Serialize;
 use serde_json;
