@@ -1,7 +1,6 @@
 use super::super::{manifest, platform};
 use version::VersionSpec;
 
-use distro::node::NodeVersion;
 use notion_fail::Fallible;
 
 use serde::de::{Deserialize, Deserializer, Error, MapAccess, Visitor};
@@ -93,10 +92,8 @@ impl Manifest {
     pub fn into_platform(&self) -> Fallible<Option<platform::PlatformSpec>> {
         if let Some(toolchain) = &self.toolchain {
             return Ok(Some(platform::PlatformSpec {
-                node: NodeVersion {
-                    runtime: VersionSpec::parse_version(&toolchain.node)?,
-                    npm: VersionSpec::parse_version(&toolchain.npm)?,
-                },
+                node_runtime: VersionSpec::parse_version(&toolchain.node)?,
+                npm: VersionSpec::parse_version(&toolchain.npm)?,
                 yarn: if let Some(yarn) = &toolchain.yarn {
                     Some(VersionSpec::parse_version(&yarn)?)
                 } else {

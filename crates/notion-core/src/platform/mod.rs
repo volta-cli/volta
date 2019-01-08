@@ -13,21 +13,26 @@ use session::Session;
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub struct PlatformSpec {
     /// The pinned version of Node.
-    pub node: NodeVersion,
+    pub node_runtime: Version,
+    /// The pinned version of npm, if any.
+    pub npm: Version,
     /// The pinned version of Yarn, if any.
     pub yarn: Option<Version>,
 }
 
 impl PlatformSpec {
     pub fn checkout(&self, session: &mut Session) -> Fallible<Image> {
-        session.ensure_node(&self.node.runtime)?;
+        session.ensure_node(&self.node_runtime)?;
 
         if let Some(ref yarn_version) = self.yarn {
             session.ensure_yarn(yarn_version)?;
         }
 
         Ok(Image {
-            node: self.node.clone(),
+            node: NodeVersion {
+                runtime: self.node_runtime.clone(),
+                npm: self.npm.clone(),
+            },
             yarn: self.yarn.clone(),
         })
     }

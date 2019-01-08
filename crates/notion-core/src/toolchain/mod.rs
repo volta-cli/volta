@@ -26,21 +26,27 @@ impl Toolchain {
         })
     }
 
-    pub fn get_active_node(&self) -> Option<NodeVersion> {
-        self.platform.as_ref().map(|ref p| p.node.clone())
+    pub fn platform_ref(&self) -> Option<&PlatformSpec> {
+        self.platform.as_ref()
     }
 
     pub fn set_active_node(&mut self, version: NodeVersion) -> Fallible<()> {
         let mut dirty = false;
 
         if let Some(ref mut platform) = self.platform {
-            if platform.node != version {
-                platform.node = version;
+            if platform.node_runtime != version.runtime {
+                platform.node_runtime = version.runtime;
+                dirty = true;
+            }
+
+            if platform.npm != version.npm {
+                platform.npm = version.npm;
                 dirty = true;
             }
         } else {
             self.platform = Some(PlatformSpec {
-                node: version,
+                node_runtime: version.runtime,
+                npm: version.npm,
                 yarn: None,
             });
             dirty = true;
@@ -51,12 +57,6 @@ impl Toolchain {
         }
 
         Ok(())
-    }
-
-    pub fn get_active_yarn(&self) -> Option<Version> {
-        self.platform
-            .as_ref()
-            .and_then(|ref platform| platform.yarn.clone())
     }
 
     pub fn set_active_yarn(&mut self, version: Version) -> Fallible<()> {

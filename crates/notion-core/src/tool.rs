@@ -221,7 +221,7 @@ impl Tool for Binary {
                 }
 
                 // otherwise use the user platform.
-                if let Some(ref platform) = session.user_platform()? {
+                if let Some(ref platform) = session.user_platform() {
                     let image = platform.checkout(session)?;
                     return Ok(Self::from_components(
                         &path_to_bin.as_os_str(),
@@ -238,7 +238,7 @@ impl Tool for Binary {
         }
 
         // next try to use the user toolchain
-        if let Some(ref platform) = session.user_platform()? {
+        if let Some(ref platform) = session.user_platform() {
             // use the full path to the binary
             // ISSUE (#160): Look up the platform image bound to the user tool.
             let image = platform.checkout(session)?;
@@ -305,7 +305,7 @@ impl Tool for Node {
 
         let mut args = args_os();
         let exe = arg0(&mut args)?;
-        if let Some(ref platform) = session.current_platform()? {
+        if let Some(ref platform) = session.current_platform() {
             let image = platform.checkout(session)?;
             Ok(Self::from_components(&exe, args, &image.path()?))
         } else {
@@ -330,7 +330,7 @@ impl Tool for Yarn {
 
         let mut args = args_os();
         let exe = arg0(&mut args)?;
-        if let Some(ref platform) = session.current_platform()? {
+        if let Some(ref platform) = session.current_platform() {
             let image = platform.checkout(session)?;
             Ok(Self::from_components(&exe, args, &image.path()?))
         } else {
@@ -368,7 +368,7 @@ impl Tool for Npm {
 
         let mut args = args_os();
         let exe = arg0(&mut args)?;
-        if let Some(ref platform) = session.current_platform()? {
+        if let Some(ref platform) = session.current_platform() {
             let image = platform.checkout(session)?;
             Ok(Self::from_components(&exe, args, &image.path()?))
         } else {
@@ -417,7 +417,7 @@ impl Tool for Npx {
 
         let mut args = args_os();
         let exe = arg0(&mut args)?;
-        if let Some(ref platform) = session.current_platform()? {
+        if let Some(ref platform) = session.current_platform() {
             let image = platform.checkout(session)?;
 
             // npx was only included with Node >= 8.2.0. If less than that, we should include a helpful error message
