@@ -8,7 +8,7 @@ use inventory::{Inventory, LazyInventory};
 use config::{Config, LazyConfig};
 use distro::Fetched;
 use distro::node::NodeVersion;
-use image::Image;
+use platform::PlatformSpec;
 use plugin::Publish;
 use project::Project;
 use toolchain::Toolchain;
@@ -113,7 +113,7 @@ impl Session {
         self.project.clone()
     }
 
-    pub fn current_platform(&mut self) -> Fallible<Option<Rc<Image>>> {
+    pub fn current_platform(&mut self) -> Fallible<Option<Rc<PlatformSpec>>> {
         if let Some(image) = self.project_platform() {
             return Ok(Some(image));
         }
@@ -125,16 +125,16 @@ impl Session {
         return Ok(None);
     }
 
-    pub fn user_platform(&mut self) -> Fallible<Option<Rc<Image>>> {
+    pub fn user_platform(&mut self) -> Fallible<Option<Rc<PlatformSpec>>> {
         if let Some(node) = self.user_node() {
             if let Some(yarn) = self.user_yarn() {
-                return Ok(Some(Rc::new(Image {
+                return Ok(Some(Rc::new(PlatformSpec {
                     node,
                     yarn: Some(yarn),
                 })));
             }
 
-            return Ok(Some(Rc::new(Image {
+            return Ok(Some(Rc::new(PlatformSpec {
                 node,
                 yarn: None,
             })));
@@ -143,7 +143,7 @@ impl Session {
     }
 
     /// Returns the current project's pinned platform image, if any.
-    pub fn project_platform(&self) -> Option<Rc<Image>> {
+    pub fn project_platform(&self) -> Option<Rc<PlatformSpec>> {
         if let Some(ref project) = self.project {
             return project.platform();
         }
@@ -165,20 +165,25 @@ impl Session {
         self.config.get()
     }
 
-    /// Ensures that a platform image has been fully fetched and set up.
-    pub(crate) fn prepare_image(&mut self, image: &Image) -> Fallible<()> {
+    /// Ensures that a specific Node version has been fetched and unpacked
+    pub(crate) fn ensure_node(&mut self, version: &Version) -> Fallible<()> {
         let inventory = self.inventory.get_mut()?;
 
-        if !inventory.node.contains(&image.node.runtime) {
+        if !inventory.node.contains(version) {
             let config = self.config.get()?;
-            let _ = inventory.fetch_node(&VersionSpec::exact(&image.node.runtime), config)?;
+            inventory.fetch_node(&VersionSpec::exact(version), config)?;
         }
 
-        if let Some(ref yarn_version) = &image.yarn {
-            if !inventory.yarn.contains(yarn_version) {
-                let config = self.config.get()?;
-                let _ = inventory.fetch_yarn(&VersionSpec::exact(yarn_version), config)?;
-            }
+        Ok(())
+    }
+
+    /// Ensures that a specific Yarn version has been fetched and unpacked
+    pub(crate) fn ensure_yarn(&mut self, version: &Version) -> Fallible<()> {
+        let inventory = self.inventory.get_mut()?;
+
+        if !inventory.yarn.contains(version) {
+            let config = self.config.get()?;
+            inventory.fetch_yarn(&VersionSpec::exact(version), config)?;
         }
 
         Ok(())

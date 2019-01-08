@@ -1,4 +1,4 @@
-use super::super::{image, manifest};
+use super::super::{manifest, platform};
 use version::VersionSpec;
 
 use distro::node::NodeVersion;
@@ -83,16 +83,16 @@ impl Manifest {
             }
         }
         Ok(manifest::Manifest {
-            platform_image: self.into_image()?.map(Rc::new),
+            platform: self.into_platform()?.map(Rc::new),
             dependencies: self.dependencies,
             dev_dependencies: self.dev_dependencies,
             bin: map,
         })
     }
 
-    pub fn into_image(&self) -> Fallible<Option<image::Image>> {
+    pub fn into_platform(&self) -> Fallible<Option<platform::PlatformSpec>> {
         if let Some(toolchain) = &self.toolchain {
-            return Ok(Some(image::Image {
+            return Ok(Some(platform::PlatformSpec {
                 node: NodeVersion {
                     runtime: VersionSpec::parse_version(&toolchain.node)?,
                     npm: VersionSpec::parse_version(&toolchain.npm)?,
