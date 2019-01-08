@@ -113,7 +113,7 @@ impl Session {
         self.project.clone()
     }
 
-    pub fn current_platform(&mut self) -> Option<Rc<PlatformSpec>> {
+    pub fn current_platform(&self) -> Option<Rc<PlatformSpec>> {
         self.project_platform().or_else(|| self.user_platform())
     }
 
