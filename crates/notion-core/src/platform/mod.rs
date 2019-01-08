@@ -7,6 +7,7 @@ use semver::Version;
 use distro::node::NodeVersion;
 use notion_fail::{Fallible, ResultExt};
 use path;
+use session::Session;
 
 /// A specification of tool versions needed for a platform
 #[derive(Eq, PartialEq, Clone, Debug)]
@@ -15,6 +16,21 @@ pub struct PlatformSpec {
     pub node: NodeVersion,
     /// The pinned version of Yarn, if any.
     pub yarn: Option<Version>,
+}
+
+impl PlatformSpec {
+    pub fn checkout(&self, session: &mut Session) -> Fallible<Image> {
+        session.ensure_node(&self.node.runtime)?;
+
+        if let Some(ref yarn_version) = self.yarn {
+            session.ensure_yarn(yarn_version)?;
+        }
+
+        Ok(Image {
+            node: self.node.clone(),
+            yarn: self.yarn.clone(),
+        })
+    }
 }
 
 /// A platform image.

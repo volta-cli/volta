@@ -212,7 +212,7 @@ impl Tool for Binary {
 
                 // if we're in a pinned project, use the project's platform.
                 if let Some(ref platform) = session.project_platform() {
-                    let image = session.prepare_image(platform)?;
+                    let image = platform.checkout(session)?;
                     return Ok(Self::from_components(
                         &path_to_bin.as_os_str(),
                         args,
@@ -222,7 +222,7 @@ impl Tool for Binary {
 
                 // otherwise use the user platform.
                 if let Some(ref platform) = session.user_platform()? {
-                    let image = session.prepare_image(platform)?;
+                    let image = platform.checkout(session)?;
                     return Ok(Self::from_components(
                         &path_to_bin.as_os_str(),
                         args,
@@ -241,7 +241,7 @@ impl Tool for Binary {
         if let Some(ref platform) = session.user_platform()? {
             // use the full path to the binary
             // ISSUE (#160): Look up the platform image bound to the user tool.
-            let image = session.prepare_image(platform)?;
+            let image = platform.checkout(session)?;
             let node_str = image.node.runtime.to_string();
             let npm_str = image.node.npm.to_string();
             let mut third_p_bin_dir = path::node_image_3p_bin_dir(&node_str, &npm_str)?;
@@ -306,7 +306,7 @@ impl Tool for Node {
         let mut args = args_os();
         let exe = arg0(&mut args)?;
         if let Some(ref platform) = session.current_platform()? {
-            let image = session.prepare_image(platform)?;
+            let image = platform.checkout(session)?;
             Ok(Self::from_components(&exe, args, &image.path()?))
         } else {
             throw!(NoSuchToolError {
@@ -331,7 +331,7 @@ impl Tool for Yarn {
         let mut args = args_os();
         let exe = arg0(&mut args)?;
         if let Some(ref platform) = session.current_platform()? {
-            let image = session.prepare_image(platform)?;
+            let image = platform.checkout(session)?;
             Ok(Self::from_components(&exe, args, &image.path()?))
         } else {
             throw!(NoSuchToolError {
@@ -369,7 +369,7 @@ impl Tool for Npm {
         let mut args = args_os();
         let exe = arg0(&mut args)?;
         if let Some(ref platform) = session.current_platform()? {
-            let image = session.prepare_image(platform)?;
+            let image = platform.checkout(session)?;
             Ok(Self::from_components(&exe, args, &image.path()?))
         } else {
             // Using 'Node' as the tool name since the npm version is derived from the Node version
@@ -418,7 +418,7 @@ impl Tool for Npx {
         let mut args = args_os();
         let exe = arg0(&mut args)?;
         if let Some(ref platform) = session.current_platform()? {
-            let image = session.prepare_image(platform)?;
+            let image = platform.checkout(session)?;
 
             // npx was only included with Node >= 8.2.0. If less than that, we should include a helpful error message
             let required_node = VersionSpec::parse_requirements(">= 5.2.0")?;

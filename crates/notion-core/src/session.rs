@@ -8,7 +8,7 @@ use inventory::{Inventory, LazyInventory};
 use config::{Config, LazyConfig};
 use distro::Fetched;
 use distro::node::NodeVersion;
-use platform::{Image, PlatformSpec};
+use platform::PlatformSpec;
 use plugin::Publish;
 use project::Project;
 use toolchain::Toolchain;
@@ -165,26 +165,28 @@ impl Session {
         self.config.get()
     }
 
-    /// Ensures that a platform image has been fully fetched and set up.
-    pub(crate) fn prepare_image(&mut self, platform: &PlatformSpec) -> Fallible<Image> {
+    /// Ensures that a specific Node version has been fetched and unpacked
+    pub(crate) fn ensure_node(&mut self, version: &Version) -> Fallible<()> {
         let inventory = self.inventory.get_mut()?;
 
-        if !inventory.node.contains(&platform.node.runtime) {
+        if !inventory.node.contains(version) {
             let config = self.config.get()?;
-            inventory.fetch_node(&VersionSpec::exact(&platform.node.runtime), config)?;
+            inventory.fetch_node(&VersionSpec::exact(version), config)?;
         }
 
-        if let Some(ref yarn_version) = &platform.yarn {
-            if !inventory.yarn.contains(yarn_version) {
-                let config = self.config.get()?;
-                inventory.fetch_yarn(&VersionSpec::exact(yarn_version), config)?;
-            }
+        Ok(())
+    }
+
+    /// Ensures that a specific Yarn version has been fetched and unpacked
+    pub(crate) fn ensure_yarn(&mut self, version: &Version) -> Fallible<()> {
+        let inventory = self.inventory.get_mut()?;
+
+        if !inventory.yarn.contains(version) {
+            let config = self.config.get()?;
+            inventory.fetch_yarn(&VersionSpec::exact(version), config)?;
         }
 
-        Ok(Image {
-            node: platform.node.clone(),
-            yarn: platform.yarn.clone(),
-        })
+        Ok(())
     }
 
     pub fn user_node(&self) -> Option<NodeVersion> {
