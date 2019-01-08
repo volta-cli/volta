@@ -7,14 +7,14 @@ use semver::Version;
 use distro::node::NodeVersion;
 use fs::touch;
 use path::user_platform_file;
-use platform::Image;
+use platform::PlatformSpec;
 
 use notion_fail::{Fallible, ResultExt};
 
 pub(crate) mod serial;
 
 pub struct Toolchain {
-    platform: Option<Image>,
+    platform: Option<PlatformSpec>,
 }
 
 impl Toolchain {
@@ -39,7 +39,7 @@ impl Toolchain {
                 dirty = true;
             }
         } else {
-            self.platform = Some(Image {
+            self.platform = Some(PlatformSpec {
                 node: version,
                 yarn: None,
             });

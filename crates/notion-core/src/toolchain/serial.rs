@@ -1,4 +1,4 @@
-use platform::Image;
+use platform::PlatformSpec;
 
 use distro;
 use notion_fail::{Fallible, ResultExt};
@@ -21,7 +21,7 @@ pub struct Platform {
 }
 
 impl Platform {
-    pub fn into_image(self) -> Fallible<Option<Image>> {
+    pub fn into_image(self) -> Fallible<Option<PlatformSpec>> {
         Ok(match self.node {
             Some(NodeVersion { runtime, npm }) => {
                 let node = distro::node::NodeVersion {
@@ -34,7 +34,7 @@ impl Platform {
                     None
                 };
 
-                Some(Image { node, yarn })
+                Some(PlatformSpec { node, yarn })
             }
             None => None,
         })
@@ -55,7 +55,7 @@ impl Platform {
     }
 }
 
-impl Image {
+impl PlatformSpec {
     pub fn to_serial(&self) -> Platform {
         Platform {
             node: Some(NodeVersion {
@@ -114,7 +114,7 @@ pub mod tests {
 
     #[test]
     fn test_to_json() {
-        let platform = platform::Image {
+        let platform = platform::PlatformSpec {
             yarn: Some(semver::Version::parse("1.2.3").expect("could not parse semver version")),
             node: distro::node::NodeVersion {
                 runtime: semver::Version::parse("4.5.6").expect("could not parse semver version"),
