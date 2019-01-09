@@ -112,8 +112,9 @@ pub fn node_distro_file_name(version: &str) -> String {
     format!("{}.{}", node_archive_root_dir_name(version), archive_extension())
 }
 
-pub fn node_npm_version_file_name(version: &str) -> String {
-    format!("node-v{}-npm", version)
+pub fn node_npm_version_file(version: &str) -> Fallible<PathBuf> {
+    let filename = format!("node-v{}-npm", version);
+    Ok(node_inventory_dir()?.join(&filename))
 }
 
 pub fn node_archive_root_dir_name(version: &str) -> String {

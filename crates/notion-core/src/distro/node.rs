@@ -50,6 +50,14 @@ pub struct NodeVersion {
     pub npm: Version,
 }
 
+impl NodeVersion {
+    /// Read the local npm version file to determine the default npm version for a given node version
+    pub fn default_npm_version(node_version: &Version) -> Fallible<Version> {
+        let npm_version_file_path = path::node_npm_version_file(&node_version.to_string())?;
+        Ok(read_to_string(npm_version_file_path).unknown()?.parse().unknown()?)
+    }
+}
+
 /// Check if the fetched file is valid. It may have been corrupted or interrupted in the middle of
 /// downloading.
 // ISSUE(#134) - verify checksum
@@ -130,12 +138,10 @@ impl Distro for NodeDistro {
     /// to update its state after fetching succeeds.)
     fn fetch(self, collection: &NodeCollection) -> Fallible<Fetched<NodeVersion>> {
         if collection.contains(&self.version) {
-            let filename = path::node_npm_version_file_name(&self.version.to_string());
-            let npm = path::node_inventory_dir()?.join(&filename);
-
+            let npm = NodeVersion::default_npm_version(&self.version)?;
             return Ok(Fetched::Already(NodeVersion {
                 runtime: self.version,
-                npm: read_to_string(npm).unknown()?.parse().unknown()?
+                npm,
             }));
         }
 
@@ -165,8 +171,7 @@ impl Distro for NodeDistro {
 
         // Save the npm version number in the npm version file for this distro:
         {
-            let npm_version_file_name = path::node_npm_version_file_name(&self.version.to_string());
-            let npm_version_file_path = path::node_inventory_dir()?.join(&npm_version_file_name);
+            let npm_version_file_path = path::node_npm_version_file(&self.version.to_string())?;
             let mut npm_version_file = File::create(npm_version_file_path).unknown()?;
             npm_version_file.write_all(npm_string.as_bytes()).unknown()?;
         }

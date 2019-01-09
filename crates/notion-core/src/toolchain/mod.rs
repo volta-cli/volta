@@ -39,14 +39,14 @@ impl Toolchain {
                 dirty = true;
             }
 
-            if platform.npm != version.npm {
-                platform.npm = version.npm;
+            if platform.npm != Some(version.npm.clone()) {
+                platform.npm = Some(version.npm);
                 dirty = true;
             }
         } else {
             self.platform = Some(PlatformSpec {
                 node_runtime: version.runtime,
-                npm: version.npm,
+                npm: Some(version.npm),
                 yarn: None,
             });
             dirty = true;

@@ -104,7 +104,7 @@ impl Manifest {
 
     /// Writes the input ToolchainManifest to package.json, adding the "toolchain" key if
     /// necessary.
-    pub fn update_toolchain(toolchain: serial::Image, package_file: PathBuf) -> Fallible<()> {
+    pub fn update_toolchain(toolchain: serial::ToolchainSpec, package_file: PathBuf) -> Fallible<()> {
         // parse the entire package.json file into a Value
         let file = File::open(&package_file).unknown()?;
         let mut v: serde_json::Value = serde_json::from_reader(file).unknown()?;

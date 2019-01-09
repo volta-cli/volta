@@ -15,7 +15,7 @@ pub struct PlatformSpec {
     /// The pinned version of Node.
     pub node_runtime: Version,
     /// The pinned version of npm, if any.
-    pub npm: Version,
+    pub npm: Option<Version>,
     /// The pinned version of Yarn, if any.
     pub yarn: Option<Version>,
 }
@@ -31,7 +31,10 @@ impl PlatformSpec {
         Ok(Image {
             node: NodeVersion {
                 runtime: self.node_runtime.clone(),
-                npm: self.npm.clone(),
+                npm: match self.npm {
+                    Some(ref version) => version.clone(),
+                    None => NodeVersion::default_npm_version(&self.node_runtime)?
+                }
             },
             yarn: self.yarn.clone(),
         })
