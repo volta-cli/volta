@@ -16,10 +16,7 @@ pub(crate) struct Args {
 
 pub(crate) enum Install {
     Help,
-    Tool {
-        tool: ToolSpec,
-        version: VersionSpec,
-    },
+    Tool(ToolSpec),
 }
 
 impl Command for Install {
@@ -55,10 +52,7 @@ Supported Tools:
             .invert()?
             .unwrap_or_default();
 
-        Ok(Install::Tool {
-            tool: ToolSpec::from_str(&arg_tool),
-            version: version,
-        })
+        Ok(Install::Tool(ToolSpec::from_str(&arg_tool, version)))
     }
 
     fn run(self, session: &mut Session) -> Fallible<()> {
@@ -67,8 +61,8 @@ Supported Tools:
             Install::Help => {
                 Help::Command(CommandName::Install).run(session)?;
             }
-            Install::Tool { tool, version } => {
-                session.install_tool(tool, version)?;
+            Install::Tool(toolspec) => {
+                session.install(toolspec)?;
             }
         };
         session.add_event_end(ActivityKind::Install, ExitCode::Success);

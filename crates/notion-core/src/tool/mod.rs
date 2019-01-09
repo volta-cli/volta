@@ -22,21 +22,39 @@ fn display_error(err: &NotionError) {
 }
 
 pub enum ToolSpec {
+    Node(VersionSpec),
+    Yarn(VersionSpec),
+    Npm(VersionSpec),
+    Npx(VersionSpec),
+    Package(String, VersionSpec),
+}
+
+pub enum Tool {
     Node,
     Yarn,
     Npm,
     Npx,
-    Package(String),
+    PackageBinary(String),
 }
 
 impl ToolSpec {
-    pub fn from_str(tool_name: &str) -> Self {
+    pub fn from_str(tool_name: &str, version: VersionSpec) -> Self {
         match tool_name {
-            "node" => ToolSpec::Node,
-            "yarn" => ToolSpec::Yarn,
-            "npm" => ToolSpec::Npm,
-            "npx" => ToolSpec::Npx,
-            package => ToolSpec::Package(package.to_string()),
+            "node" => ToolSpec::Node(version),
+            "yarn" => ToolSpec::Yarn(version),
+            "npm" => ToolSpec::Npm(version),
+            "npx" => ToolSpec::Npx(version),
+            package => ToolSpec::Package(package.to_string(), version),
+        }
+    }
+
+    pub fn tool(&self) -> Tool {
+        match self {
+            ToolSpec::Node(_) => Tool::Node,
+            ToolSpec::Yarn(_) => Tool::Yarn,
+            ToolSpec::Npm(_) => Tool::Npm,
+            ToolSpec::Npx(_) => Tool::Npx,
+            ToolSpec::Package(name, _) => Tool::PackageBinary(name.to_string()),
         }
     }
 }
@@ -74,7 +92,7 @@ impl ToolUnimplementedError {
 }
 
 /// Represents a command-line tool that Notion shims delegate to.
-pub trait Tool: Sized {
+pub trait CmdTool: Sized {
     fn launch() -> ! {
         let mut session = match Session::new() {
             Ok(session) => session,
@@ -188,7 +206,7 @@ fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
 }
 
 #[cfg(unix)]
-impl Tool for Script {
+impl CmdTool for Script {
     fn new(_session: &mut Session) -> Fallible<Self> {
         throw!(ToolUnimplementedError::new())
     }
@@ -215,7 +233,7 @@ impl NoToolChainError {
     }
 }
 
-impl Tool for Binary {
+impl CmdTool for Binary {
     fn new(session: &mut Session) -> Fallible<Self> {
         session.add_event_start(ActivityKind::Binary);
 
@@ -319,7 +337,7 @@ struct NoSuchToolError {
     tool: String,
 }
 
-impl Tool for Node {
+impl CmdTool for Node {
     fn new(session: &mut Session) -> Fallible<Self> {
         session.add_event_start(ActivityKind::Node);
 
@@ -344,7 +362,7 @@ impl Tool for Node {
     }
 }
 
-impl Tool for Yarn {
+impl CmdTool for Yarn {
     fn new(session: &mut Session) -> Fallible<Self> {
         session.add_event_start(ActivityKind::Yarn);
 
@@ -382,7 +400,7 @@ impl Tool for Yarn {
     }
 }
 
-impl Tool for Npm {
+impl CmdTool for Npm {
     fn new(session: &mut Session) -> Fallible<Self> {
         session.add_event_start(ActivityKind::Npm);
 
@@ -431,7 +449,7 @@ struct NpxNotAvailableError {
     version: String,
 }
 
-impl Tool for Npx {
+impl CmdTool for Npx {
     fn new(session: &mut Session) -> Fallible<Self> {
         session.add_event_start(ActivityKind::Npx);
 
