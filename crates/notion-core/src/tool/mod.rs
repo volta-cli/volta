@@ -21,6 +21,26 @@ fn display_error(err: &NotionError) {
     }
 }
 
+pub enum ToolSpec {
+    Node,
+    Yarn,
+    Npm,
+    Npx,
+    Package(String),
+}
+
+impl ToolSpec {
+    pub fn from_str(tool_name: &str) -> Self {
+        match tool_name {
+            "node" => ToolSpec::Node,
+            "yarn" => ToolSpec::Yarn,
+            "npm" => ToolSpec::Npm,
+            "npx" => ToolSpec::Npx,
+            package => ToolSpec::Package(package.to_string()),
+        }
+    }
+}
+
 #[derive(Debug, Fail, NotionFail)]
 #[fail(display = "{}", error)]
 #[notion_fail(code = "ExecutionFailure")]

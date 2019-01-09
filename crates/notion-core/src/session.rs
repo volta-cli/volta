@@ -11,6 +11,7 @@ use distro::node::NodeVersion;
 use platform::PlatformSpec;
 use plugin::Publish;
 use project::Project;
+use tool::ToolSpec;
 use toolchain::Toolchain;
 use version::VersionSpec;
 
@@ -191,6 +192,16 @@ impl Session {
 
     pub fn user_node(&self) -> Option<NodeVersion> {
         self.toolchain.get_active_node().map(|ref nv| nv.clone())
+    }
+
+    pub fn install_tool(&mut self, tool: ToolSpec, version: VersionSpec) -> Fallible<()> {
+        match tool {
+            ToolSpec::Node => self.install_node(&version),
+            ToolSpec::Yarn => self.install_yarn(&version),
+            ToolSpec::Npm => unimplemented!("notion install npm"),
+            ToolSpec::Npx => unimplemented!("notion install npx"),
+            ToolSpec::Package(name) => unimplemented!("notion install {}", name),
+        }
     }
 
     /// Fetches a version of Node matching the specified semantic verisoning
