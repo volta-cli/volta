@@ -229,10 +229,17 @@ impl Project {
 
     /// Writes the specified version of Node to the `toolchain.node` key in package.json.
     pub fn pin_node_in_toolchain(&self, node_version: NodeVersion) -> Fallible<()> {
+        // prevent writing the npm version if it is equal to the default version
+        let npm_str = if Some(node_version.npm.clone()) == NodeVersion::default_npm_version(&node_version.runtime).ok() {
+            None
+        } else {
+            Some(node_version.npm.to_string())
+        };
+
         // update the toolchain node version
         let toolchain = serial::ToolchainSpec::new(
             node_version.runtime.to_string(),
-            Some(node_version.npm.to_string()),
+            npm_str,
             self.manifest().yarn_str().clone());
         Manifest::update_toolchain(toolchain, self.package_file())?;
         println!("Pinned node to version {} in package.json", node_version.runtime);
@@ -243,8 +250,10 @@ impl Project {
     pub fn pin_yarn_in_toolchain(&self, yarn_version: Version) -> Fallible<()> {
         // update the toolchain yarn version
         if let Some(platform) = self.manifest().platform() {
-            let toolchain =
-                serial::ToolchainSpec::new(platform.node_runtime.to_string(), platform.npm.as_ref().map(|npm| npm.to_string()), Some(yarn_version.to_string()));
+            let toolchain = serial::ToolchainSpec::new(
+                platform.node_runtime.to_string(),
+                platform.npm.as_ref().map(|npm| npm.to_string()),
+                Some(yarn_version.to_string()));
             Manifest::update_toolchain(toolchain, self.package_file())?;
             println!("Pinned yarn to version {} in package.json", yarn_version);
         } else {
