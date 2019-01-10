@@ -13,21 +13,6 @@ pub(crate) struct Args {
     arg_version: String,
 }
 
-// // error message for using tools that are not node|yarn
-// #[derive(Debug, Fail, NotionFail)]
-// #[fail(display = "pinning tool '{}' not yet implemented - for now you can manually edit package.json",
-//        name)]
-// #[notion_fail(code = "NotYetImplemented")]
-// pub(crate) struct NoCustomPinError {
-//     pub(crate) name: String,
-// }
-
-// impl NoCustomPinError {
-//     pub(crate) fn new(name: String) -> Self {
-//         NoCustomPinError { name: name }
-//     }
-// }
-
 pub(crate) enum Pin {
     Help,
     Tool(ToolSpec),

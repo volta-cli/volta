@@ -9,7 +9,6 @@ use distro::DistroVersion;
 use fs::touch;
 use path::user_platform_file;
 use platform::PlatformSpec;
-// use tool::Tool;
 
 use notion_fail::{Fallible, ResultExt};
 

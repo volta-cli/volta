@@ -10,14 +10,11 @@ use std::rc::Rc;
 use lazycell::LazyCell;
 
 use distro::DistroVersion;
-// use distro::node::NodeVersion;
 use manifest::Manifest;
 use manifest::serial;
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use platform::PlatformSpec;
-// use semver::Version;
 use shim;
-// use tool::Tool;
 
 fn is_node_root(dir: &Path) -> bool {
     dir.join("package.json").is_file()
