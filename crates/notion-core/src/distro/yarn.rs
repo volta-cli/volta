@@ -8,10 +8,12 @@ use super::{Distro, Fetched};
 use archive::{Archive, Tarball};
 use inventory::YarnCollection;
 use distro::DistroVersion;
-use distro::error::{DownloadError, Tool};
+use distro::error::DownloadError;
 use fs::ensure_containing_dir_exists;
 use path;
 use style::{progress_bar, Action};
+use tool::ToolSpec;
+use version::VersionSpec;
 
 use notion_fail::{Fallible, ResultExt};
 use semver::Version;
@@ -73,7 +75,7 @@ impl Distro for YarnDistro {
         ensure_containing_dir_exists(&distro_file)?;
         Ok(YarnDistro {
             archive: Tarball::fetch(url, &distro_file)
-                .with_context(DownloadError::for_tool_version(Tool::Yarn, version.to_string(), url.to_string()))?,
+                .with_context(DownloadError::for_tool(ToolSpec::Yarn(VersionSpec::exact(&version)), url.to_string()))?,
             version: version,
         })
     }

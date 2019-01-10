@@ -264,7 +264,7 @@ fn pin_yarn_missing_release() {
         s.notion("pin yarn 1.3.1"),
         execs()
             .with_status(4)
-            .with_stderr_contains("error: Yarn version 1.3.1 not found")
+            .with_stderr_contains("error: yarn version 1.3.1 not found")
     );
 
     assert_eq!(

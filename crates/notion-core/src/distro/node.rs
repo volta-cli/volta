@@ -9,11 +9,13 @@ use super::{Distro, Fetched};
 use archive::{self, Archive};
 use inventory::NodeCollection;
 use distro::DistroVersion;
-use distro::error::{DownloadError, Tool};
+use distro::error::DownloadError;
 use fs::ensure_containing_dir_exists;
 use path;
 use style::{progress_bar, Action};
 use tempfile::tempdir;
+use tool::ToolSpec;
+use version::VersionSpec;
 
 use notion_fail::{Fallible, ResultExt};
 use semver::Version;
@@ -107,7 +109,7 @@ impl Distro for NodeDistro {
         ensure_containing_dir_exists(&distro_file)?;
         Ok(NodeDistro {
             archive: archive::fetch_native(url, &distro_file)
-                .with_context(DownloadError::for_tool_version(Tool::Node, version.to_string(), url.to_string()))?,
+                .with_context(DownloadError::for_tool(ToolSpec::Node(VersionSpec::exact(&version)), url.to_string()))?,
             version: version,
         })
     }

@@ -2,7 +2,7 @@
 
 use std::env::{args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
-use std::fmt::{self, Display, Formatter};
+use std::fmt::{self, Debug, Display, Formatter};
 use std::io;
 use std::marker::Sized;
 use std::path::Path;
@@ -30,14 +30,6 @@ pub enum ToolSpec {
     Package(String, VersionSpec),
 }
 
-pub enum Tool {
-    Node,
-    Yarn,
-    Npm,
-    Npx,
-    PackageBinary(String),
-}
-
 impl ToolSpec {
     pub fn from_str(tool_name: &str, version: VersionSpec) -> Self {
         match tool_name {
@@ -48,28 +40,31 @@ impl ToolSpec {
             package => ToolSpec::Package(package.to_string(), version),
         }
     }
+}
 
-    pub fn tool(&self) -> Tool {
-        match self {
-            ToolSpec::Node(_) => Tool::Node,
-            ToolSpec::Yarn(_) => Tool::Yarn,
-            ToolSpec::Npm(_) => Tool::Npm,
-            ToolSpec::Npx(_) => Tool::Npx,
-            ToolSpec::Package(name, _) => Tool::PackageBinary(name.to_string()),
-        }
+impl Debug for ToolSpec {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        let s = match self {
+            &ToolSpec::Node(ref version) => format!("node version {}", version),
+            &ToolSpec::Yarn(ref version) => format!("yarn version {}", version),
+            &ToolSpec::Npm(ref version) => format!("npm version {}", version),
+            &ToolSpec::Npx(ref version) => format!("npx version {}", version),
+            &ToolSpec::Package(ref name, ref version) => format!("{} version {}", name, version),
+        };
+        f.write_str(&s)
     }
 }
 
-impl Display for Tool {
+impl Display for ToolSpec {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         let s = match self {
-            &Tool::Node => "node",
-            &Tool::Yarn => "yarn",
-            &Tool::Npm => "npm",
-            &Tool::Npx => "npx",
-            &Tool::PackageBinary(ref name) => name.as_str(),
+            &ToolSpec::Node(ref version) => format!("node version {}", version),
+            &ToolSpec::Yarn(ref version) => format!("yarn version {}", version),
+            &ToolSpec::Npm(ref version) => format!("npm version {}", version),
+            &ToolSpec::Npx(ref version) => format!("npx version {}", version),
+            &ToolSpec::Package(ref name, ref version) => format!("{} version {}", name, version),
         };
-        f.write_str(s)
+        f.write_str(&s)
     }
 }
 
