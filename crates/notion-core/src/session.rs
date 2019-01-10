@@ -199,7 +199,6 @@ impl Session {
     /// and updates the `toolchain` as necessary.
     pub fn install(&mut self, toolspec: &ToolSpec) -> Fallible<()> {
         let distro_version = self.fetch(toolspec)?.into_version();
-        // TODO: not every tool goes in the toolchain
         self.toolchain.set_active(distro_version)?;
         Ok(())
     }

@@ -248,7 +248,7 @@ impl Project {
                     throw!(NoPinnedNodeVersion::new());
                 }
             }
-            // TODO: some of these should be pinned, some should not
+            // ISSUE (#175) When we can `notion install npm` then it can be pinned in the toolchain
             DistroVersion::Npm(_) => unimplemented!("cannot pin npm in \"toolchain\""),
             DistroVersion::Npx(_) => unimplemented!("cannot pin npx in \"toolchain\""),
             DistroVersion::Package(name, _) => unimplemented!("cannot pin {} in \"toolchain\"", name),

@@ -115,9 +115,10 @@ impl Inventory {
         match toolspec {
             ToolSpec::Node(version) => self.node.fetch(&version, config),
             ToolSpec::Yarn(version) => self.yarn.fetch(&version, config),
-            ToolSpec::Npm(_) => unimplemented!("TODO"),
-            ToolSpec::Npx(_) => unimplemented!("TODO"),
-            ToolSpec::Package(_, _) => unimplemented!("TODO"),
+            // ISSUE (#175) implement as part of fetching packages
+            ToolSpec::Npm(_) => unimplemented!("cannot fetch npm"),
+            ToolSpec::Npx(_) => unimplemented!("cannot fetch npx"),
+            ToolSpec::Package(name, _) => unimplemented!("cannot fetch {}", name),
         }
     }
 }
