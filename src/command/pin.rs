@@ -82,7 +82,7 @@ Options:
             Pin::Yarn(spec) => session.pin_yarn_version(&spec)?,
             Pin::Other { name, .. } => throw!(NoCustomPinError::new(name)),
         };
-        if let Some(project) = session.project() {
+        if let Some(project) = session.project()? {
             let errors = project.autoshim();
 
             for error in errors {

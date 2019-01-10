@@ -203,7 +203,7 @@ impl Tool for Binary {
         let exe = arg0(&mut args)?;
 
         // first try to use the project toolchain
-        if let Some(project) = session.project() {
+        if let Some(project) = session.project()? {
             // check if the executable is a direct dependency
             if project.has_direct_bin(&exe)? {
                 // use the full path to the file
@@ -211,7 +211,7 @@ impl Tool for Binary {
                 path_to_bin.push(&exe);
 
                 // if we're in a pinned project, use the project's platform.
-                if let Some(ref platform) = session.project_platform() {
+                if let Some(ref platform) = session.project_platform()? {
                     let image = platform.checkout(session)?;
                     return Ok(Self::from_components(
                         &path_to_bin.as_os_str(),
@@ -351,7 +351,7 @@ impl Tool for Yarn {
     /// Perform any tasks which must be run after the tool runs but before exiting.
     fn finalize(session: &Session, maybe_status: &io::Result<ExitStatus>) {
         if let Ok(_) = maybe_status {
-            if let Some(project) = session.project() {
+            if let Ok(Some(project)) = session.project() {
                 let errors = project.autoshim();
 
                 for error in errors {
@@ -390,7 +390,7 @@ impl Tool for Npm {
 
     fn finalize(session: &Session, maybe_status: &io::Result<ExitStatus>) {
         if let Ok(_) = maybe_status {
-            if let Some(project) = session.project() {
+            if let Ok(Some(project)) = session.project() {
                 let errors = project.autoshim();
 
                 for error in errors {

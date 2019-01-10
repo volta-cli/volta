@@ -79,6 +79,24 @@ impl NoPinnedNodeVersion {
     }
 }
 
+/// A lazily loaded Project
+pub struct LazyProject {
+    project: LazyCell<Option<Rc<Project>>>,
+}
+
+impl LazyProject {
+    pub fn new() -> Self {
+        LazyProject {
+            project: LazyCell::new(),
+        }
+    }
+
+    pub fn get(&self) -> Fallible<Option<Rc<Project>>> {
+        let project = self.project.try_borrow_with(|| Project::for_current_dir())?;
+        Ok(project.clone())
+    }
+}
+
 /// A Node project tree in the filesystem.
 pub struct Project {
     manifest: Manifest,
@@ -89,13 +107,13 @@ pub struct Project {
 impl Project {
     /// Returns the Node project containing the current working directory,
     /// if any.
-    pub fn for_current_dir() -> Fallible<Option<Project>> {
+    fn for_current_dir() -> Fallible<Option<Rc<Project>>> {
         let current_dir: &Path = &env::current_dir().unknown()?;
         Self::for_dir(&current_dir)
     }
 
     /// Returns the Node project for the input directory, if any.
-    pub fn for_dir(base_dir: &Path) -> Fallible<Option<Project>> {
+    fn for_dir(base_dir: &Path) -> Fallible<Option<Rc<Project>>> {
         let mut dir = base_dir.clone();
         while !is_project_root(dir) {
             dir = match dir.parent() {
@@ -106,11 +124,11 @@ impl Project {
             }
         }
 
-        Ok(Some(Project {
+        Ok(Some(Rc::new(Project {
             manifest: Manifest::for_dir(&dir)?,
             project_root: PathBuf::from(dir),
             dependent_bins: LazyDependentBins::new(),
-        }))
+        })))
     }
 
     /// Returns the pinned platform image, if any.

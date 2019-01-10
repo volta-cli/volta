@@ -10,7 +10,7 @@ use distro::Fetched;
 use distro::node::NodeVersion;
 use platform::PlatformSpec;
 use plugin::Publish;
-use project::Project;
+use project::{LazyProject, Project};
 use toolchain::LazyToolchain;
 use version::VersionSpec;
 
@@ -92,7 +92,7 @@ pub struct Session {
     config: LazyConfig,
     inventory: LazyInventory,
     toolchain: LazyToolchain,
-    project: Option<Rc<Project>>,
+    project: LazyProject,
     event_log: EventLog,
 }
 
@@ -103,18 +103,18 @@ impl Session {
             config: LazyConfig::new(),
             inventory: LazyInventory::new(),
             toolchain: LazyToolchain::new(),
-            project: Project::for_current_dir()?.map(Rc::new),
+            project: LazyProject::new(),
             event_log: EventLog::new()?,
         })
     }
 
     /// Produces a reference to the current Node project, if any.
-    pub fn project(&self) -> Option<Rc<Project>> {
-        self.project.clone()
+    pub fn project(&self) -> Fallible<Option<Rc<Project>>> {
+        self.project.get()
     }
 
     pub fn current_platform(&mut self) -> Fallible<Option<Rc<PlatformSpec>>> {
-        if let Some(image) = self.project_platform() {
+        if let Some(image) = self.project_platform()? {
             return Ok(Some(image));
         }
 
@@ -143,11 +143,11 @@ impl Session {
     }
 
     /// Returns the current project's pinned platform image, if any.
-    pub fn project_platform(&self) -> Option<Rc<PlatformSpec>> {
-        if let Some(ref project) = self.project {
-            return project.platform();
+    pub fn project_platform(&self) -> Fallible<Option<Rc<PlatformSpec>>> {
+        if let Some(ref project) = self.project()? {
+            return Ok(project.platform());
         }
-        None
+        Ok(None)
     }
 
     /// Produces a reference to the current inventory.
@@ -216,7 +216,7 @@ impl Session {
     /// Updates toolchain in package.json with the Node version matching the specified semantic
     /// versioning requirements.
     pub fn pin_node_version(&mut self, matching: &VersionSpec) -> Fallible<()> {
-        if let Some(ref project) = self.project() {
+        if let Some(ref project) = self.project()? {
             let node_version = self.fetch_node(matching)?.into_version();
             project.pin_node_in_toolchain(node_version)?;
         } else {
@@ -252,7 +252,7 @@ impl Session {
     /// Updates toolchain in package.json with the Yarn version matching the specified semantic
     /// versioning requirements.
     pub fn pin_yarn_version(&mut self, matching: &VersionSpec) -> Fallible<()> {
-        if let Some(ref project) = self.project() {
+        if let Some(ref project) = self.project()? {
             let yarn_version = self.fetch_yarn(matching)?.into_version();
             project.pin_yarn_in_toolchain(yarn_version)?;
         } else {
@@ -323,11 +323,13 @@ pub mod tests {
         let project_pinned = fixture_path("basic");
         env::set_current_dir(&project_pinned).expect("Could not set current directory");
         let pinned_session = Session::new().expect("Couldn't create new Session");
-        assert_eq!(pinned_session.project_platform().is_some(), true);
+        let pinned_platform = pinned_session.project_platform().expect("Couldn't create Project");
+        assert_eq!(pinned_platform.is_some(), true);
 
         let project_unpinned = fixture_path("no_toolchain");
         env::set_current_dir(&project_unpinned).expect("Could not set current directory");
         let unpinned_session = Session::new().expect("Couldn't create new Session");
-        assert_eq!(unpinned_session.project_platform().is_none(), true);
+        let unpinned_platform = unpinned_session.project_platform().expect("Couldn't create Project");
+        assert_eq!(unpinned_platform.is_none(), true);
     }
 }
