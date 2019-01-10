@@ -104,7 +104,7 @@ impl Session {
             inventory: LazyInventory::new(),
             toolchain: LazyToolchain::new(),
             project: LazyProject::new(),
-            event_log: EventLog::new()?,
+            event_log: EventLog::new(),
         })
     }
 

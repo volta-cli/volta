@@ -6,7 +6,7 @@ use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use monitor::LazyMonitor;
-use notion_fail::{ExitCode, Fallible, NotionError};
+use notion_fail::{ExitCode, NotionError};
 use plugin::Publish;
 use session::ActivityKind;
 
@@ -95,11 +95,11 @@ pub struct EventLog {
 
 impl EventLog {
     /// Constructs a new 'EventLog'
-    pub fn new() -> Fallible<EventLog> {
-        Ok(EventLog {
+    pub fn new() -> Self {
+        EventLog {
             events: Vec::new(),
             monitor: LazyMonitor::new(),
-        })
+        }
     }
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
@@ -149,7 +149,7 @@ pub mod tests {
 
     #[test]
     fn test_adding_events() {
-        let mut event_log = EventLog::new().expect("Could not create event log");
+        let mut event_log = EventLog::new();
         assert_eq!(event_log.events.len(), 0);
 
         event_log.add_event_start(ActivityKind::Current);
