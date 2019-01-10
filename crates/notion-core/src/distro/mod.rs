@@ -39,23 +39,26 @@ impl<V> Fetched<V> {
 pub enum DistroVersion {
     // the version of the Node runtime, and the npm version installed with that
     Node(Version, Version),
-    // the version of Yarn
     Yarn(Version),
+    Npm(Version),
+    Npx(Version),
+    Package(String, Version),
 }
 
 impl Display for DistroVersion {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         let s = match self {
-            &DistroVersion::Node(ref runtime, ref npm) => format!("node version {} (with npm {})", runtime, npm),
+            &DistroVersion::Node(ref runtime, ref npm) => format!("node version {} (npm {})", runtime, npm),
             &DistroVersion::Yarn(ref version) => format!("yarn version {}", version),
+            &DistroVersion::Npm(ref version) => format!("npm version {}", version),
+            &DistroVersion::Npx(ref version) => format!("npx version {}", version),
+            &DistroVersion::Package(ref name, ref version) => format!("{} version {}", name, version),
         };
         f.write_str(&s)
     }
 }
 
 pub trait Distro: Sized {
-    type VersionDetails;
-
     /// Provision a distribution from the public distributor (e.g. `https://nodejs.org`).
     fn public(version: Version) -> Fallible<Self>;
 
@@ -70,5 +73,5 @@ pub trait Distro: Sized {
 
     /// Fetches this version of the Tool. (It is left to the responsibility of the `Collection`
     /// to update its state after fetching succeeds.)
-    fn fetch(self, collection: &Collection<Self>) -> Fallible<Fetched<Self::VersionDetails>>;
+    fn fetch(self, collection: &Collection<Self>) -> Fallible<Fetched<DistroVersion>>;
 }

@@ -248,6 +248,10 @@ impl Project {
                     throw!(NoPinnedNodeVersion::new());
                 }
             }
+            // TODO: some of these should be pinned, some should not
+            DistroVersion::Npm(_) => unimplemented!("cannot pin npm in \"toolchain\""),
+            DistroVersion::Npx(_) => unimplemented!("cannot pin npx in \"toolchain\""),
+            DistroVersion::Package(name, _) => unimplemented!("cannot pin {} in \"toolchain\"", name),
         }
         println!("Pinned {} in package.json", distro_version);
         Ok(())

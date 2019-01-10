@@ -163,7 +163,7 @@ fn pin_node() {
         s.notion("pin node 6"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Pinned node to version 6.19.62 in package.json")
+            .with_stdout_contains("Pinned node version 6.19.62 (npm 3.10.1066) in package.json")
     );
 
     assert_eq!(
@@ -184,7 +184,7 @@ fn pin_node_latest() {
         s.notion("pin node latest"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Pinned node to version 10.99.1040 in package.json")
+            .with_stdout_contains("Pinned node version 10.99.1040 (npm 6.2.26) in package.json")
     );
 
     assert_eq!(
@@ -223,7 +223,7 @@ fn pin_yarn() {
         s.notion("pin yarn 1.4"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Pinned yarn to version 1.4.159 in package.json")
+            .with_stdout_contains("Pinned yarn version 1.4.159 in package.json")
     );
 
     assert_eq!(
@@ -244,7 +244,7 @@ fn pin_yarn_latest() {
         s.notion("pin yarn latest"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Pinned yarn to version 1.2.42 in package.json")
+            .with_stdout_contains("Pinned yarn version 1.2.42 in package.json")
     );
 
     assert_eq!(

@@ -8,6 +8,7 @@ use std::string::ToString;
 use super::{Distro, Fetched};
 use archive::{self, Archive};
 use inventory::NodeCollection;
+use distro::DistroVersion;
 use distro::error::{DownloadError, Tool};
 use fs::ensure_containing_dir_exists;
 use path;
@@ -82,8 +83,6 @@ impl Manifest {
 }
 
 impl Distro for NodeDistro {
-    type VersionDetails = NodeVersion;
-
     /// Provision a Node distribution from the public Node distributor (`https://nodejs.org`).
     fn public(version: Version) -> Fallible<Self> {
         let distro_file_name = path::node_distro_file_name(&version.to_string());
@@ -128,15 +127,15 @@ impl Distro for NodeDistro {
 
     /// Fetches this version of Node. (It is left to the responsibility of the `NodeCollection`
     /// to update its state after fetching succeeds.)
-    fn fetch(self, collection: &NodeCollection) -> Fallible<Fetched<NodeVersion>> {
+    fn fetch(self, collection: &NodeCollection) -> Fallible<Fetched<DistroVersion>> {
         if collection.contains(&self.version) {
             let filename = path::node_npm_version_file_name(&self.version.to_string());
             let npm = path::node_inventory_dir()?.join(&filename);
 
-            return Ok(Fetched::Already(NodeVersion {
-                runtime: self.version,
-                npm: read_to_string(npm).unknown()?.parse().unknown()?
-            }));
+            return Ok(Fetched::Already(DistroVersion::Node(
+                self.version,
+                read_to_string(npm).unknown()?.parse().unknown()?
+            )));
         }
 
         let temp = tempdir().unknown()?;
@@ -181,9 +180,6 @@ impl Distro for NodeDistro {
         ).unknown()?;
 
         bar.finish_and_clear();
-        Ok(Fetched::Now(NodeVersion {
-            runtime: self.version,
-            npm
-        }))
+        Ok(Fetched::Now(DistroVersion::Node(self.version, npm)))
     }
 }

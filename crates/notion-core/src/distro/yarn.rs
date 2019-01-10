@@ -7,6 +7,7 @@ use std::string::ToString;
 use super::{Distro, Fetched};
 use archive::{Archive, Tarball};
 use inventory::YarnCollection;
+use distro::DistroVersion;
 use distro::error::{DownloadError, Tool};
 use fs::ensure_containing_dir_exists;
 use path;
@@ -52,8 +53,6 @@ fn distro_is_valid(file: &PathBuf) -> bool {
 }
 
 impl Distro for YarnDistro {
-    type VersionDetails = Version;
-
     /// Provision a distribution from the public Yarn distributor (`https://yarnpkg.com`).
     fn public(version: Version) -> Fallible<Self> {
         let version_str = version.to_string();
@@ -94,9 +93,9 @@ impl Distro for YarnDistro {
 
     /// Fetches this version of Yarn. (It is left to the responsibility of the `YarnCollection`
     /// to update its state after fetching succeeds.)
-    fn fetch(self, collection: &YarnCollection) -> Fallible<Fetched<Version>> {
+    fn fetch(self, collection: &YarnCollection) -> Fallible<Fetched<DistroVersion>> {
         if collection.contains(&self.version) {
-            return Ok(Fetched::Already(self.version));
+            return Ok(Fetched::Already(DistroVersion::Yarn(self.version)));
         }
 
         let dest = path::yarn_image_root_dir()?;
@@ -121,6 +120,6 @@ impl Distro for YarnDistro {
         ).unknown()?;
 
         bar.finish_and_clear();
-        Ok(Fetched::Now(self.version))
+        Ok(Fetched::Now(DistroVersion::Yarn(self.version)))
     }
 }

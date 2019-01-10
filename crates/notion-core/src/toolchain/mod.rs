@@ -66,6 +66,9 @@ impl Toolchain {
                     }
                 }
             }
+            DistroVersion::Npm(_) => unimplemented!("TODO"),
+            DistroVersion::Npx(_) => unimplemented!("TODO"),
+            DistroVersion::Package(name, _) => unimplemented!("{} TODO", name),
         }
 
         // both
