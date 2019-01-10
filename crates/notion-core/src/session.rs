@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use inventory::{Inventory, LazyInventory};
 use config::{Config, LazyConfig};
+use distro::DistroVersion;
 use distro::Fetched;
 use distro::node::NodeVersion;
 use platform::PlatformSpec;
@@ -172,7 +173,7 @@ impl Session {
 
         if !inventory.node.contains(version) {
             let config = self.config.get()?;
-            inventory.fetch_node(&VersionSpec::exact(version), config)?;
+            inventory.fetch(&ToolSpec::Node(VersionSpec::exact(version)), config)?;
         }
 
         Ok(())
@@ -184,7 +185,7 @@ impl Session {
 
         if !inventory.yarn.contains(version) {
             let config = self.config.get()?;
-            inventory.fetch_yarn(&VersionSpec::exact(version), config)?;
+            inventory.fetch(&ToolSpec::Yarn(VersionSpec::exact(version)), config)?;
         }
 
         Ok(())
@@ -194,96 +195,33 @@ impl Session {
         self.toolchain.get_active_node().map(|ref nv| nv.clone())
     }
 
-    // TODO: something like this, but better lol
-    pub fn install(&mut self, toolspec: ToolSpec) -> Fallible<()> {
-        let version = self.fetch(toolspec)?.into_version();
-        self.toolchain.set_active(toolspec.tool(), version)?;
-
-        // TODO: don't need to do this anymore, or this will be done in toolchain?
-        // match tool {
-        //     ToolSpec::Node(version) => self.install_node(&version),
-        //     ToolSpec::Yarn(version) => self.install_yarn(&version),
-        //     ToolSpec::Npm(_) => unimplemented!("notion install npm"),
-        //     ToolSpec::Npx(_) => unimplemented!("notion install npx"),
-        //     ToolSpec::Package(name, _) => unimplemented!("notion install {}", name),
-        // }
-
+    /// Installs a Tool matching the specified semantic versioning requirements,
+    /// and updates the `toolchain` as necessary.
+    pub fn install(&mut self, toolspec: &ToolSpec) -> Fallible<()> {
+        let distro_version = self.fetch(toolspec)?.into_version();
+        // TODO: not every tool goes in the toolchain
+        self.toolchain.set_active(distro_version)?;
         Ok(())
     }
 
-    // TODO: something like this
-    pub fn fetch(&mut self, tool: ToolSpec) -> Fallible<Fetched<DistroVersion>> {
+    /// Fetches a Tool version matching the specified semantic versioning requirements.
+    pub fn fetch(&mut self, tool: &ToolSpec) -> Fallible<Fetched<DistroVersion>> {
         let inventory = self.inventory.get_mut()?;
         let config = self.config.get()?;
-        inventory.fetch(tool, config)
+        inventory.fetch(&tool, config)
     }
 
-    // /// Fetches a version of Node matching the specified semantic verisoning
-    // /// requirements.
-    // pub fn fetch_node(&mut self, matching: &VersionSpec) -> Fallible<Fetched<NodeVersion>> {
-    //     let inventory = self.inventory.get_mut()?;
-    //     let config = self.config.get()?;
-    //     inventory.fetch_node(matching, config)
-    // }
-
-    // /// Fetches a version of Yarn matching the specified semantic verisoning
-    // /// requirements.
-    // pub fn fetch_yarn(&mut self, matching: &VersionSpec) -> Fallible<Fetched<Version>> {
-    //     let inventory = self.inventory.get_mut()?;
-    //     let config = self.config.get()?;
-    //     inventory.fetch_yarn(matching, config)
-    // }
-
-    // /// Sets the user toolchain's Node version to one matching the specified semantic versioning
-    // /// requirements.
-    // pub fn install_node(&mut self, matching: &VersionSpec) -> Fallible<()> {
-    //     let version = self.fetch_node(matching)?.into_version();
-    //     self.toolchain.set_active_node(version)?;
-    //     Ok(())
-    // }
-
-    // /// Sets the Yarn version in the user toolchain to one matching the specified semantic versioning
-    // /// requirements.
-    // pub fn install_yarn(&mut self, matching: &VersionSpec) -> Fallible<()> {
-    //     let version = self.fetch_yarn(matching)?.into_version();
-    //     self.toolchain.set_active_yarn(version)?;
-    //     Ok(())
-    // }
-
-    // TODO: something like this
+    /// Updates toolchain in package.json with the Tool version matching the specified semantic
+    /// versioning requirements.
     pub fn pin_tool(&mut self, toolspec: &ToolSpec) -> Fallible<()> {
         if let Some(ref project) = self.project() {
-            let version = self.fetch(toolspec)?.into_version();
-            project.pin_in_toolchain(toolspec.tool(), version)?;
+            let distro_version = self.fetch(toolspec)?.into_version();
+            project.pin_in_toolchain(&distro_version)?;
         } else {
             throw!(NotInPackageError::new());
         }
         Ok(())
     }
-
-    // /// Updates toolchain in package.json with the Node version matching the specified semantic
-    // /// versioning requirements.
-    // pub fn pin_node_version(&mut self, matching: &VersionSpec) -> Fallible<()> {
-    //     if let Some(ref project) = self.project() {
-    //         let node_version = self.fetch_node(matching)?.into_version();
-    //         project.pin_node_in_toolchain(node_version)?;
-    //     } else {
-    //         throw!(NotInPackageError::new());
-    //     }
-    //     Ok(())
-    // }
-
-    // /// Updates toolchain in package.json with the Yarn version matching the specified semantic
-    // /// versioning requirements.
-    // pub fn pin_yarn_version(&mut self, matching: &VersionSpec) -> Fallible<()> {
-    //     if let Some(ref project) = self.project() {
-    //         let yarn_version = self.fetch_yarn(matching)?.into_version();
-    //         project.pin_yarn_in_toolchain(yarn_version)?;
-    //     } else {
-    //         throw!(NotInPackageError::new());
-    //     }
-    //     Ok(())
-    // }
 
     pub fn user_yarn(&mut self) -> Option<Version> {
         self.toolchain.get_active_yarn().map(|ref v| v.clone())

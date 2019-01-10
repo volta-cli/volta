@@ -5,9 +5,11 @@ use readext::ReadExt;
 use semver::Version;
 
 use distro::node::NodeVersion;
+use distro::DistroVersion;
 use fs::touch;
 use path::user_platform_file;
 use platform::PlatformSpec;
+// use tool::Tool;
 
 use notion_fail::{Fallible, ResultExt};
 
@@ -30,45 +32,43 @@ impl Toolchain {
         self.platform.as_ref().map(|ref p| p.node.clone())
     }
 
-    pub fn set_active_node(&mut self, version: NodeVersion) -> Fallible<()> {
-        let mut dirty = false;
-
-        if let Some(ref mut platform) = self.platform {
-            if platform.node != version {
-                platform.node = version;
-                dirty = true;
-            }
-        } else {
-            self.platform = Some(PlatformSpec {
-                node: version,
-                yarn: None,
-            });
-            dirty = true;
-        }
-
-        if dirty {
-            self.save()?;
-        }
-
-        Ok(())
-    }
-
     pub fn get_active_yarn(&self) -> Option<Version> {
         self.platform
             .as_ref()
             .and_then(|ref platform| platform.yarn.clone())
     }
 
-    pub fn set_active_yarn(&mut self, version: Version) -> Fallible<()> {
+    /// Set the active tool versions in the user platform file.
+    pub fn set_active(&mut self, distro_version: DistroVersion) -> Fallible<()> {
         let mut dirty = false;
 
-        if let &mut Some(ref mut platform) = &mut self.platform {
-            if platform.yarn != Some(version.clone()) {
-                platform.yarn = Some(version);
-                dirty = true;
+        match distro_version {
+            DistroVersion::Node(node, npm) => {
+                let node_version = NodeVersion { runtime: node, npm: npm };
+                if let Some(ref mut platform) = self.platform {
+                    if platform.node != node_version {
+                        platform.node = node_version;
+                        dirty = true;
+                    }
+                } else {
+                    self.platform = Some(PlatformSpec {
+                        node: node_version,
+                        yarn: None,
+                    });
+                    dirty = true;
+                }
+            }
+            DistroVersion::Yarn(version) => {
+                if let &mut Some(ref mut platform) = &mut self.platform {
+                    if platform.yarn != Some(version.clone()) {
+                        platform.yarn = Some(version);
+                        dirty = true;
+                    }
+                }
             }
         }
 
+        // both
         if dirty {
             self.save()?;
         }

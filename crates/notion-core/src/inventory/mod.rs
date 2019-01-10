@@ -16,14 +16,16 @@ use serde_json;
 use tempfile::NamedTempFile;
 
 use config::{Config, ToolConfig};
-use distro::node::{NodeDistro, NodeVersion};
+use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
 use distro::{Distro, Fetched};
+use distro::DistroVersion;
 use fs::{ensure_containing_dir_exists, read_file_opt};
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use path;
 use semver::{Version, VersionReq};
 use style::progress_spinner;
+use tool::ToolSpec;
 use version::VersionSpec;
 
 pub(crate) mod serial;
@@ -108,32 +110,49 @@ impl Inventory {
         })
     }
 
-    /// Fetches a Node version matching the specified semantic versioning requirements.
-    pub fn fetch_node(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<NodeVersion>> {
-        let distro = self.node.resolve_remote(matching, config.node.as_ref())?;
-        let fetched = distro.fetch(&self.node).unknown()?;
+    /// Fetches a Tool version matching the specified semantic versioning requirements.
+    pub fn fetch(&mut self, _toolspec: &ToolSpec, _config: &Config) -> Fallible<Fetched<DistroVersion>> {
+        // TODO: abstract this
 
-        if let &Fetched::Now(NodeVersion { runtime: ref version, .. }) = &fetched {
-            self.node.versions.insert(version.clone());
-        }
+        // let distro = self.node.resolve_remote(matching, config.node.as_ref())?;
+        // let fetched = distro.fetch(&self.node).unknown()?;
 
-        Ok(fetched)
+        // if let &Fetched::Now(NodeVersion { runtime: ref version, .. }) = &fetched {
+        //     self.node.versions.insert(version.clone());
+        // }
+
+        // Ok(fetched)
+
+        // for now, so this will compile
+        Ok(Fetched::Now(DistroVersion::Yarn(Version::parse("1.2.3").unwrap())))
     }
 
     // ISSUE (#87) Abstract node vs yarn methods (fetch, etc)
     // ISSUE (#173) use Tool specs to do the abstracting
 
-    /// Fetches a Yarn version matching the specified semantic versioning requirements.
-    pub fn fetch_yarn(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<Version>> {
-        let distro = self.yarn.resolve_remote(&matching, config.yarn.as_ref())?;
-        let fetched = distro.fetch(&self.yarn).unknown()?;
+    // /// Fetches a Node version matching the specified semantic versioning requirements.
+    // pub fn fetch_node(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<NodeVersion>> {
+    //     let distro = self.node.resolve_remote(matching, config.node.as_ref())?;
+    //     let fetched = distro.fetch(&self.node).unknown()?;
 
-        if let &Fetched::Now(ref version) = &fetched {
-            self.yarn.versions.insert(version.clone());
-        }
+    //     if let &Fetched::Now(NodeVersion { runtime: ref version, .. }) = &fetched {
+    //         self.node.versions.insert(version.clone());
+    //     }
 
-        Ok(fetched)
-    }
+    //     Ok(fetched)
+    // }
+
+    // /// Fetches a Yarn version matching the specified semantic versioning requirements.
+    // pub fn fetch_yarn(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<Version>> {
+    //     let distro = self.yarn.resolve_remote(&matching, config.yarn.as_ref())?;
+    //     let fetched = distro.fetch(&self.yarn).unknown()?;
+
+    //     if let &Fetched::Now(ref version) = &fetched {
+    //         self.yarn.versions.insert(version.clone());
+    //     }
+
+    //     Ok(fetched)
+    // }
 }
 
 /// Thrown when there is no Node version matching a requested semver specifier.

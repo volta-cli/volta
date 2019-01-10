@@ -7,6 +7,7 @@ pub mod yarn;
 use inventory::Collection;
 use notion_fail::Fallible;
 use semver::Version;
+use std::fmt::{self, Display, Formatter};
 use std::fs::File;
 
 /// The result of a requested installation.
@@ -30,6 +31,25 @@ impl<V> Fetched<V> {
         match self {
             &Fetched::Already(ref version) | &Fetched::Now(ref version) => version,
         }
+    }
+}
+
+/// Abstraction to contain info about Distro versions.
+#[derive(Eq, PartialEq, Clone, Debug)]
+pub enum DistroVersion {
+    // the version of the Node runtime, and the npm version installed with that
+    Node(Version, Version),
+    // the version of Yarn
+    Yarn(Version),
+}
+
+impl Display for DistroVersion {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        let s = match self {
+            &DistroVersion::Node(ref runtime, ref npm) => format!("node version {} (with npm {})", runtime, npm),
+            &DistroVersion::Yarn(ref version) => format!("yarn version {}", version),
+        };
+        f.write_str(&s)
     }
 }
 

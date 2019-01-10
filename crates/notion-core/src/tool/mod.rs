@@ -2,6 +2,7 @@
 
 use std::env::{args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
+use std::fmt::{self, Display, Formatter};
 use std::io;
 use std::marker::Sized;
 use std::path::Path;
@@ -56,6 +57,19 @@ impl ToolSpec {
             ToolSpec::Npx(_) => Tool::Npx,
             ToolSpec::Package(name, _) => Tool::PackageBinary(name.to_string()),
         }
+    }
+}
+
+impl Display for Tool {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        let s = match self {
+            &Tool::Node => "node",
+            &Tool::Yarn => "yarn",
+            &Tool::Npm => "npm",
+            &Tool::Npx => "npx",
+            &Tool::PackageBinary(ref name) => name.as_str(),
+        };
+        f.write_str(s)
     }
 }
 

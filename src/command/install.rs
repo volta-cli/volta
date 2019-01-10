@@ -62,7 +62,7 @@ Supported Tools:
                 Help::Command(CommandName::Install).run(session)?;
             }
             Install::Tool(toolspec) => {
-                session.install(toolspec)?;
+                session.install(&toolspec)?;
             }
         };
         session.add_event_end(ActivityKind::Install, ExitCode::Success);
