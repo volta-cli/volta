@@ -205,13 +205,7 @@ fn display_error_and_usage(err: &NotionError) {
 
 /// The entry point for the `notion` CLI.
 pub fn main() {
-    let mut session = match Session::new() {
-        Ok(session) => session,
-        Err(err) => {
-            display_error_and_usage(&err);
-            ExitCode::UnknownError.exit();
-        }
-    };
+    let mut session = Session::new();
 
     session.add_event_start(ActivityKind::Notion);
 

@@ -56,13 +56,7 @@ impl ToolUnimplementedError {
 /// Represents a command-line tool that Notion shims delegate to.
 pub trait Tool: Sized {
     fn launch() -> ! {
-        let mut session = match Session::new() {
-            Ok(session) => session,
-            Err(err) => {
-                display_error(&err);
-                ExitCode::ExecutionFailure.exit();
-            }
-        };
+        let mut session = Session::new();
 
         session.add_event_start(ActivityKind::Tool);
 

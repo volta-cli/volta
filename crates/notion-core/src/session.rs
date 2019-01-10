@@ -98,14 +98,14 @@ pub struct Session {
 
 impl Session {
     /// Constructs a new `Session`.
-    pub fn new() -> Fallible<Session> {
-        Ok(Session {
+    pub fn new() -> Session {
+        Session {
             config: LazyConfig::new(),
             inventory: LazyInventory::new(),
             toolchain: LazyToolchain::new(),
             project: LazyProject::new(),
             event_log: EventLog::new(),
-        })
+        }
     }
 
     /// Produces a reference to the current Node project, if any.
@@ -322,13 +322,13 @@ pub mod tests {
     fn test_in_pinned_project() {
         let project_pinned = fixture_path("basic");
         env::set_current_dir(&project_pinned).expect("Could not set current directory");
-        let pinned_session = Session::new().expect("Couldn't create new Session");
+        let pinned_session = Session::new();
         let pinned_platform = pinned_session.project_platform().expect("Couldn't create Project");
         assert_eq!(pinned_platform.is_some(), true);
 
         let project_unpinned = fixture_path("no_toolchain");
         env::set_current_dir(&project_unpinned).expect("Could not set current directory");
-        let unpinned_session = Session::new().expect("Couldn't create new Session");
+        let unpinned_session = Session::new();
         let unpinned_platform = unpinned_session.project_platform().expect("Couldn't create Project");
         assert_eq!(unpinned_platform.is_none(), true);
     }
