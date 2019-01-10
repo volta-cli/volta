@@ -11,7 +11,7 @@ use distro::node::NodeVersion;
 use platform::PlatformSpec;
 use plugin::Publish;
 use project::Project;
-use toolchain::Toolchain;
+use toolchain::LazyToolchain;
 use version::VersionSpec;
 
 use std::fmt::{self, Display, Formatter};
@@ -91,7 +91,7 @@ impl NotInPackageError {
 pub struct Session {
     config: LazyConfig,
     inventory: LazyInventory,
-    toolchain: Toolchain,
+    toolchain: LazyToolchain,
     project: Option<Rc<Project>>,
     event_log: EventLog,
 }
@@ -102,7 +102,7 @@ impl Session {
         Ok(Session {
             config: LazyConfig::new(),
             inventory: LazyInventory::new(),
-            toolchain: Toolchain::current()?,
+            toolchain: LazyToolchain::new(),
             project: Project::for_current_dir()?.map(Rc::new),
             event_log: EventLog::new()?,
         })
@@ -126,8 +126,8 @@ impl Session {
     }
 
     pub fn user_platform(&mut self) -> Fallible<Option<Rc<PlatformSpec>>> {
-        if let Some(node) = self.user_node() {
-            if let Some(yarn) = self.user_yarn() {
+        if let Some(node) = self.user_node()? {
+            if let Some(yarn) = self.user_yarn()? {
                 return Ok(Some(Rc::new(PlatformSpec {
                     node,
                     yarn: Some(yarn),
@@ -189,8 +189,9 @@ impl Session {
         Ok(())
     }
 
-    pub fn user_node(&self) -> Option<NodeVersion> {
-        self.toolchain.get_active_node().map(|ref nv| nv.clone())
+    pub fn user_node(&self) -> Fallible<Option<NodeVersion>> {
+        let toolchain = self.toolchain.get()?;
+        Ok(toolchain.get_active_node().map(|ref nv| nv.clone()))
     }
 
     /// Fetches a version of Node matching the specified semantic verisoning
@@ -205,9 +206,10 @@ impl Session {
     /// requirements.
     pub fn install_node(&mut self, matching: &VersionSpec) -> Fallible<()> {
         let inventory = self.inventory.get_mut()?;
+        let toolchain = self.toolchain.get_mut()?;
         let config = self.config.get()?;
         let version = inventory.fetch_node(matching, config)?.into_version();
-        self.toolchain.set_active_node(version)?;
+        toolchain.set_active_node(version)?;
         Ok(())
     }
 
@@ -223,8 +225,9 @@ impl Session {
         Ok(())
     }
 
-    pub fn user_yarn(&mut self) -> Option<Version> {
-        self.toolchain.get_active_yarn().map(|ref v| v.clone())
+    pub fn user_yarn(&mut self) -> Fallible<Option<Version>> {
+        let toolchain = self.toolchain.get()?;
+        Ok(toolchain.get_active_yarn().map(|ref v| v.clone()))
     }
 
     /// Fetches a version of Node matching the specified semantic verisoning
@@ -239,9 +242,10 @@ impl Session {
     /// requirements.
     pub fn install_yarn(&mut self, matching: &VersionSpec) -> Fallible<()> {
         let inventory = self.inventory.get_mut()?;
+        let toolchain = self.toolchain.get_mut()?;
         let config = self.config.get()?;
         let version = inventory.fetch_yarn(matching, config)?.into_version();
-        self.toolchain.set_active_yarn(version)?;
+        toolchain.set_active_yarn(version)?;
         Ok(())
     }
 

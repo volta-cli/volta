@@ -72,7 +72,7 @@ Options:
                     println!("v{}", version);
                 })
                 .is_some(),
-            Current::User => user_node_version(session)
+            Current::User => user_node_version(session)?
                 .map(|version| {
                     println!("v{}", version);
                 })
@@ -80,7 +80,7 @@ Options:
             Current::All => {
                 let (project, user) = (
                     project_node_version(&session)?,
-                    user_node_version(&session),
+                    user_node_version(&session)?,
                 );
 
                 let user_active = project.is_none() && user.is_some();
@@ -116,6 +116,6 @@ fn project_node_version(session: &Session) -> Fallible<Option<String>> {
     Ok(None)
 }
 
-fn user_node_version(session: &Session) -> Option<String> {
-    session.user_node().clone().map(|nv| nv.runtime.to_string())
+fn user_node_version(session: &Session) -> Fallible<Option<String>> {
+    Ok(session.user_node()?.clone().map(|nv| nv.runtime.to_string()))
 }
