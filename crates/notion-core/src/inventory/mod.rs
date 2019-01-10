@@ -113,38 +113,12 @@ impl Inventory {
     /// Fetches a Tool version matching the specified semantic versioning requirements.
     pub fn fetch(&mut self, toolspec: &ToolSpec, config: &Config) -> Fallible<Fetched<DistroVersion>> {
         match toolspec {
-            ToolSpec::Node(version) => self.fetch_node(&version, config),
-            ToolSpec::Yarn(version) => self.fetch_yarn(&version, config),
+            ToolSpec::Node(version) => self.node.fetch(&version, config),
+            ToolSpec::Yarn(version) => self.yarn.fetch(&version, config),
             ToolSpec::Npm(_) => unimplemented!("TODO"),
             ToolSpec::Npx(_) => unimplemented!("TODO"),
             ToolSpec::Package(_, _) => unimplemented!("TODO"),
         }
-    }
-
-    // TODO: refactor these to the collections?
-
-    /// Fetches a Node version matching the specified semantic versioning requirements.
-    fn fetch_node(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<DistroVersion>> {
-        let distro = self.node.resolve_remote(matching, config.node.as_ref())?;
-        let fetched = distro.fetch(&self.node).unknown()?;
-
-        if let &Fetched::Now(DistroVersion::Node(ref version, .. )) = &fetched {
-            self.node.versions.insert(version.clone());
-        }
-
-        Ok(fetched)
-    }
-
-    /// Fetches a Yarn version matching the specified semantic versioning requirements.
-    fn fetch_yarn(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<DistroVersion>> {
-        let distro = self.yarn.resolve_remote(&matching, config.yarn.as_ref())?;
-        let fetched = distro.fetch(&self.yarn).unknown()?;
-
-        if let &Fetched::Now(DistroVersion::Yarn(ref version)) = &fetched {
-            self.yarn.versions.insert(version.clone());
-        }
-
-        Ok(fetched)
     }
 }
 
@@ -171,7 +145,10 @@ impl<D: Distro> Collection<D> {
     }
 }
 
-pub trait Resolve<D: Distro> {
+pub trait FetchResolve<D: Distro> {
+    /// Fetch a Distro version matching the specified semantic versioning requirements.
+    fn fetch(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<DistroVersion>>;
+
     /// Resolves the specified semantic versioning requirements from a remote distributor.
     fn resolve_remote(
         &self,
@@ -213,7 +190,18 @@ fn match_node_version(predicate: impl Fn(&NodeEntry) -> bool) -> Fallible<Option
     Ok(entries.find(predicate).map(|NodeEntry { version, .. }| version))
 }
 
-impl Resolve<NodeDistro> for NodeCollection {
+impl FetchResolve<NodeDistro> for NodeCollection {
+    fn fetch(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<DistroVersion>> {
+        let distro = self.resolve_remote(matching, config.node.as_ref())?;
+        let fetched = distro.fetch(&self).unknown()?;
+
+        if let &Fetched::Now(DistroVersion::Node(ref version, .. )) = &fetched {
+            self.versions.insert(version.clone());
+        }
+
+        Ok(fetched)
+    }
+
     fn resolve_public(&self, matching: &VersionSpec) -> Fallible<NodeDistro> {
         let version_opt = match *matching {
             VersionSpec::Latest => {
@@ -239,7 +227,19 @@ impl Resolve<NodeDistro> for NodeCollection {
     }
 }
 
-impl Resolve<YarnDistro> for YarnCollection {
+impl FetchResolve<YarnDistro> for YarnCollection {
+    /// Fetches a Yarn version matching the specified semantic versioning requirements.
+    fn fetch(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<DistroVersion>> {
+        let distro = self.resolve_remote(&matching, config.yarn.as_ref())?;
+        let fetched = distro.fetch(&self).unknown()?;
+
+        if let &Fetched::Now(DistroVersion::Yarn(ref version)) = &fetched {
+            self.versions.insert(version.clone());
+        }
+
+        Ok(fetched)
+    }
+
     /// Resolves the specified semantic versioning requirements from the public distributor.
     fn resolve_public(&self, matching: &VersionSpec) -> Fallible<YarnDistro> {
         let version = match *matching {

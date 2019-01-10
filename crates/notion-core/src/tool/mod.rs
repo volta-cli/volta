@@ -187,7 +187,7 @@ pub struct Npx(Command);
 pub struct Yarn(Command);
 
 #[cfg(windows)]
-impl Tool for Script {
+impl CmdTool for Script {
     fn new(_session: &mut Session) -> Fallible<Self> {
         throw!(ToolUnimplementedError::new())
     }
