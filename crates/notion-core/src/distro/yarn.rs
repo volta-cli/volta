@@ -1,4 +1,4 @@
-//! Provides the `Installer` type, which represents a provisioned Node installer.
+//! Provides the `YarnDistro` type, which represents a provisioned Yarn distribution.
 
 use std::fs::{rename, File};
 use std::path::PathBuf;
@@ -6,10 +6,10 @@ use std::string::ToString;
 
 use super::{Distro, Fetched};
 use archive::{Archive, Tarball};
-use inventory::YarnCollection;
 use distro::DistroVersion;
 use distro::error::DownloadError;
 use fs::ensure_containing_dir_exists;
+use inventory::YarnCollection;
 use path;
 use style::{progress_bar, Action};
 use tool::ToolSpec;
@@ -59,7 +59,12 @@ impl Distro for YarnDistro {
     fn public(version: Version) -> Fallible<Self> {
         let version_str = version.to_string();
         let distro_file_name = path::yarn_distro_file_name(&version_str);
-        let url = format!("{}/v{}/{}", public_yarn_server_root(), version_str, distro_file_name);
+        let url = format!(
+            "{}/v{}/{}",
+            public_yarn_server_root(),
+            version_str,
+            distro_file_name
+        );
         YarnDistro::remote(version, &url)
     }
 
@@ -74,8 +79,10 @@ impl Distro for YarnDistro {
 
         ensure_containing_dir_exists(&distro_file)?;
         Ok(YarnDistro {
-            archive: Tarball::fetch(url, &distro_file)
-                .with_context(DownloadError::for_tool(ToolSpec::Yarn(VersionSpec::exact(&version)), url.to_string()))?,
+            archive: Tarball::fetch(url, &distro_file).with_context(DownloadError::for_tool(
+                ToolSpec::Yarn(VersionSpec::exact(&version)),
+                url.to_string(),
+            ))?,
             version: version,
         })
     }

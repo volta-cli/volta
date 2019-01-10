@@ -18,8 +18,7 @@ use tempfile::NamedTempFile;
 use config::{Config, ToolConfig};
 use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
-use distro::{Distro, Fetched};
-use distro::DistroVersion;
+use distro::{Distro, DistroVersion, Fetched};
 use fs::{ensure_containing_dir_exists, read_file_opt};
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use path;
@@ -111,7 +110,11 @@ impl Inventory {
     }
 
     /// Fetches a Tool version matching the specified semantic versioning requirements.
-    pub fn fetch(&mut self, toolspec: &ToolSpec, config: &Config) -> Fallible<Fetched<DistroVersion>> {
+    pub fn fetch(
+        &mut self,
+        toolspec: &ToolSpec,
+        config: &Config,
+    ) -> Fallible<Fetched<DistroVersion>> {
         match toolspec {
             ToolSpec::Node(version) => self.node.fetch(&version, config),
             ToolSpec::Yarn(version) => self.yarn.fetch(&version, config),
@@ -148,7 +151,11 @@ impl<D: Distro> Collection<D> {
 
 pub trait FetchResolve<D: Distro> {
     /// Fetch a Distro version matching the specified semantic versioning requirements.
-    fn fetch(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<DistroVersion>>;
+    fn fetch(
+        &mut self,
+        matching: &VersionSpec,
+        config: &Config,
+    ) -> Fallible<Fetched<DistroVersion>>;
 
     /// Resolves the specified semantic versioning requirements from a remote distributor.
     fn resolve_remote(
@@ -188,15 +195,21 @@ impl RegistryFetchError {
 fn match_node_version(predicate: impl Fn(&NodeEntry) -> bool) -> Fallible<Option<Version>> {
     let index: NodeIndex = resolve_node_versions()?.into_index()?;
     let mut entries = index.entries.into_iter();
-    Ok(entries.find(predicate).map(|NodeEntry { version, .. }| version))
+    Ok(entries
+        .find(predicate)
+        .map(|NodeEntry { version, .. }| version))
 }
 
 impl FetchResolve<NodeDistro> for NodeCollection {
-    fn fetch(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<DistroVersion>> {
+    fn fetch(
+        &mut self,
+        matching: &VersionSpec,
+        config: &Config,
+    ) -> Fallible<Fetched<DistroVersion>> {
         let distro = self.resolve_remote(matching, config.node.as_ref())?;
         let fetched = distro.fetch(&self).unknown()?;
 
-        if let &Fetched::Now(DistroVersion::Node(ref version, .. )) = &fetched {
+        if let &Fetched::Now(DistroVersion::Node(ref version, ..)) = &fetched {
             self.versions.insert(version.clone());
         }
 
@@ -215,7 +228,7 @@ impl FetchResolve<NodeDistro> for NodeCollection {
                 // ISSUE #34: also make sure this OS is available for this version
                 match_node_version(|&NodeEntry { version: ref v, .. }| matching.matches(v))?
             }
-            VersionSpec::Exact(ref exact) => Some(exact.clone())
+            VersionSpec::Exact(ref exact) => Some(exact.clone()),
         };
 
         if let Some(version) = version_opt {
@@ -230,7 +243,11 @@ impl FetchResolve<NodeDistro> for NodeCollection {
 
 impl FetchResolve<YarnDistro> for YarnCollection {
     /// Fetches a Yarn version matching the specified semantic versioning requirements.
-    fn fetch(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<DistroVersion>> {
+    fn fetch(
+        &mut self,
+        matching: &VersionSpec,
+        config: &Config,
+    ) -> Fallible<Fetched<DistroVersion>> {
         let distro = self.resolve_remote(&matching, config.yarn.as_ref())?;
         let fetched = distro.fetch(&self).unknown()?;
 
@@ -255,15 +272,14 @@ impl FetchResolve<YarnDistro> for YarnCollection {
                     "Fetching public registry: {}",
                     public_yarn_version_index()
                 ));
-                let releases: serial::YarnIndex = reqwest::get(public_yarn_version_index().as_str())
-                    .with_context(RegistryFetchError::from_error)?
+                let releases: serial::YarnIndex = reqwest::get(
+                    public_yarn_version_index().as_str(),
+                ).with_context(RegistryFetchError::from_error)?
                     .json()
                     .unknown()?;
                 let releases = releases.into_index()?.entries;
                 spinner.finish_and_clear();
-                let version = releases.into_iter().rev().find(|v| {
-                    matching.matches(v)
-                });
+                let version = releases.into_iter().rev().find(|v| matching.matches(v));
 
                 if let Some(version) = version {
                     version
@@ -272,8 +288,8 @@ impl FetchResolve<YarnDistro> for YarnCollection {
                         matching: matching.clone(),
                     });
                 }
-            },
-            VersionSpec::Exact(ref exact) => exact.clone()
+            }
+            VersionSpec::Exact(ref exact) => exact.clone(),
         };
         YarnDistro::public(version)
     }
@@ -288,7 +304,7 @@ pub struct NodeIndex {
 pub struct NodeEntry {
     pub version: Version,
     pub npm: Version,
-    pub files: NodeDistroFiles
+    pub files: NodeDistroFiles,
 }
 
 /// The public Yarn index.

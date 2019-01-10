@@ -452,7 +452,8 @@ impl CmdTool for Npm {
 #[fail(display = r#"
 'npx' is only available with npm >= 5.2.0
 
-This project is configured to use version {} of npm."#, version)]
+This project is configured to use version {} of npm."#,
+       version)]
 #[notion_fail(code = "ExecutableNotFound")]
 struct NpxNotAvailableError {
     version: String,

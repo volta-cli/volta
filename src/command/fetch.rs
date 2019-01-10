@@ -3,8 +3,8 @@ use notion_core::tool::ToolSpec;
 use notion_core::version::VersionSpec;
 use notion_fail::{ExitCode, Fallible};
 
-use command::{Command, CommandName, Help};
 use Notion;
+use command::{Command, CommandName, Help};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
@@ -42,7 +42,6 @@ Options:
             arg_version,
         }: Args,
     ) -> Fallible<Self> {
-
         let version = VersionSpec::parse(&arg_version)?;
         Ok(Fetch::Tool(ToolSpec::from_str(&arg_tool, version)))
     }

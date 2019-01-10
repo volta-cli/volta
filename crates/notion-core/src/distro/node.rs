@@ -1,4 +1,4 @@
-//! Provides the `Installer` type, which represents a provisioned Node installer.
+//! Provides the `NodeDistro` type, which represents a provisioned Node distribution.
 
 use std::fs::{read_to_string, rename, File};
 use std::io::Write;
@@ -7,10 +7,10 @@ use std::string::ToString;
 
 use super::{Distro, Fetched};
 use archive::{self, Archive};
-use inventory::NodeCollection;
 use distro::DistroVersion;
 use distro::error::DownloadError;
 use fs::ensure_containing_dir_exists;
+use inventory::NodeCollection;
 use path;
 use style::{progress_bar, Action};
 use tempfile::tempdir;
@@ -108,8 +108,12 @@ impl Distro for NodeDistro {
 
         ensure_containing_dir_exists(&distro_file)?;
         Ok(NodeDistro {
-            archive: archive::fetch_native(url, &distro_file)
-                .with_context(DownloadError::for_tool(ToolSpec::Node(VersionSpec::exact(&version)), url.to_string()))?,
+            archive: archive::fetch_native(url, &distro_file).with_context(
+                DownloadError::for_tool(
+                    ToolSpec::Node(VersionSpec::exact(&version)),
+                    url.to_string(),
+                ),
+            )?,
             version: version,
         })
     }
@@ -136,7 +140,7 @@ impl Distro for NodeDistro {
 
             return Ok(Fetched::Already(DistroVersion::Node(
                 self.version,
-                read_to_string(npm).unknown()?.parse().unknown()?
+                read_to_string(npm).unknown()?.parse().unknown()?,
             )));
         }
 
@@ -157,8 +161,7 @@ impl Distro for NodeDistro {
 
         let version_string = self.version.to_string();
 
-        let npm_package_json = temp
-            .path()
+        let npm_package_json = temp.path()
             .join(path::node_archive_npm_package_json_path(&version_string));
 
         let npm = Manifest::version(&npm_package_json)?;
@@ -177,7 +180,8 @@ impl Distro for NodeDistro {
         ensure_containing_dir_exists(&dest)?;
 
         rename(
-            temp.path().join(path::node_archive_root_dir_name(&version_string)),
+            temp.path()
+                .join(path::node_archive_root_dir_name(&version_string)),
             dest,
         ).unknown()?;
 

@@ -10,8 +10,14 @@ use std::fmt;
 
 #[derive(Debug, Fail)]
 pub(crate) enum DownloadError {
-    NotFound { toolspec: ToolSpec, },
-    Other { toolspec: ToolSpec, from_url: String, error: String },
+    NotFound {
+        toolspec: ToolSpec,
+    },
+    Other {
+        toolspec: ToolSpec,
+        from_url: String,
+        error: String,
+    },
 }
 
 impl NotionFail for DownloadError {
@@ -30,12 +36,16 @@ impl NotionFail for DownloadError {
 impl fmt::Display for DownloadError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            DownloadError::NotFound { toolspec } => {
-                write!(fmt, "{} not found", toolspec)
-            }
-            DownloadError::Other { toolspec, from_url, error } => {
-                write!(fmt, "Failed to download {} from {}\n{}", toolspec, from_url, error)
-            }
+            DownloadError::NotFound { toolspec } => write!(fmt, "{} not found", toolspec),
+            DownloadError::Other {
+                toolspec,
+                from_url,
+                error,
+            } => write!(
+                fmt,
+                "Failed to download {} from {}\n{}",
+                toolspec, from_url, error
+            ),
         }
     }
 }
@@ -43,13 +53,14 @@ impl fmt::Display for DownloadError {
 impl DownloadError {
     pub(crate) fn for_tool(
         toolspec: ToolSpec,
-        from_url: String
+        from_url: String,
     ) -> impl FnOnce(&failure::Error) -> DownloadError {
         move |error| {
-            if let Some(HttpError { code: StatusCode::NotFound }) = error.downcast_ref::<HttpError>() {
-                DownloadError::NotFound {
-                    toolspec: toolspec,
-                }
+            if let Some(HttpError {
+                code: StatusCode::NotFound,
+            }) = error.downcast_ref::<HttpError>()
+            {
+                DownloadError::NotFound { toolspec: toolspec }
             } else {
                 DownloadError::Other {
                     toolspec: toolspec,

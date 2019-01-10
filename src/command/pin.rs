@@ -43,7 +43,6 @@ Options:
             arg_version,
         }: Args,
     ) -> Fallible<Self> {
-
         let version = VersionSpec::parse(&arg_version)?;
         Ok(Pin::Tool(ToolSpec::from_str(&arg_tool, version)))
     }

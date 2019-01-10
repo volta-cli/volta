@@ -4,11 +4,10 @@
 
 use std::rc::Rc;
 
-use inventory::{Inventory, LazyInventory};
 use config::{Config, LazyConfig};
-use distro::DistroVersion;
-use distro::Fetched;
+use distro::{DistroVersion, Fetched};
 use distro::node::NodeVersion;
+use inventory::{Inventory, LazyInventory};
 use platform::PlatformSpec;
 use plugin::Publish;
 use project::Project;
@@ -136,10 +135,7 @@ impl Session {
                 })));
             }
 
-            return Ok(Some(Rc::new(PlatformSpec {
-                node,
-                yarn: None,
-            })));
+            return Ok(Some(Rc::new(PlatformSpec { node, yarn: None })));
         }
         Ok(None)
     }
@@ -225,7 +221,6 @@ impl Session {
     pub fn user_yarn(&mut self) -> Option<Version> {
         self.toolchain.get_active_yarn().map(|ref v| v.clone())
     }
-
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
         self.event_log.add_event_start(activity_kind)

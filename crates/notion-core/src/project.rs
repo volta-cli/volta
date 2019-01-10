@@ -10,8 +10,7 @@ use std::rc::Rc;
 use lazycell::LazyCell;
 
 use distro::DistroVersion;
-use manifest::Manifest;
-use manifest::serial;
+use manifest::{Manifest, serial};
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use platform::PlatformSpec;
 use shim;
@@ -233,13 +232,17 @@ impl Project {
                 let toolchain = serial::Image::new(
                     runtime.to_string(),
                     npm.to_string(),
-                    self.manifest().yarn_str().clone());
+                    self.manifest().yarn_str().clone(),
+                );
                 Manifest::update_toolchain(toolchain, self.package_file())?;
             }
             DistroVersion::Yarn(version) => {
                 if let Some(image) = self.manifest().platform() {
-                    let toolchain =
-                        serial::Image::new(image.node.runtime.to_string(), image.node.npm.to_string(), Some(version.to_string()));
+                    let toolchain = serial::Image::new(
+                        image.node.runtime.to_string(),
+                        image.node.npm.to_string(),
+                        Some(version.to_string()),
+                    );
                     Manifest::update_toolchain(toolchain, self.package_file())?;
                 } else {
                     throw!(NoPinnedNodeVersion::new());
@@ -248,7 +251,9 @@ impl Project {
             // ISSUE (#175) When we can `notion install npm` then it can be pinned in the toolchain
             DistroVersion::Npm(_) => unimplemented!("cannot pin npm in \"toolchain\""),
             DistroVersion::Npx(_) => unimplemented!("cannot pin npx in \"toolchain\""),
-            DistroVersion::Package(name, _) => unimplemented!("cannot pin {} in \"toolchain\"", name),
+            DistroVersion::Package(name, _) => {
+                unimplemented!("cannot pin {} in \"toolchain\"", name)
+            }
         }
         println!("Pinned {} in package.json", distro_version);
         Ok(())

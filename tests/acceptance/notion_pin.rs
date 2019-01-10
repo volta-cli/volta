@@ -1,6 +1,6 @@
 use hamcrest2::core::Matcher;
-use test_support::matchers::execs;
 use support::sandbox::{sandbox, DistroMetadata, NodeFixture, YarnFixture};
+use test_support::matchers::execs;
 
 use notion_fail::ExitCode;
 
@@ -17,12 +17,15 @@ fn package_json_with_pinned_node_npm(node: &str, npm: &str) -> String {
     "npm": "{}"
   }}
 }}"#,
-        node,
-        npm
+        node, npm
     )
 }
 
-fn package_json_with_pinned_node_npm_yarn(node_version: &str, npm_version: &str, yarn_version: &str) -> String {
+fn package_json_with_pinned_node_npm_yarn(
+    node_version: &str,
+    npm_version: &str,
+    yarn_version: &str,
+) -> String {
     format!(
         r#"{{
   "name": "test-package",
@@ -43,7 +46,6 @@ const NODE_VERSION_INFO: &'static str = r#"[
 {"version":"v6.19.62","npm":"3.10.1066","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]}
 ]
 "#;
-
 
 cfg_if! {
     if #[cfg(target_os = "macos")] {

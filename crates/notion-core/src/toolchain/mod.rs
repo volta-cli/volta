@@ -4,8 +4,8 @@ use std::io::Write;
 use readext::ReadExt;
 use semver::Version;
 
-use distro::node::NodeVersion;
 use distro::DistroVersion;
+use distro::node::NodeVersion;
 use fs::touch;
 use path::user_platform_file;
 use platform::PlatformSpec;
@@ -43,7 +43,10 @@ impl Toolchain {
 
         match distro_version {
             DistroVersion::Node(node, npm) => {
-                let node_version = NodeVersion { runtime: node, npm: npm };
+                let node_version = NodeVersion {
+                    runtime: node,
+                    npm: npm,
+                };
                 if let Some(ref mut platform) = self.platform {
                     if platform.node != node_version {
                         platform.node = node_version;
@@ -68,7 +71,9 @@ impl Toolchain {
             // ISSUE (#175) When we can `notion install npm` then it can be set in the platform file.
             DistroVersion::Npm(_) => unimplemented!("cannot set npm in platform file"),
             DistroVersion::Npx(_) => unimplemented!("cannot set npx in platform file"),
-            DistroVersion::Package(name, _) => unimplemented!("cannot set {} in platform file", name),
+            DistroVersion::Package(name, _) => {
+                unimplemented!("cannot set {} in platform file", name)
+            }
         }
 
         // both
@@ -88,10 +93,9 @@ impl Toolchain {
                 file.write_all(src.as_bytes()).unknown()?;
             }
             &None => {
-                file.write_all(b"[platform]\n").unknown()?;
+                file.write_all(b"{}").unknown()?;
             }
         }
         Ok(())
     }
 }
-
