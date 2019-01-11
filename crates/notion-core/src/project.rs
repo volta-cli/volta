@@ -10,8 +10,8 @@ use std::rc::Rc;
 use lazycell::LazyCell;
 
 use distro::node::NodeVersion;
-use manifest::Manifest;
 use manifest::serial;
+use manifest::Manifest;
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use platform::PlatformSpec;
 use semver::Version;
@@ -92,7 +92,9 @@ impl LazyProject {
     }
 
     pub fn get(&self) -> Fallible<Option<Rc<Project>>> {
-        let project = self.project.try_borrow_with(|| Project::for_current_dir())?;
+        let project = self
+            .project
+            .try_borrow_with(|| Project::for_current_dir())?;
         Ok(project.clone())
     }
 }
@@ -251,9 +253,13 @@ impl Project {
         let toolchain = serial::Image::new(
             node_version.runtime.to_string(),
             node_version.npm.to_string(),
-            self.manifest().yarn_str().clone());
+            self.manifest().yarn_str().clone(),
+        );
         Manifest::update_toolchain(toolchain, self.package_file())?;
-        println!("Pinned node to version {} in package.json", node_version.runtime);
+        println!(
+            "Pinned node to version {} in package.json",
+            node_version.runtime
+        );
         Ok(())
     }
 
@@ -261,8 +267,11 @@ impl Project {
     pub fn pin_yarn_in_toolchain(&self, yarn_version: Version) -> Fallible<()> {
         // update the toolchain yarn version
         if let Some(image) = self.manifest().platform() {
-            let toolchain =
-                serial::Image::new(image.node.runtime.to_string(), image.node.npm.to_string(), Some(yarn_version.to_string()));
+            let toolchain = serial::Image::new(
+                image.node.runtime.to_string(),
+                image.node.npm.to_string(),
+                Some(yarn_version.to_string()),
+            );
             Manifest::update_toolchain(toolchain, self.package_file())?;
             println!("Pinned yarn to version {} in package.json", yarn_version);
         } else {

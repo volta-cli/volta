@@ -4,10 +4,10 @@
 
 use std::rc::Rc;
 
-use inventory::{Inventory, LazyInventory};
 use config::{Config, LazyConfig};
-use distro::Fetched;
 use distro::node::NodeVersion;
+use distro::Fetched;
+use inventory::{Inventory, LazyInventory};
 use platform::PlatformSpec;
 use plugin::Publish;
 use project::{LazyProject, Project};
@@ -134,10 +134,7 @@ impl Session {
                 })));
             }
 
-            return Ok(Some(Rc::new(PlatformSpec {
-                node,
-                yarn: None,
-            })));
+            return Ok(Some(Rc::new(PlatformSpec { node, yarn: None })));
         }
         Ok(None)
     }
@@ -323,13 +320,17 @@ pub mod tests {
         let project_pinned = fixture_path("basic");
         env::set_current_dir(&project_pinned).expect("Could not set current directory");
         let pinned_session = Session::new();
-        let pinned_platform = pinned_session.project_platform().expect("Couldn't create Project");
+        let pinned_platform = pinned_session
+            .project_platform()
+            .expect("Couldn't create Project");
         assert_eq!(pinned_platform.is_some(), true);
 
         let project_unpinned = fixture_path("no_toolchain");
         env::set_current_dir(&project_unpinned).expect("Could not set current directory");
         let unpinned_session = Session::new();
-        let unpinned_platform = unpinned_session.project_platform().expect("Couldn't create Project");
+        let unpinned_platform = unpinned_session
+            .project_platform()
+            .expect("Couldn't create Project");
         assert_eq!(unpinned_platform.is_none(), true);
     }
 }

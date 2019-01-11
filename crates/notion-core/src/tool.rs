@@ -281,13 +281,15 @@ fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
 }
 
 #[derive(Debug, Fail, NotionFail)]
-#[fail(display = r#"
+#[fail(
+    display = r#"
 No {} version selected.
 
 See `notion help pin` for help adding {} to a project toolchain.
 
 See `notion help install` for help adding {} to your personal toolchain."#,
-       tool, tool, tool)]
+    tool, tool, tool
+)]
 #[notion_fail(code = "NoVersionMatch")]
 struct NoSuchToolError {
     tool: String,
@@ -396,10 +398,13 @@ impl Tool for Npm {
 }
 
 #[derive(Debug, Fail, NotionFail)]
-#[fail(display = r#"
+#[fail(
+    display = r#"
 'npx' is only available with npm >= 5.2.0
 
-This project is configured to use version {} of npm."#, version)]
+This project is configured to use version {} of npm."#,
+    version
+)]
 #[notion_fail(code = "ExecutableNotFound")]
 struct NpxNotAvailableError {
     version: String,

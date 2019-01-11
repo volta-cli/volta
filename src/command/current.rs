@@ -3,8 +3,8 @@ use std::string::ToString;
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::{ExitCode, Fallible, NotionFail};
 
-use Notion;
 use command::{Command, CommandName, Help};
+use Notion;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
@@ -117,5 +117,8 @@ fn project_node_version(session: &Session) -> Fallible<Option<String>> {
 }
 
 fn user_node_version(session: &Session) -> Fallible<Option<String>> {
-    Ok(session.user_node()?.clone().map(|nv| nv.runtime.to_string()))
+    Ok(session
+        .user_node()?
+        .clone()
+        .map(|nv| nv.runtime.to_string()))
 }
