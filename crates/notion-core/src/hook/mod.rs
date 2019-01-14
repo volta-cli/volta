@@ -16,7 +16,7 @@ pub(crate) mod serial;
 
 /// A Node version resolution plugin.
 #[derive(PartialEq, Debug)]
-pub enum ResolvePlugin {
+pub enum ResolveHook {
     /// Resolves a Tool version by sending it to a URL and receiving the
     /// resolution in the response.
     Url(String),
@@ -27,29 +27,28 @@ pub enum ResolvePlugin {
 }
 
 #[derive(Fail, Debug)]
-#[fail(display = "Invalid plugin command: '{}'", command)]
+#[fail(display = "Invalid hook command: '{}'", command)]
 pub struct InvalidCommandError {
     command: String,
 }
 
-impl ResolvePlugin {
+impl ResolveHook {
     /// Performs resolution of a Tool version based on the given semantic
     /// versioning requirements.
     pub fn resolve<D: Distro>(&self, _matching: &VersionSpec) -> Fallible<D> {
         match self {
-            &ResolvePlugin::Url(_) => unimplemented!(),
+            &ResolveHook::Url(_) => unimplemented!(),
 
-            &ResolvePlugin::Bin(ref bin) => {
+            &ResolveHook::Bin(ref bin) => {
                 let mut trimmed = bin.trim().to_string();
                 let mut words = trimmed.parse_cmdline_words();
                 let cmd = if let Some(word) = words.next() {
                     word
                 } else {
-                    throw!(
-                        InvalidCommandError {
-                            command: String::from(bin.trim()),
-                        }.unknown()
-                    );
+                    throw!(InvalidCommandError {
+                        command: String::from(bin.trim()),
+                    }
+                    .unknown());
                 };
                 let args: Vec<OsString> = words
                     .map(|s| {

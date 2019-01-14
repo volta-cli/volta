@@ -4,12 +4,12 @@
 
 use std::rc::Rc;
 
-use inventory::{Inventory, LazyInventory};
 use config::{Config, LazyConfig};
-use distro::Fetched;
 use distro::node::NodeVersion;
+use distro::Fetched;
+use hook::Publish;
+use inventory::{Inventory, LazyInventory};
 use platform::PlatformSpec;
-use plugin::Publish;
 use project::Project;
 use toolchain::Toolchain;
 use version::VersionSpec;
@@ -134,10 +134,7 @@ impl Session {
                 })));
             }
 
-            return Ok(Some(Rc::new(PlatformSpec {
-                node,
-                yarn: None,
-            })));
+            return Ok(Some(Rc::new(PlatformSpec { node, yarn: None })));
         }
         Ok(None)
     }

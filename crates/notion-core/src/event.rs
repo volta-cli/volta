@@ -5,9 +5,9 @@ extern crate os_info;
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use hook::Publish;
 use monitor::LazyMonitor;
 use notion_fail::{ExitCode, Fallible, NotionError};
-use plugin::Publish;
 use session::ActivityKind;
 
 // the Event data that is serialized to JSON and sent the plugin

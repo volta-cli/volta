@@ -1,10 +1,10 @@
 use super::super::config;
 use std::marker::PhantomData;
 
-use distro::Distro;
 use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
-use plugin::serial::Plugin;
+use distro::Distro;
+use hook::serial::Hook;
 
 use notion_fail::Fallible;
 
@@ -18,7 +18,7 @@ pub struct Config {
 #[derive(Serialize, Deserialize)]
 #[serde(rename = "events")]
 pub struct EventsConfig {
-    pub publish: Option<Plugin>,
+    pub publish: Option<Hook>,
 }
 
 impl EventsConfig {
@@ -36,10 +36,10 @@ impl EventsConfig {
 #[derive(Serialize, Deserialize)]
 #[serde(rename = "tool")]
 pub struct ToolConfig<I> {
-    pub resolve: Option<Plugin>,
+    pub resolve: Option<Hook>,
 
     #[serde(rename = "ls-remote")]
-    pub ls_remote: Option<Plugin>,
+    pub ls_remote: Option<Hook>,
 
     #[serde(skip)]
     phantom: PhantomData<I>,

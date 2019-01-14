@@ -6,13 +6,13 @@ use std::str::FromStr;
 use lazycell::LazyCell;
 use toml;
 
-use distro::Distro;
 use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
+use distro::Distro;
 use fs::touch;
+use hook;
 use notion_fail::{Fallible, NotionError, ResultExt};
 use path::user_config_file;
-use plugin;
 use readext::ReadExt;
 
 pub(crate) mod serial;
@@ -46,9 +46,9 @@ pub struct Config {
 /// Notion configuration settings relating to the Node executable.
 pub struct ToolConfig<D: Distro> {
     /// The plugin for resolving Node versions, if any.
-    pub resolve: Option<plugin::ResolvePlugin>,
+    pub resolve: Option<hook::ResolveHook>,
     /// The plugin for listing the set of Node versions available on the remote server, if any.
-    pub ls_remote: Option<plugin::LsRemote>,
+    pub ls_remote: Option<hook::LsRemote>,
 
     pub phantom: PhantomData<D>,
 }
@@ -74,14 +74,14 @@ impl FromStr for Config {
 /// Notion configuration settings related to events.
 pub struct EventsConfig {
     /// The plugin for publishing events, if any.
-    pub publish: Option<plugin::Publish>,
+    pub publish: Option<hook::Publish>,
 }
 
 #[cfg(test)]
 pub mod tests {
 
     use config::Config;
-    use plugin;
+    use hook;
     use std::fs;
     use std::path::PathBuf;
 
@@ -104,15 +104,15 @@ pub mod tests {
             .expect("Could not parse urls.toml");
         assert_eq!(
             node_config.node.unwrap().resolve,
-            Some(plugin::ResolvePlugin::Url("https://nodejs.org".to_string()))
+            Some(hook::ResolveHook::Url("https://nodejs.org".to_string()))
         );
         assert_eq!(
             node_config.yarn.unwrap().ls_remote,
-            Some(plugin::LsRemote::Url("https://yarnpkg.com".to_string()))
+            Some(hook::LsRemote::Url("https://yarnpkg.com".to_string()))
         );
         assert_eq!(
             node_config.events.unwrap().publish,
-            Some(plugin::Publish::Url("https://google.com".to_string()))
+            Some(hook::Publish::Url("https://google.com".to_string()))
         );
     }
 
@@ -128,15 +128,15 @@ pub mod tests {
             .expect("Could not parse bins.toml");
         assert_eq!(
             node_config.node.unwrap().resolve,
-            Some(plugin::ResolvePlugin::Bin("/some/bin/for/node".to_string()))
+            Some(hook::ResolveHook::Bin("/some/bin/for/node".to_string()))
         );
         assert_eq!(
             node_config.yarn.unwrap().ls_remote,
-            Some(plugin::LsRemote::Bin("/bin/to/yarn".to_string()))
+            Some(hook::LsRemote::Bin("/bin/to/yarn".to_string()))
         );
         assert_eq!(
             node_config.events.unwrap().publish,
-            Some(plugin::Publish::Bin("/events/bin".to_string()))
+            Some(hook::Publish::Bin("/events/bin".to_string()))
         );
     }
 }
