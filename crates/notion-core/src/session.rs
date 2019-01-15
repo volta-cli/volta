@@ -1,13 +1,13 @@
 //! Provides the `Session` type, which represents the user's state during an
 //! execution of a Notion tool, including their current directory, Notion
-//! hooks, and the state of the local inventory.
+//! hook configuration, and the state of the local inventory.
 
 use std::rc::Rc;
 
 use distro::node::NodeVersion;
 use distro::Fetched;
 use hook::Publish;
-use hook::{Hooks, LazyHooks};
+use hook::{HookConfig, LazyHookConfig};
 use inventory::{Inventory, LazyInventory};
 use platform::PlatformSpec;
 use project::Project;
@@ -86,10 +86,10 @@ impl NotInPackageError {
 /// invoked, including:
 ///     - the current directory
 ///     - the Node project tree that contains the current directory (if any)
-///     - the Notion hook settings
+///     - the Notion hook configuration
 ///     - the inventory of locally-fetched Notion tools
 pub struct Session {
-    hooks: LazyHooks,
+    hooks: LazyHookConfig,
     inventory: LazyInventory,
     toolchain: Toolchain,
     project: Option<Rc<Project>>,
@@ -100,7 +100,7 @@ impl Session {
     /// Constructs a new `Session`.
     pub fn new() -> Fallible<Session> {
         Ok(Session {
-            hooks: LazyHooks::new(),
+            hooks: LazyHookConfig::new(),
             inventory: LazyInventory::new(),
             toolchain: Toolchain::current()?,
             project: Project::for_current_dir()?.map(Rc::new),
@@ -157,8 +157,8 @@ impl Session {
         self.inventory.get_mut()
     }
 
-    /// Produces a reference to the hooks.
-    pub fn hooks(&self) -> Fallible<&Hooks> {
+    /// Produces a reference to the hook configuration
+    pub fn hooks(&self) -> Fallible<&HookConfig> {
         self.hooks.get()
     }
 
@@ -289,7 +289,7 @@ impl Session {
     }
 }
 
-fn publish_plugin(hooks: &LazyHooks) -> Fallible<Option<&Publish>> {
+fn publish_plugin(hooks: &LazyHookConfig) -> Fallible<Option<&Publish>> {
     let hooks = hooks.get()?;
     Ok(hooks
         .events

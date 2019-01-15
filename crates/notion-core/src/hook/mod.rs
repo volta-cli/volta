@@ -27,27 +27,27 @@ pub enum Publish {
     Bin(String),
 }
 
-/// Lazily loaded Notion hooks container.
-pub struct LazyHooks {
-    hooks: LazyCell<Hooks>,
+/// Lazily loaded Notion hook configuration
+pub struct LazyHookConfig {
+    settings: LazyCell<HookConfig>,
 }
 
-impl LazyHooks {
-    /// Constructs a new `LazyHooks` (but does not initialize it).
-    pub fn new() -> LazyHooks {
-        LazyHooks {
-            hooks: LazyCell::new(),
+impl LazyHookConfig {
+    /// Constructs a new `LazyHookConfig` (but does not initialize it).
+    pub fn new() -> LazyHookConfig {
+        LazyHookConfig {
+            settings: LazyCell::new(),
         }
     }
 
-    /// Forces the loading of the hook settings.
-    pub fn get(&self) -> Fallible<&Hooks> {
-        self.hooks.try_borrow_with(|| Hooks::current())
+    /// Forces the loading of the hook configuration
+    pub fn get(&self) -> Fallible<&HookConfig> {
+        self.settings.try_borrow_with(|| HookConfig::current())
     }
 }
 
-/// Notion hook settings.
-pub struct Hooks {
+/// Notion hook configuration
+pub struct HookConfig {
     pub node: Option<ToolHooks<NodeDistro>>,
     pub yarn: Option<ToolHooks<YarnDistro>>,
     pub events: Option<EventHooks>,
@@ -65,7 +65,7 @@ pub struct ToolHooks<D: Distro> {
     pub phantom: PhantomData<D>,
 }
 
-impl Hooks {
+impl HookConfig {
     /// Returns the current hooks, loaded from the filesystem.
     fn current() -> Fallible<Self> {
         let path = user_hooks_file()?;
@@ -74,12 +74,12 @@ impl Hooks {
     }
 }
 
-impl FromStr for Hooks {
+impl FromStr for HookConfig {
     type Err = NotionError;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
-        let serial: serial::Hooks = toml::from_str(src).unknown()?;
-        Ok(serial.into_hooks()?)
+        let serial: serial::HookConfig = toml::from_str(src).unknown()?;
+        Ok(serial.into_hook_config()?)
     }
 }
 
@@ -92,7 +92,7 @@ pub struct EventHooks {
 #[cfg(test)]
 pub mod tests {
 
-    use super::{tool, Hooks, Publish};
+    use super::{tool, HookConfig, Publish};
     use std::fs;
     use std::path::PathBuf;
 
@@ -109,7 +109,7 @@ pub mod tests {
         let mut url_file = fixture_dir.clone();
 
         url_file.push("event_url.toml");
-        let hooks: Hooks = fs::read_to_string(url_file)
+        let hooks: HookConfig = fs::read_to_string(url_file)
             .expect("Chould not read event_url.toml")
             .parse()
             .expect("Could not parse event_url.toml");
@@ -125,7 +125,7 @@ pub mod tests {
         let mut url_file = fixture_dir.clone();
 
         url_file.push("bins.toml");
-        let hooks: Hooks = fs::read_to_string(url_file)
+        let hooks: HookConfig = fs::read_to_string(url_file)
             .expect("Chould not read bins.toml")
             .parse()
             .expect("Could not parse bins.toml");
@@ -174,7 +174,7 @@ pub mod tests {
         let mut url_file = fixture_dir.clone();
 
         url_file.push("prefixes.toml");
-        let hooks: Hooks = fs::read_to_string(url_file)
+        let hooks: HookConfig = fs::read_to_string(url_file)
             .expect("Chould not read prefixes.toml")
             .parse()
             .expect("Could not parse prefixes.toml");
@@ -225,7 +225,7 @@ pub mod tests {
         let mut url_file = fixture_dir.clone();
 
         url_file.push("templates.toml");
-        let hooks: Hooks = fs::read_to_string(url_file)
+        let hooks: HookConfig = fs::read_to_string(url_file)
             .expect("Chould not read templates.toml")
             .parse()
             .expect("Could not parse templates.toml");

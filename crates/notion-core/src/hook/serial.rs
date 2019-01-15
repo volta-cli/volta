@@ -105,7 +105,7 @@ impl PublishHook {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Hooks {
+pub struct HookConfig {
     pub node: Option<ToolHooks<NodeDistro>>,
     pub yarn: Option<ToolHooks<YarnDistro>>,
     pub events: Option<EventHooks>,
@@ -140,9 +140,9 @@ pub struct ToolHooks<I> {
     phantom: PhantomData<I>,
 }
 
-impl Hooks {
-    pub fn into_hooks(self) -> Fallible<super::Hooks> {
-        Ok(super::Hooks {
+impl HookConfig {
+    pub fn into_hook_config(self) -> Fallible<super::HookConfig> {
+        Ok(super::HookConfig {
             node: if let Some(n) = self.node {
                 Some(n.into_tool_hooks()?)
             } else {
