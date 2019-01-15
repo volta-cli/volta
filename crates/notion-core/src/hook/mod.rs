@@ -27,7 +27,7 @@ pub enum ToolDistroHook {
 impl ToolDistroHook {
     /// Performs resolution of the Distro URL based on the given
     /// Version and File Name
-    pub fn resolve(&self, version: &Version, filename: String) -> Fallible<String> {
+    pub fn resolve(&self, version: &Version, filename: &str) -> Fallible<String> {
         match self {
             &ToolDistroHook::Prefix(ref prefix) => Ok(format!("{}{}", prefix, filename)),
             &ToolDistroHook::Template(ref template) => Ok(template
@@ -49,7 +49,7 @@ pub enum ToolMetadataHook {
 
 impl ToolMetadataHook {
     /// Performs resolution of the Metadata URL based on the given default File Name
-    pub fn resolve(&self, filename: String) -> Fallible<String> {
+    pub fn resolve(&self, filename: &str) -> Fallible<String> {
         match self {
             &ToolMetadataHook::Prefix(ref prefix) => Ok(format!("{}{}", prefix, filename)),
             &ToolMetadataHook::Template(ref template) => Ok(template
@@ -104,4 +104,69 @@ pub enum Publish {
 
     /// Reports an event by forking a process and sending the event by IPC.
     Bin(String),
+}
+
+#[cfg(test)]
+pub mod tests {
+    use hook::{ToolDistroHook, ToolMetadataHook};
+    use path::{ARCH, OS};
+    use semver::Version;
+
+    #[test]
+    fn test_distro_prefix_resolve() {
+        let prefix = "http://localhost/node/distro/";
+        let filename = "node.tar.gz";
+        let hook = ToolDistroHook::Prefix(prefix.to_string());
+        let version = Version::new(1, 0, 0);
+
+        assert_eq!(
+            hook.resolve(&version, filename)
+                .expect("Could not resolve URL"),
+            format!("{}{}", prefix, filename)
+        );
+    }
+
+    #[test]
+    fn test_distro_template_resolve() {
+        let hook = ToolDistroHook::Template(
+            "http://localhost/node/{os}/{arch}/{version}/node.tar.gz".to_string(),
+        );
+        let version = Version::new(1, 0, 0);
+        let expected = format!(
+            "http://localhost/node/{}/{}/{}/node.tar.gz",
+            OS,
+            ARCH,
+            version.to_string()
+        );
+
+        assert_eq!(
+            hook.resolve(&version, "node.tar.gz")
+                .expect("Could not resolve URL"),
+            expected
+        );
+    }
+
+    #[test]
+    fn test_metadata_prefix_resolve() {
+        let prefix = "http://localhost/node/index/";
+        let filename = "index.json";
+        let hook = ToolMetadataHook::Prefix(prefix.to_string());
+
+        assert_eq!(
+            hook.resolve(filename).expect("Could not resolve URL"),
+            format!("{}{}", prefix, filename)
+        );
+    }
+
+    #[test]
+    fn test_metadata_template_resolve() {
+        let hook =
+            ToolMetadataHook::Template("http://localhost/node/{os}/{arch}/index.json".to_string());
+        let expected = format!("http://localhost/node/{}/{}/index.json", OS, ARCH);
+
+        assert_eq!(
+            hook.resolve("index.json").expect("Could not resolve URL"),
+            expected
+        );
+    }
 }
