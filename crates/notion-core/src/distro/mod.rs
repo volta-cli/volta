@@ -4,7 +4,7 @@ mod error;
 pub mod node;
 pub mod yarn;
 
-use config::ToolConfig;
+use config::ToolHooks;
 use inventory::Collection;
 use notion_fail::Fallible;
 use semver::Version;
@@ -37,8 +37,8 @@ impl<V> Fetched<V> {
 pub trait Distro: Sized {
     type VersionDetails;
 
-    fn new(version: Version, _config: Option<&ToolConfig<Self>>) -> Fallible<Self> {
-        // CTODO: When ToolConfig is updated to provide an URL Resolver, check that and hit remote directly
+    fn new(version: Version, _hooks: Option<&ToolHooks<Self>>) -> Fallible<Self> {
+        // CTODO: When ToolHooks is updated to provide an URL Resolver, check that and hit remote directly
         Self::public(version)
     }
 

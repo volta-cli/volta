@@ -4,7 +4,7 @@
 
 use std::rc::Rc;
 
-use config::{Config, LazyConfig};
+use config::{HookConfig, LazyHookConfig};
 use distro::node::NodeVersion;
 use distro::Fetched;
 use hook::Publish;
@@ -89,7 +89,7 @@ impl NotInPackageError {
 ///     - the Notion configuration settings
 ///     - the inventory of locally-fetched Notion tools
 pub struct Session {
-    config: LazyConfig,
+    config: LazyHookConfig,
     inventory: LazyInventory,
     toolchain: Toolchain,
     project: Option<Rc<Project>>,
@@ -100,7 +100,7 @@ impl Session {
     /// Constructs a new `Session`.
     pub fn new() -> Fallible<Session> {
         Ok(Session {
-            config: LazyConfig::new(),
+            config: LazyHookConfig::new(),
             inventory: LazyInventory::new(),
             toolchain: Toolchain::current()?,
             project: Project::for_current_dir()?.map(Rc::new),
@@ -158,7 +158,7 @@ impl Session {
     }
 
     /// Produces a reference to the configuration.
-    pub fn config(&self) -> Fallible<&Config> {
+    pub fn config(&self) -> Fallible<&HookConfig> {
         self.config.get()
     }
 
@@ -289,7 +289,7 @@ impl Session {
     }
 }
 
-fn publish_plugin(config: &LazyConfig) -> Fallible<Option<&Publish>> {
+fn publish_plugin(config: &LazyHookConfig) -> Fallible<Option<&Publish>> {
     let config = config.get()?;
     Ok(config
         .events

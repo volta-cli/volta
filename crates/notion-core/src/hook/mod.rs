@@ -4,103 +4,96 @@ use std::ffi::OsString;
 use std::io::Read;
 use std::process::{Command, Stdio};
 
-use distro::Distro;
+use path::{ARCH, OS};
 
 use cmdline_words_parser::StrExt;
 use notion_fail::{FailExt, Fallible, ResultExt};
 use semver::Version;
-use serde_json;
-use version::VersionSpec;
 
 pub(crate) mod serial;
 
-/// A Node version resolution plugin.
-#[derive(PartialEq, Debug)]
-pub enum ResolveHook {
-    /// Resolves a Tool version by sending it to a URL and receiving the
-    /// resolution in the response.
-    Url(String),
+const ARCH_TEMPLATE: &'static str = "{arch}";
+const OS_TEMPLATE: &'static str = "{os}";
+const VERSION_TEMPLATE: &'static str = "{version}";
 
-    /// Resolves a Tool version by passing it to an executable and
-    /// receiving the resolution in the process's stdout stream.
+/// A Hook for resolving the distro URL for a given Tool Version
+#[derive(PartialEq, Debug)]
+pub enum ToolDistroHook {
+    Prefix(String),
+    Template(String),
     Bin(String),
+}
+
+impl ToolDistroHook {
+    /// Performs resolution of the Distro URL based on the given
+    /// Version and File Name
+    pub fn resolve(&self, version: &Version, filename: String) -> Fallible<String> {
+        match self {
+            &ToolDistroHook::Prefix(ref prefix) => Ok(format!("{}{}", prefix, filename)),
+            &ToolDistroHook::Template(ref template) => Ok(template
+                .replace(ARCH_TEMPLATE, ARCH)
+                .replace(OS_TEMPLATE, OS)
+                .replace(VERSION_TEMPLATE, &version.to_string())),
+            &ToolDistroHook::Bin(ref bin) => execute_binary(bin, Some(version.to_string())),
+        }
+    }
+}
+
+/// A Hook for resolving the URL for metadata about a Tool
+#[derive(PartialEq, Debug)]
+pub enum ToolMetadataHook {
+    Prefix(String),
+    Template(String),
+    Bin(String),
+}
+
+impl ToolMetadataHook {
+    /// Performs resolution of the Metadata URL based on the given default File Name
+    pub fn resolve(&self, filename: String) -> Fallible<String> {
+        match self {
+            &ToolMetadataHook::Prefix(ref prefix) => Ok(format!("{}{}", prefix, filename)),
+            &ToolMetadataHook::Template(ref template) => Ok(template
+                .replace(ARCH_TEMPLATE, ARCH)
+                .replace(OS_TEMPLATE, OS)),
+            &ToolMetadataHook::Bin(ref bin) => execute_binary(bin, None),
+        }
+    }
+}
+
+fn execute_binary(bin: &str, extra_arg: Option<String>) -> Fallible<String> {
+    let mut trimmed = bin.trim().to_string();
+    let mut words = trimmed.parse_cmdline_words();
+    let cmd = if let Some(word) = words.next() {
+        word
+    } else {
+        throw!(InvalidCommandError {
+            command: String::from(bin.trim()),
+        }
+        .unknown())
+    };
+    let mut args: Vec<OsString> = words.map(OsString::from).collect();
+
+    if let Some(arg) = extra_arg {
+        args.push(OsString::from(arg));
+    }
+
+    let child = Command::new(cmd)
+        .args(&args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unknown()?;
+
+    let mut url = String::new();
+    child.stdout.unwrap().read_to_string(&mut url).unknown()?;
+    Ok(url.trim().to_string())
 }
 
 #[derive(Fail, Debug)]
 #[fail(display = "Invalid hook command: '{}'", command)]
 pub struct InvalidCommandError {
     command: String,
-}
-
-impl ResolveHook {
-    /// Performs resolution of a Tool version based on the given semantic
-    /// versioning requirements.
-    pub fn resolve<D: Distro>(&self, _matching: &VersionSpec) -> Fallible<D> {
-        match self {
-            &ResolveHook::Url(_) => unimplemented!(),
-
-            &ResolveHook::Bin(ref bin) => {
-                let mut trimmed = bin.trim().to_string();
-                let mut words = trimmed.parse_cmdline_words();
-                let cmd = if let Some(word) = words.next() {
-                    word
-                } else {
-                    throw!(InvalidCommandError {
-                        command: String::from(bin.trim()),
-                    }
-                    .unknown());
-                };
-                let args: Vec<OsString> = words
-                    .map(|s| {
-                        let mut os = OsString::new();
-                        os.push(s);
-                        os
-                    })
-                    .collect();
-                let child = Command::new(cmd)
-                    .args(&args)
-                    .stdin(Stdio::null())
-                    .stdout(Stdio::piped())
-                    .stderr(Stdio::piped())
-                    .spawn()
-                    .unknown()?;
-                let response = ResolveResponse::from_reader(child.stdout.unwrap())?;
-                match response {
-                    ResolveResponse::Url { version, url } => D::remote(version, &url),
-                    ResolveResponse::Stream { version: _version } => {
-                        unimplemented!("bin plugin produced a stream")
-                    }
-                }
-            }
-        }
-    }
-}
-
-/// A response from the Node version resolution plugin.
-#[derive(Debug)]
-pub enum ResolveResponse {
-    /// A plugin response indicating that the Node installer for the resolved version
-    /// can be downloaded from the specified URL.
-    Url { version: Version, url: String },
-
-    /// A plugin response indicating that the Node installer for the resolved version
-    /// is being delivered via the stderr stream of the plugin process.
-    Stream { version: Version },
-}
-
-impl ResolveResponse {
-    /// Reads and parses a response from a Node version resolution plugin.
-    pub fn from_reader<R: Read>(reader: R) -> Fallible<Self> {
-        let serial: serial::ResolveResponse = serde_json::from_reader(reader).unknown()?;
-        Ok(serial.into_resolve_response()?)
-    }
-}
-
-/// A plugin listing the available versions of Node.
-#[derive(PartialEq, Debug)]
-pub enum LsRemote {
-    Url(String),
-    Bin(String),
 }
 
 /// A plugin for publishing Notion events.

@@ -1,0 +1,17 @@
+[node.distro]
+template = "http://localhost/node/distro/{version}/"
+
+[node.latest]
+template = "http://localhost/node/latest/{version}/"
+
+[node.index]
+template = "http://localhost/node/index/{version}/"
+
+[yarn.distro]
+template = "http://localhost/yarn/distro/{version}/"
+
+[yarn.latest]
+template = "http://localhost/yarn/latest/{version}/"
+
+[yarn.index]
+template = "http://localhost/yarn/index/{version}/"

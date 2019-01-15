@@ -15,7 +15,7 @@ use reqwest::header::{CacheControl, CacheDirective, Expires, HttpDate};
 use serde_json;
 use tempfile::NamedTempFile;
 
-use config::{Config, ToolConfig};
+use config::{HookConfig, ToolHooks};
 use distro::node::{NodeDistro, NodeVersion};
 use distro::yarn::YarnDistro;
 use distro::{Distro, Fetched};
@@ -112,7 +112,7 @@ impl Inventory {
     pub fn fetch_node(
         &mut self,
         matching: &VersionSpec,
-        config: &Config,
+        config: &HookConfig,
     ) -> Fallible<Fetched<NodeVersion>> {
         let distro = self.node.resolve(matching, config.node.as_ref())?;
         let fetched = distro.fetch(&self.node).unknown()?;
@@ -135,7 +135,7 @@ impl Inventory {
     pub fn fetch_yarn(
         &mut self,
         matching: &VersionSpec,
-        config: &Config,
+        config: &HookConfig,
     ) -> Fallible<Fetched<Version>> {
         let distro = self.yarn.resolve(&matching, config.yarn.as_ref())?;
         let fetched = distro.fetch(&self.yarn).unknown()?;
@@ -173,24 +173,24 @@ impl<D: Distro> Collection<D> {
 
 pub trait Resolve<D: Distro> {
     /// Resolves the specified semantic versioning requirements into a distribution
-    fn resolve(&self, matching: &VersionSpec, config: Option<&ToolConfig<D>>) -> Fallible<D> {
+    fn resolve(&self, matching: &VersionSpec, hooks: Option<&ToolHooks<D>>) -> Fallible<D> {
         let version = match *matching {
-            VersionSpec::Latest => self.resolve_latest(config)?,
-            VersionSpec::Semver(ref requirement) => self.resolve_semver(requirement, config)?,
+            VersionSpec::Latest => self.resolve_latest(hooks)?,
+            VersionSpec::Semver(ref requirement) => self.resolve_semver(requirement, hooks)?,
             VersionSpec::Exact(ref version) => version.clone(),
         };
 
-        D::new(version, config)
+        D::new(version, hooks)
     }
 
     /// Resolves the latest version for this tool, using either the `latest` hook or the public registry
-    fn resolve_latest(&self, config: Option<&ToolConfig<D>>) -> Fallible<Version>;
+    fn resolve_latest(&self, hooks: Option<&ToolHooks<D>>) -> Fallible<Version>;
 
     /// Resolves a SemVer version for this tool, using either the `index` hook or the public registry
     fn resolve_semver(
         &self,
         matching: &VersionReq,
-        config: Option<&ToolConfig<D>>,
+        hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<Version>;
 }
 
@@ -219,7 +219,7 @@ fn match_node_version(predicate: impl Fn(&NodeEntry) -> bool) -> Fallible<Option
 }
 
 impl Resolve<NodeDistro> for NodeCollection {
-    fn resolve_latest(&self, _config: Option<&ToolConfig<NodeDistro>>) -> Fallible<Version> {
+    fn resolve_latest(&self, _hooks: Option<&ToolHooks<NodeDistro>>) -> Fallible<Version> {
         // NOTE: This assumes the registry always produces a list in sorted order
         //       from newest to oldest. This should be specified as a requirement
         //       when we document the plugin API.
@@ -237,7 +237,7 @@ impl Resolve<NodeDistro> for NodeCollection {
     fn resolve_semver(
         &self,
         matching: &VersionReq,
-        _config: Option<&ToolConfig<NodeDistro>>,
+        _hooks: Option<&ToolHooks<NodeDistro>>,
     ) -> Fallible<Version> {
         // ISSUE #34: also make sure this OS is available for this version
         let version_opt =
@@ -254,7 +254,7 @@ impl Resolve<NodeDistro> for NodeCollection {
 }
 
 impl Resolve<YarnDistro> for YarnCollection {
-    fn resolve_latest(&self, _config: Option<&ToolConfig<YarnDistro>>) -> Fallible<Version> {
+    fn resolve_latest(&self, _hooks: Option<&ToolHooks<YarnDistro>>) -> Fallible<Version> {
         let mut response: reqwest::Response = reqwest::get(public_yarn_latest_version().as_str())
             .with_context(RegistryFetchError::from_error)?;
         Version::parse(&response.text().unknown()?).unknown()
@@ -263,7 +263,7 @@ impl Resolve<YarnDistro> for YarnCollection {
     fn resolve_semver(
         &self,
         matching: &VersionReq,
-        _config: Option<&ToolConfig<YarnDistro>>,
+        _hooks: Option<&ToolHooks<YarnDistro>>,
     ) -> Fallible<Version> {
         let spinner = progress_spinner(&format!(
             "Fetching public registry: {}",

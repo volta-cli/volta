@@ -1,8 +1,0 @@
-[node]
-resolve = { url = "https://nodejs.org" }
-
-[yarn]
-ls-remote = { url = "https://yarnpkg.com" }
-
-[events]
-publish = { url = "https://google.com" }
