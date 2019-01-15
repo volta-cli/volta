@@ -101,7 +101,7 @@ impl ToolUnimplementedError {
 }
 
 /// Represents a command-line tool that Notion shims delegate to.
-pub trait CmdTool: Sized {
+pub trait Tool: Sized {
     fn launch() -> ! {
         let mut session = match Session::new() {
             Ok(session) => session,
@@ -182,7 +182,7 @@ pub struct Npx(Command);
 pub struct Yarn(Command);
 
 #[cfg(windows)]
-impl CmdTool for Script {
+impl Tool for Script {
     fn new(_session: &mut Session) -> Fallible<Self> {
         throw!(ToolUnimplementedError::new())
     }
@@ -215,7 +215,7 @@ fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
 }
 
 #[cfg(unix)]
-impl CmdTool for Script {
+impl Tool for Script {
     fn new(_session: &mut Session) -> Fallible<Self> {
         throw!(ToolUnimplementedError::new())
     }
@@ -242,7 +242,7 @@ impl NoToolChainError {
     }
 }
 
-impl CmdTool for Binary {
+impl Tool for Binary {
     fn new(session: &mut Session) -> Fallible<Self> {
         session.add_event_start(ActivityKind::Binary);
 
@@ -346,7 +346,7 @@ struct NoSuchToolError {
     tool: String,
 }
 
-impl CmdTool for Node {
+impl Tool for Node {
     fn new(session: &mut Session) -> Fallible<Self> {
         session.add_event_start(ActivityKind::Node);
 
@@ -371,7 +371,7 @@ impl CmdTool for Node {
     }
 }
 
-impl CmdTool for Yarn {
+impl Tool for Yarn {
     fn new(session: &mut Session) -> Fallible<Self> {
         session.add_event_start(ActivityKind::Yarn);
 
@@ -409,7 +409,7 @@ impl CmdTool for Yarn {
     }
 }
 
-impl CmdTool for Npm {
+impl Tool for Npm {
     fn new(session: &mut Session) -> Fallible<Self> {
         session.add_event_start(ActivityKind::Npm);
 
@@ -459,7 +459,7 @@ struct NpxNotAvailableError {
     version: String,
 }
 
-impl CmdTool for Npx {
+impl Tool for Npx {
     fn new(session: &mut Session) -> Fallible<Self> {
         session.add_event_start(ActivityKind::Npx);
 
