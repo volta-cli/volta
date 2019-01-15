@@ -1,102 +1,23 @@
-//! Types representing Notion plugins.
+//! Provides types for working with Notion hooks.
 
-use std::ffi::OsString;
-use std::io::Read;
-use std::process::{Command, Stdio};
+use std::marker::PhantomData;
+use std::str::FromStr;
 
-use path::{ARCH, OS};
+use lazycell::LazyCell;
+use toml;
 
-use cmdline_words_parser::StrExt;
-use notion_fail::{FailExt, Fallible, ResultExt};
-use semver::Version;
+use distro::node::NodeDistro;
+use distro::yarn::YarnDistro;
+use distro::Distro;
+use fs::touch;
+use notion_fail::{Fallible, NotionError, ResultExt};
+use path::user_hooks_file;
+use readext::ReadExt;
 
 pub(crate) mod serial;
+pub mod tool;
 
-const ARCH_TEMPLATE: &'static str = "{arch}";
-const OS_TEMPLATE: &'static str = "{os}";
-const VERSION_TEMPLATE: &'static str = "{version}";
-
-/// A Hook for resolving the distro URL for a given Tool Version
-#[derive(PartialEq, Debug)]
-pub enum ToolDistroHook {
-    Prefix(String),
-    Template(String),
-    Bin(String),
-}
-
-impl ToolDistroHook {
-    /// Performs resolution of the Distro URL based on the given
-    /// Version and File Name
-    pub fn resolve(&self, version: &Version, filename: &str) -> Fallible<String> {
-        match self {
-            &ToolDistroHook::Prefix(ref prefix) => Ok(format!("{}{}", prefix, filename)),
-            &ToolDistroHook::Template(ref template) => Ok(template
-                .replace(ARCH_TEMPLATE, ARCH)
-                .replace(OS_TEMPLATE, OS)
-                .replace(VERSION_TEMPLATE, &version.to_string())),
-            &ToolDistroHook::Bin(ref bin) => execute_binary(bin, Some(version.to_string())),
-        }
-    }
-}
-
-/// A Hook for resolving the URL for metadata about a Tool
-#[derive(PartialEq, Debug)]
-pub enum ToolMetadataHook {
-    Prefix(String),
-    Template(String),
-    Bin(String),
-}
-
-impl ToolMetadataHook {
-    /// Performs resolution of the Metadata URL based on the given default File Name
-    pub fn resolve(&self, filename: &str) -> Fallible<String> {
-        match self {
-            &ToolMetadataHook::Prefix(ref prefix) => Ok(format!("{}{}", prefix, filename)),
-            &ToolMetadataHook::Template(ref template) => Ok(template
-                .replace(ARCH_TEMPLATE, ARCH)
-                .replace(OS_TEMPLATE, OS)),
-            &ToolMetadataHook::Bin(ref bin) => execute_binary(bin, None),
-        }
-    }
-}
-
-fn execute_binary(bin: &str, extra_arg: Option<String>) -> Fallible<String> {
-    let mut trimmed = bin.trim().to_string();
-    let mut words = trimmed.parse_cmdline_words();
-    let cmd = if let Some(word) = words.next() {
-        word
-    } else {
-        throw!(InvalidCommandError {
-            command: String::from(bin.trim()),
-        }
-        .unknown())
-    };
-    let mut args: Vec<OsString> = words.map(OsString::from).collect();
-
-    if let Some(arg) = extra_arg {
-        args.push(OsString::from(arg));
-    }
-
-    let child = Command::new(cmd)
-        .args(&args)
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .unknown()?;
-
-    let mut url = String::new();
-    child.stdout.unwrap().read_to_string(&mut url).unknown()?;
-    Ok(url.trim().to_string())
-}
-
-#[derive(Fail, Debug)]
-#[fail(display = "Invalid hook command: '{}'", command)]
-pub struct InvalidCommandError {
-    command: String,
-}
-
-/// A plugin for publishing Notion events.
+/// A hook for publishing Notion events.
 #[derive(PartialEq, Debug)]
 pub enum Publish {
     /// Reports an event by sending a POST request to a URL.
@@ -106,67 +27,246 @@ pub enum Publish {
     Bin(String),
 }
 
+/// Lazily loaded Notion hooks container.
+pub struct LazyHooks {
+    hooks: LazyCell<Hooks>,
+}
+
+impl LazyHooks {
+    /// Constructs a new `LazyHooks` (but does not initialize it).
+    pub fn new() -> LazyHooks {
+        LazyHooks {
+            hooks: LazyCell::new(),
+        }
+    }
+
+    /// Forces the loading of the hook settings.
+    pub fn get(&self) -> Fallible<&Hooks> {
+        self.hooks.try_borrow_with(|| Hooks::current())
+    }
+}
+
+/// Notion hook settings.
+pub struct Hooks {
+    pub node: Option<ToolHooks<NodeDistro>>,
+    pub yarn: Option<ToolHooks<YarnDistro>>,
+    pub events: Option<EventHooks>,
+}
+
+/// Notion hooks for an individual tool
+pub struct ToolHooks<D: Distro> {
+    /// The hook for resolving the URL for a distro version
+    pub distro: Option<tool::DistroHook>,
+    /// The hook for resolving the URL for the latest version
+    pub latest: Option<tool::MetadataHook>,
+    /// The hook for resolving the Tool Index URL
+    pub index: Option<tool::MetadataHook>,
+
+    pub phantom: PhantomData<D>,
+}
+
+impl Hooks {
+    /// Returns the current hooks, loaded from the filesystem.
+    fn current() -> Fallible<Self> {
+        let path = user_hooks_file()?;
+        let src = touch(&path)?.read_into_string().unknown()?;
+        src.parse()
+    }
+}
+
+impl FromStr for Hooks {
+    type Err = NotionError;
+
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        let serial: serial::Hooks = toml::from_str(src).unknown()?;
+        Ok(serial.into_hooks()?)
+    }
+}
+
+/// Notion hooks related to events.
+pub struct EventHooks {
+    /// The hook for publishing events, if any.
+    pub publish: Option<Publish>,
+}
+
 #[cfg(test)]
 pub mod tests {
-    use hook::{ToolDistroHook, ToolMetadataHook};
-    use path::{ARCH, OS};
-    use semver::Version;
+
+    use super::{tool, Hooks, Publish};
+    use std::fs;
+    use std::path::PathBuf;
+
+    fn fixture_path(fixture_dir: &str) -> PathBuf {
+        let mut cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        cargo_manifest_dir.push("fixtures");
+        cargo_manifest_dir.push(fixture_dir);
+        cargo_manifest_dir
+    }
 
     #[test]
-    fn test_distro_prefix_resolve() {
-        let prefix = "http://localhost/node/distro/";
-        let filename = "node.tar.gz";
-        let hook = ToolDistroHook::Prefix(prefix.to_string());
-        let version = Version::new(1, 0, 0);
+    fn test_from_str_event_url() {
+        let fixture_dir = fixture_path("hooks");
+        let mut url_file = fixture_dir.clone();
 
+        url_file.push("event_url.toml");
+        let hooks: Hooks = fs::read_to_string(url_file)
+            .expect("Chould not read event_url.toml")
+            .parse()
+            .expect("Could not parse event_url.toml");
         assert_eq!(
-            hook.resolve(&version, filename)
-                .expect("Could not resolve URL"),
-            format!("{}{}", prefix, filename)
+            hooks.events.unwrap().publish,
+            Some(Publish::Url("https://google.com".to_string()))
         );
     }
 
     #[test]
-    fn test_distro_template_resolve() {
-        let hook = ToolDistroHook::Template(
-            "http://localhost/node/{os}/{arch}/{version}/node.tar.gz".to_string(),
-        );
-        let version = Version::new(1, 0, 0);
-        let expected = format!(
-            "http://localhost/node/{}/{}/{}/node.tar.gz",
-            OS,
-            ARCH,
-            version.to_string()
-        );
+    fn test_from_str_bins() {
+        let fixture_dir = fixture_path("hooks");
+        let mut url_file = fixture_dir.clone();
 
+        url_file.push("bins.toml");
+        let hooks: Hooks = fs::read_to_string(url_file)
+            .expect("Chould not read bins.toml")
+            .parse()
+            .expect("Could not parse bins.toml");
+
+        let node = hooks.node.unwrap();
+        let yarn = hooks.yarn.unwrap();
         assert_eq!(
-            hook.resolve(&version, "node.tar.gz")
-                .expect("Could not resolve URL"),
-            expected
+            node.distro,
+            Some(tool::DistroHook::Bin(
+                "/some/bin/for/node/distro".to_string()
+            ))
+        );
+        assert_eq!(
+            node.latest,
+            Some(tool::MetadataHook::Bin(
+                "/some/bin/for/node/latest".to_string()
+            ))
+        );
+        assert_eq!(
+            node.index,
+            Some(tool::MetadataHook::Bin(
+                "/some/bin/for/node/index".to_string()
+            ))
+        );
+        assert_eq!(
+            yarn.distro,
+            Some(tool::DistroHook::Bin("/bin/to/yarn/distro".to_string()))
+        );
+        assert_eq!(
+            yarn.latest,
+            Some(tool::MetadataHook::Bin("/bin/to/yarn/latest".to_string()))
+        );
+        assert_eq!(
+            yarn.index,
+            Some(tool::MetadataHook::Bin("/bin/to/yarn/index".to_string()))
+        );
+        assert_eq!(
+            hooks.events.unwrap().publish,
+            Some(Publish::Bin("/events/bin".to_string()))
         );
     }
 
     #[test]
-    fn test_metadata_prefix_resolve() {
-        let prefix = "http://localhost/node/index/";
-        let filename = "index.json";
-        let hook = ToolMetadataHook::Prefix(prefix.to_string());
+    fn test_from_str_prefixes() {
+        let fixture_dir = fixture_path("hooks");
+        let mut url_file = fixture_dir.clone();
 
+        url_file.push("prefixes.toml");
+        let hooks: Hooks = fs::read_to_string(url_file)
+            .expect("Chould not read prefixes.toml")
+            .parse()
+            .expect("Could not parse prefixes.toml");
+
+        let node = hooks.node.unwrap();
+        let yarn = hooks.yarn.unwrap();
         assert_eq!(
-            hook.resolve(filename).expect("Could not resolve URL"),
-            format!("{}{}", prefix, filename)
+            node.distro,
+            Some(tool::DistroHook::Prefix(
+                "http://localhost/node/distro/".to_string()
+            ))
+        );
+        assert_eq!(
+            node.latest,
+            Some(tool::MetadataHook::Prefix(
+                "http://localhost/node/latest/".to_string()
+            ))
+        );
+        assert_eq!(
+            node.index,
+            Some(tool::MetadataHook::Prefix(
+                "http://localhost/node/index/".to_string()
+            ))
+        );
+        assert_eq!(
+            yarn.distro,
+            Some(tool::DistroHook::Prefix(
+                "http://localhost/yarn/distro/".to_string()
+            ))
+        );
+        assert_eq!(
+            yarn.latest,
+            Some(tool::MetadataHook::Prefix(
+                "http://localhost/yarn/latest/".to_string()
+            ))
+        );
+        assert_eq!(
+            yarn.index,
+            Some(tool::MetadataHook::Prefix(
+                "http://localhost/yarn/index/".to_string()
+            ))
         );
     }
 
     #[test]
-    fn test_metadata_template_resolve() {
-        let hook =
-            ToolMetadataHook::Template("http://localhost/node/{os}/{arch}/index.json".to_string());
-        let expected = format!("http://localhost/node/{}/{}/index.json", OS, ARCH);
+    fn test_from_str_templates() {
+        let fixture_dir = fixture_path("hooks");
+        let mut url_file = fixture_dir.clone();
 
+        url_file.push("templates.toml");
+        let hooks: Hooks = fs::read_to_string(url_file)
+            .expect("Chould not read templates.toml")
+            .parse()
+            .expect("Could not parse templates.toml");
+
+        let node = hooks.node.unwrap();
+        let yarn = hooks.yarn.unwrap();
         assert_eq!(
-            hook.resolve("index.json").expect("Could not resolve URL"),
-            expected
+            node.distro,
+            Some(tool::DistroHook::Template(
+                "http://localhost/node/distro/{version}/".to_string()
+            ))
+        );
+        assert_eq!(
+            node.latest,
+            Some(tool::MetadataHook::Template(
+                "http://localhost/node/latest/{version}/".to_string()
+            ))
+        );
+        assert_eq!(
+            node.index,
+            Some(tool::MetadataHook::Template(
+                "http://localhost/node/index/{version}/".to_string()
+            ))
+        );
+        assert_eq!(
+            yarn.distro,
+            Some(tool::DistroHook::Template(
+                "http://localhost/yarn/distro/{version}/".to_string()
+            ))
+        );
+        assert_eq!(
+            yarn.latest,
+            Some(tool::MetadataHook::Template(
+                "http://localhost/yarn/latest/{version}/".to_string()
+            ))
+        );
+        assert_eq!(
+            yarn.index,
+            Some(tool::MetadataHook::Template(
+                "http://localhost/yarn/index/{version}/".to_string()
+            ))
         );
     }
 }

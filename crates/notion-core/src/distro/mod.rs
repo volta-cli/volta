@@ -4,7 +4,7 @@ mod error;
 pub mod node;
 pub mod yarn;
 
-use config::ToolHooks;
+use hook::ToolHooks;
 use inventory::Collection;
 use notion_fail::Fallible;
 use semver::Version;

@@ -88,8 +88,8 @@ pub fn shim_dir() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("bin"))
 }
 
-pub fn user_config_file() -> Fallible<PathBuf> {
-    Ok(notion_home()?.join("config.toml"))
+pub fn user_hooks_file() -> Fallible<PathBuf> {
+    Ok(notion_home()?.join("hooks.toml"))
 }
 
 pub fn tools_dir() -> Fallible<PathBuf> {
@@ -109,7 +109,11 @@ pub fn user_platform_file() -> Fallible<PathBuf> {
 }
 
 pub fn node_distro_file_name(version: &str) -> String {
-    format!("{}.{}", node_archive_root_dir_name(version), archive_extension())
+    format!(
+        "{}.{}",
+        node_archive_root_dir_name(version),
+        archive_extension()
+    )
 }
 
 pub fn node_npm_version_file_name(version: &str) -> String {
@@ -159,14 +163,14 @@ pub mod tests {
 
     #[test]
     fn test_yarn_distro_file_name() {
-        assert_eq!(
-            yarn_distro_file_name("1.2.3"),
-            "yarn-v1.2.3.tar.gz"
-        );
+        assert_eq!(yarn_distro_file_name("1.2.3"), "yarn-v1.2.3.tar.gz");
     }
 
     #[test]
     fn yarn_node_archive_root_dir() {
-        assert_eq!(yarn_archive_root_dir_name("1.2.3"), "yarn-v1.2.3".to_string());
+        assert_eq!(
+            yarn_archive_root_dir_name("1.2.3"),
+            "yarn-v1.2.3".to_string()
+        );
     }
 }

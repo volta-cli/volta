@@ -15,11 +15,11 @@ use reqwest::header::{CacheControl, CacheDirective, Expires, HttpDate};
 use serde_json;
 use tempfile::NamedTempFile;
 
-use config::{HookConfig, ToolHooks};
 use distro::node::{NodeDistro, NodeVersion};
 use distro::yarn::YarnDistro;
 use distro::{Distro, Fetched};
 use fs::{ensure_containing_dir_exists, read_file_opt};
+use hook::{Hooks, ToolHooks};
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use path;
 use semver::{Version, VersionReq};
@@ -112,9 +112,9 @@ impl Inventory {
     pub fn fetch_node(
         &mut self,
         matching: &VersionSpec,
-        config: &HookConfig,
+        hooks: &Hooks,
     ) -> Fallible<Fetched<NodeVersion>> {
-        let distro = self.node.resolve(matching, config.node.as_ref())?;
+        let distro = self.node.resolve(matching, hooks.node.as_ref())?;
         let fetched = distro.fetch(&self.node).unknown()?;
 
         if let &Fetched::Now(NodeVersion {
@@ -135,9 +135,9 @@ impl Inventory {
     pub fn fetch_yarn(
         &mut self,
         matching: &VersionSpec,
-        config: &HookConfig,
+        hooks: &Hooks,
     ) -> Fallible<Fetched<Version>> {
-        let distro = self.yarn.resolve(&matching, config.yarn.as_ref())?;
+        let distro = self.yarn.resolve(&matching, hooks.yarn.as_ref())?;
         let fetched = distro.fetch(&self.yarn).unknown()?;
 
         if let &Fetched::Now(ref version) = &fetched {

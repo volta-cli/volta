@@ -2,14 +2,14 @@
 //! in a standard Notion layout in Unix-based operating systems.
 
 use std::io;
-use std::path::PathBuf;
 use std::os::unix;
+use std::path::PathBuf;
 
 use dirs;
 
 use notion_fail::{ExitCode, Fallible, NotionFail};
 
-use super::{notion_home, node_image_dir, shim_dir};
+use super::{node_image_dir, notion_home, shim_dir};
 
 #[derive(Debug, Fail, NotionFail)]
 #[fail(display = "environment variable 'HOME' is not set")]
@@ -81,7 +81,7 @@ cfg_if! {
 //         notion                                          notion_file
 //         launchbin                                       launchbin_file
 //         launchscript                                    launchscript_file
-//         config.toml                                     user_config_file
+//         hooks.toml                                      user_hooks_file
 
 pub fn default_notion_home() -> Fallible<PathBuf> {
     let home = dirs::home_dir().ok_or(NoHomeEnvVar)?;

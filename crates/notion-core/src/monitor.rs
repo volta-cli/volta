@@ -20,7 +20,7 @@ impl Monitor {
     }
 
     /// send event to the monitor process
-    // if plugin command is not configured, this is a no-op
+    // if hook command is not configured, this is a no-op
     pub fn send_events(&mut self, events: &Vec<Event>) -> () {
         if let Some(ref mut child_process) = self.monitor_process {
             let p_stdin = child_process.stdin.as_mut().unwrap();
@@ -66,10 +66,10 @@ impl LazyMonitor {
 fn spawn_process(command: &str) -> Option<Child> {
     command.split(" ").take(1).next().and_then(|executable| {
         let child = Command::new(executable)
-                    .args(command.split(" ").skip(1))
-                    .stdin(Stdio::piped()) // JSON data is sent over stdin
-                    // .stdout(Stdio::piped()) // let the plugin write to stdout for now
-                    .spawn();
+            .args(command.split(" ").skip(1))
+            .stdin(Stdio::piped()) // JSON data is sent over stdin
+            // .stdout(Stdio::piped()) // let the plugin write to stdout for now
+            .spawn();
         match child {
             Err(err) => {
                 eprintln!("Error running plugin command: '{}'", command);

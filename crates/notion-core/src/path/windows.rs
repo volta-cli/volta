@@ -1,16 +1,16 @@
 //! Provides functions for determining the paths of files and directories
 //! in a standard Notion layout in Windows operating systems.
 
-use std::path::PathBuf;
+use std::io;
 #[cfg(windows)]
 use std::os::windows;
-use std::io;
+use std::path::PathBuf;
 
 use dirs;
 
 use notion_fail::{ExitCode, Fallible, NotionFail};
 
-use super::{notion_home, node_image_dir, shim_dir};
+use super::{node_image_dir, notion_home, shim_dir};
 
 // These are taken from: https://nodejs.org/dist/index.json and are used
 // by `path::archive_root_dir` to determine the root directory of the
@@ -70,7 +70,7 @@ pub(crate) struct NoDataLocalDir;
 //         notion.exe                                      notion_file
 //         launchbin.exe                                   launchbin_file
 //         launchscript.exe                                launchscript_file
-//         config.toml                                     user_config_file
+//         hooks.toml                                      user_hooks_file
 
 pub fn default_notion_home() -> Fallible<PathBuf> {
     let home = dirs::data_local_dir().ok_or(NoDataLocalDir)?;

@@ -1,13 +1,13 @@
 //! Provides the `Session` type, which represents the user's state during an
-//! execution of a Notion tool, including their configuration, their current
-//! directory, and the state of the local inventory.
+//! execution of a Notion tool, including their current directory, Notion
+//! hooks, and the state of the local inventory.
 
 use std::rc::Rc;
 
-use config::{HookConfig, LazyHookConfig};
 use distro::node::NodeVersion;
 use distro::Fetched;
 use hook::Publish;
+use hook::{Hooks, LazyHooks};
 use inventory::{Inventory, LazyInventory};
 use platform::PlatformSpec;
 use project::Project;
@@ -86,10 +86,10 @@ impl NotInPackageError {
 /// invoked, including:
 ///     - the current directory
 ///     - the Node project tree that contains the current directory (if any)
-///     - the Notion configuration settings
+///     - the Notion hook settings
 ///     - the inventory of locally-fetched Notion tools
 pub struct Session {
-    config: LazyHookConfig,
+    hooks: LazyHooks,
     inventory: LazyInventory,
     toolchain: Toolchain,
     project: Option<Rc<Project>>,
@@ -100,7 +100,7 @@ impl Session {
     /// Constructs a new `Session`.
     pub fn new() -> Fallible<Session> {
         Ok(Session {
-            config: LazyHookConfig::new(),
+            hooks: LazyHooks::new(),
             inventory: LazyInventory::new(),
             toolchain: Toolchain::current()?,
             project: Project::for_current_dir()?.map(Rc::new),
@@ -157,9 +157,9 @@ impl Session {
         self.inventory.get_mut()
     }
 
-    /// Produces a reference to the configuration.
-    pub fn config(&self) -> Fallible<&HookConfig> {
-        self.config.get()
+    /// Produces a reference to the hooks.
+    pub fn hooks(&self) -> Fallible<&Hooks> {
+        self.hooks.get()
     }
 
     /// Ensures that a specific Node version has been fetched and unpacked
@@ -167,8 +167,8 @@ impl Session {
         let inventory = self.inventory.get_mut()?;
 
         if !inventory.node.contains(version) {
-            let config = self.config.get()?;
-            inventory.fetch_node(&VersionSpec::exact(version), config)?;
+            let hooks = self.hooks.get()?;
+            inventory.fetch_node(&VersionSpec::exact(version), hooks)?;
         }
 
         Ok(())
@@ -179,8 +179,8 @@ impl Session {
         let inventory = self.inventory.get_mut()?;
 
         if !inventory.yarn.contains(version) {
-            let config = self.config.get()?;
-            inventory.fetch_yarn(&VersionSpec::exact(version), config)?;
+            let hooks = self.hooks.get()?;
+            inventory.fetch_yarn(&VersionSpec::exact(version), hooks)?;
         }
 
         Ok(())
@@ -194,16 +194,16 @@ impl Session {
     /// requirements.
     pub fn fetch_node(&mut self, matching: &VersionSpec) -> Fallible<Fetched<NodeVersion>> {
         let inventory = self.inventory.get_mut()?;
-        let config = self.config.get()?;
-        inventory.fetch_node(matching, config)
+        let hooks = self.hooks.get()?;
+        inventory.fetch_node(matching, hooks)
     }
 
     /// Sets the user toolchain's Node version to one matching the specified semantic versioning
     /// requirements.
     pub fn install_node(&mut self, matching: &VersionSpec) -> Fallible<()> {
         let inventory = self.inventory.get_mut()?;
-        let config = self.config.get()?;
-        let version = inventory.fetch_node(matching, config)?.into_version();
+        let hooks = self.hooks.get()?;
+        let version = inventory.fetch_node(matching, hooks)?.into_version();
         self.toolchain.set_active_node(version)?;
         Ok(())
     }
@@ -228,16 +228,16 @@ impl Session {
     /// requirements.
     pub fn fetch_yarn(&mut self, matching: &VersionSpec) -> Fallible<Fetched<Version>> {
         let inventory = self.inventory.get_mut()?;
-        let config = self.config.get()?;
-        inventory.fetch_yarn(matching, config)
+        let hooks = self.hooks.get()?;
+        inventory.fetch_yarn(matching, hooks)
     }
 
     /// Sets the Yarn version in the user toolchain to one matching the specified semantic versioning
     /// requirements.
     pub fn install_yarn(&mut self, matching: &VersionSpec) -> Fallible<()> {
         let inventory = self.inventory.get_mut()?;
-        let config = self.config.get()?;
-        let version = inventory.fetch_yarn(matching, config)?.into_version();
+        let hooks = self.hooks.get()?;
+        let version = inventory.fetch_yarn(matching, hooks)?.into_version();
         self.toolchain.set_active_yarn(version)?;
         Ok(())
     }
@@ -268,7 +268,7 @@ impl Session {
     }
 
     fn publish_to_event_log(mut self) {
-        match publish_plugin(&self.config) {
+        match publish_plugin(&self.hooks) {
             Ok(plugin) => {
                 self.event_log.publish(plugin);
             }
@@ -289,9 +289,9 @@ impl Session {
     }
 }
 
-fn publish_plugin(config: &LazyHookConfig) -> Fallible<Option<&Publish>> {
-    let config = config.get()?;
-    Ok(config
+fn publish_plugin(hooks: &LazyHooks) -> Fallible<Option<&Publish>> {
+    let hooks = hooks.get()?;
+    Ok(hooks
         .events
         .as_ref()
         .and_then(|events| events.publish.as_ref()))

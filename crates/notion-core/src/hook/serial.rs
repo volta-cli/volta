@@ -1,9 +1,13 @@
-use super::super::hook;
+use super::tool;
+use std::marker::PhantomData;
 
+use distro::node::NodeDistro;
+use distro::yarn::YarnDistro;
+use distro::Distro;
 use notion_fail::{FailExt, Fallible};
 
 #[derive(Serialize, Deserialize)]
-pub struct ToolHook {
+pub struct ResolveHook {
     prefix: Option<String>,
     template: Option<String>,
     bin: Option<String>,
@@ -23,7 +27,7 @@ struct MultipleFieldsSpecified;
 #[fail(display = "Hook must contain either a 'prefix', 'template', or 'bin' field")]
 struct NoFieldSpecified;
 
-impl ToolHook {
+impl ResolveHook {
     fn into_hook<H, P, T, B>(self, to_prefix: P, to_template: T, to_bin: B) -> Fallible<H>
     where
         P: FnOnce(String) -> H,
@@ -31,22 +35,22 @@ impl ToolHook {
         B: FnOnce(String) -> H,
     {
         match self {
-            ToolHook {
+            ResolveHook {
                 prefix: Some(prefix),
                 template: None,
                 bin: None,
             } => Ok(to_prefix(prefix)),
-            ToolHook {
+            ResolveHook {
                 prefix: None,
                 template: Some(template),
                 bin: None,
             } => Ok(to_template(template)),
-            ToolHook {
+            ResolveHook {
                 prefix: None,
                 template: None,
                 bin: Some(bin),
             } => Ok(to_bin(bin)),
-            ToolHook {
+            ResolveHook {
                 prefix: None,
                 template: None,
                 bin: None,
@@ -55,19 +59,19 @@ impl ToolHook {
         }
     }
 
-    pub fn into_distro_hook(self) -> Fallible<hook::ToolDistroHook> {
+    pub fn into_distro_hook(self) -> Fallible<tool::DistroHook> {
         self.into_hook(
-            hook::ToolDistroHook::Prefix,
-            hook::ToolDistroHook::Template,
-            hook::ToolDistroHook::Bin,
+            tool::DistroHook::Prefix,
+            tool::DistroHook::Template,
+            tool::DistroHook::Bin,
         )
     }
 
-    pub fn into_metadata_hook(self) -> Fallible<hook::ToolMetadataHook> {
+    pub fn into_metadata_hook(self) -> Fallible<tool::MetadataHook> {
         self.into_hook(
-            hook::ToolMetadataHook::Prefix,
-            hook::ToolMetadataHook::Template,
-            hook::ToolMetadataHook::Bin,
+            tool::MetadataHook::Prefix,
+            tool::MetadataHook::Template,
+            tool::MetadataHook::Bin,
         )
     }
 }
@@ -81,21 +85,102 @@ struct BothUrlAndBin;
 struct NeitherUrlNorBin;
 
 impl PublishHook {
-    pub fn into_publish(self) -> Fallible<hook::Publish> {
+    pub fn into_publish(self) -> Fallible<super::Publish> {
         match self {
             PublishHook {
                 url: Some(url),
                 bin: None,
-            } => Ok(hook::Publish::Url(url)),
+            } => Ok(super::Publish::Url(url)),
             PublishHook {
                 url: None,
                 bin: Some(bin),
-            } => Ok(hook::Publish::Bin(bin)),
+            } => Ok(super::Publish::Bin(bin)),
             PublishHook {
                 url: None,
                 bin: None,
             } => Err(NeitherUrlNorBin.unknown()),
             _ => Err(BothUrlAndBin.unknown()),
         }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Hooks {
+    pub node: Option<ToolHooks<NodeDistro>>,
+    pub yarn: Option<ToolHooks<YarnDistro>>,
+    pub events: Option<EventHooks>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename = "events")]
+pub struct EventHooks {
+    pub publish: Option<PublishHook>,
+}
+
+impl EventHooks {
+    pub fn into_event_hooks(self) -> Fallible<super::EventHooks> {
+        Ok(super::EventHooks {
+            publish: if let Some(p) = self.publish {
+                Some(p.into_publish()?)
+            } else {
+                None
+            },
+        })
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename = "tool")]
+pub struct ToolHooks<I> {
+    pub distro: Option<ResolveHook>,
+    pub latest: Option<ResolveHook>,
+    pub index: Option<ResolveHook>,
+
+    #[serde(skip)]
+    phantom: PhantomData<I>,
+}
+
+impl Hooks {
+    pub fn into_hooks(self) -> Fallible<super::Hooks> {
+        Ok(super::Hooks {
+            node: if let Some(n) = self.node {
+                Some(n.into_tool_hooks()?)
+            } else {
+                None
+            },
+            yarn: if let Some(y) = self.yarn {
+                Some(y.into_tool_hooks()?)
+            } else {
+                None
+            },
+            events: if let Some(e) = self.events {
+                Some(e.into_event_hooks()?)
+            } else {
+                None
+            },
+        })
+    }
+}
+
+impl<D: Distro> ToolHooks<D> {
+    pub fn into_tool_hooks(self) -> Fallible<super::ToolHooks<D>> {
+        Ok(super::ToolHooks {
+            distro: if let Some(h) = self.distro {
+                Some(h.into_distro_hook()?)
+            } else {
+                None
+            },
+            latest: if let Some(h) = self.latest {
+                Some(h.into_metadata_hook()?)
+            } else {
+                None
+            },
+            index: if let Some(h) = self.index {
+                Some(h.into_metadata_hook()?)
+            } else {
+                None
+            },
+            phantom: PhantomData,
+        })
     }
 }
