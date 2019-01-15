@@ -109,11 +109,19 @@ impl Inventory {
     }
 
     /// Fetches a Node version matching the specified semantic versioning requirements.
-    pub fn fetch_node(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<NodeVersion>> {
-        let distro = self.node.resolve_remote(matching, config.node.as_ref())?;
+    pub fn fetch_node(
+        &mut self,
+        matching: &VersionSpec,
+        config: &Config,
+    ) -> Fallible<Fetched<NodeVersion>> {
+        let distro = self.node.resolve(matching, config.node.as_ref())?;
         let fetched = distro.fetch(&self.node).unknown()?;
 
-        if let &Fetched::Now(NodeVersion { runtime: ref version, .. }) = &fetched {
+        if let &Fetched::Now(NodeVersion {
+            runtime: ref version,
+            ..
+        }) = &fetched
+        {
             self.node.versions.insert(version.clone());
         }
 
@@ -124,8 +132,12 @@ impl Inventory {
     // ISSUE (#173) use Tool specs to do the abstracting
 
     /// Fetches a Yarn version matching the specified semantic versioning requirements.
-    pub fn fetch_yarn(&mut self, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<Version>> {
-        let distro = self.yarn.resolve_remote(&matching, config.yarn.as_ref())?;
+    pub fn fetch_yarn(
+        &mut self,
+        matching: &VersionSpec,
+        config: &Config,
+    ) -> Fallible<Fetched<Version>> {
+        let distro = self.yarn.resolve(&matching, config.yarn.as_ref())?;
         let fetched = distro.fetch(&self.yarn).unknown()?;
 
         if let &Fetched::Now(ref version) = &fetched {
@@ -141,7 +153,7 @@ impl Inventory {
 #[fail(display = "No Node version found for {}", matching)]
 #[notion_fail(code = "NoVersionMatch")]
 struct NoNodeVersionFoundError {
-    matching: VersionSpec,
+    matching: String,
 }
 
 /// Thrown when there is no Yarn version matching a requested semver specifier.
@@ -149,7 +161,7 @@ struct NoNodeVersionFoundError {
 #[fail(display = "No Yarn version found for {}", matching)]
 #[notion_fail(code = "NoVersionMatch")]
 struct NoYarnVersionFoundError {
-    matching: VersionReq,
+    matching: String,
 }
 
 impl<D: Distro> Collection<D> {
@@ -160,23 +172,26 @@ impl<D: Distro> Collection<D> {
 }
 
 pub trait Resolve<D: Distro> {
-    /// Resolves the specified semantic versioning requirements from a remote distributor.
-    fn resolve_remote(
-        &self,
-        matching: &VersionSpec,
-        config: Option<&ToolConfig<D>>,
-    ) -> Fallible<D> {
-        match config {
-            Some(ToolConfig {
-                resolve: Some(ref plugin),
-                ..
-            }) => plugin.resolve(matching),
-            _ => self.resolve_public(matching),
-        }
+    /// Resolves the specified semantic versioning requirements into a distribution
+    fn resolve(&self, matching: &VersionSpec, config: Option<&ToolConfig<D>>) -> Fallible<D> {
+        let version = match *matching {
+            VersionSpec::Latest => self.resolve_latest(config)?,
+            VersionSpec::Semver(ref requirement) => self.resolve_semver(requirement, config)?,
+            VersionSpec::Exact(ref version) => version.clone(),
+        };
+
+        D::new(version, config)
     }
 
-    /// Resolves the specified semantic versioning requirements from the public distributor (e.g. `https://nodejs.org`).
-    fn resolve_public(&self, matching: &VersionSpec) -> Fallible<D>;
+    /// Resolves the latest version for this tool, using either the `latest` hook or the public registry
+    fn resolve_latest(&self, config: Option<&ToolConfig<D>>) -> Fallible<Version>;
+
+    /// Resolves a SemVer version for this tool, using either the `index` hook or the public registry
+    fn resolve_semver(
+        &self,
+        matching: &VersionReq,
+        config: Option<&ToolConfig<D>>,
+    ) -> Fallible<Version>;
 }
 
 /// Thrown when the public registry for Node or Yarn could not be downloaded.
@@ -198,71 +213,77 @@ impl RegistryFetchError {
 fn match_node_version(predicate: impl Fn(&NodeEntry) -> bool) -> Fallible<Option<Version>> {
     let index: NodeIndex = resolve_node_versions()?.into_index()?;
     let mut entries = index.entries.into_iter();
-    Ok(entries.find(predicate).map(|NodeEntry { version, .. }| version))
+    Ok(entries
+        .find(predicate)
+        .map(|NodeEntry { version, .. }| version))
 }
 
 impl Resolve<NodeDistro> for NodeCollection {
-    fn resolve_public(&self, matching: &VersionSpec) -> Fallible<NodeDistro> {
-        let version_opt = match *matching {
-            VersionSpec::Latest => {
-                // NOTE: This assumes the registry always produces a list in sorted order
-                //       from newest to oldest. This should be specified as a requirement
-                //       when we document the plugin API.
-                match_node_version(|_| true)?
-            }
-            VersionSpec::Semver(ref matching) => {
-                // ISSUE #34: also make sure this OS is available for this version
-                match_node_version(|&NodeEntry { version: ref v, .. }| matching.matches(v))?
-            }
-            VersionSpec::Exact(ref exact) => Some(exact.clone())
-        };
+    fn resolve_latest(&self, _config: Option<&ToolConfig<NodeDistro>>) -> Fallible<Version> {
+        // NOTE: This assumes the registry always produces a list in sorted order
+        //       from newest to oldest. This should be specified as a requirement
+        //       when we document the plugin API.
+        let version_opt = match_node_version(|_| true)?;
 
         if let Some(version) = version_opt {
-            NodeDistro::public(version)
+            Ok(version)
         } else {
             throw!(NoNodeVersionFoundError {
-                matching: matching.clone()
+                matching: "latest".to_string()
+            })
+        }
+    }
+
+    fn resolve_semver(
+        &self,
+        matching: &VersionReq,
+        _config: Option<&ToolConfig<NodeDistro>>,
+    ) -> Fallible<Version> {
+        // ISSUE #34: also make sure this OS is available for this version
+        let version_opt =
+            match_node_version(|&NodeEntry { version: ref v, .. }| matching.matches(v))?;
+
+        if let Some(version) = version_opt {
+            Ok(version)
+        } else {
+            throw!(NoNodeVersionFoundError {
+                matching: matching.to_string()
             })
         }
     }
 }
 
 impl Resolve<YarnDistro> for YarnCollection {
-    /// Resolves the specified semantic versioning requirements from the public distributor.
-    fn resolve_public(&self, matching: &VersionSpec) -> Fallible<YarnDistro> {
-        let version = match *matching {
-            VersionSpec::Latest => {
-                let mut response: reqwest::Response =
-                    reqwest::get(public_yarn_latest_version().as_str())
-                        .with_context(RegistryFetchError::from_error)?;
-                Version::parse(&response.text().unknown()?).unknown()?
-            }
-            VersionSpec::Semver(ref matching) => {
-                let spinner = progress_spinner(&format!(
-                    "Fetching public registry: {}",
-                    public_yarn_version_index()
-                ));
-                let releases: serial::YarnIndex = reqwest::get(public_yarn_version_index().as_str())
-                    .with_context(RegistryFetchError::from_error)?
-                    .json()
-                    .unknown()?;
-                let releases = releases.into_index()?.entries;
-                spinner.finish_and_clear();
-                let version = releases.into_iter().rev().find(|v| {
-                    matching.matches(v)
-                });
+    fn resolve_latest(&self, _config: Option<&ToolConfig<YarnDistro>>) -> Fallible<Version> {
+        let mut response: reqwest::Response = reqwest::get(public_yarn_latest_version().as_str())
+            .with_context(RegistryFetchError::from_error)?;
+        Version::parse(&response.text().unknown()?).unknown()
+    }
 
-                if let Some(version) = version {
-                    version
-                } else {
-                    throw!(NoYarnVersionFoundError {
-                        matching: matching.clone(),
-                    });
-                }
-            },
-            VersionSpec::Exact(ref exact) => exact.clone()
-        };
-        YarnDistro::public(version)
+    fn resolve_semver(
+        &self,
+        matching: &VersionReq,
+        _config: Option<&ToolConfig<YarnDistro>>,
+    ) -> Fallible<Version> {
+        let spinner = progress_spinner(&format!(
+            "Fetching public registry: {}",
+            public_yarn_version_index()
+        ));
+        let releases: serial::YarnIndex = reqwest::get(public_yarn_version_index().as_str())
+            .with_context(RegistryFetchError::from_error)?
+            .json()
+            .unknown()?;
+        let releases = releases.into_index()?.entries;
+        spinner.finish_and_clear();
+        let version_opt = releases.into_iter().rev().find(|v| matching.matches(v));
+
+        if let Some(version) = version_opt {
+            Ok(version)
+        } else {
+            throw!(NoYarnVersionFoundError {
+                matching: matching.to_string()
+            })
+        }
     }
 }
 
@@ -275,7 +296,7 @@ pub struct NodeIndex {
 pub struct NodeEntry {
     pub version: Version,
     pub npm: Version,
-    pub files: NodeDistroFiles
+    pub files: NodeDistroFiles,
 }
 
 /// The public Yarn index.
@@ -331,9 +352,9 @@ fn resolve_node_versions() -> Fallible<serial::NodeIndex> {
                 "Fetching public registry: {}",
                 public_node_version_index()
             ));
-            let mut response: reqwest::Response = reqwest::get(
-                public_node_version_index().as_str(),
-            ).with_context(RegistryFetchError::from_error)?;
+            let mut response: reqwest::Response =
+                reqwest::get(public_node_version_index().as_str())
+                    .with_context(RegistryFetchError::from_error)?;
             let response_text: String = response.text().unknown()?;
             let cached: NamedTempFile = NamedTempFile::new().unknown()?;
 
