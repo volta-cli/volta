@@ -226,7 +226,7 @@ impl Project {
     }
 
     /// Writes the specified version of Node or Yarn to the `toolchain` in package.json.
-    pub fn pin_in_toolchain(&self, distro_version: &DistroVersion) -> Fallible<()> {
+    pub fn pin(&self, distro_version: &DistroVersion) -> Fallible<()> {
         match distro_version {
             DistroVersion::Node(runtime, npm) => {
                 let toolchain = serial::Image::new(

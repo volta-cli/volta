@@ -51,7 +51,7 @@ Options:
         session.add_event_start(ActivityKind::Pin);
         match self {
             Pin::Help => Help::Command(CommandName::Pin).run(session)?,
-            Pin::Tool(toolspec) => session.pin_tool(&toolspec)?,
+            Pin::Tool(toolspec) => session.pin(&toolspec)?,
         };
         if let Some(project) = session.project() {
             let errors = project.autoshim();

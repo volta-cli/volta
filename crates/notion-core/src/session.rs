@@ -208,10 +208,10 @@ impl Session {
 
     /// Updates toolchain in package.json with the Tool version matching the specified semantic
     /// versioning requirements.
-    pub fn pin_tool(&mut self, toolspec: &ToolSpec) -> Fallible<()> {
+    pub fn pin(&mut self, toolspec: &ToolSpec) -> Fallible<()> {
         if let Some(ref project) = self.project() {
             let distro_version = self.fetch(toolspec)?.into_version();
-            project.pin_in_toolchain(&distro_version)?;
+            project.pin(&distro_version)?;
         } else {
             throw!(NotInPackageError::new());
         }
