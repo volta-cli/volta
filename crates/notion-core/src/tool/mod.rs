@@ -26,7 +26,6 @@ pub enum ToolSpec {
     Node(VersionSpec),
     Yarn(VersionSpec),
     Npm(VersionSpec),
-    Npx(VersionSpec),
     Package(String, VersionSpec),
 }
 
@@ -36,7 +35,6 @@ impl ToolSpec {
             "node" => ToolSpec::Node(version),
             "yarn" => ToolSpec::Yarn(version),
             "npm" => ToolSpec::Npm(version),
-            "npx" => ToolSpec::Npx(version),
             package => ToolSpec::Package(package.to_string(), version),
         }
     }
@@ -48,7 +46,6 @@ impl Debug for ToolSpec {
             &ToolSpec::Node(ref version) => format!("node version {}", version),
             &ToolSpec::Yarn(ref version) => format!("yarn version {}", version),
             &ToolSpec::Npm(ref version) => format!("npm version {}", version),
-            &ToolSpec::Npx(ref version) => format!("npx version {}", version),
             &ToolSpec::Package(ref name, ref version) => format!("{} version {}", name, version),
         };
         f.write_str(&s)
@@ -61,7 +58,6 @@ impl Display for ToolSpec {
             &ToolSpec::Node(ref version) => format!("node version {}", version),
             &ToolSpec::Yarn(ref version) => format!("yarn version {}", version),
             &ToolSpec::Npm(ref version) => format!("npm version {}", version),
-            &ToolSpec::Npx(ref version) => format!("npx version {}", version),
             &ToolSpec::Package(ref name, ref version) => format!("{} version {}", name, version),
         };
         f.write_str(&s)
