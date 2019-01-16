@@ -210,8 +210,11 @@ impl RegistryFetchError {
     }
 }
 
-fn match_node_version(predicate: impl Fn(&NodeEntry) -> bool) -> Fallible<Option<Version>> {
-    let index: NodeIndex = resolve_node_versions()?.into_index()?;
+fn match_node_version(
+    url: &str,
+    predicate: impl Fn(&NodeEntry) -> bool,
+) -> Fallible<Option<Version>> {
+    let index: NodeIndex = resolve_node_versions(url)?.into_index()?;
     let mut entries = index.entries.into_iter();
     Ok(entries
         .find(predicate)
@@ -219,11 +222,18 @@ fn match_node_version(predicate: impl Fn(&NodeEntry) -> bool) -> Fallible<Option
 }
 
 impl Resolve<NodeDistro> for NodeCollection {
-    fn resolve_latest(&self, _hooks: Option<&ToolHooks<NodeDistro>>) -> Fallible<Version> {
+    fn resolve_latest(&self, hooks: Option<&ToolHooks<NodeDistro>>) -> Fallible<Version> {
         // NOTE: This assumes the registry always produces a list in sorted order
         //       from newest to oldest. This should be specified as a requirement
         //       when we document the plugin API.
-        let version_opt = match_node_version(|_| true)?;
+        let url = match hooks {
+            Some(&ToolHooks {
+                latest: Some(ref hook),
+                ..
+            }) => hook.resolve("index.json")?,
+            _ => public_node_version_index(),
+        };
+        let version_opt = match_node_version(&url, |_| true)?;
 
         if let Some(version) = version_opt {
             Ok(version)
@@ -237,11 +247,19 @@ impl Resolve<NodeDistro> for NodeCollection {
     fn resolve_semver(
         &self,
         matching: &VersionReq,
-        _hooks: Option<&ToolHooks<NodeDistro>>,
+        hooks: Option<&ToolHooks<NodeDistro>>,
     ) -> Fallible<Version> {
         // ISSUE #34: also make sure this OS is available for this version
-        let version_opt =
-            match_node_version(|&NodeEntry { version: ref v, .. }| matching.matches(v))?;
+        let url = match hooks {
+            Some(&ToolHooks {
+                index: Some(ref hook),
+                ..
+            }) => hook.resolve("index.json")?,
+            _ => public_node_version_index(),
+        };
+        let version_opt = match_node_version(&url, |&NodeEntry { version: ref v, .. }| {
+            matching.matches(v)
+        })?;
 
         if let Some(version) = version_opt {
             Ok(version)
@@ -254,22 +272,34 @@ impl Resolve<NodeDistro> for NodeCollection {
 }
 
 impl Resolve<YarnDistro> for YarnCollection {
-    fn resolve_latest(&self, _hooks: Option<&ToolHooks<YarnDistro>>) -> Fallible<Version> {
-        let mut response: reqwest::Response = reqwest::get(public_yarn_latest_version().as_str())
-            .with_context(RegistryFetchError::from_error)?;
+    fn resolve_latest(&self, hooks: Option<&ToolHooks<YarnDistro>>) -> Fallible<Version> {
+        let url = match hooks {
+            Some(&ToolHooks {
+                latest: Some(ref hook),
+                ..
+            }) => hook.resolve("latest-version")?,
+            _ => public_yarn_latest_version(),
+        };
+        let mut response: reqwest::Response =
+            reqwest::get(&url).with_context(RegistryFetchError::from_error)?;
         Version::parse(&response.text().unknown()?).unknown()
     }
 
     fn resolve_semver(
         &self,
         matching: &VersionReq,
-        _hooks: Option<&ToolHooks<YarnDistro>>,
+        hooks: Option<&ToolHooks<YarnDistro>>,
     ) -> Fallible<Version> {
-        let spinner = progress_spinner(&format!(
-            "Fetching public registry: {}",
-            public_yarn_version_index()
-        ));
-        let releases: serial::YarnIndex = reqwest::get(public_yarn_version_index().as_str())
+        let url = match hooks {
+            Some(&ToolHooks {
+                index: Some(ref hook),
+                ..
+            }) => hook.resolve("releases")?,
+            _ => public_yarn_version_index(),
+        };
+
+        let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
+        let releases: serial::YarnIndex = reqwest::get(&url)
             .with_context(RegistryFetchError::from_error)?
             .json()
             .unknown()?;
@@ -344,17 +374,13 @@ fn max_age(response: &reqwest::Response) -> u32 {
     4 * 60 * 60
 }
 
-fn resolve_node_versions() -> Fallible<serial::NodeIndex> {
+fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
     match read_cached_opt()? {
         Some(serial) => Ok(serial),
         None => {
-            let spinner = progress_spinner(&format!(
-                "Fetching public registry: {}",
-                public_node_version_index()
-            ));
+            let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
             let mut response: reqwest::Response =
-                reqwest::get(public_node_version_index().as_str())
-                    .with_context(RegistryFetchError::from_error)?;
+                reqwest::get(url).with_context(RegistryFetchError::from_error)?;
             let response_text: String = response.text().unknown()?;
             let cached: NamedTempFile = NamedTempFile::new().unknown()?;
 

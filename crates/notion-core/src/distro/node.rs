@@ -7,9 +7,10 @@ use std::string::ToString;
 
 use super::{Distro, Fetched};
 use archive::{self, Archive};
-use inventory::NodeCollection;
 use distro::error::{DownloadError, Tool};
 use fs::ensure_containing_dir_exists;
+use hook::ToolHooks;
+use inventory::NodeCollection;
 use path;
 use style::{progress_bar, Action};
 use tempfile::tempdir;
@@ -81,9 +82,7 @@ impl Manifest {
     }
 }
 
-impl Distro for NodeDistro {
-    type VersionDetails = NodeVersion;
-
+impl NodeDistro {
     /// Provision a Node distribution from the public Node distributor (`https://nodejs.org`).
     fn public(version: Version) -> Fallible<Self> {
         let distro_file_name = path::node_distro_file_name(&version.to_string());
@@ -107,8 +106,9 @@ impl Distro for NodeDistro {
 
         ensure_containing_dir_exists(&distro_file)?;
         Ok(NodeDistro {
-            archive: archive::fetch_native(url, &distro_file)
-                .with_context(DownloadError::for_tool_version(Tool::Node, version.to_string(), url.to_string()))?,
+            archive: archive::fetch_native(url, &distro_file).with_context(
+                DownloadError::for_tool_version(Tool::Node, version.to_string(), url.to_string()),
+            )?,
             version: version,
         })
     }
@@ -119,6 +119,24 @@ impl Distro for NodeDistro {
             archive: archive::load_native(file).unknown()?,
             version: version,
         })
+    }
+}
+
+impl Distro for NodeDistro {
+    type VersionDetails = NodeVersion;
+
+    /// Provisions a new Distro based on the Version and Possible Hooks
+    fn new(version: Version, hooks: Option<&ToolHooks<Self>>) -> Fallible<Self> {
+        if let Some(&ToolHooks {
+            distro: Some(ref hook),
+            ..
+        }) = hooks
+        {
+            let url = hook.resolve(&version, &path::node_distro_file_name(&version.to_string()))?;
+            NodeDistro::remote(version, &url)
+        } else {
+            NodeDistro::public(version)
+        }
     }
 
     /// Produces a reference to this distribution's Node version.
@@ -135,7 +153,7 @@ impl Distro for NodeDistro {
 
             return Ok(Fetched::Already(NodeVersion {
                 runtime: self.version,
-                npm: read_to_string(npm).unknown()?.parse().unknown()?
+                npm: read_to_string(npm).unknown()?.parse().unknown()?,
             }));
         }
 
@@ -168,7 +186,9 @@ impl Distro for NodeDistro {
             let npm_version_file_name = path::node_npm_version_file_name(&self.version.to_string());
             let npm_version_file_path = path::node_inventory_dir()?.join(&npm_version_file_name);
             let mut npm_version_file = File::create(npm_version_file_path).unknown()?;
-            npm_version_file.write_all(npm_string.as_bytes()).unknown()?;
+            npm_version_file
+                .write_all(npm_string.as_bytes())
+                .unknown()?;
         }
 
         let dest = path::node_image_dir(&version_string, &npm_string)?;
@@ -176,14 +196,16 @@ impl Distro for NodeDistro {
         ensure_containing_dir_exists(&dest)?;
 
         rename(
-            temp.path().join(path::node_archive_root_dir_name(&version_string)),
+            temp.path()
+                .join(path::node_archive_root_dir_name(&version_string)),
             dest,
-        ).unknown()?;
+        )
+        .unknown()?;
 
         bar.finish_and_clear();
         Ok(Fetched::Now(NodeVersion {
             runtime: self.version,
-            npm
+            npm,
         }))
     }
 }
