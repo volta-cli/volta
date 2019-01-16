@@ -41,7 +41,6 @@ pub enum DistroVersion {
     Node(Version, Version),
     Yarn(Version),
     Npm(Version),
-    Npx(Version),
     Package(String, Version),
 }
 
@@ -53,7 +52,6 @@ impl Display for DistroVersion {
             }
             &DistroVersion::Yarn(ref version) => format!("yarn version {}", version),
             &DistroVersion::Npm(ref version) => format!("npm version {}", version),
-            &DistroVersion::Npx(ref version) => format!("npx version {}", version),
             &DistroVersion::Package(ref name, ref version) => {
                 format!("{} version {}", name, version)
             }

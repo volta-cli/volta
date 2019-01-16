@@ -77,6 +77,18 @@ impl NoPinnedNodeVersion {
     }
 }
 
+/// Thrown when a user tries to `notion pin` something other than node/yarn/npm.
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "Only node, yarn, and npm can be pinned in a project")]
+#[notion_fail(code = "InvalidArguments")]
+pub(crate) struct CannotPinPackageError;
+
+impl CannotPinPackageError {
+    pub(crate) fn new() -> Self {
+        CannotPinPackageError
+    }
+}
+
 /// A Node project tree in the filesystem.
 pub struct Project {
     manifest: Manifest,
@@ -250,10 +262,7 @@ impl Project {
             }
             // ISSUE (#175) When we can `notion install npm` then it can be pinned in the toolchain
             DistroVersion::Npm(_) => unimplemented!("cannot pin npm in \"toolchain\""),
-            DistroVersion::Npx(_) => unimplemented!("cannot pin npx in \"toolchain\""),
-            DistroVersion::Package(name, _) => {
-                unimplemented!("cannot pin {} in \"toolchain\"", name)
-            }
+            DistroVersion::Package(_, _) => throw!(CannotPinPackageError::new()),
         }
         println!("Pinned {} in package.json", distro_version);
         Ok(())

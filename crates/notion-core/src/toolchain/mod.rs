@@ -70,7 +70,6 @@ impl Toolchain {
             }
             // ISSUE (#175) When we can `notion install npm` then it can be set in the platform file.
             DistroVersion::Npm(_) => unimplemented!("cannot set npm in platform file"),
-            DistroVersion::Npx(_) => unimplemented!("cannot set npx in platform file"),
             DistroVersion::Package(name, _) => {
                 unimplemented!("cannot set {} in platform file", name)
             }
