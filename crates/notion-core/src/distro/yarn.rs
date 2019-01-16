@@ -98,15 +98,16 @@ impl Distro for YarnDistro {
 
     /// Provisions a new Distro based on the Version and Possible Hooks
     fn new(version: Version, hooks: Option<&ToolHooks<Self>>) -> Fallible<Self> {
-        if let Some(&ToolHooks {
-            distro: Some(ref hook),
-            ..
-        }) = hooks
-        {
-            let url = hook.resolve(&version, &path::yarn_distro_file_name(&version.to_string()))?;
-            YarnDistro::remote(version, &url)
-        } else {
-            YarnDistro::public(version)
+        match hooks {
+            Some(&ToolHooks {
+                distro: Some(ref hook),
+                ..
+            }) => {
+                let url =
+                    hook.resolve(&version, &path::yarn_distro_file_name(&version.to_string()))?;
+                YarnDistro::remote(version, &url)
+            }
+            _ => YarnDistro::public(version),
         }
     }
 

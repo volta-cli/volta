@@ -127,15 +127,16 @@ impl Distro for NodeDistro {
 
     /// Provisions a new Distro based on the Version and Possible Hooks
     fn new(version: Version, hooks: Option<&ToolHooks<Self>>) -> Fallible<Self> {
-        if let Some(&ToolHooks {
-            distro: Some(ref hook),
-            ..
-        }) = hooks
-        {
-            let url = hook.resolve(&version, &path::node_distro_file_name(&version.to_string()))?;
-            NodeDistro::remote(version, &url)
-        } else {
-            NodeDistro::public(version)
+        match hooks {
+            Some(&ToolHooks {
+                distro: Some(ref hook),
+                ..
+            }) => {
+                let url =
+                    hook.resolve(&version, &path::node_distro_file_name(&version.to_string()))?;
+                NodeDistro::remote(version, &url)
+            }
+            _ => NodeDistro::public(version),
         }
     }
 
