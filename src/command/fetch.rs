@@ -1,9 +1,10 @@
 use notion_core::session::{ActivityKind, Session};
+use notion_core::tool::ToolSpec;
 use notion_core::version::VersionSpec;
 use notion_fail::{ExitCode, Fallible};
 
+use Notion;
 use command::{Command, CommandName, Help};
-use {CliParseError, Notion};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
@@ -13,8 +14,7 @@ pub(crate) struct Args {
 
 pub(crate) enum Fetch {
     Help,
-    Node(VersionSpec),
-    Yarn(VersionSpec),
+    Tool(ToolSpec),
 }
 
 impl Command for Fetch {
@@ -42,27 +42,16 @@ Options:
             arg_version,
         }: Args,
     ) -> Fallible<Self> {
-        Ok(match &arg_tool[..] {
-            "node" => Fetch::Node(VersionSpec::parse(&arg_version)?),
-            "yarn" => Fetch::Yarn(VersionSpec::parse(&arg_version)?),
-            ref tool => {
-                throw!(CliParseError {
-                    usage: None,
-                    error: format!("no such tool: `{}`", tool),
-                });
-            }
-        })
+        let version = VersionSpec::parse(&arg_version)?;
+        Ok(Fetch::Tool(ToolSpec::from_str(&arg_tool, version)))
     }
 
     fn run(self, session: &mut Session) -> Fallible<()> {
         session.add_event_start(ActivityKind::Fetch);
         match self {
             Fetch::Help => Help::Command(CommandName::Fetch).run(session)?,
-            Fetch::Node(version) => {
-                session.fetch_node(&version)?;
-            }
-            Fetch::Yarn(version) => {
-                session.fetch_yarn(&version)?;
+            Fetch::Tool(toolspec) => {
+                session.fetch(&toolspec)?;
             }
         };
         session.add_event_end(ActivityKind::Fetch, ExitCode::Success);

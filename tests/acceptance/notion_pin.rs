@@ -1,6 +1,6 @@
 use hamcrest2::core::Matcher;
-use test_support::matchers::execs;
 use support::sandbox::{sandbox, DistroMetadata, NodeFixture, YarnFixture};
+use test_support::matchers::execs;
 
 use notion_fail::ExitCode;
 
@@ -17,12 +17,15 @@ fn package_json_with_pinned_node_npm(node: &str, npm: &str) -> String {
     "npm": "{}"
   }}
 }}"#,
-        node,
-        npm
+        node, npm
     )
 }
 
-fn package_json_with_pinned_node_npm_yarn(node_version: &str, npm_version: &str, yarn_version: &str) -> String {
+fn package_json_with_pinned_node_npm_yarn(
+    node_version: &str,
+    npm_version: &str,
+    yarn_version: &str,
+) -> String {
     format!(
         r#"{{
   "name": "test-package",
@@ -43,7 +46,6 @@ const NODE_VERSION_INFO: &'static str = r#"[
 {"version":"v6.19.62","npm":"3.10.1066","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]}
 ]
 "#;
-
 
 cfg_if! {
     if #[cfg(target_os = "macos")] {
@@ -163,7 +165,7 @@ fn pin_node() {
         s.notion("pin node 6"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Pinned node to version 6.19.62 in package.json")
+            .with_stdout_contains("Pinned node version 6.19.62 (npm 3.10.1066) in package.json")
     );
 
     assert_eq!(
@@ -184,7 +186,7 @@ fn pin_node_latest() {
         s.notion("pin node latest"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Pinned node to version 10.99.1040 in package.json")
+            .with_stdout_contains("Pinned node version 10.99.1040 (npm 6.2.26) in package.json")
     );
 
     assert_eq!(
@@ -223,7 +225,7 @@ fn pin_yarn() {
         s.notion("pin yarn 1.4"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Pinned yarn to version 1.4.159 in package.json")
+            .with_stdout_contains("Pinned yarn version 1.4.159 in package.json")
     );
 
     assert_eq!(
@@ -244,7 +246,7 @@ fn pin_yarn_latest() {
         s.notion("pin yarn latest"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Pinned yarn to version 1.2.42 in package.json")
+            .with_stdout_contains("Pinned yarn version 1.2.42 in package.json")
     );
 
     assert_eq!(
@@ -264,7 +266,7 @@ fn pin_yarn_missing_release() {
         s.notion("pin yarn 1.3.1"),
         execs()
             .with_status(4)
-            .with_stderr_contains("error: Yarn version 1.3.1 not found")
+            .with_stderr_contains("error: yarn version 1.3.1 not found")
     );
 
     assert_eq!(
