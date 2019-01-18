@@ -9,8 +9,9 @@ use std::rc::Rc;
 
 use lazycell::LazyCell;
 
+use distro::node::load_default_npm_version;
 use distro::DistroVersion;
-use manifest::{Manifest, serial};
+use manifest::{serial, Manifest};
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use platform::PlatformSpec;
 use shim;
@@ -241,18 +242,26 @@ impl Project {
     pub fn pin(&self, distro_version: &DistroVersion) -> Fallible<()> {
         match distro_version {
             DistroVersion::Node(runtime, npm) => {
-                let toolchain = serial::Image::new(
+                // prevent writing the npm version if it is equal to the default version
+                let default_npm = load_default_npm_version(&runtime).ok();
+                let npm_str = if Some(npm.clone()) == default_npm {
+                    None
+                } else {
+                    Some(npm.to_string())
+                };
+
+                let toolchain = serial::ToolchainSpec::new(
                     runtime.to_string(),
-                    npm.to_string(),
+                    npm_str,
                     self.manifest().yarn_str().clone(),
                 );
                 Manifest::update_toolchain(toolchain, self.package_file())?;
             }
             DistroVersion::Yarn(version) => {
-                if let Some(image) = self.manifest().platform() {
-                    let toolchain = serial::Image::new(
-                        image.node.runtime.to_string(),
-                        image.node.npm.to_string(),
+                if let Some(platform) = self.manifest().platform() {
+                    let toolchain = serial::ToolchainSpec::new(
+                        platform.node_runtime.to_string(),
+                        platform.npm.as_ref().map(|npm| npm.to_string()),
                         Some(version.to_string()),
                     );
                     Manifest::update_toolchain(toolchain, self.package_file())?;

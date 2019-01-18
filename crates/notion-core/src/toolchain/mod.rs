@@ -2,10 +2,8 @@ use std::fs::File;
 use std::io::Write;
 
 use readext::ReadExt;
-use semver::Version;
 
 use distro::DistroVersion;
-use distro::node::NodeVersion;
 use fs::touch;
 use path::user_platform_file;
 use platform::PlatformSpec;
@@ -27,14 +25,8 @@ impl Toolchain {
         })
     }
 
-    pub fn get_active_node(&self) -> Option<NodeVersion> {
-        self.platform.as_ref().map(|ref p| p.node.clone())
-    }
-
-    pub fn get_active_yarn(&self) -> Option<Version> {
-        self.platform
-            .as_ref()
-            .and_then(|ref platform| platform.yarn.clone())
+    pub fn platform_ref(&self) -> Option<&PlatformSpec> {
+        self.platform.as_ref()
     }
 
     /// Set the active tool versions in the user platform file.
@@ -43,18 +35,20 @@ impl Toolchain {
 
         match distro_version {
             DistroVersion::Node(node, npm) => {
-                let node_version = NodeVersion {
-                    runtime: node,
-                    npm: npm,
-                };
                 if let Some(ref mut platform) = self.platform {
-                    if platform.node != node_version {
-                        platform.node = node_version;
+                    if platform.node_runtime != node {
+                        platform.node_runtime = node;
+                        dirty = true;
+                    }
+
+                    if platform.npm != Some(npm.clone()) {
+                        platform.npm = Some(npm);
                         dirty = true;
                     }
                 } else {
                     self.platform = Some(PlatformSpec {
-                        node: node_version,
+                        node_runtime: node,
+                        npm: Some(npm),
                         yarn: None,
                     });
                     dirty = true;

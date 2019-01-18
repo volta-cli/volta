@@ -8,6 +8,18 @@ const BASIC_PACKAGE_JSON: &'static str = r#"{
   "name": "test-package"
 }"#;
 
+fn package_json_with_pinned_node(node: &str) -> String {
+    format!(
+        r#"{{
+  "name": "test-package",
+  "toolchain": {{
+    "node": "{}"
+  }}
+}}"#,
+        node
+    )
+}
+
 fn package_json_with_pinned_node_npm(node: &str, npm: &str) -> String {
     format!(
         r#"{{
@@ -18,6 +30,19 @@ fn package_json_with_pinned_node_npm(node: &str, npm: &str) -> String {
   }}
 }}"#,
         node, npm
+    )
+}
+
+fn package_json_with_pinned_node_yarn(node_version: &str, yarn_version: &str) -> String {
+    format!(
+        r#"{{
+  "name": "test-package",
+  "toolchain": {{
+    "node": "{}",
+    "yarn": "{}"
+  }}
+}}"#,
+        node_version, yarn_version
     )
 }
 
@@ -170,7 +195,7 @@ fn pin_node() {
 
     assert_eq!(
         s.read_package_json(),
-        package_json_with_pinned_node_npm("6.19.62", "3.10.1066"),
+        package_json_with_pinned_node("6.19.62"),
     )
 }
 
@@ -191,7 +216,29 @@ fn pin_node_latest() {
 
     assert_eq!(
         s.read_package_json(),
-        package_json_with_pinned_node_npm("10.99.1040", "6.2.26"),
+        package_json_with_pinned_node("10.99.1040"),
+    )
+}
+
+#[test]
+fn pin_node_removes_npm() {
+    // Pinning Node will set the pinned version of npm to the default for that version, so it will be omitted
+    let s = sandbox()
+        .package_json(&package_json_with_pinned_node_npm("6.19.62", "3.9.1"))
+        .node_available_versions(NODE_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .build();
+
+    assert_that!(
+        s.notion("pin node 8"),
+        execs()
+            .with_status(0)
+            .with_stdout_contains("Pinned node version 8.9.10 (npm 5.6.7) in package.json")
+    );
+
+    assert_eq!(
+        s.read_package_json(),
+        package_json_with_pinned_node("8.9.10"),
     )
 }
 
@@ -216,7 +263,7 @@ fn pin_yarn_no_node() {
 #[test]
 fn pin_yarn() {
     let s = sandbox()
-        .package_json(&package_json_with_pinned_node_npm("1.2.3", "1.0.7"))
+        .package_json(&package_json_with_pinned_node("1.2.3"))
         .yarn_available_versions(YARN_VERSION_INFO)
         .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
         .build();
@@ -230,14 +277,14 @@ fn pin_yarn() {
 
     assert_eq!(
         s.read_package_json(),
-        package_json_with_pinned_node_npm_yarn("1.2.3", "1.0.7", "1.4.159"),
+        package_json_with_pinned_node_yarn("1.2.3", "1.4.159"),
     )
 }
 
 #[test]
 fn pin_yarn_latest() {
     let s = sandbox()
-        .package_json(&package_json_with_pinned_node_npm("1.2.3", "1.0.7"))
+        .package_json(&package_json_with_pinned_node("1.2.3"))
         .yarn_latest("1.2.42")
         .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
         .build();
@@ -251,14 +298,14 @@ fn pin_yarn_latest() {
 
     assert_eq!(
         s.read_package_json(),
-        package_json_with_pinned_node_npm_yarn("1.2.3", "1.0.7", "1.2.42"),
+        package_json_with_pinned_node_yarn("1.2.3", "1.2.42"),
     )
 }
 
 #[test]
 fn pin_yarn_missing_release() {
     let s = sandbox()
-        .package_json(&package_json_with_pinned_node_npm("1.2.3", "1.0.7"))
+        .package_json(&package_json_with_pinned_node("1.2.3"))
         .mock_not_found()
         .build();
 
@@ -271,6 +318,27 @@ fn pin_yarn_missing_release() {
 
     assert_eq!(
         s.read_package_json(),
-        package_json_with_pinned_node_npm("1.2.3", "1.0.7"),
+        package_json_with_pinned_node("1.2.3"),
+    )
+}
+
+#[test]
+fn pin_yarn_leaves_npm() {
+    let s = sandbox()
+        .package_json(&package_json_with_pinned_node_npm("1.2.3", "3.4.5"))
+        .yarn_available_versions(YARN_VERSION_INFO)
+        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .build();
+
+    assert_that!(
+        s.notion("pin yarn 1.4"),
+        execs()
+            .with_status(0)
+            .with_stdout_contains("Pinned yarn version 1.4.159 in package.json")
+    );
+
+    assert_eq!(
+        s.read_package_json(),
+        package_json_with_pinned_node_npm_yarn("1.2.3", "3.4.5", "1.4.159"),
     )
 }

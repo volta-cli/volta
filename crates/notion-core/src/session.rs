@@ -6,7 +6,6 @@ use std::rc::Rc;
 
 use config::{Config, LazyConfig};
 use distro::{DistroVersion, Fetched};
-use distro::node::NodeVersion;
 use inventory::{Inventory, LazyInventory};
 use platform::PlatformSpec;
 use plugin::Publish;
@@ -114,30 +113,14 @@ impl Session {
         self.project.clone()
     }
 
-    pub fn current_platform(&mut self) -> Fallible<Option<Rc<PlatformSpec>>> {
-        if let Some(image) = self.project_platform() {
-            return Ok(Some(image));
-        }
-
-        if let Some(image) = self.user_platform()? {
-            return Ok(Some(image));
-        }
-
-        return Ok(None);
+    pub fn current_platform(&self) -> Option<Rc<PlatformSpec>> {
+        self.project_platform().or_else(|| self.user_platform())
     }
 
-    pub fn user_platform(&mut self) -> Fallible<Option<Rc<PlatformSpec>>> {
-        if let Some(node) = self.user_node() {
-            if let Some(yarn) = self.user_yarn() {
-                return Ok(Some(Rc::new(PlatformSpec {
-                    node,
-                    yarn: Some(yarn),
-                })));
-            }
-
-            return Ok(Some(Rc::new(PlatformSpec { node, yarn: None })));
-        }
-        Ok(None)
+    pub fn user_platform(&self) -> Option<Rc<PlatformSpec>> {
+        self.toolchain
+            .platform_ref()
+            .map(|platform| Rc::new(platform.clone()))
     }
 
     /// Returns the current project's pinned platform image, if any.
@@ -187,10 +170,6 @@ impl Session {
         Ok(())
     }
 
-    pub fn user_node(&self) -> Option<NodeVersion> {
-        self.toolchain.get_active_node().map(|ref nv| nv.clone())
-    }
-
     /// Installs a Tool matching the specified semantic versioning requirements,
     /// and updates the `toolchain` as necessary.
     pub fn install(&mut self, toolspec: &ToolSpec) -> Fallible<()> {
@@ -216,10 +195,6 @@ impl Session {
             throw!(NotInPackageError::new());
         }
         Ok(())
-    }
-
-    pub fn user_yarn(&mut self) -> Option<Version> {
-        self.toolchain.get_active_yarn().map(|ref v| v.clone())
     }
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
