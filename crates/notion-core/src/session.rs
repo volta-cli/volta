@@ -113,14 +113,18 @@ impl Session {
         self.project.get()
     }
 
-    pub fn current_platform(&self) -> Option<Rc<PlatformSpec>> {
-        self.project_platform().or_else(|| self.user_platform())
+    pub fn current_platform(&self) -> Fallible<Option<Rc<PlatformSpec>>> {
+        match self.project_platform()? {
+            Some(platform) => Ok(Some(platform)),
+            None => self.user_platform(),
+        }
     }
 
-    pub fn user_platform(&self) -> Option<Rc<PlatformSpec>> {
-        self.toolchain
+    pub fn user_platform(&self) -> Fallible<Option<Rc<PlatformSpec>>> {
+        let toolchain = self.toolchain.get()?;
+        Ok(toolchain
             .platform_ref()
-            .map(|platform| Rc::new(platform.clone()))
+            .map(|platform| Rc::new(platform.clone())))
     }
 
     /// Returns the current project's pinned platform image, if any.
@@ -174,14 +178,14 @@ impl Session {
     /// and updates the `toolchain` as necessary.
     pub fn install(&mut self, toolspec: &ToolSpec) -> Fallible<()> {
         let distro_version = self.fetch(toolspec)?.into_version();
-        self.toolchain.set_active(distro_version)?;
+        let toolchain = self.toolchain.get_mut()?;
+        toolchain.set_active(distro_version)?;
         Ok(())
     }
 
     /// Fetches a Tool version matching the specified semantic versioning requirements.
     pub fn fetch(&mut self, tool: &ToolSpec) -> Fallible<Fetched<DistroVersion>> {
         let inventory = self.inventory.get_mut()?;
-        let toolchain = self.toolchain.get_mut()?;
         let config = self.config.get()?;
         inventory.fetch(&tool, config)
     }
@@ -189,7 +193,7 @@ impl Session {
     /// Updates toolchain in package.json with the Tool version matching the specified semantic
     /// versioning requirements.
     pub fn pin(&mut self, toolspec: &ToolSpec) -> Fallible<()> {
-        if let Some(ref project) = self.project() {
+        if let Some(ref project) = self.project()? {
             let distro_version = self.fetch(toolspec)?.into_version();
             project.pin(&distro_version)?;
         } else {
