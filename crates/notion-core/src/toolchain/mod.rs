@@ -2,9 +2,8 @@ use std::fs::File;
 use std::io::Write;
 
 use readext::ReadExt;
-use semver::Version;
 
-use distro::node::NodeVersion;
+use distro::DistroVersion;
 use fs::touch;
 use path::user_platform_file;
 use platform::PlatformSpec;
@@ -30,45 +29,47 @@ impl Toolchain {
         self.platform.as_ref()
     }
 
-    pub fn set_active_node(&mut self, version: NodeVersion) -> Fallible<()> {
+    /// Set the active tool versions in the user platform file.
+    pub fn set_active(&mut self, distro_version: DistroVersion) -> Fallible<()> {
         let mut dirty = false;
 
-        if let Some(ref mut platform) = self.platform {
-            if platform.node_runtime != version.runtime {
-                platform.node_runtime = version.runtime;
-                dirty = true;
-            }
+        match distro_version {
+            DistroVersion::Node(node, npm) => {
+                if let Some(ref mut platform) = self.platform {
+                    if platform.node_runtime != node {
+                        platform.node_runtime = node;
+                        dirty = true;
+                    }
 
-            if platform.npm != Some(version.npm.clone()) {
-                platform.npm = Some(version.npm);
-                dirty = true;
+                    if platform.npm != Some(npm.clone()) {
+                        platform.npm = Some(npm);
+                        dirty = true;
+                    }
+                } else {
+                    self.platform = Some(PlatformSpec {
+                        node_runtime: node,
+                        npm: Some(npm),
+                        yarn: None,
+                    });
+                    dirty = true;
+                }
             }
-        } else {
-            self.platform = Some(PlatformSpec {
-                node_runtime: version.runtime,
-                npm: Some(version.npm),
-                yarn: None,
-            });
-            dirty = true;
+            DistroVersion::Yarn(version) => {
+                if let &mut Some(ref mut platform) = &mut self.platform {
+                    if platform.yarn != Some(version.clone()) {
+                        platform.yarn = Some(version);
+                        dirty = true;
+                    }
+                }
+            }
+            // ISSUE (#175) When we can `notion install npm` then it can be set in the platform file.
+            DistroVersion::Npm(_) => unimplemented!("cannot set npm in platform file"),
+            DistroVersion::Package(name, _) => {
+                unimplemented!("cannot set {} in platform file", name)
+            }
         }
 
-        if dirty {
-            self.save()?;
-        }
-
-        Ok(())
-    }
-
-    pub fn set_active_yarn(&mut self, version: Version) -> Fallible<()> {
-        let mut dirty = false;
-
-        if let &mut Some(ref mut platform) = &mut self.platform {
-            if platform.yarn != Some(version.clone()) {
-                platform.yarn = Some(version);
-                dirty = true;
-            }
-        }
-
+        // both
         if dirty {
             self.save()?;
         }
@@ -85,10 +86,9 @@ impl Toolchain {
                 file.write_all(src.as_bytes()).unknown()?;
             }
             &None => {
-                file.write_all(b"[platform]\n").unknown()?;
+                file.write_all(b"{}").unknown()?;
             }
         }
         Ok(())
     }
 }
-

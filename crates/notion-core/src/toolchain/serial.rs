@@ -68,7 +68,6 @@ impl PlatformSpec {
     }
 }
 
-
 #[cfg(test)]
 pub mod tests {
 
@@ -119,7 +118,10 @@ pub mod tests {
             node_runtime: semver::Version::parse("4.5.6").expect("could not parse semver version"),
             npm: Some(semver::Version::parse("7.8.9").expect("could not parse semver version")),
         };
-        let json_str = platform.to_serial().to_json().expect("could not serialize platform to JSON");
+        let json_str = platform
+            .to_serial()
+            .to_json()
+            .expect("could not serialize platform to JSON");
         let expected_json_str = BASIC_JSON_STR.to_string();
         assert_eq!(json_str, expected_json_str);
     }

@@ -1,4 +1,4 @@
-//! Provides the `Installer` type, which represents a provisioned Node installer.
+//! Provides the `NodeDistro` type, which represents a provisioned Node distribution.
 
 use std::fs::{read_to_string, rename, File};
 use std::io::Write;
@@ -7,12 +7,15 @@ use std::string::ToString;
 
 use super::{Distro, Fetched};
 use archive::{self, Archive};
-use distro::error::{DownloadError, Tool};
+use distro::error::DownloadError;
+use distro::DistroVersion;
 use fs::ensure_containing_dir_exists;
 use inventory::NodeCollection;
 use path;
 use style::{progress_bar, Action};
 use tempfile::tempdir;
+use tool::ToolSpec;
+use version::VersionSpec;
 
 use notion_fail::{Fallible, ResultExt};
 use semver::Version;
@@ -101,8 +104,6 @@ impl Manifest {
 }
 
 impl Distro for NodeDistro {
-    type VersionDetails = NodeVersion;
-
     /// Provision a Node distribution from the public Node distributor (`https://nodejs.org`).
     fn public(version: Version) -> Fallible<Self> {
         let distro_file_name = path::node_distro_file_name(&version.to_string());
@@ -127,7 +128,10 @@ impl Distro for NodeDistro {
         ensure_containing_dir_exists(&distro_file)?;
         Ok(NodeDistro {
             archive: archive::fetch_native(url, &distro_file).with_context(
-                DownloadError::for_tool_version(Tool::Node, version.to_string(), url.to_string()),
+                DownloadError::for_tool(
+                    ToolSpec::Node(VersionSpec::exact(&version)),
+                    url.to_string(),
+                ),
             )?,
             version: version,
         })
@@ -148,13 +152,11 @@ impl Distro for NodeDistro {
 
     /// Fetches this version of Node. (It is left to the responsibility of the `NodeCollection`
     /// to update its state after fetching succeeds.)
-    fn fetch(self, collection: &NodeCollection) -> Fallible<Fetched<NodeVersion>> {
+    fn fetch(self, collection: &NodeCollection) -> Fallible<Fetched<DistroVersion>> {
         if collection.contains(&self.version) {
             let npm = load_default_npm_version(&self.version)?;
-            return Ok(Fetched::Already(NodeVersion {
-                runtime: self.version,
-                npm,
-            }));
+
+            return Ok(Fetched::Already(DistroVersion::Node(self.version, npm)));
         }
 
         let temp = tempdir().unknown()?;
@@ -195,9 +197,6 @@ impl Distro for NodeDistro {
         .unknown()?;
 
         bar.finish_and_clear();
-        Ok(Fetched::Now(NodeVersion {
-            runtime: self.version,
-            npm,
-        }))
+        Ok(Fetched::Now(DistroVersion::Node(self.version, npm)))
     }
 }

@@ -2,6 +2,7 @@
 
 use std::env::{args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
+use std::fmt::{self, Debug, Display, Formatter};
 use std::io;
 use std::marker::Sized;
 use std::path::Path;
@@ -18,6 +19,48 @@ fn display_error(err: &NotionError) {
         style::display_error(style::ErrorContext::Shim, err);
     } else {
         style::display_unknown_error(style::ErrorContext::Shim, err);
+    }
+}
+
+pub enum ToolSpec {
+    Node(VersionSpec),
+    Yarn(VersionSpec),
+    Npm(VersionSpec),
+    Package(String, VersionSpec),
+}
+
+impl ToolSpec {
+    pub fn from_str(tool_name: &str, version: VersionSpec) -> Self {
+        match tool_name {
+            "node" => ToolSpec::Node(version),
+            "yarn" => ToolSpec::Yarn(version),
+            "npm" => ToolSpec::Npm(version),
+            package => ToolSpec::Package(package.to_string(), version),
+        }
+    }
+}
+
+impl Debug for ToolSpec {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        let s = match self {
+            &ToolSpec::Node(ref version) => format!("node version {}", version),
+            &ToolSpec::Yarn(ref version) => format!("yarn version {}", version),
+            &ToolSpec::Npm(ref version) => format!("npm version {}", version),
+            &ToolSpec::Package(ref name, ref version) => format!("{} version {}", name, version),
+        };
+        f.write_str(&s)
+    }
+}
+
+impl Display for ToolSpec {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        let s = match self {
+            &ToolSpec::Node(ref version) => format!("node version {}", version),
+            &ToolSpec::Yarn(ref version) => format!("yarn version {}", version),
+            &ToolSpec::Npm(ref version) => format!("npm version {}", version),
+            &ToolSpec::Package(ref name, ref version) => format!("{} version {}", name, version),
+        };
+        f.write_str(&s)
     }
 }
 
@@ -405,7 +448,8 @@ impl Tool for Npm {
 #[fail(display = r#"
 'npx' is only available with npm >= 5.2.0
 
-This project is configured to use version {} of npm."#, version)]
+This project is configured to use version {} of npm."#,
+       version)]
 #[notion_fail(code = "ExecutableNotFound")]
 struct NpxNotAvailableError {
     version: String,

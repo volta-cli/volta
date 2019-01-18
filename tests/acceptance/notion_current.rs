@@ -17,8 +17,7 @@ fn package_json_with_pinned_node(node: &str, npm: &str) -> String {
     "npm": "{}"
   }}
 }}"#,
-        node,
-        npm
+        node, npm
     )
 }
 
