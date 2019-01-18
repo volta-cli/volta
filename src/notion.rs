@@ -26,8 +26,10 @@ use notion_fail::{ExitCode, FailExt, Fallible, NotionError};
 
 #[cfg(feature = "notion-dev")]
 use command::Shim;
-use command::{Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Help, Install,
-              Pin, Use, Version};
+use command::{
+    Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Help, Install, Pin, Use,
+    Version,
+};
 use error::{CliParseError, CommandUnimplementedError, DocoptExt, NotionErrorExt};
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -205,13 +207,7 @@ fn display_error_and_usage(err: &NotionError) {
 
 /// The entry point for the `notion` CLI.
 pub fn main() {
-    let mut session = match Session::new() {
-        Ok(session) => session,
-        Err(err) => {
-            display_error_and_usage(&err);
-            ExitCode::UnknownError.exit();
-        }
-    };
+    let mut session = Session::new();
 
     session.add_event_start(ActivityKind::Notion);
 

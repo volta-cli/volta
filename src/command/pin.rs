@@ -4,8 +4,8 @@ use notion_core::tool::ToolSpec;
 use notion_core::version::VersionSpec;
 use notion_fail::{ExitCode, Fallible};
 
-use Notion;
 use command::{Command, CommandName, Help};
+use Notion;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
@@ -53,7 +53,7 @@ Options:
             Pin::Help => Help::Command(CommandName::Pin).run(session)?,
             Pin::Tool(toolspec) => session.pin(&toolspec)?,
         };
-        if let Some(project) = session.project() {
+        if let Some(project) = session.project()? {
             let errors = project.autoshim();
 
             for error in errors {
