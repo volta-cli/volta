@@ -3,8 +3,8 @@ use std::string::ToString;
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::{ExitCode, Fallible, NotionFail};
 
-use Notion;
 use command::{Command, CommandName, Help};
+use Notion;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
@@ -67,20 +67,20 @@ Options:
                 Help::Command(CommandName::Current).run(session)?;
                 true
             }
-            Current::Project => project_node_version(&session)
+            Current::Project => project_node_version(&session)?
                 .map(|version| {
                     println!("v{}", version);
                 })
                 .is_some(),
-            Current::User => user_node_version(session)
+            Current::User => user_node_version(session)?
                 .map(|version| {
                     println!("v{}", version);
                 })
                 .is_some(),
             Current::All => {
                 let (project, user) = (
-                    project_node_version(&session),
-                    user_node_version(&session),
+                    project_node_version(&session)?,
+                    user_node_version(&session)?,
                 );
 
                 let user_active = project.is_none() && user.is_some();
@@ -109,10 +109,14 @@ Options:
     }
 }
 
-fn project_node_version(session: &Session) -> Option<String> {
-    session.project_platform().map(|platform| platform.node_runtime.to_string())
+fn project_node_version(session: &Session) -> Fallible<Option<String>> {
+    Ok(session
+        .project_platform()?
+        .map(|platform| platform.node_runtime.to_string()))
 }
 
-fn user_node_version(session: &Session) -> Option<String> {
-    session.user_platform().map(|platform| platform.node_runtime.to_string())
+fn user_node_version(session: &Session) -> Fallible<Option<String>> {
+    Ok(session
+        .user_platform()?
+        .map(|platform| platform.node_runtime.to_string()))
 }

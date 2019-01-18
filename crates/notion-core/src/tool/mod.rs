@@ -99,13 +99,7 @@ impl ToolUnimplementedError {
 /// Represents a command-line tool that Notion shims delegate to.
 pub trait Tool: Sized {
     fn launch() -> ! {
-        let mut session = match Session::new() {
-            Ok(session) => session,
-            Err(err) => {
-                display_error(&err);
-                ExitCode::ExecutionFailure.exit();
-            }
-        };
+        let mut session = Session::new();
 
         session.add_event_start(ActivityKind::Tool);
 
@@ -246,7 +240,7 @@ impl Tool for Binary {
         let exe = arg0(&mut args)?;
 
         // first try to use the project toolchain
-        if let Some(project) = session.project() {
+        if let Some(project) = session.project()? {
             // check if the executable is a direct dependency
             if project.has_direct_bin(&exe)? {
                 // use the full path to the file
@@ -254,7 +248,7 @@ impl Tool for Binary {
                 path_to_bin.push(&exe);
 
                 // if we're in a pinned project, use the project's platform.
-                if let Some(ref platform) = session.project_platform() {
+                if let Some(ref platform) = session.project_platform()? {
                     let image = platform.checkout(session)?;
                     return Ok(Self::from_components(
                         &path_to_bin.as_os_str(),
@@ -264,7 +258,7 @@ impl Tool for Binary {
                 }
 
                 // otherwise use the user platform.
-                if let Some(ref platform) = session.user_platform() {
+                if let Some(ref platform) = session.user_platform()? {
                     let image = platform.checkout(session)?;
                     return Ok(Self::from_components(
                         &path_to_bin.as_os_str(),
@@ -281,7 +275,7 @@ impl Tool for Binary {
         }
 
         // next try to use the user toolchain
-        if let Some(ref platform) = session.user_platform() {
+        if let Some(ref platform) = session.user_platform()? {
             // use the full path to the binary
             // ISSUE (#160): Look up the platform image bound to the user tool.
             let image = platform.checkout(session)?;
@@ -330,13 +324,15 @@ fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
 }
 
 #[derive(Debug, Fail, NotionFail)]
-#[fail(display = r#"
+#[fail(
+    display = r#"
 No {} version selected.
 
 See `notion help pin` for help adding {} to a project toolchain.
 
 See `notion help install` for help adding {} to your personal toolchain."#,
-       tool, tool, tool)]
+    tool, tool, tool
+)]
 #[notion_fail(code = "NoVersionMatch")]
 struct NoSuchToolError {
     tool: String,
@@ -348,7 +344,7 @@ impl Tool for Node {
 
         let mut args = args_os();
         let exe = arg0(&mut args)?;
-        if let Some(ref platform) = session.current_platform() {
+        if let Some(ref platform) = session.current_platform()? {
             let image = platform.checkout(session)?;
             Ok(Self::from_components(&exe, args, &image.path()?))
         } else {
@@ -373,7 +369,7 @@ impl Tool for Yarn {
 
         let mut args = args_os();
         let exe = arg0(&mut args)?;
-        if let Some(ref platform) = session.current_platform() {
+        if let Some(ref platform) = session.current_platform()? {
             let image = platform.checkout(session)?;
             Ok(Self::from_components(&exe, args, &image.path()?))
         } else {
@@ -394,7 +390,7 @@ impl Tool for Yarn {
     /// Perform any tasks which must be run after the tool runs but before exiting.
     fn finalize(session: &Session, maybe_status: &io::Result<ExitStatus>) {
         if let Ok(_) = maybe_status {
-            if let Some(project) = session.project() {
+            if let Ok(Some(project)) = session.project() {
                 let errors = project.autoshim();
 
                 for error in errors {
@@ -411,7 +407,7 @@ impl Tool for Npm {
 
         let mut args = args_os();
         let exe = arg0(&mut args)?;
-        if let Some(ref platform) = session.current_platform() {
+        if let Some(ref platform) = session.current_platform()? {
             let image = platform.checkout(session)?;
             Ok(Self::from_components(&exe, args, &image.path()?))
         } else {
@@ -433,7 +429,7 @@ impl Tool for Npm {
 
     fn finalize(session: &Session, maybe_status: &io::Result<ExitStatus>) {
         if let Ok(_) = maybe_status {
-            if let Some(project) = session.project() {
+            if let Ok(Some(project)) = session.project() {
                 let errors = project.autoshim();
 
                 for error in errors {
@@ -445,11 +441,13 @@ impl Tool for Npm {
 }
 
 #[derive(Debug, Fail, NotionFail)]
-#[fail(display = r#"
+#[fail(
+    display = r#"
 'npx' is only available with npm >= 5.2.0
 
 This project is configured to use version {} of npm."#,
-       version)]
+    version
+)]
 #[notion_fail(code = "ExecutableNotFound")]
 struct NpxNotAvailableError {
     version: String,
@@ -461,7 +459,7 @@ impl Tool for Npx {
 
         let mut args = args_os();
         let exe = arg0(&mut args)?;
-        if let Some(ref platform) = session.current_platform() {
+        if let Some(ref platform) = session.current_platform()? {
             let image = platform.checkout(session)?;
 
             // npx was only included with Node >= 8.2.0. If less than that, we should include a helpful error message

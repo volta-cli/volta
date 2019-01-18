@@ -8,9 +8,9 @@ use distro::{DistroVersion, Fetched};
 use hook::{HookConfig, LazyHookConfig, Publish};
 use inventory::{Inventory, LazyInventory};
 use platform::PlatformSpec;
-use project::Project;
+use project::{LazyProject, Project};
 use tool::ToolSpec;
-use toolchain::Toolchain;
+use toolchain::LazyToolchain;
 use version::VersionSpec;
 
 use std::fmt::{self, Display, Formatter};
@@ -90,44 +90,48 @@ impl NotInPackageError {
 pub struct Session {
     hooks: LazyHookConfig,
     inventory: LazyInventory,
-    toolchain: Toolchain,
-    project: Option<Rc<Project>>,
+    toolchain: LazyToolchain,
+    project: LazyProject,
     event_log: EventLog,
 }
 
 impl Session {
     /// Constructs a new `Session`.
-    pub fn new() -> Fallible<Session> {
-        Ok(Session {
+    pub fn new() -> Session {
+        Session {
             hooks: LazyHookConfig::new(),
             inventory: LazyInventory::new(),
-            toolchain: Toolchain::current()?,
-            project: Project::for_current_dir()?.map(Rc::new),
-            event_log: EventLog::new()?,
-        })
+            toolchain: LazyToolchain::new(),
+            project: LazyProject::new(),
+            event_log: EventLog::new(),
+        }
     }
 
     /// Produces a reference to the current Node project, if any.
-    pub fn project(&self) -> Option<Rc<Project>> {
-        self.project.clone()
+    pub fn project(&self) -> Fallible<Option<Rc<Project>>> {
+        self.project.get()
     }
 
-    pub fn current_platform(&self) -> Option<Rc<PlatformSpec>> {
-        self.project_platform().or_else(|| self.user_platform())
+    pub fn current_platform(&self) -> Fallible<Option<Rc<PlatformSpec>>> {
+        match self.project_platform()? {
+            Some(platform) => Ok(Some(platform)),
+            None => self.user_platform(),
+        }
     }
 
-    pub fn user_platform(&self) -> Option<Rc<PlatformSpec>> {
-        self.toolchain
+    pub fn user_platform(&self) -> Fallible<Option<Rc<PlatformSpec>>> {
+        let toolchain = self.toolchain.get()?;
+        Ok(toolchain
             .platform_ref()
-            .map(|platform| Rc::new(platform.clone()))
+            .map(|platform| Rc::new(platform.clone())))
     }
 
     /// Returns the current project's pinned platform image, if any.
-    pub fn project_platform(&self) -> Option<Rc<PlatformSpec>> {
-        if let Some(ref project) = self.project {
-            return project.platform();
+    pub fn project_platform(&self) -> Fallible<Option<Rc<PlatformSpec>>> {
+        if let Some(ref project) = self.project()? {
+            return Ok(project.platform());
         }
-        None
+        Ok(None)
     }
 
     /// Produces a reference to the current inventory.
@@ -173,7 +177,8 @@ impl Session {
     /// and updates the `toolchain` as necessary.
     pub fn install(&mut self, toolspec: &ToolSpec) -> Fallible<()> {
         let distro_version = self.fetch(toolspec)?.into_version();
-        self.toolchain.set_active(distro_version)?;
+        let toolchain = self.toolchain.get_mut()?;
+        toolchain.set_active(distro_version)?;
         Ok(())
     }
 
@@ -187,7 +192,7 @@ impl Session {
     /// Updates toolchain in package.json with the Tool version matching the specified semantic
     /// versioning requirements.
     pub fn pin(&mut self, toolspec: &ToolSpec) -> Fallible<()> {
-        if let Some(ref project) = self.project() {
+        if let Some(ref project) = self.project()? {
             let distro_version = self.fetch(toolspec)?.into_version();
             project.pin(&distro_version)?;
         } else {
@@ -257,12 +262,18 @@ pub mod tests {
     fn test_in_pinned_project() {
         let project_pinned = fixture_path("basic");
         env::set_current_dir(&project_pinned).expect("Could not set current directory");
-        let pinned_session = Session::new().expect("Couldn't create new Session");
-        assert_eq!(pinned_session.project_platform().is_some(), true);
+        let pinned_session = Session::new();
+        let pinned_platform = pinned_session
+            .project_platform()
+            .expect("Couldn't create Project");
+        assert_eq!(pinned_platform.is_some(), true);
 
         let project_unpinned = fixture_path("no_toolchain");
         env::set_current_dir(&project_unpinned).expect("Could not set current directory");
-        let unpinned_session = Session::new().expect("Couldn't create new Session");
-        assert_eq!(unpinned_session.project_platform().is_none(), true);
+        let unpinned_session = Session::new();
+        let unpinned_platform = unpinned_session
+            .project_platform()
+            .expect("Couldn't create Project");
+        assert_eq!(unpinned_platform.is_none(), true);
     }
 }

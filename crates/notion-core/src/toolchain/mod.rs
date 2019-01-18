@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::Write;
 
+use lazycell::LazyCell;
 use readext::ReadExt;
 
 use distro::DistroVersion;
@@ -12,12 +13,36 @@ use notion_fail::{Fallible, ResultExt};
 
 pub(crate) mod serial;
 
+/// Lazily loaded toolchain
+pub struct LazyToolchain {
+    toolchain: LazyCell<Toolchain>,
+}
+
+impl LazyToolchain {
+    /// Creates a new `LazyToolchain`
+    pub fn new() -> Self {
+        LazyToolchain {
+            toolchain: LazyCell::new(),
+        }
+    }
+
+    /// Forces loading of the toolchain and returns an immutable reference to it
+    pub fn get(&self) -> Fallible<&Toolchain> {
+        self.toolchain.try_borrow_with(|| Toolchain::current())
+    }
+
+    /// Forces loading of the toolchain and returns a mutable reference to it
+    pub fn get_mut(&mut self) -> Fallible<&mut Toolchain> {
+        self.toolchain.try_borrow_mut_with(|| Toolchain::current())
+    }
+}
+
 pub struct Toolchain {
     platform: Option<PlatformSpec>,
 }
 
 impl Toolchain {
-    pub fn current() -> Fallible<Toolchain> {
+    fn current() -> Fallible<Toolchain> {
         let path = user_platform_file()?;
         let src = touch(&path)?.read_into_string().unknown()?;
         Ok(Toolchain {
