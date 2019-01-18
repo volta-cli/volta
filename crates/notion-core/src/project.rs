@@ -9,12 +9,11 @@ use std::rc::Rc;
 
 use lazycell::LazyCell;
 
-use distro::node::NodeVersion;
-use manifest::serial;
-use manifest::Manifest;
+use distro::node::load_default_npm_version;
+use distro::DistroVersion;
+use manifest::{serial, Manifest};
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use platform::PlatformSpec;
-use semver::Version;
 use shim;
 
 fn is_node_root(dir: &Path) -> bool {
@@ -96,6 +95,18 @@ impl LazyProject {
             .project
             .try_borrow_with(|| Project::for_current_dir())?;
         Ok(project.clone())
+    }
+}
+
+/// Thrown when a user tries to `notion pin` something other than node/yarn/npm.
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "Only node, yarn, and npm can be pinned in a project")]
+#[notion_fail(code = "InvalidArguments")]
+pub(crate) struct CannotPinPackageError;
+
+impl CannotPinPackageError {
+    pub(crate) fn new() -> Self {
+        CannotPinPackageError
     }
 }
 
@@ -247,36 +258,42 @@ impl Project {
         path
     }
 
-    /// Writes the specified version of Node to the `toolchain.node` key in package.json.
-    pub fn pin_node_in_toolchain(&self, node_version: NodeVersion) -> Fallible<()> {
-        // update the toolchain node version
-        let toolchain = serial::Image::new(
-            node_version.runtime.to_string(),
-            node_version.npm.to_string(),
-            self.manifest().yarn_str().clone(),
-        );
-        Manifest::update_toolchain(toolchain, self.package_file())?;
-        println!(
-            "Pinned node to version {} in package.json",
-            node_version.runtime
-        );
-        Ok(())
-    }
+    /// Writes the specified version of Node or Yarn to the `toolchain` in package.json.
+    pub fn pin(&self, distro_version: &DistroVersion) -> Fallible<()> {
+        match distro_version {
+            DistroVersion::Node(runtime, npm) => {
+                // prevent writing the npm version if it is equal to the default version
+                let default_npm = load_default_npm_version(&runtime).ok();
+                let npm_str = if Some(npm.clone()) == default_npm {
+                    None
+                } else {
+                    Some(npm.to_string())
+                };
 
-    /// Writes the specified version of Yarn to the `toolchain.yarn` key in package.json.
-    pub fn pin_yarn_in_toolchain(&self, yarn_version: Version) -> Fallible<()> {
-        // update the toolchain yarn version
-        if let Some(image) = self.manifest().platform() {
-            let toolchain = serial::Image::new(
-                image.node.runtime.to_string(),
-                image.node.npm.to_string(),
-                Some(yarn_version.to_string()),
-            );
-            Manifest::update_toolchain(toolchain, self.package_file())?;
-            println!("Pinned yarn to version {} in package.json", yarn_version);
-        } else {
-            throw!(NoPinnedNodeVersion::new());
+                let toolchain = serial::ToolchainSpec::new(
+                    runtime.to_string(),
+                    npm_str,
+                    self.manifest().yarn_str().clone(),
+                );
+                Manifest::update_toolchain(toolchain, self.package_file())?;
+            }
+            DistroVersion::Yarn(version) => {
+                if let Some(platform) = self.manifest().platform() {
+                    let toolchain = serial::ToolchainSpec::new(
+                        platform.node_runtime.to_string(),
+                        platform.npm.as_ref().map(|npm| npm.to_string()),
+                        Some(version.to_string()),
+                    );
+                    Manifest::update_toolchain(toolchain, self.package_file())?;
+                } else {
+                    throw!(NoPinnedNodeVersion::new());
+                }
+            }
+            // ISSUE (#175) When we can `notion install npm` then it can be pinned in the toolchain
+            DistroVersion::Npm(_) => unimplemented!("cannot pin npm in \"toolchain\""),
+            DistroVersion::Package(_, _) => throw!(CannotPinPackageError::new()),
         }
+        println!("Pinned {} in package.json", distro_version);
         Ok(())
     }
 }

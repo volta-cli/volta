@@ -1,6 +1,5 @@
 use platform::PlatformSpec;
 
-use distro;
 use notion_fail::{Fallible, ResultExt};
 
 use semver::Version;
@@ -9,7 +8,7 @@ use serde_json;
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct NodeVersion {
     pub runtime: String,
-    pub npm: String,
+    pub npm: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -24,9 +23,11 @@ impl Platform {
     pub fn into_image(self) -> Fallible<Option<PlatformSpec>> {
         Ok(match self.node {
             Some(NodeVersion { runtime, npm }) => {
-                let node = distro::node::NodeVersion {
-                    runtime: Version::parse(&runtime).unknown()?,
-                    npm: Version::parse(&npm).unknown()?,
+                let node_runtime = Version::parse(&runtime).unknown()?;
+                let npm = if let Some(npm_version) = npm {
+                    Some(Version::parse(&npm_version).unknown()?)
+                } else {
+                    None
                 };
                 let yarn = if let Some(yarn) = self.yarn {
                     Some(Version::parse(&yarn).unknown()?)
@@ -34,7 +35,7 @@ impl Platform {
                     None
                 };
 
-                Some(PlatformSpec { node, yarn })
+                Some(PlatformSpec { node_runtime, npm, yarn })
             }
             None => None,
         })
@@ -59,20 +60,18 @@ impl PlatformSpec {
     pub fn to_serial(&self) -> Platform {
         Platform {
             node: Some(NodeVersion {
-                runtime: self.node.runtime.to_string(),
-                npm: self.node.npm.to_string(),
+                runtime: self.node_runtime.to_string(),
+                npm: self.npm.as_ref().map(|npm| npm.to_string()),
             }),
             yarn: self.yarn.as_ref().map(|yarn| yarn.to_string()),
         }
     }
 }
 
-
 #[cfg(test)]
 pub mod tests {
 
     use super::*;
-    use distro;
     use platform;
     use semver;
 
@@ -95,7 +94,7 @@ pub mod tests {
             yarn: Some("1.2.3".to_string()),
             node: Some(NodeVersion {
                 runtime: "4.5.6".to_string(),
-                npm: "7.8.9".to_string(),
+                npm: Some("7.8.9".to_string()),
             }),
         };
         assert_eq!(platform, expected_platform);
@@ -116,12 +115,13 @@ pub mod tests {
     fn test_to_json() {
         let platform = platform::PlatformSpec {
             yarn: Some(semver::Version::parse("1.2.3").expect("could not parse semver version")),
-            node: distro::node::NodeVersion {
-                runtime: semver::Version::parse("4.5.6").expect("could not parse semver version"),
-                npm: semver::Version::parse("7.8.9").expect("could not parse semver version"),
-            },
+            node_runtime: semver::Version::parse("4.5.6").expect("could not parse semver version"),
+            npm: Some(semver::Version::parse("7.8.9").expect("could not parse semver version")),
         };
-        let json_str = platform.to_serial().to_json().expect("could not serialize platform to JSON");
+        let json_str = platform
+            .to_serial()
+            .to_json()
+            .expect("could not serialize platform to JSON");
         let expected_json_str = BASIC_JSON_STR.to_string();
         assert_eq!(json_str, expected_json_str);
     }

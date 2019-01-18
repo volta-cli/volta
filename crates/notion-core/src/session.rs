@@ -5,12 +5,12 @@
 use std::rc::Rc;
 
 use config::{Config, LazyConfig};
-use distro::node::NodeVersion;
-use distro::Fetched;
+use distro::{DistroVersion, Fetched};
 use inventory::{Inventory, LazyInventory};
 use platform::PlatformSpec;
 use plugin::Publish;
 use project::{LazyProject, Project};
+use tool::ToolSpec;
 use toolchain::LazyToolchain;
 use version::VersionSpec;
 
@@ -113,30 +113,14 @@ impl Session {
         self.project.get()
     }
 
-    pub fn current_platform(&mut self) -> Fallible<Option<Rc<PlatformSpec>>> {
-        if let Some(image) = self.project_platform()? {
-            return Ok(Some(image));
-        }
-
-        if let Some(image) = self.user_platform()? {
-            return Ok(Some(image));
-        }
-
-        return Ok(None);
+    pub fn current_platform(&self) -> Option<Rc<PlatformSpec>> {
+        self.project_platform().or_else(|| self.user_platform())
     }
 
-    pub fn user_platform(&mut self) -> Fallible<Option<Rc<PlatformSpec>>> {
-        if let Some(node) = self.user_node()? {
-            if let Some(yarn) = self.user_yarn()? {
-                return Ok(Some(Rc::new(PlatformSpec {
-                    node,
-                    yarn: Some(yarn),
-                })));
-            }
-
-            return Ok(Some(Rc::new(PlatformSpec { node, yarn: None })));
-        }
-        Ok(None)
+    pub fn user_platform(&self) -> Option<Rc<PlatformSpec>> {
+        self.toolchain
+            .platform_ref()
+            .map(|platform| Rc::new(platform.clone()))
     }
 
     /// Returns the current project's pinned platform image, if any.
@@ -168,7 +152,7 @@ impl Session {
 
         if !inventory.node.contains(version) {
             let config = self.config.get()?;
-            inventory.fetch_node(&VersionSpec::exact(version), config)?;
+            inventory.fetch(&ToolSpec::Node(VersionSpec::exact(version)), config)?;
         }
 
         Ok(())
@@ -180,78 +164,34 @@ impl Session {
 
         if !inventory.yarn.contains(version) {
             let config = self.config.get()?;
-            inventory.fetch_yarn(&VersionSpec::exact(version), config)?;
+            inventory.fetch(&ToolSpec::Yarn(VersionSpec::exact(version)), config)?;
         }
 
         Ok(())
     }
 
-    pub fn user_node(&self) -> Fallible<Option<NodeVersion>> {
-        let toolchain = self.toolchain.get()?;
-        Ok(toolchain.get_active_node().map(|ref nv| nv.clone()))
+    /// Installs a Tool matching the specified semantic versioning requirements,
+    /// and updates the `toolchain` as necessary.
+    pub fn install(&mut self, toolspec: &ToolSpec) -> Fallible<()> {
+        let distro_version = self.fetch(toolspec)?.into_version();
+        self.toolchain.set_active(distro_version)?;
+        Ok(())
     }
 
-    /// Fetches a version of Node matching the specified semantic verisoning
-    /// requirements.
-    pub fn fetch_node(&mut self, matching: &VersionSpec) -> Fallible<Fetched<NodeVersion>> {
-        let inventory = self.inventory.get_mut()?;
-        let config = self.config.get()?;
-        inventory.fetch_node(matching, config)
-    }
-
-    /// Sets the user toolchain's Node version to one matching the specified semantic versioning
-    /// requirements.
-    pub fn install_node(&mut self, matching: &VersionSpec) -> Fallible<()> {
+    /// Fetches a Tool version matching the specified semantic versioning requirements.
+    pub fn fetch(&mut self, tool: &ToolSpec) -> Fallible<Fetched<DistroVersion>> {
         let inventory = self.inventory.get_mut()?;
         let toolchain = self.toolchain.get_mut()?;
         let config = self.config.get()?;
-        let version = inventory.fetch_node(matching, config)?.into_version();
-        toolchain.set_active_node(version)?;
-        Ok(())
+        inventory.fetch(&tool, config)
     }
 
-    /// Updates toolchain in package.json with the Node version matching the specified semantic
+    /// Updates toolchain in package.json with the Tool version matching the specified semantic
     /// versioning requirements.
-    pub fn pin_node_version(&mut self, matching: &VersionSpec) -> Fallible<()> {
-        if let Some(ref project) = self.project()? {
-            let node_version = self.fetch_node(matching)?.into_version();
-            project.pin_node_in_toolchain(node_version)?;
-        } else {
-            throw!(NotInPackageError::new());
-        }
-        Ok(())
-    }
-
-    pub fn user_yarn(&mut self) -> Fallible<Option<Version>> {
-        let toolchain = self.toolchain.get()?;
-        Ok(toolchain.get_active_yarn().map(|ref v| v.clone()))
-    }
-
-    /// Fetches a version of Node matching the specified semantic verisoning
-    /// requirements.
-    pub fn fetch_yarn(&mut self, matching: &VersionSpec) -> Fallible<Fetched<Version>> {
-        let inventory = self.inventory.get_mut()?;
-        let config = self.config.get()?;
-        inventory.fetch_yarn(matching, config)
-    }
-
-    /// Sets the Yarn version in the user toolchain to one matching the specified semantic versioning
-    /// requirements.
-    pub fn install_yarn(&mut self, matching: &VersionSpec) -> Fallible<()> {
-        let inventory = self.inventory.get_mut()?;
-        let toolchain = self.toolchain.get_mut()?;
-        let config = self.config.get()?;
-        let version = inventory.fetch_yarn(matching, config)?.into_version();
-        toolchain.set_active_yarn(version)?;
-        Ok(())
-    }
-
-    /// Updates toolchain in package.json with the Yarn version matching the specified semantic
-    /// versioning requirements.
-    pub fn pin_yarn_version(&mut self, matching: &VersionSpec) -> Fallible<()> {
-        if let Some(ref project) = self.project()? {
-            let yarn_version = self.fetch_yarn(matching)?.into_version();
-            project.pin_yarn_in_toolchain(yarn_version)?;
+    pub fn pin(&mut self, toolspec: &ToolSpec) -> Fallible<()> {
+        if let Some(ref project) = self.project() {
+            let distro_version = self.fetch(toolspec)?.into_version();
+            project.pin(&distro_version)?;
         } else {
             throw!(NotInPackageError::new());
         }

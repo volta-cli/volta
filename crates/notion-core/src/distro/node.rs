@@ -1,4 +1,4 @@
-//! Provides the `Installer` type, which represents a provisioned Node installer.
+//! Provides the `NodeDistro` type, which represents a provisioned Node distribution.
 
 use std::fs::{read_to_string, rename, File};
 use std::io::Write;
@@ -7,12 +7,15 @@ use std::string::ToString;
 
 use super::{Distro, Fetched};
 use archive::{self, Archive};
-use inventory::NodeCollection;
-use distro::error::{DownloadError, Tool};
+use distro::error::DownloadError;
+use distro::DistroVersion;
 use fs::ensure_containing_dir_exists;
+use inventory::NodeCollection;
 use path;
 use style::{progress_bar, Action};
 use tempfile::tempdir;
+use tool::ToolSpec;
+use version::VersionSpec;
 
 use notion_fail::{Fallible, ResultExt};
 use semver::Version;
@@ -50,6 +53,25 @@ pub struct NodeVersion {
     pub npm: Version,
 }
 
+/// Load the local npm version file to determine the default npm version for a given version of Node
+pub fn load_default_npm_version(node: &Version) -> Fallible<Version> {
+    let npm_version_file_path = path::node_npm_version_file(&node.to_string())?;
+    Ok(read_to_string(npm_version_file_path)
+        .unknown()?
+        .parse()
+        .unknown()?)
+}
+
+/// Save the default npm version to the filesystem for a given version of Node
+fn save_default_npm_version(node: &Version, npm: &Version) -> Fallible<()> {
+    let npm_version_file_path = path::node_npm_version_file(&node.to_string())?;
+    let mut npm_version_file = File::create(npm_version_file_path).unknown()?;
+    npm_version_file
+        .write_all(npm.to_string().as_bytes())
+        .unknown()?;
+    Ok(())
+}
+
 /// Check if the fetched file is valid. It may have been corrupted or interrupted in the middle of
 /// downloading.
 // ISSUE(#134) - verify checksum
@@ -82,8 +104,6 @@ impl Manifest {
 }
 
 impl Distro for NodeDistro {
-    type VersionDetails = NodeVersion;
-
     /// Provision a Node distribution from the public Node distributor (`https://nodejs.org`).
     fn public(version: Version) -> Fallible<Self> {
         let distro_file_name = path::node_distro_file_name(&version.to_string());
@@ -107,8 +127,12 @@ impl Distro for NodeDistro {
 
         ensure_containing_dir_exists(&distro_file)?;
         Ok(NodeDistro {
-            archive: archive::fetch_native(url, &distro_file)
-                .with_context(DownloadError::for_tool_version(Tool::Node, version.to_string(), url.to_string()))?,
+            archive: archive::fetch_native(url, &distro_file).with_context(
+                DownloadError::for_tool(
+                    ToolSpec::Node(VersionSpec::exact(&version)),
+                    url.to_string(),
+                ),
+            )?,
             version: version,
         })
     }
@@ -128,15 +152,11 @@ impl Distro for NodeDistro {
 
     /// Fetches this version of Node. (It is left to the responsibility of the `NodeCollection`
     /// to update its state after fetching succeeds.)
-    fn fetch(self, collection: &NodeCollection) -> Fallible<Fetched<NodeVersion>> {
+    fn fetch(self, collection: &NodeCollection) -> Fallible<Fetched<DistroVersion>> {
         if collection.contains(&self.version) {
-            let filename = path::node_npm_version_file_name(&self.version.to_string());
-            let npm = path::node_inventory_dir()?.join(&filename);
+            let npm = load_default_npm_version(&self.version)?;
 
-            return Ok(Fetched::Already(NodeVersion {
-                runtime: self.version,
-                npm: read_to_string(npm).unknown()?.parse().unknown()?
-            }));
+            return Ok(Fetched::Already(DistroVersion::Node(self.version, npm)));
         }
 
         let temp = tempdir().unknown()?;
@@ -161,29 +181,22 @@ impl Distro for NodeDistro {
             .join(path::node_archive_npm_package_json_path(&version_string));
 
         let npm = Manifest::version(&npm_package_json)?;
-        let npm_string = npm.to_string();
 
         // Save the npm version number in the npm version file for this distro:
-        {
-            let npm_version_file_name = path::node_npm_version_file_name(&self.version.to_string());
-            let npm_version_file_path = path::node_inventory_dir()?.join(&npm_version_file_name);
-            let mut npm_version_file = File::create(npm_version_file_path).unknown()?;
-            npm_version_file.write_all(npm_string.as_bytes()).unknown()?;
-        }
+        save_default_npm_version(&self.version, &npm)?;
 
-        let dest = path::node_image_dir(&version_string, &npm_string)?;
+        let dest = path::node_image_dir(&version_string, &npm.to_string())?;
 
         ensure_containing_dir_exists(&dest)?;
 
         rename(
-            temp.path().join(path::node_archive_root_dir_name(&version_string)),
+            temp.path()
+                .join(path::node_archive_root_dir_name(&version_string)),
             dest,
-        ).unknown()?;
+        )
+        .unknown()?;
 
         bar.finish_and_clear();
-        Ok(Fetched::Now(NodeVersion {
-            runtime: self.version,
-            npm
-        }))
+        Ok(Fetched::Now(DistroVersion::Node(self.version, npm)))
     }
 }

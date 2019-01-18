@@ -83,12 +83,12 @@ impl Manifest {
 
     /// Returns the pinned version of Node as a Version, if any.
     pub fn node(&self) -> Option<Version> {
-        self.platform().map(|t| t.node.runtime.clone())
+        self.platform().map(|t| t.node_runtime.clone())
     }
 
     /// Returns the pinned verison of Node as a String, if any.
     pub fn node_str(&self) -> Option<String> {
-        self.platform().map(|t| t.node.runtime.to_string())
+        self.platform().map(|t| t.node_runtime.to_string())
     }
 
     /// Returns the pinned verison of Yarn as a Version, if any.
@@ -104,7 +104,7 @@ impl Manifest {
 
     /// Writes the input ToolchainManifest to package.json, adding the "toolchain" key if
     /// necessary.
-    pub fn update_toolchain(toolchain: serial::Image, package_file: PathBuf) -> Fallible<()> {
+    pub fn update_toolchain(toolchain: serial::ToolchainSpec, package_file: PathBuf) -> Fallible<()> {
         // parse the entire package.json file into a Value
         let file = File::open(&package_file).unknown()?;
         let mut v: serde_json::Value = serde_json::from_reader(file).unknown()?;
