@@ -8,6 +8,7 @@ use hook::ToolHooks;
 use inventory::Collection;
 use notion_fail::Fallible;
 use semver::Version;
+use std::fmt::{self, Display, Formatter};
 
 /// The result of a requested installation.
 pub enum Fetched<V> {
@@ -33,6 +34,32 @@ impl<V> Fetched<V> {
     }
 }
 
+/// Abstraction to contain info about Distro versions.
+#[derive(Eq, PartialEq, Clone, Debug)]
+pub enum DistroVersion {
+    // the version of the Node runtime, and the npm version installed with that
+    Node(Version, Version),
+    Yarn(Version),
+    Npm(Version),
+    Package(String, Version),
+}
+
+impl Display for DistroVersion {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        let s = match self {
+            &DistroVersion::Node(ref runtime, ref npm) => {
+                format!("node version {} (npm {})", runtime, npm)
+            }
+            &DistroVersion::Yarn(ref version) => format!("yarn version {}", version),
+            &DistroVersion::Npm(ref version) => format!("npm version {}", version),
+            &DistroVersion::Package(ref name, ref version) => {
+                format!("{} version {}", name, version)
+            }
+        };
+        f.write_str(&s)
+    }
+}
+
 pub trait Distro: Sized {
     type VersionDetails;
 
@@ -44,5 +71,5 @@ pub trait Distro: Sized {
 
     /// Fetches this version of the Tool. (It is left to the responsibility of the `Collection`
     /// to update its state after fetching succeeds.)
-    fn fetch(self, collection: &Collection<Self>) -> Fallible<Fetched<Self::VersionDetails>>;
+    fn fetch(self, collection: &Collection<Self>) -> Fallible<Fetched<DistroVersion>>;
 }

@@ -1,4 +1,4 @@
-//! Provides the `Installer` type, which represents a provisioned Node installer.
+//! Provides the `YarnDistro` type, which represents a provisioned Yarn distribution.
 
 use std::fs::{rename, File};
 use std::path::PathBuf;
@@ -6,12 +6,15 @@ use std::string::ToString;
 
 use super::{Distro, Fetched};
 use archive::{Archive, Tarball};
-use distro::error::{DownloadError, Tool};
+use distro::DistroVersion;
+use distro::error::DownloadError;
 use fs::ensure_containing_dir_exists;
 use hook::ToolHooks;
 use inventory::YarnCollection;
 use path;
 use style::{progress_bar, Action};
+use tool::ToolSpec;
+use version::VersionSpec;
 
 use notion_fail::{Fallible, ResultExt};
 use semver::Version;
@@ -77,9 +80,10 @@ impl YarnDistro {
 
         ensure_containing_dir_exists(&distro_file)?;
         Ok(YarnDistro {
-            archive: Tarball::fetch(url, &distro_file).with_context(
-                DownloadError::for_tool_version(Tool::Yarn, version.to_string(), url.to_string()),
-            )?,
+            archive: Tarball::fetch(url, &distro_file).with_context(DownloadError::for_tool(
+                ToolSpec::Yarn(VersionSpec::exact(&version)),
+                url.to_string(),
+            ))?,
             version: version,
         })
     }
@@ -118,9 +122,9 @@ impl Distro for YarnDistro {
 
     /// Fetches this version of Yarn. (It is left to the responsibility of the `YarnCollection`
     /// to update its state after fetching succeeds.)
-    fn fetch(self, collection: &YarnCollection) -> Fallible<Fetched<Version>> {
+    fn fetch(self, collection: &YarnCollection) -> Fallible<Fetched<DistroVersion>> {
         if collection.contains(&self.version) {
-            return Ok(Fetched::Already(self.version));
+            return Ok(Fetched::Already(DistroVersion::Yarn(self.version)));
         }
 
         let dest = path::yarn_image_root_dir()?;
@@ -146,6 +150,6 @@ impl Distro for YarnDistro {
         .unknown()?;
 
         bar.finish_and_clear();
-        Ok(Fetched::Now(self.version))
+        Ok(Fetched::Now(DistroVersion::Yarn(self.version)))
     }
 }

@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use envoy;
 use semver::Version;
 
-use distro::node::NodeVersion;
+use distro::node::{load_default_npm_version, NodeVersion};
 use notion_fail::{Fallible, ResultExt};
 use path;
 use session::Session;
@@ -13,21 +13,29 @@ use session::Session;
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub struct PlatformSpec {
     /// The pinned version of Node.
-    pub node: NodeVersion,
+    pub node_runtime: Version,
+    /// The pinned version of npm, if any.
+    pub npm: Option<Version>,
     /// The pinned version of Yarn, if any.
     pub yarn: Option<Version>,
 }
 
 impl PlatformSpec {
     pub fn checkout(&self, session: &mut Session) -> Fallible<Image> {
-        session.ensure_node(&self.node.runtime)?;
+        session.ensure_node(&self.node_runtime)?;
 
         if let Some(ref yarn_version) = self.yarn {
             session.ensure_yarn(yarn_version)?;
         }
 
         Ok(Image {
-            node: self.node.clone(),
+            node: NodeVersion {
+                runtime: self.node_runtime.clone(),
+                npm: match self.npm {
+                    Some(ref version) => version.clone(),
+                    None => load_default_npm_version(&self.node_runtime)?,
+                },
+            },
             yarn: self.yarn.clone(),
         })
     }
@@ -82,7 +90,11 @@ impl System {
     pub fn path() -> Fallible<OsString> {
         let old_path = envoy::path().unwrap_or(envoy::Var::from(""));
 
-        let new_path = old_path.split().remove(path::shim_dir()?).join().unknown()?;
+        let new_path = old_path
+            .split()
+            .remove(path::shim_dir()?)
+            .join()
+            .unknown()?;
 
         Ok(new_path)
     }
@@ -129,7 +141,8 @@ mod test {
             ),
         );
 
-        let node_bin = notion_home().unwrap()
+        let node_bin = notion_home()
+            .unwrap()
             .join("tools")
             .join("image")
             .join("node")
@@ -138,7 +151,8 @@ mod test {
             .join("bin");
         let expected_node_bin = node_bin.as_path().to_str().unwrap();
 
-        let yarn_bin = notion_home().unwrap()
+        let yarn_bin = notion_home()
+            .unwrap()
             .join("tools")
             .join("image")
             .join("yarn")
@@ -151,7 +165,10 @@ mod test {
         let v643 = Version::parse("6.4.3").unwrap();
 
         let no_yarn_image = Image {
-            node: NodeVersion { runtime: v123.clone(), npm: v643.clone() },
+            node: NodeVersion {
+                runtime: v123.clone(),
+                npm: v643.clone(),
+            },
             yarn: None,
         };
 
@@ -161,7 +178,10 @@ mod test {
         );
 
         let with_yarn_image = Image {
-            node: NodeVersion { runtime: v123.clone(), npm: v643.clone() },
+            node: NodeVersion {
+                runtime: v123.clone(),
+                npm: v643.clone(),
+            },
             yarn: Some(v457.clone()),
         };
 
@@ -188,7 +208,8 @@ mod test {
 
         std::env::set_var("PATH", path_with_shims);
 
-        let node_bin = notion_home().unwrap()
+        let node_bin = notion_home()
+            .unwrap()
             .join("tools")
             .join("image")
             .join("node")
@@ -196,7 +217,8 @@ mod test {
             .join("6.4.3");
         let expected_node_bin = node_bin.as_path().to_str().unwrap();
 
-        let yarn_bin = notion_home().unwrap()
+        let yarn_bin = notion_home()
+            .unwrap()
             .join("tools")
             .join("image")
             .join("yarn")
@@ -209,7 +231,10 @@ mod test {
         let v643 = Version::parse("6.4.3").unwrap();
 
         let no_yarn_image = Image {
-            node: NodeVersion { runtime: v123.clone(), npm: v643.clone() },
+            node: NodeVersion {
+                runtime: v123.clone(),
+                npm: v643.clone(),
+            },
             yarn: None,
         };
 
@@ -219,7 +244,10 @@ mod test {
         );
 
         let with_yarn_image = Image {
-            node: NodeVersion { runtime: v123.clone(), npm: v643.clone() },
+            node: NodeVersion {
+                runtime: v123.clone(),
+                npm: v643.clone(),
+            },
             yarn: Some(v457.clone()),
         };
 

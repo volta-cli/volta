@@ -1,7 +1,6 @@
 use super::super::{manifest, platform};
 use version::VersionSpec;
 
-use distro::node::NodeVersion;
 use notion_fail::Fallible;
 
 use serde::de::{Deserialize, Deserializer, Error, MapAccess, Visitor};
@@ -52,7 +51,7 @@ pub struct Manifest {
     #[serde(rename = "devDependencies")]
     pub dev_dependencies: HashMap<String, String>,
 
-    pub toolchain: Option<Image>,
+    pub toolchain: Option<ToolchainSpec>,
 
     // the "bin" field can be a map or a string
     // (see https://docs.npmjs.com/files/package.json#bin)
@@ -61,9 +60,10 @@ pub struct Manifest {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Image {
+pub struct ToolchainSpec {
     pub node: String,
-    pub npm: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub npm: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub yarn: Option<String>,
 }
@@ -93,9 +93,11 @@ impl Manifest {
     pub fn into_platform(&self) -> Fallible<Option<platform::PlatformSpec>> {
         if let Some(toolchain) = &self.toolchain {
             return Ok(Some(platform::PlatformSpec {
-                node: NodeVersion {
-                    runtime: VersionSpec::parse_version(&toolchain.node)?,
-                    npm: VersionSpec::parse_version(&toolchain.npm)?,
+                node_runtime: VersionSpec::parse_version(&toolchain.node)?,
+                npm: if let Some(npm) = &toolchain.npm {
+                    Some(VersionSpec::parse_version(&npm)?)
+                } else {
+                    None
                 },
                 yarn: if let Some(yarn) = &toolchain.yarn {
                     Some(VersionSpec::parse_version(&yarn)?)
@@ -108,9 +110,9 @@ impl Manifest {
     }
 }
 
-impl Image {
-    pub fn new(node_version: String, npm_version: String, yarn_version: Option<String>) -> Self {
-        Image {
+impl ToolchainSpec {
+    pub fn new(node_version: String, npm_version: Option<String>, yarn_version: Option<String>) -> Self {
+        ToolchainSpec {
             node: node_version,
             npm: npm_version,
             yarn: yarn_version,
@@ -288,13 +290,26 @@ pub mod tests {
 
         let package_node_only = r#"{
             "toolchain": {
-                "node": "0.10.5",
-                "npm": "1.2.18"
+                "node": "0.11.4"
             }
         }"#;
         let manifest_node_only: Manifest =
             serde_json::de::from_str(package_node_only).expect("Could not deserialize string");
-        assert_eq!(manifest_node_only.toolchain.unwrap().node, "0.10.5");
+        assert_eq!(manifest_node_only.toolchain.unwrap().node, "0.11.4");
+
+        let package_node_npm = r#"{
+            "toolchain": {
+                "node": "0.10.5",
+                "npm": "1.2.18"
+            }
+        }"#;
+        let manifest_node_npm: Manifest =
+            serde_json::de::from_str(package_node_npm).expect("Could not deserialize string");
+        let toolchain_node_npm = manifest_node_npm
+            .toolchain
+            .expect("Did not parse toolchain correctly");
+        assert_eq!(toolchain_node_npm.node, "0.10.5");
+        assert_eq!(toolchain_node_npm.npm.unwrap(), "1.2.18");
 
         let package_yarn_only = r#"{
             "toolchain": {
@@ -316,11 +331,11 @@ pub mod tests {
         }"#;
         let manifest_node_and_yarn: Manifest =
             serde_json::de::from_str(package_node_and_yarn).expect("Could not deserialize string");
-        let toolchain = manifest_node_and_yarn
+        let toolchain_node_and_yarn = manifest_node_and_yarn
             .toolchain
             .expect("Did not parse toolchain correctly");
-        assert_eq!(toolchain.node, "0.10.5");
-        assert_eq!(toolchain.yarn.unwrap(), "1.2.1");
+        assert_eq!(toolchain_node_and_yarn.node, "0.10.5");
+        assert_eq!(toolchain_node_and_yarn.yarn.unwrap(), "1.2.1");
     }
 
     #[test]

@@ -67,7 +67,7 @@ Options:
                 Help::Command(CommandName::Current).run(session)?;
                 true
             }
-            Current::Project => project_node_version(&session)?
+            Current::Project => project_node_version(&session)
                 .map(|version| {
                     println!("v{}", version);
                 })
@@ -79,7 +79,7 @@ Options:
                 .is_some(),
             Current::All => {
                 let (project, user) = (
-                    project_node_version(&session)?,
+                    project_node_version(&session),
                     user_node_version(&session),
                 );
 
@@ -109,13 +109,10 @@ Options:
     }
 }
 
-fn project_node_version(session: &Session) -> Fallible<Option<String>> {
-    if let Some(ref image) = session.project_platform() {
-        return Ok(Some(image.node.runtime.to_string()));
-    }
-    Ok(None)
+fn project_node_version(session: &Session) -> Option<String> {
+    session.project_platform().map(|platform| platform.node_runtime.to_string())
 }
 
 fn user_node_version(session: &Session) -> Option<String> {
-    session.user_node().clone().map(|nv| nv.runtime.to_string())
+    session.user_platform().map(|platform| platform.node_runtime.to_string())
 }

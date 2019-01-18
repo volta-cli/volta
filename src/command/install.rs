@@ -1,10 +1,10 @@
 use notion_core::session::{ActivityKind, Session};
+use notion_core::tool::ToolSpec;
 use notion_core::version::VersionSpec;
 use notion_fail::{ExitCode, Fallible};
 
 use result::ResultOptionExt;
 
-use CommandUnimplementedError;
 use Notion;
 use command::{Command, CommandName, Help};
 
@@ -16,14 +16,7 @@ pub(crate) struct Args {
 
 pub(crate) enum Install {
     Help,
-    Node(VersionSpec),
-    Yarn(VersionSpec),
-    Other {
-        package: String,
-        // not used
-        #[allow(dead_code)]
-        version: VersionSpec,
-    },
+    Tool(ToolSpec),
 }
 
 impl Command for Install {
@@ -59,14 +52,7 @@ Supported Tools:
             .invert()?
             .unwrap_or_default();
 
-        Ok(match &arg_tool[..] {
-            "node" => Install::Node(version),
-            "yarn" => Install::Yarn(version),
-            ref package => Install::Other {
-                package: package.to_string(),
-                version: version,
-            },
-        })
+        Ok(Install::Tool(ToolSpec::from_str(&arg_tool, version)))
     }
 
     fn run(self, session: &mut Session) -> Fallible<()> {
@@ -75,19 +61,9 @@ Supported Tools:
             Install::Help => {
                 Help::Command(CommandName::Install).run(session)?;
             }
-            Install::Node(requirements) => {
-                session.install_node(&requirements)?;
+            Install::Tool(toolspec) => {
+                session.install(&toolspec)?;
             }
-            Install::Yarn(requirements) => {
-                session.install_yarn(&requirements)?;
-            }
-            Install::Other {
-                package,
-                version: _,
-            } => throw!(CommandUnimplementedError::new(&format!(
-                "notion install {}",
-                package
-            ))),
         };
         session.add_event_end(ActivityKind::Install, ExitCode::Success);
         Ok(())

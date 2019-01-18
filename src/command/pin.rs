@@ -1,7 +1,8 @@
 use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error, ErrorContext};
+use notion_core::tool::ToolSpec;
 use notion_core::version::VersionSpec;
-use notion_fail::{ExitCode, Fallible, NotionFail};
+use notion_fail::{ExitCode, Fallible};
 
 use Notion;
 use command::{Command, CommandName, Help};
@@ -12,31 +13,9 @@ pub(crate) struct Args {
     arg_version: String,
 }
 
-// error message for using tools that are not node|yarn
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "pinning tool '{}' not yet implemented - for now you can manually edit package.json",
-       name)]
-#[notion_fail(code = "NotYetImplemented")]
-pub(crate) struct NoCustomPinError {
-    pub(crate) name: String,
-}
-
-impl NoCustomPinError {
-    pub(crate) fn new(name: String) -> Self {
-        NoCustomPinError { name: name }
-    }
-}
-
 pub(crate) enum Pin {
     Help,
-    Node(VersionSpec),
-    Yarn(VersionSpec),
-    Other {
-        name: String,
-        // not currently used
-        #[allow(dead_code)]
-        version: VersionSpec,
-    },
+    Tool(ToolSpec),
 }
 
 impl Command for Pin {
@@ -64,23 +43,15 @@ Options:
             arg_version,
         }: Args,
     ) -> Fallible<Self> {
-        Ok(match &arg_tool[..] {
-            "node" => Pin::Node(VersionSpec::parse(&arg_version)?),
-            "yarn" => Pin::Yarn(VersionSpec::parse(&arg_version)?),
-            ref tool => Pin::Other {
-                name: tool.to_string(),
-                version: VersionSpec::parse(&arg_version)?,
-            },
-        })
+        let version = VersionSpec::parse(&arg_version)?;
+        Ok(Pin::Tool(ToolSpec::from_str(&arg_tool, version)))
     }
 
     fn run(self, session: &mut Session) -> Fallible<()> {
         session.add_event_start(ActivityKind::Pin);
         match self {
             Pin::Help => Help::Command(CommandName::Pin).run(session)?,
-            Pin::Node(spec) => session.pin_node_version(&spec)?,
-            Pin::Yarn(spec) => session.pin_yarn_version(&spec)?,
-            Pin::Other { name, .. } => throw!(NoCustomPinError::new(name)),
+            Pin::Tool(toolspec) => session.pin(&toolspec)?,
         };
         if let Some(project) = session.project() {
             let errors = project.autoshim();

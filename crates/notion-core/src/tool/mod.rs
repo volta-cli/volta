@@ -2,6 +2,7 @@
 
 use std::env::{args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
+use std::fmt::{self, Debug, Display, Formatter};
 use std::io;
 use std::marker::Sized;
 use std::path::Path;
@@ -18,6 +19,48 @@ fn display_error(err: &NotionError) {
         style::display_error(style::ErrorContext::Shim, err);
     } else {
         style::display_unknown_error(style::ErrorContext::Shim, err);
+    }
+}
+
+pub enum ToolSpec {
+    Node(VersionSpec),
+    Yarn(VersionSpec),
+    Npm(VersionSpec),
+    Package(String, VersionSpec),
+}
+
+impl ToolSpec {
+    pub fn from_str(tool_name: &str, version: VersionSpec) -> Self {
+        match tool_name {
+            "node" => ToolSpec::Node(version),
+            "yarn" => ToolSpec::Yarn(version),
+            "npm" => ToolSpec::Npm(version),
+            package => ToolSpec::Package(package.to_string(), version),
+        }
+    }
+}
+
+impl Debug for ToolSpec {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        let s = match self {
+            &ToolSpec::Node(ref version) => format!("node version {}", version),
+            &ToolSpec::Yarn(ref version) => format!("yarn version {}", version),
+            &ToolSpec::Npm(ref version) => format!("npm version {}", version),
+            &ToolSpec::Package(ref name, ref version) => format!("{} version {}", name, version),
+        };
+        f.write_str(&s)
+    }
+}
+
+impl Display for ToolSpec {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        let s = match self {
+            &ToolSpec::Node(ref version) => format!("node version {}", version),
+            &ToolSpec::Yarn(ref version) => format!("yarn version {}", version),
+            &ToolSpec::Npm(ref version) => format!("npm version {}", version),
+            &ToolSpec::Package(ref name, ref version) => format!("{} version {}", name, version),
+        };
+        f.write_str(&s)
     }
 }
 
@@ -221,7 +264,7 @@ impl Tool for Binary {
                 }
 
                 // otherwise use the user platform.
-                if let Some(ref platform) = session.user_platform()? {
+                if let Some(ref platform) = session.user_platform() {
                     let image = platform.checkout(session)?;
                     return Ok(Self::from_components(
                         &path_to_bin.as_os_str(),
@@ -238,7 +281,7 @@ impl Tool for Binary {
         }
 
         // next try to use the user toolchain
-        if let Some(ref platform) = session.user_platform()? {
+        if let Some(ref platform) = session.user_platform() {
             // use the full path to the binary
             // ISSUE (#160): Look up the platform image bound to the user tool.
             let image = platform.checkout(session)?;
@@ -305,7 +348,7 @@ impl Tool for Node {
 
         let mut args = args_os();
         let exe = arg0(&mut args)?;
-        if let Some(ref platform) = session.current_platform()? {
+        if let Some(ref platform) = session.current_platform() {
             let image = platform.checkout(session)?;
             Ok(Self::from_components(&exe, args, &image.path()?))
         } else {
@@ -330,7 +373,7 @@ impl Tool for Yarn {
 
         let mut args = args_os();
         let exe = arg0(&mut args)?;
-        if let Some(ref platform) = session.current_platform()? {
+        if let Some(ref platform) = session.current_platform() {
             let image = platform.checkout(session)?;
             Ok(Self::from_components(&exe, args, &image.path()?))
         } else {
@@ -368,7 +411,7 @@ impl Tool for Npm {
 
         let mut args = args_os();
         let exe = arg0(&mut args)?;
-        if let Some(ref platform) = session.current_platform()? {
+        if let Some(ref platform) = session.current_platform() {
             let image = platform.checkout(session)?;
             Ok(Self::from_components(&exe, args, &image.path()?))
         } else {
@@ -405,7 +448,8 @@ impl Tool for Npm {
 #[fail(display = r#"
 'npx' is only available with npm >= 5.2.0
 
-This project is configured to use version {} of npm."#, version)]
+This project is configured to use version {} of npm."#,
+       version)]
 #[notion_fail(code = "ExecutableNotFound")]
 struct NpxNotAvailableError {
     version: String,
@@ -417,7 +461,7 @@ impl Tool for Npx {
 
         let mut args = args_os();
         let exe = arg0(&mut args)?;
-        if let Some(ref platform) = session.current_platform()? {
+        if let Some(ref platform) = session.current_platform() {
             let image = platform.checkout(session)?;
 
             // npx was only included with Node >= 8.2.0. If less than that, we should include a helpful error message
