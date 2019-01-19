@@ -1,4 +1,5 @@
 sudo: required
+rust: stable
 language: rust
 cache: cargo
 
@@ -12,7 +13,7 @@ env:
 jobs:
   include:
     - stage: test
-      rust: stable
+      name: "Tests"
       script:
         # the unit tests for all crates (without mocking the network)
         # run single-threaded because some tests change environment variables, which is not thread-safe
@@ -21,6 +22,10 @@ jobs:
         - NOTION_DEV=1 RUST_BACKTRACE=full cargo test --features mock-network
         # smoke tests: real data and no mocks
         - NOTION_DEV=1 RUST_BACKTRACE=full cargo test --test smoke --features smoke-tests -- --test-threads 1
+    - name: "Formatting"
+      # Run rustfmt across all crates to ensure consistent style.
+      # (See the contributing guide in the project README for details.)
+      script: cargo fmt --all -q -- --check
     - stage: publish
       # Conditional builds: https://docs.travis-ci.com/user/conditional-builds-stages-jobs/
       if: (branch = master) AND (type = push)
