@@ -13,8 +13,8 @@ use notion_core::{path, shim};
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use semver::Version;
 
-use Notion;
 use command::{Command, CommandName, Help};
+use Notion;
 
 /// Thrown when one or more errors occurred while autoshimming.
 #[derive(Debug, Fail, NotionFail)]

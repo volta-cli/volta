@@ -30,7 +30,7 @@ fn init() {
 
 // the root directory for the smoke tests, in `target/smoke_test`
 fn global_root() -> PathBuf {
-    let mut path = ok_or_panic!{ env::current_exe() };
+    let mut path = ok_or_panic! { env::current_exe() };
     path.pop(); // chop off exe name
     path.pop(); // chop off 'debug'
 
@@ -71,12 +71,13 @@ impl Remove {
         if cfg!(windows) {
             let mut p = ok_or_panic!(path.metadata()).permissions();
             p.set_readonly(false);
-            ok_or_panic!{ fs::set_permissions(path, p) };
+            ok_or_panic! { fs::set_permissions(path, p) };
         }
         match *self {
             Remove::File => fs::remove_file(path),
             Remove::Dir => fs::remove_dir_all(path), // ensure all dir contents are removed
-        }.unwrap_or_else(|e| {
+        }
+        .unwrap_or_else(|e| {
             panic!("failed to {} {}: {}", self.to_str(), path.display(), e);
         })
     }
@@ -115,8 +116,8 @@ impl PathExt for Path {
 
     // remove directory contents but not the directory itself
     fn rm_contents(&self) {
-        for file in ok_or_panic!{ fs::read_dir(self) } {
-            let file = ok_or_panic!{ file };
+        for file in ok_or_panic! { fs::read_dir(self) } {
+            let file = ok_or_panic! { file };
             if file.file_type().map(|m| m.is_dir()).unwrap_or(false) {
                 file.path().rm_rf();
             } else {

@@ -111,7 +111,11 @@ impl Manifest {
 }
 
 impl ToolchainSpec {
-    pub fn new(node_version: String, npm_version: Option<String>, yarn_version: Option<String>) -> Self {
+    pub fn new(
+        node_version: String,
+        npm_version: Option<String>,
+        yarn_version: Option<String>,
+    ) -> Self {
         ToolchainSpec {
             node: node_version,
             npm: npm_version,

@@ -60,7 +60,7 @@ We use [Discord](https://discordapp.com/) for community discussion. You can use 
 
 ## Requirements
 
-Notion is intended to compile with all versions of Rust newer than 1.20.
+Notion is intended to compile with all versions of Rust newer than 1.31.
 
 ## Tests
 
@@ -69,6 +69,21 @@ To run the tests in this repo, run the following:
 ```
 cargo test --all --features mock-network
 ```
+
+## Formatting
+
+We use Rust's official [rustfmt](https://github.com/rust-lang/rustfmt) tool in our CI to ensure consistent style in the Notion codebase.
+
+To ensure your code is formatted correctly, make sure you have installed `rustfmt`:
+```
+rustup component add rustfmt
+```
+and run the following before submitting your PR:
+```
+cargo fmt --all
+```
+
+If you use Visual Studio Code with the official Rust plugin, you can configure your editor to [automatically format on save](https://github.com/rust-lang/rls-vscode#format-on-save).
 
 ## Development Tips
 

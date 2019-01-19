@@ -3,10 +3,10 @@ use std::iter::FromIterator;
 use std::marker::PhantomData;
 use std::path::Path;
 
+use super::{NodeCollection, YarnCollection};
 use fs::read_dir_eager;
 use notion_fail::{Fallible, ResultExt};
 use path;
-use super::{NodeCollection, YarnCollection};
 
 use regex::Regex;
 use semver::Version;
@@ -19,9 +19,7 @@ use semver::Version;
 /// syntax `?P<version>`.
 fn versions_matching(dir: &Path, re: &Regex) -> Fallible<BTreeSet<Version>> {
     Ok(read_dir_eager(dir)?
-        .filter(|(_, metadata)| {
-            metadata.is_file()
-        })
+        .filter(|(_, metadata)| metadata.is_file())
         .filter_map(|(entry, _)| {
             if let Some(file_name) = entry.path().file_name() {
                 if let Some(caps) = re.captures(&file_name.to_string_lossy()) {
@@ -35,7 +33,8 @@ fn versions_matching(dir: &Path, re: &Regex) -> Fallible<BTreeSet<Version>> {
 
 impl NodeCollection {
     pub(crate) fn load() -> Fallible<Self> {
-        let re = Regex::new(r"(?x)
+        let re = Regex::new(
+            r"(?x)
             node
             -
             v(?P<version>\d+\.\d+\.\d+) # Node version
@@ -44,7 +43,9 @@ impl NodeCollection {
             -
             (?P<arch>[a-z0-9]+)         # architecture
             \.(zip|tar\.gz)
-            ").unwrap();
+            ",
+        )
+        .unwrap();
 
         let versions = versions_matching(&path::node_inventory_dir()?, &re)?;
 
@@ -57,12 +58,15 @@ impl NodeCollection {
 
 impl YarnCollection {
     pub(crate) fn load() -> Fallible<Self> {
-        let re = Regex::new(r"(?x)
+        let re = Regex::new(
+            r"(?x)
             yarn
             -
             v(?P<version>\d+\.\d+\.\d+) # Yarn version
             \.tar\.gz
-            ").unwrap();
+            ",
+        )
+        .unwrap();
 
         let versions = versions_matching(&path::yarn_inventory_dir()?, &re)?;
 
@@ -104,7 +108,7 @@ impl NodeIndex {
                 entries.push(super::NodeEntry {
                     version: Version::parse(version).unknown()?,
                     npm: Version::parse(&npm).unknown()?,
-                    files: data
+                    files: data,
                 });
             }
         }
@@ -134,7 +138,7 @@ impl YarnEntry {
         let release_filename = &format!("yarn-{}.tar.gz", self.tag_name)[..];
         self.assets
             .iter()
-            .any(|&YarnAsset { ref name }| { name == release_filename })
+            .any(|&YarnAsset { ref name }| name == release_filename)
     }
 }
 

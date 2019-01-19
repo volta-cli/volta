@@ -5,8 +5,8 @@ mod deactivate;
 mod fetch;
 mod help;
 mod install;
-mod shim;
 mod pin;
+mod shim;
 mod use_;
 mod version;
 
@@ -17,9 +17,9 @@ pub(crate) use self::deactivate::Deactivate;
 pub(crate) use self::fetch::Fetch;
 pub(crate) use self::help::Help;
 pub(crate) use self::install::Install;
+pub(crate) use self::pin::Pin;
 #[cfg(feature = "notion-dev")]
 pub(crate) use self::shim::Shim;
-pub(crate) use self::pin::Pin;
 pub(crate) use self::use_::Use;
 pub(crate) use self::version::Version;
 

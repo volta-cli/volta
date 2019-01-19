@@ -3,8 +3,9 @@ use notion_fail::{ExitCode, Fallible};
 
 #[cfg(feature = "notion-dev")]
 use command::Shim;
-use command::{Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Install, Pin,
-              Use, Version};
+use command::{
+    Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Install, Pin, Use, Version,
+};
 use {CliParseError, Notion};
 
 #[derive(Debug, Deserialize)]

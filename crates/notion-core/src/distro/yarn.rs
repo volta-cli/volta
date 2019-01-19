@@ -6,8 +6,8 @@ use std::string::ToString;
 
 use super::{Distro, Fetched};
 use archive::{Archive, Tarball};
-use distro::DistroVersion;
 use distro::error::DownloadError;
+use distro::DistroVersion;
 use fs::ensure_containing_dir_exists;
 use hook::ToolHooks;
 use inventory::YarnCollection;

@@ -134,7 +134,8 @@ impl ProcessBuilder {
                 &format!("process didn't exit successfully: {}", self),
                 Some(exit),
                 None,
-            ).into())
+            )
+            .into())
         }
     }
 
@@ -160,7 +161,8 @@ impl ProcessBuilder {
                 &format!("process didn't exit successfully: {}", self),
                 Some(output.status),
                 Some(&output),
-            ).into())
+            )
+            .into())
         }
     }
 

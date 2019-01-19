@@ -1,8 +1,8 @@
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::{ExitCode, Fallible};
 
-use Notion;
 use command::{Command, CommandName, Help};
+use Notion;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args;
