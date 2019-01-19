@@ -271,11 +271,11 @@ impl FetchResolve<YarnDistro> for YarnCollection {
                     "Fetching public registry: {}",
                     public_yarn_version_index()
                 ));
-                let releases: serial::YarnIndex = reqwest::get(
-                    public_yarn_version_index().as_str(),
-                ).with_context(RegistryFetchError::from_error)?
-                    .json()
-                    .unknown()?;
+                let releases: serial::YarnIndex =
+                    reqwest::get(public_yarn_version_index().as_str())
+                        .with_context(RegistryFetchError::from_error)?
+                        .json()
+                        .unknown()?;
                 let releases = releases.into_index()?.entries;
                 spinner.finish_and_clear();
                 let version = releases.into_iter().rev().find(|v| matching.matches(v));
@@ -359,9 +359,9 @@ fn resolve_node_versions() -> Fallible<serial::NodeIndex> {
                 "Fetching public registry: {}",
                 public_node_version_index()
             ));
-            let mut response: reqwest::Response = reqwest::get(
-                public_node_version_index().as_str(),
-            ).with_context(RegistryFetchError::from_error)?;
+            let mut response: reqwest::Response =
+                reqwest::get(public_node_version_index().as_str())
+                    .with_context(RegistryFetchError::from_error)?;
             let response_text: String = response.text().unknown()?;
             let cached: NamedTempFile = NamedTempFile::new().unknown()?;
 

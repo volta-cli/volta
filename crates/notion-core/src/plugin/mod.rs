@@ -45,11 +45,10 @@ impl ResolvePlugin {
                 let cmd = if let Some(word) = words.next() {
                     word
                 } else {
-                    throw!(
-                        InvalidCommandError {
-                            command: String::from(bin.trim()),
-                        }.unknown()
-                    );
+                    throw!(InvalidCommandError {
+                        command: String::from(bin.trim()),
+                    }
+                    .unknown());
                 };
                 let args: Vec<OsString> = words
                     .map(|s| {

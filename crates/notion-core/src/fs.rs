@@ -72,7 +72,8 @@ pub fn read_file_opt(path: &PathBuf) -> io::Result<Option<String>> {
 /// construct the iterator from, so if a directory is expected to be very large, it
 /// will allocate temporary data proportional to the number of entries.
 pub fn read_dir_eager(dir: &Path) -> Fallible<impl Iterator<Item = (DirEntry, Metadata)>> {
-    Ok(read_dir(dir).unknown()?
+    Ok(read_dir(dir)
+        .unknown()?
         .map(|entry| {
             let entry = entry.unknown()?;
             let metadata = entry.metadata().unknown()?;

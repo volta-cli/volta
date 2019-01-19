@@ -66,10 +66,10 @@ impl LazyMonitor {
 fn spawn_process(command: &str) -> Option<Child> {
     command.split(" ").take(1).next().and_then(|executable| {
         let child = Command::new(executable)
-                    .args(command.split(" ").skip(1))
-                    .stdin(Stdio::piped()) // JSON data is sent over stdin
-                    // .stdout(Stdio::piped()) // let the plugin write to stdout for now
-                    .spawn();
+            .args(command.split(" ").skip(1))
+            .stdin(Stdio::piped()) // JSON data is sent over stdin
+            // .stdout(Stdio::piped()) // let the plugin write to stdout for now
+            .spawn();
         match child {
             Err(err) => {
                 eprintln!("Error running plugin command: '{}'", command);

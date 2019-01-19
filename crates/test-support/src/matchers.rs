@@ -431,7 +431,7 @@ impl Execs {
                                  {}\n",
                                 e_line,
                                 a.join("\n")
-                            ))
+                            ));
                         }
                     };
                 }

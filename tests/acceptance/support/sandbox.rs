@@ -9,7 +9,7 @@ use reqwest::header::HttpDate;
 
 use test_support::{self, paths, paths::PathExt, process::ProcessBuilder};
 
-use notion_core::path::{OS, ARCH, archive_extension};
+use notion_core::path::{archive_extension, ARCH, OS};
 
 #[cfg(feature = "mock-network")]
 use mockito::{self, mock, Matcher};
@@ -41,7 +41,7 @@ impl CacheBuilder {
         let mut cache_file = File::create(&self.path).unwrap_or_else(|e| {
             panic!("could not create cache file {}: {}", self.path.display(), e)
         });
-        ok_or_panic!{ cache_file.write_all(self.contents.as_bytes()) };
+        ok_or_panic! { cache_file.write_all(self.contents.as_bytes()) };
 
         // write expiry file
         let one_day = Duration::from_secs(24 * 60 * 60);
@@ -57,7 +57,7 @@ impl CacheBuilder {
                 e
             )
         });
-        ok_or_panic!{ expiry_file.write_all(expiry_date.to_string().as_bytes()) };
+        ok_or_panic! { expiry_file.write_all(expiry_date.to_string().as_bytes()) };
     }
 
     fn dirname(&self) -> &Path {
@@ -101,7 +101,7 @@ impl FileBuilder {
         let mut file = File::create(&self.path)
             .unwrap_or_else(|e| panic!("could not create file {}: {}", self.path.display(), e));
 
-        ok_or_panic!{ file.write_all(self.contents.as_bytes()) };
+        ok_or_panic! { file.write_all(self.contents.as_bytes()) };
     }
 
     fn dirname(&self) -> &Path {
@@ -139,24 +139,34 @@ pub struct YarnFixture {
 }
 
 impl From<DistroMetadata> for NodeFixture {
-    fn from(metadata: DistroMetadata) -> Self { Self { metadata } }
+    fn from(metadata: DistroMetadata) -> Self {
+        Self { metadata }
+    }
 }
 
 impl From<DistroMetadata> for YarnFixture {
-    fn from(metadata: DistroMetadata) -> Self { Self { metadata } }
+    fn from(metadata: DistroMetadata) -> Self {
+        Self { metadata }
+    }
 }
 
 impl DistroFixture for NodeFixture {
     fn server_path(&self) -> String {
         let version = &self.metadata.version;
         let extension = archive_extension();
-        format!("/v{}/node-v{}-{}-{}.{}", version, version, OS, ARCH, extension)
+        format!(
+            "/v{}/node-v{}-{}-{}.{}",
+            version, version, OS, ARCH, extension
+        )
     }
 
     fn fixture_path(&self) -> String {
         let version = &self.metadata.version;
         let extension = archive_extension();
-        format!("tests/fixtures/node-v{}-{}-{}.{}", version, OS, ARCH, extension)
+        format!(
+            "tests/fixtures/node-v{}-{}-{}.{}",
+            version, OS, ARCH, extension
+        )
     }
 
     fn metadata(&self) -> &DistroMetadata {
@@ -279,9 +289,7 @@ impl SandboxBuilder {
     /// Note: Mocks are matched in reverse order, so any created _after_ this will work
     ///       While those created before will not
     pub fn mock_not_found(mut self) -> Self {
-        let mock = mock("GET", Matcher::Any)
-            .with_status(404)
-            .create();
+        let mock = mock("GET", Matcher::Any).with_status(404).create();
         self.root.mocks.push(mock);
         self
     }
@@ -299,8 +307,8 @@ impl SandboxBuilder {
             let uncompressed_size_bytes: [u8; 4] = [
                 ((uncompressed_size & 0xff000000) >> 24) as u8,
                 ((uncompressed_size & 0x00ff0000) >> 16) as u8,
-                ((uncompressed_size & 0x0000ff00) >>  8) as u8,
-                ((uncompressed_size & 0x000000ff)      ) as u8
+                ((uncompressed_size & 0x0000ff00) >> 8) as u8,
+                (uncompressed_size & 0x000000ff) as u8,
             ];
 
             let range_mock = mock("GET", &server_path[..])
@@ -337,11 +345,11 @@ impl SandboxBuilder {
         self.root.root().mkdir_p();
 
         // make sure these directories exist
-        ok_or_panic!{ fs::create_dir_all(node_cache_dir()) };
-        ok_or_panic!{ fs::create_dir_all(node_inventory_dir()) };
-        ok_or_panic!{ fs::create_dir_all(package_inventory_dir()) };
-        ok_or_panic!{ fs::create_dir_all(yarn_inventory_dir()) };
-        ok_or_panic!{ fs::create_dir_all(notion_tmp_dir()) };
+        ok_or_panic! { fs::create_dir_all(node_cache_dir()) };
+        ok_or_panic! { fs::create_dir_all(node_inventory_dir()) };
+        ok_or_panic! { fs::create_dir_all(package_inventory_dir()) };
+        ok_or_panic! { fs::create_dir_all(yarn_inventory_dir()) };
+        ok_or_panic! { fs::create_dir_all(notion_tmp_dir()) };
 
         // write node and yarn caches
         for cache in self.caches.iter() {
@@ -516,7 +524,7 @@ fn split_and_add_args(p: &mut ProcessBuilder, s: &str) {
 
 fn read_file_to_string(file_path: PathBuf) -> String {
     let mut contents = String::new();
-    let mut file = ok_or_panic!{ File::open(file_path) };
-    ok_or_panic!{ file.read_to_string(&mut contents) };
+    let mut file = ok_or_panic! { File::open(file_path) };
+    ok_or_panic! { file.read_to_string(&mut contents) };
     contents
 }

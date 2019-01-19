@@ -6,8 +6,8 @@ use std::string::ToString;
 
 use super::{Distro, Fetched};
 use archive::{Archive, Tarball};
-use distro::DistroVersion;
 use distro::error::DownloadError;
+use distro::DistroVersion;
 use fs::ensure_containing_dir_exists;
 use inventory::YarnCollection;
 use path;
@@ -126,7 +126,8 @@ impl Distro for YarnDistro {
         rename(
             dest.join(path::yarn_archive_root_dir_name(&version_string)),
             path::yarn_image_dir(&version_string)?,
-        ).unknown()?;
+        )
+        .unknown()?;
 
         bar.finish_and_clear();
         Ok(Fetched::Now(DistroVersion::Yarn(self.version)))

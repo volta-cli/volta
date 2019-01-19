@@ -35,7 +35,11 @@ impl Platform {
                     None
                 };
 
-                Some(PlatformSpec { node_runtime, npm, yarn })
+                Some(PlatformSpec {
+                    node_runtime,
+                    npm,
+                    yarn,
+                })
             }
             None => None,
         })
