@@ -25,7 +25,9 @@ jobs:
     - name: "Formatting"
       # Run rustfmt across all crates to ensure consistent style.
       # (See the contributing guide in the project README for details.)
-      script: cargo fmt --all -q -- --check
+      script:
+        - rustup component add rustfmt
+        - cargo fmt --all -q -- --check
     - stage: publish
       # Conditional builds: https://docs.travis-ci.com/user/conditional-builds-stages-jobs/
       if: (branch = master) AND (type = push)
