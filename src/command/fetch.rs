@@ -3,8 +3,8 @@ use notion_core::tool::ToolSpec;
 use notion_core::version::VersionSpec;
 use notion_fail::{ExitCode, Fallible};
 
-use Notion;
 use command::{Command, CommandName, Help};
+use Notion;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {

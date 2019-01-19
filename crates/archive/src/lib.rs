@@ -6,13 +6,13 @@
 #[macro_use]
 extern crate cfg_if;
 
-extern crate tar;
 extern crate flate2;
+extern crate tar;
 
 mod tarball;
 
-extern crate zip as zip_rs;
 extern crate verbatim;
+extern crate zip as zip_rs;
 
 mod zip;
 

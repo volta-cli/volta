@@ -1,18 +1,18 @@
 //! Provides types and functions for fetching and unpacking a Node installation
 //! tarball in Unix operating systems.
 
+use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
-use std::fs::File;
 
+use failure;
 use flate2::read::GzDecoder;
-use reqwest::header::{AcceptRanges, ContentLength, Range, RangeUnit, ByteRangeSpec};
-use reqwest::Response;
+use progress_read::ProgressRead;
 use reqwest;
+use reqwest::header::{AcceptRanges, ByteRangeSpec, ContentLength, Range, RangeUnit};
+use reqwest::Response;
 use tar;
 use tee::TeeReader;
-use progress_read::ProgressRead;
-use failure;
 
 use super::Archive;
 
@@ -20,13 +20,13 @@ use super::Archive;
 pub struct Tarball {
     compressed_size: u64,
     uncompressed_size: u64,
-    data: Box<Read>
+    data: Box<Read>,
 }
 
 #[derive(Fail, Debug)]
 #[fail(display = "HTTP header '{}' not found", header)]
 struct MissingHeaderError {
-    header: String
+    header: String,
 }
 
 /// Determines the length of an HTTP response's content in bytes, using
@@ -35,13 +35,15 @@ fn content_length(response: &Response) -> Result<u64, failure::Error> {
     Ok(match response.headers().get::<ContentLength>() {
         Some(content_length) => **content_length,
         None => {
-            return Err(MissingHeaderError { header: String::from("Content-Length") }.into());
+            return Err(MissingHeaderError {
+                header: String::from("Content-Length"),
+            }
+            .into());
         }
     })
 }
 
 impl Tarball {
-
     /// Loads a tarball from the specified file.
     pub fn load(mut source: File) -> Result<Box<Archive>, failure::Error> {
         let uncompressed_size = load_uncompressed_size(&mut source)?;
@@ -49,7 +51,7 @@ impl Tarball {
         Ok(Box::new(Tarball {
             uncompressed_size,
             compressed_size,
-            data: Box::new(source)
+            data: Box::new(source),
         }))
     }
 
@@ -60,7 +62,9 @@ impl Tarball {
         let response = reqwest::get(url)?;
 
         if !response.status().is_success() {
-            Err(super::HttpError { code: response.status() })?;
+            Err(super::HttpError {
+                code: response.status(),
+            })?;
         }
 
         let compressed_size = content_length(&response)?;
@@ -75,16 +79,23 @@ impl Tarball {
         Ok(Box::new(Tarball {
             uncompressed_size,
             compressed_size,
-            data
+            data,
         }))
     }
-
 }
 
 impl Archive for Tarball {
-    fn compressed_size(&self) -> u64 { self.compressed_size }
-    fn uncompressed_size(&self) -> Option<u64> { Some(self.uncompressed_size) }
-    fn unpack(self: Box<Self>, dest: &Path, progress: &mut FnMut(&(), usize)) -> Result<(), failure::Error> {
+    fn compressed_size(&self) -> u64 {
+        self.compressed_size
+    }
+    fn uncompressed_size(&self) -> Option<u64> {
+        Some(self.uncompressed_size)
+    }
+    fn unpack(
+        self: Box<Self>,
+        dest: &Path,
+        progress: &mut FnMut(&(), usize),
+    ) -> Result<(), failure::Error> {
         let decoded = GzDecoder::new(self.data);
         let mut tarball = tar::Archive::new(ProgressRead::new(decoded, (), progress));
         tarball.unpack(dest)?;
@@ -104,11 +115,10 @@ impl Archive for Tarball {
 
 /// Unpacks the `isize` field from a gzip payload as a 64-bit integer.
 fn unpack_isize(packed: [u8; 4]) -> u64 {
-    let unpacked32: u32 =
-        ((packed[0] as u32)      ) +
-        ((packed[1] as u32) <<  8) +
-        ((packed[2] as u32) << 16) +
-        ((packed[3] as u32) << 24);
+    let unpacked32: u32 = (packed[0] as u32)
+        + ((packed[1] as u32) << 8)
+        + ((packed[2] as u32) << 16)
+        + ((packed[3] as u32) << 24);
 
     unpacked32 as u64
 }
@@ -116,7 +126,7 @@ fn unpack_isize(packed: [u8; 4]) -> u64 {
 #[derive(Fail, Debug)]
 #[fail(display = "unexpected content length in HTTP response: {}", length)]
 struct UnexpectedContentLengthError {
-    length: u64
+    length: u64,
 }
 
 /// Fetches just the `isize` field (the field that indicates the uncompressed size)
@@ -125,20 +135,23 @@ struct UnexpectedContentLengthError {
 /// more efficient than simply downloading the entire file up front.
 fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], failure::Error> {
     let client = reqwest::Client::new()?;
-    let mut response = client.get(url)?
-        .header(Range::Bytes(
-            vec![ByteRangeSpec::FromTo(len - 4, len - 1)]
-        ))
+    let mut response = client
+        .get(url)?
+        .header(Range::Bytes(vec![ByteRangeSpec::FromTo(len - 4, len - 1)]))
         .send()?;
 
     if !response.status().is_success() {
-        Err(super::HttpError { code: response.status() })?;
+        Err(super::HttpError {
+            code: response.status(),
+        })?;
     }
 
     let actual_length = content_length(&response)?;
 
     if actual_length != 4 {
-        Err(UnexpectedContentLengthError { length: actual_length })?;
+        Err(UnexpectedContentLengthError {
+            length: actual_length,
+        })?;
     }
 
     let mut buf = [0; 4];
@@ -161,7 +174,9 @@ fn load_isize(file: &mut File) -> Result<[u8; 4], failure::Error> {
 struct ByteRangesNotAcceptedError;
 
 fn ensure_accepts_byte_ranges(response: &Response) -> Result<(), failure::Error> {
-    if !response.headers().get::<AcceptRanges>()
+    if !response
+        .headers()
+        .get::<AcceptRanges>()
         .map(|v| v.iter().any(|unit| *unit == RangeUnit::Bytes))
         .unwrap_or(false)
     {
@@ -186,13 +201,12 @@ fn load_uncompressed_size(file: &mut File) -> Result<u64, failure::Error> {
     Ok(unpack_isize(packed))
 }
 
-
 #[cfg(test)]
 pub mod tests {
 
-    use tarball::Tarball;
-    use std::path::PathBuf;
     use std::fs::File;
+    use std::path::PathBuf;
+    use tarball::Tarball;
 
     fn fixture_path(fixture_dir: &str) -> PathBuf {
         let mut cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

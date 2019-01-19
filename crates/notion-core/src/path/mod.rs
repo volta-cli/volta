@@ -109,7 +109,11 @@ pub fn user_platform_file() -> Fallible<PathBuf> {
 }
 
 pub fn node_distro_file_name(version: &str) -> String {
-    format!("{}.{}", node_archive_root_dir_name(version), archive_extension())
+    format!(
+        "{}.{}",
+        node_archive_root_dir_name(version),
+        archive_extension()
+    )
 }
 
 pub fn node_npm_version_file(version: &str) -> Fallible<PathBuf> {
@@ -160,14 +164,14 @@ pub mod tests {
 
     #[test]
     fn test_yarn_distro_file_name() {
-        assert_eq!(
-            yarn_distro_file_name("1.2.3"),
-            "yarn-v1.2.3.tar.gz"
-        );
+        assert_eq!(yarn_distro_file_name("1.2.3"), "yarn-v1.2.3.tar.gz");
     }
 
     #[test]
     fn yarn_node_archive_root_dir() {
-        assert_eq!(yarn_archive_root_dir_name("1.2.3"), "yarn-v1.2.3".to_string());
+        assert_eq!(
+            yarn_archive_root_dir_name("1.2.3"),
+            "yarn-v1.2.3".to_string()
+        );
     }
 }

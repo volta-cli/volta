@@ -5,9 +5,9 @@
 use notion_core::session::Session;
 use notion_fail::Fallible;
 
-use Notion;
 use command::Command;
 use error::CliParseError;
+use Notion;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args;

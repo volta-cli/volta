@@ -1,14 +1,14 @@
 //! Provides types and functions for fetching and unpacking a Node installation
 //! zip file in Windows operating systems.
 
+use std::fs::{create_dir_all, File};
 use std::io::copy;
 use std::path::Path;
-use std::fs::{File, create_dir_all};
 
-use reqwest;
 use progress_read::ProgressRead;
-use zip_rs::ZipArchive;
+use reqwest;
 use verbatim::PathExt;
+use zip_rs::ZipArchive;
 
 use failure;
 
@@ -16,18 +16,17 @@ use super::Archive;
 
 pub struct Zip {
     compressed_size: u64,
-    data: File
+    data: File,
 }
 
 impl Zip {
-
     /// Loads a cached Node zip archive from the specified file.
     pub fn load(source: File) -> Result<Box<Archive>, failure::Error> {
         let compressed_size = source.metadata()?.len();
 
         Ok(Box::new(Zip {
             compressed_size,
-            data: source
+            data: source,
         }))
     }
 
@@ -37,7 +36,9 @@ impl Zip {
         let mut response = reqwest::get(url)?;
 
         if !response.status().is_success() {
-            Err(super::HttpError { code: response.status() })?;
+            Err(super::HttpError {
+                code: response.status(),
+            })?;
         }
 
         {
@@ -50,16 +51,23 @@ impl Zip {
 
         Ok(Box::new(Zip {
             compressed_size,
-            data: file
+            data: file,
         }))
     }
-
 }
 
 impl Archive for Zip {
-    fn compressed_size(&self) -> u64 { self.compressed_size }
-    fn uncompressed_size(&self) -> Option<u64> { None }
-    fn unpack(self: Box<Self>, dest: &Path, progress: &mut FnMut(&(), usize)) -> Result<(), failure::Error> {
+    fn compressed_size(&self) -> u64 {
+        self.compressed_size
+    }
+    fn uncompressed_size(&self) -> Option<u64> {
+        None
+    }
+    fn unpack(
+        self: Box<Self>,
+        dest: &Path,
+        progress: &mut FnMut(&(), usize),
+    ) -> Result<(), failure::Error> {
         // Use a verbatim path to avoid the legacy Windows 260 byte path limit.
         let dest: &Path = &dest.to_verbatim();
 
@@ -71,7 +79,10 @@ impl Archive for Zip {
                 let name = entry.name();
 
                 // Verbatim paths aren't normalized so we have to use correct r"\" separators.
-                (name.ends_with('/'), Path::new(&name.replace('/', r"\")).to_path_buf())
+                (
+                    name.ends_with('/'),
+                    Path::new(&name.replace('/', r"\")).to_path_buf(),
+                )
             };
 
             if is_dir {
@@ -88,16 +99,14 @@ impl Archive for Zip {
         }
         Ok(())
     }
-
 }
-
 
 #[cfg(test)]
 pub mod tests {
 
-    use zip::Zip;
-    use std::path::PathBuf;
     use std::fs::File;
+    use std::path::PathBuf;
+    use zip::Zip;
 
     fn fixture_path(fixture_dir: &str) -> PathBuf {
         let mut cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

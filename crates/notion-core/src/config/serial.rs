@@ -1,9 +1,9 @@
 use super::super::config;
 use std::marker::PhantomData;
 
-use distro::Distro;
 use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
+use distro::Distro;
 use plugin::serial::Plugin;
 
 use notion_fail::Fallible;

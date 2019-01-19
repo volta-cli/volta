@@ -1,6 +1,6 @@
 extern crate notion_core;
 
-use notion_core::tool::{Tool, Npx};
+use notion_core::tool::{Npx, Tool};
 
 /// The entry point for the `npx` shim.
 pub fn main() {

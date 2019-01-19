@@ -6,9 +6,9 @@ use std::str::FromStr;
 use lazycell::LazyCell;
 use toml;
 
-use distro::Distro;
 use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
+use distro::Distro;
 use fs::touch;
 use notion_fail::{Fallible, NotionError, ResultExt};
 use path::user_config_file;

@@ -7,8 +7,8 @@ use serde::Deserialize;
 use notion_core::session::Session;
 use notion_fail::{FailExt, Fallible};
 
-use Notion;
 use command::{Command, CommandName, Help};
+use Notion;
 
 use CliParseError;
 use CommandUnimplementedError;
