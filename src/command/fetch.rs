@@ -19,12 +19,13 @@ pub(crate) struct Fetch {
 impl Command for Fetch {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Fetch);
-
-        let version = VersionSpec::parse(&self.version)?;
-        let tool = ToolSpec::from_str_and_version(&self.tool, version);
-
-        session.fetch(&tool)?;
-
+        match self {
+            Fetch::Help => Help::Command(CommandName::Fetch).run(session)?,
+            Fetch::Tool(toolspec) => {
+                // TODO: this should be matched here then...
+                session.fetch(&toolspec)?;
+            }
+        };
         session.add_event_end(ActivityKind::Fetch, ExitCode::Success);
         Ok(ExitCode::Success)
     }

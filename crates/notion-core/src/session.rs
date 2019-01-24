@@ -8,6 +8,8 @@ use crate::distro::{DistroVersion, Fetched};
 use crate::error::ErrorDetails;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
 use crate::inventory::{Inventory, LazyInventory};
+// use crate::package::PackageInfo;
+use crate::package::PackageDistro;
 use crate::platform::PlatformSpec;
 use crate::project::{LazyProject, Project};
 use crate::tool::ToolSpec;
@@ -168,25 +170,54 @@ impl Session {
 
     /// Installs a Tool matching the specified semantic versioning requirements,
     /// and updates the `toolchain` as necessary.
+    // TODO: should this be match-ed back in the install command?
     pub fn install(&mut self, toolspec: &ToolSpec) -> Fallible<()> {
-        let distro_version = self.fetch(toolspec)?.into_version();
+        match toolspec {
+            ToolSpec::Node(_version) => self.install_distro(toolspec),
+            ToolSpec::Yarn(_version) => self.install_distro(toolspec),
+            // ISSUE (#175) implement as part of fetching packages
+            ToolSpec::Npm(_) => unimplemented!("cannot install npm, yet"),
+            ToolSpec::Package(name, version) => self.install_package(name, version),
+        }
+    }
+
+    // TODO: this should be better parameterized for type checking (AKA no ToolSpec enum)
+    fn install_distro(&mut self, toolspec: &ToolSpec) -> Fallible<()> {
+        let distro_version = self.fetch_distro(toolspec)?.into_version();
         let toolchain = self.toolchain.get_mut()?;
         toolchain.set_active(distro_version)?;
         Ok(())
     }
 
+    // TODO: there should be something to capture name and version together, PackageInfo? not sure
+    fn install_package(&mut self, name: &String, version: &VersionSpec) -> Fallible<()> {
+        let package_disto = self.fetch_package(name, version)?;
+        // TODO: probably don't need the rest of this
+        // let toolchain = self.toolchain.get_mut()?;
+        // toolchain.set_active(distro_version)?;
+        Ok(())
+    }
+
     /// Fetches a Tool version matching the specified semantic versioning requirements.
-    pub fn fetch(&mut self, tool: &ToolSpec) -> Fallible<Fetched<DistroVersion>> {
+    pub fn fetch_distro(&mut self, tool: &ToolSpec) -> Fallible<Fetched<DistroVersion>> {
         let inventory = self.inventory.get_mut()?;
         let hooks = self.hooks.get()?;
         inventory.fetch(&tool, hooks)
     }
 
+    /// Fetches a Packge version matching the specified semantic versioning requirements.
+    pub fn fetch_package(&mut self, name: &String, version: &VersionSpec) -> Fallible<Fetched<DistroVersion>> {
+        let inventory = self.inventory.get_mut()?;
+        let config = self.config.get()?;
+        inventory.fetch_package(name, version, config)
+    }
+
     /// Updates toolchain in package.json with the Tool version matching the specified semantic
     /// versioning requirements.
+    // TODO: match things in the command, so this is parameterized for type checking?
     pub fn pin(&mut self, toolspec: &ToolSpec) -> Fallible<()> {
         if let Some(ref project) = self.project()? {
-            let distro_version = self.fetch(toolspec)?.into_version();
+            let distro_version = self.fetch_distro(toolspec)?.into_version();
             project.pin(&distro_version)?;
         } else {
             throw!(ErrorDetails::NotInPackage);

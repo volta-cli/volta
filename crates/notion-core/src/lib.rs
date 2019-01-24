@@ -12,6 +12,7 @@ pub mod inventory;
 pub mod manifest;
 pub mod monitor;
 pub mod path;
+pub mod package;
 pub mod platform;
 pub mod project;
 pub mod session;
