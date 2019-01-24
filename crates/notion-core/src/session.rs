@@ -9,7 +9,7 @@ use crate::error::ErrorDetails;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
 use crate::inventory::{Inventory, LazyInventory};
 // use crate::package::PackageInfo;
-use crate::package::PackageDistro;
+// use crate::package::PackageDistro;
 use crate::platform::PlatformSpec;
 use crate::project::{LazyProject, Project};
 use crate::tool::ToolSpec;
@@ -191,7 +191,8 @@ impl Session {
 
     // TODO: there should be something to capture name and version together, PackageInfo? not sure
     fn install_package(&mut self, name: &String, version: &VersionSpec) -> Fallible<()> {
-        let package_disto = self.fetch_package(name, version)?;
+        let _package_distro = self.fetch_package(name, version)?;
+        // println!("fetched package distro: {:?}", package_distro);
         // TODO: probably don't need the rest of this
         // let toolchain = self.toolchain.get_mut()?;
         // toolchain.set_active(distro_version)?;

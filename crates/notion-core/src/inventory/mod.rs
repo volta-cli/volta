@@ -22,7 +22,7 @@ use crate::distro::{Distro, DistroVersion, Fetched};
 use crate::error::ErrorDetails;
 use crate::fs::{ensure_containing_dir_exists, read_file_opt};
 use crate::hook::{HookConfig, ToolHooks};
-use crate::package::PackageDistro;
+// use crate::package::PackageDistro;
 use crate::package::NpmPackage;
 use crate::path;
 use crate::style::progress_spinner;
@@ -124,14 +124,14 @@ impl Inventory {
             ToolSpec::Yarn(version) => self.yarn.fetch(&version, hooks.yarn.as_ref()),
             // ISSUE (#175) implement as part of fetching packages
             ToolSpec::Npm(_) => unimplemented!("cannot fetch npm"),
-            ToolSpec::Package(name, version) => unimplemented!("using self.fetch_package!!"),
+            ToolSpec::Package(_name, _version) => unimplemented!("using self.fetch_package!!"),
         }
     }
 
-    pub fn fetch_package(&mut self, name: &String, matching: &VersionSpec, config: &Config) -> Fallible<Fetched<DistroVersion>> {
-        // TODO: this should use config, and be resolve_remote()
+    pub fn fetch_package(&mut self, name: &String, matching: &VersionSpec, _config: &Config) -> Fallible<Fetched<DistroVersion>> {
+        // TODO: this should use config, and be resolve_remote()?
         let distro = NpmPackage::resolve_public(name, matching)?;
-        distro.fetch(config)
+        distro.fetch()
 
         // TODO: probably don't need this
         // if let &Fetched::Now(DistroVersion::Node(ref version, ..)) = &fetched {
