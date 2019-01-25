@@ -201,7 +201,7 @@ Global package installs are not recommended.
 Consider using `notion install` to add a package to your toolchain (see `notion help install for more info).
 
 Set the NOTION_ALLOW_GLOBAL environment variable to install anyway."#)]
-#[notion_fail(code = "NoVersionMatch")]
+#[notion_fail(code = "InvalidArguments")]
 struct NoGlobalInstallError;
 
 fn intercept_global_installs() -> bool {
