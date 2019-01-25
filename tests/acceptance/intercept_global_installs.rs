@@ -27,7 +27,8 @@ cfg_if! {
             },
         ];
     } else if #[cfg(target_os = "windows")] {
-        const MISSING_EXECUTABLE_EXIT_CODE: i32 = 3221225495;
+        // Exit Code 3221225495 overflows to -1073741801 when comparing i32 codes
+        const MISSING_EXECUTABLE_EXIT_CODE: i32 = -1073741801;
         const NODE_VERSION_FIXTURES: [DistroMetadata; 1] = [
             DistroMetadata {
                 version: "10.99.1040",
