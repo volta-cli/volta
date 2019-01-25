@@ -1,6 +1,6 @@
 //! Traits and types for executing command-line tools.
 
-use std::env::ArgsOs;
+use std::env::{self, ArgsOs};
 use std::ffi::{OsStr, OsString};
 use std::fmt::{self, Debug, Display, Formatter};
 use std::io;
@@ -192,4 +192,19 @@ See `notion help install` for help adding {} to your personal toolchain."#,
 #[notion_fail(code = "NoVersionMatch")]
 struct NoSuchToolError {
     tool: String,
+}
+
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = r#"
+Global package installs are not recommended.
+
+Consider using `notion install` to add a package to your toolchain (see `notion help install for more info).
+
+Set the NOTION_ALLOW_GLOBAL environment variable to install anyway."#)]
+#[notion_fail(code = "NoVersionMatch")]
+struct NoGlobalInstallError;
+
+fn intercept_global_installs() -> bool {
+    // We should only intercept global installs if the NOTION_ALLOW_GLOBAL variable is not set
+    env::var_os("NOTION_ALLOW_GLOBAL").is_none()
 }

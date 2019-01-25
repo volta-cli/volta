@@ -3,7 +3,10 @@ use std::ffi::OsStr;
 use std::io;
 use std::process::{Command, ExitStatus};
 
-use super::{arg0, command_for, display_error, NoSuchToolError, Tool};
+use super::{
+    arg0, command_for, display_error, intercept_global_installs, NoGlobalInstallError,
+    NoSuchToolError, Tool,
+};
 use session::{ActivityKind, Session};
 
 use notion_fail::Fallible;
@@ -17,6 +20,14 @@ impl Tool for Yarn {
 
         let mut args = args_os();
         let exe = arg0(&mut args)?;
+
+        if intercept_global_installs() {
+            // Yarn global installs must be of the form `yarn global add`
+            if args_os().skip(1).take(2).eq(vec!["global", "add"]) {
+                throw!(NoGlobalInstallError);
+            }
+        }
+
         if let Some(ref platform) = session.current_platform()? {
             let image = platform.checkout(session)?;
             Ok(Self::from_components(&exe, args, &image.path()?))

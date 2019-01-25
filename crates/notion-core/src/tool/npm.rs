@@ -1,9 +1,12 @@
 use std::env::{args_os, ArgsOs};
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::io;
 use std::process::{Command, ExitStatus};
 
-use super::{arg0, command_for, display_error, NoSuchToolError, Tool};
+use super::{
+    arg0, command_for, display_error, intercept_global_installs, NoGlobalInstallError,
+    NoSuchToolError, Tool,
+};
 use session::{ActivityKind, Session};
 
 use notion_fail::Fallible;
@@ -17,6 +20,21 @@ impl Tool for Npm {
 
         let mut args = args_os();
         let exe = arg0(&mut args)?;
+
+        if intercept_global_installs() {
+            let mut search_args = args_os().skip(1);
+            let command = search_args.next();
+
+            // npm global installs will be of the form `npm i` or `npm install`
+            // with `-g` or `--global` somewhere in the arguments
+            if (command == Some(OsString::from("i")) || command == Some(OsString::from("install")))
+                && search_args
+                    .any(|arg| arg == OsString::from("-g") || arg == OsString::from("--global"))
+            {
+                throw!(NoGlobalInstallError);
+            }
+        }
+
         if let Some(ref platform) = session.current_platform()? {
             let image = platform.checkout(session)?;
             Ok(Self::from_components(&exe, args, &image.path()?))
