@@ -5,7 +5,11 @@ use test_support::matchers::execs;
 use notion_fail::ExitCode;
 
 cfg_if! {
+    // Note: Windows and Unix appear to handle a missing executable differently
+    // On Unix, it results in the Command::status() method returning an Err Result
+    // On Windows, it results in the Command::status() method returning Ok(3221225495)
     if #[cfg(target_os = "macos")] {
+        const MISSING_EXECUTABLE_EXIT_CODE: i32 = ExitCode::ExecutionFailure as i32;
         const NODE_VERSION_FIXTURES: [DistroMetadata; 1] = [
             DistroMetadata {
                 version: "10.99.1040",
@@ -14,6 +18,7 @@ cfg_if! {
             },
         ];
     } else if #[cfg(target_os = "linux")] {
+        const MISSING_EXECUTABLE_EXIT_CODE: i32 = ExitCode::ExecutionFailure as i32;
         const NODE_VERSION_FIXTURES: [DistroMetadata; 1] = [
             DistroMetadata {
                 version: "10.99.1040",
@@ -22,6 +27,7 @@ cfg_if! {
             },
         ];
     } else if #[cfg(target_os = "windows")] {
+        const MISSING_EXECUTABLE_EXIT_CODE: i32 = 3221225495;
         const NODE_VERSION_FIXTURES: [DistroMetadata; 1] = [
             DistroMetadata {
                 version: "10.99.1040",
@@ -89,7 +95,7 @@ fn npm_allows_global_install_with_env_variable() {
     assert_that!(
         s.npm("i -g ember-cli"),
         execs()
-            .with_status(ExitCode::ExecutionFailure as i32)
+            .with_status(MISSING_EXECUTABLE_EXIT_CODE)
             .with_stderr_does_not_contain("Global package installs are not recommended.")
     );
 }
@@ -124,7 +130,7 @@ fn yarn_allows_global_add_with_env_variable() {
     assert_that!(
         s.yarn("global add ember-cli"),
         execs()
-            .with_status(ExitCode::ExecutionFailure as i32)
+            .with_status(MISSING_EXECUTABLE_EXIT_CODE)
             .with_stderr_does_not_contain("Global package installs are not recommended.")
     );
 }
