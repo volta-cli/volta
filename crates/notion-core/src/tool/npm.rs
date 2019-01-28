@@ -21,18 +21,8 @@ impl Tool for Npm {
         let mut args = args_os();
         let exe = arg0(&mut args)?;
 
-        if intercept_global_installs() {
-            let mut search_args = args_os().skip(1);
-            let command = search_args.next();
-
-            // npm global installs will be of the form `npm i` or `npm install`
-            // with `-g` or `--global` somewhere in the arguments
-            if (command == Some(OsString::from("i")) || command == Some(OsString::from("install")))
-                && search_args
-                    .any(|arg| arg == OsString::from("-g") || arg == OsString::from("--global"))
-            {
-                throw!(NoGlobalInstallError);
-            }
+        if intercept_global_installs() && is_global_npm_install() {
+            throw!(NoGlobalInstallError);
         }
 
         if let Some(ref platform) = session.current_platform()? {
@@ -65,5 +55,28 @@ impl Tool for Npm {
                 }
             }
         }
+    }
+}
+
+fn is_global_npm_install() -> bool {
+    let command = args_os()
+        .skip(1)
+        .skip_while(|arg| match arg.to_str() {
+            Some(arg) => arg.starts_with("-"),
+            None => false,
+        })
+        .next();
+
+    // npm global installs will have the command `i`, `install`, `add` or `isntall`
+    // See https://github.com/npm/cli/blob/latest/lib/config/cmd-list.js
+    // Additionally, they will have `-g` or `--global` somewhere in the argument list
+    if command == Some(OsString::from("install"))
+        || command == Some(OsString::from("i"))
+        || command == Some(OsString::from("isntall"))
+        || command == Some(OsString::from("add"))
+    {
+        args_os().any(|arg| arg == OsString::from("-g") || arg == OsString::from("--global"))
+    } else {
+        false
     }
 }

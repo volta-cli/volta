@@ -8,6 +8,7 @@ use std::marker::Sized;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 
+use env::UNSAFE_GLOBAL;
 use notion_fail::{ExitCode, FailExt, Fallible, NotionError, NotionFail};
 use session::{ActivityKind, Session};
 use style;
@@ -198,13 +199,11 @@ struct NoSuchToolError {
 #[fail(display = r#"
 Global package installs are not recommended.
 
-Consider using `notion install` to add a package to your toolchain (see `notion help install for more info).
-
-Set the NOTION_ALLOW_GLOBAL environment variable to install anyway."#)]
+Consider using `notion install` to add a package to your toolchain (see `notion help install` for more info)."#)]
 #[notion_fail(code = "InvalidArguments")]
 struct NoGlobalInstallError;
 
 fn intercept_global_installs() -> bool {
-    // We should only intercept global installs if the NOTION_ALLOW_GLOBAL variable is not set
-    env::var_os("NOTION_ALLOW_GLOBAL").is_none()
+    // We should only intercept global installs if the NOTION_UNSAFE_GLOBAL variable is not set
+    env::var_os(UNSAFE_GLOBAL).is_none()
 }

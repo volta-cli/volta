@@ -21,11 +21,8 @@ impl Tool for Yarn {
         let mut args = args_os();
         let exe = arg0(&mut args)?;
 
-        if intercept_global_installs() {
-            // Yarn global installs must be of the form `yarn global add`
-            if args_os().skip(1).take(2).eq(vec!["global", "add"]) {
-                throw!(NoGlobalInstallError);
-            }
+        if intercept_global_installs() && is_global_yarn_add() {
+            throw!(NoGlobalInstallError);
         }
 
         if let Some(ref platform) = session.current_platform()? {
@@ -58,4 +55,17 @@ impl Tool for Yarn {
             }
         }
     }
+}
+
+fn is_global_yarn_add() -> bool {
+    // Yarn global installs must be of the form `yarn global add`
+    // However, they may have options intermixed, e.g. yarn --verbose global add ember-cli
+    args_os()
+        .skip(1)
+        .filter(|arg| match arg.to_str() {
+            Some(arg) => !arg.starts_with("-"),
+            None => true,
+        })
+        .take(2)
+        .eq(vec!["global", "add"])
 }

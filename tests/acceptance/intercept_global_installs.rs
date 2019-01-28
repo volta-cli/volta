@@ -2,6 +2,7 @@ use hamcrest2::core::Matcher;
 use support::sandbox::{sandbox, DistroMetadata, NodeFixture, YarnFixture};
 use test_support::matchers::execs;
 
+use notion_core::env::UNSAFE_GLOBAL;
 use notion_fail::ExitCode;
 
 cfg_if! {
@@ -81,6 +82,27 @@ fn npm_prevents_global_install() {
             .with_status(ExitCode::ExecutionFailure as i32)
             .with_stderr_contains("Global package installs are not recommended.")
     );
+
+    assert_that!(
+        s.npm("-g i ember-cli"),
+        execs()
+            .with_status(ExitCode::ExecutionFailure as i32)
+            .with_stderr_contains("Global package installs are not recommended.")
+    );
+
+    assert_that!(
+        s.npm("add ember-cli --global"),
+        execs()
+            .with_status(ExitCode::ExecutionFailure as i32)
+            .with_stderr_contains("Global package installs are not recommended.")
+    );
+
+    assert_that!(
+        s.npm("isntall --global ember-cli"),
+        execs()
+            .with_status(ExitCode::ExecutionFailure as i32)
+            .with_stderr_contains("Global package installs are not recommended.")
+    );
 }
 
 #[test]
@@ -88,7 +110,7 @@ fn npm_allows_global_install_with_env_variable() {
     let s = sandbox()
         .platform(r#"{"node":{"runtime":"10.99.1040","npm":"6.2.26"}}"#)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .env("NOTION_ALLOW_GLOBAL", "1")
+        .env(UNSAFE_GLOBAL, "1")
         .build();
 
     // Since we are using a fixture for the Node version, the execution will still fail
@@ -115,6 +137,20 @@ fn yarn_prevents_global_add() {
             .with_status(ExitCode::ExecutionFailure as i32)
             .with_stderr_contains("Global package installs are not recommended.")
     );
+
+    assert_that!(
+        s.yarn("--verbose global add ember-cli"),
+        execs()
+            .with_status(ExitCode::ExecutionFailure as i32)
+            .with_stderr_contains("Global package installs are not recommended.")
+    );
+
+    assert_that!(
+        s.yarn("global --verbose add ember-cli"),
+        execs()
+            .with_status(ExitCode::ExecutionFailure as i32)
+            .with_stderr_contains("Global package installs are not recommended.")
+    );
 }
 
 #[test]
@@ -123,7 +159,7 @@ fn yarn_allows_global_add_with_env_variable() {
         .platform(r#"{"node":{"runtime":"10.99.1040","npm":"6.2.26"},"yarn":"1.12.99"}"#)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
         .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
-        .env("NOTION_ALLOW_GLOBAL", "1")
+        .env(UNSAFE_GLOBAL, "1")
         .build();
 
     // Since we are using a fixture for the Yarn version, the execution will still fail
