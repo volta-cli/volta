@@ -19,7 +19,7 @@ use config::{Config, ToolConfig};
 use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
 use distro::{Distro, DistroVersion, Fetched};
-use error::InternalError;
+use error::ErrorDetails;
 use fs::{ensure_containing_dir_exists, read_file_opt};
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use path;
@@ -176,8 +176,8 @@ pub trait FetchResolve<D: Distro> {
     fn resolve_public(&self, matching: &VersionSpec) -> Fallible<D>;
 }
 
-fn registry_fetch_error(error: &reqwest::Error) -> InternalError {
-    InternalError::RegistryFetchError {
+fn registry_fetch_error(error: &reqwest::Error) -> ErrorDetails {
+    ErrorDetails::RegistryFetchError {
         error: error.to_string(),
     }
 }

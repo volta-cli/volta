@@ -6,7 +6,7 @@ use notion_fail::{ExitCode, NotionFail};
 use tool::ToolSpec;
 
 #[derive(Debug, Fail)]
-pub enum InternalError {
+pub enum ErrorDetails {
     CreateDirError {
         dir: String,
         error: String,
@@ -24,13 +24,13 @@ pub enum InternalError {
     },
 }
 
-impl fmt::Display for InternalError {
+impl fmt::Display for ErrorDetails {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            InternalError::CreateDirError { dir, error } => {
+            ErrorDetails::CreateDirError { dir, error } => {
                 write!(f, "Could not create directory {}: {}", dir, error)
             }
-            InternalError::DownloadToolNetworkError {
+            ErrorDetails::DownloadToolNetworkError {
                 tool,
                 from_url,
                 error,
@@ -39,21 +39,21 @@ impl fmt::Display for InternalError {
                 "Failed to download {} from {}\n{}",
                 tool, from_url, error
             ),
-            InternalError::DownloadToolNotFound { tool } => write!(f, "{} not found", tool),
-            InternalError::RegistryFetchError { error } => {
+            ErrorDetails::DownloadToolNotFound { tool } => write!(f, "{} not found", tool),
+            ErrorDetails::RegistryFetchError { error } => {
                 write!(f, "Could not fetch public registry\n{}", error)
             }
         }
     }
 }
 
-impl NotionFail for InternalError {
+impl NotionFail for ErrorDetails {
     fn exit_code(&self) -> ExitCode {
         match self {
-            InternalError::CreateDirError { .. } => ExitCode::FileSystemError,
-            InternalError::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
-            InternalError::DownloadToolNotFound { .. } => ExitCode::NoVersionMatch,
-            InternalError::RegistryFetchError { .. } => ExitCode::NetworkError,
+            ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
+            ErrorDetails::DownloadToolNotFound { .. } => ExitCode::NoVersionMatch,
+            ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
         }
     }
 

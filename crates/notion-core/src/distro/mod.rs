@@ -3,7 +3,7 @@
 pub mod node;
 pub mod yarn;
 
-use error::InternalError;
+use error::ErrorDetails;
 use inventory::Collection;
 use tool::ToolSpec;
 
@@ -85,15 +85,15 @@ pub trait Distro: Sized {
 fn error_for_tool(
     toolspec: ToolSpec,
     from_url: String,
-) -> impl FnOnce(&failure::Error) -> InternalError {
+) -> impl FnOnce(&failure::Error) -> ErrorDetails {
     move |error| {
         if let Some(HttpError {
             code: StatusCode::NotFound,
         }) = error.downcast_ref::<HttpError>()
         {
-            InternalError::DownloadToolNotFound { tool: toolspec }
+            ErrorDetails::DownloadToolNotFound { tool: toolspec }
         } else {
-            InternalError::DownloadToolNetworkError {
+            ErrorDetails::DownloadToolNetworkError {
                 tool: toolspec,
                 from_url: from_url,
                 error: error.to_string(),
