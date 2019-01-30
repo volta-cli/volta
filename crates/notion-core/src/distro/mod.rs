@@ -1,11 +1,15 @@
 //! Provides types for fetching tool distributions into the local inventory.
 
-mod error;
 pub mod node;
 pub mod yarn;
 
+use error::InternalError;
 use inventory::Collection;
+use tool::ToolSpec;
+
+use archive::HttpError;
 use notion_fail::Fallible;
+use reqwest::StatusCode;
 use semver::Version;
 use std::fmt::{self, Display, Formatter};
 use std::fs::File;
@@ -76,4 +80,24 @@ pub trait Distro: Sized {
     /// Fetches this version of the Tool. (It is left to the responsibility of the `Collection`
     /// to update its state after fetching succeeds.)
     fn fetch(self, collection: &Collection<Self>) -> Fallible<Fetched<DistroVersion>>;
+}
+
+fn error_for_tool(
+    toolspec: ToolSpec,
+    from_url: String,
+) -> impl FnOnce(&failure::Error) -> InternalError {
+    move |error| {
+        if let Some(HttpError {
+            code: StatusCode::NotFound,
+        }) = error.downcast_ref::<HttpError>()
+        {
+            InternalError::DownloadToolNotFound { tool: toolspec }
+        } else {
+            InternalError::DownloadToolNetworkError {
+                tool: toolspec,
+                from_url: from_url,
+                error: error.to_string(),
+            }
+        }
+    }
 }

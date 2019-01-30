@@ -5,9 +5,8 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::string::ToString;
 
-use super::{Distro, Fetched};
+use super::{error_for_tool, Distro, Fetched};
 use archive::{self, Archive};
-use distro::error::DownloadError;
 use distro::DistroVersion;
 use fs::ensure_containing_dir_exists;
 use inventory::NodeCollection;
@@ -127,12 +126,10 @@ impl Distro for NodeDistro {
 
         ensure_containing_dir_exists(&distro_file)?;
         Ok(NodeDistro {
-            archive: archive::fetch_native(url, &distro_file).with_context(
-                DownloadError::for_tool(
-                    ToolSpec::Node(VersionSpec::exact(&version)),
-                    url.to_string(),
-                ),
-            )?,
+            archive: archive::fetch_native(url, &distro_file).with_context(error_for_tool(
+                ToolSpec::Node(VersionSpec::exact(&version)),
+                url.to_string(),
+            ))?,
             version: version,
         })
     }

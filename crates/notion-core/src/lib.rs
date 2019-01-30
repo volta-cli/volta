@@ -30,6 +30,7 @@ extern crate winfolder;
 pub mod config;
 mod distro;
 pub mod env;
+mod error;
 mod event;
 pub(crate) mod fs;
 pub mod inventory;

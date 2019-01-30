@@ -4,9 +4,8 @@ use std::fs::{rename, File};
 use std::path::PathBuf;
 use std::string::ToString;
 
-use super::{Distro, Fetched};
+use super::{error_for_tool, Distro, Fetched};
 use archive::{Archive, Tarball};
-use distro::error::DownloadError;
 use distro::DistroVersion;
 use fs::ensure_containing_dir_exists;
 use inventory::YarnCollection;
@@ -79,7 +78,7 @@ impl Distro for YarnDistro {
 
         ensure_containing_dir_exists(&distro_file)?;
         Ok(YarnDistro {
-            archive: Tarball::fetch(url, &distro_file).with_context(DownloadError::for_tool(
+            archive: Tarball::fetch(url, &distro_file).with_context(error_for_tool(
                 ToolSpec::Yarn(VersionSpec::exact(&version)),
                 url.to_string(),
             ))?,

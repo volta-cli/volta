@@ -19,6 +19,7 @@ use config::{Config, ToolConfig};
 use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
 use distro::{Distro, DistroVersion, Fetched};
+use error::InternalError;
 use fs::{ensure_containing_dir_exists, read_file_opt};
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use path;
@@ -175,19 +176,9 @@ pub trait FetchResolve<D: Distro> {
     fn resolve_public(&self, matching: &VersionSpec) -> Fallible<D>;
 }
 
-/// Thrown when the public registry for Node or Yarn could not be downloaded.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Could not fetch public registry\n{}", error)]
-#[notion_fail(code = "NetworkError")]
-pub(crate) struct RegistryFetchError {
-    error: String,
-}
-
-impl RegistryFetchError {
-    pub(crate) fn from_error(error: &reqwest::Error) -> RegistryFetchError {
-        RegistryFetchError {
-            error: error.to_string(),
-        }
+fn registry_fetch_error(error: &reqwest::Error) -> InternalError {
+    InternalError::RegistryFetchError {
+        error: error.to_string(),
     }
 }
 
@@ -263,7 +254,7 @@ impl FetchResolve<YarnDistro> for YarnCollection {
             VersionSpec::Latest => {
                 let mut response: reqwest::Response =
                     reqwest::get(public_yarn_latest_version().as_str())
-                        .with_context(RegistryFetchError::from_error)?;
+                        .with_context(registry_fetch_error)?;
                 Version::parse(&response.text().unknown()?).unknown()?
             }
             VersionSpec::Semver(ref matching) => {
@@ -273,7 +264,7 @@ impl FetchResolve<YarnDistro> for YarnCollection {
                 ));
                 let releases: serial::YarnIndex =
                     reqwest::get(public_yarn_version_index().as_str())
-                        .with_context(RegistryFetchError::from_error)?
+                        .with_context(registry_fetch_error)?
                         .json()
                         .unknown()?;
                 let releases = releases.into_index()?.entries;
@@ -361,7 +352,7 @@ fn resolve_node_versions() -> Fallible<serial::NodeIndex> {
             ));
             let mut response: reqwest::Response =
                 reqwest::get(public_node_version_index().as_str())
-                    .with_context(RegistryFetchError::from_error)?;
+                    .with_context(registry_fetch_error)?;
             let response_text: String = response.text().unknown()?;
             let cached: NamedTempFile = NamedTempFile::new().unknown()?;
 
