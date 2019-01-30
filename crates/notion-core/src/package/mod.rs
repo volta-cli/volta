@@ -1,6 +1,9 @@
 //! Provides types for installing packages to the user toolchain.
 
 use std::fs::rename;
+use std::rc::Rc;
+use std::process::{Command, Stdio};
+use std::ffi::OsStr;
 
 use inventory::RegistryFetchError;
 use semver::Version;
@@ -16,6 +19,9 @@ use tool::ToolSpec;
 use style::{progress_bar, Action};
 use tempfile::tempdir;
 use fs::ensure_containing_dir_exists;
+use platform::PlatformSpec;
+use manifest::Manifest;
+use session::Session;
 
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 // use notion_fail::FailExt;
@@ -89,11 +95,82 @@ impl PackageDistro {
         let dest = path::package_image_dir(&self.name, &self.version.to_string())?;
         ensure_containing_dir_exists(&dest)?;
 
-        // because all packages extract to a "package" directory
+        // packages typically extract to a "package" directory, but not necessarily
+        // TODO: have to figure out the directory name dynamically
         rename(temp.path().join("package"), dest).unknown()?;
         Ok(Fetched::Now(DistroVersion::Package(self.name.clone(), self.version.clone())))
     }
+
+    // TODO: how should this work?
+    pub fn platform(distro: &DistroVersion) -> Fallible<Option<Rc<PlatformSpec>>> {
+        // TODO: that should be better typed to avoid this match
+        // TODO: until then, can use `if let`...
+        let (name, version) = match distro {
+            DistroVersion::Package(n, v) => (n, v),
+            DistroVersion::Node(_, _) => unimplemented!("this stuff needs better typing"),
+            DistroVersion::Yarn(_) => unimplemented!("this stuff needs better typing"),
+            DistroVersion::Npm(_) => unimplemented!("this stuff needs better typing"),
+        };
+        let package_dir = path::package_image_dir(&name, &version.to_string())?;
+        let manifest = Manifest::for_dir(&package_dir)?;
+        Ok(manifest.platform())
+    }
+
+    pub fn install(distro: &DistroVersion, platform: &PlatformSpec, session: &mut Session) -> Fallible<()> {
+        // TODO: better typing to avoid this match
+        // TODO: until then, can use `if let`...
+        if let DistroVersion::Package(name, version) = distro {
+            // will eventually change to the installed package directory
+            let package_dir = path::package_image_dir(&name, &version.to_string())?;
+
+            // checkout the image to use
+            let image = platform.checkout(session)?;
+
+            if let Some(ref _yarn) = platform.yarn {
+                // use yarn to install
+                println!("Running `yarn install` in dir {:?}", &package_dir);
+                let output = install_command_for("yarn", &package_dir.into_os_string(), &image.path()?)
+                    .output()
+                    .expect("Failed to execute `yarn install`");
+                // TODO: check success/failure
+                println!("status: {}", output.status);
+                println!("success? {}", output.status.success());
+            } else if let Some(ref _npm) = platform.npm {
+                println!("Running `npm install` in dir {:?}", &package_dir);
+                // otherwise use npm
+                let output = install_command_for("npm", &package_dir.into_os_string(), &image.path()?)
+                    .output()
+                    .expect("Failed to execute `npm install`");
+                // TODO: check success/failure
+                println!("status: {}", output.status);
+                println!("success? {}", output.status.success());
+            } else {
+                // TODO: figure out the default npm version?
+                // that should already be part of the platform spec tho...
+                unimplemented!("probably shouldn't get here, with no npm version");
+            }
+
+        } else {
+            unimplemented!("this stuff needs better typing");
+        }
+
+        // TODO: then setup shims to the binaries
+
+        Ok(())
+    }
 }
+
+// TODO: docs
+fn install_command_for(exe: &str, in_dir: &OsStr, path_var: &OsStr) -> Command {
+    let mut command = Command::new(exe);
+    command.arg("install");
+    command.current_dir(in_dir);
+    command.env("PATH", path_var);
+    command.stdout(Stdio::inherit());
+    command.stderr(Stdio::inherit());
+    command
+}
+
 
 /// Information about a package.
 pub struct NpmPackage;
@@ -132,7 +209,6 @@ impl NpmPackage {
         };
 
         if let Some(index) = entry_opt {
-            println!("matched {} index {:?}", name, index);
             Ok(PackageDistro { name: name.to_string(), version: index.version, tarball_url: index.tarball })
         } else {
             throw!(NoPackageFoundError {

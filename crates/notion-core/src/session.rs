@@ -9,7 +9,7 @@ use crate::error::ErrorDetails;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
 use crate::inventory::{Inventory, LazyInventory};
 // use crate::package::PackageInfo;
-// use crate::package::PackageDistro;
+use crate::package::PackageDistro;
 use crate::platform::PlatformSpec;
 use crate::project::{LazyProject, Project};
 use crate::tool::ToolSpec;
@@ -177,7 +177,8 @@ impl Session {
             ToolSpec::Yarn(_version) => self.install_distro(toolspec),
             // ISSUE (#175) implement as part of fetching packages
             ToolSpec::Npm(_) => unimplemented!("cannot install npm, yet"),
-            ToolSpec::Package(name, version) => self.install_package(name, version),
+            // TODO: this should use toolspec as well (or refactor all of this stuff)
+            ToolSpec::Package(name, version) => self.install_package(&name, &version),
         }
     }
 
@@ -189,14 +190,48 @@ impl Session {
         Ok(())
     }
 
-    // TODO: there should be something to capture name and version together, PackageInfo? not sure
+    // TODO: description, and use toolspec
     fn install_package(&mut self, name: &String, version: &VersionSpec) -> Fallible<()> {
-        let _package_distro = self.fetch_package(name, version)?;
-        // println!("fetched package distro: {:?}", package_distro);
-        // TODO: probably don't need the rest of this
-        // let toolchain = self.toolchain.get_mut()?;
-        // toolchain.set_active(distro_version)?;
-        Ok(())
+        // fetches and unpacks package
+        let package_distro = self.fetch_package(name, version)?;
+
+        let use_platform;
+
+        if let Some(platform) = PackageDistro::platform(package_distro.version())? {
+            println!("using 'platform' from the package: {:?}", platform);
+            use_platform = platform;
+        } else if let Some(platform) = self.user_platform()? {
+            println!("using user platform: {:?}", platform);
+            use_platform = platform;
+        } else {
+            println!("no package platform or user platform - using node latest");
+            let latest_spec = ToolSpec::Node(VersionSpec::Latest);
+            let distro_version = self.fetch_distro(&latest_spec)?.into_version();
+
+            // TODO: dammit, the fucking DV again, really got to fix the typing
+            if let DistroVersion::Node(node, npm) = distro_version {
+                use_platform = Rc::new(PlatformSpec {
+                    node_runtime: node,
+                    npm: Some(npm),
+                    yarn: None,
+                });
+                println!("using platform: {:?}", use_platform);
+            } else {
+                // TODO: this is to avoid unintialized use_platform
+                // take this out after fixing the typing
+                println!("SHOULDN'T GET HERE - IF IT DOES ====> BIG PROBLEMS");
+                use_platform = Rc::new(PlatformSpec {
+                    node_runtime: Version::parse("1.2.3").unknown()?,
+                    npm: None,
+                    yarn: None,
+                });
+                println!("using platform: {:?}", use_platform);
+            }
+            // TODO: is that all I need to do for that?
+        }
+
+        // finally, install the package
+        PackageDistro::install(&package_distro.version(), &use_platform, self)
     }
 
     /// Fetches a Tool version matching the specified semantic versioning requirements.

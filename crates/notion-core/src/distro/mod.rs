@@ -14,6 +14,7 @@ use semver::Version;
 use std::fmt::{self, Display, Formatter};
 
 /// The result of a requested installation.
+#[derive(Debug)]
 pub enum Fetched<V> {
     /// Indicates that the given tool was already installed.
     Already(V),
