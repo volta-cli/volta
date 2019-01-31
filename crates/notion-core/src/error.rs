@@ -24,6 +24,9 @@ pub enum ErrorDetails {
     NodeVersionNotFound {
         matching: VersionSpec,
     },
+    PackageReadError {
+        error: String,
+    },
     PathError,
     RegistryFetchError {
         error: String,
@@ -52,6 +55,9 @@ impl fmt::Display for ErrorDetails {
             ErrorDetails::NodeVersionNotFound { matching } => {
                 write!(f, "No Node version found for {}", matching)
             }
+            ErrorDetails::PackageReadError { error } => {
+                write!(f, "Could not read package info: {}", error)
+            }
             ErrorDetails::PathError => write!(f, "`path` internal error"),
             ErrorDetails::RegistryFetchError { error } => {
                 write!(f, "Could not fetch public registry\n{}", error)
@@ -70,6 +76,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
             ErrorDetails::DownloadToolNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
+            ErrorDetails::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::PathError => ExitCode::UnknownError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::YarnVersionNotFound { .. } => ExitCode::NoVersionMatch,
