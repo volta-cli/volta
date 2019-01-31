@@ -2,27 +2,15 @@ use std::env::{args_os, ArgsOs};
 use std::ffi::OsStr;
 use std::process::Command;
 
-use super::{arg0, command_for, NoSuchToolError, Tool};
+use super::{arg0, command_for, Tool};
+use error::ErrorDetails;
 use session::{ActivityKind, Session};
 use version::VersionSpec;
 
-use notion_fail::{ExitCode, Fallible, NotionFail};
+use notion_fail::Fallible;
 
 /// Represents a `npx` executable.
 pub struct Npx(Command);
-
-#[derive(Debug, Fail, NotionFail)]
-#[fail(
-    display = r#"
-'npx' is only available with npm >= 5.2.0
-
-This project is configured to use version {} of npm."#,
-    version
-)]
-#[notion_fail(code = "ExecutableNotFound")]
-struct NpxNotAvailableError {
-    version: String,
-}
 
 impl Tool for Npx {
     fn new(session: &mut Session) -> Fallible<Self> {
@@ -38,14 +26,14 @@ impl Tool for Npx {
             if required_node.matches(&image.node.npm) {
                 Ok(Self::from_components(&exe, args, &image.path()?))
             } else {
-                throw!(NpxNotAvailableError {
+                throw!(ErrorDetails::NpxNotAvailable {
                     version: image.node.npm.to_string()
                 });
             }
         } else {
             // Using 'Node' as the tool name since the npx version is derived from the Node version
             // This way the error message will prompt the user to add 'Node' to their toolchain, instead of 'npx'
-            throw!(NoSuchToolError {
+            throw!(ErrorDetails::NoSuchTool {
                 tool: "Node".to_string()
             });
         }

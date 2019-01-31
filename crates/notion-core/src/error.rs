@@ -9,6 +9,9 @@ use version::VersionSpec;
 
 #[derive(Debug, Fail)]
 pub enum ErrorDetails {
+    BinaryExecError {
+        error: String,
+    },
     CannotPinPackage,
     CreateDirError {
         dir: String,
@@ -28,10 +31,20 @@ pub enum ErrorDetails {
     NodeVersionNotFound {
         matching: VersionSpec,
     },
+    NoGlobalInstalls,
     NoHomeEnvironmentVar,
     NoLocalDataDir,
     NoPinnedNodeVersion,
+    NoSuchTool {
+        tool: String,
+    },
     NotInPackage,
+    NoToolChain {
+        shim_name: String,
+    },
+    NpxNotAvailable {
+        version: String,
+    },
     PackageReadError {
         error: String,
     },
@@ -42,6 +55,7 @@ pub enum ErrorDetails {
     SymlinkError {
         error: String,
     },
+    ToolNotImplemented,
     UnrecognizedShell {
         name: String,
     },
@@ -55,6 +69,7 @@ pub enum ErrorDetails {
 impl fmt::Display for ErrorDetails {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            ErrorDetails::BinaryExecError { error } => write!(f, "{}", error),
             ErrorDetails::CannotPinPackage => {
                 write!(f, "Only node, yarn, and npm can be pinned in a project")
             }
@@ -77,6 +92,10 @@ impl fmt::Display for ErrorDetails {
             ErrorDetails::NodeVersionNotFound { matching } => {
                 write!(f, "No Node version found for {}", matching)
             }
+            ErrorDetails::NoGlobalInstalls => write!(f, r#"
+Global package installs are not recommended.
+
+Consider using `notion install` to add a package to your toolchain (see `notion help install` for more info)."#),
             ErrorDetails::NoHomeEnvironmentVar => {
                 write!(f, "environment variable 'HOME' is not set")
             }
@@ -84,7 +103,20 @@ impl fmt::Display for ErrorDetails {
             ErrorDetails::NoPinnedNodeVersion => {
                 write!(f, "There is no pinned node version for this project")
             }
+            ErrorDetails::NoSuchTool { tool } => write!(f, r#"
+No {} version selected.
+
+See `notion help pin` for help adding {} to a project toolchain.
+
+See `notion help install` for help adding {} to your personal toolchain."#, tool, tool, tool),
             ErrorDetails::NotInPackage => write!(f, "Not in a node package"),
+            ErrorDetails::NoToolChain { shim_name } => {
+                write!(f, "No toolchain available to run {}", shim_name)
+            }
+            ErrorDetails::NpxNotAvailable { version } => write!(f, r#"
+'npx' is only available with npm >= 5.2.0
+
+This project is configured to use version {} of npm."#, version),
             ErrorDetails::PackageReadError { error } => {
                 write!(f, "Could not read package info: {}", error)
             }
@@ -93,6 +125,7 @@ impl fmt::Display for ErrorDetails {
                 write!(f, "Could not fetch public registry\n{}", error)
             }
             ErrorDetails::SymlinkError { error } => write!(f, "{}", error),
+            ErrorDetails::ToolNotImplemented => write!(f, "this tool is not yet implemented"),
             ErrorDetails::UnrecognizedShell { name } => write!(f, "Unrecognized shell: {}", name),
             ErrorDetails::UnspecifiedPostscript => {
                 write!(f, "Notion postscript file not specified")
@@ -108,20 +141,26 @@ impl fmt::Display for ErrorDetails {
 impl NotionFail for ErrorDetails {
     fn exit_code(&self) -> ExitCode {
         match self {
+            ErrorDetails::BinaryExecError { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::CannotPinPackage => ExitCode::InvalidArguments,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DepPackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
             ErrorDetails::DownloadToolNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
+            ErrorDetails::NoGlobalInstalls => ExitCode::InvalidArguments,
             ErrorDetails::NoHomeEnvironmentVar => ExitCode::EnvironmentError,
             ErrorDetails::NoLocalDataDir => ExitCode::EnvironmentError,
             ErrorDetails::NoPinnedNodeVersion => ExitCode::ConfigurationError,
+            ErrorDetails::NoSuchTool { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NotInPackage => ExitCode::ConfigurationError,
+            ErrorDetails::NoToolChain { .. } => ExitCode::ExecutionFailure,
+            ErrorDetails::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::PathError => ExitCode::UnknownError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::SymlinkError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::ToolNotImplemented => ExitCode::ExecutableNotFound,
             ErrorDetails::UnrecognizedShell { .. } => ExitCode::EnvironmentError,
             ErrorDetails::UnspecifiedPostscript => ExitCode::EnvironmentError,
             ErrorDetails::UnspecifiedShell => ExitCode::EnvironmentError,

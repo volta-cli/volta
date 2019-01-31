@@ -2,11 +2,12 @@ use std::env::{args_os, ArgsOs};
 use std::ffi::OsStr;
 use std::process::Command;
 
-use super::{arg0, command_for, NoSuchToolError, Tool};
+use super::{arg0, command_for, Tool};
+use error::ErrorDetails;
 use path;
 use session::{ActivityKind, Session};
 
-use notion_fail::{ExitCode, Fallible, NotionFail};
+use notion_fail::Fallible;
 
 /// Represents a delegated binary executable.
 pub struct Binary(Command);
@@ -47,7 +48,7 @@ impl Tool for Binary {
                 }
 
                 // if there's no user platform selected, fail.
-                throw!(NoSuchToolError {
+                throw!(ErrorDetails::NoSuchTool {
                     tool: "Node".to_string()
                 });
             }
@@ -71,9 +72,9 @@ impl Tool for Binary {
 
         // at this point, there is no project or user toolchain
         // the user is executing a Notion shim that doesn't have a way to execute it
-        throw!(NoToolChainError::for_shim(
-            exe.to_string_lossy().to_string()
-        ));
+        throw!(ErrorDetails::NoToolChain {
+            shim_name: exe.to_string_lossy().to_string(),
+        });
     }
 
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
@@ -82,18 +83,5 @@ impl Tool for Binary {
 
     fn command(self) -> Command {
         self.0
-    }
-}
-
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "No toolchain available to run shim {}", shim_name)]
-#[notion_fail(code = "ExecutionFailure")]
-pub(crate) struct NoToolChainError {
-    shim_name: String,
-}
-
-impl NoToolChainError {
-    pub(crate) fn for_shim(shim_name: String) -> NoToolChainError {
-        NoToolChainError { shim_name }
     }
 }
