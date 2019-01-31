@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use error::ErrorDetails;
 
-use notion_fail::{ExitCode, FailExt, Fallible, NotionFail, ResultExt};
+use notion_fail::{Fallible, ResultExt};
 
 pub fn touch(path: &Path) -> Fallible<File> {
     if !path.is_file() {
@@ -24,18 +24,13 @@ fn error_for_dir(dir: String) -> impl FnOnce(&io::Error) -> ErrorDetails {
     }
 }
 
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "`path` internal error")]
-#[notion_fail(code = "UnknownError")]
-pub(crate) struct PathErrorDetails;
-
 /// This creates the parent directory of the input path, assuming the input path is a file.
 pub fn ensure_containing_dir_exists<P: AsRef<Path>>(path: &P) -> Fallible<()> {
     if let Some(dir) = path.as_ref().parent() {
         fs::create_dir_all(dir).with_context(error_for_dir(dir.to_string_lossy().to_string()))
     } else {
         // this was called for a file with no parent directory
-        throw!(PathErrorDetails.unknown());
+        throw!(ErrorDetails::PathError);
     }
 }
 

@@ -19,6 +19,7 @@ pub enum ErrorDetails {
     DownloadToolNotFound {
         tool: ToolSpec,
     },
+    PathError,
     RegistryFetchError {
         error: String,
     },
@@ -40,6 +41,7 @@ impl fmt::Display for ErrorDetails {
                 tool, from_url, error
             ),
             ErrorDetails::DownloadToolNotFound { tool } => write!(f, "{} not found", tool),
+            ErrorDetails::PathError => write!(f, "`path` internal error"),
             ErrorDetails::RegistryFetchError { error } => {
                 write!(f, "Could not fetch public registry\n{}", error)
             }
@@ -53,6 +55,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
             ErrorDetails::DownloadToolNotFound { .. } => ExitCode::NoVersionMatch,
+            ErrorDetails::PathError => ExitCode::UnknownError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
         }
     }
