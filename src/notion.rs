@@ -10,7 +10,6 @@ extern crate notion_fail_derive;
 extern crate result;
 extern crate semver;
 extern crate serde;
-extern crate serde_derive;
 
 mod command;
 mod error;
@@ -18,7 +17,7 @@ mod error;
 use std::string::ToString;
 
 use docopt::Docopt;
-use serde_derive::Deserialize;
+use serde::Deserialize;
 
 use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error, ErrorContext};

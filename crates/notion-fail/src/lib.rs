@@ -241,14 +241,14 @@
 extern crate failure;
 #[macro_use]
 extern crate notion_fail_derive;
-#[macro_use]
-extern crate serde_derive;
+extern crate serde;
 
 use std::convert::{From, Into};
 use std::fmt::{self, Display};
 use std::process::exit;
 
 use failure::{Backtrace, Fail};
+use serde::Serialize;
 
 /// A temporary polyfill for `throw!` until the new `failure` library includes it.
 #[macro_export]

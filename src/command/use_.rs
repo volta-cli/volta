@@ -2,7 +2,7 @@
 // With https://github.com/rust-lang/rfcs/blob/master/text/2151-raw-identifiers.md we
 // could consider something like `r#use` instead.
 
-use serde_derive::Deserialize;
+use serde::Deserialize;
 
 use notion_core::session::Session;
 use notion_fail::Fallible;

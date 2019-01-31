@@ -22,9 +22,6 @@ extern crate term_size;
 extern crate toml;
 
 extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-
 extern crate winfolder;
 
 pub mod config;

@@ -7,5 +7,4 @@ authors = ["Dave Herman <david.herman@gmail.com>"]
 failure = "0.1.1"
 failure_derive = "0.1.1"
 notion-fail-derive = { path = "../notion-fail-derive" }
-serde = "1.0.27"
-serde_derive = "1.0.27"
+serde = { version = "1.0.85", features = ["derive"] }

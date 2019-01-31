@@ -5,6 +5,8 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::string::ToString;
 
+use serde::Deserialize;
+
 use super::{Distro, Fetched};
 use archive::{self, Archive};
 use distro::error::DownloadError;

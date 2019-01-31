@@ -13,4 +13,4 @@ hamcrest2 = "0.2.3"
 archive = { path = "../archive" }
 notion-fail = { path = "../notion-fail" }
 notion-fail-derive = { path = "../notion-fail-derive" }
-serde_json = { version = "1.0.3" }
+serde_json = { version = "1.0.37" }

@@ -5,6 +5,7 @@ use distro::node::NodeDistro;
 use distro::yarn::YarnDistro;
 use distro::Distro;
 use plugin::serial::Plugin;
+use serde::{Deserialize, Serialize};
 
 use notion_fail::Fallible;
 

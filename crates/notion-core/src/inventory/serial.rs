@@ -10,6 +10,7 @@ use path;
 
 use regex::Regex;
 use semver::Version;
+use serde::{Deserialize, Serialize};
 
 /// Reads the contents of a directory and returns the set of all versions found
 /// in the directory's listing by matching filenames against the specified regex

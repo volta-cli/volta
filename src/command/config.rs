@@ -3,7 +3,6 @@ use std::str::FromStr;
 
 use docopt::Docopt;
 use serde::Deserialize;
-use serde_derive::Deserialize;
 
 use notion_core::session::Session;
 use notion_fail::{FailExt, Fallible};

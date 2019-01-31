@@ -3,6 +3,7 @@ use platform::PlatformSpec;
 use notion_fail::{Fallible, ResultExt};
 
 use semver::Version;
+use serde::{Deserialize, Serialize};
 use serde_json;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]

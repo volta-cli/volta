@@ -1,4 +1,4 @@
-use serde_derive::Deserialize;
+use serde::Deserialize;
 
 use notion_core::platform::System;
 use notion_core::session::{ActivityKind, Session};
