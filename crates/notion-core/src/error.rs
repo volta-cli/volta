@@ -2,8 +2,10 @@ use std::fmt;
 
 use failure::Fail;
 use notion_fail::{ExitCode, NotionFail};
+use semver::VersionReq;
 
 use tool::ToolSpec;
+use version::VersionSpec;
 
 #[derive(Debug, Fail)]
 pub enum ErrorDetails {
@@ -19,9 +21,15 @@ pub enum ErrorDetails {
     DownloadToolNotFound {
         tool: ToolSpec,
     },
+    NodeVersionNotFound {
+        matching: VersionSpec,
+    },
     PathError,
     RegistryFetchError {
         error: String,
+    },
+    YarnVersionNotFound {
+        matching: VersionReq,
     },
 }
 
@@ -41,9 +49,15 @@ impl fmt::Display for ErrorDetails {
                 tool, from_url, error
             ),
             ErrorDetails::DownloadToolNotFound { tool } => write!(f, "{} not found", tool),
+            ErrorDetails::NodeVersionNotFound { matching } => {
+                write!(f, "No Node version found for {}", matching)
+            }
             ErrorDetails::PathError => write!(f, "`path` internal error"),
             ErrorDetails::RegistryFetchError { error } => {
                 write!(f, "Could not fetch public registry\n{}", error)
+            }
+            ErrorDetails::YarnVersionNotFound { matching } => {
+                write!(f, "No Yarn version found for {}", matching)
             }
         }
     }
@@ -55,8 +69,10 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
             ErrorDetails::DownloadToolNotFound { .. } => ExitCode::NoVersionMatch,
+            ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::PathError => ExitCode::UnknownError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
+            ErrorDetails::YarnVersionNotFound { .. } => ExitCode::NoVersionMatch,
         }
     }
 

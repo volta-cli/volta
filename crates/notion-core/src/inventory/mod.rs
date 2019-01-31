@@ -21,9 +21,9 @@ use distro::yarn::YarnDistro;
 use distro::{Distro, DistroVersion, Fetched};
 use error::ErrorDetails;
 use fs::{ensure_containing_dir_exists, read_file_opt};
-use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
+use notion_fail::{Fallible, ResultExt};
 use path;
-use semver::{Version, VersionReq};
+use semver::Version;
 use style::progress_spinner;
 use tool::ToolSpec;
 use version::VersionSpec;
@@ -126,22 +126,6 @@ impl Inventory {
     }
 }
 
-/// Thrown when there is no Node version matching a requested semver specifier.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "No Node version found for {}", matching)]
-#[notion_fail(code = "NoVersionMatch")]
-struct NoNodeVersionFoundError {
-    matching: VersionSpec,
-}
-
-/// Thrown when there is no Yarn version matching a requested semver specifier.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "No Yarn version found for {}", matching)]
-#[notion_fail(code = "NoVersionMatch")]
-struct NoYarnVersionFoundError {
-    matching: VersionReq,
-}
-
 impl<D: Distro> Collection<D> {
     /// Tests whether this Collection contains the specified Tool version.
     pub fn contains(&self, version: &Version) -> bool {
@@ -224,7 +208,7 @@ impl FetchResolve<NodeDistro> for NodeCollection {
         if let Some(version) = version_opt {
             NodeDistro::public(version)
         } else {
-            throw!(NoNodeVersionFoundError {
+            throw!(ErrorDetails::NodeVersionNotFound {
                 matching: matching.clone()
             })
         }
@@ -274,7 +258,7 @@ impl FetchResolve<YarnDistro> for YarnCollection {
                 if let Some(version) = version {
                     version
                 } else {
-                    throw!(NoYarnVersionFoundError {
+                    throw!(ErrorDetails::YarnVersionNotFound {
                         matching: matching.clone(),
                     });
                 }
