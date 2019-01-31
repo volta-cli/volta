@@ -9,8 +9,12 @@ use version::VersionSpec;
 
 #[derive(Debug, Fail)]
 pub enum ErrorDetails {
+    CannotPinPackage,
     CreateDirError {
         dir: String,
+        error: String,
+    },
+    DepPackageReadError {
         error: String,
     },
     DownloadToolNetworkError {
@@ -26,6 +30,7 @@ pub enum ErrorDetails {
     },
     NoHomeEnvironmentVar,
     NoLocalDataDir,
+    NoPinnedNodeVersion,
     PackageReadError {
         error: String,
     },
@@ -41,8 +46,14 @@ pub enum ErrorDetails {
 impl fmt::Display for ErrorDetails {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            ErrorDetails::CannotPinPackage => {
+                write!(f, "Only node, yarn, and npm can be pinned in a project")
+            }
             ErrorDetails::CreateDirError { dir, error } => {
                 write!(f, "Could not create directory {}: {}", dir, error)
+            }
+            ErrorDetails::DepPackageReadError { error } => {
+                write!(f, "Could not read dependent package info: {}", error)
             }
             ErrorDetails::DownloadToolNetworkError {
                 tool,
@@ -61,6 +72,9 @@ impl fmt::Display for ErrorDetails {
                 write!(f, "environment variable 'HOME' is not set")
             }
             ErrorDetails::NoLocalDataDir => write!(f, "Windows LocalAppData directory not found"),
+            ErrorDetails::NoPinnedNodeVersion => {
+                write!(f, "There is no pinned node version for this project")
+            }
             ErrorDetails::PackageReadError { error } => {
                 write!(f, "Could not read package info: {}", error)
             }
@@ -78,12 +92,15 @@ impl fmt::Display for ErrorDetails {
 impl NotionFail for ErrorDetails {
     fn exit_code(&self) -> ExitCode {
         match self {
+            ErrorDetails::CannotPinPackage => ExitCode::InvalidArguments,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::DepPackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
             ErrorDetails::DownloadToolNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NoHomeEnvironmentVar => ExitCode::EnvironmentError,
             ErrorDetails::NoLocalDataDir => ExitCode::EnvironmentError,
+            ErrorDetails::NoPinnedNodeVersion => ExitCode::ConfigurationError,
             ErrorDetails::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::PathError => ExitCode::UnknownError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,

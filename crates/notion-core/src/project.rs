@@ -11,8 +11,9 @@ use lazycell::LazyCell;
 
 use distro::node::load_default_npm_version;
 use distro::DistroVersion;
+use error::ErrorDetails;
 use manifest::{serial, Manifest};
-use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
+use notion_fail::{Fallible, NotionError, ResultExt};
 use platform::PlatformSpec;
 use shim;
 
@@ -51,33 +52,6 @@ impl LazyDependentBins {
     }
 }
 
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Could not read dependent package info: {}", error)]
-#[notion_fail(code = "FileSystemError")]
-pub(crate) struct DepPackageReadError {
-    pub(crate) error: String,
-}
-
-impl DepPackageReadError {
-    pub(crate) fn from_error(error: &NotionError) -> Self {
-        DepPackageReadError {
-            error: error.to_string(),
-        }
-    }
-}
-
-/// Thrown when a user tries to pin a Yarn version before pinning a Node version.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "There is no pinned node version for this project")]
-#[notion_fail(code = "ConfigurationError")]
-pub(crate) struct NoPinnedNodeVersion;
-
-impl NoPinnedNodeVersion {
-    pub(crate) fn new() -> Self {
-        NoPinnedNodeVersion
-    }
-}
-
 /// A lazily loaded Project
 pub struct LazyProject {
     project: LazyCell<Option<Rc<Project>>>,
@@ -95,18 +69,6 @@ impl LazyProject {
             .project
             .try_borrow_with(|| Project::for_current_dir())?;
         Ok(project.clone())
-    }
-}
-
-/// Thrown when a user tries to `notion pin` something other than node/yarn/npm.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Only node, yarn, and npm can be pinned in a project")]
-#[notion_fail(code = "InvalidArguments")]
-pub(crate) struct CannotPinPackageError;
-
-impl CannotPinPackageError {
-    pub(crate) fn new() -> Self {
-        CannotPinPackageError
     }
 }
 
@@ -210,8 +172,11 @@ impl Project {
 
         // use those project paths to get the "bin" info for each project
         for pkg_path in all_dep_paths {
-            let pkg_info =
-                Manifest::for_dir(&pkg_path).with_context(DepPackageReadError::from_error)?;
+            let pkg_info = Manifest::for_dir(&pkg_path).with_context(|error| {
+                ErrorDetails::DepPackageReadError {
+                    error: error.to_string(),
+                }
+            })?;
             let bin_map = pkg_info.bin;
             for (name, path) in bin_map.iter() {
                 dependent_bins.insert(name.clone(), path.clone());
@@ -286,12 +251,12 @@ impl Project {
                     );
                     Manifest::update_toolchain(toolchain, self.package_file())?;
                 } else {
-                    throw!(NoPinnedNodeVersion::new());
+                    throw!(ErrorDetails::NoPinnedNodeVersion);
                 }
             }
             // ISSUE (#175) When we can `notion install npm` then it can be pinned in the toolchain
             DistroVersion::Npm(_) => unimplemented!("cannot pin npm in \"toolchain\""),
-            DistroVersion::Package(_, _) => throw!(CannotPinPackageError::new()),
+            DistroVersion::Package(_, _) => throw!(ErrorDetails::CannotPinPackage),
         }
         println!("Pinned {} in package.json", distro_version);
         Ok(())
