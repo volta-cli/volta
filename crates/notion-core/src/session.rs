@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use config::{Config, LazyConfig};
 use distro::{DistroVersion, Fetched};
+use error::ErrorDetails;
 use inventory::{Inventory, LazyInventory};
 use platform::PlatformSpec;
 use plugin::Publish;
@@ -18,7 +19,7 @@ use std::fmt::{self, Display, Formatter};
 use std::process::exit;
 
 use event::EventLog;
-use notion_fail::{ExitCode, Fallible, NotionError, NotionFail};
+use notion_fail::{ExitCode, Fallible, NotionError};
 use semver::Version;
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
@@ -66,18 +67,6 @@ impl Display for ActivityKind {
             &ActivityKind::Shim => "shim",
         };
         f.write_str(s)
-    }
-}
-
-/// Thrown when the user tries to pin Node or Yarn versions outside of a package.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Not in a node package")]
-#[notion_fail(code = "ConfigurationError")]
-pub(crate) struct NotInPackageError;
-
-impl NotInPackageError {
-    pub(crate) fn new() -> Self {
-        NotInPackageError
     }
 }
 
@@ -197,7 +186,7 @@ impl Session {
             let distro_version = self.fetch(toolspec)?.into_version();
             project.pin(&distro_version)?;
         } else {
-            throw!(NotInPackageError::new());
+            throw!(ErrorDetails::NotInPackage);
         }
         Ok(())
     }

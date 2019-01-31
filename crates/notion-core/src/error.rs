@@ -31,6 +31,7 @@ pub enum ErrorDetails {
     NoHomeEnvironmentVar,
     NoLocalDataDir,
     NoPinnedNodeVersion,
+    NotInPackage,
     PackageReadError {
         error: String,
     },
@@ -75,6 +76,7 @@ impl fmt::Display for ErrorDetails {
             ErrorDetails::NoPinnedNodeVersion => {
                 write!(f, "There is no pinned node version for this project")
             }
+            ErrorDetails::NotInPackage => write!(f, "Not in a node package"),
             ErrorDetails::PackageReadError { error } => {
                 write!(f, "Could not read package info: {}", error)
             }
@@ -101,6 +103,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::NoHomeEnvironmentVar => ExitCode::EnvironmentError,
             ErrorDetails::NoLocalDataDir => ExitCode::EnvironmentError,
             ErrorDetails::NoPinnedNodeVersion => ExitCode::ConfigurationError,
+            ErrorDetails::NotInPackage => ExitCode::ConfigurationError,
             ErrorDetails::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::PathError => ExitCode::UnknownError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
