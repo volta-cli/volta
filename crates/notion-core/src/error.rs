@@ -39,6 +39,11 @@ pub enum ErrorDetails {
     RegistryFetchError {
         error: String,
     },
+    UnrecognizedShell {
+        name: String,
+    },
+    UnspecifiedPostscript,
+    UnspecifiedShell,
     YarnVersionNotFound {
         matching: VersionReq,
     },
@@ -84,6 +89,11 @@ impl fmt::Display for ErrorDetails {
             ErrorDetails::RegistryFetchError { error } => {
                 write!(f, "Could not fetch public registry\n{}", error)
             }
+            ErrorDetails::UnrecognizedShell { name } => write!(f, "Unrecognized shell: {}", name),
+            ErrorDetails::UnspecifiedPostscript => {
+                write!(f, "Notion postscript file not specified")
+            }
+            ErrorDetails::UnspecifiedShell => write!(f, "Notion shell not specified"),
             ErrorDetails::YarnVersionNotFound { matching } => {
                 write!(f, "No Yarn version found for {}", matching)
             }
@@ -107,6 +117,9 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::PathError => ExitCode::UnknownError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
+            ErrorDetails::UnrecognizedShell { .. } => ExitCode::EnvironmentError,
+            ErrorDetails::UnspecifiedPostscript => ExitCode::EnvironmentError,
+            ErrorDetails::UnspecifiedShell => ExitCode::EnvironmentError,
             ErrorDetails::YarnVersionNotFound { .. } => ExitCode::NoVersionMatch,
         }
     }

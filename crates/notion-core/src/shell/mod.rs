@@ -5,8 +5,9 @@ use std::str::FromStr;
 
 use semver::Version;
 
+use error::ErrorDetails;
 use fs::ensure_containing_dir_exists;
-use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
+use notion_fail::{Fallible, NotionError, ResultExt};
 
 use env;
 
@@ -19,12 +20,6 @@ pub enum Postscript {
     Deactivate(String),
     ToolVersion { tool: String, version: Version },
 }
-
-/// Thrown when the postscript file was not specified in the Notion environment.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Notion postscript file not specified")]
-#[notion_fail(code = "EnvironmentError")]
-struct UnspecifiedPostscriptError;
 
 pub trait Shell {
     fn postscript_path(&self) -> &Path;
@@ -42,18 +37,12 @@ pub trait Shell {
 
 pub struct CurrentShell(Box<dyn Shell>);
 
-/// Thrown when the shell name was not specified in the Notion environment.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Notion shell not specified")]
-#[notion_fail(code = "EnvironmentError")]
-struct UnspecifiedShellError;
-
 impl CurrentShell {
     pub fn detect() -> Fallible<Self> {
         match env::shell_name() {
             Some(name) => Ok(name.parse()?),
             None => {
-                throw!(UnspecifiedShellError);
+                throw!(ErrorDetails::UnspecifiedShell);
             }
         }
     }
@@ -71,24 +60,16 @@ impl Shell for CurrentShell {
     }
 }
 
-/// Thrown when the shell name specified in the Notion environment is not supported.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Unrecognized command shell name: {}", name)]
-#[notion_fail(code = "EnvironmentError")]
-struct UnrecognizedShellError {
-    name: String,
-}
-
 impl FromStr for CurrentShell {
     type Err = NotionError;
 
     fn from_str(src: &str) -> Result<Self, NotionError> {
-        let postscript_path = env::postscript_path().ok_or(UnspecifiedPostscriptError)?;
+        let postscript_path = env::postscript_path().ok_or(ErrorDetails::UnspecifiedPostscript)?;
 
         Ok(CurrentShell(match src {
             "bash" => Box::new(Bash { postscript_path }),
             _ => {
-                throw!(UnrecognizedShellError {
+                throw!(ErrorDetails::UnrecognizedShell {
                     name: src.to_string()
                 });
             }
