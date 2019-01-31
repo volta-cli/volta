@@ -2,19 +2,15 @@
 //! in a standard Notion layout in Unix-based operating systems.
 
 use std::io;
-use std::path::PathBuf;
 use std::os::unix;
+use std::path::PathBuf;
 
 use dirs;
 
-use notion_fail::{ExitCode, Fallible, NotionFail};
+use error::ErrorDetails;
+use notion_fail::Fallible;
 
-use super::{notion_home, node_image_dir, shim_dir};
-
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "environment variable 'HOME' is not set")]
-#[notion_fail(code = "EnvironmentError")]
-pub(crate) struct NoHomeEnvVar;
+use super::{node_image_dir, notion_home, shim_dir};
 
 // These are taken from: https://nodejs.org/dist/index.json and are used
 // by `path::archive_root_dir` to determine the root directory of the
@@ -84,7 +80,7 @@ cfg_if! {
 //         config.toml                                     user_config_file
 
 pub fn default_notion_home() -> Fallible<PathBuf> {
-    let home = dirs::home_dir().ok_or(NoHomeEnvVar)?;
+    let home = dirs::home_dir().ok_or(ErrorDetails::NoHomeEnvironmentVar)?;
     Ok(home.join(".notion"))
 }
 

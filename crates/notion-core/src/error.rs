@@ -24,6 +24,8 @@ pub enum ErrorDetails {
     NodeVersionNotFound {
         matching: VersionSpec,
     },
+    NoHomeEnvironmentVar,
+    NoLocalDataDir,
     PackageReadError {
         error: String,
     },
@@ -55,6 +57,10 @@ impl fmt::Display for ErrorDetails {
             ErrorDetails::NodeVersionNotFound { matching } => {
                 write!(f, "No Node version found for {}", matching)
             }
+            ErrorDetails::NoHomeEnvironmentVar => {
+                write!(f, "environment variable 'HOME' is not set")
+            }
+            ErrorDetails::NoLocalDataDir => write!(f, "Windows LocalAppData directory not found"),
             ErrorDetails::PackageReadError { error } => {
                 write!(f, "Could not read package info: {}", error)
             }
@@ -76,6 +82,8 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
             ErrorDetails::DownloadToolNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
+            ErrorDetails::NoHomeEnvironmentVar => ExitCode::EnvironmentError,
+            ErrorDetails::NoLocalDataDir => ExitCode::EnvironmentError,
             ErrorDetails::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::PathError => ExitCode::UnknownError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,

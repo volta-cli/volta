@@ -1,16 +1,17 @@
 //! Provides functions for determining the paths of files and directories
 //! in a standard Notion layout in Windows operating systems.
 
-use std::path::PathBuf;
+use std::io;
 #[cfg(windows)]
 use std::os::windows;
-use std::io;
+use std::path::PathBuf;
 
 use dirs;
 
-use notion_fail::{ExitCode, Fallible, NotionFail};
+use error::ErrorDetails;
+use notion_fail::Fallible;
 
-use super::{notion_home, node_image_dir, shim_dir};
+use super::{node_image_dir, notion_home, shim_dir};
 
 // These are taken from: https://nodejs.org/dist/index.json and are used
 // by `path::archive_root_dir` to determine the root directory of the
@@ -27,11 +28,6 @@ cfg_if! {
         compile_error!("Unsupported target_arch variant of Windows (expected 'x86' or 'x64').");
     }
 }
-
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Windows LocalAppData directory not found")]
-#[notion_fail(code = "EnvironmentError")]
-pub(crate) struct NoDataLocalDir;
 
 // C:\Users\johndoe\AppData\Local\
 //     Notion\
@@ -73,7 +69,7 @@ pub(crate) struct NoDataLocalDir;
 //         config.toml                                     user_config_file
 
 pub fn default_notion_home() -> Fallible<PathBuf> {
-    let home = dirs::data_local_dir().ok_or(NoDataLocalDir)?;
+    let home = dirs::data_local_dir().ok_or(ErrorDetails::NoLocalDataDir)?;
     Ok(home.join("Notion"))
 }
 
