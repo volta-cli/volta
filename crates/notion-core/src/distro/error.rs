@@ -2,7 +2,7 @@
 
 use archive::HttpError;
 use notion_fail::{ExitCode, NotionFail};
-use tool::ToolSpec;
+use crate::tool::ToolSpec;
 
 use failure;
 use reqwest::StatusCode;

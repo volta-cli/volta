@@ -7,11 +7,11 @@ use serde::Deserialize;
 use notion_core::session::Session;
 use notion_fail::{FailExt, Fallible};
 
-use command::{Command, CommandName, Help};
-use Notion;
+use crate::command::{Command, CommandName, Help};
+use crate::Notion;
 
-use CliParseError;
-use CommandUnimplementedError;
+use crate::CliParseError;
+use crate::CommandUnimplementedError;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {

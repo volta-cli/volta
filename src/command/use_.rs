@@ -7,9 +7,9 @@ use serde::Deserialize;
 use notion_core::session::Session;
 use notion_fail::Fallible;
 
-use command::Command;
-use error::CliParseError;
-use Notion;
+use crate::command::Command;
+use crate::error::CliParseError;
+use crate::Notion;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args;

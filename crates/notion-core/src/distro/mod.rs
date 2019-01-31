@@ -4,7 +4,7 @@ mod error;
 pub mod node;
 pub mod yarn;
 
-use inventory::Collection;
+use crate::inventory::Collection;
 use notion_fail::Fallible;
 use semver::Version;
 use std::fmt::{self, Display, Formatter};

@@ -15,17 +15,17 @@ use reqwest::header::{CacheControl, CacheDirective, Expires, HttpDate};
 use serde_json;
 use tempfile::NamedTempFile;
 
-use config::{Config, ToolConfig};
-use distro::node::NodeDistro;
-use distro::yarn::YarnDistro;
-use distro::{Distro, DistroVersion, Fetched};
-use fs::{ensure_containing_dir_exists, read_file_opt};
+use crate::config::{Config, ToolConfig};
+use crate::distro::node::NodeDistro;
+use crate::distro::yarn::YarnDistro;
+use crate::distro::{Distro, DistroVersion, Fetched};
+use crate::fs::{ensure_containing_dir_exists, read_file_opt};
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
-use path;
+use crate::path;
 use semver::{Version, VersionReq};
-use style::progress_spinner;
-use tool::ToolSpec;
-use version::VersionSpec;
+use crate::style::progress_spinner;
+use crate::tool::ToolSpec;
+use crate::version::VersionSpec;
 
 pub(crate) mod serial;
 

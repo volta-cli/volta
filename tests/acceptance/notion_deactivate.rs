@@ -1,5 +1,5 @@
 use hamcrest2::core::Matcher;
-use support::sandbox::sandbox;
+use crate::support::sandbox::sandbox;
 use test_support::matchers::execs;
 
 #[test]

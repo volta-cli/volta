@@ -3,7 +3,7 @@
 use std::{fs, io};
 
 use notion_fail::{ExitCode, FailExt, Fallible, NotionFail};
-use path;
+use crate::path;
 
 #[derive(Debug, Fail, NotionFail)]
 #[fail(display = "{}", error)]

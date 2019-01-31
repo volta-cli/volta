@@ -7,8 +7,8 @@ use notion_fail::{ExitCode, Fallible};
 
 use result::ResultOptionExt;
 
-use command::{Command, CommandName, Help};
-use Notion;
+use crate::command::{Command, CommandName, Help};
+use crate::Notion;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {

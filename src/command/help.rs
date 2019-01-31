@@ -5,10 +5,10 @@ use notion_fail::{ExitCode, Fallible};
 
 #[cfg(feature = "notion-dev")]
 use command::Shim;
-use command::{
+use crate::command::{
     Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Install, Pin, Use, Version,
 };
-use {CliParseError, Notion};
+use crate::{CliParseError, Notion};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {

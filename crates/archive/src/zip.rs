@@ -8,7 +8,7 @@ use std::path::Path;
 use progress_read::ProgressRead;
 use reqwest;
 use verbatim::PathExt;
-use zip_rs::ZipArchive;
+use crate::zip_rs::ZipArchive;
 
 use failure;
 
@@ -106,7 +106,7 @@ pub mod tests {
 
     use std::fs::File;
     use std::path::PathBuf;
-    use zip::Zip;
+    use crate::zip::Zip;
 
     fn fixture_path(fixture_dir: &str) -> PathBuf {
         let mut cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

@@ -6,14 +6,14 @@ use std::string::ToString;
 
 use super::{Distro, Fetched};
 use archive::{Archive, Tarball};
-use distro::error::DownloadError;
-use distro::DistroVersion;
-use fs::ensure_containing_dir_exists;
-use inventory::YarnCollection;
-use path;
-use style::{progress_bar, Action};
-use tool::ToolSpec;
-use version::VersionSpec;
+use crate::distro::error::DownloadError;
+use crate::distro::DistroVersion;
+use crate::fs::ensure_containing_dir_exists;
+use crate::inventory::YarnCollection;
+use crate::path;
+use crate::style::{progress_bar, Action};
+use crate::tool::ToolSpec;
+use crate::version::VersionSpec;
 
 use notion_fail::{Fallible, ResultExt};
 use semver::Version;

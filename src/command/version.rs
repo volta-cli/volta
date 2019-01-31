@@ -3,8 +3,8 @@ use serde::Deserialize;
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::{ExitCode, Fallible};
 
-use command::{Command, CommandName, Help};
-use Notion;
+use crate::command::{Command, CommandName, Help};
+use crate::Notion;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args;
@@ -41,7 +41,7 @@ Options:
         match self {
             Version::Help => Help::Command(CommandName::Version).run(session)?,
             Version::Default => {
-                println!("{}", ::VERSION);
+                println!("{}", crate::VERSION);
             }
         };
         session.add_event_end(ActivityKind::Version, ExitCode::Success);

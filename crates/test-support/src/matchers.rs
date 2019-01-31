@@ -3,7 +3,7 @@ use std::process::Output;
 use std::str;
 use std::usize;
 
-use process::{ProcessBuilder, ProcessError};
+use crate::process::{ProcessBuilder, ProcessError};
 
 use hamcrest2::core::{MatchResult, Matcher};
 use serde_json::{self, Value};

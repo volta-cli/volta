@@ -6,13 +6,13 @@ use std::str::FromStr;
 use lazycell::LazyCell;
 use toml;
 
-use distro::node::NodeDistro;
-use distro::yarn::YarnDistro;
-use distro::Distro;
-use fs::touch;
+use crate::distro::node::NodeDistro;
+use crate::distro::yarn::YarnDistro;
+use crate::distro::Distro;
+use crate::fs::touch;
 use notion_fail::{Fallible, NotionError, ResultExt};
-use path::user_config_file;
-use plugin;
+use crate::path::user_config_file;
+use crate::plugin;
 use readext::ReadExt;
 
 pub(crate) mod serial;
@@ -80,8 +80,8 @@ pub struct EventsConfig {
 #[cfg(test)]
 pub mod tests {
 
-    use config::Config;
-    use plugin;
+    use crate::config::Config;
+    use crate::plugin;
     use std::fs;
     use std::path::PathBuf;
 

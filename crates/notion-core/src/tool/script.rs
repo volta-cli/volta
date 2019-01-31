@@ -3,7 +3,7 @@ use std::ffi::OsStr;
 use std::process::Command;
 
 use super::{command_for, Tool};
-use session::Session;
+use crate::session::Session;
 
 use notion_fail::{ExitCode, Fallible, NotionFail};
 

@@ -3,8 +3,8 @@ use std::ffi::OsStr;
 use std::process::Command;
 
 use super::{arg0, command_for, NoSuchToolError, Tool};
-use session::{ActivityKind, Session};
-use version::VersionSpec;
+use crate::session::{ActivityKind, Session};
+use crate::version::VersionSpec;
 
 use notion_fail::{ExitCode, Fallible, NotionFail};
 

@@ -4,9 +4,9 @@ use std::marker::PhantomData;
 use std::path::Path;
 
 use super::{NodeCollection, YarnCollection};
-use fs::read_dir_eager;
+use crate::fs::read_dir_eager;
 use notion_fail::{Fallible, ResultExt};
-use path;
+use crate::path;
 
 use regex::Regex;
 use semver::Version;

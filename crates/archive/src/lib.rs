@@ -30,8 +30,8 @@ pub struct HttpError {
     pub code: ::reqwest::StatusCode,
 }
 
-pub use tarball::Tarball;
-pub use zip::Zip;
+pub use crate::tarball::Tarball;
+pub use crate::zip::Zip;
 
 use std::fs::File;
 use std::path::Path;

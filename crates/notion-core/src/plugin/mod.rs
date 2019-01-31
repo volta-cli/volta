@@ -4,13 +4,13 @@ use std::ffi::OsString;
 use std::io::Read;
 use std::process::{Command, Stdio};
 
-use distro::Distro;
+use crate::distro::Distro;
 
 use cmdline_words_parser::StrExt;
 use notion_fail::{FailExt, Fallible, ResultExt};
 use semver::Version;
 use serde_json;
-use version::VersionSpec;
+use crate::version::VersionSpec;
 
 pub(crate) mod serial;
 

@@ -30,7 +30,7 @@ use serde::Deserialize;
 use notion_core::session::Session;
 use notion_fail::{FailExt, Fallible};
 
-use {CliParseError, DocoptExt, Notion};
+use crate::{CliParseError, DocoptExt, Notion};
 
 use std::fmt::{self, Display};
 use std::str::FromStr;

@@ -1,5 +1,5 @@
 use super::super::{manifest, platform};
-use version::VersionSpec;
+use crate::version::VersionSpec;
 
 use notion_fail::Fallible;
 

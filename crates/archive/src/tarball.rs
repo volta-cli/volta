@@ -206,7 +206,7 @@ pub mod tests {
 
     use std::fs::File;
     use std::path::PathBuf;
-    use tarball::Tarball;
+    use crate::tarball::Tarball;
 
     fn fixture_path(fixture_dir: &str) -> PathBuf {
         let mut cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

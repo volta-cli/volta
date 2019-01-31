@@ -4,20 +4,20 @@
 
 use std::rc::Rc;
 
-use config::{Config, LazyConfig};
-use distro::{DistroVersion, Fetched};
-use inventory::{Inventory, LazyInventory};
-use platform::PlatformSpec;
-use plugin::Publish;
-use project::{LazyProject, Project};
-use tool::ToolSpec;
-use toolchain::LazyToolchain;
-use version::VersionSpec;
+use crate::config::{Config, LazyConfig};
+use crate::distro::{DistroVersion, Fetched};
+use crate::inventory::{Inventory, LazyInventory};
+use crate::platform::PlatformSpec;
+use crate::plugin::Publish;
+use crate::project::{LazyProject, Project};
+use crate::tool::ToolSpec;
+use crate::toolchain::LazyToolchain;
+use crate::version::VersionSpec;
 
 use std::fmt::{self, Display, Formatter};
 use std::process::exit;
 
-use event::EventLog;
+use crate::event::EventLog;
 use notion_fail::{ExitCode, Fallible, NotionError, NotionFail};
 use semver::Version;
 
@@ -248,7 +248,7 @@ fn publish_plugin(config: &LazyConfig) -> Fallible<Option<&Publish>> {
 #[cfg(test)]
 pub mod tests {
 
-    use session::Session;
+    use crate::session::Session;
     use std::env;
     use std::path::PathBuf;
 

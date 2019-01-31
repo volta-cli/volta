@@ -7,7 +7,7 @@ use super::{
     arg0, command_for, display_error, intercept_global_installs, NoGlobalInstallError,
     NoSuchToolError, Tool,
 };
-use session::{ActivityKind, Session};
+use crate::session::{ActivityKind, Session};
 
 use notion_fail::Fallible;
 

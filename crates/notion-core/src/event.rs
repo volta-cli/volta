@@ -5,10 +5,10 @@ extern crate os_info;
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use monitor::LazyMonitor;
+use crate::monitor::LazyMonitor;
 use notion_fail::{ExitCode, NotionError};
-use plugin::Publish;
-use session::ActivityKind;
+use crate::plugin::Publish;
+use crate::session::ActivityKind;
 
 // the Event data that is serialized to JSON and sent the plugin
 #[derive(Serialize)]
@@ -144,7 +144,7 @@ pub mod tests {
 
     use super::EventLog;
     use notion_fail::{ExitCode, FailExt};
-    use session::ActivityKind;
+    use crate::session::ActivityKind;
     use std::io;
 
     #[test]

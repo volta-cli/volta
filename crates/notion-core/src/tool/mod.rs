@@ -8,11 +8,11 @@ use std::marker::Sized;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 
-use env::UNSAFE_GLOBAL;
+use crate::env::UNSAFE_GLOBAL;
 use notion_fail::{ExitCode, FailExt, Fallible, NotionError, NotionFail};
-use session::{ActivityKind, Session};
-use style;
-use version::VersionSpec;
+use crate::session::{ActivityKind, Session};
+use crate::style;
+use crate::version::VersionSpec;
 
 mod binary;
 mod node;
@@ -119,7 +119,7 @@ pub trait Tool: Sized {
     }
 
     /// Constructs a new instance.
-    fn new(&mut Session) -> Fallible<Self>;
+    fn new(_: &mut Session) -> Fallible<Self>;
 
     /// Constructs a new instance, using the specified command-line and `PATH` variable.
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self;
