@@ -61,6 +61,9 @@ pub enum ErrorDetails {
     },
     UnspecifiedPostscript,
     UnspecifiedShell,
+    VersionParseError {
+        error: String,
+    },
     YarnVersionNotFound {
         matching: VersionReq,
     },
@@ -131,6 +134,7 @@ This project is configured to use version {} of npm."#, version),
                 write!(f, "Notion postscript file not specified")
             }
             ErrorDetails::UnspecifiedShell => write!(f, "Notion shell not specified"),
+            ErrorDetails::VersionParseError { error } => write!(f, "{}", error),
             ErrorDetails::YarnVersionNotFound { matching } => {
                 write!(f, "No Yarn version found for {}", matching)
             }
@@ -164,6 +168,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::UnrecognizedShell { .. } => ExitCode::EnvironmentError,
             ErrorDetails::UnspecifiedPostscript => ExitCode::EnvironmentError,
             ErrorDetails::UnspecifiedShell => ExitCode::EnvironmentError,
+            ErrorDetails::VersionParseError { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::YarnVersionNotFound { .. } => ExitCode::NoVersionMatch,
         }
     }
