@@ -39,6 +39,9 @@ pub enum ErrorDetails {
     RegistryFetchError {
         error: String,
     },
+    SymlinkError {
+        error: String,
+    },
     UnrecognizedShell {
         name: String,
     },
@@ -89,6 +92,7 @@ impl fmt::Display for ErrorDetails {
             ErrorDetails::RegistryFetchError { error } => {
                 write!(f, "Could not fetch public registry\n{}", error)
             }
+            ErrorDetails::SymlinkError { error } => write!(f, "{}", error),
             ErrorDetails::UnrecognizedShell { name } => write!(f, "Unrecognized shell: {}", name),
             ErrorDetails::UnspecifiedPostscript => {
                 write!(f, "Notion postscript file not specified")
@@ -117,6 +121,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::PathError => ExitCode::UnknownError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
+            ErrorDetails::SymlinkError { .. } => ExitCode::FileSystemError,
             ErrorDetails::UnrecognizedShell { .. } => ExitCode::EnvironmentError,
             ErrorDetails::UnspecifiedPostscript => ExitCode::EnvironmentError,
             ErrorDetails::UnspecifiedShell => ExitCode::EnvironmentError,
