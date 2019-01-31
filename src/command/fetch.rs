@@ -1,3 +1,5 @@
+use serde_derive::Deserialize;
+
 use notion_core::session::{ActivityKind, Session};
 use notion_core::tool::ToolSpec;
 use notion_core::version::VersionSpec;

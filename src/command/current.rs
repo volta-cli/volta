@@ -1,5 +1,7 @@
 use std::string::ToString;
 
+use serde_derive::Deserialize;
+
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::{ExitCode, Fallible, NotionFail};
 

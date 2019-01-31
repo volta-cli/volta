@@ -25,6 +25,7 @@ pub(crate) use self::version::Version;
 
 use docopt::Docopt;
 use serde::de::DeserializeOwned;
+use serde_derive::Deserialize;
 
 use notion_core::session::Session;
 use notion_fail::{FailExt, Fallible};
