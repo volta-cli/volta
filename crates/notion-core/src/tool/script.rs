@@ -14,7 +14,7 @@ pub struct Script(Command);
 #[cfg(windows)]
 impl Tool for Script {
     fn new(_session: &mut Session) -> Fallible<Self> {
-        throw!(ToolUnimplementedError::new())
+        throw!(ErrorDetails::ToolNotImplemented);
     }
 
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {

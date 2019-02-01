@@ -12,66 +12,102 @@ pub enum ErrorDetails {
     BinaryExecError {
         error: String,
     },
+
+    /// Thrown when a user tries to `notion pin` something other than node/yarn/npm.
     CannotPinPackage,
+
     CliParseError {
         usage: Option<String>,
         error: String,
     },
+
     CommandNotImplemented {
         command_name: String,
     },
+
     CreateDirError {
         dir: String,
         error: String,
     },
+
     DepPackageReadError {
         error: String,
     },
+
     DownloadToolNetworkError {
         tool: ToolSpec,
         from_url: String,
         error: String,
     },
+
     DownloadToolNotFound {
         tool: ToolSpec,
     },
+
+    /// Thrown when there is no Node version matching a requested semver specifier.
     NodeVersionNotFound {
         matching: VersionSpec,
     },
+
     NoGlobalInstalls,
+
     NoHomeEnvironmentVar,
+
     NoLocalDataDir,
+
+    /// Thrown when a user tries to pin a Yarn version before pinning a Node version.
     NoPinnedNodeVersion,
+
     NoSuchTool {
         tool: String,
     },
+
+    /// Thrown when the user tries to pin Node or Yarn versions outside of a package.
     NotInPackage,
+
     NoToolChain {
         shim_name: String,
     },
+
     NoVersionsFound,
+
     NpxNotAvailable {
         version: String,
     },
+
     PackageReadError {
         error: String,
     },
+
     PathError,
+
+    /// Thrown when the public registry for Node or Yarn could not be downloaded.
     RegistryFetchError {
         error: String,
     },
+
     SymlinkError {
         error: String,
     },
+
     ToolNotImplemented,
+
+    /// Thrown when the shell name specified in the Notion environment is not supported.
     UnrecognizedShell {
         name: String,
     },
+
+    /// Thrown when the postscript file was not specified in the Notion environment.
     UnspecifiedPostscript,
+
+    /// Thrown when the shell name was not specified in the Notion environment.
     UnspecifiedShell,
+
     VersionParseError {
         error: String,
     },
+
+    /// Thrown when there is no Yarn version matching a requested semver specifier.
     YarnVersionNotFound {
         matching: VersionReq,
     },
