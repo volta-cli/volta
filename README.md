@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://www.notionjs.com/">
-    <img alt="Notion" src="https://github.com/notion-cli/notion/master/notion.png?raw=true" width="546">
+    <img alt="Notion" src="https://github.com/notion-cli/notion/master/notion.png?raw=true" width="480">
   </a>
 </p>
 
