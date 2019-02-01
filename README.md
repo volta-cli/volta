@@ -40,4 +40,4 @@ Read the [Understanding Notion Guide](https://docs.notionjs.com/guide/understand
 
 Contributions are always welcome, no matter how large or small. Substantial feature ideas should be proposed as an [RFC](https://github.com/notion-cli/rfcs). Before contributing, please read the [code of conduct](CODE_OF_CONDUCT.md).
 
-See the [Contributing Guide](https://docs.notionjs.com/guide/contributing/) on our website for detailed instructions on how to contribute to Notion.
+See the [Contributing Guide](https://docs.notionjs.com/contributing/) on our website for detailed instructions on how to contribute to Notion.
