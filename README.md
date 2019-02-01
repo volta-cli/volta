@@ -5,12 +5,12 @@
 </p>
 
 <p align="center">
-  The hassle-free JavaScript toolchain manager.
+  The Hassle-Free JavaScript Toolchain Manager
 </p>
 
 <p align="center">
-[![Build Status](https://travis-ci.org/notion-cli/notion.svg?branch=master)](https://travis-ci.org/notion-cli/notion)
-[![Build status](https://ci.appveyor.com/api/projects/status/2cohtlutserh8jfb/branch/master?svg=true)](https://ci.appveyor.com/project/stefanpenner/notion/branch/master)
+  <a href="https://travis-ci.org/notion-cli/notion"><img alt="Build Status" src="https://travis-ci.org/notion-cli/notion.svg?branch=master"></a>
+  <a href="https://ci.appveyor.com/project/stefanpenner/notion/branch/master"><img alt="Build Status" src="https://ci.appveyor.com/api/projects/status/2cohtlutserh8jfb/branch/master?svg=true"></a>
 </p>
 
 **Reliable:** Ensure everyone in your project uses an identical dev environment, from the Node version to your preferred package manager.
