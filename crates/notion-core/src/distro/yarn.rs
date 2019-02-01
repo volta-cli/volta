@@ -11,7 +11,7 @@ use archive::{Archive, Tarball};
 use notion_fail::{Fallible, ResultExt};
 
 use super::{download_tool_error, Distro, Fetched};
-use crate::distro::DistroVersion;
+//use crate::distro::DistroVersion;
 use crate::fs::ensure_containing_dir_exists;
 use crate::hook::ToolHooks;
 use crate::inventory::YarnCollection;
@@ -123,9 +123,9 @@ impl Distro for YarnDistro {
 
     /// Fetches this version of Yarn. (It is left to the responsibility of the `YarnCollection`
     /// to update its state after fetching succeeds.)
-    fn fetch(self, collection: &YarnCollection) -> Fallible<Fetched<DistroVersion>> {
+    fn fetch(self, collection: &YarnCollection) -> Fallible<Fetched<Version>> {
         if collection.contains(&self.version) {
-            return Ok(Fetched::Already(DistroVersion::Yarn(self.version)));
+            return Ok(Fetched::Already(self.version));
         }
 
         let temp = tempdir_in(path::tmp_dir()?).unknown()?;
@@ -157,6 +157,6 @@ impl Distro for YarnDistro {
         .unknown()?;
 
         bar.finish_and_clear();
-        Ok(Fetched::Now(DistroVersion::Yarn(self.version)))
+        Ok(Fetched::Now(self.version))
     }
 }

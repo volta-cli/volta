@@ -10,7 +10,7 @@ use serde::Deserialize;
 use tempfile::tempdir_in;
 
 use super::{download_tool_error, Distro, Fetched};
-use crate::distro::DistroVersion;
+//use crate::distro::DistroVersion;
 use crate::fs::ensure_containing_dir_exists;
 use crate::hook::ToolHooks;
 use crate::inventory::NodeCollection;
@@ -171,11 +171,14 @@ impl Distro for NodeDistro {
 
     /// Fetches this version of Node. (It is left to the responsibility of the `NodeCollection`
     /// to update its state after fetching succeeds.)
-    fn fetch(self, collection: &NodeCollection) -> Fallible<Fetched<DistroVersion>> {
+    fn fetch(self, collection: &NodeCollection) -> Fallible<Fetched<NodeVersion>> {
         if collection.contains(&self.version) {
             let npm = load_default_npm_version(&self.version)?;
 
-            return Ok(Fetched::Already(DistroVersion::Node(self.version, npm)));
+            return Ok(Fetched::Already(NodeVersion {
+                runtime: self.version,
+                npm
+            }));
         }
 
         let temp = tempdir_in(path::tmp_dir()?).unknown()?;
@@ -216,6 +219,9 @@ impl Distro for NodeDistro {
         .unknown()?;
 
         bar.finish_and_clear();
-        Ok(Fetched::Now(DistroVersion::Node(self.version, npm)))
+        Ok(Fetched::Now(NodeVersion {
+            runtime: self.version,
+            npm
+        }))
     }
 }

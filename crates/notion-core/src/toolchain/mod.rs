@@ -4,10 +4,12 @@ use std::io::Write;
 use lazycell::LazyCell;
 use readext::ReadExt;
 
-use crate::distro::DistroVersion;
+// use crate::distro::DistroVersion;
 use crate::fs::touch;
 use crate::path::user_platform_file;
 use crate::platform::PlatformSpec;
+use crate::distro::node::NodeVersion;
+use crate::semver::Version;
 
 use notion_fail::{Fallible, ResultExt};
 
@@ -54,53 +56,102 @@ impl Toolchain {
         self.platform.as_ref()
     }
 
-    /// Set the active tool versions in the user platform file.
-    pub fn set_active(&mut self, distro_version: DistroVersion) -> Fallible<()> {
+    /// Set the active Node version in the user platform file.
+    pub fn set_active_node(&mut self, node_version: NodeVersion) -> Fallible<()> {
         let mut dirty = false;
 
-        match distro_version {
-            DistroVersion::Node(node, npm) => {
-                if let Some(ref mut platform) = self.platform {
-                    if platform.node_runtime != node {
-                        platform.node_runtime = node;
-                        dirty = true;
-                    }
+        if let Some(ref mut platform) = self.platform {
+            if platform.node_runtime != node_version.runtime {
+                platform.node_runtime = node_version.runtime;
+                dirty = true;
+            }
 
-                    if platform.npm != Some(npm.clone()) {
-                        platform.npm = Some(npm);
-                        dirty = true;
-                    }
-                } else {
-                    self.platform = Some(PlatformSpec {
-                        node_runtime: node,
-                        npm: Some(npm),
-                        yarn: None,
-                    });
-                    dirty = true;
-                }
+            if platform.npm != Some(node_version.npm.clone()) {
+                platform.npm = Some(node_version.npm);
+                dirty = true;
             }
-            DistroVersion::Yarn(version) => {
-                if let &mut Some(ref mut platform) = &mut self.platform {
-                    if platform.yarn != Some(version.clone()) {
-                        platform.yarn = Some(version);
-                        dirty = true;
-                    }
-                }
-            }
-            // ISSUE (#175) When we can `notion install npm` then it can be set in the platform file.
-            DistroVersion::Npm(_) => unimplemented!("cannot set npm in platform file"),
-            DistroVersion::Package(name, _) => {
-                unimplemented!("cannot set {} in platform file", name)
-            }
+        } else {
+            self.platform = Some(PlatformSpec {
+                node_runtime: node_version.runtime,
+                npm: Some(node_version.npm),
+                yarn: None,
+            });
+            dirty = true;
         }
 
-        // both
         if dirty {
             self.save()?;
         }
 
         Ok(())
     }
+
+    /// Set the active Yarn version in the user platform file.
+    pub fn set_active_yarn(&mut self, yarn_version: Version) -> Fallible<()> {
+        let mut dirty = false;
+
+        if let &mut Some(ref mut platform) = &mut self.platform {
+            if platform.yarn != Some(yarn_version.clone()) {
+                platform.yarn = Some(yarn_version);
+                dirty = true;
+            }
+        }
+
+        if dirty {
+            self.save()?;
+        }
+
+        Ok(())
+    }
+
+    /// Set the active Npm version in the user platform file.
+    // TODO:
+    // pub fn set_active_npm(&mut self, distro_version: DistroVersion) -> Fallible<()> {
+    //     let mut dirty = false;
+
+    //     match distro_version {
+    //         DistroVersion::Node(node, npm) => {
+    //             if let Some(ref mut platform) = self.platform {
+    //                 if platform.node_runtime != node {
+    //                     platform.node_runtime = node;
+    //                     dirty = true;
+    //                 }
+
+    //                 if platform.npm != Some(npm.clone()) {
+    //                     platform.npm = Some(npm);
+    //                     dirty = true;
+    //                 }
+    //             } else {
+    //                 self.platform = Some(PlatformSpec {
+    //                     node_runtime: node,
+    //                     npm: Some(npm),
+    //                     yarn: None,
+    //                 });
+    //                 dirty = true;
+    //             }
+    //         }
+    //         DistroVersion::Yarn(version) => {
+    //             if let &mut Some(ref mut platform) = &mut self.platform {
+    //                 if platform.yarn != Some(version.clone()) {
+    //                     platform.yarn = Some(version);
+    //                     dirty = true;
+    //                 }
+    //             }
+    //         }
+    //         // ISSUE (#175) When we can `notion install npm` then it can be set in the platform file.
+    //         DistroVersion::Npm(_) => unimplemented!("cannot set npm in platform file"),
+    //         DistroVersion::Package(name, _) => {
+    //             unimplemented!("cannot set {} in platform file", name)
+    //         }
+    //     }
+
+    //     // both
+    //     if dirty {
+    //         self.save()?;
+    //     }
+
+    //     Ok(())
+    // }
 
     pub fn save(&self) -> Fallible<()> {
         let path = user_platform_file()?;

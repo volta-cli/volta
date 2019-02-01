@@ -11,7 +11,6 @@ use style::progress_spinner;
 use version::VersionSpec;
 // use config::Config;
 use distro::Fetched;
-use distro::DistroVersion;
 use path;
 use archive::Tarball;
 use distro::error::DownloadError;
@@ -61,8 +60,15 @@ pub struct PackageDistro {
     version: Version,
 }
 
+/// A package version.
+// #[derive(Eq, PartialEq, Clone, Debug)]
+pub struct PackageVersion {
+    pub name: String,
+    pub version: Version,
+}
+
 impl PackageDistro {
-    pub fn fetch(&self) -> Fallible<Fetched<DistroVersion>> {
+    pub fn fetch(&self) -> Fallible<Fetched<PackageVersion>> {
         // TODO: check for existing downloaded archive (can check shasum to verify)
         // TODO: check collection for existing unpacked stuff
         // if collection.contains(&self.version) {
@@ -98,60 +104,48 @@ impl PackageDistro {
         // packages typically extract to a "package" directory, but not necessarily
         // TODO: have to figure out the directory name dynamically
         rename(temp.path().join("package"), dest).unknown()?;
-        Ok(Fetched::Now(DistroVersion::Package(self.name.clone(), self.version.clone())))
+        Ok(Fetched::Now(PackageVersion {
+            name: self.name.clone(),
+            version: self.version.clone() })
+          )
     }
 
-    // TODO: how should this work?
-    pub fn platform(distro: &DistroVersion) -> Fallible<Option<Rc<PlatformSpec>>> {
-        // TODO: that should be better typed to avoid this match
-        // TODO: until then, can use `if let`...
-        let (name, version) = match distro {
-            DistroVersion::Package(n, v) => (n, v),
-            DistroVersion::Node(_, _) => unimplemented!("this stuff needs better typing"),
-            DistroVersion::Yarn(_) => unimplemented!("this stuff needs better typing"),
-            DistroVersion::Npm(_) => unimplemented!("this stuff needs better typing"),
-        };
-        let package_dir = path::package_image_dir(&name, &version.to_string())?;
+    // TODO: docs
+    pub fn platform(pkg_version: &PackageVersion) -> Fallible<Option<Rc<PlatformSpec>>> {
+        let package_dir = path::package_image_dir(&pkg_version.name, &pkg_version.version.to_string())?;
         let manifest = Manifest::for_dir(&package_dir)?;
         Ok(manifest.platform())
     }
 
-    pub fn install(distro: &DistroVersion, platform: &PlatformSpec, session: &mut Session) -> Fallible<()> {
-        // TODO: better typing to avoid this match
-        // TODO: until then, can use `if let`...
-        if let DistroVersion::Package(name, version) = distro {
-            // will eventually change to the installed package directory
-            let package_dir = path::package_image_dir(&name, &version.to_string())?;
+    pub fn install(pkg_version: &PackageVersion, platform: &PlatformSpec, session: &mut Session) -> Fallible<()> {
+        // will eventually change to the installed package directory
+        let package_dir = path::package_image_dir(&pkg_version.name, &pkg_version.version.to_string())?;
 
-            // checkout the image to use
-            let image = platform.checkout(session)?;
+        // checkout the image to use
+        let image = platform.checkout(session)?;
 
-            if let Some(ref _yarn) = platform.yarn {
-                // use yarn to install
-                println!("Running `yarn install` in dir {:?}", &package_dir);
-                let output = install_command_for("yarn", &package_dir.into_os_string(), &image.path()?)
-                    .output()
-                    .expect("Failed to execute `yarn install`");
-                // TODO: check success/failure
-                println!("status: {}", output.status);
-                println!("success? {}", output.status.success());
-            } else if let Some(ref _npm) = platform.npm {
-                println!("Running `npm install` in dir {:?}", &package_dir);
-                // otherwise use npm
-                let output = install_command_for("npm", &package_dir.into_os_string(), &image.path()?)
-                    .output()
-                    .expect("Failed to execute `npm install`");
-                // TODO: check success/failure
-                println!("status: {}", output.status);
-                println!("success? {}", output.status.success());
-            } else {
-                // TODO: figure out the default npm version?
-                // that should already be part of the platform spec tho...
-                unimplemented!("probably shouldn't get here, with no npm version");
-            }
-
+        if let Some(ref _yarn) = platform.yarn {
+            // use yarn to install
+            println!("Running `yarn install` in dir {:?}", &package_dir);
+            let output = install_command_for("yarn", &package_dir.into_os_string(), &image.path()?)
+                .output()
+                .expect("Failed to execute `yarn install`");
+            // TODO: check success/failure
+            println!("status: {}", output.status);
+            println!("success? {}", output.status.success());
+        } else if let Some(ref _npm) = platform.npm {
+            println!("Running `npm install` in dir {:?}", &package_dir);
+            // otherwise use npm
+            let output = install_command_for("npm", &package_dir.into_os_string(), &image.path()?)
+                .output()
+                .expect("Failed to execute `npm install`");
+            // TODO: check success/failure
+            println!("status: {}", output.status);
+            println!("success? {}", output.status.success());
         } else {
-            unimplemented!("this stuff needs better typing");
+            // TODO: figure out the default npm version?
+            // that should already be part of the platform spec tho...
+            unimplemented!("probably shouldn't get here, with no npm version");
         }
 
         // TODO: then setup shims to the binaries

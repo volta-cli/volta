@@ -17,16 +17,16 @@ use serde_json;
 use tempfile::NamedTempFile;
 
 use crate::distro::node::NodeDistro;
+use crate::distro::node::NodeVersion;
 use crate::distro::yarn::YarnDistro;
-use crate::distro::{Distro, DistroVersion, Fetched};
+use crate::distro::{Distro, Fetched};
 use crate::error::ErrorDetails;
 use crate::fs::{ensure_containing_dir_exists, read_file_opt};
 use crate::hook::{HookConfig, ToolHooks};
-// use crate::package::PackageDistro;
+use crate::package::PackageVersion;
 use crate::package::NpmPackage;
 use crate::path;
 use crate::style::progress_spinner;
-use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
 use notion_fail::{throw, Fallible, ResultExt};
 use semver::{Version, VersionReq};
@@ -132,12 +132,6 @@ impl Inventory {
         // TODO: this should use config, and be resolve_remote()?
         let distro = NpmPackage::resolve_public(name, matching)?;
         distro.fetch()
-
-        // TODO: probably don't need this
-        // if let &Fetched::Now(DistroVersion::Node(ref version, ..)) = &fetched {
-        //     self.versions.insert(version.clone());
-        // }
-        // Ok(fetched)
     }
 }
 
@@ -149,12 +143,14 @@ impl<D: Distro> Collection<D> {
 }
 
 pub trait FetchResolve<D: Distro> {
+    type VersionDetails;
+
     /// Fetch a Distro version matching the specified semantic versioning requirements.
     fn fetch(
         &mut self,
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<D>>,
-    ) -> Fallible<Fetched<DistroVersion>>;
+    ) -> Fallible<Fetched<Self::VersionDetails>>;
 
     /// Resolves the specified semantic versioning requirements into a distribution
     fn resolve(&self, matching: &VersionSpec, hooks: Option<&ToolHooks<D>>) -> Fallible<D> {
@@ -196,15 +192,17 @@ fn match_node_version(
 }
 
 impl FetchResolve<NodeDistro> for NodeCollection {
+    type VersionDetails = NodeVersion;
+
     fn fetch(
         &mut self,
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<NodeDistro>>,
-    ) -> Fallible<Fetched<DistroVersion>> {
+    ) -> Fallible<Fetched<NodeVersion>> {
         let distro = self.resolve(matching, hooks)?;
         let fetched = distro.fetch(&self).unknown()?;
 
-        if let &Fetched::Now(DistroVersion::Node(ref version, ..)) = &fetched {
+        if let &Fetched::Now(NodeVersion { runtime: ref version, .. }) = &fetched {
             self.versions.insert(version.clone());
         }
 
@@ -261,16 +259,18 @@ impl FetchResolve<NodeDistro> for NodeCollection {
 }
 
 impl FetchResolve<YarnDistro> for YarnCollection {
+    type VersionDetails = Version;
+
     /// Fetches a Yarn version matching the specified semantic versioning requirements.
     fn fetch(
         &mut self,
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<YarnDistro>>,
-    ) -> Fallible<Fetched<DistroVersion>> {
+    ) -> Fallible<Fetched<Version>> {
         let distro = self.resolve(&matching, hooks)?;
         let fetched = distro.fetch(&self).unknown()?;
 
-        if let &Fetched::Now(DistroVersion::Yarn(ref version)) = &fetched {
+        if let &Fetched::Now(ref version) = &fetched {
             self.versions.insert(version.clone());
         }
 

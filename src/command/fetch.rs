@@ -22,8 +22,12 @@ impl Command for Fetch {
         match self {
             Fetch::Help => Help::Command(CommandName::Fetch).run(session)?,
             Fetch::Tool(toolspec) => {
-                // TODO: this should be matched here then...
-                session.fetch(&toolspec)?;
+                match toolspec {
+                    ToolSpec::Node(version) => { session.fetch_node(&version)?; }
+                    ToolSpec::Yarn(version) => { session.fetch_yarn(&version)?; }
+                    ToolSpec::Npm(version) => unimplemented!("TODO"),
+                    ToolSpec::Package(name, version) => unimplemented!("TODO: error that you can't fetch a package?"),
+                }
             }
         };
         session.add_event_end(ActivityKind::Fetch, ExitCode::Success);

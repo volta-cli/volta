@@ -10,7 +10,7 @@ use std::rc::Rc;
 use lazycell::LazyCell;
 
 use crate::distro::node::load_default_npm_version;
-use crate::distro::DistroVersion;
+//use crate::distro::DistroVersion;
 use crate::error::ErrorDetails;
 use crate::manifest::{serial, Manifest};
 use crate::platform::PlatformSpec;
@@ -223,44 +223,48 @@ impl Project {
         path
     }
 
-    /// Writes the specified version of Node or Yarn to the `toolchain` in package.json.
-    pub fn pin(&self, distro_version: &DistroVersion) -> Fallible<()> {
-        match distro_version {
-            DistroVersion::Node(runtime, npm) => {
-                // prevent writing the npm version if it is equal to the default version
-                let default_npm = load_default_npm_version(&runtime).ok();
-                let npm_str = if Some(npm.clone()) == default_npm {
-                    None
-                } else {
-                    Some(npm.to_string())
-                };
 
-                let toolchain = serial::ToolchainSpec::new(
-                    runtime.to_string(),
-                    npm_str,
-                    self.manifest().yarn_str().clone(),
-                );
-                Manifest::update_toolchain(toolchain, self.package_file())?;
-            }
-            DistroVersion::Yarn(version) => {
-                if let Some(platform) = self.manifest().platform() {
-                    let toolchain = serial::ToolchainSpec::new(
-                        platform.node_runtime.to_string(),
-                        platform.npm.as_ref().map(|npm| npm.to_string()),
-                        Some(version.to_string()),
-                    );
-                    Manifest::update_toolchain(toolchain, self.package_file())?;
-                } else {
-                    throw!(ErrorDetails::NoPinnedNodeVersion);
-                }
-            }
-            // ISSUE (#175) When we can `notion install npm` then it can be pinned in the toolchain
-            DistroVersion::Npm(_) => unimplemented!("cannot pin npm in \"toolchain\""),
-            DistroVersion::Package(_, _) => throw!(ErrorDetails::CannotPinPackage),
-        }
-        println!("Pinned {} in package.json", distro_version);
+    /// Writes the specified version of Node to the `toolchain.node` key in package.json.
+    pub fn pin_node(&self, node_version: &NodeVersion) -> Fallible<()> {
+
+        // prevent writing the npm version if it is equal to the default version
+        let default_npm = load_default_npm_version(&node_version.runtime).ok();
+        let npm_str = if Some(node_version.npm.clone()) == default_npm {
+            None
+        } else {
+            Some(node_version.npm.to_string())
+        };
+
+        let toolchain = serial::ToolchainSpec::new(
+            node_version.runtime.to_string(),
+            npm_str,
+            self.manifest().yarn_str().clone(),
+        );
+        Manifest::update_toolchain(toolchain, self.package_file())?;
+        println!("Pinned node version {} in package.json", node_version.runtime);
         Ok(())
     }
+
+    /// Writes the specified version of Yarn to the `toolchain.yarn` key in package.json.
+    pub fn pin_yarn(&self, yarn_version: &Version) -> Fallible<()> {
+
+        if let Some(platform) = self.manifest().platform() {
+            let toolchain = serial::ToolchainSpec::new(
+                platform.node_runtime.to_string(),
+                platform.npm.as_ref().map(|npm| npm.to_string()),
+                Some(yarn_version.to_string()),
+            );
+            Manifest::update_toolchain(toolchain, self.package_file())?;
+            println!("Pinned yarn version {} in package.json", yarn_version);
+        } else {
+            throw!(ErrorDetails::NoPinnedNodeVersion::new());
+        }
+        Ok(())
+    }
+
+    // ISSUE (#175) When we can `notion install npm` then it can be pinned in the toolchain
+    // pub fn pin_npm() {
+    // }
 }
 
 // unit tests

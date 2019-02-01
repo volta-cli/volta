@@ -27,7 +27,13 @@ impl Command for Pin {
         };
 
         let tool = ToolSpec::from_str_and_version(&self.tool, version);
-        session.pin(&tool)?;
+
+        match toolspec {
+            ToolSpec::Node(version) => session.pin_node(&version)?,
+            ToolSpec::Yarn(version) => session.pin_yarn(&version)?,
+            ToolSpec::Npm(version) => unimplemented!("TODO"),
+            ToolSpec::Package(name, version) => unimplemented!("TODO: error that you can't pin a package"),
+        }
 
         if let Some(project) = session.project()? {
             let errors = project.autoshim();

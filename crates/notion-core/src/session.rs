@@ -4,23 +4,25 @@
 
 use std::rc::Rc;
 
-use crate::distro::{DistroVersion, Fetched};
 use crate::error::ErrorDetails;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
+use crate::distro::Fetched;
 use crate::inventory::{Inventory, LazyInventory};
-// use crate::package::PackageInfo;
+use crate::package::PackageVersion;
 use crate::package::PackageDistro;
 use crate::platform::PlatformSpec;
 use crate::project::{LazyProject, Project};
-use crate::tool::ToolSpec;
 use crate::toolchain::LazyToolchain;
 use crate::version::VersionSpec;
+use crate::inventory::FetchResolve; // trait has to be in scope :wink:
+use crate::distro::node::NodeVersion;
 
 use std::fmt::{self, Display, Formatter};
 use std::process::exit;
 
 use crate::event::EventLog;
 use notion_fail::{throw, ExitCode, Fallible, NotionError};
+// use notion_fail::ResultExt;
 use semver::Version;
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
@@ -150,7 +152,7 @@ impl Session {
 
         if !inventory.node.contains(version) {
             let hooks = self.hooks.get()?;
-            inventory.fetch(&ToolSpec::Node(VersionSpec::exact(version)), hooks)?;
+            inventory.node.fetch(&VersionSpec::exact(version), hooks)?;
         }
 
         Ok(())
@@ -162,36 +164,38 @@ impl Session {
 
         if !inventory.yarn.contains(version) {
             let hooks = self.hooks.get()?;
-            inventory.fetch(&ToolSpec::Yarn(VersionSpec::exact(version)), hooks)?;
+            inventory.yarn.fetch(&VersionSpec::exact(version), hooks)?;
         }
 
         Ok(())
     }
 
-    /// Installs a Tool matching the specified semantic versioning requirements,
-    /// and updates the `toolchain` as necessary.
-    // TODO: should this be match-ed back in the install command?
-    pub fn install(&mut self, toolspec: &ToolSpec) -> Fallible<()> {
-        match toolspec {
-            ToolSpec::Node(_version) => self.install_distro(toolspec),
-            ToolSpec::Yarn(_version) => self.install_distro(toolspec),
-            // ISSUE (#175) implement as part of fetching packages
-            ToolSpec::Npm(_) => unimplemented!("cannot install npm, yet"),
-            // TODO: this should use toolspec as well (or refactor all of this stuff)
-            ToolSpec::Package(name, version) => self.install_package(&name, &version),
-        }
-    }
-
-    // TODO: this should be better parameterized for type checking (AKA no ToolSpec enum)
-    fn install_distro(&mut self, toolspec: &ToolSpec) -> Fallible<()> {
-        let distro_version = self.fetch_distro(toolspec)?.into_version();
+    // TODO: description
+    pub fn install_node(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
+        let node_distro = self.fetch_node(version_spec)?.into_version();
         let toolchain = self.toolchain.get_mut()?;
-        toolchain.set_active(distro_version)?;
+        toolchain.set_active_node(node_distro)?;
         Ok(())
     }
 
-    // TODO: description, and use toolspec
-    fn install_package(&mut self, name: &String, version: &VersionSpec) -> Fallible<()> {
+    // TODO: description
+    pub fn install_yarn(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
+        let yarn_distro = self.fetch_yarn(version_spec)?.into_version();
+        let toolchain = self.toolchain.get_mut()?;
+        toolchain.set_active_yarn(yarn_distro)?;
+        Ok(())
+    }
+
+    // TODO: do this for npm as well
+    // fn install_npm(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
+    //     let node_distro = self.fetch_node(version_spec)?.into_version();
+    //     let toolchain = self.toolchain.get_mut()?;
+    //     toolchain.set_active_npm(node_distro)?;
+    //     Ok(())
+    // }
+
+    // TODO: description, and use toolspec?
+    pub fn install_package(&mut self, name: &String, version: &VersionSpec) -> Fallible<()> {
         // fetches and unpacks package
         let package_distro = self.fetch_package(name, version)?;
 
@@ -205,28 +209,13 @@ impl Session {
             use_platform = platform;
         } else {
             println!("no package platform or user platform - using node latest");
-            let latest_spec = ToolSpec::Node(VersionSpec::Latest);
-            let distro_version = self.fetch_distro(&latest_spec)?.into_version();
+            let node_version = self.fetch_node(&VersionSpec::Latest)?.into_version();
 
-            // TODO: dammit, the fucking DV again, really got to fix the typing
-            if let DistroVersion::Node(node, npm) = distro_version {
-                use_platform = Rc::new(PlatformSpec {
-                    node_runtime: node,
-                    npm: Some(npm),
-                    yarn: None,
-                });
-                println!("using platform: {:?}", use_platform);
-            } else {
-                // TODO: this is to avoid unintialized use_platform
-                // take this out after fixing the typing
-                println!("SHOULDN'T GET HERE - IF IT DOES ====> BIG PROBLEMS");
-                use_platform = Rc::new(PlatformSpec {
-                    node_runtime: Version::parse("1.2.3").unknown()?,
-                    npm: None,
-                    yarn: None,
-                });
-                println!("using platform: {:?}", use_platform);
-            }
+            use_platform = Rc::new(PlatformSpec {
+                node_runtime: node_version.runtime,
+                npm: Some(node_version.npm),
+                yarn: None,
+            });
             // TODO: is that all I need to do for that?
         }
 
@@ -234,32 +223,61 @@ impl Session {
         PackageDistro::install(&package_distro.version(), &use_platform, self)
     }
 
-    /// Fetches a Tool version matching the specified semantic versioning requirements.
-    pub fn fetch_distro(&mut self, tool: &ToolSpec) -> Fallible<Fetched<DistroVersion>> {
+    /// Fetches a Node version matching the specified semantic versioning requirements.
+    pub fn fetch_node(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<NodeVersion>> {
         let inventory = self.inventory.get_mut()?;
         let hooks = self.hooks.get()?;
-        inventory.fetch(&tool, hooks)
+        inventory.node.fetch(&version_spec, config)
+    }
+
+    /// Fetches a Yarn version matching the specified semantic versioning requirements.
+    pub fn fetch_yarn(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<Version>> {
+        let inventory = self.inventory.get_mut()?;
+        let hooks = self.hooks.get()?;
+        inventory.yarn.fetch(&version_spec, config)
     }
 
     /// Fetches a Packge version matching the specified semantic versioning requirements.
-    pub fn fetch_package(&mut self, name: &String, version: &VersionSpec) -> Fallible<Fetched<DistroVersion>> {
+    pub fn fetch_package(&mut self, name: &String, version_spec: &VersionSpec) -> Fallible<Fetched<PackageVersion>> {
         let inventory = self.inventory.get_mut()?;
         let config = self.config.get()?;
-        inventory.fetch_package(name, version, config)
+        inventory.fetch_package(name, version_spec, config)
     }
 
     /// Updates toolchain in package.json with the Tool version matching the specified semantic
     /// versioning requirements.
-    // TODO: match things in the command, so this is parameterized for type checking?
-    pub fn pin(&mut self, toolspec: &ToolSpec) -> Fallible<()> {
+    // TODO: description
+    pub fn pin_node(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
         if let Some(ref project) = self.project()? {
-            let distro_version = self.fetch_distro(toolspec)?.into_version();
-            project.pin(&distro_version)?;
+            let node_version = self.fetch_node(version_spec)?.into_version();
+            project.pin_node(&node_version)?;
         } else {
-            throw!(ErrorDetails::NotInPackage);
+            throw!(ErrorDetails::NotInPackageError::new());
         }
         Ok(())
     }
+
+    // TODO: description
+    pub fn pin_yarn(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
+        if let Some(ref project) = self.project()? {
+            let yarn_version = self.fetch_yarn(version_spec)?.into_version();
+            project.pin_yarn(&yarn_version)?;
+        } else {
+            throw!(ErrorDetails::NotInPackageError::new());
+        }
+        Ok(())
+    }
+
+    // TODO: do this for npm as well
+    // pub fn pin_npm(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
+    //     if let Some(ref project) = self.project()? {
+    //         let npm_version = self.fetch_npm(version_spec)?.into_version();
+    //         project.pin(&npm_version)?;
+    //     } else {
+    //         throw!(ErrorDetails::NotInPackageError::new());
+    //     }
+    //     Ok(())
+    // }
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
         self.event_log.add_event_start(activity_kind)

@@ -19,10 +19,18 @@ pub(crate) struct Install {
 impl Command for Install {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Install);
-
-        let version = match self.version {
-            Some(version_string) => VersionSpec::parse(version_string).unwrap_or_default(),
-            None => VersionSpec::default(),
+        match self {
+            Install::Help => {
+                Help::Command(CommandName::Install).run(session)?;
+            }
+            Install::Tool(toolspec) => {
+                match toolspec {
+                    ToolSpec::Node(version) => session.install_node(&version)?,
+                    ToolSpec::Yarn(version) => session.install_yarn(&version)?,
+                    ToolSpec::Npm(version) => unimplemented!("TODO"), // session.install_npm(&version)?,
+                    ToolSpec::Package(name, version) => session.install_package(&name, &version)?,
+                }
+            }
         };
 
         let tool = ToolSpec::from_str_and_version(&self.tool, version);
