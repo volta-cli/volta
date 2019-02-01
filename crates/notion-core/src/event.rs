@@ -5,7 +5,7 @@ extern crate os_info;
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use monitor::LazyMonitor;
+use monitor::Monitor;
 use notion_fail::{ExitCode, NotionError};
 use plugin::Publish;
 use session::ActivityKind;
@@ -90,16 +90,12 @@ fn get_error_env() -> ErrorEnv {
 
 pub struct EventLog {
     events: Vec<Event>,
-    monitor: LazyMonitor,
 }
 
 impl EventLog {
     /// Constructs a new 'EventLog'
     pub fn new() -> Self {
-        EventLog {
-            events: Vec::new(),
-            monitor: LazyMonitor::new(),
-        }
+        EventLog { events: Vec::new() }
     }
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
@@ -132,7 +128,8 @@ impl EventLog {
         match plugin {
             Some(&Publish::Url(_)) => unimplemented!(),
             Some(&Publish::Bin(ref command)) => {
-                self.monitor.get_mut(command).send_events(&self.events);
+                let mut monitor = Monitor::new(command);
+                monitor.send_events(&self.events);
             }
             None => {}
         }
