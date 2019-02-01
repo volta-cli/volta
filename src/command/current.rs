@@ -1,7 +1,8 @@
 use std::string::ToString;
 
+use notion_core::error::ErrorDetails;
 use notion_core::session::{ActivityKind, Session};
-use notion_fail::{ExitCode, Fallible, NotionFail};
+use notion_fail::{ExitCode, Fallible};
 
 use command::{Command, CommandName, Help};
 use Notion;
@@ -11,11 +12,6 @@ pub(crate) struct Args {
     flag_project: bool,
     flag_user: bool,
 }
-
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "no versions found")]
-#[notion_fail(code = "NoVersionMatch")]
-struct NoVersionsFoundError;
 
 pub(crate) enum Current {
     Help,
@@ -103,7 +99,7 @@ Options:
         };
         session.add_event_end(ActivityKind::Current, ExitCode::Success);
         if !result {
-            throw!(NoVersionsFoundError);
+            throw!(ErrorDetails::NoVersionsFound);
         }
         Ok(())
     }

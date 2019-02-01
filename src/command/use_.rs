@@ -2,11 +2,11 @@
 // With https://github.com/rust-lang/rfcs/blob/master/text/2151-raw-identifiers.md we
 // could consider something like `r#use` instead.
 
+use notion_core::error::ErrorDetails;
 use notion_core::session::Session;
 use notion_fail::Fallible;
 
 use command::Command;
-use error::CliParseError;
 use Notion;
 
 #[derive(Debug, Deserialize)]
@@ -40,7 +40,7 @@ See 'notion --help' for more information.
     }
 
     fn go(_: Notion, _: &mut Session) -> Fallible<()> {
-        throw!(CliParseError {
+        throw!(ErrorDetails::CliParseError {
             usage: None,
             error: format!("no such command: `use`\n{}", Use::USAGE)
         });

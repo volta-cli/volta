@@ -1,27 +1,18 @@
 use docopt;
 use failure::Context;
-use notion_fail::{ExitCode, NotionError, NotionFail};
+use notion_core::error::ErrorDetails;
+use notion_fail::NotionError;
 
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "{}", error)]
-#[notion_fail(code = "InvalidArguments")]
-pub(crate) struct CliParseError {
-    pub(crate) usage: Option<String>,
-    pub(crate) error: String,
-}
-
-impl CliParseError {
-    pub(crate) fn from_docopt(error: &docopt::Error) -> Self {
-        if let &docopt::Error::WithProgramUsage(ref real_error, ref usage) = error {
-            CliParseError {
-                usage: Some(usage.clone()),
-                error: real_error.to_string(),
-            }
-        } else {
-            CliParseError {
-                usage: None,
-                error: error.to_string(),
-            }
+pub(crate) fn from_docopt_error(error: &docopt::Error) -> ErrorDetails {
+    if let &docopt::Error::WithProgramUsage(ref real_error, ref usage) = error {
+        ErrorDetails::CliParseError {
+            usage: Some(usage.clone()),
+            error: real_error.to_string(),
+        }
+    } else {
+        ErrorDetails::CliParseError {
+            usage: None,
+            error: error.to_string(),
         }
     }
 }
@@ -55,26 +46,15 @@ pub(crate) trait NotionErrorExt {
 
 impl NotionErrorExt for NotionError {
     fn usage(&self) -> Option<&str> {
-        if let Some(ctx) = self.as_fail().downcast_ref::<Context<CliParseError>>() {
-            if let Some(ref usage) = ctx.get_context().usage {
+        if let Some(ctx) = self.as_fail().downcast_ref::<Context<ErrorDetails>>() {
+            if let ErrorDetails::CliParseError {
+                usage: Some(ref usage),
+                ..
+            } = ctx.get_context()
+            {
                 return Some(usage);
             }
         }
         None
-    }
-}
-
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "command `{}` is not yet implemented", name)]
-#[notion_fail(code = "NotYetImplemented")]
-pub(crate) struct CommandUnimplementedError {
-    pub(crate) name: String,
-}
-
-impl CommandUnimplementedError {
-    pub(crate) fn new(cmd_name: &str) -> Self {
-        CommandUnimplementedError {
-            name: cmd_name.to_string(),
-        }
     }
 }

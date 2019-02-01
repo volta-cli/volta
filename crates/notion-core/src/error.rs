@@ -13,6 +13,13 @@ pub enum ErrorDetails {
         error: String,
     },
     CannotPinPackage,
+    CliParseError {
+        usage: Option<String>,
+        error: String,
+    },
+    CommandNotImplemented {
+        command_name: String,
+    },
     CreateDirError {
         dir: String,
         error: String,
@@ -42,6 +49,7 @@ pub enum ErrorDetails {
     NoToolChain {
         shim_name: String,
     },
+    NoVersionsFound,
     NpxNotAvailable {
         version: String,
     },
@@ -76,6 +84,8 @@ impl fmt::Display for ErrorDetails {
             ErrorDetails::CannotPinPackage => {
                 write!(f, "Only node, yarn, and npm can be pinned in a project")
             }
+            ErrorDetails::CliParseError { error, .. } => write!(f, "{}", error),
+            ErrorDetails::CommandNotImplemented { command_name } => write!(f, "command `{}` is not yet implemented", command_name),
             ErrorDetails::CreateDirError { dir, error } => {
                 write!(f, "Could not create directory {}: {}", dir, error)
             }
@@ -116,6 +126,7 @@ See `notion help install` for help adding {} to your personal toolchain."#, tool
             ErrorDetails::NoToolChain { shim_name } => {
                 write!(f, "No toolchain available to run {}", shim_name)
             }
+            ErrorDetails::NoVersionsFound => write!(f, "no versions found"),
             ErrorDetails::NpxNotAvailable { version } => write!(f, r#"
 'npx' is only available with npm >= 5.2.0
 
@@ -147,6 +158,8 @@ impl NotionFail for ErrorDetails {
         match self {
             ErrorDetails::BinaryExecError { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::CannotPinPackage => ExitCode::InvalidArguments,
+            ErrorDetails::CliParseError { .. } => ExitCode::InvalidArguments,
+            ErrorDetails::CommandNotImplemented { .. } => ExitCode::NotYetImplemented,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DepPackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
@@ -159,6 +172,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::NoSuchTool { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NotInPackage => ExitCode::ConfigurationError,
             ErrorDetails::NoToolChain { .. } => ExitCode::ExecutionFailure,
+            ErrorDetails::NoVersionsFound => ExitCode::NoVersionMatch,
             ErrorDetails::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::PathError => ExitCode::UnknownError,

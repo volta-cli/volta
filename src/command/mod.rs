@@ -6,7 +6,6 @@ mod fetch;
 mod help;
 mod install;
 mod pin;
-mod shim;
 mod use_;
 mod version;
 
@@ -18,8 +17,6 @@ pub(crate) use self::fetch::Fetch;
 pub(crate) use self::help::Help;
 pub(crate) use self::install::Install;
 pub(crate) use self::pin::Pin;
-#[cfg(feature = "notion-dev")]
-pub(crate) use self::shim::Shim;
 pub(crate) use self::use_::Use;
 pub(crate) use self::version::Version;
 
@@ -29,7 +26,8 @@ use serde::de::DeserializeOwned;
 use notion_core::session::Session;
 use notion_fail::{FailExt, Fallible};
 
-use {CliParseError, DocoptExt, Notion};
+use error::from_docopt_error;
+use {DocoptExt, Notion};
 
 use std::fmt::{self, Display};
 use std::str::FromStr;
@@ -45,8 +43,6 @@ pub(crate) enum CommandName {
     Current,
     Deactivate,
     Activate,
-    #[cfg(feature = "notion-dev")]
-    Shim,
     Help,
     Version,
 }
@@ -65,8 +61,6 @@ impl Display for CommandName {
                 CommandName::Deactivate => "deactivate",
                 CommandName::Activate => "activate",
                 CommandName::Current => "current",
-                #[cfg(feature = "notion-dev")]
-                CommandName::Shim => "shim",
                 CommandName::Help => "help",
                 CommandName::Version => "version",
             }
@@ -87,8 +81,6 @@ impl FromStr for CommandName {
             "current" => CommandName::Current,
             "deactivate" => CommandName::Deactivate,
             "activate" => CommandName::Activate,
-            #[cfg(feature = "notion-dev")]
-            "shim" => CommandName::Shim,
             "help" => CommandName::Help,
             "version" => CommandName::Version,
             _ => {
@@ -135,7 +127,7 @@ pub(crate) trait Command: Sized {
                 }
                 // Otherwise it's a true docopt error, so rethrow it.
                 else {
-                    throw!(err.with_context(CliParseError::from_docopt));
+                    throw!(err.with_context(from_docopt_error));
                 }
             }
         }
