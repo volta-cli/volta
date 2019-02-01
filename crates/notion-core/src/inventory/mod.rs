@@ -20,12 +20,12 @@ use crate::distro::node::NodeDistro;
 use crate::distro::yarn::YarnDistro;
 use crate::distro::{Distro, DistroVersion, Fetched};
 use crate::fs::{ensure_containing_dir_exists, read_file_opt};
-use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use crate::path;
-use semver::{Version, VersionReq};
 use crate::style::progress_spinner;
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
+use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
+use semver::{Version, VersionReq};
 
 pub(crate) mod serial;
 

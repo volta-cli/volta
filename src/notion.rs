@@ -1,15 +1,10 @@
-extern crate console;
-extern crate docopt;
-extern crate failure;
-extern crate failure_derive;
-extern crate notion_core;
+use docopt;
+use failure;
+
 #[macro_use]
 extern crate notion_fail;
 #[macro_use]
 extern crate notion_fail_derive;
-extern crate result;
-extern crate semver;
-extern crate serde;
 
 mod command;
 mod error;
@@ -23,13 +18,13 @@ use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error, ErrorContext};
 use notion_fail::{ExitCode, FailExt, Fallible, NotionError};
 
-#[cfg(feature = "notion-dev")]
-use command::Shim;
 use crate::command::{
     Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Help, Install, Pin, Use,
     Version,
 };
 use crate::error::{CliParseError, CommandUnimplementedError, DocoptExt, NotionErrorExt};
+#[cfg(feature = "notion-dev")]
+use command::Shim;
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 

@@ -1,14 +1,14 @@
 //! Events for the sessions in executables and shims and everything
 
-extern crate os_info;
+use os_info;
 
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::monitor::LazyMonitor;
-use notion_fail::{ExitCode, NotionError};
 use crate::plugin::Publish;
 use crate::session::ActivityKind;
+use notion_fail::{ExitCode, NotionError};
 
 // the Event data that is serialized to JSON and sent the plugin
 #[derive(Serialize)]
@@ -143,8 +143,8 @@ impl EventLog {
 pub mod tests {
 
     use super::EventLog;
-    use notion_fail::{ExitCode, FailExt};
     use crate::session::ActivityKind;
+    use notion_fail::{ExitCode, FailExt};
     use std::io;
 
     #[test]

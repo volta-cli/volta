@@ -1,8 +1,8 @@
 //! Provides error types for the installer tools.
 
+use crate::tool::ToolSpec;
 use archive::HttpError;
 use notion_fail::{ExitCode, NotionFail};
-use crate::tool::ToolSpec;
 
 use failure;
 use reqwest::StatusCode;
@@ -34,7 +34,7 @@ impl NotionFail for DownloadError {
 }
 
 impl fmt::Display for DownloadError {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DownloadError::NotFound { toolspec } => write!(fmt, "{} not found", toolspec),
             DownloadError::Other {

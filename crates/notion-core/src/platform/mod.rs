@@ -5,9 +5,9 @@ use envoy;
 use semver::Version;
 
 use crate::distro::node::{load_default_npm_version, NodeVersion};
-use notion_fail::{Fallible, ResultExt};
 use crate::path;
 use crate::session::Session;
+use notion_fail::{Fallible, ResultExt};
 
 /// A specification of tool versions needed for a platform
 #[derive(Eq, PartialEq, Clone, Debug)]

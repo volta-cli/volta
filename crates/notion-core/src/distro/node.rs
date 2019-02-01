@@ -8,16 +8,16 @@ use std::string::ToString;
 use serde::Deserialize;
 
 use super::{Distro, Fetched};
-use archive::{self, Archive};
 use crate::distro::error::DownloadError;
 use crate::distro::DistroVersion;
 use crate::fs::ensure_containing_dir_exists;
 use crate::inventory::NodeCollection;
 use crate::path;
 use crate::style::{progress_bar, Action};
-use tempfile::tempdir;
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
+use archive::{self, Archive};
+use tempfile::tempdir;
 
 use notion_fail::{Fallible, ResultExt};
 use semver::Version;
@@ -40,7 +40,7 @@ cfg_if! {
 
 /// A provisioned Node distribution.
 pub struct NodeDistro {
-    archive: Box<Archive>,
+    archive: Box<dyn Archive>,
     version: Version,
 }
 

@@ -10,9 +10,9 @@ use crate::distro::node::NodeDistro;
 use crate::distro::yarn::YarnDistro;
 use crate::distro::Distro;
 use crate::fs::touch;
-use notion_fail::{Fallible, NotionError, ResultExt};
 use crate::path::user_config_file;
 use crate::plugin;
+use notion_fail::{Fallible, NotionError, ResultExt};
 use readext::ReadExt;
 
 pub(crate) mod serial;

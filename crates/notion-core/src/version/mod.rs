@@ -17,7 +17,7 @@ pub enum VersionSpec {
 }
 
 impl fmt::Display for VersionSpec {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match *self {
             VersionSpec::Latest => write!(f, "latest"),
             VersionSpec::Semver(ref req) => req.fmt(f),

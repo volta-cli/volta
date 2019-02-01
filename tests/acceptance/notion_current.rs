@@ -1,5 +1,5 @@
-use hamcrest2::core::Matcher;
 use crate::support::sandbox::sandbox;
+use hamcrest2::core::Matcher;
 use test_support::matchers::execs;
 
 use notion_fail::ExitCode;

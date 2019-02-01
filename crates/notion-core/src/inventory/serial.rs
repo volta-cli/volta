@@ -5,8 +5,8 @@ use std::path::Path;
 
 use super::{NodeCollection, YarnCollection};
 use crate::fs::read_dir_eager;
-use notion_fail::{Fallible, ResultExt};
 use crate::path;
+use notion_fail::{Fallible, ResultExt};
 
 use regex::Regex;
 use semver::Version;

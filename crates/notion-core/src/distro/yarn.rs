@@ -5,7 +5,6 @@ use std::path::PathBuf;
 use std::string::ToString;
 
 use super::{Distro, Fetched};
-use archive::{Archive, Tarball};
 use crate::distro::error::DownloadError;
 use crate::distro::DistroVersion;
 use crate::fs::ensure_containing_dir_exists;
@@ -14,6 +13,7 @@ use crate::path;
 use crate::style::{progress_bar, Action};
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
+use archive::{Archive, Tarball};
 
 use notion_fail::{Fallible, ResultExt};
 use semver::Version;
@@ -35,7 +35,7 @@ cfg_if! {
 
 /// A provisioned Yarn distribution.
 pub struct YarnDistro {
-    archive: Box<Archive>,
+    archive: Box<dyn Archive>,
     version: Version,
 }
 

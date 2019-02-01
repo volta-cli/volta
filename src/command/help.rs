@@ -3,12 +3,12 @@ use serde::Deserialize;
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::{ExitCode, Fallible};
 
-#[cfg(feature = "notion-dev")]
-use command::Shim;
 use crate::command::{
     Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Install, Pin, Use, Version,
 };
 use crate::{CliParseError, Notion};
+#[cfg(feature = "notion-dev")]
+use command::Shim;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {

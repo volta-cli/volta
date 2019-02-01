@@ -204,9 +204,9 @@ fn load_uncompressed_size(file: &mut File) -> Result<u64, failure::Error> {
 #[cfg(test)]
 pub mod tests {
 
+    use crate::tarball::Tarball;
     use std::fs::File;
     use std::path::PathBuf;
-    use crate::tarball::Tarball;
 
     fn fixture_path(fixture_dir: &str) -> PathBuf {
         let mut cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

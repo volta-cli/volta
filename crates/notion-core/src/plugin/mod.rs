@@ -6,11 +6,11 @@ use std::process::{Command, Stdio};
 
 use crate::distro::Distro;
 
+use crate::version::VersionSpec;
 use cmdline_words_parser::StrExt;
 use notion_fail::{FailExt, Fallible, ResultExt};
 use semver::Version;
 use serde_json;
-use crate::version::VersionSpec;
 
 pub(crate) mod serial;
 

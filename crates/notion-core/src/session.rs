@@ -44,7 +44,7 @@ pub enum ActivityKind {
 }
 
 impl Display for ActivityKind {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         let s = match self {
             &ActivityKind::Fetch => "fetch",
             &ActivityKind::Install => "install",

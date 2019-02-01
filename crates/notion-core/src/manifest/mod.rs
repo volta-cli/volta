@@ -6,9 +6,9 @@ use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
+use crate::platform::PlatformSpec;
 use detect_indent;
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
-use crate::platform::PlatformSpec;
 use semver::Version;
 use serde::Serialize;
 use serde_json;

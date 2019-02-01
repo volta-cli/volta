@@ -238,10 +238,9 @@
 //! RGB parser, a higher layer may want to add context about _which_ RGB string
 //! was being parsed and where it came from (say, the filename and line number).
 
-extern crate failure;
+use failure;
 #[macro_use]
 extern crate notion_fail_derive;
-extern crate serde;
 
 use std::convert::{From, Into};
 use std::fmt::{self, Display};
@@ -324,7 +323,7 @@ pub struct NotionError {
 }
 
 impl Fail for NotionError {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         Some(self.error.cause())
     }
 
@@ -334,14 +333,14 @@ impl Fail for NotionError {
 }
 
 impl fmt::Display for NotionError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.error, f)
     }
 }
 
 impl NotionError {
     /// Returns a reference to the underlying failure of this error.
-    pub fn as_fail(&self) -> &Fail {
+    pub fn as_fail(&self) -> &dyn Fail {
         self.error.cause()
     }
 
@@ -426,19 +425,19 @@ struct UnknownNotionError {
 // instead.
 
 impl fmt::Debug for UnknownNotionError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(self.error.cause(), f)
     }
 }
 
 impl Display for UnknownNotionError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "An unknown error has occurred")
     }
 }
 
 impl Fail for UnknownNotionError {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         Some(self.error.cause())
     }
 

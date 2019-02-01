@@ -22,7 +22,7 @@ pub struct ProcessBuilder {
 }
 
 impl fmt::Display for ProcessBuilder {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "`{}", self.program.to_string_lossy())?;
 
         for arg in &self.args {

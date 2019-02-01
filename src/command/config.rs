@@ -43,7 +43,7 @@ pub(crate) struct KeyValue {
 pub(crate) struct Nullary;
 
 impl Display for SubcommandName {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(
             fmt,
             "{}",

@@ -2,14 +2,13 @@
 
 #![cfg_attr(feature = "universal-docs", feature(doc_cfg))]
 
-extern crate failure;
-extern crate failure_derive;
-extern crate hamcrest2;
+use failure;
+
 #[macro_use]
 extern crate notion_fail;
 #[macro_use]
 extern crate notion_fail_derive;
-extern crate serde_json;
+use serde_json;
 
 #[macro_export]
 macro_rules! ok_or_panic {

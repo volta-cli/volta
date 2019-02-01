@@ -2,8 +2,8 @@
 
 use std::{fs, io};
 
-use notion_fail::{ExitCode, FailExt, Fallible, NotionFail};
 use crate::path;
+use notion_fail::{ExitCode, FailExt, Fallible, NotionFail};
 
 #[derive(Debug, Fail, NotionFail)]
 #[fail(display = "{}", error)]

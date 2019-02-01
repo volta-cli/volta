@@ -45,7 +45,7 @@ pub enum DistroVersion {
 }
 
 impl Display for DistroVersion {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         let s = match self {
             &DistroVersion::Node(ref runtime, ref npm) => {
                 format!("node version {} (npm {})", runtime, npm)

@@ -12,9 +12,9 @@ use lazycell::LazyCell;
 use crate::distro::node::load_default_npm_version;
 use crate::distro::DistroVersion;
 use crate::manifest::{serial, Manifest};
-use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use crate::platform::PlatformSpec;
 use crate::shim;
+use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 
 fn is_node_root(dir: &Path) -> bool {
     dir.join("package.json").is_file()
