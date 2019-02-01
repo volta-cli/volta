@@ -1,101 +1,43 @@
-# Notion: the hassle-free node.js manager
+<p align="center">
+  <a href="https://www.notionjs.com/">
+    <img alt="Notion" src="https://github.com/notion-cli/notion/master/notion.png?raw=true" width="546">
+  </a>
+</p>
+
+<p align="center">
+  The hassle-free JavaScript toolchain manager.
+</p>
+
+<p align="center">
 [![Build Status](https://travis-ci.org/notion-cli/notion.svg?branch=master)](https://travis-ci.org/notion-cli/notion)
 [![Build status](https://ci.appveyor.com/api/projects/status/2cohtlutserh8jfb/branch/master?svg=true)](https://ci.appveyor.com/project/stefanpenner/notion/branch/master)
+</p>
 
-**This project is just getting started.**
+**Reliable:** Ensure everyone in your project uses an identical dev environment, from the Node version to your preferred package manager.
 
-## Unix installation
+**Universal:** Enjoy the same command-line experience in every shell and every major operating system.
 
-On macOS or Linux, you can install Notion with this command:
+**Fast:** Notion is implemented in Rust and deployed as a static executable for maximum performance.
 
-```sh
-$ curl -sSLf https://get.notionjs.com | bash
-```
+## Features
 
-## Windows installation
+- Speed 🚀
+- Seamless, per-project version switching
+- Cross-platform support, including Windows and all Unix shells
+- Support for multiple package managers
+- Stable tool installation—no reinstalling on every Node upgrade!
+- Extensibility hooks for site-specific customization
 
-One of Notion's primary goals is to have first-class Windows support out of the box. Several contributors to Notion use Windows as our primary development machines, and this is very important to us.
+## Installing Notion
 
-We haven't written real installers for any platform yet, and our current status on Windows is that we've learned how to create Windows installers and solved the major design questions that we've identified. If you'd like to help with a Windows installer, please [get in touch](#community)!
+Read the [Getting Started Guide](https://docs.notionjs.com/guide/getting-started) on our website for detailed instructions on how to install Notion.
 
-## Source installation
+## Using Notion
 
-### Unix
+Read the [Understanding Notion Guide](https://docs.notionjs.com/guide/understanding) on our website for detailed instructions on how to use Notion.
 
-First-time setup (this will get automated more):
-```sh
-$ cargo build --release
-$ ./dev/unix/build.sh
-$ ./dev/unix/install.sh
-```
-The first time you install, you'll need to open a new terminal to start using Notion.
+## Contributing to Notion
 
-To reinstall an updated build, first remove everything from `~/.notion` except for the configuration file (again, this will get automated!):
-```sh
-$ rm -rf ~/.notion/bin ~/.notion/cache ~/.notion/state.toml ~/.notion/launch* ~/.notion/versions
-```
-and then follow the setup steps above.
+Contributions are always welcome, no matter how large or small. Substantial feature ideas should be proposed as an [RFC](https://github.com/notion-cli/rfcs). Before contributing, please read the [code of conduct](CODE_OF_CONDUCT.md).
 
-## Demo
-
-There's a sample `package.json` at `dev` directory of this repo so just cd into `dev` of the repo and run:
-
-```sh
-$ node -e 'console.log(`this project uses node ${process.version}`)'
-Installing v6.11.3 [=============>           ]  50%
-this project uses node v6.11.3
-$ node -e 'console.log(`this project uses node ${process.version}`)'
-this project uses node v6.11.3
-$ notion uninstall 6.11.3
-$ node -e 'console.log(`this project uses node ${process.version}`)'
-Installing v6.11.3 [==================>      ]  76%
-this project uses node v6.11.3
-```
-
-# Development
-
-## Community
-
-We use [Discord](https://discordapp.com/) for community discussion. You can use this [permanent invite](https://discord.gg/hgPTz9A) to join our Discord server!
-
-## Requirements
-
-Notion is intended to compile with all versions of Rust newer than 1.31.
-
-## Tests
-
-To run the tests in this repo, run the following:
-
-```
-cargo test --all --features mock-network
-```
-
-## Formatting
-
-We use Rust's official [rustfmt](https://github.com/rust-lang/rustfmt) tool in our CI to ensure consistent style in the Notion codebase.
-
-To ensure your code is formatted correctly, make sure you have installed `rustfmt`:
-```
-rustup component add rustfmt
-```
-and run the following before submitting your PR:
-```
-cargo fmt --all
-```
-
-If you use Visual Studio Code with the official Rust plugin, you can configure your editor to [automatically format on save](https://github.com/rust-lang/rls-vscode#format-on-save).
-
-## Development Tips
-
-When developing, we suggest you set the `NOTION_DEV` environment variable to `1` and the `RUST_BACKTRACE` environment variable to `full`. This will provide extra diagnostic information to stderr on crashes. We have an [issue on file](https://github.com/notion-cli/notion/issues/215) to improve the quality of diagnostics.
-
-## License
-
-Notion is licensed under a [BSD 2-clause license](https://github.com/notion-cli/notion/blob/master/LICENSE).
-
-## Code of Conduct
-
-Contribution to Notion is organized under the terms of the [Contributor Covenant Code of Conduct](https://github.com/notion-cli/notion/blob/master/CODE_OF_CONDUCT.md).
-The maintainer of Notion, Dave Herman, personally promises to work actively to uphold that code of conduct.
-We aim to foster a community that is welcoming, inclusive, empathetic, and kind.
-If you share those goals and want to have a ton of fun building cool JavaScript tools and playing with Rust, we invite you to join us!
+See the [Contributing Guide](https://docs.notionjs.com/guide/contributing/) on our website for detailed instructions on how to contribute to Notion.
