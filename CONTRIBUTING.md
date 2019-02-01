@@ -1,1 +1,1 @@
-Please see https://docs.notionjs.com/guides/contributing/
+Please see https://docs.notionjs.com/contributing/
