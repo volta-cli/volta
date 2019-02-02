@@ -2,11 +2,13 @@ use std::env::{args_os, ArgsOs};
 use std::ffi::OsStr;
 use std::process::Command;
 
+use failure::Fail;
+
 use super::{arg0, command_for, NoSuchToolError, Tool};
 use crate::path;
 use crate::session::{ActivityKind, Session};
-
-use notion_fail::{ExitCode, Fallible, NotionFail};
+use notion_fail::{throw, ExitCode, Fallible, NotionFail};
+use notion_fail_derive::*;
 
 /// Represents a delegated binary executable.
 pub struct Binary(Command);

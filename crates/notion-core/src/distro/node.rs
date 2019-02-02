@@ -26,7 +26,7 @@ use semver::Version;
 use mockito;
 use serde_json;
 
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(feature = "mock-network")] {
         fn public_node_server_root() -> String {
             mockito::SERVER_URL.to_string()

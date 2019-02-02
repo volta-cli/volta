@@ -5,7 +5,7 @@ use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
-use failure;
+use failure::{self, Fail};
 use flate2::read::GzDecoder;
 use progress_read::ProgressRead;
 use reqwest;

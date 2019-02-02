@@ -9,7 +9,7 @@ use super::{
 };
 use crate::session::{ActivityKind, Session};
 
-use notion_fail::Fallible;
+use notion_fail::{throw, Fallible};
 
 /// Represents a `npm` executable.
 pub struct Npm(Command);

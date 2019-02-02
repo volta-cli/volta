@@ -4,7 +4,7 @@ use crate::tool::ToolSpec;
 use archive::HttpError;
 use notion_fail::{ExitCode, NotionFail};
 
-use failure;
+use failure::Fail;
 use reqwest::StatusCode;
 use std::fmt;
 

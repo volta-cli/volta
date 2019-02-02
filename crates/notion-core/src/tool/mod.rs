@@ -8,11 +8,14 @@ use std::marker::Sized;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 
+use failure::Fail;
+
 use crate::env::UNSAFE_GLOBAL;
 use crate::session::{ActivityKind, Session};
 use crate::style;
 use crate::version::VersionSpec;
 use notion_fail::{ExitCode, FailExt, Fallible, NotionError, NotionFail};
+use notion_fail_derive::*;
 
 mod binary;
 mod node;

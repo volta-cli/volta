@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use notion_fail::Fallible;
 
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(feature = "universal-docs")] {
         #[doc(cfg(unix))]
         mod unix;

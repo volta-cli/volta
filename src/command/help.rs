@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use notion_core::session::{ActivityKind, Session};
-use notion_fail::{ExitCode, Fallible};
+use notion_fail::{throw, ExitCode, Fallible};
 
 use crate::command::{
     Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Install, Pin, Use, Version,

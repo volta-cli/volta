@@ -6,7 +6,10 @@ use std::path::Path;
 use std::process::{Command, ExitStatus, Output};
 use std::str;
 
-use notion_fail::{ExitCode, Fallible, NotionFail};
+use failure::Fail;
+
+use notion_fail::{throw, ExitCode, Fallible, NotionFail};
+use notion_fail_derive::*;
 
 /// A builder object for an external process, similar to `std::process::Command`.
 #[derive(Clone, Debug)]

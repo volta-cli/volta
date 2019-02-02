@@ -17,8 +17,11 @@ use crate::version::VersionSpec;
 use std::fmt::{self, Display, Formatter};
 use std::process::exit;
 
+use failure::Fail;
+
 use crate::event::EventLog;
-use notion_fail::{ExitCode, Fallible, NotionError, NotionFail};
+use notion_fail::{throw, ExitCode, Fallible, NotionError, NotionFail};
+use notion_fail_derive::*;
 use semver::Version;
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]

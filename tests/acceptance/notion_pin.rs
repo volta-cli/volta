@@ -1,5 +1,5 @@
 use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, YarnFixture};
-use hamcrest2::core::Matcher;
+use hamcrest2::{assert_that, core::Matcher};
 use test_support::matchers::execs;
 
 use notion_fail::ExitCode;
@@ -72,7 +72,7 @@ const NODE_VERSION_INFO: &'static str = r#"[
 ]
 "#;
 
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(target_os = "macos")] {
         const NODE_VERSION_FIXTURES: [DistroMetadata; 4] = [
             DistroMetadata {

@@ -28,7 +28,7 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 
 use notion_core::session::Session;
-use notion_fail::{FailExt, Fallible};
+use notion_fail::{throw, FailExt, Fallible};
 
 use crate::{CliParseError, DocoptExt, Notion};
 

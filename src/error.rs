@@ -1,6 +1,7 @@
 use docopt;
-use failure::Context;
+use failure::{Context, Fail};
 use notion_fail::{ExitCode, NotionError, NotionFail};
+use notion_fail_derive::*;
 
 #[derive(Debug, Fail, NotionFail)]
 #[fail(display = "{}", error)]

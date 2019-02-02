@@ -2,9 +2,6 @@
 
 #![cfg_attr(feature = "universal-docs", feature(doc_cfg))]
 
-#[cfg(feature = "mock-network")]
-extern crate mockito;
-
 pub mod config;
 mod distro;
 pub mod env;
@@ -24,13 +21,3 @@ pub mod style;
 pub mod tool;
 pub mod toolchain;
 pub mod version;
-
-use failure;
-
-#[macro_use]
-extern crate notion_fail;
-#[macro_use]
-extern crate notion_fail_derive;
-
-#[macro_use]
-extern crate cfg_if;

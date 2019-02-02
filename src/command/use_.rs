@@ -5,7 +5,7 @@
 use serde::Deserialize;
 
 use notion_core::session::Session;
-use notion_fail::Fallible;
+use notion_fail::{throw, Fallible};
 
 use crate::command::Command;
 use crate::error::CliParseError;

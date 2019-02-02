@@ -5,6 +5,8 @@ use os_info;
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use serde::Serialize;
+
 use crate::monitor::LazyMonitor;
 use crate::plugin::Publish;
 use crate::session::ActivityKind;

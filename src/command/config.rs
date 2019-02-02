@@ -5,7 +5,7 @@ use docopt::Docopt;
 use serde::Deserialize;
 
 use notion_core::session::Session;
-use notion_fail::{FailExt, Fallible};
+use notion_fail::{throw, FailExt, Fallible};
 
 use crate::command::{Command, CommandName, Help};
 use crate::Notion;

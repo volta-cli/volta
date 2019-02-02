@@ -1,11 +1,11 @@
 use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, YarnFixture};
-use hamcrest2::core::Matcher;
+use hamcrest2::{assert_that, core::Matcher};
 use test_support::matchers::execs;
 
 use notion_core::env::UNSAFE_GLOBAL;
 use notion_fail::ExitCode;
 
-cfg_if! {
+cfg_if::cfg_if! {
     // Note: Windows and Unix appear to handle a missing executable differently
     // On Unix, it results in the Command::status() method returning an Err Result
     // On Windows, it results in the Command::status() method returning Ok(3221225495)

@@ -1,5 +1,7 @@
 use super::super::plugin;
 
+use failure::Fail;
+
 use notion_fail::{FailExt, Fallible, ResultExt};
 use semver::Version;
 use serde::{Deserialize, Serialize};

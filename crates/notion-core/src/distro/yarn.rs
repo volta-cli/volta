@@ -21,7 +21,7 @@ use semver::Version;
 #[cfg(feature = "mock-network")]
 use mockito;
 
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(feature = "mock-network")] {
         fn public_yarn_server_root() -> String {
             mockito::SERVER_URL.to_string()

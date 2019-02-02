@@ -1,11 +1,6 @@
 use docopt;
 use failure;
 
-#[macro_use]
-extern crate notion_fail;
-#[macro_use]
-extern crate notion_fail_derive;
-
 mod command;
 mod error;
 
@@ -16,7 +11,7 @@ use serde::Deserialize;
 
 use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error, ErrorContext};
-use notion_fail::{ExitCode, FailExt, Fallible, NotionError};
+use notion_fail::{throw, ExitCode, FailExt, Fallible, NotionError};
 
 use crate::command::{
     Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Help, Install, Pin, Use,

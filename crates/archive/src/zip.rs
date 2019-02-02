@@ -5,10 +5,10 @@ use std::fs::{create_dir_all, File};
 use std::io::copy;
 use std::path::Path;
 
-use crate::zip_rs::ZipArchive;
 use progress_read::ProgressRead;
 use reqwest;
 use verbatim::PathExt;
+use zip_rs::ZipArchive;
 
 use failure;
 

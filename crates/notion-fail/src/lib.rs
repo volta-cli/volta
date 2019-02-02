@@ -238,15 +238,12 @@
 //! RGB parser, a higher layer may want to add context about _which_ RGB string
 //! was being parsed and where it came from (say, the filename and line number).
 
-use failure;
-#[macro_use]
-extern crate notion_fail_derive;
-
 use std::convert::{From, Into};
 use std::fmt::{self, Display};
 use std::process::exit;
 
 use failure::{Backtrace, Fail};
+use notion_fail_derive::*;
 use serde::Serialize;
 
 /// A temporary polyfill for `throw!` until the new `failure` library includes it.

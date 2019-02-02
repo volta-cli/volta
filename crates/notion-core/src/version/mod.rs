@@ -3,9 +3,11 @@ pub(crate) mod serial;
 use std::fmt;
 use std::str::FromStr;
 
+use failure::Fail;
 use semver::{ReqParseError, SemVerError, Version, VersionReq};
 
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
+use notion_fail_derive::*;
 
 use self::serial::parse_requirements;
 

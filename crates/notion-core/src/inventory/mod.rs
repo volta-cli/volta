@@ -9,6 +9,7 @@ use std::str::FromStr;
 use std::string::ToString;
 use std::time::{Duration, SystemTime};
 
+use failure::Fail;
 use lazycell::LazyCell;
 use reqwest;
 use reqwest::header::{CacheControl, CacheDirective, Expires, HttpDate};
@@ -24,7 +25,8 @@ use crate::path;
 use crate::style::progress_spinner;
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
-use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
+use notion_fail::{throw, ExitCode, Fallible, NotionFail, ResultExt};
+use notion_fail_derive::*;
 use semver::{Version, VersionReq};
 
 pub(crate) mod serial;
@@ -33,7 +35,7 @@ pub(crate) mod serial;
 use mockito;
 
 // ISSUE (#86): Move public repository URLs to config file
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(feature = "mock-network")] {
         fn public_node_version_index() -> String {
             format!("{}/node-dist/index.json", mockito::SERVER_URL)

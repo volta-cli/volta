@@ -2,8 +2,11 @@ use std::string::ToString;
 
 use serde::Deserialize;
 
+use failure::Fail;
+
 use notion_core::session::{ActivityKind, Session};
-use notion_fail::{ExitCode, Fallible, NotionFail};
+use notion_fail::{throw, ExitCode, Fallible, NotionFail};
+use notion_fail_derive::*;
 
 use crate::command::{Command, CommandName, Help};
 use crate::Notion;

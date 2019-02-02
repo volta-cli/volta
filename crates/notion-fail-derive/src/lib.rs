@@ -1,7 +1,7 @@
+// Required for now, as there is not yet support for `proc_macro` as a built-in.
 extern crate proc_macro;
 
-#[macro_use]
-extern crate quote;
+use quote::*;
 use syn;
 
 use proc_macro::TokenStream;

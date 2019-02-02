@@ -6,9 +6,12 @@ use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
+use failure::Fail;
+
 use crate::platform::PlatformSpec;
 use detect_indent;
-use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
+use notion_fail::{throw, ExitCode, Fallible, NotionFail, ResultExt};
+use notion_fail_derive::*;
 use semver::Version;
 use serde::Serialize;
 use serde_json;
