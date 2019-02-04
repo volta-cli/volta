@@ -223,6 +223,8 @@ impl Project {
         path
     }
 
+    // TODO: pin should be a DistroVersion trait on NodeVersion, YarnVersion, etc.
+    // (so it can be defined there, instead of pin_* functions)
 
     /// Writes the specified version of Node to the `toolchain.node` key in package.json.
     pub fn pin_node(&self, node_version: &NodeVersion) -> Fallible<()> {

@@ -26,7 +26,7 @@ pub struct PackageVersionInfo {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PackageDistTags {
     pub latest: String,
-    pub beta: String,
+    pub beta: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

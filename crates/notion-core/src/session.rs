@@ -170,6 +170,9 @@ impl Session {
         Ok(())
     }
 
+    // TODO: install should be a trait on VersionSpec? or ToolSpec?
+    // (to avoid the install_* functions)
+
     // TODO: description
     pub fn install_node(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
         let node_distro = self.fetch_node(version_spec)?.into_version();
@@ -222,6 +225,9 @@ impl Session {
         // finally, install the package
         PackageDistro::install(&package_distro.version(), &use_platform, self)
     }
+
+    // TODO: fetch should be a trait on VersionSpec? or ToolSpec?
+    // (to avoid the multiple fetch_* functions)
 
     /// Fetches a Node version matching the specified semantic versioning requirements.
     pub fn fetch_node(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<NodeVersion>> {

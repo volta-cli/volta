@@ -48,9 +48,11 @@ cfg_if::cfg_if! {
 //                 index.json.expires                      node_index_expiry_file
 //         bin/                                            shim_dir
 //             node                                        shim_file("node")
+//             yarn
 //             npm
 //             npx
 //             ...
+//             ember
 //         tools/                                          tools_dir
 //             inventory/                                  inventory_dir
 //                 node/                                   node_inventory_dir
@@ -58,6 +60,9 @@ cfg_if::cfg_if! {
 //                     node-v4.8.4-npm                     node_npm_version_file("4.8.4")
 //                     ...
 //                 packages/                               package_inventory_dir
+//                     ember-cli/                          package_distro_dir("ember-cli")
+//                         ember-cli-3.7.1.tgz             package_distro_file("ember-cli", "3.7.1")
+//                         ember-cli-3.7.1.shasum          TODO: package_distro_shasum("ember-cli", "3.7.1")
 //                 yarn/                                   yarn_inventory_dir
 //             image/                                      image_dir
 //                 node/                                   node_image_root_dir
@@ -66,13 +71,16 @@ cfg_if::cfg_if! {
 //                             bin/                        node_image_bin_dir("10.13.0", "6.4.0")
 //                 yarn/                                   yarn_image_root_dir
 //                     1.7.0/                              yarn_image_dir("1.7.0")
+//                 packages/                               package_image_root_dir
+//                     ember-cli/
+//                         3.7.1/                          package_image_dir("ember-cli", "3.7.1")
 //             user/                                       user_toolchain_dir
 //                 bins/
-//                     ember ~> ../packages/ember-cli
-//                 packages/
-//                     ember-cli/
-//                         package.toml
-//                         contents/
+//                     ember ~> ../../image/packages/ember-cli/3.7.1/bin/ember
+//                     tsc ~> (same idea)                  TODO: user_tool_bin_link("tsc")
+//                 packages/                               user_package_dir
+//                     ember/                              (the binary name, not the package name)
+//                         config.json                     user_package_config_file("ember")
 //                 platform.json                           user_platform_file
 //         notion                                          notion_file
 //         launchbin                                       launchbin_file
@@ -109,6 +117,7 @@ pub fn shim_executable() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("shim"))
 }
 
+/// Create a symlink. The `dst` path will be a symbolic link pointing to the `src` path.
 pub fn create_file_symlink(src: PathBuf, dst: PathBuf) -> Result<(), io::Error> {
     unix::fs::symlink(src, dst)
 }
