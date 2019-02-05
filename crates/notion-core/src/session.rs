@@ -16,9 +16,12 @@ use crate::toolchain::LazyToolchain;
 use crate::version::VersionSpec;
 use crate::inventory::FetchResolve; // trait has to be in scope :wink:
 use crate::distro::node::NodeVersion;
+use crate::package::UserTool; // TODO: maybe this should be in tool mod?
+use crate::package;
 
 use std::fmt::{self, Display, Formatter};
 use std::process::exit;
+use std::ffi::OsStr;
 
 use crate::event::EventLog;
 use notion_fail::{throw, ExitCode, Fallible, NotionError};
@@ -284,6 +287,14 @@ impl Session {
     //     }
     //     Ok(())
     // }
+
+    // TODO: description
+    pub fn get_user_tool(&mut self, tool_name: &OsStr) -> Fallible<Option<UserTool>> {
+        match tool_name.to_str() {
+            Some(tool_name_str) => package::user_tool(&tool_name_str, self),
+            _ => Ok(None),
+        }
+    }
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
         self.event_log.add_event_start(activity_kind)

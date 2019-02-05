@@ -86,12 +86,6 @@ pub fn node_image_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
     node_image_dir(node, npm)
 }
 
-// 3rd-party binaries installed globally for this node version
-pub fn node_image_3p_bin_dir(_node: &str, _npm: &str) -> Fallible<PathBuf> {
-    // ISSUE (#90) Figure out where binaries are globally installed on Windows
-    unimplemented!("global 3rd party executables not yet implemented for Windows")
-}
-
 pub fn shim_executable() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("shim.exe"))
 }

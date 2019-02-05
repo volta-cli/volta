@@ -46,18 +46,6 @@ impl Platform {
         })
     }
 
-    // TODO: description
-    pub fn from_spec(platform_spec: &PlatformSpec) -> Platform {
-        let node_version = NodeVersion {
-            runtime: platform_spec.node_runtime.to_string(),
-            npm: platform_spec.npm.as_ref().map(|version| version.to_string()),
-        };
-        Platform {
-            node: Some(node_version),
-            yarn: platform_spec.yarn.as_ref().map(|version| version.to_string()),
-        }
-    }
-
     /// Deserialize the input JSON String into a Platform
     pub fn from_json(src: String) -> Fallible<Self> {
         if src.is_empty() {

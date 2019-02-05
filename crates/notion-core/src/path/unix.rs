@@ -77,7 +77,7 @@ cfg_if::cfg_if! {
 //             user/                                       user_toolchain_dir
 //                 bins/
 //                     ember ~> ../../image/packages/ember-cli/3.7.1/bin/ember
-//                     tsc ~> (same idea)                  TODO: user_tool_bin_link("tsc")
+//                     tsc ~> (same idea)                  user_tool_bin_link("tsc")
 //                 packages/                               user_package_dir
 //                     ember/                              (the binary name, not the package name)
 //                         config.json                     user_package_config_file("ember")
@@ -98,11 +98,6 @@ pub fn archive_extension() -> String {
 
 pub fn node_image_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
     Ok(node_image_dir(node, npm)?.join("bin"))
-}
-
-// 3rd-party binaries installed globally for this node version
-pub fn node_image_3p_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
-    Ok(node_image_dir(node, npm)?.join("lib/node_modules/.bin"))
 }
 
 pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {

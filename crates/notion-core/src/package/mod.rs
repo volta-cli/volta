@@ -8,6 +8,8 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 
+use readext::ReadExt;
+
 use inventory::RegistryFetchError;
 use semver::Version;
 use style::progress_spinner;
@@ -26,9 +28,12 @@ use manifest::Manifest;
 use session::Session;
 use project::DepPackageReadError;
 use toolchain::serial::Platform;
+use shim;
+use std::path::PathBuf;
+use platform::Image;
 
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
-// use notion_fail::FailExt;
+use notion_fail::FailExt;
 
 pub(crate) mod serial;
 
@@ -72,14 +77,6 @@ pub struct PackageVersion {
     pub version: Version,
     // map of binary names to locations
     pub bins: HashMap<String, String>,
-}
-
-/// Configuration for a User Tool.
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct UserToolConfig {
-    name: String,
-    version: String,
-    platform: Platform,
 }
 
 impl PackageDistro {
@@ -174,31 +171,49 @@ impl PackageDistro {
             }
         }
 
-        write_config_and_shims(&pkg_version, &platform)?;
+        write_platform_and_shims(&pkg_version, &platform)?;
 
         Ok(())
     }
 }
 
-impl UserToolConfig {
-    /// Serialize the UserToolConfig to a JSON String
-    pub fn to_json(self) -> Fallible<String> {
-        serde_json::to_string_pretty(&self).unknown()
+// TODO:
+pub struct UserTool {
+    pub bin_path: PathBuf,
+    pub image: Image,
+}
+
+impl UserTool {
+    pub fn from_config(name: &str, session: &mut Session, src: &str) -> Fallible<Option<Self>> {
+        if let Some(platform_spec) = Platform::from_json(src.to_string())?.into_image()? {
+            Ok(Some(UserTool {
+                bin_path: path::user_tool_bin_link(&name)?,
+                image: platform_spec.checkout(session)?,
+            }))
+        } else {
+            Ok(None)
+        }
     }
 }
 
-fn write_config_and_shims(pkg_version: &PackageVersion, platform_spec: &PlatformSpec) -> Fallible<()> {
-    // TODO: this should be a function in serial file?
-    let tool_config = UserToolConfig {
-        name: pkg_version.name.to_string(),
-        version: pkg_version.version.to_string(),
-        platform: Platform::from_spec(platform_spec),
-    };
-    let src = tool_config.to_json()?;
+pub fn user_tool(tool_name: &str, session: &mut Session) -> Fallible<Option<UserTool>> {
+    let config_path = path::user_package_config_file(&tool_name)?;
+    if config_path.exists() {
+        let config_data = File::open(config_path).unknown()?.read_into_string().unknown()?;
+        Ok(UserTool::from_config(&tool_name, session, &config_data)?)
+    } else {
+        Ok(None) // no config means the tool is not installed
+    }
+}
+
+
+fn write_platform_and_shims(pkg_version: &PackageVersion, platform_spec: &PlatformSpec) -> Fallible<()> {
+    // the platform information for the installed executables
+    let src = platform_spec.to_serial().to_json()?;
 
     for (bin_name, bin_path) in pkg_version.bins.iter() {
-        println!("name = {}, path = {}", bin_name, bin_path);
 
+        // write config
         let config_file_path = path::user_package_config_file(bin_name)?;
         ensure_containing_dir_exists(&config_file_path)?;
         // TODO: handle errors here, or throw known errors
@@ -206,14 +221,17 @@ fn write_config_and_shims(pkg_version: &PackageVersion, platform_spec: &Platform
         file.write_all(src.as_bytes()).unknown()?;
 
         // write the symlink to the binary
+        // TODO: this should be part of the config data?
         let shim_file = path::user_tool_bin_link(bin_name)?;
         // canonicalize because path is relative, and sometimes uses '.' char
         let binary_file = path::package_image_dir(&pkg_version.name, &pkg_version.version.to_string())?.join(bin_path).canonicalize().unknown()?;
-        println!("ensure containing dir exists for {:?}", shim_file);
         ensure_containing_dir_exists(&shim_file)?;
         println!("{:?} ~> {:?}", shim_file, binary_file);
         // TODO: handle errors for this, like notion-core/src/shim.rs
         path::create_file_symlink(binary_file, shim_file).unknown()?;
+
+        // write the link to launchscript/bin
+        shim::create(&bin_name)?;
     }
 
     Ok(())
