@@ -341,31 +341,18 @@ pub struct PackageEntry {
 
 impl NpmPackage {
 
-    // TODO: should this be &self method?
+    // TODO: should this be method of PackageDistro?
     // (so I don't have to pass around name, would be nice...)
     pub fn resolve_public(name: &String, matching: &VersionSpec) -> Fallible<PackageDistro> {
         let index: PackageIndex = resolve_package_metadata(name)?.into_index()?;
 
-        // TODO: this matching should be a self method of PackageIndex?
-        let entry_opt = match *matching {
-            VersionSpec::Latest => {
-                let latest = index.latest.clone();
-                match_package_version(index, |&PackageEntry { version: ref v, .. }| &latest == v)?
-            }
-            VersionSpec::Semver(ref matching) => {
-                match_package_version(index, |&PackageEntry { version: ref v, .. }| matching.matches(v))?
-            }
-            VersionSpec::Exact(ref exact) => {
-                match_package_version(index, |&PackageEntry { version: ref v, .. }| exact == v)?
-            }
-        };
-
-        if let Some(index) = entry_opt {
+        let matching_package_entry = index.match_something(matching);
+        if let Some(entry) = matching_package_entry {
             Ok(PackageDistro::new(
                 name.to_string(),
-                index.shasum,
-                index.version,
-                index.tarball
+                entry.shasum,
+                entry.version,
+                entry.tarball
             )?)
         } else {
             throw!(NoPackageFoundError {
@@ -376,10 +363,28 @@ impl NpmPackage {
     }
 }
 
-// TODO: this should be a self method?
-fn match_package_version(index: PackageIndex, predicate: impl Fn(&PackageEntry) -> bool) -> Fallible<Option<PackageEntry>> {
-    let mut entries = index.entries.into_iter();
-    Ok(entries.find(predicate))
+impl PackageIndex {
+    /// Try to find a match for the input VersionSpec in this index.
+    pub fn match_something(self, matching: &VersionSpec) -> Option<PackageEntry> {
+        match *matching {
+            VersionSpec::Latest => {
+                let latest = self.latest.clone();
+                self.match_package_version(|&PackageEntry { version: ref v, .. }| &latest == v)
+            }
+            VersionSpec::Semver(ref matching) => {
+                self.match_package_version(|&PackageEntry { version: ref v, .. }| matching.matches(v))
+            }
+            VersionSpec::Exact(ref exact) => {
+                self.match_package_version(|&PackageEntry { version: ref v, .. }| exact == v)
+            }
+        }
+    }
+
+    // use the input predicate to match a package in the index
+    fn match_package_version(self, predicate: impl Fn(&PackageEntry) -> bool) -> Option<PackageEntry> {
+        let mut entries = self.entries.into_iter();
+        entries.find(predicate)
+    }
 }
 
 
