@@ -9,6 +9,8 @@ use std::fs::File;
 use std::io::Write;
 use std::io::Read;
 use std::str;
+use std::fs::read_dir;
+use std::path::Path;
 
 use readext::ReadExt;
 use sha1::{Sha1, Digest};
@@ -123,9 +125,8 @@ impl PackageDistro {
 
         ensure_containing_dir_exists(&self.image_dir)?;
 
-        // packages typically extract to a "package" directory, but not necessarily
-        // TODO: have to figure out the directory name dynamically
-        rename(temp.path().join("package"), &self.image_dir).unknown()?;
+        let unpack_dir = find_unpack_dir(temp.path())?;
+        rename(unpack_dir, &self.image_dir).unknown()?;
 
         // save the shasum in a file
         let mut f = File::create(&self.shasum_file).unknown()?;
@@ -201,6 +202,21 @@ impl PackageDistro {
         Ok(false)
     }
 
+}
+
+// Figure out the unpacked package directory name dynamically, because
+// packages typically extract to a "package" directory, but not always
+fn find_unpack_dir(in_dir: &Path) -> Fallible<PathBuf> {
+    let mut dirs = Vec::new();
+    for entry in read_dir(in_dir).unknown()? {
+        let entry = entry.unknown()?;
+        dirs.push(entry.path());
+    }
+    if dirs.len() == 1 {
+        Ok(dirs[0].to_path_buf())
+    } else {
+        unimplemented!("TODO: throw error that there's more than just a directory here");
+    }
 }
 
 impl PackageVersion {
@@ -399,8 +415,6 @@ fn resolve_package_metadata(name: &String) -> Fallible<serial::PackageMetadata> 
         reqwest::get(package_info_uri.as_str())
         .with_context(RegistryFetchError::from_error)?;
     let response_text: String = response.text().unknown()?;
-
-    // TODO: caching for this? see inventory::resolve_node_versions() for an example of that
 
     let metadata: serial::PackageMetadata = serde_json::de::from_str(&response_text).unknown()?;
 
