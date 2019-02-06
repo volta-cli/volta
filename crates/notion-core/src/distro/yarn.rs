@@ -10,13 +10,13 @@ use distro::error::DownloadError;
 use distro::DistroVersion;
 use fs::ensure_containing_dir_exists;
 use inventory::YarnCollection;
+use notion_fail::{Fallible, ResultExt};
 use path;
+use semver::Version;
 use style::{progress_bar, Action};
+use tempfile::tempdir_in;
 use tool::ToolSpec;
 use version::VersionSpec;
-
-use notion_fail::{Fallible, ResultExt};
-use semver::Version;
 
 #[cfg(feature = "mock-network")]
 use mockito;
@@ -107,7 +107,7 @@ impl Distro for YarnDistro {
             return Ok(Fetched::Already(DistroVersion::Yarn(self.version)));
         }
 
-        let dest = path::yarn_image_root_dir()?;
+        let temp = tempdir_in(path::tmp_dir()?).unknown()?;
         let bar = progress_bar(
             Action::Fetching,
             &format!("v{}", self.version),
@@ -117,15 +117,21 @@ impl Distro for YarnDistro {
         );
 
         self.archive
-            .unpack(&dest, &mut |_, read| {
+            .unpack(temp.path(), &mut |_, read| {
                 bar.inc(read as u64);
             })
             .unknown()?;
 
         let version_string = self.version.to_string();
+
+        let dest = path::yarn_image_dir(&version_string)?;
+
+        ensure_containing_dir_exists(&dest)?;
+
         rename(
-            dest.join(path::yarn_archive_root_dir_name(&version_string)),
-            path::yarn_image_dir(&version_string)?,
+            temp.path()
+                .join(path::yarn_archive_root_dir_name(&version_string)),
+            dest,
         )
         .unknown()?;
 
