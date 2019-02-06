@@ -25,7 +25,7 @@ use archive::Tarball;
 use distro::error::DownloadError;
 use tool::ToolSpec;
 use style::{progress_bar, Action};
-use tempfile::tempdir;
+use tempfile::tempdir_in;
 use fs::ensure_containing_dir_exists;
 use platform::PlatformSpec;
 use manifest::Manifest;
@@ -96,7 +96,7 @@ impl PackageDistro {
             archive.uncompressed_size().unwrap_or(archive.compressed_size()),
         );
 
-        let temp = tempdir().unknown()?;
+        let temp = tempdir_in(path::tmp_dir()?).unknown()?;
         archive
             .unpack(temp.path(), &mut |_, read| {
                 bar.inc(read as u64);
