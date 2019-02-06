@@ -60,7 +60,6 @@ impl Tool for Binary {
             }
         }
 
-        // TODO: this will have to be fixed
         // try to use the user toolchain
         if let Some(user_tool) = session.get_user_tool(&exe)? {
             return Ok(Self::from_components(

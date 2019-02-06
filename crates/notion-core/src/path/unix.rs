@@ -62,7 +62,7 @@ cfg_if::cfg_if! {
 //                 packages/                               package_inventory_dir
 //                     ember-cli/                          package_distro_dir("ember-cli")
 //                         ember-cli-3.7.1.tgz             package_distro_file("ember-cli", "3.7.1")
-//                         ember-cli-3.7.1.shasum          TODO: package_distro_shasum("ember-cli", "3.7.1")
+//                         ember-cli-3.7.1.shasum          package_distro_shasum("ember-cli", "3.7.1")
 //                 yarn/                                   yarn_inventory_dir
 //             image/                                      image_dir
 //                 node/                                   node_image_root_dir

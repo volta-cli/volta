@@ -60,6 +60,10 @@ pub fn package_distro_file(name: &str, version: &str) -> Fallible<PathBuf> {
     Ok(package_distro_dir(name)?.join(package_distro_file_name(name, version)))
 }
 
+pub fn package_distro_shasum(name: &str, version: &str) -> Fallible<PathBuf> {
+    Ok(package_distro_dir(name)?.join(package_shasum_file_name(name, version)))
+}
+
 pub fn node_cache_dir() -> Fallible<PathBuf> {
     Ok(cache_dir()?.join("node"))
 }
@@ -175,6 +179,10 @@ pub fn yarn_archive_root_dir_name(version: &str) -> String {
 
 pub fn package_distro_file_name(name: &str, version: &str) -> String {
     format!("{}.tgz", package_archive_root_dir_name(name, version))
+}
+
+pub fn package_shasum_file_name(name: &str, version: &str) -> String {
+    format!("{}.shasum", package_archive_root_dir_name(name, version))
 }
 
 pub fn package_archive_root_dir_name(name: &str, version: &str) -> String {

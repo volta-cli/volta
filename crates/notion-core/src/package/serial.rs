@@ -7,6 +7,9 @@ use notion_fail::ResultExt;
 use semver::Version;
 
 
+// see npm registry API doc:
+// https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PackageMetadata {
     pub name: String,
@@ -31,7 +34,7 @@ pub struct PackageDistTags {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DistInfo {
-    // pub shasum: String, // TODO
+    pub shasum: String,
     pub tarball: String,
 }
 
@@ -42,7 +45,11 @@ impl PackageMetadata {
         let mut entries = Vec::new();
         for (_, version_info) in self.versions {
             let parsed_version = Version::parse(&version_info.version).unknown()?;
-            let entry = super::PackageEntry { version: parsed_version, tarball: version_info.dist.tarball };
+            let entry = super::PackageEntry {
+                version: parsed_version,
+                tarball: version_info.dist.tarball,
+                shasum: version_info.dist.shasum,
+            };
             entries.push(entry);
         }
 

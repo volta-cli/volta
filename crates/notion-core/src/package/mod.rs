@@ -7,8 +7,12 @@ use std::ffi::OsStr;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
+use std::io::Read;
+use std::str;
 
 use readext::ReadExt;
+use sha1::{Sha1, Digest};
+use hex;
 
 use inventory::RegistryFetchError;
 use semver::Version;
@@ -31,6 +35,8 @@ use toolchain::serial::Platform;
 use shim;
 use std::path::PathBuf;
 use platform::Image;
+use fs::read_file_opt;
+use archive::Archive;
 
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use notion_fail::FailExt;
@@ -66,6 +72,7 @@ struct NoPackageFoundError {
 //#[derive(Debug)]
 pub struct PackageDistro {
     name: String,
+    shasum: String,
     tarball_url: String,
     version: Version,
 }
@@ -81,19 +88,7 @@ pub struct PackageVersion {
 
 impl PackageDistro {
     pub fn fetch(&self) -> Fallible<Fetched<PackageVersion>> {
-        // TODO: check for existing downloaded archive (can check shasum to verify)
-        // TODO: check collection for existing unpacked stuff
-        // if collection.contains(&self.version) {
-        //     let npm = load_default_npm_version(&self.version)?;
-        //     return Ok(Fetched::Already(DistroVersion::Node(self.version, npm)));
-        // }
-
-        // get archive info
-        let distro_file = path::package_distro_file(&self.name, &self.version.to_string())?;
-        ensure_containing_dir_exists(&distro_file)?;
-
-        let archive = Tarball::fetch(&self.tarball_url, &distro_file)
-            .with_context(DownloadError::for_tool(ToolSpec::Package(self.name.to_string(), VersionSpec::exact(&self.version)), self.tarball_url.to_string()))?;
+        let archive = self.load_or_fetch_archive()?;
 
         let bar = progress_bar(
             Action::Fetching,
@@ -117,6 +112,12 @@ impl PackageDistro {
         // TODO: have to figure out the directory name dynamically
         rename(temp.path().join("package"), &dest).unknown()?;
 
+        // save the shasum in a file
+        let shasum_file = path::package_distro_shasum(&self.name, &self.version.to_string())?;
+        let mut f = File::create(&shasum_file).unknown()?;
+        f.write_all(self.shasum.as_bytes()).unknown()?;
+        f.sync_all().unknown()?;
+
         // TODO: different error for this
         let pkg_info = Manifest::for_dir(&dest).with_context(DepPackageReadError::from_error)?;
         let bin_map = pkg_info.bin;
@@ -133,6 +134,63 @@ impl PackageDistro {
             version: self.version.clone(),
             bins: bin_map,
         }))
+    }
+
+    /// Loads the package tarball from disk, or fetches from URL.
+    fn load_or_fetch_archive(&self) -> Fallible<Box<Archive>> {
+        // try to use existing downloaded package
+        if self.downloaded_pkg_is_ok()? {
+            println!("downloaded package is OK, using that");
+            let distro_file = path::package_distro_file(&self.name, &self.version.to_string())?;
+            Tarball::load(File::open(distro_file).unknown()?).unknown()
+        } else {
+            println!("downloaded package is NOT OK, fetching");
+            // otherwise have to download
+            let distro_file = path::package_distro_file(&self.name, &self.version.to_string())?;
+            ensure_containing_dir_exists(&distro_file)?;
+
+            Tarball::fetch(&self.tarball_url, &distro_file).with_context(
+                DownloadError::for_tool(
+                    ToolSpec::Package(
+                        self.name.to_string(),
+                        VersionSpec::exact(&self.version)
+                    ),
+                    self.tarball_url.to_string()
+                )
+            )
+        }
+    }
+
+    /// Verify downloaded package, returning a PackageVersion if it is ok.
+    fn downloaded_pkg_is_ok(&self) -> Fallible<bool> {
+        let distro_file = path::package_distro_file(&self.name, &self.version.to_string())?;
+        let shasum_file = path::package_distro_shasum(&self.name, &self.version.to_string())?;
+
+        let mut buffer = Vec::new();
+
+        if let Ok(mut distro) = File::open(distro_file) {
+
+            if let Some(stored_shasum) = read_file_opt(&shasum_file).unknown()? {
+                println!("read shasum from disk: {}", stored_shasum);
+
+                distro.read_to_end(&mut buffer).unknown()?;
+                println!("read distro file");
+
+                // calculate the shasum
+                let mut hasher = Sha1::new();
+                hasher.input(buffer);
+                let result = hasher.result();
+                println!("hashed that file");
+                let calculated_shasum = hex::encode(&result);
+                println!("calculated shasum: {}", calculated_shasum);
+
+                return Ok(stored_shasum == calculated_shasum);
+            }
+        }
+
+        println!("package is not valid, going to download");
+        // something went wrong, package is not valid
+        Ok(false)
     }
 
     // TODO: description
@@ -177,7 +235,7 @@ impl PackageDistro {
     }
 }
 
-// TODO:
+// TODO: description
 pub struct UserTool {
     pub bin_path: PathBuf,
     pub image: Image,
@@ -242,7 +300,6 @@ fn install_command_for(exe: &str, in_dir: &OsStr, path_var: &OsStr) -> Command {
     let mut command = Command::new(exe);
     command.arg("install");
     command.arg("--only=production"); // TODO: npm only, but doesn't work for yarn
-    command.arg("--global-style"); // TODO: npm only, but doesn't work for yarn
     // command.arg("--production"); // TODO: yarn only, deprecated in npm
     command.current_dir(in_dir);
     command.env("PATH", path_var);
@@ -264,6 +321,7 @@ pub struct PackageIndex {
 pub struct PackageEntry {
     version: Version,
     tarball: String,
+    shasum: String,
 }
 
 impl NpmPackage {
@@ -288,7 +346,12 @@ impl NpmPackage {
         };
 
         if let Some(index) = entry_opt {
-            Ok(PackageDistro { name: name.to_string(), version: index.version, tarball_url: index.tarball })
+            Ok(PackageDistro {
+                name: name.to_string(),
+                shasum: index.shasum,
+                version: index.version,
+                tarball_url: index.tarball
+            })
         } else {
             throw!(NoPackageFoundError {
                 name: name.to_string(),
