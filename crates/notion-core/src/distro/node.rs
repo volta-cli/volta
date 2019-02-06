@@ -13,7 +13,7 @@ use fs::ensure_containing_dir_exists;
 use inventory::NodeCollection;
 use path;
 use style::{progress_bar, Action};
-use tempfile::tempdir;
+use tempfile::tempdir_in;
 use tool::ToolSpec;
 use version::VersionSpec;
 
@@ -159,7 +159,7 @@ impl Distro for NodeDistro {
             return Ok(Fetched::Already(DistroVersion::Node(self.version, npm)));
         }
 
-        let temp = tempdir().unknown()?;
+        let temp = tempdir_in(path::tmp_dir()?).unknown()?;
         let bar = progress_bar(
             Action::Fetching,
             &format!("v{}", self.version),

@@ -363,7 +363,7 @@ fn resolve_node_versions() -> Fallible<serial::NodeIndex> {
                 reqwest::get(public_node_version_index().as_str())
                     .with_context(RegistryFetchError::from_error)?;
             let response_text: String = response.text().unknown()?;
-            let cached: NamedTempFile = NamedTempFile::new().unknown()?;
+            let cached: NamedTempFile = NamedTempFile::new_in(path::tmp_dir()?).unknown()?;
 
             // Block to borrow cached for cached_file.
             {
@@ -375,7 +375,7 @@ fn resolve_node_versions() -> Fallible<serial::NodeIndex> {
             ensure_containing_dir_exists(&index_cache_file)?;
             cached.persist(index_cache_file).unknown()?;
 
-            let expiry: NamedTempFile = NamedTempFile::new().unknown()?;
+            let expiry: NamedTempFile = NamedTempFile::new_in(path::tmp_dir()?).unknown()?;
 
             // Block to borrow expiry for expiry_file.
             {
