@@ -203,11 +203,12 @@ impl Session {
     // TODO: description, and use toolspec?
     pub fn install_package(&mut self, name: &String, version: &VersionSpec) -> Fallible<()> {
         // fetches and unpacks package
-        let package_distro = self.fetch_package(name, version)?;
+        let fetched_package = self.fetch_package(name, version)?;
+        let package_version = fetched_package.version();
 
         let use_platform;
 
-        if let Some(platform) = PackageDistro::platform(package_distro.version())? {
+        if let Some(platform) = package_version.platform()? {
             println!("using 'platform' from the package: {:?}", platform);
             use_platform = platform;
         } else if let Some(platform) = self.user_platform()? {
@@ -226,7 +227,7 @@ impl Session {
         }
 
         // finally, install the package
-        PackageDistro::install(&package_distro.version(), &use_platform, self)
+        package_version.install(&use_platform, self)
     }
 
     // TODO: fetch should be a trait on VersionSpec? or ToolSpec?

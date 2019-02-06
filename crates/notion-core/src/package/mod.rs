@@ -75,6 +75,9 @@ pub struct PackageDistro {
     shasum: String,
     tarball_url: String,
     version: Version,
+    image_dir: PathBuf,
+    shasum_file: PathBuf,
+    distro_file: PathBuf,
 }
 
 /// A package version.
@@ -84,9 +87,22 @@ pub struct PackageVersion {
     pub version: Version,
     // map of binary names to locations
     pub bins: HashMap<String, String>,
+    image_dir: PathBuf,
 }
 
 impl PackageDistro {
+    pub fn new(name: String, shasum: String, version: Version, tarball_url: String) -> Fallible<Self> {
+            Ok(PackageDistro {
+                name: name.clone(),
+                shasum,
+                version: version.clone(),
+                tarball_url,
+                image_dir: path::package_image_dir(&name, &version.to_string())?,
+                distro_file: path::package_distro_file(&name, &version.to_string())?,
+                shasum_file: path::package_distro_shasum(&name, &version.to_string())?,
+            })
+    }
+
     pub fn fetch(&self) -> Fallible<Fetched<PackageVersion>> {
         let archive = self.load_or_fetch_archive()?;
 
@@ -105,21 +121,19 @@ impl PackageDistro {
         // bar.finish_and_clear();
         bar.finish();
 
-        let dest = path::package_image_dir(&self.name, &self.version.to_string())?;
-        ensure_containing_dir_exists(&dest)?;
+        ensure_containing_dir_exists(&self.image_dir)?;
 
         // packages typically extract to a "package" directory, but not necessarily
         // TODO: have to figure out the directory name dynamically
-        rename(temp.path().join("package"), &dest).unknown()?;
+        rename(temp.path().join("package"), &self.image_dir).unknown()?;
 
         // save the shasum in a file
-        let shasum_file = path::package_distro_shasum(&self.name, &self.version.to_string())?;
-        let mut f = File::create(&shasum_file).unknown()?;
+        let mut f = File::create(&self.shasum_file).unknown()?;
         f.write_all(self.shasum.as_bytes()).unknown()?;
         f.sync_all().unknown()?;
 
         // TODO: different error for this
-        let pkg_info = Manifest::for_dir(&dest).with_context(DepPackageReadError::from_error)?;
+        let pkg_info = Manifest::for_dir(&self.image_dir).with_context(DepPackageReadError::from_error)?;
         let bin_map = pkg_info.bin;
         if bin_map.is_empty() {
             unimplemented!("TODO: Need to throw an error for this - user tool has no binaries");
@@ -129,11 +143,11 @@ impl PackageDistro {
         // some packages may have bins with the same name
         // warn and ask the user what to do? or just fail? probably fail for now
 
-        Ok(Fetched::Now(PackageVersion {
-            name: self.name.clone(),
-            version: self.version.clone(),
-            bins: bin_map,
-        }))
+        Ok(Fetched::Now(PackageVersion::new(
+            self.name.clone(),
+            self.version.clone(),
+            bin_map,
+        )?))
     }
 
     /// Loads the package tarball from disk, or fetches from URL.
@@ -141,15 +155,12 @@ impl PackageDistro {
         // try to use existing downloaded package
         if self.downloaded_pkg_is_ok()? {
             println!("downloaded package is OK, using that");
-            let distro_file = path::package_distro_file(&self.name, &self.version.to_string())?;
-            Tarball::load(File::open(distro_file).unknown()?).unknown()
+            Tarball::load(File::open(&self.distro_file).unknown()?).unknown()
         } else {
             println!("downloaded package is NOT OK, fetching");
             // otherwise have to download
-            let distro_file = path::package_distro_file(&self.name, &self.version.to_string())?;
-            ensure_containing_dir_exists(&distro_file)?;
-
-            Tarball::fetch(&self.tarball_url, &distro_file).with_context(
+            ensure_containing_dir_exists(&self.distro_file)?;
+            Tarball::fetch(&self.tarball_url, &self.distro_file).with_context(
                 DownloadError::for_tool(
                     ToolSpec::Package(
                         self.name.to_string(),
@@ -163,14 +174,11 @@ impl PackageDistro {
 
     /// Verify downloaded package, returning a PackageVersion if it is ok.
     fn downloaded_pkg_is_ok(&self) -> Fallible<bool> {
-        let distro_file = path::package_distro_file(&self.name, &self.version.to_string())?;
-        let shasum_file = path::package_distro_shasum(&self.name, &self.version.to_string())?;
-
         let mut buffer = Vec::new();
 
-        if let Ok(mut distro) = File::open(distro_file) {
+        if let Ok(mut distro) = File::open(&self.distro_file) {
 
-            if let Some(stored_shasum) = read_file_opt(&shasum_file).unknown()? {
+            if let Some(stored_shasum) = read_file_opt(&self.shasum_file).unknown()? {
                 println!("read shasum from disk: {}", stored_shasum);
 
                 distro.read_to_end(&mut buffer).unknown()?;
@@ -193,24 +201,31 @@ impl PackageDistro {
         Ok(false)
     }
 
+}
+
+impl PackageVersion {
+    pub fn new(name: String, version: Version, bins: HashMap<String, String>) -> Fallible<Self>{
+        Ok(PackageVersion {
+            name: name.clone(),
+            version: version.clone(),
+            bins,
+            image_dir: path::package_image_dir(&name, &version.to_string())?,
+        })
+    }
     // TODO: description
-    pub fn platform(pkg_version: &PackageVersion) -> Fallible<Option<Rc<PlatformSpec>>> {
-        let package_dir = path::package_image_dir(&pkg_version.name, &pkg_version.version.to_string())?;
-        let manifest = Manifest::for_dir(&package_dir)?;
+    pub fn platform(&self) -> Fallible<Option<Rc<PlatformSpec>>> {
+        let manifest = Manifest::for_dir(&self.image_dir)?;
         Ok(manifest.platform())
     }
 
-    pub fn install(pkg_version: &PackageVersion, platform: &PlatformSpec, session: &mut Session) -> Fallible<()> {
-        // will eventually change to the installed package directory
-        let package_dir = path::package_image_dir(&pkg_version.name, &pkg_version.version.to_string())?;
-
+    pub fn install(&self, platform: &PlatformSpec, session: &mut Session) -> Fallible<()> {
         // checkout the image to use
         let image = platform.checkout(session)?;
 
         if let Some(ref _yarn) = image.yarn {
             // use yarn to install
-            println!("Running `yarn install` in dir {:?}", &package_dir);
-            let output = install_command_for("yarn", &package_dir.into_os_string(), &image.path()?)
+            println!("Running `yarn install` in dir {:?}", &self.image_dir);
+            let output = install_command_for("yarn", &self.image_dir.clone().into_os_string(), &image.path()?)
                 .output()
                 .expect("Failed to execute `yarn install`");
             if !output.status.success() {
@@ -219,8 +234,8 @@ impl PackageDistro {
             }
         } else {
             // otherwise use npm
-            println!("Running `npm install` in dir {:?}", &package_dir);
-            let output = install_command_for("npm", &package_dir.into_os_string(), &image.path()?)
+            println!("Running `npm install` in dir {:?}", &self.image_dir);
+            let output = install_command_for("npm", &self.image_dir.clone().into_os_string(), &image.path()?)
                 .output()
                 .expect("Failed to execute `npm install`");
             if !output.status.success() {
@@ -229,7 +244,37 @@ impl PackageDistro {
             }
         }
 
-        write_platform_and_shims(&pkg_version, &platform)?;
+        self.write_platform_and_shims(&platform)?;
+
+        Ok(())
+    }
+
+    fn write_platform_and_shims(&self, platform_spec: &PlatformSpec) -> Fallible<()> {
+        // the platform information for the installed executables
+        let src = platform_spec.to_serial().to_json()?;
+
+        for (bin_name, bin_path) in self.bins.iter() {
+
+            // write config
+            let config_file_path = path::user_package_config_file(bin_name)?;
+            ensure_containing_dir_exists(&config_file_path)?;
+            // TODO: handle errors here, or throw known errors
+            let mut file = File::create(&config_file_path).unknown()?;
+            file.write_all(src.as_bytes()).unknown()?;
+
+            // write the symlink to the binary
+            // TODO: this should be part of the config data?
+            let shim_file = path::user_tool_bin_link(bin_name)?;
+            // canonicalize because path is relative, and sometimes uses '.' char
+            let binary_file = self.image_dir.join(bin_path).canonicalize().unknown()?;
+            ensure_containing_dir_exists(&shim_file)?;
+            println!("{:?} ~> {:?}", shim_file, binary_file);
+            // TODO: handle errors for this, like notion-core/src/shim.rs
+            path::create_file_symlink(binary_file, shim_file).unknown()?;
+
+            // write the link to launchscript/bin
+            shim::create(&bin_name)?;
+        }
 
         Ok(())
     }
@@ -264,36 +309,6 @@ pub fn user_tool(tool_name: &str, session: &mut Session) -> Fallible<Option<User
     }
 }
 
-
-fn write_platform_and_shims(pkg_version: &PackageVersion, platform_spec: &PlatformSpec) -> Fallible<()> {
-    // the platform information for the installed executables
-    let src = platform_spec.to_serial().to_json()?;
-
-    for (bin_name, bin_path) in pkg_version.bins.iter() {
-
-        // write config
-        let config_file_path = path::user_package_config_file(bin_name)?;
-        ensure_containing_dir_exists(&config_file_path)?;
-        // TODO: handle errors here, or throw known errors
-        let mut file = File::create(&config_file_path).unknown()?;
-        file.write_all(src.as_bytes()).unknown()?;
-
-        // write the symlink to the binary
-        // TODO: this should be part of the config data?
-        let shim_file = path::user_tool_bin_link(bin_name)?;
-        // canonicalize because path is relative, and sometimes uses '.' char
-        let binary_file = path::package_image_dir(&pkg_version.name, &pkg_version.version.to_string())?.join(bin_path).canonicalize().unknown()?;
-        ensure_containing_dir_exists(&shim_file)?;
-        println!("{:?} ~> {:?}", shim_file, binary_file);
-        // TODO: handle errors for this, like notion-core/src/shim.rs
-        path::create_file_symlink(binary_file, shim_file).unknown()?;
-
-        // write the link to launchscript/bin
-        shim::create(&bin_name)?;
-    }
-
-    Ok(())
-}
 
 // TODO: description
 fn install_command_for(exe: &str, in_dir: &OsStr, path_var: &OsStr) -> Command {
@@ -346,12 +361,12 @@ impl NpmPackage {
         };
 
         if let Some(index) = entry_opt {
-            Ok(PackageDistro {
-                name: name.to_string(),
-                shasum: index.shasum,
-                version: index.version,
-                tarball_url: index.tarball
-            })
+            Ok(PackageDistro::new(
+                name.to_string(),
+                index.shasum,
+                index.version,
+                index.tarball
+            )?)
         } else {
             throw!(NoPackageFoundError {
                 name: name.to_string(),
