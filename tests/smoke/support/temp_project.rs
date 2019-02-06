@@ -82,6 +82,7 @@ impl TempProjectBuilder {
         ok_or_panic!(path::node_image_root_dir()).ensure_empty();
         ok_or_panic!(path::yarn_image_root_dir()).ensure_empty();
         ok_or_panic!(path::user_toolchain_dir()).ensure_empty();
+        ok_or_panic!(path::tmp_dir()).ensure_empty();
         // and these files do not exist
         ok_or_panic!(path::notion_file()).rm();
         ok_or_panic!(path::launchbin_file()).rm();
