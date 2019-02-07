@@ -8,10 +8,11 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use lazycell::LazyCell;
+use semver::Version;
 
 use crate::distro::node::load_default_npm_version;
-//use crate::distro::DistroVersion;
 use crate::error::ErrorDetails;
+use crate::distro::node::NodeVersion;
 use crate::manifest::{serial, Manifest};
 use crate::platform::PlatformSpec;
 use crate::shim;

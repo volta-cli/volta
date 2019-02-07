@@ -11,37 +11,38 @@ use std::io::Read;
 use std::str;
 use std::fs::read_dir;
 use std::path::Path;
+use std::path::PathBuf;
 
 use readext::ReadExt;
 use sha1::{Sha1, Digest};
 use hex;
-
-use inventory::RegistryFetchError;
 use semver::Version;
-use style::progress_spinner;
-use version::VersionSpec;
-// use config::Config;
-use distro::Fetched;
-use path;
+
+use crate::inventory::RegistryFetchError;
+use crate::style::progress_spinner;
+use crate::version::VersionSpec;
+use crate::distro::Fetched;
+use crate::path;
 use archive::Tarball;
-use distro::error::DownloadError;
-use tool::ToolSpec;
-use style::{progress_bar, Action};
+use crate::distro::error::DownloadError;
+use crate::tool::ToolSpec;
+use crate::style::{progress_bar, Action};
 use tempfile::tempdir_in;
-use fs::ensure_containing_dir_exists;
-use platform::PlatformSpec;
-use manifest::Manifest;
-use session::Session;
-use project::DepPackageReadError;
-use toolchain::serial::Platform;
-use shim;
-use std::path::PathBuf;
-use platform::Image;
-use fs::read_file_opt;
+use crate::fs::ensure_containing_dir_exists;
+use crate::platform::PlatformSpec;
+use crate::manifest::Manifest;
+use crate::session::Session;
+use crate::project::DepPackageReadError;
+use crate::toolchain::serial::Platform;
+use crate::shim;
+use crate::platform::Image;
+use crate::fs::read_file_opt;
 use archive::Archive;
 
-use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
+use notion_fail::{throw, ExitCode, Fallible, NotionFail, ResultExt};
 use notion_fail::FailExt;
+use failure::Fail;
+use notion_fail_derive::*;
 
 pub(crate) mod serial;
 
@@ -49,7 +50,7 @@ pub(crate) mod serial;
 use mockito;
 use serde_json;
 
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(feature = "mock-network")] {
         fn public_package_registry_root() -> String {
             mockito::SERVER_URL.to_string()

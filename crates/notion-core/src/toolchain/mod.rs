@@ -3,13 +3,13 @@ use std::io::Write;
 
 use lazycell::LazyCell;
 use readext::ReadExt;
+use semver::Version;
 
 // use crate::distro::DistroVersion;
 use crate::fs::touch;
 use crate::path::user_platform_file;
 use crate::platform::PlatformSpec;
 use crate::distro::node::NodeVersion;
-use crate::semver::Version;
 
 use notion_fail::{Fallible, ResultExt};
 

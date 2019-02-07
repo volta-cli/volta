@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use notion_fail::Fallible;
 use notion_fail::ResultExt;
 use semver::Version;
+use serde::{Deserialize, Serialize};
 
 
 // see npm registry API doc:
