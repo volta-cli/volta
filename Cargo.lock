@@ -770,7 +770,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "notion"
-version = "0.1.5"
+version = "0.2.0"
 dependencies = [
  "cfg-if 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "console 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
