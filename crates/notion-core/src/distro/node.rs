@@ -5,16 +5,18 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::string::ToString;
 
-use super::{error_for_tool, Distro, Fetched};
 use archive::{self, Archive};
-use distro::DistroVersion;
-use fs::ensure_containing_dir_exists;
-use inventory::NodeCollection;
-use path;
-use style::{progress_bar, Action};
-use tempfile::tempdir;
-use tool::ToolSpec;
-use version::VersionSpec;
+use serde::Deserialize;
+use tempfile::tempdir_in;
+
+use super::{error_for_tool, Distro, Fetched};
+use crate::distro::DistroVersion;
+use crate::fs::ensure_containing_dir_exists;
+use crate::inventory::NodeCollection;
+use crate::path;
+use crate::style::{progress_bar, Action};
+use crate::tool::ToolSpec;
+use crate::version::VersionSpec;
 
 use notion_fail::{Fallible, ResultExt};
 use semver::Version;
@@ -23,7 +25,7 @@ use semver::Version;
 use mockito;
 use serde_json;
 
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(feature = "mock-network")] {
         fn public_node_server_root() -> String {
             mockito::SERVER_URL.to_string()
@@ -37,7 +39,7 @@ cfg_if! {
 
 /// A provisioned Node distribution.
 pub struct NodeDistro {
-    archive: Box<Archive>,
+    archive: Box<dyn Archive>,
     version: Version,
 }
 
@@ -156,7 +158,7 @@ impl Distro for NodeDistro {
             return Ok(Fetched::Already(DistroVersion::Node(self.version, npm)));
         }
 
-        let temp = tempdir().unknown()?;
+        let temp = tempdir_in(path::tmp_dir()?).unknown()?;
         let bar = progress_bar(
             Action::Fetching,
             &format!("v{}", self.version),

@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use semver::{ReqParseError, SemVerError, Version, VersionReq};
 
-use error::ErrorDetails;
+use crate::error::ErrorDetails;
 use notion_fail::{Fallible, ResultExt};
 
 use self::serial::parse_requirements;
@@ -18,7 +18,7 @@ pub enum VersionSpec {
 }
 
 impl fmt::Display for VersionSpec {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match *self {
             VersionSpec::Latest => write!(f, "latest"),
             VersionSpec::Semver(ref req) => req.fmt(f),

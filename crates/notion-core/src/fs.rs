@@ -4,9 +4,8 @@ use std::fs::{self, create_dir_all, read_dir, DirEntry, File, Metadata};
 use std::io::{self, ErrorKind};
 use std::path::{Path, PathBuf};
 
-use error::ErrorDetails;
-
-use notion_fail::{Fallible, ResultExt};
+use crate::error::ErrorDetails;
+use notion_fail::{throw, Fallible, ResultExt};
 
 pub fn touch(path: &Path) -> Fallible<File> {
     if !path.is_file() {

@@ -4,10 +4,10 @@ use std::io;
 use std::process::{Command, ExitStatus};
 
 use super::{arg0, command_for, display_error, intercept_global_installs, Tool};
-use error::ErrorDetails;
-use session::{ActivityKind, Session};
+use crate::error::ErrorDetails;
+use crate::session::{ActivityKind, Session};
 
-use notion_fail::Fallible;
+use notion_fail::{throw, Fallible};
 
 /// Represents a `npm` executable.
 pub struct Npm(Command);

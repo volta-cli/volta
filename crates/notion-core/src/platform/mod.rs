@@ -4,10 +4,10 @@ use std::path::PathBuf;
 use envoy;
 use semver::Version;
 
-use distro::node::{load_default_npm_version, NodeVersion};
+use crate::distro::node::{load_default_npm_version, NodeVersion};
+use crate::path;
+use crate::session::Session;
 use notion_fail::{Fallible, ResultExt};
-use path;
-use session::Session;
 
 /// A specification of tool versions needed for a platform
 #[derive(Eq, PartialEq, Clone, Debug)]
@@ -117,7 +117,7 @@ impl System {
 mod test {
 
     use super::*;
-    use path::{notion_home, shim_dir};
+    use crate::path::{notion_home, shim_dir};
     use semver::Version;
     use std;
     use std::path::PathBuf;

@@ -3,10 +3,10 @@ use std::ffi::OsStr;
 use std::process::Command;
 
 use super::{command_for, Tool};
-use error::ErrorDetails;
-use session::Session;
+use crate::error::ErrorDetails;
+use crate::session::Session;
 
-use notion_fail::Fallible;
+use notion_fail::{throw, Fallible};
 
 /// Represents a delegated script.
 pub struct Script(Command);

@@ -5,11 +5,11 @@ use std::str::FromStr;
 
 use semver::Version;
 
-use error::ErrorDetails;
-use fs::ensure_containing_dir_exists;
-use notion_fail::{Fallible, NotionError, ResultExt};
+use crate::error::ErrorDetails;
+use crate::fs::ensure_containing_dir_exists;
+use notion_fail::{throw, Fallible, NotionError, ResultExt};
 
-use env;
+use crate::env;
 
 mod bash;
 

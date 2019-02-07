@@ -3,11 +3,11 @@ use std::ffi::OsStr;
 use std::process::Command;
 
 use super::{arg0, command_for, Tool};
-use error::ErrorDetails;
-use session::{ActivityKind, Session};
-use version::VersionSpec;
+use crate::error::ErrorDetails;
+use crate::session::{ActivityKind, Session};
+use crate::version::VersionSpec;
 
-use notion_fail::Fallible;
+use notion_fail::{throw, Fallible};
 
 /// Represents a `npx` executable.
 pub struct Npx(Command);

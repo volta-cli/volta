@@ -8,12 +8,13 @@ use std::marker::Sized;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 
-use env::UNSAFE_GLOBAL;
-use error::ErrorDetails;
+use crate::env::UNSAFE_GLOBAL;
+use crate::error::ErrorDetails;
+use crate::session::{ActivityKind, Session};
+use crate::style;
+use crate::version::VersionSpec;
+use failure::Fail;
 use notion_fail::{ExitCode, FailExt, Fallible, NotionError};
-use session::{ActivityKind, Session};
-use style;
-use version::VersionSpec;
 
 mod binary;
 mod node;
@@ -56,7 +57,7 @@ impl ToolSpec {
 }
 
 impl Debug for ToolSpec {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         let s = match self {
             &ToolSpec::Node(ref version) => format!("node version {}", version),
             &ToolSpec::Yarn(ref version) => format!("yarn version {}", version),
@@ -68,7 +69,7 @@ impl Debug for ToolSpec {
 }
 
 impl Display for ToolSpec {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         let s = match self {
             &ToolSpec::Node(ref version) => format!("node version {}", version),
             &ToolSpec::Yarn(ref version) => format!("yarn version {}", version),
@@ -111,7 +112,7 @@ pub trait Tool: Sized {
     }
 
     /// Constructs a new instance.
-    fn new(&mut Session) -> Fallible<Self>;
+    fn new(_: &mut Session) -> Fallible<Self>;
 
     /// Constructs a new instance, using the specified command-line and `PATH` variable.
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self;

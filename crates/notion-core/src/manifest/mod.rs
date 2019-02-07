@@ -6,10 +6,10 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
+use crate::error::ErrorDetails;
+use crate::platform::PlatformSpec;
 use detect_indent;
-use error::ErrorDetails;
-use notion_fail::{Fallible, ResultExt};
-use platform::PlatformSpec;
+use notion_fail::{throw, Fallible, ResultExt};
 use semver::Version;
 use serde::Serialize;
 use serde_json;

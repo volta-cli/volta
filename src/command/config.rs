@@ -6,11 +6,11 @@ use serde::Deserialize;
 
 use notion_core::error::ErrorDetails;
 use notion_core::session::Session;
-use notion_fail::{FailExt, Fallible};
+use notion_fail::{throw, FailExt, Fallible};
 
-use command::{Command, CommandName, Help};
-use error::from_docopt_error;
-use Notion;
+use crate::command::{Command, CommandName, Help};
+use crate::error::from_docopt_error;
+use crate::Notion;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
@@ -42,7 +42,7 @@ pub(crate) struct KeyValue {
 pub(crate) struct Nullary;
 
 impl Display for SubcommandName {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(
             fmt,
             "{}",

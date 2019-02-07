@@ -1,8 +1,9 @@
 use super::super::{manifest, platform};
-use version::VersionSpec;
+use crate::version::VersionSpec;
 
 use notion_fail::Fallible;
 
+use serde;
 use serde::de::{Deserialize, Deserializer, Error, MapAccess, Visitor};
 
 use std::collections::HashMap;
@@ -38,7 +39,7 @@ where
     }
 }
 
-#[derive(Deserialize)]
+#[derive(serde::Deserialize)]
 pub struct Manifest {
     pub name: Option<String>,
     pub version: Option<String>,
@@ -59,7 +60,7 @@ pub struct Manifest {
     pub bin: Option<BinMap<String, String>>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct ToolchainSpec {
     pub node: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -163,7 +164,7 @@ where
 {
     type Value = BinMap<String, String>;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("string or map")
     }
 

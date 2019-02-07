@@ -4,23 +4,25 @@ use std::fs::{rename, File};
 use std::path::PathBuf;
 use std::string::ToString;
 
-use super::{error_for_tool, Distro, Fetched};
-use archive::{Archive, Tarball};
-use distro::DistroVersion;
-use fs::ensure_containing_dir_exists;
-use inventory::YarnCollection;
-use path;
-use style::{progress_bar, Action};
-use tool::ToolSpec;
-use version::VersionSpec;
-
-use notion_fail::{Fallible, ResultExt};
 use semver::Version;
+use tempfile::tempdir_in;
+
+use archive::{Archive, Tarball};
+use notion_fail::{Fallible, ResultExt};
+
+use super::{error_for_tool, Distro, Fetched};
+use crate::distro::DistroVersion;
+use crate::fs::ensure_containing_dir_exists;
+use crate::inventory::YarnCollection;
+use crate::path;
+use crate::style::{progress_bar, Action};
+use crate::tool::ToolSpec;
+use crate::version::VersionSpec;
 
 #[cfg(feature = "mock-network")]
 use mockito;
 
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(feature = "mock-network")] {
         fn public_yarn_server_root() -> String {
             mockito::SERVER_URL.to_string()
@@ -34,7 +36,7 @@ cfg_if! {
 
 /// A provisioned Yarn distribution.
 pub struct YarnDistro {
-    archive: Box<Archive>,
+    archive: Box<dyn Archive>,
     version: Version,
 }
 
@@ -106,7 +108,7 @@ impl Distro for YarnDistro {
             return Ok(Fetched::Already(DistroVersion::Yarn(self.version)));
         }
 
-        let dest = path::yarn_image_root_dir()?;
+        let temp = tempdir_in(path::tmp_dir()?).unknown()?;
         let bar = progress_bar(
             Action::Fetching,
             &format!("v{}", self.version),
@@ -116,15 +118,21 @@ impl Distro for YarnDistro {
         );
 
         self.archive
-            .unpack(&dest, &mut |_, read| {
+            .unpack(temp.path(), &mut |_, read| {
                 bar.inc(read as u64);
             })
             .unknown()?;
 
         let version_string = self.version.to_string();
+
+        let dest = path::yarn_image_dir(&version_string)?;
+
+        ensure_containing_dir_exists(&dest)?;
+
         rename(
-            dest.join(path::yarn_archive_root_dir_name(&version_string)),
-            path::yarn_image_dir(&version_string)?,
+            temp.path()
+                .join(path::yarn_archive_root_dir_name(&version_string)),
+            dest,
         )
         .unknown()?;
 

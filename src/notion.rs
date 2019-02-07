@@ -1,33 +1,22 @@
-extern crate console;
-extern crate docopt;
-extern crate failure;
-extern crate failure_derive;
-extern crate notion_core;
-#[macro_use]
-extern crate notion_fail;
-extern crate semver;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate result;
-
+use docopt;
 mod command;
 mod error;
 
 use std::string::ToString;
 
 use docopt::Docopt;
+use serde::Deserialize;
 
 use notion_core::error::ErrorDetails;
 use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error, ErrorContext};
-use notion_fail::{ExitCode, FailExt, Fallible, NotionError};
+use notion_fail::{throw, ExitCode, FailExt, Fallible, NotionError};
 
+use crate::error::{from_docopt_error, DocoptExt, NotionErrorExt};
 use command::{
     Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Help, Install, Pin, Use,
     Version,
 };
-use error::{from_docopt_error, DocoptExt, NotionErrorExt};
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -47,7 +36,7 @@ pub(crate) struct Notion {
 
 impl Notion {
     pub(crate) const USAGE: &'static str = "
-Notion: the hassle-free Node.js manager
+Notion: the hassle-free JavaScript toolchain manager
 
 Usage:
     notion [-v | --verbose] [<command> <args> ...]

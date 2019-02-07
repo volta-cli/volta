@@ -1,10 +1,11 @@
 use super::super::config;
 use std::marker::PhantomData;
 
-use distro::node::NodeDistro;
-use distro::yarn::YarnDistro;
-use distro::Distro;
-use plugin::serial::Plugin;
+use crate::distro::node::NodeDistro;
+use crate::distro::yarn::YarnDistro;
+use crate::distro::Distro;
+use crate::plugin::serial::Plugin;
+use serde::{Deserialize, Serialize};
 
 use notion_fail::Fallible;
 

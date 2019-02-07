@@ -4,8 +4,8 @@ use failure::Fail;
 use notion_fail::{ExitCode, NotionFail};
 use semver::VersionReq;
 
-use tool::ToolSpec;
-use version::VersionSpec;
+use crate::tool::ToolSpec;
+use crate::version::VersionSpec;
 
 #[derive(Debug, Fail)]
 pub enum ErrorDetails {

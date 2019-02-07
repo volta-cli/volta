@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 use dirs;
 
-use error::ErrorDetails;
+use crate::error::ErrorDetails;
 use notion_fail::Fallible;
 
 use super::{node_image_dir, notion_home, shim_dir};
@@ -16,7 +16,7 @@ use super::{node_image_dir, notion_home, shim_dir};
 // by `path::archive_root_dir` to determine the root directory of the
 // contents of a Node installer archive.
 
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(target_os = "macos")] {
         /// The OS component of a Node distribution tarball's name.
         pub const OS: &'static str = "darwin";
@@ -28,7 +28,7 @@ cfg_if! {
     }
 }
 
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(target_arch = "x86")] {
         /// The system architecture component of a Node distribution tarball's name.
         pub const ARCH: &'static str = "x86";

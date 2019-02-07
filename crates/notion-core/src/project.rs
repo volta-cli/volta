@@ -9,13 +9,13 @@ use std::rc::Rc;
 
 use lazycell::LazyCell;
 
-use distro::node::load_default_npm_version;
-use distro::DistroVersion;
-use error::ErrorDetails;
-use manifest::{serial, Manifest};
-use notion_fail::{Fallible, NotionError, ResultExt};
-use platform::PlatformSpec;
-use shim;
+use crate::distro::node::load_default_npm_version;
+use crate::distro::DistroVersion;
+use crate::error::ErrorDetails;
+use crate::manifest::{serial, Manifest};
+use crate::platform::PlatformSpec;
+use crate::shim;
+use notion_fail::{throw, Fallible, NotionError, ResultExt};
 
 fn is_node_root(dir: &Path) -> bool {
     dir.join("package.json").is_file()
@@ -271,7 +271,7 @@ pub mod tests {
     use std::ffi::OsStr;
     use std::path::PathBuf;
 
-    use project::Project;
+    use crate::project::Project;
 
     fn fixture_path(fixture_dir: &str) -> PathBuf {
         let mut cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

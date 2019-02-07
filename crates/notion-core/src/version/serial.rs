@@ -16,8 +16,8 @@ pub fn parse_requirements(src: &str) -> Result<VersionReq, ReqParseError> {
 #[cfg(test)]
 pub mod tests {
 
+    use crate::version::serial::parse_requirements;
     use semver::VersionReq;
-    use version::serial::parse_requirements;
 
     #[test]
     fn test_parse_requirements() {

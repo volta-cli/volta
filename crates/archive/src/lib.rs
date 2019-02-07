@@ -3,26 +3,10 @@
 
 #![cfg_attr(feature = "universal-docs", feature(doc_cfg))]
 
-#[macro_use]
-extern crate cfg_if;
-
-extern crate flate2;
-extern crate tar;
-
 mod tarball;
-
-extern crate verbatim;
-extern crate zip as zip_rs;
-
 mod zip;
 
-extern crate progress_read;
-extern crate reqwest;
-extern crate tee;
-
-extern crate failure;
-#[macro_use]
-extern crate failure_derive;
+use failure::Fail;
 
 #[derive(Fail, Debug)]
 #[fail(display = "HTTP failure ({})", code)]
@@ -30,8 +14,8 @@ pub struct HttpError {
     pub code: ::reqwest::StatusCode,
 }
 
-pub use tarball::Tarball;
-pub use zip::Zip;
+pub use crate::tarball::Tarball;
+pub use crate::zip::Zip;
 
 use std::fs::File;
 use std::path::Path;
@@ -48,7 +32,7 @@ pub trait Archive {
     ) -> Result<(), failure::Error>;
 }
 
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(unix)] {
         /// Load an archive in the native OS-preferred format from the specified file.
         ///

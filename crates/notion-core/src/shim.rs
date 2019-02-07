@@ -2,9 +2,9 @@
 
 use std::{fs, io};
 
-use error::ErrorDetails;
-use notion_fail::{FailExt, Fallible};
-use path;
+use crate::error::ErrorDetails;
+use crate::path;
+use notion_fail::{throw, FailExt, Fallible};
 
 fn from_io_error(error: &io::Error) -> ErrorDetails {
     if let Some(inner_err) = error.get_ref() {

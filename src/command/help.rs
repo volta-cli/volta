@@ -1,11 +1,13 @@
+use serde::Deserialize;
+
 use notion_core::error::ErrorDetails;
 use notion_core::session::{ActivityKind, Session};
-use notion_fail::{ExitCode, Fallible};
+use notion_fail::{throw, ExitCode, Fallible};
 
-use command::{
+use crate::command::{
     Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Install, Pin, Use, Version,
 };
-use Notion;
+use crate::Notion;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
@@ -21,7 +23,7 @@ impl Command for Help {
     type Args = Args;
 
     const USAGE: &'static str = "
-Get some help with a notion command
+Get some help with a Notion command
 
 Usage:
     notion help [<command>]
