@@ -1,8 +1,9 @@
-use platform::PlatformSpec;
+use crate::platform::PlatformSpec;
 
 use notion_fail::{Fallible, ResultExt};
 
 use semver::Version;
+use serde::{Deserialize, Serialize};
 use serde_json;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -76,7 +77,7 @@ impl PlatformSpec {
 pub mod tests {
 
     use super::*;
-    use platform;
+    use crate::platform;
     use semver;
 
     // NOTE: serde_json is required with the "preserve_order" feature in Cargo.toml,

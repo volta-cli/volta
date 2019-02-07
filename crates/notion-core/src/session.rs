@@ -4,21 +4,24 @@
 
 use std::rc::Rc;
 
-use config::{Config, LazyConfig};
-use distro::{DistroVersion, Fetched};
-use inventory::{Inventory, LazyInventory};
-use platform::PlatformSpec;
-use plugin::Publish;
-use project::{LazyProject, Project};
-use tool::ToolSpec;
-use toolchain::LazyToolchain;
-use version::VersionSpec;
+use crate::config::{Config, LazyConfig};
+use crate::distro::{DistroVersion, Fetched};
+use crate::inventory::{Inventory, LazyInventory};
+use crate::platform::PlatformSpec;
+use crate::plugin::Publish;
+use crate::project::{LazyProject, Project};
+use crate::tool::ToolSpec;
+use crate::toolchain::LazyToolchain;
+use crate::version::VersionSpec;
 
 use std::fmt::{self, Display, Formatter};
 use std::process::exit;
 
-use event::EventLog;
-use notion_fail::{ExitCode, Fallible, NotionError, NotionFail};
+use failure::Fail;
+
+use crate::event::EventLog;
+use notion_fail::{throw, ExitCode, Fallible, NotionError, NotionFail};
+use notion_fail_derive::*;
 use semver::Version;
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
@@ -44,7 +47,7 @@ pub enum ActivityKind {
 }
 
 impl Display for ActivityKind {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         let s = match self {
             &ActivityKind::Fetch => "fetch",
             &ActivityKind::Install => "install",
@@ -248,7 +251,7 @@ fn publish_plugin(config: &LazyConfig) -> Fallible<Option<&Publish>> {
 #[cfg(test)]
 pub mod tests {
 
-    use session::Session;
+    use crate::session::Session;
     use std::env;
     use std::path::PathBuf;
 

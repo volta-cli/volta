@@ -7,7 +7,7 @@ use std::time::{Duration, SystemTime};
 
 use reqwest::header::HttpDate;
 
-use test_support::{self, paths, paths::PathExt, process::ProcessBuilder};
+use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 
 use notion_core::path::{archive_extension, ARCH, OS};
 

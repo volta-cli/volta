@@ -4,7 +4,7 @@ use std::vec::Vec;
 
 use serde_json;
 
-use event::Event;
+use crate::event::Event;
 
 pub struct Monitor {
     monitor_process: Option<Child>,

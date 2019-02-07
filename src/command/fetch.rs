@@ -1,10 +1,12 @@
+use serde::Deserialize;
+
 use notion_core::session::{ActivityKind, Session};
 use notion_core::tool::ToolSpec;
 use notion_core::version::VersionSpec;
 use notion_fail::{ExitCode, Fallible};
 
-use command::{Command, CommandName, Help};
-use Notion;
+use crate::command::{Command, CommandName, Help};
+use crate::Notion;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {

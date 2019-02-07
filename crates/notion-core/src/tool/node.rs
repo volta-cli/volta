@@ -3,9 +3,9 @@ use std::ffi::OsStr;
 use std::process::Command;
 
 use super::{arg0, command_for, NoSuchToolError, Tool};
-use session::{ActivityKind, Session};
+use crate::session::{ActivityKind, Session};
 
-use notion_fail::Fallible;
+use notion_fail::{throw, Fallible};
 
 /// Represents a Node executable.
 pub struct Node(Command);

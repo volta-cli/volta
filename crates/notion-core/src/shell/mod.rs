@@ -3,12 +3,14 @@ use std::io::Write;
 use std::path::Path;
 use std::str::FromStr;
 
+use failure::Fail;
 use semver::Version;
 
-use fs::ensure_containing_dir_exists;
-use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
+use crate::fs::ensure_containing_dir_exists;
+use notion_fail::{throw, ExitCode, Fallible, NotionError, NotionFail, ResultExt};
+use notion_fail_derive::*;
 
-use env;
+use crate::env;
 
 mod bash;
 

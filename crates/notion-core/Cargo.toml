@@ -2,6 +2,7 @@
 name = "notion-core"
 version = "0.1.0"
 authors = ["David Herman <david.herman@gmail.com>"]
+edition = "2018"
 
 [features]
 universal-docs = ["archive/universal-docs"]
@@ -13,9 +14,8 @@ term_size = "0.3.0"
 indicatif = "0.9.0"
 console = "0.6.1"
 readext = "0.1.0"
-serde_json = { version = "1.0.3", features = ["preserve_order"] }
-serde = "1.0.27"
-serde_derive = "1.0.27"
+serde_json = { version = "1.0.37", features = ["preserve_order"] }
+serde = { version = "1.0.85", features = ["derive"] }
 archive = { path = "../archive" }
 failure = "0.1.1"
 failure_derive = "0.1.1"
