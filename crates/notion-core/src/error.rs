@@ -44,6 +44,10 @@ pub enum ErrorDetails {
         tool: ToolSpec,
     },
 
+    InvalidHookCommand {
+        command: String,
+    },
+
     /// Thrown when there is no Node version matching a requested semver specifier.
     NodeVersionNotFound {
         matching: String,
@@ -139,6 +143,7 @@ impl fmt::Display for ErrorDetails {
                 tool, from_url, error
             ),
             ErrorDetails::DownloadToolNotFound { tool } => write!(f, "{} not found", tool),
+            ErrorDetails::InvalidHookCommand { command } => write!(f, "Invalid hook command: '{}'", command),
             ErrorDetails::NodeVersionNotFound { matching } => {
                 write!(f, "No Node version found for {}", matching)
             }
@@ -202,6 +207,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::DepPackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
             ErrorDetails::DownloadToolNotFound { .. } => ExitCode::NoVersionMatch,
+            ErrorDetails::InvalidHookCommand { .. } => ExitCode::UnknownError,
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NoGlobalInstalls => ExitCode::InvalidArguments,
             ErrorDetails::NoHomeEnvironmentVar => ExitCode::EnvironmentError,

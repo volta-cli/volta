@@ -7,7 +7,6 @@ use std::os::windows;
 use std::path::PathBuf;
 
 use dirs;
-use failure::Fail;
 
 use crate::error::ErrorDetails;
 use notion_fail::Fallible;
