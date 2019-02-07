@@ -13,8 +13,7 @@ use crate::error::ErrorDetails;
 use crate::session::{ActivityKind, Session};
 use crate::style;
 use crate::version::VersionSpec;
-use failure::Fail;
-use notion_fail::{ExitCode, FailExt, Fallible, NotionError};
+use notion_fail::{throw, ExitCode, FailExt, Fallible, NotionError};
 
 mod binary;
 mod node;
@@ -156,10 +155,6 @@ fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
     command
 }
 
-#[derive(Fail, Debug)]
-#[fail(display = "Tool name could not be determined")]
-struct NoArg0Error;
-
 fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
     let opt = args.next().and_then(|arg0| {
         Path::new(&arg0)
@@ -169,7 +164,7 @@ fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
     if let Some(file_name) = opt {
         Ok(file_name)
     } else {
-        Err(NoArg0Error.unknown())
+        throw!(ErrorDetails::CouldNotDetermineTool);
     }
 }
 

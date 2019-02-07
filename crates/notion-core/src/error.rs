@@ -25,6 +25,8 @@ pub enum ErrorDetails {
         command_name: String,
     },
 
+    CouldNotDetermineTool,
+
     CreateDirError {
         dir: String,
         error: String,
@@ -122,6 +124,7 @@ impl fmt::Display for ErrorDetails {
             }
             ErrorDetails::CliParseError { error, .. } => write!(f, "{}", error),
             ErrorDetails::CommandNotImplemented { command_name } => write!(f, "command `{}` is not yet implemented", command_name),
+            ErrorDetails::CouldNotDetermineTool => write!(f, "Tool name could not be determined"),
             ErrorDetails::CreateDirError { dir, error } => {
                 write!(f, "Could not create directory {}: {}", dir, error)
             }
@@ -196,6 +199,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::CannotPinPackage => ExitCode::InvalidArguments,
             ErrorDetails::CliParseError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::CommandNotImplemented { .. } => ExitCode::NotYetImplemented,
+            ErrorDetails::CouldNotDetermineTool => ExitCode::UnknownError,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DepPackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
