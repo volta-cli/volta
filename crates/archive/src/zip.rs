@@ -104,9 +104,9 @@ impl Archive for Zip {
 #[cfg(test)]
 pub mod tests {
 
+    use crate::zip::Zip;
     use std::fs::File;
     use std::path::PathBuf;
-    use zip::Zip;
 
     fn fixture_path(fixture_dir: &str) -> PathBuf {
         let mut cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

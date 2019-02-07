@@ -2,12 +2,14 @@
 // With https://github.com/rust-lang/rfcs/blob/master/text/2151-raw-identifiers.md we
 // could consider something like `r#use` instead.
 
-use notion_core::session::Session;
-use notion_fail::Fallible;
+use serde::Deserialize;
 
-use command::Command;
-use error::CliParseError;
-use Notion;
+use notion_core::session::Session;
+use notion_fail::{throw, Fallible};
+
+use crate::command::Command;
+use crate::error::CliParseError;
+use crate::Notion;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args;

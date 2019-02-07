@@ -1,17 +1,5 @@
-extern crate console;
-extern crate docopt;
-extern crate failure;
-extern crate failure_derive;
-extern crate notion_core;
-#[macro_use]
-extern crate notion_fail;
-#[macro_use]
-extern crate notion_fail_derive;
-extern crate semver;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate result;
+use docopt;
+use failure;
 
 mod command;
 mod error;
@@ -19,18 +7,19 @@ mod error;
 use std::string::ToString;
 
 use docopt::Docopt;
+use serde::Deserialize;
 
 use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error, ErrorContext};
-use notion_fail::{ExitCode, FailExt, Fallible, NotionError};
+use notion_fail::{throw, ExitCode, FailExt, Fallible, NotionError};
 
-#[cfg(feature = "notion-dev")]
-use command::Shim;
-use command::{
+use crate::command::{
     Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Help, Install, Pin, Use,
     Version,
 };
-use error::{CliParseError, CommandUnimplementedError, DocoptExt, NotionErrorExt};
+use crate::error::{CliParseError, CommandUnimplementedError, DocoptExt, NotionErrorExt};
+#[cfg(feature = "notion-dev")]
+use command::Shim;
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 

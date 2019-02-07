@@ -3,7 +3,7 @@ use std::process::Output;
 use std::str;
 use std::usize;
 
-use process::{ProcessBuilder, ProcessError};
+use crate::process::{ProcessBuilder, ProcessError};
 
 use hamcrest2::core::{MatchResult, Matcher};
 use serde_json::{self, Value};
@@ -40,7 +40,7 @@ impl Execs {
         self
     }
 
-    fn _with_stderr(&mut self, expected: &ToString) {
+    fn _with_stderr(&mut self, expected: &dyn ToString) {
         self.expect_stderr = Some(expected.to_string());
     }
 
@@ -625,13 +625,13 @@ fn zip_all<T, I1: Iterator<Item = T>, I2: Iterator<Item = T>>(a: I1, b: I2) -> Z
 }
 
 impl fmt::Display for Execs {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "execs")
     }
 }
 
 impl fmt::Debug for Execs {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "execs")
     }
 }
@@ -658,7 +658,7 @@ impl<'a> Matcher<&'a mut ProcessBuilder> for Execs {
                 {
                     return self.match_output(out);
                 }
-                let mut s = format!("could not exec process {}: {}", process, e);
+                let s = format!("could not exec process {}: {}", process, e);
                 // for cause in e.iter_causes() {
                 //     s.push_str(&format!("\ncaused by: {}", cause));
                 // }

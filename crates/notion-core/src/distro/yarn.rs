@@ -4,24 +4,26 @@ use std::fs::{rename, File};
 use std::path::PathBuf;
 use std::string::ToString;
 
-use super::{Distro, Fetched};
-use archive::{Archive, Tarball};
-use distro::error::DownloadError;
-use distro::DistroVersion;
-use fs::ensure_containing_dir_exists;
-use inventory::YarnCollection;
-use notion_fail::{Fallible, ResultExt};
-use path;
 use semver::Version;
-use style::{progress_bar, Action};
 use tempfile::tempdir_in;
-use tool::ToolSpec;
-use version::VersionSpec;
+
+use archive::{Archive, Tarball};
+use notion_fail::{Fallible, ResultExt};
+
+use super::{Distro, Fetched};
+use crate::distro::error::DownloadError;
+use crate::distro::DistroVersion;
+use crate::fs::ensure_containing_dir_exists;
+use crate::inventory::YarnCollection;
+use crate::path;
+use crate::style::{progress_bar, Action};
+use crate::tool::ToolSpec;
+use crate::version::VersionSpec;
 
 #[cfg(feature = "mock-network")]
 use mockito;
 
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(feature = "mock-network")] {
         fn public_yarn_server_root() -> String {
             mockito::SERVER_URL.to_string()
@@ -35,7 +37,7 @@ cfg_if! {
 
 /// A provisioned Yarn distribution.
 pub struct YarnDistro {
-    archive: Box<Archive>,
+    archive: Box<dyn Archive>,
     version: Version,
 }
 

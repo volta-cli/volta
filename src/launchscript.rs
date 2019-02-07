@@ -1,5 +1,3 @@
-extern crate notion_core;
-
 use notion_core::tool::{Script, Tool};
 
 /// The entry point for shims to third-party scripts.

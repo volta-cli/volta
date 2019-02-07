@@ -5,17 +5,19 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::string::ToString;
 
-use super::{Distro, Fetched};
 use archive::{self, Archive};
-use distro::error::DownloadError;
-use distro::DistroVersion;
-use fs::ensure_containing_dir_exists;
-use inventory::NodeCollection;
-use path;
-use style::{progress_bar, Action};
+use serde::Deserialize;
 use tempfile::tempdir_in;
-use tool::ToolSpec;
-use version::VersionSpec;
+
+use super::{Distro, Fetched};
+use crate::distro::error::DownloadError;
+use crate::distro::DistroVersion;
+use crate::fs::ensure_containing_dir_exists;
+use crate::inventory::NodeCollection;
+use crate::path;
+use crate::style::{progress_bar, Action};
+use crate::tool::ToolSpec;
+use crate::version::VersionSpec;
 
 use notion_fail::{Fallible, ResultExt};
 use semver::Version;
@@ -24,7 +26,7 @@ use semver::Version;
 use mockito;
 use serde_json;
 
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(feature = "mock-network")] {
         fn public_node_server_root() -> String {
             mockito::SERVER_URL.to_string()
@@ -38,7 +40,7 @@ cfg_if! {
 
 /// A provisioned Node distribution.
 pub struct NodeDistro {
-    archive: Box<Archive>,
+    archive: Box<dyn Archive>,
     version: Version,
 }
 

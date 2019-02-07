@@ -9,23 +9,25 @@ use std::str::FromStr;
 use std::string::ToString;
 use std::time::{Duration, SystemTime};
 
+use failure::Fail;
 use lazycell::LazyCell;
 use reqwest;
 use reqwest::header::{CacheControl, CacheDirective, Expires, HttpDate};
 use serde_json;
 use tempfile::NamedTempFile;
 
-use config::{Config, ToolConfig};
-use distro::node::NodeDistro;
-use distro::yarn::YarnDistro;
-use distro::{Distro, DistroVersion, Fetched};
-use fs::{ensure_containing_dir_exists, read_file_opt};
-use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
-use path;
+use crate::config::{Config, ToolConfig};
+use crate::distro::node::NodeDistro;
+use crate::distro::yarn::YarnDistro;
+use crate::distro::{Distro, DistroVersion, Fetched};
+use crate::fs::{ensure_containing_dir_exists, read_file_opt};
+use crate::path;
+use crate::style::progress_spinner;
+use crate::tool::ToolSpec;
+use crate::version::VersionSpec;
+use notion_fail::{throw, ExitCode, Fallible, NotionFail, ResultExt};
+use notion_fail_derive::*;
 use semver::{Version, VersionReq};
-use style::progress_spinner;
-use tool::ToolSpec;
-use version::VersionSpec;
 
 pub(crate) mod serial;
 
@@ -33,7 +35,7 @@ pub(crate) mod serial;
 use mockito;
 
 // ISSUE (#86): Move public repository URLs to config file
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(feature = "mock-network")] {
         fn public_node_version_index() -> String {
             format!("{}/node-dist/index.json", mockito::SERVER_URL)

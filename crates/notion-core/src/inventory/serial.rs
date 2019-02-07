@@ -4,12 +4,13 @@ use std::marker::PhantomData;
 use std::path::Path;
 
 use super::{NodeCollection, YarnCollection};
-use fs::read_dir_eager;
+use crate::fs::read_dir_eager;
+use crate::path;
 use notion_fail::{Fallible, ResultExt};
-use path;
 
 use regex::Regex;
 use semver::Version;
+use serde::{Deserialize, Serialize};
 
 /// Reads the contents of a directory and returns the set of all versions found
 /// in the directory's listing by matching filenames against the specified regex

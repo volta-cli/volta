@@ -5,7 +5,7 @@ use std::vec::Vec;
 use lazycell::LazyCell;
 use serde_json;
 
-use event::Event;
+use crate::event::Event;
 
 pub struct Monitor {
     monitor_process: Option<Child>,
