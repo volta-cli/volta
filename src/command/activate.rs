@@ -1,10 +1,12 @@
+use serde::Deserialize;
+
 use notion_core::platform::System;
 use notion_core::session::{ActivityKind, Session};
 use notion_core::shell::{CurrentShell, Postscript, Shell};
 use notion_fail::{ExitCode, Fallible};
 
-use command::{Command, CommandName, Help};
-use Notion;
+use crate::command::{Command, CommandName, Help};
+use crate::Notion;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args;
@@ -18,7 +20,7 @@ impl Command for Activate {
     type Args = Args;
 
     const USAGE: &'static str = "
-Re-Enable Notion in the current shell
+Re-enable Notion in the current shell
 
 Usage:
     notion activate

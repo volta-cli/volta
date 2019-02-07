@@ -9,23 +9,25 @@ use std::str::FromStr;
 use std::string::ToString;
 use std::time::{Duration, SystemTime};
 
+use failure::Fail;
 use lazycell::LazyCell;
 use reqwest;
 use reqwest::header::{CacheControl, CacheDirective, Expires, HttpDate};
 use serde_json;
 use tempfile::NamedTempFile;
 
-use distro::node::NodeDistro;
-use distro::yarn::YarnDistro;
-use distro::{Distro, DistroVersion, Fetched};
-use fs::{ensure_containing_dir_exists, read_file_opt};
-use hook::{HookConfig, ToolHooks};
-use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
-use path;
+use crate::distro::node::NodeDistro;
+use crate::distro::yarn::YarnDistro;
+use crate::distro::{Distro, DistroVersion, Fetched};
+use crate::fs::{ensure_containing_dir_exists, read_file_opt};
+use crate::hook::{HookConfig, ToolHooks};
+use crate::path;
+use crate::style::progress_spinner;
+use crate::tool::ToolSpec;
+use crate::version::VersionSpec;
+use notion_fail::{throw, ExitCode, Fallible, NotionFail, ResultExt};
+use notion_fail_derive::*;
 use semver::{Version, VersionReq};
-use style::progress_spinner;
-use tool::ToolSpec;
-use version::VersionSpec;
 
 pub(crate) mod serial;
 
@@ -33,7 +35,7 @@ pub(crate) mod serial;
 use mockito;
 
 // ISSUE (#86): Move public repository URLs to config file
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(feature = "mock-network")] {
         fn public_node_version_index() -> String {
             format!("{}/node-dist/index.json", mockito::SERVER_URL)
@@ -397,7 +399,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
             let mut response: reqwest::Response =
                 reqwest::get(url).with_context(RegistryFetchError::from_error)?;
             let response_text: String = response.text().unknown()?;
-            let cached: NamedTempFile = NamedTempFile::new().unknown()?;
+            let cached: NamedTempFile = NamedTempFile::new_in(path::tmp_dir()?).unknown()?;
 
             // Block to borrow cached for cached_file.
             {
@@ -409,7 +411,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
             ensure_containing_dir_exists(&index_cache_file)?;
             cached.persist(index_cache_file).unknown()?;
 
-            let expiry: NamedTempFile = NamedTempFile::new().unknown()?;
+            let expiry: NamedTempFile = NamedTempFile::new_in(path::tmp_dir()?).unknown()?;
 
             // Block to borrow expiry for expiry_file.
             {

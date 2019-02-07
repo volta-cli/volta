@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use notion_fail::Fallible;
 
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(feature = "universal-docs")] {
         #[doc(cfg(unix))]
         mod unix;
@@ -34,6 +34,10 @@ pub fn notion_home() -> Fallible<PathBuf> {
 
 pub fn cache_dir() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("cache"))
+}
+
+pub fn tmp_dir() -> Fallible<PathBuf> {
+    Ok(notion_home()?.join("tmp"))
 }
 
 pub fn node_inventory_dir() -> Fallible<PathBuf> {

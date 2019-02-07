@@ -50,8 +50,6 @@
 //! for its signature:
 //!
 //! ```
-//! # #[macro_use] extern crate notion_fail;
-//! #
 //! use notion_fail::Fallible;
 //! #
 //! # #[derive(Debug)]
@@ -79,15 +77,12 @@
 //!
 //! ## Example
 //!
-//! ```compile_fail
-//! # #[macro_use] extern crate notion_fail;
-//!
+//! ```
 //! // required for `#[derive(Fail)]` and `#[fail(...)]` attributes
-//! #[macro_use]
-//! extern crate failure_derive;
+//! use failure::Fail;
 //!
-//! # extern crate failure;
 //! use notion_fail::{ExitCode, NotionFail};
+//! use notion_fail_derive::*;
 //!
 //! #[derive(Debug, Fail, NotionFail)]
 //! #[fail(display = "unexpected end of string")]
@@ -105,11 +100,11 @@
 //! ## Example
 //!
 //! ```
-//! # #[macro_use] extern crate notion_fail;
-//! # #[macro_use] extern crate notion_fail_derive;
-//! # #[macro_use] extern crate failure_derive;
-//! # extern crate failure;
+//! # use failure::Fail;
 //! # use notion_fail::{ExitCode, Fallible, NotionFail};
+//! use notion_fail::throw;
+//!
+//! # use notion_fail_derive::*;
 //! # #[derive(Debug, Fail, NotionFail)]
 //! # #[fail(display = "unexpected end of string")]
 //! # #[notion_fail(code = "InvalidArguments")]
@@ -142,11 +137,9 @@
 //! ## Example
 //!
 //! ```
-//! # #[macro_use] extern crate notion_fail;
-//! # #[macro_use] extern crate notion_fail_derive;
-//! # #[macro_use] extern crate failure_derive;
-//! # extern crate failure;
-//! # use notion_fail::{ExitCode, Fallible, NotionFail};
+//! # use failure::Fail;
+//! # use notion_fail::{throw, ExitCode, Fallible, NotionFail};
+//! # use notion_fail_derive::*;
 //! // add `unknown()` extension method to Results
 //! use notion_fail::ResultExt;
 //! # #[derive(Debug, Fail, NotionFail)]
@@ -188,10 +181,9 @@
 //! ## Example
 //!
 //! ```compile_fail
-//! # #[macro_use] extern crate notion_fail;
-//! # #[macro_use] extern crate failure_derive;
-//! # extern crate failure;
+//! # use failure::Fail;
 //! # use notion_fail::{ExitCode, Fallible, NotionFail};
+//! # use notion_fail_derive::*;
 //! // add `unknown()` and `with_context()` extension methods to Results
 //! use notion_fail::ResultExt;
 //! # use std::fmt::Display;
@@ -238,17 +230,13 @@
 //! RGB parser, a higher layer may want to add context about _which_ RGB string
 //! was being parsed and where it came from (say, the filename and line number).
 
-extern crate failure;
-#[macro_use]
-extern crate notion_fail_derive;
-#[macro_use]
-extern crate serde_derive;
-
 use std::convert::{From, Into};
 use std::fmt::{self, Display};
 use std::process::exit;
 
 use failure::{Backtrace, Fail};
+use notion_fail_derive::*;
+use serde::Serialize;
 
 /// A temporary polyfill for `throw!` until the new `failure` library includes it.
 #[macro_export]
@@ -324,7 +312,7 @@ pub struct NotionError {
 }
 
 impl Fail for NotionError {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         Some(self.error.cause())
     }
 
@@ -334,14 +322,14 @@ impl Fail for NotionError {
 }
 
 impl fmt::Display for NotionError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.error, f)
     }
 }
 
 impl NotionError {
     /// Returns a reference to the underlying failure of this error.
-    pub fn as_fail(&self) -> &Fail {
+    pub fn as_fail(&self) -> &dyn Fail {
         self.error.cause()
     }
 
@@ -426,19 +414,19 @@ struct UnknownNotionError {
 // instead.
 
 impl fmt::Debug for UnknownNotionError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(self.error.cause(), f)
     }
 }
 
 impl Display for UnknownNotionError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "An unknown error has occurred")
     }
 }
 
 impl Fail for UnknownNotionError {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         Some(self.error.cause())
     }
 

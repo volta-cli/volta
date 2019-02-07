@@ -4,8 +4,8 @@ mod error;
 pub mod node;
 pub mod yarn;
 
-use hook::ToolHooks;
-use inventory::Collection;
+use crate::hook::ToolHooks;
+use crate::inventory::Collection;
 use notion_fail::Fallible;
 use semver::Version;
 use std::fmt::{self, Display, Formatter};
@@ -45,7 +45,7 @@ pub enum DistroVersion {
 }
 
 impl Display for DistroVersion {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         let s = match self {
             &DistroVersion::Node(ref runtime, ref npm) => {
                 format!("node version {} (npm {})", runtime, npm)

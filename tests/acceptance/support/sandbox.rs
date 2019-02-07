@@ -7,7 +7,7 @@ use std::time::{Duration, SystemTime};
 
 use reqwest::header::HttpDate;
 
-use test_support::{self, paths, paths::PathExt, process::ProcessBuilder};
+use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 
 use notion_core::path::{archive_extension, ARCH, OS};
 
@@ -477,6 +477,26 @@ impl Sandbox {
         p
     }
 
+    /// Create a `ProcessBuilder` to run the notion npm shim.
+    /// Arguments can be separated by spaces.
+    /// Example:
+    ///     assert_that(p.npm("install ember-cli"), execs());
+    pub fn npm(&self, cmd: &str) -> ProcessBuilder {
+        let mut p = self.process(&npm_exe());
+        split_and_add_args(&mut p, cmd);
+        p
+    }
+
+    /// Create a `ProcessBuilder` to run the notion yarn shim.
+    /// Arguments can be separated by spaces.
+    /// Example:
+    ///     assert_that(p.yarn("add ember-cli"), execs());
+    pub fn yarn(&self, cmd: &str) -> ProcessBuilder {
+        let mut p = self.process(&yarn_exe());
+        split_and_add_args(&mut p, cmd);
+        p
+    }
+
     pub fn read_package_json(&self) -> String {
         let package_file = package_json_file(self.root());
         read_file_to_string(package_file)
@@ -511,6 +531,14 @@ pub fn cargo_dir() -> PathBuf {
 
 fn notion_exe() -> PathBuf {
     cargo_dir().join(format!("notion{}", env::consts::EXE_SUFFIX))
+}
+
+fn npm_exe() -> PathBuf {
+    cargo_dir().join(format!("npm{}", env::consts::EXE_SUFFIX))
+}
+
+fn yarn_exe() -> PathBuf {
+    cargo_dir().join(format!("yarn{}", env::consts::EXE_SUFFIX))
 }
 
 fn split_and_add_args(p: &mut ProcessBuilder, s: &str) {

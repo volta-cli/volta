@@ -1,10 +1,12 @@
 use super::tool;
 use std::marker::PhantomData;
 
-use distro::node::NodeDistro;
-use distro::yarn::YarnDistro;
-use distro::Distro;
+use crate::distro::node::NodeDistro;
+use crate::distro::yarn::YarnDistro;
+use crate::distro::Distro;
+use failure::Fail;
 use notion_fail::{FailExt, Fallible};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct ResolveHook {

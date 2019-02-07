@@ -7,8 +7,10 @@ use std::os::windows;
 use std::path::PathBuf;
 
 use dirs;
+use failure::Fail;
 
 use notion_fail::{ExitCode, Fallible, NotionFail};
+use notion_fail_derive::*;
 
 use super::{node_image_dir, notion_home, shim_dir};
 
@@ -18,7 +20,7 @@ use super::{node_image_dir, notion_home, shim_dir};
 
 pub const OS: &'static str = "win";
 
-cfg_if! {
+cfg_if::cfg_if! {
     if #[cfg(target_arch = "x86")] {
         pub const ARCH: &'static str = "x86";
     } else if #[cfg(target_arch = "x86_64")] {

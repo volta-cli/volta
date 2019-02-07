@@ -2,6 +2,7 @@
 name = "archive"
 version = "0.1.0"
 authors = ["David Herman <david.herman@gmail.com>"]
+edition = "2018"
 
 [features]
 universal-docs = []
@@ -9,7 +10,7 @@ universal-docs = []
 [dependencies]
 flate2 = "1.0"
 tar = "0.4.13"
-zip = "0.2.6"
+zip_rs = { version = "0.2.6", package = "zip" }
 reqwest = "0.7.3"
 tee = "0.1.0"
 failure = "0.1.1"

@@ -4,6 +4,7 @@ version = "0.1.5"
 authors = ["David Herman <david.herman@gmail.com>"]
 license = "BSD-2-Clause"
 repository = "https://github.com/notion-cli/notion"
+edition = "2018"
 
 [features]
 universal-docs = ["notion-core/universal-docs"]
@@ -42,9 +43,8 @@ path = "src/launchscript.rs"
 [dependencies]
 docopt = "0.8"
 notion-core = { path = "crates/notion-core" }
-serde = "1.0"
-serde_derive = "1.0"
-serde_json = "1.0.26"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.37"
 console = "0.6.1"
 failure_derive = "0.1.1"
 failure = "0.1.1"

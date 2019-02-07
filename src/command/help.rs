@@ -1,12 +1,14 @@
-use notion_core::session::{ActivityKind, Session};
-use notion_fail::{ExitCode, Fallible};
+use serde::Deserialize;
 
-#[cfg(feature = "notion-dev")]
-use command::Shim;
-use command::{
+use notion_core::session::{ActivityKind, Session};
+use notion_fail::{throw, ExitCode, Fallible};
+
+use crate::command::{
     Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Install, Pin, Use, Version,
 };
-use {CliParseError, Notion};
+use crate::{CliParseError, Notion};
+#[cfg(feature = "notion-dev")]
+use command::Shim;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
@@ -22,7 +24,7 @@ impl Command for Help {
     type Args = Args;
 
     const USAGE: &'static str = "
-Get some help with a notion command
+Get some help with a Notion command
 
 Usage:
     notion help [<command>]

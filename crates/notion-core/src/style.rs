@@ -89,7 +89,7 @@ impl Action {
 }
 
 impl Display for Action {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         let s = match self {
             &Action::Fetching => "Fetching",
         };

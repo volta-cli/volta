@@ -8,7 +8,7 @@ use serde_json;
 
 use notion_core::path;
 
-use test_support::{self, paths, paths::PathExt, process::ProcessBuilder};
+use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 
 // catalog.toml
 #[derive(PartialEq, Clone)]
@@ -31,7 +31,7 @@ impl FileBuilder {
         let mut file = File::create(&self.path)
             .unwrap_or_else(|e| panic!("could not create file {}: {}", self.path.display(), e));
 
-        ok_or_panic!{ file.write_all(self.contents.as_bytes()) };
+        ok_or_panic! { file.write_all(self.contents.as_bytes()) };
     }
 
     fn dirname(&self) -> &Path {
@@ -82,6 +82,7 @@ impl TempProjectBuilder {
         ok_or_panic!(path::node_image_root_dir()).ensure_empty();
         ok_or_panic!(path::yarn_image_root_dir()).ensure_empty();
         ok_or_panic!(path::user_toolchain_dir()).ensure_empty();
+        ok_or_panic!(path::tmp_dir()).ensure_empty();
         // and these files do not exist
         ok_or_panic!(path::notion_file()).rm();
         ok_or_panic!(path::launchbin_file()).rm();
@@ -163,19 +164,19 @@ impl TempProject {
     /// Verify that the input Node version has been fetched.
     pub fn node_version_is_fetched(&self, version: &str) -> bool {
         let distro_file_name = path::node_distro_file_name(version);
-        let inventory_dir = ok_or_panic!{ path::node_inventory_dir() };
+        let inventory_dir = ok_or_panic! { path::node_inventory_dir() };
         inventory_dir.join(distro_file_name).exists()
     }
 
     /// Verify that the input Node version has been unpacked.
     pub fn node_version_is_unpacked(&self, version: &str, npm_version: &str) -> bool {
-        let unpack_dir = ok_or_panic!{ path::node_image_bin_dir(version, npm_version) };
+        let unpack_dir = ok_or_panic! { path::node_image_bin_dir(version, npm_version) };
         unpack_dir.exists()
     }
 
     /// Verify that the input Node version has been installed.
     pub fn assert_node_version_is_installed(&self, version: &str, npm_version: &str) -> () {
-        let user_platform = ok_or_panic!{ path::user_platform_file() };
+        let user_platform = ok_or_panic! { path::user_platform_file() };
         let platform_contents = read_file_to_string(user_platform);
         let json_contents: serde_json::Value =
             serde_json::from_str(&platform_contents).expect("could not parse platform.json");
@@ -186,19 +187,19 @@ impl TempProject {
     /// Verify that the input Yarn version has been fetched.
     pub fn yarn_version_is_fetched(&self, version: &str) -> bool {
         let distro_file_name = path::yarn_distro_file_name(version);
-        let inventory_dir = ok_or_panic!{ path::yarn_inventory_dir() };
+        let inventory_dir = ok_or_panic! { path::yarn_inventory_dir() };
         inventory_dir.join(distro_file_name).exists()
     }
 
     /// Verify that the input Yarn version has been unpacked.
     pub fn yarn_version_is_unpacked(&self, version: &str) -> bool {
-        let unpack_dir = ok_or_panic!{ path::yarn_image_dir(version) };
+        let unpack_dir = ok_or_panic! { path::yarn_image_dir(version) };
         unpack_dir.exists()
     }
 
     /// Verify that the input Yarn version has been installed.
     pub fn assert_yarn_version_is_installed(&self, version: &str) -> () {
-        let user_platform = ok_or_panic!{ path::user_platform_file() };
+        let user_platform = ok_or_panic! { path::user_platform_file() };
         let platform_contents = read_file_to_string(user_platform);
         let json_contents: serde_json::Value =
             serde_json::from_str(&platform_contents).expect("could not parse platform.json");
@@ -250,7 +251,7 @@ fn split_and_add_args(p: &mut ProcessBuilder, s: &str) {
 
 fn read_file_to_string(file_path: PathBuf) -> String {
     let mut contents = String::new();
-    let mut file = ok_or_panic!{ File::open(file_path) };
-    ok_or_panic!{ file.read_to_string(&mut contents) };
+    let mut file = ok_or_panic! { File::open(file_path) };
+    ok_or_panic! { file.read_to_string(&mut contents) };
     contents
 }

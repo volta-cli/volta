@@ -4,10 +4,10 @@ use std::ffi::OsString;
 use std::io::Read;
 use std::process::{Command, Stdio};
 
-use path::{ARCH, OS};
-
+use crate::path::{ARCH, OS};
 use cmdline_words_parser::StrExt;
-use notion_fail::{FailExt, Fallible, ResultExt};
+use failure::Fail;
+use notion_fail::{throw, FailExt, Fallible, ResultExt};
 use semver::Version;
 
 const ARCH_TEMPLATE: &'static str = "{arch}";
@@ -98,7 +98,7 @@ pub struct InvalidCommandError {
 #[cfg(test)]
 pub mod tests {
     use super::{DistroHook, MetadataHook};
-    use path::{ARCH, OS};
+    use crate::path::{ARCH, OS};
     use semver::Version;
 
     #[test]

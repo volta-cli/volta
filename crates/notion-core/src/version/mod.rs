@@ -3,9 +3,11 @@ pub(crate) mod serial;
 use std::fmt;
 use std::str::FromStr;
 
+use failure::Fail;
 use semver::{ReqParseError, SemVerError, Version, VersionReq};
 
 use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
+use notion_fail_derive::*;
 
 use self::serial::parse_requirements;
 
@@ -17,7 +19,7 @@ pub enum VersionSpec {
 }
 
 impl fmt::Display for VersionSpec {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match *self {
             VersionSpec::Latest => write!(f, "latest"),
             VersionSpec::Semver(ref req) => req.fmt(f),

@@ -4,10 +4,10 @@ use std::io::Write;
 use lazycell::LazyCell;
 use readext::ReadExt;
 
-use distro::DistroVersion;
-use fs::touch;
-use path::user_platform_file;
-use platform::PlatformSpec;
+use crate::distro::DistroVersion;
+use crate::fs::touch;
+use crate::path::user_platform_file;
+use crate::platform::PlatformSpec;
 
 use notion_fail::{Fallible, ResultExt};
 

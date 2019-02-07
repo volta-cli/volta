@@ -1,4 +1,4 @@
-use manifest::Manifest;
+use crate::manifest::Manifest;
 use semver::Version;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
