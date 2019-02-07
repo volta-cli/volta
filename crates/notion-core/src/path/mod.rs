@@ -92,8 +92,8 @@ pub fn shim_dir() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("bin"))
 }
 
-pub fn user_config_file() -> Fallible<PathBuf> {
-    Ok(notion_home()?.join("config.toml"))
+pub fn user_hooks_file() -> Fallible<PathBuf> {
+    Ok(notion_home()?.join("hooks.toml"))
 }
 
 pub fn tools_dir() -> Fallible<PathBuf> {

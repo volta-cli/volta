@@ -7,8 +7,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 
+use crate::hook::Publish;
 use crate::monitor::Monitor;
-use crate::plugin::Publish;
 use crate::session::ActivityKind;
 use notion_fail::{ExitCode, NotionError};
 

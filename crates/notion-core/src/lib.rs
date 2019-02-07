@@ -2,17 +2,16 @@
 
 #![cfg_attr(feature = "universal-docs", feature(doc_cfg))]
 
-pub mod config;
 mod distro;
 pub mod env;
 mod event;
 pub(crate) mod fs;
+mod hook;
 pub mod inventory;
 pub mod manifest;
 pub mod monitor;
 pub mod path;
 pub mod platform;
-mod plugin;
 pub mod project;
 pub mod session;
 pub mod shell;
