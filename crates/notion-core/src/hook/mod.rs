@@ -235,37 +235,37 @@ pub mod tests {
         assert_eq!(
             node.distro,
             Some(tool::DistroHook::Template(
-                "http://localhost/node/distro/{version}/".to_string()
+                "http://localhost/node/distro/{{version}}/".to_string()
             ))
         );
         assert_eq!(
             node.latest,
             Some(tool::MetadataHook::Template(
-                "http://localhost/node/latest/{version}/".to_string()
+                "http://localhost/node/latest/{{version}}/".to_string()
             ))
         );
         assert_eq!(
             node.index,
             Some(tool::MetadataHook::Template(
-                "http://localhost/node/index/{version}/".to_string()
+                "http://localhost/node/index/{{version}}/".to_string()
             ))
         );
         assert_eq!(
             yarn.distro,
             Some(tool::DistroHook::Template(
-                "http://localhost/yarn/distro/{version}/".to_string()
+                "http://localhost/yarn/distro/{{version}}/".to_string()
             ))
         );
         assert_eq!(
             yarn.latest,
             Some(tool::MetadataHook::Template(
-                "http://localhost/yarn/latest/{version}/".to_string()
+                "http://localhost/yarn/latest/{{version}}/".to_string()
             ))
         );
         assert_eq!(
             yarn.index,
             Some(tool::MetadataHook::Template(
-                "http://localhost/yarn/index/{version}/".to_string()
+                "http://localhost/yarn/index/{{version}}/".to_string()
             ))
         );
     }

@@ -10,9 +10,9 @@ use failure::Fail;
 use notion_fail::{throw, FailExt, Fallible, ResultExt};
 use semver::Version;
 
-const ARCH_TEMPLATE: &'static str = "{arch}";
-const OS_TEMPLATE: &'static str = "{os}";
-const VERSION_TEMPLATE: &'static str = "{version}";
+const ARCH_TEMPLATE: &'static str = "{{arch}}";
+const OS_TEMPLATE: &'static str = "{{os}}";
+const VERSION_TEMPLATE: &'static str = "{{version}}";
 
 /// A hook for resolving the distro URL for a given tool version
 #[derive(PartialEq, Debug)]
@@ -118,7 +118,7 @@ pub mod tests {
     #[test]
     fn test_distro_template_resolve() {
         let hook = DistroHook::Template(
-            "http://localhost/node/{os}/{arch}/{version}/node.tar.gz".to_string(),
+            "http://localhost/node/{{os}}/{{arch}}/{{version}}/node.tar.gz".to_string(),
         );
         let version = Version::new(1, 0, 0);
         let expected = format!(
@@ -150,7 +150,7 @@ pub mod tests {
     #[test]
     fn test_metadata_template_resolve() {
         let hook =
-            MetadataHook::Template("http://localhost/node/{os}/{arch}/index.json".to_string());
+            MetadataHook::Template("http://localhost/node/{{os}}/{{arch}}/index.json".to_string());
         let expected = format!("http://localhost/node/{}/{}/index.json", OS, ARCH);
 
         assert_eq!(
