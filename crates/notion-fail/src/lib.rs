@@ -50,8 +50,6 @@
 //! for its signature:
 //!
 //! ```
-//! # #[macro_use] extern crate notion_fail;
-//! #
 //! use notion_fail::Fallible;
 //! #
 //! # #[derive(Debug)]
@@ -79,15 +77,12 @@
 //!
 //! ## Example
 //!
-//! ```compile_fail
-//! # #[macro_use] extern crate notion_fail;
-//!
+//! ```
 //! // required for `#[derive(Fail)]` and `#[fail(...)]` attributes
-//! #[macro_use]
-//! extern crate failure_derive;
+//! use failure::Fail;
 //!
-//! # extern crate failure;
 //! use notion_fail::{ExitCode, NotionFail};
+//! use notion_fail_derive::*;
 //!
 //! #[derive(Debug, Fail, NotionFail)]
 //! #[fail(display = "unexpected end of string")]
@@ -105,11 +100,11 @@
 //! ## Example
 //!
 //! ```
-//! # #[macro_use] extern crate notion_fail;
-//! # #[macro_use] extern crate notion_fail_derive;
-//! # #[macro_use] extern crate failure_derive;
-//! # extern crate failure;
+//! # use failure::Fail;
 //! # use notion_fail::{ExitCode, Fallible, NotionFail};
+//! use notion_fail::throw;
+//!
+//! # use notion_fail_derive::*;
 //! # #[derive(Debug, Fail, NotionFail)]
 //! # #[fail(display = "unexpected end of string")]
 //! # #[notion_fail(code = "InvalidArguments")]
@@ -142,11 +137,9 @@
 //! ## Example
 //!
 //! ```
-//! # #[macro_use] extern crate notion_fail;
-//! # #[macro_use] extern crate notion_fail_derive;
-//! # #[macro_use] extern crate failure_derive;
-//! # extern crate failure;
-//! # use notion_fail::{ExitCode, Fallible, NotionFail};
+//! # use failure::Fail;
+//! # use notion_fail::{throw, ExitCode, Fallible, NotionFail};
+//! # use notion_fail_derive::*;
 //! // add `unknown()` extension method to Results
 //! use notion_fail::ResultExt;
 //! # #[derive(Debug, Fail, NotionFail)]
@@ -188,10 +181,9 @@
 //! ## Example
 //!
 //! ```compile_fail
-//! # #[macro_use] extern crate notion_fail;
-//! # #[macro_use] extern crate failure_derive;
-//! # extern crate failure;
+//! # use failure::Fail;
 //! # use notion_fail::{ExitCode, Fallible, NotionFail};
+//! # use notion_fail_derive::*;
 //! // add `unknown()` and `with_context()` extension methods to Results
 //! use notion_fail::ResultExt;
 //! # use std::fmt::Display;
