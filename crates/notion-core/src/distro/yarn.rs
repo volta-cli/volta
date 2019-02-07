@@ -100,7 +100,7 @@ impl YarnDistro {
 impl Distro for YarnDistro {
     type VersionDetails = Version;
 
-    /// Provisions a new Distro based on the Version and Possible Hooks
+    /// Provisions a new Distro based on the Version and possible Hooks
     fn new(version: Version, hooks: Option<&ToolHooks<Self>>) -> Fallible<Self> {
         match hooks {
             Some(&ToolHooks {

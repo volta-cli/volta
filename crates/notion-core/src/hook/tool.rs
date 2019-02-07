@@ -14,7 +14,7 @@ const ARCH_TEMPLATE: &'static str = "{arch}";
 const OS_TEMPLATE: &'static str = "{os}";
 const VERSION_TEMPLATE: &'static str = "{version}";
 
-/// A Hook for resolving the distro URL for a given Tool Version
+/// A hook for resolving the distro URL for a given tool version
 #[derive(PartialEq, Debug)]
 pub enum DistroHook {
     Prefix(String),
@@ -23,8 +23,8 @@ pub enum DistroHook {
 }
 
 impl DistroHook {
-    /// Performs resolution of the Distro URL based on the given
-    /// Version and File Name
+    /// Performs resolution of the distro URL based on the given
+    /// version and file name
     pub fn resolve(&self, version: &Version, filename: &str) -> Fallible<String> {
         match self {
             &DistroHook::Prefix(ref prefix) => Ok(format!("{}{}", prefix, filename)),
@@ -37,7 +37,7 @@ impl DistroHook {
     }
 }
 
-/// A Hook for resolving the URL for metadata about a Tool
+/// A hook for resolving the URL for metadata about a tool
 #[derive(PartialEq, Debug)]
 pub enum MetadataHook {
     Prefix(String),
@@ -46,7 +46,7 @@ pub enum MetadataHook {
 }
 
 impl MetadataHook {
-    /// Performs resolution of the Metadata URL based on the given default File Name
+    /// Performs resolution of the metadata URL based on the given default file name
     pub fn resolve(&self, filename: &str) -> Fallible<String> {
         match self {
             &MetadataHook::Prefix(ref prefix) => Ok(format!("{}{}", prefix, filename)),
@@ -58,6 +58,7 @@ impl MetadataHook {
     }
 }
 
+/// Execute a shell command and return the trimmed stdout from that command
 fn execute_binary(bin: &str, extra_arg: Option<String>) -> Fallible<String> {
     let mut trimmed = bin.trim().to_string();
     let mut words = trimmed.parse_cmdline_words();
