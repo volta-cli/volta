@@ -88,6 +88,33 @@ notion_create_tree() {
   mkdir -p "${INSTALL_DIR}"/tmp
 }
 
+# Safely handle an existing installation by removing it given user permission to
+# do so. If the user has no existing installation, this is a no-op.
+notion_check_existing_installation() {
+  local INSTALL_DIR="$(notion_install_dir)"
+  local NOTION_BIN="${INSTALL_DIR}/notion"
+
+  if [[ ! -z $INSTALL_DIR && -f $NOTION_BIN ]]; then
+    local PREV_NOTION_VERSION=`$NOTION_BIN version`
+    if [[ $PREV_NOTION_VERSION == 0.1* ]]; then
+      echo "        You have an earlier version of notion installed."
+      read -p "        Remove existing installation and continue? [Y/n] " input
+
+      # Empty input is the default/"yes" choice; if the user inputs *nothing* or
+      # inputs anything starting with "Y" or "y", proceed; otherwise, stop.
+      if [[ ! -z $input ]] && [[ ! $input =~ ^[Yy] ]]; then
+        notion_info 'Cancelling' "installation of notion"
+        exit 0
+      else
+        # This is safe because we checked that `INSTALL_DIR` was set above, and
+        # because if it were empty it would simply print an error here.
+        notion_info 'Removing' "previous installation of notion"
+        rm -r $INSTALL_DIR
+      fi
+    fi
+  fi
+}
+
 notion_create_binaries() {
   local INSTALL_DIR
 
@@ -187,6 +214,9 @@ notion_install() {
     notion_eprintf "Please check your profile scripts and environment."
     notion_exit 1
   fi
+
+  notion_info 'Checking' "for existing notion installation"
+  notion_check_existing_installation
 
   notion_info 'Creating' "notion directory tree ($(notion_install_dir))"
   notion_create_tree
