@@ -1,0 +1,20 @@
+[node.distro]
+bin = "/some/bin/for/node/distro"
+
+[node.latest]
+bin = "/some/bin/for/node/latest"
+
+[node.index]
+bin = "/some/bin/for/node/index"
+
+[yarn.distro]
+bin = "/bin/to/yarn/distro"
+
+[yarn.latest]
+bin = "/bin/to/yarn/latest"
+
+[yarn.index]
+bin = "/bin/to/yarn/index"
+
+[events.publish]
+bin = "/events/bin"

@@ -83,7 +83,7 @@ cfg_if::cfg_if! {
 //         notion                                          notion_file
 //         launchbin                                       launchbin_file
 //         launchscript                                    launchscript_file
-//         config.toml                                     user_config_file
+//         hooks.toml                                      user_hooks_file
 
 pub fn default_notion_home() -> Fallible<PathBuf> {
     let home = dirs::home_dir().ok_or(NoHomeEnvVar)?;

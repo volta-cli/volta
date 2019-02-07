@@ -16,11 +16,11 @@ use reqwest::header::{CacheControl, CacheDirective, Expires, HttpDate};
 use serde_json;
 use tempfile::NamedTempFile;
 
-use crate::config::{Config, ToolConfig};
 use crate::distro::node::NodeDistro;
 use crate::distro::yarn::YarnDistro;
 use crate::distro::{Distro, DistroVersion, Fetched};
 use crate::fs::{ensure_containing_dir_exists, read_file_opt};
+use crate::hook::{HookConfig, ToolHooks};
 use crate::path;
 use crate::style::progress_spinner;
 use crate::tool::ToolSpec;
@@ -115,11 +115,11 @@ impl Inventory {
     pub fn fetch(
         &mut self,
         toolspec: &ToolSpec,
-        config: &Config,
+        hooks: &HookConfig,
     ) -> Fallible<Fetched<DistroVersion>> {
         match toolspec {
-            ToolSpec::Node(version) => self.node.fetch(&version, config),
-            ToolSpec::Yarn(version) => self.yarn.fetch(&version, config),
+            ToolSpec::Node(version) => self.node.fetch(&version, hooks.node.as_ref()),
+            ToolSpec::Yarn(version) => self.yarn.fetch(&version, hooks.yarn.as_ref()),
             // ISSUE (#175) implement as part of fetching packages
             ToolSpec::Npm(_) => unimplemented!("cannot fetch npm"),
             ToolSpec::Package(name, _) => unimplemented!("cannot fetch {}", name),
@@ -132,7 +132,7 @@ impl Inventory {
 #[fail(display = "No Node version found for {}", matching)]
 #[notion_fail(code = "NoVersionMatch")]
 struct NoNodeVersionFoundError {
-    matching: VersionSpec,
+    matching: String,
 }
 
 /// Thrown when there is no Yarn version matching a requested semver specifier.
@@ -140,7 +140,7 @@ struct NoNodeVersionFoundError {
 #[fail(display = "No Yarn version found for {}", matching)]
 #[notion_fail(code = "NoVersionMatch")]
 struct NoYarnVersionFoundError {
-    matching: VersionReq,
+    matching: String,
 }
 
 impl<D: Distro> Collection<D> {
@@ -155,26 +155,29 @@ pub trait FetchResolve<D: Distro> {
     fn fetch(
         &mut self,
         matching: &VersionSpec,
-        config: &Config,
+        hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<Fetched<DistroVersion>>;
 
-    /// Resolves the specified semantic versioning requirements from a remote distributor.
-    fn resolve_remote(
-        &self,
-        matching: &VersionSpec,
-        config: Option<&ToolConfig<D>>,
-    ) -> Fallible<D> {
-        match config {
-            Some(ToolConfig {
-                resolve: Some(ref plugin),
-                ..
-            }) => plugin.resolve(matching),
-            _ => self.resolve_public(matching),
-        }
+    /// Resolves the specified semantic versioning requirements into a distribution
+    fn resolve(&self, matching: &VersionSpec, hooks: Option<&ToolHooks<D>>) -> Fallible<D> {
+        let version = match *matching {
+            VersionSpec::Latest => self.resolve_latest(hooks)?,
+            VersionSpec::Semver(ref requirement) => self.resolve_semver(requirement, hooks)?,
+            VersionSpec::Exact(ref version) => version.clone(),
+        };
+
+        D::new(version, hooks)
     }
 
-    /// Resolves the specified semantic versioning requirements from the public distributor (e.g. `https://nodejs.org`).
-    fn resolve_public(&self, matching: &VersionSpec) -> Fallible<D>;
+    /// Resolves the latest version for this tool, using either the `latest` hook or the public registry
+    fn resolve_latest(&self, hooks: Option<&ToolHooks<D>>) -> Fallible<Version>;
+
+    /// Resolves a SemVer version for this tool, using either the `index` hook or the public registry
+    fn resolve_semver(
+        &self,
+        matching: &VersionReq,
+        hooks: Option<&ToolHooks<D>>,
+    ) -> Fallible<Version>;
 }
 
 /// Thrown when the public registry for Node or Yarn could not be downloaded.
@@ -193,8 +196,11 @@ impl RegistryFetchError {
     }
 }
 
-fn match_node_version(predicate: impl Fn(&NodeEntry) -> bool) -> Fallible<Option<Version>> {
-    let index: NodeIndex = resolve_node_versions()?.into_index()?;
+fn match_node_version(
+    url: &str,
+    predicate: impl Fn(&NodeEntry) -> bool,
+) -> Fallible<Option<Version>> {
+    let index: NodeIndex = resolve_node_versions(url)?.into_index()?;
     let mut entries = index.entries.into_iter();
     Ok(entries
         .find(predicate)
@@ -205,9 +211,9 @@ impl FetchResolve<NodeDistro> for NodeCollection {
     fn fetch(
         &mut self,
         matching: &VersionSpec,
-        config: &Config,
+        hooks: Option<&ToolHooks<NodeDistro>>,
     ) -> Fallible<Fetched<DistroVersion>> {
-        let distro = self.resolve_remote(matching, config.node.as_ref())?;
+        let distro = self.resolve(matching, hooks)?;
         let fetched = distro.fetch(&self).unknown()?;
 
         if let &Fetched::Now(DistroVersion::Node(ref version, ..)) = &fetched {
@@ -217,26 +223,50 @@ impl FetchResolve<NodeDistro> for NodeCollection {
         Ok(fetched)
     }
 
-    fn resolve_public(&self, matching: &VersionSpec) -> Fallible<NodeDistro> {
-        let version_opt = match *matching {
-            VersionSpec::Latest => {
-                // NOTE: This assumes the registry always produces a list in sorted order
-                //       from newest to oldest. This should be specified as a requirement
-                //       when we document the plugin API.
-                match_node_version(|_| true)?
-            }
-            VersionSpec::Semver(ref matching) => {
-                // ISSUE #34: also make sure this OS is available for this version
-                match_node_version(|&NodeEntry { version: ref v, .. }| matching.matches(v))?
-            }
-            VersionSpec::Exact(ref exact) => Some(exact.clone()),
+    fn resolve_latest(&self, hooks: Option<&ToolHooks<NodeDistro>>) -> Fallible<Version> {
+        // NOTE: This assumes the registry always produces a list in sorted order
+        //       from newest to oldest. This should be specified as a requirement
+        //       when we document the plugin API.
+        let url = match hooks {
+            Some(&ToolHooks {
+                latest: Some(ref hook),
+                ..
+            }) => hook.resolve("index.json")?,
+            _ => public_node_version_index(),
         };
+        let version_opt = match_node_version(&url, |_| true)?;
 
         if let Some(version) = version_opt {
-            NodeDistro::public(version)
+            Ok(version)
         } else {
             throw!(NoNodeVersionFoundError {
-                matching: matching.clone()
+                matching: "latest".to_string()
+            })
+        }
+    }
+
+    fn resolve_semver(
+        &self,
+        matching: &VersionReq,
+        hooks: Option<&ToolHooks<NodeDistro>>,
+    ) -> Fallible<Version> {
+        // ISSUE #34: also make sure this OS is available for this version
+        let url = match hooks {
+            Some(&ToolHooks {
+                index: Some(ref hook),
+                ..
+            }) => hook.resolve("index.json")?,
+            _ => public_node_version_index(),
+        };
+        let version_opt = match_node_version(&url, |&NodeEntry { version: ref v, .. }| {
+            matching.matches(v)
+        })?;
+
+        if let Some(version) = version_opt {
+            Ok(version)
+        } else {
+            throw!(NoNodeVersionFoundError {
+                matching: matching.to_string()
             })
         }
     }
@@ -247,9 +277,9 @@ impl FetchResolve<YarnDistro> for YarnCollection {
     fn fetch(
         &mut self,
         matching: &VersionSpec,
-        config: &Config,
+        hooks: Option<&ToolHooks<YarnDistro>>,
     ) -> Fallible<Fetched<DistroVersion>> {
-        let distro = self.resolve_remote(&matching, config.yarn.as_ref())?;
+        let distro = self.resolve(&matching, hooks)?;
         let fetched = distro.fetch(&self).unknown()?;
 
         if let &Fetched::Now(DistroVersion::Yarn(ref version)) = &fetched {
@@ -259,40 +289,48 @@ impl FetchResolve<YarnDistro> for YarnCollection {
         Ok(fetched)
     }
 
-    /// Resolves the specified semantic versioning requirements from the public distributor.
-    fn resolve_public(&self, matching: &VersionSpec) -> Fallible<YarnDistro> {
-        let version = match *matching {
-            VersionSpec::Latest => {
-                let mut response: reqwest::Response =
-                    reqwest::get(public_yarn_latest_version().as_str())
-                        .with_context(RegistryFetchError::from_error)?;
-                Version::parse(&response.text().unknown()?).unknown()?
-            }
-            VersionSpec::Semver(ref matching) => {
-                let spinner = progress_spinner(&format!(
-                    "Fetching public registry: {}",
-                    public_yarn_version_index()
-                ));
-                let releases: serial::YarnIndex =
-                    reqwest::get(public_yarn_version_index().as_str())
-                        .with_context(RegistryFetchError::from_error)?
-                        .json()
-                        .unknown()?;
-                let releases = releases.into_index()?.entries;
-                spinner.finish_and_clear();
-                let version = releases.into_iter().rev().find(|v| matching.matches(v));
-
-                if let Some(version) = version {
-                    version
-                } else {
-                    throw!(NoYarnVersionFoundError {
-                        matching: matching.clone(),
-                    });
-                }
-            }
-            VersionSpec::Exact(ref exact) => exact.clone(),
+    fn resolve_latest(&self, hooks: Option<&ToolHooks<YarnDistro>>) -> Fallible<Version> {
+        let url = match hooks {
+            Some(&ToolHooks {
+                latest: Some(ref hook),
+                ..
+            }) => hook.resolve("latest-version")?,
+            _ => public_yarn_latest_version(),
         };
-        YarnDistro::public(version)
+        let mut response: reqwest::Response =
+            reqwest::get(&url).with_context(RegistryFetchError::from_error)?;
+        Version::parse(&response.text().unknown()?).unknown()
+    }
+
+    fn resolve_semver(
+        &self,
+        matching: &VersionReq,
+        hooks: Option<&ToolHooks<YarnDistro>>,
+    ) -> Fallible<Version> {
+        let url = match hooks {
+            Some(&ToolHooks {
+                index: Some(ref hook),
+                ..
+            }) => hook.resolve("releases")?,
+            _ => public_yarn_version_index(),
+        };
+
+        let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
+        let releases: serial::YarnIndex = reqwest::get(&url)
+            .with_context(RegistryFetchError::from_error)?
+            .json()
+            .unknown()?;
+        let releases = releases.into_index()?.entries;
+        spinner.finish_and_clear();
+        let version_opt = releases.into_iter().rev().find(|v| matching.matches(v));
+
+        if let Some(version) = version_opt {
+            Ok(version)
+        } else {
+            throw!(NoYarnVersionFoundError {
+                matching: matching.to_string()
+            })
+        }
     }
 }
 
@@ -353,17 +391,13 @@ fn max_age(response: &reqwest::Response) -> u32 {
     4 * 60 * 60
 }
 
-fn resolve_node_versions() -> Fallible<serial::NodeIndex> {
+fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
     match read_cached_opt()? {
         Some(serial) => Ok(serial),
         None => {
-            let spinner = progress_spinner(&format!(
-                "Fetching public registry: {}",
-                public_node_version_index()
-            ));
+            let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
             let mut response: reqwest::Response =
-                reqwest::get(public_node_version_index().as_str())
-                    .with_context(RegistryFetchError::from_error)?;
+                reqwest::get(url).with_context(RegistryFetchError::from_error)?;
             let response_text: String = response.text().unknown()?;
             let cached: NamedTempFile = NamedTempFile::new_in(path::tmp_dir()?).unknown()?;
 
