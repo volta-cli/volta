@@ -87,7 +87,7 @@ impl TempProjectBuilder {
         ok_or_panic!(path::notion_file()).rm();
         ok_or_panic!(path::launchbin_file()).rm();
         ok_or_panic!(path::launchscript_file()).rm();
-        ok_or_panic!(path::user_config_file()).rm();
+        ok_or_panic!(path::user_hooks_file()).rm();
         ok_or_panic!(path::user_platform_file()).rm();
 
         // write files

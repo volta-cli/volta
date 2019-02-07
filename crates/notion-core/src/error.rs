@@ -2,10 +2,8 @@ use std::fmt;
 
 use failure::Fail;
 use notion_fail::{ExitCode, NotionFail};
-use semver::VersionReq;
 
 use crate::tool::ToolSpec;
-use crate::version::VersionSpec;
 
 #[derive(Debug, Fail)]
 pub enum ErrorDetails {
@@ -48,7 +46,7 @@ pub enum ErrorDetails {
 
     /// Thrown when there is no Node version matching a requested semver specifier.
     NodeVersionNotFound {
-        matching: VersionSpec,
+        matching: String,
     },
 
     NoGlobalInstalls,
@@ -111,7 +109,7 @@ pub enum ErrorDetails {
 
     /// Thrown when there is no Yarn version matching a requested semver specifier.
     YarnVersionNotFound {
-        matching: VersionReq,
+        matching: String,
     },
 }
 

@@ -4,6 +4,7 @@ pub mod node;
 pub mod yarn;
 
 use crate::error::ErrorDetails;
+use crate::hook::ToolHooks;
 use crate::inventory::Collection;
 use crate::tool::ToolSpec;
 use archive::HttpError;
@@ -11,7 +12,6 @@ use notion_fail::Fallible;
 use reqwest::StatusCode;
 use semver::Version;
 use std::fmt::{self, Display, Formatter};
-use std::fs::File;
 
 /// The result of a requested installation.
 pub enum Fetched<V> {
@@ -64,14 +64,10 @@ impl Display for DistroVersion {
 }
 
 pub trait Distro: Sized {
-    /// Provision a distribution from the public distributor (e.g. `https://nodejs.org`).
-    fn public(version: Version) -> Fallible<Self>;
+    type VersionDetails;
 
-    /// Provision a distribution from a remote distributor.
-    fn remote(version: Version, url: &str) -> Fallible<Self>;
-
-    /// Provision a distribution from the filesystem.
-    fn local(version: Version, file: File) -> Fallible<Self>;
+    /// Provisions a new Distro based on the Version and Possible Hooks
+    fn new(version: Version, hooks: Option<&ToolHooks<Self>>) -> Fallible<Self>;
 
     /// Produces a reference to this distro's Tool version.
     fn version(&self) -> &Version;

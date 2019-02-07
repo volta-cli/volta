@@ -1,15 +1,14 @@
 //! Provides the `Session` type, which represents the user's state during an
-//! execution of a Notion tool, including their configuration, their current
-//! directory, and the state of the local inventory.
+//! execution of a Notion tool, including their current directory, Notion
+//! hook configuration, and the state of the local inventory.
 
 use std::rc::Rc;
 
-use crate::config::{Config, LazyConfig};
 use crate::distro::{DistroVersion, Fetched};
 use crate::error::ErrorDetails;
+use crate::hook::{HookConfig, LazyHookConfig, Publish};
 use crate::inventory::{Inventory, LazyInventory};
 use crate::platform::PlatformSpec;
-use crate::plugin::Publish;
 use crate::project::{LazyProject, Project};
 use crate::tool::ToolSpec;
 use crate::toolchain::LazyToolchain;
@@ -75,10 +74,10 @@ impl Display for ActivityKind {
 /// invoked, including:
 ///     - the current directory
 ///     - the Node project tree that contains the current directory (if any)
-///     - the Notion configuration settings
+///     - the Notion hook configuration
 ///     - the inventory of locally-fetched Notion tools
 pub struct Session {
-    config: LazyConfig,
+    hooks: LazyHookConfig,
     inventory: LazyInventory,
     toolchain: LazyToolchain,
     project: LazyProject,
@@ -89,7 +88,7 @@ impl Session {
     /// Constructs a new `Session`.
     pub fn new() -> Session {
         Session {
-            config: LazyConfig::new(),
+            hooks: LazyHookConfig::new(),
             inventory: LazyInventory::new(),
             toolchain: LazyToolchain::new(),
             project: LazyProject::new(),
@@ -134,9 +133,9 @@ impl Session {
         self.inventory.get_mut()
     }
 
-    /// Produces a reference to the configuration.
-    pub fn config(&self) -> Fallible<&Config> {
-        self.config.get()
+    /// Produces a reference to the hook configuration
+    pub fn hooks(&self) -> Fallible<&HookConfig> {
+        self.hooks.get()
     }
 
     /// Ensures that a specific Node version has been fetched and unpacked
@@ -144,8 +143,8 @@ impl Session {
         let inventory = self.inventory.get_mut()?;
 
         if !inventory.node.contains(version) {
-            let config = self.config.get()?;
-            inventory.fetch(&ToolSpec::Node(VersionSpec::exact(version)), config)?;
+            let hooks = self.hooks.get()?;
+            inventory.fetch(&ToolSpec::Node(VersionSpec::exact(version)), hooks)?;
         }
 
         Ok(())
@@ -156,8 +155,8 @@ impl Session {
         let inventory = self.inventory.get_mut()?;
 
         if !inventory.yarn.contains(version) {
-            let config = self.config.get()?;
-            inventory.fetch(&ToolSpec::Yarn(VersionSpec::exact(version)), config)?;
+            let hooks = self.hooks.get()?;
+            inventory.fetch(&ToolSpec::Yarn(VersionSpec::exact(version)), hooks)?;
         }
 
         Ok(())
@@ -175,8 +174,8 @@ impl Session {
     /// Fetches a Tool version matching the specified semantic versioning requirements.
     pub fn fetch(&mut self, tool: &ToolSpec) -> Fallible<Fetched<DistroVersion>> {
         let inventory = self.inventory.get_mut()?;
-        let config = self.config.get()?;
-        inventory.fetch(&tool, config)
+        let hooks = self.hooks.get()?;
+        inventory.fetch(&tool, hooks)
     }
 
     /// Updates toolchain in package.json with the Tool version matching the specified semantic
@@ -205,7 +204,7 @@ impl Session {
     }
 
     fn publish_to_event_log(mut self) {
-        match publish_plugin(&self.config) {
+        match publish_plugin(&self.hooks) {
             Ok(plugin) => {
                 self.event_log.publish(plugin);
             }
@@ -226,9 +225,9 @@ impl Session {
     }
 }
 
-fn publish_plugin(config: &LazyConfig) -> Fallible<Option<&Publish>> {
-    let config = config.get()?;
-    Ok(config
+fn publish_plugin(hooks: &LazyHookConfig) -> Fallible<Option<&Publish>> {
+    let hooks = hooks.get()?;
+    Ok(hooks
         .events
         .as_ref()
         .and_then(|events| events.publish.as_ref()))

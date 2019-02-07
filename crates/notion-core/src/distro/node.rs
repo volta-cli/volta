@@ -12,6 +12,7 @@ use tempfile::tempdir_in;
 use super::{error_for_tool, Distro, Fetched};
 use crate::distro::DistroVersion;
 use crate::fs::ensure_containing_dir_exists;
+use crate::hook::ToolHooks;
 use crate::inventory::NodeCollection;
 use crate::path;
 use crate::style::{progress_bar, Action};
@@ -104,7 +105,7 @@ impl Manifest {
     }
 }
 
-impl Distro for NodeDistro {
+impl NodeDistro {
     /// Provision a Node distribution from the public Node distributor (`https://nodejs.org`).
     fn public(version: Version) -> Fallible<Self> {
         let distro_file_name = path::node_distro_file_name(&version.to_string());
@@ -142,6 +143,25 @@ impl Distro for NodeDistro {
             archive: archive::load_native(file).unknown()?,
             version: version,
         })
+    }
+}
+
+impl Distro for NodeDistro {
+    type VersionDetails = NodeVersion;
+
+    /// Provisions a new Distro based on the Version and possible Hooks
+    fn new(version: Version, hooks: Option<&ToolHooks<Self>>) -> Fallible<Self> {
+        match hooks {
+            Some(&ToolHooks {
+                distro: Some(ref hook),
+                ..
+            }) => {
+                let url =
+                    hook.resolve(&version, &path::node_distro_file_name(&version.to_string()))?;
+                NodeDistro::remote(version, &url)
+            }
+            _ => NodeDistro::public(version),
+        }
     }
 
     /// Produces a reference to this distribution's Node version.

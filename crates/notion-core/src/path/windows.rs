@@ -67,7 +67,7 @@ cfg_if::cfg_if! {
 //         notion.exe                                      notion_file
 //         launchbin.exe                                   launchbin_file
 //         launchscript.exe                                launchscript_file
-//         config.toml                                     user_config_file
+//         hooks.toml                                      user_hooks_file
 
 pub fn default_notion_home() -> Fallible<PathBuf> {
     let home = dirs::data_local_dir().ok_or(ErrorDetails::NoLocalDataDir)?;

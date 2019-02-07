@@ -20,7 +20,7 @@ impl Monitor {
     }
 
     /// send event to the monitor process
-    // if plugin command is not configured, this is a no-op
+    // if hook command is not configured, this is a no-op
     pub fn send_events(&mut self, events: &Vec<Event>) -> () {
         if let Some(ref mut child_process) = self.monitor_process {
             let p_stdin = child_process.stdin.as_mut().unwrap();
