@@ -24,7 +24,7 @@ impl Command for Help {
     type Args = Args;
 
     const USAGE: &'static str = "
-Get some help with a notion command
+Get some help with a Notion command
 
 Usage:
     notion help [<command>]

@@ -39,7 +39,7 @@ pub(crate) struct Notion {
 
 impl Notion {
     pub(crate) const USAGE: &'static str = "
-Notion: the hassle-free Node.js manager
+Notion: the hassle-free JavaScript toolchain manager
 
 Usage:
     notion [-v | --verbose] [<command> <args> ...]

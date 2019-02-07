@@ -5,7 +5,9 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::string::ToString;
 
+use archive::{self, Archive};
 use serde::Deserialize;
+use tempfile::tempdir_in;
 
 use super::{Distro, Fetched};
 use crate::distro::error::DownloadError;
@@ -16,8 +18,6 @@ use crate::path;
 use crate::style::{progress_bar, Action};
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
-use archive::{self, Archive};
-use tempfile::tempdir;
 
 use notion_fail::{Fallible, ResultExt};
 use semver::Version;
@@ -161,7 +161,7 @@ impl Distro for NodeDistro {
             return Ok(Fetched::Already(DistroVersion::Node(self.version, npm)));
         }
 
-        let temp = tempdir().unknown()?;
+        let temp = tempdir_in(path::tmp_dir()?).unknown()?;
         let bar = progress_bar(
             Action::Fetching,
             &format!("v{}", self.version),

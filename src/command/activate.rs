@@ -20,7 +20,7 @@ impl Command for Activate {
     type Args = Args;
 
     const USAGE: &'static str = "
-Re-Enable Notion in the current shell
+Re-enable Notion in the current shell
 
 Usage:
     notion activate
