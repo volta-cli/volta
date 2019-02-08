@@ -99,7 +99,9 @@ notion_check_existing_installation() {
 
   if [[ -n "$INSTALL_DIR" && -x "$NOTION_BIN" ]]; then
     local PREV_NOTION_VERSION    
-    PREV_NOTION_VERSION="$($NOTION_BIN version)"
+    # Some 0.1.* builds would eagerly validate package.json even for benign commands,
+    # so just to be safe we'll ignore errors and consider those to be 0.1 as well.
+    PREV_NOTION_VERSION="$($NOTION_BIN version 2>/dev/null || echo 0.1)"
     if [[ "$PREV_NOTION_VERSION" == 0.1* ]]; then
       echo "        You have an earlier version of Notion installed, and the version"
       echo "        you are installing requires a fresh installation. (We will work"
