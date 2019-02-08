@@ -91,18 +91,22 @@ notion_create_tree() {
 # Safely handle an existing installation by removing it given user permission to
 # do so. If the user has no existing installation, this is a no-op.
 notion_check_existing_installation() {
-  local INSTALL_DIR="$(notion_install_dir)"
-  local NOTION_BIN="${INSTALL_DIR}/notion"
+  local INSTALL_DIR
+  INSTALL_DIR="$(notion_install_dir)"
+
+  local NOTION_BIN
+  NOTION_BIN="${INSTALL_DIR}/notion"
 
   if [[ -n "$INSTALL_DIR" && -x "$NOTION_BIN" ]]; then
-    local PREV_NOTION_VERSION="$($NOTION_BIN version)"
+    local PREV_NOTION_VERSION    
+    PREV_NOTION_VERSION="$($NOTION_BIN version)"
     if [[ "$PREV_NOTION_VERSION" == 0.1* ]]; then
       echo "        You have an earlier version of Notion installed, and the version"
       echo "        you are installing requires a fresh installation. (We will work"
       echo "        to eventually eliminate the need for reinstallations as Notion"
       echo "        stabilizes! Thanks for bearing with us.)"
       echo ""
-      read -p "        Remove existing installation and continue? [Y/n] " input
+      read -rp "        Remove existing installation and continue? [Y/n] " input
 
       # Empty input is the default/"yes" choice; if the user inputs *nothing* or
       # inputs anything starting with "Y" or "y", proceed; otherwise, stop.
@@ -157,7 +161,8 @@ notion_detect_profile() {
 
   local DETECTED_PROFILE
   DETECTED_PROFILE=''
-  local SHELLTYPE="$(basename "/$SHELL")"
+  local SHELLTYPE
+  SHELLTYPE="$(basename "/$SHELL")"
 
   if [ "$SHELLTYPE" = "bash" ]; then
     if [ -f "$HOME/.bashrc" ]; then
@@ -178,7 +183,7 @@ notion_detect_profile() {
     done
   fi
 
-  if [ ! -z "$DETECTED_PROFILE" ]; then
+  if [ -n "$DETECTED_PROFILE" ]; then
     echo "$DETECTED_PROFILE"
   fi
 }
@@ -209,7 +214,7 @@ notion_warning() {
 
 notion_exit() {
   notion_cleanup
-  exit $1
+  exit "$1"
 }
 
 notion_install() {
@@ -225,7 +230,7 @@ notion_install() {
   notion_info 'Creating' "Notion directory tree ($(notion_install_dir))"
   notion_create_tree
 
-  notion_info 'Unpacking' "`notion` executable and shims"
+  notion_info 'Unpacking' "\`notion\` executable and shims"
   notion_create_binaries
 
   notion_info 'Editing' "user profile"
