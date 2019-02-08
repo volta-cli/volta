@@ -2,7 +2,6 @@ use std::io::Write;
 use std::process::{Child, Command, Stdio};
 use std::vec::Vec;
 
-use lazycell::LazyCell;
 use serde_json;
 
 use crate::event::Event;
@@ -23,43 +22,21 @@ impl Monitor {
     // if hook command is not configured, this is a no-op
     pub fn send_events(&mut self, events: &Vec<Event>) -> () {
         if let Some(ref mut child_process) = self.monitor_process {
-            let p_stdin = child_process.stdin.as_mut().unwrap();
+            if let Some(ref mut p_stdin) = child_process.stdin.as_mut() {
+                let json = serde_json::to_string(&events);
 
-            let json = serde_json::to_string(&events);
-            match json {
-                Ok(data) => {
-                    // FIXME: tighten up this error message
-                    write!(p_stdin, "{}", data).expect("Writing data to plugin failed!");
-                }
-                Err(error) => {
-                    // FIXME: tighten up this error message
-                    eprintln!("There was a problem serializing the JSON data: {:?}", error);
-                }
-            };
+                match json {
+                    Ok(data) => {
+                        // FIXME: tighten up this error message
+                        write!(p_stdin, "{}", data).expect("Writing data to plugin failed!");
+                    }
+                    Err(error) => {
+                        // FIXME: tighten up this error message
+                        eprintln!("There was a problem serializing the JSON data: {:?}", error);
+                    }
+                };
+            }
         }
-    }
-}
-
-pub struct LazyMonitor {
-    monitor: LazyCell<Monitor>,
-}
-
-impl LazyMonitor {
-    /// Constructs a new `LazyMonitor`.
-    pub fn new() -> LazyMonitor {
-        LazyMonitor {
-            monitor: LazyCell::new(),
-        }
-    }
-
-    /// Forces creating a monitor and returns an immutable reference to it.
-    pub fn get(&self, command: &str) -> &Monitor {
-        self.monitor.borrow_with(|| Monitor::new(command))
-    }
-
-    /// Forces creating a monitor and returns a mutable reference to it.
-    pub fn get_mut(&mut self, command: &str) -> &mut Monitor {
-        self.monitor.borrow_mut_with(|| Monitor::new(command))
     }
 }
 
