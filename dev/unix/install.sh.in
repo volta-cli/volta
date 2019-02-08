@@ -94,7 +94,7 @@ notion_check_existing_installation() {
   local INSTALL_DIR="$(notion_install_dir)"
   local NOTION_BIN="${INSTALL_DIR}/notion"
 
-  if [[ ! -z $INSTALL_DIR && -f $NOTION_BIN ]]; then
+  if [[ ! -z $INSTALL_DIR && -x $NOTION_BIN ]]; then
     local PREV_NOTION_VERSION=`$NOTION_BIN version`
     if [[ $PREV_NOTION_VERSION == 0.1* ]]; then
       echo "        You have an earlier version of notion installed."
