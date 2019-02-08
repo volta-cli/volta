@@ -108,7 +108,7 @@ notion_check_existing_installation() {
       # inputs anything starting with "Y" or "y", proceed; otherwise, stop.
       if [[ ! -z $input ]] && [[ ! $input =~ ^[Yy] ]]; then
         notion_info 'Cancelling' "installation of Notion"
-        exit 0
+        notion_exit 0
       else
         # This is safe because we checked that `INSTALL_DIR` was set above, and
         # because if it were empty it would simply print an error here.
