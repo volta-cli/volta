@@ -94,9 +94,9 @@ notion_check_existing_installation() {
   local INSTALL_DIR="$(notion_install_dir)"
   local NOTION_BIN="${INSTALL_DIR}/notion"
 
-  if [[ ! -z $INSTALL_DIR && -x $NOTION_BIN ]]; then
-    local PREV_NOTION_VERSION=`$NOTION_BIN version`
-    if [[ $PREV_NOTION_VERSION == 0.1* ]]; then
+  if [[ -n "$INSTALL_DIR" && -x "$NOTION_BIN" ]]; then
+    local PREV_NOTION_VERSION="$($NOTION_BIN version)"
+    if [[ "$PREV_NOTION_VERSION" == 0.1* ]]; then
       echo "        You have an earlier version of Notion installed, and the version"
       echo "        you are installing requires a fresh installation. (We will work"
       echo "        to eventually eliminate the need for reinstallations as Notion"
@@ -106,14 +106,14 @@ notion_check_existing_installation() {
 
       # Empty input is the default/"yes" choice; if the user inputs *nothing* or
       # inputs anything starting with "Y" or "y", proceed; otherwise, stop.
-      if [[ ! -z $input ]] && [[ ! $input =~ ^[Yy] ]]; then
+      if [[ -n "$input" ]] && [[ ! "$input" =~ ^[Yy] ]]; then
         notion_info 'Cancelling' "installation of Notion"
         notion_exit 0
       else
         # This is safe because we checked that `INSTALL_DIR` was set above, and
         # because if it were empty it would simply print an error here.
         notion_info 'Removing' "previous installation of Notion"
-        rm -r $INSTALL_DIR
+        rm -r "$INSTALL_DIR"
       fi
     fi
   fi
