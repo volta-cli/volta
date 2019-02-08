@@ -88,6 +88,37 @@ notion_create_tree() {
   mkdir -p "${INSTALL_DIR}"/tmp
 }
 
+# Safely handle an existing installation by removing it given user permission to
+# do so. If the user has no existing installation, this is a no-op.
+notion_check_existing_installation() {
+  local INSTALL_DIR="$(notion_install_dir)"
+  local NOTION_BIN="${INSTALL_DIR}/notion"
+
+  if [[ ! -z $INSTALL_DIR && -x $NOTION_BIN ]]; then
+    local PREV_NOTION_VERSION=`$NOTION_BIN version`
+    if [[ $PREV_NOTION_VERSION == 0.1* ]]; then
+      echo "        You have an earlier version of Notion installed, and the version"
+      echo "        you are installing requires a fresh installation. (We will work"
+      echo "        to eventually eliminate the need for reinstallations as Notion"
+      echo "        stabilizes! Thanks for bearing with us.)"
+      echo ""
+      read -p "        Remove existing installation and continue? [Y/n] " input
+
+      # Empty input is the default/"yes" choice; if the user inputs *nothing* or
+      # inputs anything starting with "Y" or "y", proceed; otherwise, stop.
+      if [[ ! -z $input ]] && [[ ! $input =~ ^[Yy] ]]; then
+        notion_info 'Cancelling' "installation of Notion"
+        notion_exit 0
+      else
+        # This is safe because we checked that `INSTALL_DIR` was set above, and
+        # because if it were empty it would simply print an error here.
+        notion_info 'Removing' "previous installation of Notion"
+        rm -r $INSTALL_DIR
+      fi
+    fi
+  fi
+}
+
 notion_create_binaries() {
   local INSTALL_DIR
 
@@ -188,10 +219,13 @@ notion_install() {
     notion_exit 1
   fi
 
-  notion_info 'Creating' "notion directory tree ($(notion_install_dir))"
+  notion_info 'Checking' "for existing Notion installation"
+  notion_check_existing_installation
+
+  notion_info 'Creating' "Notion directory tree ($(notion_install_dir))"
   notion_create_tree
 
-  notion_info 'Unpacking' "notion executable and shims"
+  notion_info 'Unpacking' "`notion` executable and shims"
   notion_create_binaries
 
   notion_info 'Editing' "user profile"
@@ -217,11 +251,11 @@ notion_install() {
     if ! command grep -qc 'NOTION_HOME' "$NOTION_PROFILE"; then
       command printf "${PATH_STR}" >> "$NOTION_PROFILE"
     else
-      notion_warning "Your profile (${NOTION_PROFILE}) already mentions notion and has not been changed."
+      notion_warning "Your profile (${NOTION_PROFILE}) already mentions Notion and has not been changed."
     fi
   fi
 
-  notion_info "Finished" 'installation. Open a new terminal to start using notion!'
+  notion_info "Finished" 'installation. Open a new terminal to start using Notion!'
   notion_exit 0
 }
 
