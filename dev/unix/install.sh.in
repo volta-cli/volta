@@ -251,7 +251,7 @@ notion_install() {
     if ! command grep -qc 'NOTION_HOME' "$NOTION_PROFILE"; then
       command printf "${PATH_STR}" >> "$NOTION_PROFILE"
     else
-      notion_warning "Your profile (${NOTION_PROFILE}) already mentions `notion` and has not been changed."
+      notion_warning "Your profile (${NOTION_PROFILE}) already mentions Notion and has not been changed."
     fi
   fi
 
