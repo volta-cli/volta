@@ -13,6 +13,7 @@ use notion_fail_derive::*;
 use crate::env;
 
 mod bash;
+mod fish;
 
 pub(crate) use self::bash::Bash;
 pub(crate) use self::fish::Fish;
