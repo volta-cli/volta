@@ -1,3 +1,19 @@
+# Version 0.2.0
+
+- Fix: ensure temp files are on the same volume (#257)
+- Intercept global package installations (#248)
+- Fix: make npx compatible with prelrease versions of npm (#239)
+- Fix: make `notion deactivate` work infallibly, without loading any files (#237)
+- Fix: make `"npm"` key optional in `package.json` (#233)
+- Fix: publish latest Notion version via self-hosted endpoint (#230)
+- Fix: eliminate excessive fetching and scanning for exact versions (#227)
+- Rename `notion use` to `notion pin` (#226)
+- Base filesystem isolation on `NOTION_HOME` env var (#224)
+- Fix: robust progress bar logic (#221)
+- Use JSON for internal state files (#220)
+- Support for npm and npx (#205)
+- Changes to directory layout (#181)
+
 # Version 0.1.5
 
 - Autoshimming! (#163)

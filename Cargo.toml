@@ -1,6 +1,6 @@
 [package]
 name = "notion"
-version = "0.1.5"
+version = "0.2.0"
 authors = ["David Herman <david.herman@gmail.com>"]
 license = "BSD-2-Clause"
 repository = "https://github.com/notion-cli/notion"
