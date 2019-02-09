@@ -103,12 +103,12 @@ notion_check_existing_installation() {
     # so just to be safe we'll ignore errors and consider those to be 0.1 as well.
     PREV_NOTION_VERSION="$($NOTION_BIN version 2>/dev/null || echo 0.1)"
     if [[ "$PREV_NOTION_VERSION" == 0.1* ]]; then
-      echo "        You have an earlier version of Notion installed, and the version"
-      echo "        you are installing requires a fresh installation. (We will work"
-      echo "        to eventually eliminate the need for reinstallations as Notion"
-      echo "        stabilizes! Thanks for bearing with us.)"
       echo ""
-      read -rp "        Remove existing installation and continue? [Y/n] " input
+      notion_warning "Your Notion installation is out of date and needs to be replaced."
+      notion_warning "(We will work to stop requiring this as Notion stabilizes! Thanks"
+      notion_warning "for bearing with us.)"
+      echo ""
+      read -rp "Remove existing installation and continue? [Y/n] " input
 
       # Empty input is the default/"yes" choice; if the user inputs *nothing* or
       # inputs anything starting with "Y" or "y", proceed; otherwise, stop.
@@ -211,7 +211,6 @@ notion_error() {
 notion_warning() {
   command printf '\033[1;33mWarning\033[0m: ' 1>&2
   notion_eprintf "$1"
-  notion_eprintf ''
 }
 
 notion_exit() {
@@ -259,6 +258,7 @@ notion_install() {
       command printf "${PATH_STR}" >> "$NOTION_PROFILE"
     else
       notion_warning "Your profile (${NOTION_PROFILE}) already mentions Notion and has not been changed."
+      echo ''
     fi
   fi
 
