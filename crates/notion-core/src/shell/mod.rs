@@ -15,6 +15,7 @@ use crate::env;
 mod bash;
 
 pub(crate) use self::bash::Bash;
+pub(crate) use self::fish::Fish;
 
 pub enum Postscript {
     Activate(String),
@@ -89,6 +90,7 @@ impl FromStr for CurrentShell {
 
         Ok(CurrentShell(match src {
             "bash" => Box::new(Bash { postscript_path }),
+            "fish" => Box::new(Fish { postscript_path }),
             _ => {
                 throw!(UnrecognizedShellError {
                     name: src.to_string()
