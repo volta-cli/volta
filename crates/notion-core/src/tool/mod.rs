@@ -159,8 +159,24 @@ pub trait Tool: Sized {
     }
 }
 
+#[cfg(unix)]
 fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
     let mut command = Command::new(exe);
+    command.args(args);
+    command.env("PATH", path_var);
+    command
+}
+
+#[cfg(windows)]
+fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
+    // Several of the node utilities are implemented as `.bat` or `.cmd` files
+    // When executing those files with `Command`, we need to call them with:
+    //    cmd.exe /C <COMMAND> <ARGUMENTS>
+    // Instead of: <COMMAND> <ARGUMENTS>
+    // See: https://github.com/rust-lang/rust/issues/42791 For a longer discussion
+    let mut command = Command::new("cmd.exe");
+    command.arg("/C");
+    command.arg(exe);
     command.args(args);
     command.env("PATH", path_var);
     command
