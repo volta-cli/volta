@@ -4,7 +4,7 @@
 use std::io;
 #[cfg(windows)]
 use std::os::windows;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use dirs;
 use failure::Fail;
@@ -12,7 +12,7 @@ use failure::Fail;
 use notion_fail::{ExitCode, Fallible, NotionFail};
 use notion_fail_derive::*;
 
-use super::{node_image_dir, notion_home, shim_dir};
+use super::{node_archive_root_dir_name, node_image_dir, notion_home, shim_dir};
 
 // These are taken from: https://nodejs.org/dist/index.json and are used
 // by `path::archive_root_dir` to determine the root directory of the
@@ -91,6 +91,13 @@ pub fn node_image_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
 pub fn node_image_3p_bin_dir(_node: &str, _npm: &str) -> Fallible<PathBuf> {
     // ISSUE (#90) Figure out where binaries are globally installed on Windows
     unimplemented!("global 3rd party executables not yet implemented for Windows")
+}
+
+pub fn node_archive_npm_package_json_path(version: &str) -> PathBuf {
+    Path::new(&node_archive_root_dir_name(version))
+        .join("node_modules")
+        .join("npm")
+        .join("package.json")
 }
 
 pub fn launchbin_file() -> Fallible<PathBuf> {

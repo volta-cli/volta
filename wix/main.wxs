@@ -1,0 +1,256 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<!--
+  Copyright (C) 2017 Christopher R. Field.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<!--
+  Please do not remove these pre-processor If-Else blocks. These are used with
+  the `cargo wix` subcommand to automatically determine the installation
+  destination for 32-bit versus 64-bit installers. Removal of these lines will
+  cause installation errors.
+-->
+<?if $(var.Platform) = x64 ?>
+    <?define Win64 = "yes" ?>
+    <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+<?else ?>
+  <?define Win64 = "no" ?>
+  <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+<?endif ?>
+
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+
+    <Product
+        Id='*'
+        Name='Notion'
+        UpgradeCode='2AC3458D-A24D-4828-AF47-013B30999B54'
+        Manufacturer='The Notion Maintainers'
+        Language='1033'
+        Codepage='1252'
+        Version='$(var.Version)'>
+
+        <Package Id='*'
+            Keywords='Installer'
+            Description='The Hassle-Free JavaScript Toolchain Manager'
+            Manufacturer='The Notion Maintainers'
+            InstallerVersion='450'
+            Languages='1033'
+            Compressed='yes'
+            InstallScope='perUser'
+            SummaryCodepage='1252'
+            Platform='$(var.Platform)'/>
+
+        <MajorUpgrade
+            Schedule='afterInstallInitialize'
+            DowngradeErrorMessage='A newer version of [ProductName] is already installed. Setup will now exit.'/>
+
+        <Media Id='1' Cabinet='media1.cab' EmbedCab='yes' DiskPrompt='CD-ROM #1'/>
+        <Property Id='DiskPrompt' Value='Notion Installation'/>
+
+        <Directory Id='TARGETDIR' Name='SourceDir'>
+            <Directory Id='LocalAppDataFolder' Name='LocalData'>
+                <Directory Id='APPLICATIONFOLDER' Name='Notion'>
+                    <Directory Id='Cache' Name='cache'>
+                        <Directory Id='CacheNode' Name='node' />
+                    </Directory>
+                    <Directory Id='Tools' Name='tools'>
+                        <Directory Id='Inventory' Name='inventory'>
+                            <Directory Id='InventoryNode' Name='node' />
+                            <Directory Id='InventoryPackages' Name='packages' />
+                            <Directory Id='InventoryYarn' Name='yarn' />
+                        </Directory>
+                        <Directory Id='Image' Name='image'>
+                            <Directory Id='ImageNode' Name='node' />
+                            <Directory Id='ImageYarn' Name='yarn' />
+                        </Directory>
+                        <Directory Id='User' Name='user' />
+                    </Directory>
+                    <Directory Id='Temp' Name='tmp' />
+
+                    <Component Id='DirectoryStructure' Guid='4AD9EF18-B9A7-4C6B-914B-FDFE12B45232' Win64='$(var.Win64)'>
+                        <RegistryValue
+                            Root='HKCU'
+                            Key='Software\[Manufacturer]\[ProductName]'
+                            Name='InstallDir'
+                            Type='string'
+                            Value='[APPLICATIONFOLDER]'
+                            KeyPath='yes' />
+                        <CreateFolder Directory='CacheNode' />
+                        <CreateFolder Directory='InventoryNode' />
+                        <CreateFolder Directory='InventoryPackages' />
+                        <CreateFolder Directory='InventoryYarn' />
+                        <CreateFolder Directory='ImageNode' />
+                        <CreateFolder Directory='ImageYarn' />
+                        <CreateFolder Directory='User' />
+                        <CreateFolder Directory='Temp' />
+
+                        <File
+                            Id='launchbinEXE'
+                            Name='launchbin.exe'
+                            DiskId='1'
+                            Source='target\release\launchbin.exe' />
+                        <File
+                            Id='launchscriptEXE'
+                            Name='launchscript.exe'
+                            DiskId='1'
+                            Source='target\release\launchscript.exe' />
+
+                        <RemoveFile Id='RemoveTempFiles' Directory='Temp' Name='*' On='uninstall' />
+                        <RemoveFolder Id='RemoveTemp' Directory='Temp' On='uninstall' />
+                        <RemoveFolder Id='RemoveUser' Directory='User' On='uninstall' />
+                        <RemoveFolder Id='RemoveImageYarn' Directory='ImageYarn' On='uninstall' />
+                        <RemoveFolder Id='RemoveImageNode' Directory='ImageNode' On='uninstall' />
+                        <RemoveFolder Id='RemoveImage' Directory='Image' On='uninstall' />
+                        <RemoveFolder Id='RemoveInventoryYarn' Directory='InventoryYarn' On='uninstall' />
+                        <RemoveFolder Id='RemoveInventoryPackages' Directory='InventoryPackages' On='uninstall' />
+                        <RemoveFolder Id='RemoveInventoryNode' Directory='InventoryNode' On='uninstall' />
+                        <RemoveFolder Id='RemoveInventory' Directory='Inventory' On='uninstall' />
+                        <RemoveFolder Id='RemoveTools' Directory='Tools' On='uninstall' />
+                        <RemoveFolder Id='RemoveCacheNode' Directory='CacheNode' On='uninstall' />
+                        <RemoveFolder Id='RemoveCache' Directory='Cache' On='uninstall' />
+                        <RemoveFolder Id='RemoveApplication' On='uninstall' />
+                    </Component>
+
+                    <Directory Id='Bin' Name='bin'>
+                        <Component Id='Binaries' Guid='48F65B63-4CA5-4C96-A204-0F0D3A553538' Win64='$(var.Win64)'>
+                            <RegistryValue
+                                Root='HKCU'
+                                Key='Software\[Manufacturer]\[ProductName]'
+                                Name='BinDir'
+                                Type='string'
+                                Value='[Bin]'
+                                KeyPath='yes' />
+                            <CreateFolder />
+
+                            <Environment
+                                Id='PATH'
+                                Name='PATH'
+                                Value='[Bin]'
+                                Permanent='no'
+                                Part='first'
+                                Action='set'
+                                System='no' />
+
+                            <File
+                                Id='notionEXE'
+                                Name='notion.exe'
+                                DiskId='1'
+                                Source='target\release\notion.exe' />
+                            <File
+                                Id='nodeEXE'
+                                Name='node.exe'
+                                DiskId='1'
+                                Source='target\release\node.exe' />
+                            <File
+                                Id='npmEXE'
+                                Name='npm.exe'
+                                DiskId='1'
+                                Source='target\release\npm.exe' />
+                            <File
+                                Id='npxEXE'
+                                Name='npx.exe'
+                                DiskId='1'
+                                Source='target\release\npx.exe' />
+                            <File
+                                Id='yarnEXE'
+                                Name='yarn.exe'
+                                DiskId='1'
+                                Source='target\release\yarn.exe' />
+
+                            <RemoveFolder Id='RemoveBin' On='uninstall' />
+                        </Component>
+                    </Directory>
+                </Directory>
+            </Directory>
+        </Directory>
+
+        <Feature
+            Id='MainProgram'
+            Title='Application'
+            Description='Installs the executable and license.'
+            Level='1'
+            ConfigurableDirectory='APPLICATIONFOLDER'
+            AllowAdvertise='no'
+            Display='expand'
+            Absent='disallow'>
+
+            <ComponentRef Id='DirectoryStructure'/>
+            <ComponentRef Id='Binaries'/>
+        </Feature>
+
+        <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
+
+        
+        <!--
+          Uncomment the following `Icon` and `Property` tags to change the product icon.
+
+          The product icon is the graphic that appears in the Add/Remove
+          Programs control panel for the application.
+        -->
+        <!--<Icon Id='ProductICO' SourceFile='wix\Product.ico'/>-->
+        <!--<Property Id='ARPPRODUCTICON' Value='ProductICO' />-->
+
+        <Property Id='ARPHELPLINK' Value='https://github.com/notion-cli/notion'/>
+        
+        <UI>
+            <UIRef Id='WixUI_FeatureTree'/>
+            
+            <!--
+              Enabling the EULA dialog in the installer is a three step process:
+
+                1. Comment out or remove the two `Publish` tags that follow the
+                   `WixVariable` tag.
+                2. Uncomment the `<WixVariable Id='WixUILicenseRtf' Value='Path\to\Eula.rft'>` tag futher down
+                3. Replace the `Value` attribute of the `WixVariable` tag with
+                   the path to a RTF file that will be used as the EULA and
+                   displayed in the license agreement dialog.
+            -->
+            <Publish Dialog='WelcomeDlg' Control='Next' Event='NewDialog' Value='CustomizeDlg' Order='2'>1</Publish>
+            <Publish Dialog='CustomizeDlg' Control='Back' Event='NewDialog' Value='WelcomeDlg' Order='2'>1</Publish>
+
+        </UI>
+
+        
+        <!--
+          Enabling the EULA dialog in the installer requires uncommenting
+          the following `WixUILicenseRTF` tag and changing the `Value`
+          attribute.
+        -->
+        <!-- <WixVariable Id='WixUILicenseRtf' Value='Relative\Path\to\Eula.rtf'/> -->
+
+        
+        <!--
+          Uncomment the next `WixVaraible` tag to customize the installer's
+          Graphical User Interface (GUI) and add a custom banner image across
+          the top of each screen. See the WiX Toolset documentation for details
+          about customization.
+
+          The banner BMP dimensions are 493 x 58 pixels.
+        -->
+        <!--<WixVariable Id='WixUIBannerBmp' Value='wix\Banner.bmp'/>-->
+
+        
+        <!--
+          Uncomment the next `WixVariable` tag to customize the installer's
+          Graphical User Interface (GUI) and add a custom image to the first
+          dialog, or screen. See the WiX Toolset documentation for details about
+          customization.
+
+          The dialog BMP dimensions are 493 x 312 pixels.
+        -->
+        <!--<WixVariable Id='WixUIDialogBmp' Value='wix\Dialog.bmp'/>-->
+
+    </Product>
+
+</Wix>

@@ -129,14 +129,6 @@ pub fn node_archive_root_dir_name(version: &str) -> String {
     format!("node-v{}-{}-{}", version, OS, ARCH)
 }
 
-pub fn node_archive_npm_package_json_path(version: &str) -> PathBuf {
-    Path::new(&node_archive_root_dir_name(version))
-        .join("lib")
-        .join("node_modules")
-        .join("npm")
-        .join("package.json")
-}
-
 pub fn yarn_distro_file_name(version: &str) -> String {
     format!("{}.tar.gz", yarn_archive_root_dir_name(version))
 }

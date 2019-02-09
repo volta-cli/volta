@@ -3,7 +3,7 @@
 
 use std::io;
 use std::os::unix;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use dirs;
 use failure::Fail;
@@ -11,7 +11,7 @@ use failure::Fail;
 use notion_fail::{ExitCode, Fallible, NotionFail};
 use notion_fail_derive::*;
 
-use super::{node_image_dir, notion_home, shim_dir};
+use super::{node_archive_root_dir_name, node_image_dir, notion_home, shim_dir};
 
 #[derive(Debug, Fail, NotionFail)]
 #[fail(display = "environment variable 'HOME' is not set")]
@@ -101,6 +101,14 @@ pub fn node_image_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
 // 3rd-party binaries installed globally for this node version
 pub fn node_image_3p_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
     Ok(node_image_dir(node, npm)?.join("lib/node_modules/.bin"))
+}
+
+pub fn node_archive_npm_package_json_path(version: &str) -> PathBuf {
+    Path::new(&node_archive_root_dir_name(version))
+        .join("lib")
+        .join("node_modules")
+        .join("npm")
+        .join("package.json")
 }
 
 pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
