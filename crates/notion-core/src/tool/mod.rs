@@ -187,16 +187,41 @@ fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
 struct NoArg0Error;
 
 fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
+    #[cfg(unix)]
     let opt = args.next().and_then(|arg0| {
         Path::new(&arg0)
             .file_name()
             .map(|file_name| file_name.to_os_string())
     });
+
+    // On Windows Powershell, the filename of arg0 includes the .exe suffix
+    // We want to remove that before calling the tool, because many of the tools
+    // are not .exe files
+    #[cfg(windows)]
+    let opt = args
+        .next()
+        .and_then(|arg0| Path::new(&arg0).file_name().map(remove_exe_suffix));
+
     if let Some(file_name) = opt {
         Ok(file_name)
     } else {
         Err(NoArg0Error.unknown())
     }
+}
+
+#[cfg(windows)]
+fn remove_exe_suffix(tool_name: &OsStr) -> OsString {
+    let mut result = OsString::new();
+    match tool_name.to_str() {
+        Some(tool) => {
+            result.push(tool.trim_end_matches(".exe"));
+        }
+        None => {
+            result.push(tool_name);
+        }
+    };
+
+    result
 }
 
 #[derive(Debug, Fail, NotionFail)]
