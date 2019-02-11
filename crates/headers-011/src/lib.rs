@@ -16,14 +16,13 @@ pub trait Headers011 {
 
     /// Extract a typed header.
     fn get_011<H: Header>(&self) -> Option<H> {
-        self
-            .get_raw(H::header_name())
-            .and_then(|value| {
-                H::parse_header(&value.as_bytes().into()).ok()
-            })
+        self.get_raw(H::header_name())
+            .and_then(|value| H::parse_header(&value.as_bytes().into()).ok())
     }
 }
 
 impl Headers011 for HeaderMap {
-    fn get_raw(&self, key: &str) -> Option<&HeaderValue> { self.get(key) }
+    fn get_raw(&self, key: &str) -> Option<&HeaderValue> {
+        self.get(key)
+    }
 }
