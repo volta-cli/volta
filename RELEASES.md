@@ -1,5 +1,6 @@
 # Version 0.2.0
 
+- Add support for OpenSSL 1.1.1 (#267)
 - Fix: ensure temp files are on the same volume (#257)
 - Intercept global package installations (#248)
 - Fix: make npx compatible with prelrease versions of npm (#239)
