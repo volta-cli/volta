@@ -36,11 +36,21 @@ notion_warning() {
 # determines the major and minor version of OpenSSL on the system
 notion_get_openssl_version() {
   local LIB
+  local LIBNAME
   local FULLVERSION
   local MAJOR
   local MINOR
+
   # By default, we'll guess OpenSSL 1.0.1.
   LIB="$(openssl version 2>/dev/null || echo 'OpenSSL 1.0.1')"
+
+  LIBNAME="$(echo $LIB | awk '{print $1;}')"
+
+  if [[ "$LIBNAME" != "OpenSSL" ]]; then
+    notion_error "Your system SSL library ($LIBNAME) is not currently supported on this OS."
+    #exit 1
+  fi
+
   FULLVERSION="$(echo $LIB | awk '{print $2;}')"
   MAJOR="$(echo ${FULLVERSION} | cut -d. -f1)"
   MINOR="$(echo ${FULLVERSION} | cut -d. -f2)"
