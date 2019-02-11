@@ -8,7 +8,7 @@ use notion_fail::ExitCode;
 cfg_if::cfg_if! {
     // Note: Windows and Unix appear to handle a missing executable differently
     // On Unix, it results in the Command::status() method returning an Err Result
-    // On Windows, it results in the Command::status() method returning Ok(3221225495)
+    // On Windows, it results in the Command::status() method returning Ok(1)
     if #[cfg(target_os = "macos")] {
         const MISSING_EXECUTABLE_EXIT_CODE: i32 = ExitCode::ExecutionFailure as i32;
         const NODE_VERSION_FIXTURES: [DistroMetadata; 1] = [
@@ -28,8 +28,7 @@ cfg_if::cfg_if! {
             },
         ];
     } else if #[cfg(target_os = "windows")] {
-        // Exit Code 3221225495 overflows to -1073741801 when comparing i32 codes
-        const MISSING_EXECUTABLE_EXIT_CODE: i32 = -1073741801;
+        const MISSING_EXECUTABLE_EXIT_CODE: i32 = 1;
         const NODE_VERSION_FIXTURES: [DistroMetadata; 1] = [
             DistroMetadata {
                 version: "10.99.1040",

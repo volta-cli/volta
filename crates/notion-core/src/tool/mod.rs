@@ -187,21 +187,9 @@ fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
 struct NoArg0Error;
 
 fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
-    #[cfg(unix)]
-    let opt = args.next().and_then(|arg0| {
-        Path::new(&arg0)
-            .file_name()
-            .map(|file_name| file_name.to_os_string())
-    });
-
-    // On Windows Powershell, the filename of arg0 includes the .exe suffix
-    // We want to remove that before calling the tool, because many of the tools
-    // are not .exe files
-    #[cfg(windows)]
     let opt = args
         .next()
-        .and_then(|arg0| Path::new(&arg0).file_name().map(remove_exe_suffix));
-
+        .and_then(|arg0| Path::new(&arg0).file_name().map(tool_name_from_file_name));
     if let Some(file_name) = opt {
         Ok(file_name)
     } else {
@@ -209,17 +197,24 @@ fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
     }
 }
 
+#[cfg(unix)]
+fn tool_name_from_file_name(file_name: &OsStr) -> OsString {
+    file_name.to_os_string()
+}
+
 #[cfg(windows)]
-fn remove_exe_suffix(tool_name: &OsStr) -> OsString {
+fn tool_name_from_file_name(file_name: &OsStr) -> OsString {
+    // On Windows Powershell, the file name includes the .exe suffix
+    // We need to remove that, because many of the tools are not .exe files
     let mut result = OsString::new();
-    match tool_name.to_str() {
-        Some(tool) => {
-            result.push(tool.trim_end_matches(".exe"));
+    match file_name.to_str() {
+        Some(file) => {
+            result.push(file.trim_end_matches(".exe"));
         }
         None => {
-            result.push(tool_name);
+            result.push(file_name);
         }
-    };
+    }
 
     result
 }
