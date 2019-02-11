@@ -57,7 +57,7 @@ impl DownloadError {
     ) -> impl FnOnce(&failure::Error) -> DownloadError {
         move |error| {
             if let Some(HttpError {
-                code: StatusCode::NotFound,
+                code: StatusCode::NOT_FOUND,
             }) = error.downcast_ref::<HttpError>()
             {
                 DownloadError::NotFound { toolspec: toolspec }
