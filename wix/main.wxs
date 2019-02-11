@@ -194,7 +194,12 @@
 
         <Property Id='ARPHELPLINK' Value='https://github.com/notion-cli/notion'/>
 
-        <UIRef Id='WixUI_Minimal'/>
+        <UI>
+            <UIRef Id='WixUI_FeatureTree' />
+
+            <Publish Dialog='LicenseAgreementDlg' Control='Next' Event='NewDialog' Value='VerifyReadyDlg' Order='2'>1</Publish>
+            <Publish Dialog='VerifyReadyDlg' Control='Back' Event='NewDialog' Value='LicenseAgreementDlg' Order='2'>1</Publish>
+        </UI>
 
         <!--
           Enabling the EULA dialog in the installer requires uncommenting
