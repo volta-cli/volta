@@ -50,7 +50,7 @@ failure_derive = "0.1.1"
 failure = "0.1.1"
 notion-fail = { path = "crates/notion-fail" }
 notion-fail-derive = { path = "crates/notion-fail-derive" }
-reqwest = "0.8.5"
+reqwest = { version = "0.9.9", features = ["hyper-011"] }
 semver = "0.9.0"
 result = "1.0.0"
 rand = "0.5"
