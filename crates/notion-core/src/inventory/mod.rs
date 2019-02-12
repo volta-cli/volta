@@ -10,9 +10,10 @@ use std::string::ToString;
 use std::time::{Duration, SystemTime};
 
 use failure::Fail;
+use headers_011::Headers011;
 use lazycell::LazyCell;
 use reqwest;
-use reqwest::header::{CacheControl, CacheDirective, Expires, HttpDate};
+use reqwest::hyper_011::header::{CacheControl, CacheDirective, Expires, HttpDate};
 use serde_json;
 use tempfile::NamedTempFile;
 
@@ -379,7 +380,7 @@ fn read_cached_opt() -> Fallible<Option<serial::NodeIndex>> {
 
 /// Get the cache max-age of an HTTP reponse.
 fn max_age(response: &reqwest::Response) -> u32 {
-    if let Some(cache_control_header) = response.headers().get::<CacheControl>() {
+    if let Some(cache_control_header) = response.headers().get_011::<CacheControl>() {
         for cache_directive in cache_control_header.iter() {
             if let CacheDirective::MaxAge(max_age) = cache_directive {
                 return *max_age;
@@ -417,7 +418,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
             {
                 let mut expiry_file: &File = expiry.as_file();
 
-                if let Some(expires_header) = response.headers().get::<Expires>() {
+                if let Some(expires_header) = response.headers().get_011::<Expires>() {
                     write!(expiry_file, "{}", expires_header).unknown()?;
                 } else {
                     let expiry_date =

@@ -36,9 +36,10 @@ impl Tool for Npx {
         if let Some(ref platform) = session.current_platform()? {
             let image = platform.checkout(session)?;
 
-            // npx was only included with Node >= 8.2.0. If less than that, we should include a helpful error message
-            let required_node = VersionSpec::parse_requirements(">= 5.2.0")?;
-            if required_node.matches(&image.node.npm) {
+            // npx was only included with npm 5.2.0 and higher. If the npm version is less than that, we
+            // should include a helpful error message
+            let required_npm = VersionSpec::parse_version("5.2.0")?;
+            if image.node.npm >= required_npm {
                 Ok(Self::from_components(&exe, args, &image.path()?))
             } else {
                 throw!(NpxNotAvailableError {
