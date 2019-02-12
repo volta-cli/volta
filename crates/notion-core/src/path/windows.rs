@@ -8,17 +8,26 @@ use std::path::{Path, PathBuf};
 
 use dirs;
 use failure::Fail;
+use winreg::enums::HKEY_LOCAL_MACHINE;
+use winreg::RegKey;
 
-use notion_fail::{ExitCode, Fallible, NotionFail};
+use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
 use notion_fail_derive::*;
 
-use super::{node_archive_root_dir_name, node_image_dir, notion_home, shim_dir};
+use super::{node_archive_root_dir_name, node_image_dir, shim_dir};
 
 // These are taken from: https://nodejs.org/dist/index.json and are used
 // by `path::archive_root_dir` to determine the root directory of the
 // contents of a Node installer archive.
 
 pub const OS: &'static str = "win";
+
+// This path needs to exactly match the Registry Key in the Windows Installer
+// wix/main.wxs -
+const NOTION_REGISTRY_PATH: &'static str = r#"Software\The Notion Maintainers\Notion"#;
+
+// This Key needs to exactly match the Name from the above element in the Windows Installer
+const NOTION_INSTALL_DIR: &'static str = "InstallDir";
 
 cfg_if::cfg_if! {
     if #[cfg(target_arch = "x86")] {
@@ -69,10 +78,13 @@ pub(crate) struct NoDataLocalDir;
 //                         package.toml
 //                         contents\
 //                 platform.json                           user_platform_file
+//         hooks.toml                                      user_hooks_file
+//
+// C:\Program Files\
+//     Notion\                                             (Path stored in Windows Registry by installer)
 //         notion.exe                                      notion_file
 //         launchbin.exe                                   launchbin_file
 //         launchscript.exe                                launchscript_file
-//         hooks.toml                                      user_hooks_file
 
 pub fn default_notion_home() -> Fallible<PathBuf> {
     let home = dirs::data_local_dir().ok_or(NoDataLocalDir)?;
@@ -100,16 +112,23 @@ pub fn node_archive_npm_package_json_path(version: &str) -> PathBuf {
         .join("package.json")
 }
 
+fn install_dir() -> Fallible<PathBuf> {
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let notion_key = hklm.open_subkey(NOTION_REGISTRY_PATH).unknown()?;
+    let install_path: String = notion_key.get_value(NOTION_INSTALL_DIR).unknown()?;
+    Ok(PathBuf::from(install_path))
+}
+
 pub fn launchbin_file() -> Fallible<PathBuf> {
-    Ok(notion_home()?.join("launchbin.exe"))
+    Ok(install_dir()?.join("launchbin.exe"))
 }
 
 pub fn launchscript_file() -> Fallible<PathBuf> {
-    Ok(notion_home()?.join("launchscript.exe"))
+    Ok(install_dir()?.join("launchscript.exe"))
 }
 
 pub fn notion_file() -> Fallible<PathBuf> {
-    Ok(notion_home()?.join("notion.exe"))
+    Ok(install_dir()?.join("notion.exe"))
 }
 
 pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {

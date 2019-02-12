@@ -11,6 +11,7 @@ use std::process::{Command, ExitStatus};
 use failure::Fail;
 
 use crate::env::UNSAFE_GLOBAL;
+use crate::path;
 use crate::session::{ActivityKind, Session};
 use crate::style;
 use crate::version::VersionSpec;
@@ -109,7 +110,8 @@ pub trait Tool: Sized {
 
         session.add_event_start(ActivityKind::Tool);
 
-        match Self::new(&mut session) {
+        let tool_result = path::ensure_notion_dirs_exist().and_then(|_| Self::new(&mut session));
+        match tool_result {
             Ok(tool) => {
                 tool.exec(session);
             }

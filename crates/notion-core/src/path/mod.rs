@@ -2,9 +2,10 @@
 //! in a standard Notion layout.
 
 use std::env;
+use std::fs;
 use std::path::{Path, PathBuf};
 
-use notion_fail::Fallible;
+use notion_fail::{Fallible, ResultExt};
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "universal-docs")] {
@@ -22,6 +23,23 @@ cfg_if::cfg_if! {
         mod windows;
         pub use self::windows::*;
     }
+}
+
+pub fn ensure_notion_dirs_exist() -> Fallible<()> {
+    // Assume that if notion_home() exists, then the directory structure has been initialized
+    if !notion_home()?.exists() {
+        fs::create_dir_all(node_cache_dir()?).unknown()?;
+        fs::create_dir_all(shim_dir()?).unknown()?;
+        fs::create_dir_all(node_inventory_dir()?).unknown()?;
+        fs::create_dir_all(package_inventory_dir()?).unknown()?;
+        fs::create_dir_all(yarn_inventory_dir()?).unknown()?;
+        fs::create_dir_all(node_image_root_dir()?).unknown()?;
+        fs::create_dir_all(yarn_image_root_dir()?).unknown()?;
+        fs::create_dir_all(user_toolchain_dir()?).unknown()?;
+        fs::create_dir_all(tmp_dir()?).unknown()?;
+    }
+
+    Ok(())
 }
 
 pub fn notion_home() -> Fallible<PathBuf> {

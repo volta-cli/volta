@@ -32,7 +32,7 @@
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
 
     <Product
-        Id='F221391A-3021-48A2-A198-B4732BA91388'
+        Id='*'
         Name='Notion'
         UpgradeCode='2AC3458D-A24D-4828-AF47-013B30999B54'
         Manufacturer='The Notion Maintainers'
@@ -47,7 +47,7 @@
             InstallerVersion='450'
             Languages='1033'
             Compressed='yes'
-            InstallScope='perUser'
+            InstallScope='perMachine'
             SummaryCodepage='1252'
             Platform='$(var.Platform)'/>
 
@@ -59,125 +59,94 @@
         <Property Id='DiskPrompt' Value='Notion Installation'/>
 
         <Directory Id='TARGETDIR' Name='SourceDir'>
-            <Directory Id='LocalAppDataFolder' Name='LocalData'>
+            <Directory Id='$(var.PlatformProgramFilesFolder)' Name='PFiles'>
                 <Directory Id='APPLICATIONFOLDER' Name='Notion'>
-                    <Directory Id='Cache' Name='cache'>
-                        <Directory Id='CacheNode' Name='node' />
-                    </Directory>
-                    <Directory Id='Tools' Name='tools'>
-                        <Directory Id='Inventory' Name='inventory'>
-                            <Directory Id='InventoryNode' Name='node' />
-                            <Directory Id='InventoryPackages' Name='packages' />
-                            <Directory Id='InventoryYarn' Name='yarn' />
-                        </Directory>
-                        <Directory Id='Image' Name='image'>
-                            <Directory Id='ImageNode' Name='node' />
-                            <Directory Id='ImageYarn' Name='yarn' />
-                        </Directory>
-                        <Directory Id='User' Name='user' />
-                    </Directory>
-                    <Directory Id='Temp' Name='tmp' />
-
-                    <Component Id='DirectoryStructure' Guid='4AD9EF18-B9A7-4C6B-914B-FDFE12B45232' Win64='$(var.Win64)'>
+                    <Component Id='InstallDir' Guid='3FE37B64-82F4-4F0F-BD40-B23DFF85E9D6' Win64='$(var.Win64)'>
                         <RegistryValue
-                            Root='HKCU'
+                            Root='HKLM'
                             Key='Software\[Manufacturer]\[ProductName]'
                             Name='InstallDir'
                             Type='string'
                             Value='[APPLICATIONFOLDER]'
                             KeyPath='yes' />
-                        <CreateFolder Directory='CacheNode' />
-                        <CreateFolder Directory='InventoryNode' />
-                        <CreateFolder Directory='InventoryPackages' />
-                        <CreateFolder Directory='InventoryYarn' />
-                        <CreateFolder Directory='ImageNode' />
-                        <CreateFolder Directory='ImageYarn' />
-                        <CreateFolder Directory='User' />
-                        <CreateFolder Directory='Temp' />
-
-                        <File
-                            Id='launchbinEXE'
-                            Name='launchbin.exe'
-                            DiskId='1'
-                            Source='target\release\launchbin.exe' />
-                        <File
-                            Id='launchscriptEXE'
-                            Name='launchscript.exe'
-                            DiskId='1'
-                            Source='target\release\launchscript.exe' />
-
-                        <RemoveFile Id='RemoveTempFiles' Directory='Temp' Name='*' On='uninstall' />
-                        <RemoveFolder Id='RemoveTemp' Directory='Temp' On='uninstall' />
-                        <RemoveFolder Id='RemoveUser' Directory='User' On='uninstall' />
-                        <RemoveFolder Id='RemoveImageYarn' Directory='ImageYarn' On='uninstall' />
-                        <RemoveFolder Id='RemoveImageNode' Directory='ImageNode' On='uninstall' />
-                        <RemoveFolder Id='RemoveImage' Directory='Image' On='uninstall' />
-                        <RemoveFolder Id='RemoveInventoryYarn' Directory='InventoryYarn' On='uninstall' />
-                        <RemoveFolder Id='RemoveInventoryPackages' Directory='InventoryPackages' On='uninstall' />
-                        <RemoveFolder Id='RemoveInventoryNode' Directory='InventoryNode' On='uninstall' />
-                        <RemoveFolder Id='RemoveInventory' Directory='Inventory' On='uninstall' />
-                        <RemoveFolder Id='RemoveTools' Directory='Tools' On='uninstall' />
-                        <RemoveFolder Id='RemoveCacheNode' Directory='CacheNode' On='uninstall' />
-                        <RemoveFolder Id='RemoveCache' Directory='Cache' On='uninstall' />
-                        <RemoveFolder Id='RemoveApplication' On='uninstall' />
+                        <Environment
+                            Id='INSTALLPATH'
+                            Name='PATH'
+                            Value='[APPLICATIONFOLDER]'
+                            Permanent='no'
+                            Part='first'
+                            Action='set'
+                            System='yes' />
                     </Component>
-
-                    <Directory Id='Bin' Name='bin'>
-                        <Component Id='Binaries' Guid='48F65B63-4CA5-4C96-A204-0F0D3A553538' Win64='$(var.Win64)'>
-                            <RegistryValue
-                                Root='HKCU'
-                                Key='Software\[Manufacturer]\[ProductName]'
-                                Name='BinDir'
-                                Type='string'
-                                Value='[Bin]'
-                                KeyPath='yes' />
-                            <CreateFolder />
-
-                            <Environment
-                                Id='PATH'
-                                Name='PATH'
-                                Value='[Bin]'
-                                Permanent='no'
-                                Part='first'
-                                Action='set'
-                                System='no' />
-
-                            <File
-                                Id='notionEXE'
-                                Name='notion.exe'
-                                DiskId='1'
-                                Source='target\release\notion.exe' />
-                            <File
-                                Id='nodeEXE'
-                                Name='node.exe'
-                                DiskId='1'
-                                Source='target\release\node.exe' />
-                            <File
-                                Id='npmEXE'
-                                Name='npm.exe'
-                                DiskId='1'
-                                Source='target\release\npm.exe' />
-                            <File
-                                Id='npxEXE'
-                                Name='npx.exe'
-                                DiskId='1'
-                                Source='target\release\npx.exe' />
-                            <File
-                                Id='yarnEXE'
-                                Name='yarn.exe'
-                                DiskId='1'
-                                Source='target\release\yarn.exe' />
-
-                            <RemoveFolder Id='RemoveBin' On='uninstall' />
-                        </Component>
-                    </Directory>
+                    <Component Id='notionBinary' Guid='*' Win64='$(var.Win64)'>
+                        <File
+                            Id='notionEXE'
+                            Name='notion.exe'
+                            DiskId='1'
+                            Source='target\release\notion.exe'
+                            KeyPath='yes'/>
+                    </Component>
+                    <Component Id='nodeBinary' Guid='*' Win64='$(var.Win64)'>
+                        <File
+                            Id='nodeEXE'
+                            Name='node.exe'
+                            DiskId='1'
+                            Source='target\release\node.exe'
+                            KeyPath='yes'/>
+                    </Component>
+                    <Component Id='npmBinary' Guid='*' Win64='$(var.Win64)'>
+                        <File
+                            Id='npmEXE'
+                            Name='npm.exe'
+                            DiskId='1'
+                            Source='target\release\npm.exe'
+                            KeyPath='yes'/>
+                    </Component>
+                    <Component Id='npxBinary' Guid='*' Win64='$(var.Win64)'>
+                        <File
+                            Id='npxEXE'
+                            Name='npx.exe'
+                            DiskId='1'
+                            Source='target\release\npx.exe'
+                            KeyPath='yes'/>
+                    </Component>
+                    <Component Id='yarnBinary' Guid='*' Win64='$(var.Win64)'>
+                        <File
+                            Id='yarnEXE'
+                            Name='yarn.exe'
+                            DiskId='1'
+                            Source='target\release\yarn.exe'
+                            KeyPath='yes'/>
+                    </Component>
                 </Directory>
             </Directory>
+            <Component Id='UserBinDir' Guid='96B83015-59EC-42E7-B85E-BDF6A1BC6198' Win64='$(var.Win64)'>
+                <RegistryValue
+                    Root='HKCU'
+                    Key='Software\[Manufacturer]\[ProductName]'
+                    Name='BinDir'
+                    Type='string'
+                    Value='[LocalAppDataFolder]Notion\bin'
+                    KeyPath='yes' />
+                <Environment
+                    Id='BINPATH'
+                    Name='PATH'
+                    Value='[LocalAppDataFolder]Notion\bin'
+                    Permanent='no'
+                    Part='first'
+                    Action='set'
+                    System='no' />
+            </Component>
         </Directory>
 
         <Feature Id='MainProgram'>
-            <ComponentRef Id='DirectoryStructure'/>
-            <ComponentRef Id='Binaries'/>
+            <ComponentRef Id='InstallDir'/>
+            <ComponentRef Id='UserBinDir'/>
+            <ComponentRef Id='notionBinary'/>
+            <ComponentRef Id='nodeBinary'/>
+            <ComponentRef Id='npmBinary'/>
+            <ComponentRef Id='npxBinary'/>
+            <ComponentRef Id='yarnBinary'/>
         </Feature>
 
         <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
@@ -193,6 +162,7 @@
         <!--<Property Id='ARPPRODUCTICON' Value='ProductICO' />-->
 
         <Property Id='ARPHELPLINK' Value='https://github.com/notion-cli/notion'/>
+        <Property Id='LicenseAccepted' Value='1'/>
 
         <UI>
             <UIRef Id='WixUI_FeatureTree' />

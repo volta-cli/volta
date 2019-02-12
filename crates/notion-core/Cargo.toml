@@ -34,3 +34,6 @@ envoy = "0.1.3"
 mockito = { version = "0.14.0", optional = true }
 regex = "1.0.6"
 dirs = "1.0.4"
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.6.0"

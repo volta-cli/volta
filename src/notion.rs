@@ -9,6 +9,7 @@ use std::string::ToString;
 use docopt::Docopt;
 use serde::Deserialize;
 
+use notion_core::path;
 use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error, ErrorContext};
 use notion_fail::{throw, ExitCode, FailExt, Fallible, NotionError};
@@ -79,6 +80,7 @@ See 'notion help <command>' for more information on a specific command.
     }
 
     fn go(session: &mut Session) -> Fallible<()> {
+        path::ensure_notion_dirs_exist()?;
         Self::parse()?.run(session)
     }
 
