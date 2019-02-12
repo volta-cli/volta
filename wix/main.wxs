@@ -59,7 +59,7 @@
 
         <Directory Id='TARGETDIR' Name='SourceDir'>
             <Directory Id='$(var.PlatformProgramFilesFolder)' Name='PFiles'>
-                <Directory Id='APPLICATIONFOLDER' Name='Notion'>
+                <Directory Id='INSTALLDIR' Name='Notion'>
                     <Component Id='InstallDir' Guid='*' Win64='$(var.Win64)'>
                         <RegistryValue
                             Root='HKLM'
@@ -98,7 +98,7 @@
             </Component>
         </Directory>
 
-        <ComponentGroup Id='Binaries' Directory='APPLICATIONFOLDER'>
+        <ComponentGroup Id='Binaries' Directory='INSTALLDIR'>
             <Component Id='notionBinary' Guid='*' Win64='$(var.Win64)'>
                 <File
                     Id='notionEXE'
