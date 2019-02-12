@@ -11,7 +11,8 @@ universal-docs = []
 flate2 = "1.0"
 tar = "0.4.13"
 zip_rs = { version = "0.2.6", package = "zip" }
-reqwest = "0.7.3"
+reqwest = { version = "0.9.9", features = ["hyper-011"] }
+headers-011 = { path = "../headers-011" }
 tee = "0.1.0"
 failure = "0.1.1"
 failure_derive = "0.1.1"

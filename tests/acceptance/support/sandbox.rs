@@ -5,7 +5,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
-use reqwest::header::HttpDate;
+use reqwest::hyper_011::header::HttpDate;
 
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 

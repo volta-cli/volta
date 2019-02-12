@@ -83,7 +83,7 @@ fn error_for_tool(
 ) -> impl FnOnce(&failure::Error) -> ErrorDetails {
     move |error| {
         if let Some(HttpError {
-            code: StatusCode::NotFound,
+            code: StatusCode::NOT_FOUND,
         }) = error.downcast_ref::<HttpError>()
         {
             ErrorDetails::DownloadToolNotFound { tool: toolspec }

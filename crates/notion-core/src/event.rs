@@ -8,7 +8,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde::Serialize;
 
 use crate::hook::Publish;
-use crate::monitor::LazyMonitor;
+use crate::monitor::Monitor;
 use crate::session::ActivityKind;
 use notion_fail::{ExitCode, NotionError};
 
@@ -92,16 +92,12 @@ fn get_error_env() -> ErrorEnv {
 
 pub struct EventLog {
     events: Vec<Event>,
-    monitor: LazyMonitor,
 }
 
 impl EventLog {
     /// Constructs a new 'EventLog'
     pub fn new() -> Self {
-        EventLog {
-            events: Vec::new(),
-            monitor: LazyMonitor::new(),
-        }
+        EventLog { events: Vec::new() }
     }
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
@@ -134,7 +130,8 @@ impl EventLog {
         match plugin {
             Some(&Publish::Url(_)) => unimplemented!(),
             Some(&Publish::Bin(ref command)) => {
-                self.monitor.get_mut(command).send_events(&self.events);
+                let mut monitor = Monitor::new(command);
+                monitor.send_events(&self.events);
             }
             None => {}
         }

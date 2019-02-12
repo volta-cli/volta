@@ -7,9 +7,10 @@ use std::path::Path;
 
 use failure::{self, Fail};
 use flate2::read::GzDecoder;
+use headers_011::Headers011;
 use progress_read::ProgressRead;
 use reqwest;
-use reqwest::header::{AcceptRanges, ByteRangeSpec, ContentLength, Range, RangeUnit};
+use reqwest::hyper_011::header::{AcceptRanges, ByteRangeSpec, ContentLength, Range, RangeUnit};
 use reqwest::Response;
 use tar;
 use tee::TeeReader;
@@ -32,15 +33,16 @@ struct MissingHeaderError {
 /// Determines the length of an HTTP response's content in bytes, using
 /// the HTTP `"Content-Length"` header.
 fn content_length(response: &Response) -> Result<u64, failure::Error> {
-    Ok(match response.headers().get::<ContentLength>() {
-        Some(content_length) => **content_length,
-        None => {
-            return Err(MissingHeaderError {
+    response
+        .headers()
+        .get_011::<ContentLength>()
+        .map(|v| v.0)
+        .ok_or_else(|| {
+            MissingHeaderError {
                 header: String::from("Content-Length"),
             }
-            .into());
-        }
-    })
+            .into()
+        })
 }
 
 impl Tarball {
@@ -134,10 +136,10 @@ struct UnexpectedContentLengthError {
 /// downloading the entire gzip file. For very small files it's unlikely to be
 /// more efficient than simply downloading the entire file up front.
 fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], failure::Error> {
-    let client = reqwest::Client::new()?;
+    let client = reqwest::Client::new();
     let mut response = client
-        .get(url)?
-        .header(Range::Bytes(vec![ByteRangeSpec::FromTo(len - 4, len - 1)]))
+        .get(url)
+        .header_011(Range::Bytes(vec![ByteRangeSpec::FromTo(len - 4, len - 1)]))
         .send()?;
 
     if !response.status().is_success() {
@@ -176,7 +178,7 @@ struct ByteRangesNotAcceptedError;
 fn ensure_accepts_byte_ranges(response: &Response) -> Result<(), failure::Error> {
     if !response
         .headers()
-        .get::<AcceptRanges>()
+        .get_011::<AcceptRanges>()
         .map(|v| v.iter().any(|unit| *unit == RangeUnit::Bytes))
         .unwrap_or(false)
     {
