@@ -86,6 +86,22 @@
                             Source='target\release\notion.exe'
                             KeyPath='yes'/>
                     </Component>
+                    <Component Id='launchbinBinary' Guid='*' Win64='$(var.Win64)'>
+                        <File
+                            Id='launchbinEXE'
+                            Name='launchbin.exe'
+                            DiskId='1'
+                            Source='target\release\launchbin.exe'
+                            KeyPath='yes'/>
+                    </Component>
+                    <Component Id='launchscriptBinary' Guid='*' Win64='$(var.Win64)'>
+                        <File
+                            Id='launchscriptEXE'
+                            Name='launchscript.exe'
+                            DiskId='1'
+                            Source='target\release\launchscript.exe'
+                            KeyPath='yes'/>
+                    </Component>
                     <Component Id='nodeBinary' Guid='*' Win64='$(var.Win64)'>
                         <File
                             Id='nodeEXE'
@@ -143,6 +159,8 @@
             <ComponentRef Id='InstallDir'/>
             <ComponentRef Id='UserBinDir'/>
             <ComponentRef Id='notionBinary'/>
+            <ComponentRef Id='launchbinBinary'/>
+            <ComponentRef Id='launchscriptBinary'/>
             <ComponentRef Id='nodeBinary'/>
             <ComponentRef Id='npmBinary'/>
             <ComponentRef Id='npxBinary'/>
