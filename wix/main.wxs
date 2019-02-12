@@ -34,7 +34,7 @@
     <Product
         Id='*'
         Name='Notion'
-        UpgradeCode='2AC3458D-A24D-4828-AF47-013B30999B54'
+        UpgradeCode='42A39E14-335A-4464-AA37-17FDA38FA377'
         Manufacturer='The Notion Maintainers'
         Language='1033'
         Codepage='1252'
@@ -55,13 +55,12 @@
             Schedule='afterInstallInitialize'
             DowngradeErrorMessage='A newer version of [ProductName] is already installed. Setup will now exit.'/>
 
-        <Media Id='1' Cabinet='media1.cab' EmbedCab='yes' DiskPrompt='CD-ROM #1'/>
-        <Property Id='DiskPrompt' Value='Notion Installation'/>
+        <Media Id='1' Cabinet='media1.cab' EmbedCab='yes' CompressionLevel='high'/>
 
         <Directory Id='TARGETDIR' Name='SourceDir'>
             <Directory Id='$(var.PlatformProgramFilesFolder)' Name='PFiles'>
                 <Directory Id='APPLICATIONFOLDER' Name='Notion'>
-                    <Component Id='InstallDir' Guid='3FE37B64-82F4-4F0F-BD40-B23DFF85E9D6' Win64='$(var.Win64)'>
+                    <Component Id='InstallDir' Guid='*' Win64='$(var.Win64)'>
                         <RegistryValue
                             Root='HKLM'
                             Key='Software\[Manufacturer]\[ProductName]'
@@ -78,65 +77,9 @@
                             Action='set'
                             System='yes' />
                     </Component>
-                    <Component Id='notionBinary' Guid='*' Win64='$(var.Win64)'>
-                        <File
-                            Id='notionEXE'
-                            Name='notion.exe'
-                            DiskId='1'
-                            Source='target\release\notion.exe'
-                            KeyPath='yes'/>
-                    </Component>
-                    <Component Id='launchbinBinary' Guid='*' Win64='$(var.Win64)'>
-                        <File
-                            Id='launchbinEXE'
-                            Name='launchbin.exe'
-                            DiskId='1'
-                            Source='target\release\launchbin.exe'
-                            KeyPath='yes'/>
-                    </Component>
-                    <Component Id='launchscriptBinary' Guid='*' Win64='$(var.Win64)'>
-                        <File
-                            Id='launchscriptEXE'
-                            Name='launchscript.exe'
-                            DiskId='1'
-                            Source='target\release\launchscript.exe'
-                            KeyPath='yes'/>
-                    </Component>
-                    <Component Id='nodeBinary' Guid='*' Win64='$(var.Win64)'>
-                        <File
-                            Id='nodeEXE'
-                            Name='node.exe'
-                            DiskId='1'
-                            Source='target\release\node.exe'
-                            KeyPath='yes'/>
-                    </Component>
-                    <Component Id='npmBinary' Guid='*' Win64='$(var.Win64)'>
-                        <File
-                            Id='npmEXE'
-                            Name='npm.exe'
-                            DiskId='1'
-                            Source='target\release\npm.exe'
-                            KeyPath='yes'/>
-                    </Component>
-                    <Component Id='npxBinary' Guid='*' Win64='$(var.Win64)'>
-                        <File
-                            Id='npxEXE'
-                            Name='npx.exe'
-                            DiskId='1'
-                            Source='target\release\npx.exe'
-                            KeyPath='yes'/>
-                    </Component>
-                    <Component Id='yarnBinary' Guid='*' Win64='$(var.Win64)'>
-                        <File
-                            Id='yarnEXE'
-                            Name='yarn.exe'
-                            DiskId='1'
-                            Source='target\release\yarn.exe'
-                            KeyPath='yes'/>
-                    </Component>
                 </Directory>
             </Directory>
-            <Component Id='UserBinDir' Guid='96B83015-59EC-42E7-B85E-BDF6A1BC6198' Win64='$(var.Win64)'>
+            <Component Id='UserBinDir' Guid='*' Win64='$(var.Win64)'>
                 <RegistryValue
                     Root='HKCU'
                     Key='Software\[Manufacturer]\[ProductName]'
@@ -155,16 +98,69 @@
             </Component>
         </Directory>
 
+        <ComponentGroup Id='Binaries' Directory='APPLICATIONFOLDER'>
+            <Component Id='notionBinary' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='notionEXE'
+                    Name='notion.exe'
+                    DiskId='1'
+                    Source='target\release\notion.exe'
+                    KeyPath='yes'/>
+            </Component>
+            <Component Id='launchbinBinary' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='launchbinEXE'
+                    Name='launchbin.exe'
+                    DiskId='1'
+                    Source='target\release\launchbin.exe'
+                    KeyPath='yes'/>
+            </Component>
+            <Component Id='launchscriptBinary' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='launchscriptEXE'
+                    Name='launchscript.exe'
+                    DiskId='1'
+                    Source='target\release\launchscript.exe'
+                    KeyPath='yes'/>
+            </Component>
+            <Component Id='nodeBinary' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='nodeEXE'
+                    Name='node.exe'
+                    DiskId='1'
+                    Source='target\release\node.exe'
+                    KeyPath='yes'/>
+            </Component>
+            <Component Id='npmBinary' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='npmEXE'
+                    Name='npm.exe'
+                    DiskId='1'
+                    Source='target\release\npm.exe'
+                    KeyPath='yes'/>
+            </Component>
+            <Component Id='npxBinary' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='npxEXE'
+                    Name='npx.exe'
+                    DiskId='1'
+                    Source='target\release\npx.exe'
+                    KeyPath='yes'/>
+            </Component>
+            <Component Id='yarnBinary' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='yarnEXE'
+                    Name='yarn.exe'
+                    DiskId='1'
+                    Source='target\release\yarn.exe'
+                    KeyPath='yes'/>
+            </Component>
+        </ComponentGroup>
+
         <Feature Id='MainProgram'>
             <ComponentRef Id='InstallDir'/>
             <ComponentRef Id='UserBinDir'/>
-            <ComponentRef Id='notionBinary'/>
-            <ComponentRef Id='launchbinBinary'/>
-            <ComponentRef Id='launchscriptBinary'/>
-            <ComponentRef Id='nodeBinary'/>
-            <ComponentRef Id='npmBinary'/>
-            <ComponentRef Id='npxBinary'/>
-            <ComponentRef Id='yarnBinary'/>
+            <ComponentGroupRef Id='Binaries'/>
         </Feature>
 
         <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
