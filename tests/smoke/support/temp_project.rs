@@ -2,7 +2,6 @@ use std::env;
 use std::ffi::OsStr;
 use std::fs::File;
 use std::io::{Read, Write};
-use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 
 use serde_json;
@@ -90,8 +89,8 @@ impl TempProjectBuilder {
         ok_or_panic!(path::user_hooks_file()).rm();
         ok_or_panic!(path::user_platform_file()).rm();
         // create symlinks to shim executable for node and yarn
-        ok_or_panic!(symlink(shim_exe(), self.root.node_exe()));
-        ok_or_panic!(symlink(shim_exe(), self.root.yarn_exe()));
+        ok_or_panic!(path::create_file_symlink(shim_exe(), self.root.node_exe()));
+        ok_or_panic!(path::create_file_symlink(shim_exe(), self.root.yarn_exe()));
 
         // write files
         for file_builder in self.files {

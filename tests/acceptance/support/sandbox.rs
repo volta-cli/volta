@@ -9,7 +9,7 @@ use reqwest::hyper_011::header::HttpDate;
 
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 
-use notion_core::path::{archive_extension, ARCH, OS};
+use notion_core::path::{archive_extension, create_file_symlink, ARCH, OS};
 
 #[cfg(feature = "mock-network")]
 use mockito::{self, mock, Matcher};
@@ -351,6 +351,10 @@ impl SandboxBuilder {
         ok_or_panic! { fs::create_dir_all(yarn_inventory_dir()) };
         ok_or_panic! { fs::create_dir_all(notion_tmp_dir()) };
 
+        // Make sure the shims to npm and yarn exist
+        ok_or_panic! { create_file_symlink(shim_exe(), self.root.npm_exe()) };
+        ok_or_panic! { create_file_symlink(shim_exe(), self.root.yarn_exe()) };
+
         // write node and yarn caches
         for cache in self.caches.iter() {
             cache.build();
@@ -482,9 +486,13 @@ impl Sandbox {
     /// Example:
     ///     assert_that(p.npm("install ember-cli"), execs());
     pub fn npm(&self, cmd: &str) -> ProcessBuilder {
-        let mut p = self.process(&npm_exe());
+        let mut p = self.process(&self.npm_exe());
         split_and_add_args(&mut p, cmd);
         p
+    }
+
+    pub fn npm_exe(&self) -> PathBuf {
+        self.root().join(format!("npm{}", env::consts::EXE_SUFFIX))
     }
 
     /// Create a `ProcessBuilder` to run the notion yarn shim.
@@ -492,9 +500,13 @@ impl Sandbox {
     /// Example:
     ///     assert_that(p.yarn("add ember-cli"), execs());
     pub fn yarn(&self, cmd: &str) -> ProcessBuilder {
-        let mut p = self.process(&yarn_exe());
+        let mut p = self.process(&self.yarn_exe());
         split_and_add_args(&mut p, cmd);
         p
+    }
+
+    pub fn yarn_exe(&self) -> PathBuf {
+        self.root().join(format!("yarn{}", env::consts::EXE_SUFFIX))
     }
 
     pub fn read_package_json(&self) -> String {
@@ -533,12 +545,8 @@ fn notion_exe() -> PathBuf {
     cargo_dir().join(format!("notion{}", env::consts::EXE_SUFFIX))
 }
 
-fn npm_exe() -> PathBuf {
-    cargo_dir().join(format!("npm{}", env::consts::EXE_SUFFIX))
-}
-
-fn yarn_exe() -> PathBuf {
-    cargo_dir().join(format!("yarn{}", env::consts::EXE_SUFFIX))
+fn shim_exe() -> PathBuf {
+    cargo_dir().join(format!("shim{}", env::consts::EXE_SUFFIX))
 }
 
 fn split_and_add_args(p: &mut ProcessBuilder, s: &str) {
