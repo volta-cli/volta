@@ -45,9 +45,9 @@ fn is_3p_shim(name: &str) -> bool {
 }
 
 pub fn create(shim_name: &str) -> Fallible<ShimResult> {
-    let launchbin = path::launchbin_file()?;
+    let launchtool = path::launchtool_file()?;
     let shim = path::shim_file(shim_name)?;
-    match path::create_file_symlink(launchbin, shim) {
+    match path::create_file_symlink(launchtool, shim) {
         Ok(_) => Ok(ShimResult::Created),
         Err(err) => {
             if err.kind() == io::ErrorKind::AlreadyExists {
