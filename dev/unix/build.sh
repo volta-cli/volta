@@ -40,22 +40,12 @@ build_dir="$script_dir/../../target/$target_dir"
 shell_dir="$script_dir/../../shell"
 
 encode_base64_sed_command notion NOTION "$build_dir/notion"
-encode_base64_sed_command node NODE "$build_dir/node"
-encode_base64_sed_command npm NPM "$build_dir/npm"
-encode_base64_sed_command npx NPX "$build_dir/npx"
-encode_base64_sed_command yarn YARN "$build_dir/yarn"
-encode_base64_sed_command launchbin LAUNCHBIN "$build_dir/launchbin"
-encode_base64_sed_command launchscript LAUNCHSCRIPT "$build_dir/launchscript"
+encode_base64_sed_command launchtool LAUNCHTOOL "$build_dir/launchtool"
 encode_expand_sed_command bash_launcher BASH_LAUNCHER "$shell_dir/unix/load.sh"
 encode_expand_sed_command fish_launcher FISH_LAUNCHER "$shell_dir/unix/load.fish"
 
 sed -f notion.base64.txt \
-    -f node.base64.txt \
-    -f npm.base64.txt \
-    -f npx.base64.txt \
-    -f yarn.base64.txt \
-    -f launchbin.base64.txt \
-    -f launchscript.base64.txt \
+    -f launchtool.base64.txt \
     -f bash_launcher.expand.txt \
     -f fish_launcher.expand.txt \
     < "$script_dir/install.sh.in" > "$script_dir/install.sh"
@@ -63,11 +53,6 @@ sed -f notion.base64.txt \
 chmod 755 "$script_dir/install.sh"
 
 rm notion.base64.txt \
-   node.base64.txt \
-   npm.base64.txt \
-   npx.base64.txt \
-   yarn.base64.txt \
-   launchbin.base64.txt \
-   launchscript.base64.txt \
+   launchtool.base64.txt \
    bash_launcher.expand.txt \
    fish_launcher.expand.txt
