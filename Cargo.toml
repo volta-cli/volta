@@ -18,8 +18,8 @@ name = "notion"
 path = "src/notion.rs"
 
 [[bin]]
-name = "launchtool"
-path = "src/launchtool.rs"
+name = "shim"
+path = "src/shim.rs"
 
 [dependencies]
 docopt = "0.8"

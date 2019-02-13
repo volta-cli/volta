@@ -8,9 +8,9 @@ notion_unpack_notion() {
 END_BINARY_PAYLOAD
 }
 
-notion_unpack_launchtool() {
+notion_unpack_shim() {
   base64 --decode <<'END_BINARY_PAYLOAD'
-<PLACEHOLDER_LAUNCHTOOL_PAYLOAD>
+<PLACEHOLDER_SHIM_PAYLOAD>
 END_BINARY_PAYLOAD
 }
 
@@ -70,7 +70,7 @@ notion_create_binaries() {
   INSTALL_DIR="$(notion_install_dir)"
 
   notion_unpack_notion        > "${INSTALL_DIR}"/notion
-  notion_unpack_launchtool    > "${INSTALL_DIR}"/launchtool
+  notion_unpack_shim    > "${INSTALL_DIR}"/shim
   notion_unpack_bash_launcher > "${INSTALL_DIR}"/load.sh
   notion_unpack_fish_launcher > "${INSTALL_DIR}"/load.fish
 
@@ -83,15 +83,15 @@ notion_create_binaries() {
 
   for FILE_NAME in "${INSTALL_DIR}"/bin/*; do
     rm -f "${FILE_NAME}"
-    ln -s "${INSTALL_DIR}"/launchtool "${FILE_NAME}"
+    ln -s "${INSTALL_DIR}"/shim "${FILE_NAME}"
   done
 
-  ln -s "${INSTALL_DIR}"/launchtool "${INSTALL_DIR}"/bin/node
-  ln -s "${INSTALL_DIR}"/launchtool "${INSTALL_DIR}"/bin/npm
-  ln -s "${INSTALL_DIR}"/launchtool "${INSTALL_DIR}"/bin/npx
-  ln -s "${INSTALL_DIR}"/launchtool "${INSTALL_DIR}"/bin/yarn
+  ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/node
+  ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/npm
+  ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/npx
+  ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/yarn
 
-  chmod 755 "${INSTALL_DIR}/"/notion "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}"/launchtool
+  chmod 755 "${INSTALL_DIR}/"/notion "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}"/shim
 }
 
 notion_try_profile() {

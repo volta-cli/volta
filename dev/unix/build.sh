@@ -40,12 +40,12 @@ build_dir="$script_dir/../../target/$target_dir"
 shell_dir="$script_dir/../../shell"
 
 encode_base64_sed_command notion NOTION "$build_dir/notion"
-encode_base64_sed_command launchtool LAUNCHTOOL "$build_dir/launchtool"
+encode_base64_sed_command shim SHIM "$build_dir/shim"
 encode_expand_sed_command bash_launcher BASH_LAUNCHER "$shell_dir/unix/load.sh"
 encode_expand_sed_command fish_launcher FISH_LAUNCHER "$shell_dir/unix/load.fish"
 
 sed -f notion.base64.txt \
-    -f launchtool.base64.txt \
+    -f shim.base64.txt \
     -f bash_launcher.expand.txt \
     -f fish_launcher.expand.txt \
     < "$script_dir/install.sh.in" > "$script_dir/install.sh"
@@ -53,6 +53,6 @@ sed -f notion.base64.txt \
 chmod 755 "$script_dir/install.sh"
 
 rm notion.base64.txt \
-   launchtool.base64.txt \
+   shim.base64.txt \
    bash_launcher.expand.txt \
    fish_launcher.expand.txt
