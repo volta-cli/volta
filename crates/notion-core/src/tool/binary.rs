@@ -16,8 +16,8 @@ pub struct Binary(Command);
 /// Represents the arguments needed for a binary executable
 /// Both the executable name and the arguments to pass to it
 pub struct BinaryArgs {
-    executable: OsString,
-    args: ArgsOs,
+    pub executable: OsString,
+    pub args: ArgsOs,
 }
 
 impl Tool for Binary {

@@ -1,7 +1,29 @@
-use notion_core::tool::{Binary, BinaryArgs, Node, Npm, Npx, Yarn};
+use notion_core::session::{ActivityKind, Session};
+use notion_core::style::{display_error, ErrorContext};
+use notion_core::tool::execute_tool;
+
+use notion_fail::ExitCode;
 
 pub fn main() {
-    // Get args, parse the first one for executable
-    // Match the executable and call the launch method on the correct tool
-    // Handle errors outside the tools?
+    let mut session = Session::new();
+
+    session.add_event_start(ActivityKind::Tool);
+
+    match execute_tool(&mut session) {
+        Ok(status) if status.success() => {
+            session.add_event_end(ActivityKind::Tool, ExitCode::Success);
+            session.exit(ExitCode::Success);
+        }
+        Ok(status) => {
+            // ISSUE (#36): if None, in unix, find out the signal
+            let code = status.code().unwrap_or(1);
+            session.add_event_tool_end(ActivityKind::Tool, code);
+            session.exit_tool(code);
+        }
+        Err(err) => {
+            display_error(ErrorContext::Shim, &err);
+            session.add_event_error(ActivityKind::Tool, &err);
+            session.exit(ExitCode::ExecutionFailure);
+        }
+    }
 }

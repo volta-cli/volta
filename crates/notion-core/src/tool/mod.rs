@@ -1,19 +1,20 @@
 //! Traits and types for executing command-line tools.
 
-use std::env::{self, ArgsOs};
-use std::ffi::OsStr;
+use std::env::{self, args_os, ArgsOs};
+use std::ffi::{OsStr, OsString};
 use std::fmt::{self, Debug, Display, Formatter};
 use std::io;
 use std::marker::Sized;
+use std::path::Path;
 use std::process::{Command, ExitStatus};
 
 use failure::Fail;
 
 use crate::env::UNSAFE_GLOBAL;
-use crate::session::{ActivityKind, Session};
+use crate::session::Session;
 use crate::style;
 use crate::version::VersionSpec;
-use notion_fail::{ExitCode, FailExt, Fallible, NotionError, NotionFail};
+use notion_fail::{throw, ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use notion_fail_derive::*;
 
 mod binary;
@@ -22,11 +23,11 @@ mod npm;
 mod npx;
 mod yarn;
 
-pub use self::binary::{Binary, BinaryArgs};
-pub use self::node::Node;
-pub use self::npm::Npm;
-pub use self::npx::Npx;
-pub use self::yarn::Yarn;
+use self::binary::{Binary, BinaryArgs};
+use self::node::Node;
+use self::npm::Npm;
+use self::npx::Npx;
+use self::yarn::Yarn;
 
 fn display_tool_error(err: &NotionError) {
     style::display_error(style::ErrorContext::Shim, err);
@@ -95,26 +96,29 @@ impl BinaryExecError {
     }
 }
 
+pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
+    let mut args = args_os();
+    let exe = get_tool_name(&mut args)?;
+
+    match &exe.to_str() {
+        Some("node") => Node::new(args, session)?.exec(session),
+        Some("npm") => Npm::new(args, session)?.exec(session),
+        Some("npx") => Npx::new(args, session)?.exec(session),
+        Some("yarn") => Yarn::new(args, session)?.exec(session),
+        _ => Binary::new(
+            BinaryArgs {
+                executable: exe,
+                args,
+            },
+            session,
+        )?
+        .exec(session),
+    }
+}
+
 /// Represents a command-line tool that Notion shims delegate to.
 pub trait Tool: Sized {
     type Arguments;
-
-    fn launch(args: Self::Arguments) -> ! {
-        let mut session = Session::new();
-
-        session.add_event_start(ActivityKind::Tool);
-
-        match Self::new(args, &mut session) {
-            Ok(tool) => {
-                tool.exec(session);
-            }
-            Err(err) => {
-                display_tool_error(&err);
-                session.add_event_error(ActivityKind::Tool, &err);
-                session.exit(ExitCode::ExecutionFailure);
-            }
-        }
-    }
 
     /// Constructs a new instance.
     fn new(args: Self::Arguments, session: &mut Session) -> Fallible<Self>;
@@ -129,28 +133,29 @@ pub trait Tool: Sized {
     fn finalize(_session: &Session, _maybe_status: &io::Result<ExitStatus>) {}
 
     /// Delegates the current process to this tool.
-    fn exec(self, mut session: Session) -> ! {
+    fn exec(self, session: &Session) -> Fallible<ExitStatus> {
         let mut command = self.command();
         let status = command.status();
-        Self::finalize(&session, &status);
-        match status {
-            Ok(status) if status.success() => {
-                session.add_event_end(ActivityKind::Tool, ExitCode::Success);
-                session.exit(ExitCode::Success);
-            }
-            Ok(status) => {
-                // ISSUE (#36): if None, in unix, find out the signal
-                let code = status.code().unwrap_or(1);
-                session.add_event_tool_end(ActivityKind::Tool, code);
-                session.exit_tool(code);
-            }
-            Err(err) => {
-                let notion_err = err.with_context(BinaryExecError::from_io_error);
-                display_tool_error(&notion_err);
-                session.add_event_error(ActivityKind::Tool, &notion_err);
-                session.exit(ExitCode::ExecutionFailure);
-            }
-        }
+        Self::finalize(session, &status);
+        status.with_context(BinaryExecError::from_io_error)
+    }
+}
+
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "Tool name could not be determined")]
+#[notion_fail(code = "UnknownError")]
+struct CouldNotDetermineTool;
+
+fn get_tool_name(args: &mut ArgsOs) -> Fallible<OsString> {
+    let opt = args.next().and_then(|arg0| {
+        Path::new(&arg0)
+            .file_name()
+            .map(|file_name| file_name.to_os_string())
+    });
+    if let Some(tool_name) = opt {
+        Ok(tool_name)
+    } else {
+        throw!(CouldNotDetermineTool);
     }
 }
 
