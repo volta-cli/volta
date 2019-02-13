@@ -1,10 +1,10 @@
-use std::env::{args_os, ArgsOs};
+use std::env::ArgsOs;
 use std::ffi::OsStr;
 use std::process::Command;
 
 use failure::Fail;
 
-use super::{arg0, command_for, NoSuchToolError, Tool};
+use super::{command_for, NoSuchToolError, Tool};
 use crate::session::{ActivityKind, Session};
 use crate::version::VersionSpec;
 
@@ -28,11 +28,11 @@ struct NpxNotAvailableError {
 }
 
 impl Tool for Npx {
-    fn new(session: &mut Session) -> Fallible<Self> {
+    type Arguments = ArgsOs;
+
+    fn new(args: ArgsOs, session: &mut Session) -> Fallible<Self> {
         session.add_event_start(ActivityKind::Npx);
 
-        let mut args = args_os();
-        let exe = arg0(&mut args)?;
         if let Some(ref platform) = session.current_platform()? {
             let image = platform.checkout(session)?;
 
@@ -40,7 +40,11 @@ impl Tool for Npx {
             // should include a helpful error message
             let required_npm = VersionSpec::parse_version("5.2.0")?;
             if image.node.npm >= required_npm {
-                Ok(Self::from_components(&exe, args, &image.path()?))
+                Ok(Self::from_components(
+                    OsStr::new("npx"),
+                    args,
+                    &image.path()?,
+                ))
             } else {
                 throw!(NpxNotAvailableError {
                     version: image.node.npm.to_string()

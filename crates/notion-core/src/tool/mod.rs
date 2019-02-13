@@ -1,11 +1,10 @@
 //! Traits and types for executing command-line tools.
 
 use std::env::{self, ArgsOs};
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::io;
 use std::marker::Sized;
-use std::path::Path;
 use std::process::{Command, ExitStatus};
 
 use failure::Fail;
@@ -21,22 +20,16 @@ mod binary;
 mod node;
 mod npm;
 mod npx;
-mod script;
 mod yarn;
 
-pub use self::binary::Binary;
+pub use self::binary::{Binary, BinaryArgs};
 pub use self::node::Node;
 pub use self::npm::Npm;
 pub use self::npx::Npx;
-pub use self::script::Script;
 pub use self::yarn::Yarn;
 
-fn display_error(err: &NotionError) {
-    if err.is_user_friendly() {
-        style::display_error(style::ErrorContext::Shim, err);
-    } else {
-        style::display_unknown_error(style::ErrorContext::Shim, err);
-    }
+fn display_tool_error(err: &NotionError) {
+    style::display_error(style::ErrorContext::Shim, err);
 }
 
 pub enum ToolSpec {
@@ -104,17 +97,19 @@ impl BinaryExecError {
 
 /// Represents a command-line tool that Notion shims delegate to.
 pub trait Tool: Sized {
-    fn launch() -> ! {
+    type Arguments;
+
+    fn launch(args: Self::Arguments) -> ! {
         let mut session = Session::new();
 
         session.add_event_start(ActivityKind::Tool);
 
-        match Self::new(&mut session) {
+        match Self::new(args, &mut session) {
             Ok(tool) => {
                 tool.exec(session);
             }
             Err(err) => {
-                display_error(&err);
+                display_tool_error(&err);
                 session.add_event_error(ActivityKind::Tool, &err);
                 session.exit(ExitCode::ExecutionFailure);
             }
@@ -122,7 +117,7 @@ pub trait Tool: Sized {
     }
 
     /// Constructs a new instance.
-    fn new(_: &mut Session) -> Fallible<Self>;
+    fn new(args: Self::Arguments, session: &mut Session) -> Fallible<Self>;
 
     /// Constructs a new instance, using the specified command-line and `PATH` variable.
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self;
@@ -151,7 +146,7 @@ pub trait Tool: Sized {
             }
             Err(err) => {
                 let notion_err = err.with_context(BinaryExecError::from_io_error);
-                display_error(&notion_err);
+                display_tool_error(&notion_err);
                 session.add_event_error(ActivityKind::Tool, &notion_err);
                 session.exit(ExitCode::ExecutionFailure);
             }
@@ -164,23 +159,6 @@ fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
     command.args(args);
     command.env("PATH", path_var);
     command
-}
-
-#[derive(Fail, Debug)]
-#[fail(display = "Tool name could not be determined")]
-struct NoArg0Error;
-
-fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
-    let opt = args.next().and_then(|arg0| {
-        Path::new(&arg0)
-            .file_name()
-            .map(|file_name| file_name.to_os_string())
-    });
-    if let Some(file_name) = opt {
-        Ok(file_name)
-    } else {
-        Err(NoArg0Error.unknown())
-    }
 }
 
 #[derive(Debug, Fail, NotionFail)]

@@ -1,8 +1,8 @@
-use std::env::{args_os, ArgsOs};
+use std::env::ArgsOs;
 use std::ffi::OsStr;
 use std::process::Command;
 
-use super::{arg0, command_for, NoSuchToolError, Tool};
+use super::{command_for, NoSuchToolError, Tool};
 use crate::session::{ActivityKind, Session};
 
 use notion_fail::{throw, Fallible};
@@ -11,14 +11,18 @@ use notion_fail::{throw, Fallible};
 pub struct Node(Command);
 
 impl Tool for Node {
-    fn new(session: &mut Session) -> Fallible<Self> {
+    type Arguments = ArgsOs;
+
+    fn new(args: ArgsOs, session: &mut Session) -> Fallible<Self> {
         session.add_event_start(ActivityKind::Node);
 
-        let mut args = args_os();
-        let exe = arg0(&mut args)?;
         if let Some(ref platform) = session.current_platform()? {
             let image = platform.checkout(session)?;
-            Ok(Self::from_components(&exe, args, &image.path()?))
+            Ok(Self::from_components(
+                OsStr::new("node"),
+                args,
+                &image.path()?,
+            ))
         } else {
             throw!(NoSuchToolError {
                 tool: "Node".to_string()

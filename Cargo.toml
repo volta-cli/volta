@@ -18,28 +18,8 @@ name = "notion"
 path = "src/notion.rs"
 
 [[bin]]
-name = "node"
-path = "src/node.rs"
-
-[[bin]]
-name = "npm"
-path = "src/npm.rs"
-
-[[bin]]
-name = "npx"
-path = "src/npx.rs"
-
-[[bin]]
-name = "yarn"
-path = "src/yarn.rs"
-
-[[bin]]
-name = "launchbin"
-path = "src/launchbin.rs"
-
-[[bin]]
-name = "launchscript"
-path = "src/launchscript.rs"
+name = "launchtool"
+path = "src/launchtool.rs"
 
 [dependencies]
 docopt = "0.8"

@@ -4,7 +4,7 @@ use std::io;
 use std::process::{Command, ExitStatus};
 
 use super::{
-    arg0, command_for, display_error, intercept_global_installs, NoGlobalInstallError,
+    command_for, display_tool_error, intercept_global_installs, NoGlobalInstallError,
     NoSuchToolError, Tool,
 };
 use crate::session::{ActivityKind, Session};
@@ -15,11 +15,10 @@ use notion_fail::{throw, Fallible};
 pub struct Npm(Command);
 
 impl Tool for Npm {
-    fn new(session: &mut Session) -> Fallible<Self> {
-        session.add_event_start(ActivityKind::Npm);
+    type Arguments = ArgsOs;
 
-        let mut args = args_os();
-        let exe = arg0(&mut args)?;
+    fn new(args: ArgsOs, session: &mut Session) -> Fallible<Self> {
+        session.add_event_start(ActivityKind::Npm);
 
         if intercept_global_installs() && is_global_npm_install() {
             throw!(NoGlobalInstallError);
@@ -27,7 +26,11 @@ impl Tool for Npm {
 
         if let Some(ref platform) = session.current_platform()? {
             let image = platform.checkout(session)?;
-            Ok(Self::from_components(&exe, args, &image.path()?))
+            Ok(Self::from_components(
+                OsStr::new("npm"),
+                args,
+                &image.path()?,
+            ))
         } else {
             // Using 'Node' as the tool name since the npm version is derived from the Node version
             // This way the error message will prompt the user to add 'Node' to their toolchain, instead of 'npm'
@@ -51,7 +54,7 @@ impl Tool for Npm {
                 let errors = project.autoshim();
 
                 for error in errors {
-                    display_error(&error);
+                    display_tool_error(&error);
                 }
             }
         }

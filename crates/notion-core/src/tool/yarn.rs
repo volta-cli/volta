@@ -4,7 +4,7 @@ use std::io;
 use std::process::{Command, ExitStatus};
 
 use super::{
-    arg0, command_for, display_error, intercept_global_installs, NoGlobalInstallError,
+    command_for, display_tool_error, intercept_global_installs, NoGlobalInstallError,
     NoSuchToolError, Tool,
 };
 use crate::session::{ActivityKind, Session};
@@ -15,11 +15,10 @@ use notion_fail::{throw, Fallible};
 pub struct Yarn(Command);
 
 impl Tool for Yarn {
-    fn new(session: &mut Session) -> Fallible<Self> {
-        session.add_event_start(ActivityKind::Yarn);
+    type Arguments = ArgsOs;
 
-        let mut args = args_os();
-        let exe = arg0(&mut args)?;
+    fn new(args: ArgsOs, session: &mut Session) -> Fallible<Self> {
+        session.add_event_start(ActivityKind::Yarn);
 
         if intercept_global_installs() && is_global_yarn_add() {
             throw!(NoGlobalInstallError);
@@ -27,7 +26,11 @@ impl Tool for Yarn {
 
         if let Some(ref platform) = session.current_platform()? {
             let image = platform.checkout(session)?;
-            Ok(Self::from_components(&exe, args, &image.path()?))
+            Ok(Self::from_components(
+                OsStr::new("yarn"),
+                args,
+                &image.path()?,
+            ))
         } else {
             throw!(NoSuchToolError {
                 tool: "Yarn".to_string()
@@ -50,7 +53,7 @@ impl Tool for Yarn {
                 let errors = project.autoshim();
 
                 for error in errors {
-                    display_error(&error);
+                    display_tool_error(&error);
                 }
             }
         }
