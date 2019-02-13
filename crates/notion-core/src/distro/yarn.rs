@@ -1,7 +1,7 @@
 //! Provides the `YarnDistro` type, which represents a provisioned Yarn distribution.
 
-use std::fs::{rename, File};
-use std::path::PathBuf;
+use std::fs::{remove_dir_all, rename, File};
+use std::path::{Path, PathBuf};
 use std::string::ToString;
 
 use semver::Version;
@@ -149,6 +149,11 @@ impl Distro for YarnDistro {
         let dest = path::yarn_image_dir(&version_string)?;
 
         ensure_containing_dir_exists(&dest)?;
+
+        // Make sure there is no left over from a previous failed run
+        if Path::new(&dest).is_dir() {
+            remove_dir_all(&dest).expect("Could not delete destination directory.");
+        }
 
         rename(
             temp.path()

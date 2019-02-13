@@ -1,6 +1,6 @@
 //! Provides the `NodeDistro` type, which represents a provisioned Node distribution.
 
-use std::fs::{read_to_string, rename, File};
+use std::fs::{read_to_string, remove_dir_all, rename, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::string::ToString;
@@ -204,12 +204,14 @@ impl Distro for NodeDistro {
 
         let npm = Manifest::version(&npm_package_json)?;
 
-        // Save the npm version number in the npm version file for this distro:
-        save_default_npm_version(&self.version, &npm)?;
-
         let dest = path::node_image_dir(&version_string, &npm.to_string())?;
 
         ensure_containing_dir_exists(&dest)?;
+
+        // Make sure there is no left over from a previous failed run
+        if Path::new(&dest).is_dir() {
+            remove_dir_all(&dest).expect("Could not delete destination directory.");
+        }
 
         rename(
             temp.path()
@@ -217,6 +219,11 @@ impl Distro for NodeDistro {
             dest,
         )
         .unknown()?;
+
+        // Save the npm version number in the npm version file for this distro:
+        // This needs to happen last because NodeCollection::load() uses this
+        // file to determine if the node version is installed
+        save_default_npm_version(&self.version, &npm)?;
 
         bar.finish_and_clear();
         Ok(Fetched::Now(DistroVersion::Node(self.version, npm)))

@@ -20,7 +20,6 @@ use serde::{Deserialize, Serialize};
 /// syntax `?P<version>`.
 fn versions_matching(dir: &Path, re: &Regex) -> Fallible<BTreeSet<Version>> {
     Ok(read_dir_eager(dir)?
-        .filter(|(_, metadata)| metadata.is_file())
         .filter_map(|(entry, _)| {
             if let Some(file_name) = entry.path().file_name() {
                 if let Some(caps) = re.captures(&file_name.to_string_lossy()) {
@@ -40,10 +39,7 @@ impl NodeCollection {
             -
             v(?P<version>\d+\.\d+\.\d+) # Node version
             -
-            (?P<os>[a-z]+)              # operating system
-            -
-            (?P<arch>[a-z0-9]+)         # architecture
-            \.(zip|tar\.gz)
+            npm
             ",
         )
         .unwrap();
@@ -59,17 +55,9 @@ impl NodeCollection {
 
 impl YarnCollection {
     pub(crate) fn load() -> Fallible<Self> {
-        let re = Regex::new(
-            r"(?x)
-            yarn
-            -
-            v(?P<version>\d+\.\d+\.\d+) # Yarn version
-            \.tar\.gz
-            ",
-        )
-        .unwrap();
+        let re = Regex::new(r"(?P<version>\d+\.\d+\.\d+)").unwrap();
 
-        let versions = versions_matching(&path::yarn_inventory_dir()?, &re)?;
+        let versions = versions_matching(&path::yarn_image_root_dir()?, &re)?;
 
         Ok(YarnCollection {
             versions: versions,
