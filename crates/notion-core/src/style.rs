@@ -85,9 +85,11 @@ fn display_development_details(err: &NotionError) {
     eprintln!("{} {:?}", style("details:").yellow().bold(), err);
     eprintln!();
 
-    // For now, we require RUST_BACKTRACE for this to work.
-    // See: https://github.com/notion-cli/notion/issues/75
-    eprintln!("{:?}", err.backtrace());
+    // If `RUST_BACKTRACE` is set, then the backtrace will be included in the above output
+    // If not, we should let the user know how to see the backtrace
+    if env::var("RUST_BACKTRACE").is_err() {
+        eprintln!("Run with NOTION_DEV=1 and RUST_BACKTRACE=1 for a backtrace.");
+    }
 }
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
