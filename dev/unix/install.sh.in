@@ -82,8 +82,10 @@ notion_create_binaries() {
   rm -f "${INSTALL_DIR}"/bin/yarn
 
   for FILE_NAME in "${INSTALL_DIR}"/bin/*; do
-    rm -f "${FILE_NAME}"
-    ln -s "${INSTALL_DIR}"/shim "${FILE_NAME}"
+    if [ -e "${FILE_NAME}" ] && ! [ -d "${FILE_NAME}" ]; then
+      rm -f "${FILE_NAME}"
+      ln -s "${INSTALL_DIR}"/shim "${FILE_NAME}"
+    fi
   done
 
   ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/node
