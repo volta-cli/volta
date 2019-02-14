@@ -78,15 +78,17 @@ fn save_default_npm_version(node: &Version, npm: &Version) -> Fallible<()> {
 /// Check if the fetched file is valid. It may have been corrupted or interrupted in the middle of
 /// downloading.
 // ISSUE(#134) - verify checksum
-fn distro_is_valid(file: &PathBuf) -> bool {
-    if file.is_file() {
-        if let Ok(file) = File::open(file) {
-            match archive::load_native(file) {
-                Ok(_) => return true,
-                Err(_) => return false,
-            }
-        }
-    }
+fn distro_is_valid(_file: &PathBuf) -> bool {
+    // Until ISSUE(#134) is fixed, we assume that all downloads are corrupted and should never be reused
+
+    // if file.is_file() {
+    //     if let Ok(file) = File::open(file) {
+    //         match archive::load_native(file) {
+    //             Ok(_) => return true,
+    //             Err(_) => return false,
+    //         }
+    //     }
+    // }
     false
 }
 
