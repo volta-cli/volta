@@ -14,18 +14,18 @@ impl Shell for Fish {
     fn compile_postscript(&self, postscript: &Postscript) -> String {
         match postscript {
             &Postscript::Activate(ref s) => {
-                let updated_path = format!("set -x fish_user_paths '{}'\n", s);
+                let updated_path = format!("set -x PATH \"{}\"\n", s);
                 updated_path + "set -x NOTION_HOME \"$HOME/.notion\"\n"
             }
             // ISSUE(#99): proper escaping
             &Postscript::Deactivate(ref s) => {
-                format!("set -x fish_user_paths '{}'\nset -e NOTION_HOME\n", s)
+                format!("set -x PATH \"{}\"\nset -e NOTION_HOME\n", s)
             }
             &Postscript::ToolVersion {
                 ref tool,
                 ref version,
             } => format!(
-                "set -U NOTION_{}_VERSION {}\n",
+                "set -x NOTION_{}_VERSION {}\n",
                 tool.to_ascii_uppercase(),
                 version
             ),
@@ -46,7 +46,7 @@ mod tests {
 
         assert_eq!(
             fish.compile_postscript(&Postscript::Deactivate("some:path".to_string())),
-            "set -x fish_user_paths 'some:path'\nset -e NOTION_HOME\n"
+            "set -x PATH \"some:path\"\nset -e NOTION_HOME\n"
         );
 
         // ISSUE(#99): proper escaping
@@ -54,7 +54,7 @@ mod tests {
             fish.compile_postscript(&Postscript::Deactivate(
                 "/path:/with:/single'quotes'".to_string()
             )),
-            "set -x fish_user_paths '/path:/with:/single'quotes''\nset -e NOTION_HOME\n"
+            "set -x PATH \"/path:/with:/single'quotes'\"\nset -e NOTION_HOME\n"
         );
 
         assert_eq!(
@@ -62,12 +62,12 @@ mod tests {
                 tool: "test".to_string(),
                 version: Version::parse("2.4.5").unwrap()
             }),
-            "set -U NOTION_TEST_VERSION 2.4.5\n"
+            "set -x NOTION_TEST_VERSION 2.4.5\n"
         );
 
         assert_eq!(
             fish.compile_postscript(&Postscript::Activate("some:path".to_string())),
-            "set -x fish_user_paths 'some:path'\nset -x NOTION_HOME \"$HOME/.notion\"\n"
+            "set -x PATH \"some:path\"\nset -x NOTION_HOME \"$HOME/.notion\"\n"
         );
     }
 }
