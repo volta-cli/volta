@@ -207,6 +207,10 @@ Consider using `notion install` to add a package to your toolchain (see `notion 
 struct NoGlobalInstallError;
 
 fn intercept_global_installs() -> bool {
-    // We should only intercept global installs if the NOTION_UNSAFE_GLOBAL variable is not set
-    env::var_os(UNSAFE_GLOBAL).is_none()
+    if cfg!(feature = "intercept-globals") {
+        // We should only intercept global installs if the NOTION_UNSAFE_GLOBAL variable is not set
+        env::var_os(UNSAFE_GLOBAL).is_none()
+    } else {
+        false
+    }
 }
