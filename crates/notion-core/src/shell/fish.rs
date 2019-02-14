@@ -6,6 +6,20 @@ pub(crate) struct Fish {
     pub(crate) postscript_path: PathBuf,
 }
 
+static STATUS_HANDLING: &'static str = r#"
+if test $status != 0;
+  printf '\n\033[1;31mError\033[0m: Notion cannot update your `PATH`. If you are running fish 2.x, this often\n' 1>&2
+  printf '       happens if your `PATH` includes an entry pointing to a value that is not\n' 1>&2
+  printf '       a directory. For `notion deactivate` or `notion activate` to work, you\n' 1>&2
+  printf '       must either change your `PATH` in \033[4m~/.config/fish/config.fish\033[0m so it only\n' 1>&2
+  printf '       includes valid directories, or update Fish to at least 3.0.0.' 1>&2
+  exit $status
+end;
+"#;
+
+static SET_NOTION_HOME: &'static str = "set -x NOTION_HOME \"$HOME/.notion\"\n";
+static UNSET_NOTION_HOME: &'static str = "set -e NOTION_HOME\n";
+
 impl Shell for Fish {
     fn postscript_path(&self) -> &Path {
         &self.postscript_path
@@ -15,11 +29,12 @@ impl Shell for Fish {
         match postscript {
             &Postscript::Activate(ref s) => {
                 let updated_path = format!("set -x PATH \"{}\"\n", s);
-                updated_path + "set -x NOTION_HOME \"$HOME/.notion\"\n"
+                updated_path + STATUS_HANDLING + SET_NOTION_HOME
             }
             // ISSUE(#99): proper escaping
             &Postscript::Deactivate(ref s) => {
-                format!("set -x PATH \"{}\"\nset -e NOTION_HOME\n", s)
+                let updated_path = format!("set -x PATH \"{}\"\n", s);
+                updated_path + STATUS_HANDLING + UNSET_NOTION_HOME
             }
             &Postscript::ToolVersion {
                 ref tool,
@@ -46,7 +61,9 @@ mod tests {
 
         assert_eq!(
             fish.compile_postscript(&Postscript::Deactivate("some:path".to_string())),
-            "set -x PATH \"some:path\"\nset -e NOTION_HOME\n"
+            String::from("set -x PATH \"some:path\"\n")
+                + super::STATUS_HANDLING
+                + super::UNSET_NOTION_HOME
         );
 
         // ISSUE(#99): proper escaping
@@ -54,7 +71,9 @@ mod tests {
             fish.compile_postscript(&Postscript::Deactivate(
                 "/path:/with:/single'quotes'".to_string()
             )),
-            "set -x PATH \"/path:/with:/single'quotes'\"\nset -e NOTION_HOME\n"
+            String::from("set -x PATH \"/path:/with:/single'quotes'\"\n")
+                + super::STATUS_HANDLING
+                + super::UNSET_NOTION_HOME
         );
 
         assert_eq!(
@@ -67,7 +86,9 @@ mod tests {
 
         assert_eq!(
             fish.compile_postscript(&Postscript::Activate("some:path".to_string())),
-            "set -x PATH \"some:path\"\nset -x NOTION_HOME \"$HOME/.notion\"\n"
+            String::from("set -x PATH \"some:path\"\n")
+                + super::STATUS_HANDLING
+                + super::SET_NOTION_HOME
         );
     }
 }
