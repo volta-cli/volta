@@ -520,6 +520,12 @@ impl Sandbox {
     }
 }
 
+impl Drop for Sandbox {
+    fn drop(&mut self) {
+        self.root().rm_rf();
+    }
+}
+
 // Generates a sandboxed environment
 pub fn sandbox() -> SandboxBuilder {
     SandboxBuilder::new(paths::root().join("sandbox"))
