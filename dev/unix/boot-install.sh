@@ -77,7 +77,7 @@ notion_get_openssl_version() {
   # By default, we'll guess OpenSSL 1.0.1.
   LIB="$(openssl version 2>/dev/null || echo 'OpenSSL 1.0.1')"
 
-  LIBNAME="$(echo $LIB | awk '{print $1;}')"
+  LIBNAME="$(echo "$LIB" | awk '{print $1;}')"
 
   if [[ "$LIBNAME" != "OpenSSL" ]]; then
     notion_error "Your system SSL library ($LIBNAME) is not currently supported on this OS."
@@ -85,9 +85,9 @@ notion_get_openssl_version() {
     exit 1
   fi
 
-  FULLVERSION="$(echo $LIB | awk '{print $2;}')"
-  MAJOR="$(echo ${FULLVERSION} | cut -d. -f1)"
-  MINOR="$(echo ${FULLVERSION} | cut -d. -f2)"
+  FULLVERSION="$(echo "$LIB" | awk '{print $2;}')"
+  MAJOR="$(echo "${FULLVERSION}" | cut -d. -f1)"
+  MINOR="$(echo "${FULLVERSION}" | cut -d. -f2)"
   echo "${MAJOR}.${MINOR}"
 }
 
@@ -119,7 +119,7 @@ NOTION_INSTALLER="https://github.com/notion-cli/notion/releases/download/v${NOTI
 
 notion_info 'Fetching' "${NOTION_PRETTY_OS} installer"
 
-curl -sSLf ${NOTION_INSTALLER} | bash
+curl -sSLf "${NOTION_INSTALLER}" | bash
 STATUS=$?
 
 exit $STATUS
