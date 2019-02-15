@@ -28,7 +28,9 @@ jobs:
       script:
         - rustup component add rustfmt
         - cargo fmt --all -q -- --check
+
     - stage: publish
+      name: "Docs"
       # Conditional builds: https://docs.travis-ci.com/user/conditional-builds-stages-jobs/
       if: (branch = master) AND (type = push)
       # Cross-platform rustdoc builds require nightly Rust.
@@ -55,3 +57,15 @@ jobs:
         local-dir: publish
         on:
           branch: master
+    # Run the nightly build *only* for cron jobs
+    - name: Nightly Build
+      if: |
+        env(TRAVIS_EVENT_TYPE) = cron AND \
+        branch = master AND \
+        type = push AND \
+        (tag IS NOT present OR tag IS blank)
+      script: ./.ci/release.sh
+    # Run the full release build only for tagged releases
+    - name: Release Build
+      if: (branch = master) AND (tag IS present) and (tag IS NOT blank)
+      script: ./.ci/release.sh
