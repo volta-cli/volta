@@ -70,7 +70,7 @@ notion_create_binaries() {
   INSTALL_DIR="$(notion_install_dir)"
 
   notion_unpack_notion        > "${INSTALL_DIR}"/notion
-  notion_unpack_shim    > "${INSTALL_DIR}"/shim
+  notion_unpack_shim          > "${INSTALL_DIR}"/shim
   notion_unpack_bash_launcher > "${INSTALL_DIR}"/load.sh
   notion_unpack_fish_launcher > "${INSTALL_DIR}"/load.fish
 
