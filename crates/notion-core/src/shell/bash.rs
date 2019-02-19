@@ -32,3 +32,42 @@ impl Shell for Bash {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use semver::Version;
+    use std::str::FromStr;
+
+    use crate::shell::{CurrentShell, Postscript, Shell};
+
+    #[test]
+    fn test_compile_postscript() {
+        let bash = CurrentShell::from_str("bash").expect("Could not create bash shell");
+
+        assert_eq!(
+            bash.compile_postscript(&Postscript::Deactivate("some:path".to_string())),
+            "export PATH='some:path'\nunset NOTION_HOME\n"
+        );
+
+        // ISSUE(#99): proper escaping
+        assert_eq!(
+            bash.compile_postscript(&Postscript::Deactivate(
+                "/path:/with:/single'quotes'".to_string()
+            )),
+            "export PATH='/path:/with:/single'quotes''\nunset NOTION_HOME\n"
+        );
+
+        assert_eq!(
+            bash.compile_postscript(&Postscript::ToolVersion {
+                tool: "test".to_string(),
+                version: Version::parse("2.4.5").unwrap()
+            }),
+            "export NOTION_TEST_VERSION=2.4.5\n"
+        );
+
+        assert_eq!(
+            bash.compile_postscript(&Postscript::Activate("some:path".to_string())),
+            "export PATH='some:path'\nexport NOTION_HOME=\"${HOME}/.notion\"\n"
+        );
+    }
+}

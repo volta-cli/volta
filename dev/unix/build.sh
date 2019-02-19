@@ -47,6 +47,7 @@ encode_base64_sed_command yarn YARN "$build_dir/yarn"
 encode_base64_sed_command launchbin LAUNCHBIN "$build_dir/launchbin"
 encode_base64_sed_command launchscript LAUNCHSCRIPT "$build_dir/launchscript"
 encode_expand_sed_command bash_launcher BASH_LAUNCHER "$shell_dir/unix/load.sh"
+encode_expand_sed_command fish_launcher FISH_LAUNCHER "$shell_dir/unix/load.fish"
 
 sed -f notion.base64.txt \
     -f node.base64.txt \
@@ -56,6 +57,7 @@ sed -f notion.base64.txt \
     -f launchbin.base64.txt \
     -f launchscript.base64.txt \
     -f bash_launcher.expand.txt \
+    -f fish_launcher.expand.txt \
     < "$script_dir/install.sh.in" > "$script_dir/install.sh"
 
 chmod 755 "$script_dir/install.sh"
@@ -67,4 +69,5 @@ rm notion.base64.txt \
    yarn.base64.txt \
    launchbin.base64.txt \
    launchscript.base64.txt \
-   bash_launcher.expand.txt
+   bash_launcher.expand.txt \
+   fish_launcher.expand.txt

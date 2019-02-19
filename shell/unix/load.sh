@@ -2,6 +2,8 @@ notion() {
     local EXIT_CODE
     local NOTION_ROOT
 
+    # Use the user's existing `NOTION_HOME` environment value if set; otherwise,
+    # use a default of `~/.notion`.
     NOTION_ROOT="${NOTION_HOME:-"$HOME/.notion"}"
 
 	# Generate 32 bits of randomness, to avoid clashing with concurrent executions.

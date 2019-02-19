@@ -13,8 +13,10 @@ use notion_fail_derive::*;
 use crate::env;
 
 mod bash;
+mod fish;
 
 pub(crate) use self::bash::Bash;
+pub(crate) use self::fish::Fish;
 
 pub enum Postscript {
     Activate(String),
@@ -89,50 +91,12 @@ impl FromStr for CurrentShell {
 
         Ok(CurrentShell(match src {
             "bash" => Box::new(Bash { postscript_path }),
+            "fish" => Box::new(Fish { postscript_path }),
             _ => {
                 throw!(UnrecognizedShellError {
                     name: src.to_string()
                 });
             }
         }))
-    }
-}
-
-#[cfg(test)]
-pub mod tests {
-
-    use super::{CurrentShell, Postscript, Shell};
-    use semver::Version;
-    use std::str::FromStr;
-
-    #[test]
-    fn test_compile_postscript() {
-        let bash = CurrentShell::from_str("bash").expect("Could not create bash shell");
-
-        assert_eq!(
-            bash.compile_postscript(&Postscript::Deactivate("some:path".to_string())),
-            "export PATH='some:path'\nunset NOTION_HOME\n"
-        );
-
-        // ISSUE(#99): proper escaping
-        assert_eq!(
-            bash.compile_postscript(&Postscript::Deactivate(
-                "/path:/with:/single'quotes'".to_string()
-            )),
-            "export PATH='/path:/with:/single'quotes''\nunset NOTION_HOME\n"
-        );
-
-        assert_eq!(
-            bash.compile_postscript(&Postscript::ToolVersion {
-                tool: "test".to_string(),
-                version: Version::parse("2.4.5").unwrap()
-            }),
-            "export NOTION_TEST_VERSION=2.4.5\n"
-        );
-
-        assert_eq!(
-            bash.compile_postscript(&Postscript::Activate("some:path".to_string())),
-            "export PATH='some:path'\nexport NOTION_HOME=\"${HOME}/.notion\"\n"
-        );
     }
 }
