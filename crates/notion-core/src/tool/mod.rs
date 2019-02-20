@@ -14,7 +14,7 @@ use crate::env::UNSAFE_GLOBAL;
 use crate::session::Session;
 use crate::style;
 use crate::version::VersionSpec;
-use notion_fail::{throw, ExitCode, Fallible, NotionError, NotionFail, ResultExt};
+use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
 use notion_fail_derive::*;
 
 mod binary;
@@ -100,6 +100,10 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
     let mut args = args_os();
     let exe = get_tool_name(&mut args)?;
 
+    // There is some duplication in the calls to `.exec` here.
+    // It's required because we can't create a single variable that holds
+    // all the possible `Tool` implementations and fill it dynamically,
+    // as they have different sizes and associated types.
     match &exe.to_str() {
         Some("node") => Node::new(args, session)?.exec(session),
         Some("npm") => Npm::new(args, session)?.exec(session),
@@ -147,14 +151,9 @@ pub trait Tool: Sized {
 struct CouldNotDetermineTool;
 
 fn get_tool_name(args: &mut ArgsOs) -> Fallible<OsString> {
-    let opt = args
-        .next()
-        .and_then(|arg0| Path::new(&arg0).file_name().map(tool_name_from_file_name));
-    if let Some(tool_name) = opt {
-        Ok(tool_name)
-    } else {
-        throw!(CouldNotDetermineTool);
-    }
+    args.nth(0)
+        .and_then(|arg0| Path::new(&arg0).file_name().map(tool_name_from_file_name))
+        .ok_or(CouldNotDetermineTool.into())
 }
 
 #[cfg(unix)]
@@ -166,17 +165,10 @@ fn tool_name_from_file_name(file_name: &OsStr) -> OsString {
 fn tool_name_from_file_name(file_name: &OsStr) -> OsString {
     // On Windows PowerShell, the file name includes the .exe suffix
     // We need to remove that to get the raw tool name
-    let mut result = OsString::new();
     match file_name.to_str() {
-        Some(file) => {
-            result.push(file.trim_end_matches(".exe"));
-        }
-        None => {
-            result.push(file_name);
-        }
+        Some(file) => OsString::from(file.trim_end_matches(".exe")),
+        None => OsString::from(file_name),
     }
-
-    result
 }
 
 fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
