@@ -7,7 +7,7 @@ use semver::Version;
 
 use crate::error::ErrorDetails;
 use crate::fs::ensure_containing_dir_exists;
-use notion_fail::{throw, Fallible, NotionError, ResultExt};
+use notion_fail::{Fallible, NotionError, ResultExt};
 
 use crate::env;
 
@@ -41,12 +41,9 @@ pub struct CurrentShell(Box<dyn Shell>);
 
 impl CurrentShell {
     pub fn detect() -> Fallible<Self> {
-        match env::shell_name() {
-            Some(name) => Ok(name.parse()?),
-            None => {
-                throw!(ErrorDetails::UnspecifiedShell);
-            }
-        }
+        env::shell_name()
+            .ok_or(ErrorDetails::UnspecifiedShell.into())
+            .and_then(|name| name.parse())
     }
 }
 
@@ -68,14 +65,13 @@ impl FromStr for CurrentShell {
     fn from_str(src: &str) -> Result<Self, NotionError> {
         let postscript_path = env::postscript_path().ok_or(ErrorDetails::UnspecifiedPostscript)?;
 
-        Ok(CurrentShell(match src {
-            "bash" => Box::new(Bash { postscript_path }),
-            "fish" => Box::new(Fish { postscript_path }),
-            _ => {
-                throw!(ErrorDetails::UnrecognizedShell {
-                    name: src.to_string()
-                });
+        match src {
+            "bash" => Ok(CurrentShell(Box::new(Bash { postscript_path }))),
+            "fish" => Ok(CurrentShell(Box::new(Fish { postscript_path }))),
+            _ => Err(ErrorDetails::UnrecognizedShell {
+                name: src.to_string(),
             }
-        }))
+            .into()),
+        }
     }
 }

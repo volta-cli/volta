@@ -5,7 +5,7 @@ use std::io::{self, ErrorKind};
 use std::path::{Path, PathBuf};
 
 use crate::error::ErrorDetails;
-use notion_fail::{throw, Fallible, ResultExt};
+use notion_fail::{Fallible, ResultExt};
 
 pub fn touch(path: &Path) -> Fallible<File> {
     if !path.is_file() {
@@ -25,12 +25,12 @@ fn error_for_dir(dir: String) -> impl FnOnce(&io::Error) -> ErrorDetails {
 
 /// This creates the parent directory of the input path, assuming the input path is a file.
 pub fn ensure_containing_dir_exists<P: AsRef<Path>>(path: &P) -> Fallible<()> {
-    if let Some(dir) = path.as_ref().parent() {
-        fs::create_dir_all(dir).with_context(error_for_dir(dir.to_string_lossy().to_string()))
-    } else {
-        // this was called for a file with no parent directory
-        throw!(ErrorDetails::PathError);
-    }
+    path.as_ref()
+        .parent()
+        .ok_or(ErrorDetails::PathError.into())
+        .and_then(|dir| {
+            fs::create_dir_all(dir).with_context(error_for_dir(dir.to_string_lossy().to_string()))
+        })
 }
 
 /// Reads a file, if it exists.

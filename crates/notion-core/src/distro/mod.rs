@@ -81,18 +81,14 @@ fn error_for_tool(
     toolspec: ToolSpec,
     from_url: String,
 ) -> impl FnOnce(&failure::Error) -> ErrorDetails {
-    move |error| {
-        if let Some(HttpError {
+    move |error| match error.downcast_ref::<HttpError>() {
+        Some(HttpError {
             code: StatusCode::NOT_FOUND,
-        }) = error.downcast_ref::<HttpError>()
-        {
-            ErrorDetails::DownloadToolNotFound { tool: toolspec }
-        } else {
-            ErrorDetails::DownloadToolNetworkError {
-                tool: toolspec,
-                from_url: from_url,
-                error: error.to_string(),
-            }
+        }) => ErrorDetails::DownloadToolNotFound { tool : toolspec },
+        Some(_) | None => ErrorDetails::DownloadToolNetworkError {
+            tool: toolspec,
+            error: error.to_string(),
+            from_url,
         }
     }
 }
