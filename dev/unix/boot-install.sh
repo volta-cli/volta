@@ -119,7 +119,7 @@ NOTION_INSTALLER="https://github.com/notion-cli/notion/releases/download/v${NOTI
 
 notion_info 'Fetching' "${NOTION_PRETTY_OS} installer"
 
-curl -sSLf ${NOTION_INSTALLER} | bash
+curl -#SLf ${NOTION_INSTALLER} | bash
 STATUS=$?
 
 exit $STATUS
