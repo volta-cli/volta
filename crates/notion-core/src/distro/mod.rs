@@ -84,11 +84,11 @@ fn error_for_tool(
     move |error| match error.downcast_ref::<HttpError>() {
         Some(HttpError {
             code: StatusCode::NOT_FOUND,
-        }) => ErrorDetails::DownloadToolNotFound { tool : toolspec },
+        }) => ErrorDetails::DownloadToolNotFound { tool: toolspec },
         Some(_) | None => ErrorDetails::DownloadToolNetworkError {
             tool: toolspec,
             error: error.to_string(),
             from_url,
-        }
+        },
     }
 }
