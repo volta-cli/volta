@@ -169,6 +169,10 @@ fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
 }
 
 fn intercept_global_installs() -> bool {
-    // We should only intercept global installs if the NOTION_UNSAFE_GLOBAL variable is not set
-    env::var_os(UNSAFE_GLOBAL).is_none()
+    if cfg!(feature = "intercept-globals") {
+        // We should only intercept global installs if the NOTION_UNSAFE_GLOBAL variable is not set
+        env::var_os(UNSAFE_GLOBAL).is_none()
+    } else {
+        false
+    }
 }

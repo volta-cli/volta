@@ -7,6 +7,7 @@ edition = "2018"
 [features]
 universal-docs = ["archive/universal-docs"]
 mock-network = ["mockito"]
+intercept-globals = []
 
 [dependencies]
 toml = "0.4"

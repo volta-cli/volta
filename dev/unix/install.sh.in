@@ -50,6 +50,12 @@ notion_unpack_bash_launcher() {
 END_TEXT_PAYLOAD
 }
 
+notion_unpack_fish_launcher() {
+  cat <<'END_TEXT_PAYLOAD'
+<PLACEHOLDER_FISH_LAUNCHER_PAYLOAD>
+END_TEXT_PAYLOAD
+}
+
 notion_install_dir() {
   printf %s "${NOTION_HOME:-"$HOME/.notion"}"
 }
@@ -107,6 +113,7 @@ notion_create_binaries() {
   notion_unpack_launchscript  > "${INSTALL_DIR}"/launchscript
   notion_unpack_launchbin     > "${INSTALL_DIR}"/launchbin
   notion_unpack_bash_launcher > "${INSTALL_DIR}"/load.sh
+  notion_unpack_fish_launcher > "${INSTALL_DIR}"/load.fish
 
   chmod 755 "${INSTALL_DIR}/"/notion "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}"/launch*
 }
@@ -137,10 +144,12 @@ notion_detect_profile() {
     fi
   elif [ "$SHELLTYPE" = "zsh" ]; then
     DETECTED_PROFILE="$HOME/.zshrc"
+  elif [ "$SHELLTYPE" = "fish" ]; then
+    DETECTED_PROFILE="$HOME/.config/fish/config.fish"
   fi
 
   if [ -z "$DETECTED_PROFILE" ]; then
-    for EACH_PROFILE in ".profile" ".bashrc" ".bash_profile" ".zshrc"
+    for EACH_PROFILE in ".profile" ".bashrc" ".bash_profile" ".zshrc" ".config/fish/config.fish"
     do
       if DETECTED_PROFILE="$(notion_try_profile "${HOME}/${EACH_PROFILE}")"; then
         break
@@ -151,6 +160,22 @@ notion_detect_profile() {
   if [ -n "$DETECTED_PROFILE" ]; then
     echo "$DETECTED_PROFILE"
   fi
+}
+
+notion_build_path_str() {
+  local PROFILE
+  PROFILE="$1"
+  local PROFILE_INSTALL_DIR
+  PROFILE_INSTALL_DIR="$2"
+
+  local PATH_STR
+  if [[ $PROFILE =~ \.fish$ ]]; then
+    PATH_STR="\\nset -gx NOTION_HOME \"${PROFILE_INSTALL_DIR}\"\\ntest -s \"\$NOTION_HOME/load.fish\"; and source \"\$NOTION_HOME/load.fish\"\\n\\nset -gx PATH \"\$NOTION_HOME/bin\" \$PATH"
+  else
+    PATH_STR="\\nexport NOTION_HOME=\"${PROFILE_INSTALL_DIR}\"\\n[ -s \"\$NOTION_HOME/load.sh\" ] && \\. \"\$NOTION_HOME/load.sh\"\\n\\nexport PATH=\"\${NOTION_HOME}/bin:\$PATH\""
+  fi
+
+  echo "$PATH_STR"
 }
 
 notion_eprintf() {
@@ -195,7 +220,7 @@ notion_install() {
   local PROFILE_INSTALL_DIR
   PROFILE_INSTALL_DIR=$(notion_install_dir | sed "s:^$HOME:\$HOME:")
   local PATH_STR
-  PATH_STR="\\nexport NOTION_HOME=\"${PROFILE_INSTALL_DIR}\"\\n[ -s \"\$NOTION_HOME/load.sh\" ] && \\. \"\$NOTION_HOME/load.sh\"\\n\\nexport PATH=\"\${NOTION_HOME}/bin:\$PATH\""
+  PATH_STR="$(notion_build_path_str "$NOTION_PROFILE" "$PROFILE_INSTALL_DIR")"
 
   if [ -z "${NOTION_PROFILE-}" ] ; then
     local TRIED_PROFILE
@@ -203,7 +228,7 @@ notion_install() {
       TRIED_PROFILE="${NOTION_PROFILE} (as defined in \$PROFILE), "
     fi
     notion_error "No user profile found."
-    notion_eprintf "Tried ${TRIED_PROFILE-}~/.bashrc, ~/.bash_profile, ~/.zshrc, and ~/.profile."
+    notion_eprintf "Tried ${TRIED_PROFILE-}~/.bashrc, ~/.bash_profile, ~/.zshrc, ~/.profile, and ~.config/fish/config.fish."
     notion_eprintf ''
     notion_eprintf "You can either create one of these and try again or add this to the appropriate file:"
     notion_eprintf "${PATH_STR}"
