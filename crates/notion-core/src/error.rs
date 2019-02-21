@@ -14,10 +14,7 @@ pub enum ErrorDetails {
     /// Thrown when a user tries to `notion pin` something other than node/yarn/npm.
     CannotPinPackage,
 
-    CliParseError {
-        usage: Option<String>,
-        error: String,
-    },
+    CliParseError,
 
     CommandNotImplemented {
         command_name: String,
@@ -124,7 +121,7 @@ impl fmt::Display for ErrorDetails {
             ErrorDetails::CannotPinPackage => {
                 write!(f, "Only node, yarn, and npm can be pinned in a project")
             }
-            ErrorDetails::CliParseError { error, .. } => write!(f, "{}", error),
+            ErrorDetails::CliParseError => write!(f, "There was a problem parsing the command line input"),
             ErrorDetails::CommandNotImplemented { command_name } => write!(f, "command `{}` is not yet implemented", command_name),
             ErrorDetails::CouldNotDetermineTool => write!(f, "Tool name could not be determined"),
             ErrorDetails::CreateDirError { dir, error } => {
@@ -200,7 +197,7 @@ impl NotionFail for ErrorDetails {
         match self {
             ErrorDetails::BinaryExecError { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::CannotPinPackage => ExitCode::InvalidArguments,
-            ErrorDetails::CliParseError { .. } => ExitCode::InvalidArguments,
+            ErrorDetails::CliParseError => ExitCode::UnknownError,
             ErrorDetails::CommandNotImplemented { .. } => ExitCode::NotYetImplemented,
             ErrorDetails::CouldNotDetermineTool => ExitCode::UnknownError,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
