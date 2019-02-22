@@ -40,7 +40,6 @@ use crate::fs::read_file_opt;
 use archive::Archive;
 
 use notion_fail::{throw, ExitCode, Fallible, NotionFail, ResultExt};
-use notion_fail::FailExt;
 use failure::Fail;
 use notion_fail_derive::*;
 

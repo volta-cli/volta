@@ -9,7 +9,6 @@ use crate::hook::{HookConfig, LazyHookConfig, Publish};
 use crate::distro::Fetched;
 use crate::inventory::{Inventory, LazyInventory};
 use crate::package::PackageVersion;
-use crate::package::PackageDistro;
 use crate::platform::PlatformSpec;
 use crate::project::{LazyProject, Project};
 use crate::toolchain::LazyToolchain;
@@ -155,7 +154,7 @@ impl Session {
 
         if !inventory.node.contains(version) {
             let hooks = self.hooks.get()?;
-            inventory.node.fetch(&VersionSpec::exact(version), hooks)?;
+            inventory.node.fetch(&VersionSpec::exact(version), hooks.node.as_ref())?;
         }
 
         Ok(())
@@ -167,7 +166,7 @@ impl Session {
 
         if !inventory.yarn.contains(version) {
             let hooks = self.hooks.get()?;
-            inventory.yarn.fetch(&VersionSpec::exact(version), hooks)?;
+            inventory.yarn.fetch(&VersionSpec::exact(version), hooks.yarn.as_ref())?;
         }
 
         Ok(())
@@ -237,21 +236,21 @@ impl Session {
     pub fn fetch_node(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<NodeVersion>> {
         let inventory = self.inventory.get_mut()?;
         let hooks = self.hooks.get()?;
-        inventory.node.fetch(&version_spec, config)
+        inventory.node.fetch(&version_spec, hooks.node.as_ref())
     }
 
     /// Fetches a Yarn version matching the specified semantic versioning requirements.
     pub fn fetch_yarn(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<Version>> {
         let inventory = self.inventory.get_mut()?;
         let hooks = self.hooks.get()?;
-        inventory.yarn.fetch(&version_spec, config)
+        inventory.yarn.fetch(&version_spec, hooks.yarn.as_ref())
     }
 
     /// Fetches a Packge version matching the specified semantic versioning requirements.
     pub fn fetch_package(&mut self, name: &String, version_spec: &VersionSpec) -> Fallible<Fetched<PackageVersion>> {
         let inventory = self.inventory.get_mut()?;
-        let config = self.config.get()?;
-        inventory.fetch_package(name, version_spec, config)
+        let hooks = self.hooks.get()?;
+        inventory.fetch_package(name, version_spec, hooks)
     }
 
     /// Updates toolchain in package.json with the Tool version matching the specified semantic

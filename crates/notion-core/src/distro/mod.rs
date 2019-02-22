@@ -11,7 +11,6 @@ use archive::HttpError;
 use notion_fail::Fallible;
 use reqwest::StatusCode;
 use semver::Version;
-use std::fs::File;
 
 /// The result of a requested installation.
 #[derive(Debug)]
@@ -41,14 +40,8 @@ impl<V> Fetched<V> {
 pub trait Distro: Sized {
     type VersionDetails;
 
-    /// Provision a distribution from the public distributor (e.g. `https://nodejs.org`).
-    fn public(version: Version) -> Fallible<Self>;
-
-    /// Provision a distribution from a remote distributor.
-    fn remote(version: Version, url: &str) -> Fallible<Self>;
-
-    /// Provision a distribution from the filesystem.
-    fn local(version: Version, file: File) -> Fallible<Self>;
+    /// Provisions a new Distro based on the Version and Possible Hooks
+    fn new(version: Version, hooks: Option<&ToolHooks<Self>>) -> Fallible<Self>;
 
     /// Produces a reference to this distro's Tool version.
     fn version(&self) -> &Version;

@@ -113,22 +113,7 @@ impl Inventory {
         })
     }
 
-    /// Fetches a Tool version matching the specified semantic versioning requirements.
-    pub fn fetch(
-        &mut self,
-        toolspec: &ToolSpec,
-        hooks: &HookConfig,
-    ) -> Fallible<Fetched<DistroVersion>> {
-        match toolspec {
-            ToolSpec::Node(version) => self.node.fetch(&version, hooks.node.as_ref()),
-            ToolSpec::Yarn(version) => self.yarn.fetch(&version, hooks.yarn.as_ref()),
-            // ISSUE (#175) implement as part of fetching packages
-            ToolSpec::Npm(_) => unimplemented!("cannot fetch npm"),
-            ToolSpec::Package(_name, _version) => unimplemented!("using self.fetch_package!!"),
-        }
-    }
-
-    pub fn fetch_package(&mut self, name: &String, matching: &VersionSpec, _config: &Config) -> Fallible<Fetched<DistroVersion>> {
+    pub fn fetch_package(&mut self, name: &String, matching: &VersionSpec, _config: &HookConfig) -> Fallible<Fetched<PackageVersion>> {
         // TODO: this should use config, and be resolve_remote()?
         let distro = NpmPackage::resolve_public(name, matching)?;
         distro.fetch()
