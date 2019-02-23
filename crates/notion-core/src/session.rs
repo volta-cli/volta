@@ -207,23 +207,26 @@ impl Session {
 
         let use_platform;
 
-        if let Some(platform) = package_version.platform()? {
-            println!("using 'platform' from the package: {:?}", platform);
-            use_platform = platform;
-        } else if let Some(platform) = self.user_platform()? {
-            println!("using user platform: {:?}", platform);
-            use_platform = platform;
-        } else {
-            println!("no package platform or user platform - using node latest");
-            let node_version = self.fetch_node(&VersionSpec::Latest)?.into_version();
+        // This uses the "engines" field from package.json to determine the node version to use
+        // From https://docs.npmjs.com/files/package.json#engines:
+        //
+        // You can specify the version of node that your stuff works on:
+        //
+        // { "engines" : { "node" : ">=0.10.3 <0.12" } }
+        //
+        // And, like with dependencies, if you don’t specify the version (or if you specify “*” as the version), then any version of node will do.
+        //
+        // If you specify an "engines" field, then npm will require that "node" be somewhere on that list. If "engines" is omitted, then npm will just assume that it works on node.
+        let req_node_version = package_version.engines_spec()?;
+        println!("required node version(s) from \"engines\": \"{}\"", req_node_version);
 
-            use_platform = Rc::new(PlatformSpec {
-                node_runtime: node_version.runtime,
-                npm: Some(node_version.npm),
-                yarn: None,
-            });
-            // TODO: is that all I need to do for that?
-        }
+        let node_version = self.fetch_node(&req_node_version)?.into_version();
+
+        use_platform = Rc::new(PlatformSpec {
+            node_runtime: node_version.runtime,
+            npm: Some(node_version.npm),
+            yarn: None,
+        });
 
         // finally, install the package
         package_version.install(&use_platform, self)

@@ -106,11 +106,21 @@ impl NodeIndex {
                     files: HashSet::from_iter(entry.files.into_iter()),
                 };
                 let version = trim_version(&entry.version[..]);
-                entries.push(super::NodeEntry {
-                    version: Version::parse(version).unknown()?,
-                    npm: Version::parse(&npm).unknown()?,
-                    files: data,
-                });
+                // TODO: for now, since the new version parser doesn't work for things like
+                // "1.1.0-beta-10", which is used by really old versions of npm
+                match Version::parse(&npm) {
+                    Ok(v) => {
+                        entries.push(super::NodeEntry {
+                            version: Version::parse(version).unknown()?,
+                            npm: Version::parse(&npm).unknown()?,
+                            files: data,
+                        });
+                    }
+                    Err(e) => {
+                        // just print the error, don't error out for now
+                        eprintln!("error parsing npm version {}: {}", npm, e);
+                    }
+                }
             }
         }
         Ok(super::NodeIndex { entries })

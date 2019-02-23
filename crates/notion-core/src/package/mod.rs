@@ -1,7 +1,6 @@
 //! Provides types for installing packages to the user toolchain.
 
 use std::fs::rename;
-use std::rc::Rc;
 use std::process::{Command, Stdio};
 use std::ffi::OsStr;
 use std::collections::HashMap;
@@ -228,10 +227,15 @@ impl PackageVersion {
             image_dir: path::package_image_dir(&name, &version.to_string())?,
         })
     }
+
     // TODO: description
-    pub fn platform(&self) -> Fallible<Option<Rc<PlatformSpec>>> {
+    pub fn engines_spec(&self) -> Fallible<VersionSpec> {
         let manifest = Manifest::for_dir(&self.image_dir)?;
-        Ok(manifest.platform())
+        let engines = match manifest.engines() {
+            Some(e) => e,
+            None=> "*".to_string(), // if nothing specified, match all versions of Node
+        };
+        Ok(VersionSpec::Semver(VersionSpec::parse_requirements(engines)?))
     }
 
     pub fn install(&self, platform: &PlatformSpec, session: &mut Session) -> Fallible<()> {

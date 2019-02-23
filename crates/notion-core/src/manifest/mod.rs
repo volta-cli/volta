@@ -24,8 +24,10 @@ pub struct Manifest {
     pub dependencies: HashMap<String, String>,
     /// The `devDependencies` section.
     pub dev_dependencies: HashMap<String, String>,
-    /// The `bin` section, containing a map of binary names to locations
+    /// The `bin` section, containing a map of binary names to locations.
     pub bin: HashMap<String, String>,
+    /// The `engines` section, containing a spec of the Node versions that the package works on.
+    pub engines: Option<String>,
 }
 
 impl Manifest {
@@ -58,6 +60,11 @@ impl Manifest {
     /// Returns a reference to the platform image specified by manifest, if any.
     pub fn platform(&self) -> Option<Rc<PlatformSpec>> {
         self.platform.as_ref().map(|p| p.clone())
+    }
+
+    /// Returns a copy of the "engines" specification from the manifest, if any.
+    pub fn engines(&self) -> Option<String> {
+        self.engines.as_ref().map(|e| e.clone())
     }
 
     /// Gets the names of all the direct dependencies in the manifest.
