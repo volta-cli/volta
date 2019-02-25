@@ -40,15 +40,15 @@ impl VersionSpec {
 
     pub fn parse(s: impl AsRef<str>) -> Fallible<Self> {
         let s = s.as_ref();
-        s.parse().with_context(from_req_parse_error)
+        s.parse().with_context(version_req_parse_error)
     }
 
     pub fn parse_requirements(s: impl AsRef<str>) -> Fallible<VersionReq> {
-        parse_requirements(s.as_ref()).with_context(from_req_parse_error)
+        parse_requirements(s.as_ref()).with_context(version_req_parse_error)
     }
 
     pub fn parse_version(s: impl AsRef<str>) -> Fallible<Version> {
-        Version::parse(s.as_ref()).with_context(from_semver_error)
+        Version::parse(s.as_ref()).with_context(version_parse_error)
     }
 }
 
@@ -68,13 +68,13 @@ impl FromStr for VersionSpec {
     }
 }
 
-fn from_req_parse_error(error: &ReqParseError) -> ErrorDetails {
+fn version_req_parse_error(error: &ReqParseError) -> ErrorDetails {
     ErrorDetails::VersionParseError {
         error: error.to_string(),
     }
 }
 
-fn from_semver_error(error: &SemVerError) -> ErrorDetails {
+fn version_parse_error(error: &SemVerError) -> ErrorDetails {
     ErrorDetails::VersionParseError {
         error: error.to_string(),
     }

@@ -79,7 +79,7 @@ impl Display for ToolSpec {
     }
 }
 
-fn from_io_error(error: &io::Error) -> ErrorDetails {
+fn binary_exec_error(error: &io::Error) -> ErrorDetails {
     if let Some(inner_err) = error.get_ref() {
         ErrorDetails::BinaryExecError {
             error: inner_err.to_string(),
@@ -139,7 +139,7 @@ pub trait Tool: Sized {
                 session.exit_tool(code);
             }
             Err(err) => {
-                let notion_err = err.with_context(from_io_error);
+                let notion_err = err.with_context(binary_exec_error);
                 display_error(&notion_err);
                 session.add_event_error(ActivityKind::Tool, &notion_err);
                 session.exit(ExitCode::ExecutionFailure);

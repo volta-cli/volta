@@ -9,7 +9,7 @@ use notion_core::session::Session;
 use notion_fail::{throw, FailExt, Fallible};
 
 use crate::command::{Command, CommandName, Help};
-use crate::error::from_docopt_error;
+use crate::error::cli_parse_error;
 use crate::Notion;
 
 #[derive(Debug, Deserialize)]
@@ -117,7 +117,7 @@ fn parse_subcommand<'de, T: Deserialize<'de>>(
     let usage = format!("Usage: notion config {} {}", subcommand, usage);
     Docopt::new(&usage[..])
         .and_then(|d| d.argv(argv).deserialize())
-        .map_err(|err| err.with_context(from_docopt_error))
+        .map_err(|err| err.with_context(cli_parse_error))
 }
 
 impl Command for Config {

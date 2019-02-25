@@ -77,10 +77,11 @@ pub trait Distro: Sized {
     fn fetch(self, collection: &Collection<Self>) -> Fallible<Fetched<DistroVersion>>;
 }
 
-fn error_for_tool(
+fn download_tool_error(
     toolspec: ToolSpec,
-    from_url: String,
+    from_url: impl AsRef<str>,
 ) -> impl FnOnce(&failure::Error) -> ErrorDetails {
+    let from_url = from_url.as_ref().to_string();
     move |error| match error.downcast_ref::<HttpError>() {
         Some(HttpError {
             code: StatusCode::NOT_FOUND,

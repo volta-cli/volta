@@ -6,7 +6,7 @@ use crate::error::ErrorDetails;
 use crate::path;
 use notion_fail::{throw, FailExt, Fallible};
 
-fn from_io_error(error: &io::Error) -> ErrorDetails {
+fn symlink_error(error: &io::Error) -> ErrorDetails {
     if let Some(inner_err) = error.get_ref() {
         ErrorDetails::SymlinkError {
             error: inner_err.to_string(),
@@ -42,7 +42,7 @@ pub fn create(shim_name: &str) -> Fallible<ShimResult> {
             if err.kind() == io::ErrorKind::AlreadyExists {
                 Ok(ShimResult::AlreadyExists)
             } else {
-                throw!(err.with_context(from_io_error));
+                throw!(err.with_context(symlink_error));
             }
         }
     }
@@ -61,7 +61,7 @@ pub fn delete(shim_name: &str) -> Fallible<ShimResult> {
             if err.kind() == io::ErrorKind::NotFound {
                 Ok(ShimResult::DoesntExist)
             } else {
-                throw!(err.with_context(from_io_error));
+                throw!(err.with_context(symlink_error));
             }
         }
     }

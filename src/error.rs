@@ -3,7 +3,7 @@ use failure::Context;
 use notion_core::error::ErrorDetails;
 use notion_fail::NotionError;
 
-pub(crate) fn from_docopt_error(error: &docopt::Error) -> ErrorDetails {
+pub(crate) fn cli_parse_error(error: &docopt::Error) -> ErrorDetails {
     if let &docopt::Error::WithProgramUsage(ref real_error, ref usage) = error {
         ErrorDetails::CliParseError {
             usage: Some(usage.clone()),

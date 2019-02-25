@@ -27,7 +27,7 @@ use serde::Deserialize;
 use notion_core::session::Session;
 use notion_fail::{throw, FailExt, Fallible};
 
-use crate::error::from_docopt_error;
+use crate::error::cli_parse_error;
 use crate::{DocoptExt, Notion};
 
 use std::fmt::{self, Display};
@@ -128,7 +128,7 @@ pub(crate) trait Command: Sized {
                 }
                 // Otherwise it's a true docopt error, so rethrow it.
                 else {
-                    throw!(err.with_context(from_docopt_error));
+                    throw!(err.with_context(cli_parse_error));
                 }
             }
         }

@@ -12,7 +12,7 @@ use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error, ErrorContext};
 use notion_fail::{throw, ExitCode, FailExt, Fallible, NotionError};
 
-use crate::error::{from_docopt_error, DocoptExt, NotionErrorExt};
+use crate::error::{cli_parse_error, DocoptExt, NotionErrorExt};
 use command::{
     Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Help, Install, Pin, Use,
     Version,
@@ -154,7 +154,7 @@ See 'notion help <command>' for more information on a specific command.
                 // Otherwise the other docopt error messages are pretty
                 // reasonable, so just wrap and then rethrow.
                 else {
-                    throw!(err.with_context(from_docopt_error));
+                    throw!(err.with_context(cli_parse_error));
                 }
             }
         })
