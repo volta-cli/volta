@@ -3,10 +3,8 @@ use std::ffi::OsStr;
 use std::io;
 use std::process::{Command, ExitStatus};
 
-use super::{
-    command_for, display_tool_error, intercept_global_installs, NoGlobalInstallError,
-    NoSuchToolError, Tool,
-};
+use super::{command_for, display_tool_error, intercept_global_installs, Tool};
+use crate::error::ErrorDetails;
 use crate::session::{ActivityKind, Session};
 
 use notion_fail::{throw, Fallible};
@@ -21,7 +19,7 @@ impl Tool for Yarn {
         session.add_event_start(ActivityKind::Yarn);
 
         if intercept_global_installs() && is_global_yarn_add() {
-            throw!(NoGlobalInstallError);
+            throw!(ErrorDetails::NoGlobalInstalls);
         }
 
         if let Some(ref platform) = session.current_platform()? {
@@ -32,7 +30,7 @@ impl Tool for Yarn {
                 &image.path()?,
             ))
         } else {
-            throw!(NoSuchToolError {
+            throw!(ErrorDetails::NoSuchTool {
                 tool: "Yarn".to_string()
             });
         }

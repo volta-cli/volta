@@ -8,14 +8,12 @@ use std::marker::Sized;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 
-use failure::Fail;
-
 use crate::env::UNSAFE_GLOBAL;
+use crate::error::ErrorDetails;
 use crate::session::Session;
 use crate::style;
 use crate::version::VersionSpec;
-use notion_fail::{ExitCode, Fallible, NotionError, NotionFail, ResultExt};
-use notion_fail_derive::*;
+use notion_fail::{Fallible, NotionError, ResultExt};
 
 mod binary;
 mod node;
@@ -75,23 +73,14 @@ impl Display for ToolSpec {
     }
 }
 
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "{}", error)]
-#[notion_fail(code = "ExecutionFailure")]
-pub(crate) struct BinaryExecError {
-    pub(crate) error: String,
-}
-
-impl BinaryExecError {
-    pub(crate) fn from_io_error(error: &io::Error) -> Self {
-        if let Some(inner_err) = error.get_ref() {
-            BinaryExecError {
-                error: inner_err.to_string(),
-            }
-        } else {
-            BinaryExecError {
-                error: error.to_string(),
-            }
+fn binary_exec_error(error: &io::Error) -> ErrorDetails {
+    if let Some(inner_err) = error.get_ref() {
+        ErrorDetails::BinaryExecError {
+            error: inner_err.to_string(),
+        }
+    } else {
+        ErrorDetails::BinaryExecError {
+            error: error.to_string(),
         }
     }
 }
@@ -141,19 +130,14 @@ pub trait Tool: Sized {
         let mut command = self.command();
         let status = command.status();
         Self::finalize(session, &status);
-        status.with_context(BinaryExecError::from_io_error)
+        status.with_context(binary_exec_error)
     }
 }
-
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Tool name could not be determined")]
-#[notion_fail(code = "UnknownError")]
-struct CouldNotDetermineTool;
 
 fn get_tool_name(args: &mut ArgsOs) -> Fallible<OsString> {
     args.nth(0)
         .and_then(|arg0| Path::new(&arg0).file_name().map(tool_name_from_file_name))
-        .ok_or(CouldNotDetermineTool.into())
+        .ok_or(ErrorDetails::CouldNotDetermineTool.into())
 }
 
 #[cfg(unix)]
@@ -177,29 +161,6 @@ fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
     command.env("PATH", path_var);
     command
 }
-
-#[derive(Debug, Fail, NotionFail)]
-#[fail(
-    display = r#"
-No {} version selected.
-
-See `notion help pin` for help adding {} to a project toolchain.
-
-See `notion help install` for help adding {} to your personal toolchain."#,
-    tool, tool, tool
-)]
-#[notion_fail(code = "NoVersionMatch")]
-struct NoSuchToolError {
-    tool: String,
-}
-
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = r#"
-Global package installs are not recommended.
-
-Consider using `notion install` to add a package to your toolchain (see `notion help install` for more info)."#)]
-#[notion_fail(code = "InvalidArguments")]
-struct NoGlobalInstallError;
 
 fn intercept_global_installs() -> bool {
     if cfg!(feature = "intercept-globals") {

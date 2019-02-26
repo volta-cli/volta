@@ -2,7 +2,8 @@ use std::env::ArgsOs;
 use std::ffi::OsStr;
 use std::process::Command;
 
-use super::{command_for, NoSuchToolError, Tool};
+use super::{command_for, Tool};
+use crate::error::ErrorDetails;
 use crate::session::{ActivityKind, Session};
 
 use notion_fail::{throw, Fallible};
@@ -24,7 +25,7 @@ impl Tool for Node {
                 &image.path()?,
             ))
         } else {
-            throw!(NoSuchToolError {
+            throw!(ErrorDetails::NoSuchTool {
                 tool: "Node".to_string()
             });
         }

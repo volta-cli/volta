@@ -4,6 +4,7 @@
 
 mod distro;
 pub mod env;
+pub mod error;
 mod event;
 pub(crate) mod fs;
 mod hook;

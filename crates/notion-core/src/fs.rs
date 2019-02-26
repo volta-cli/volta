@@ -4,10 +4,8 @@ use std::fs::{self, create_dir_all, read_dir, DirEntry, File, Metadata};
 use std::io::{self, ErrorKind};
 use std::path::{Path, PathBuf};
 
-use failure::Fail;
-
-use notion_fail::{throw, ExitCode, FailExt, Fallible, NotionFail, ResultExt};
-use notion_fail_derive::*;
+use crate::error::ErrorDetails;
+use notion_fail::{Fallible, ResultExt};
 
 pub fn touch(path: &Path) -> Fallible<File> {
     if !path.is_file() {
@@ -18,37 +16,21 @@ pub fn touch(path: &Path) -> Fallible<File> {
     File::open(path).unknown()
 }
 
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Could not create directory {}: {}", dir, error)]
-#[notion_fail(code = "FileSystemError")]
-pub(crate) struct CreateDirError {
-    pub(crate) dir: String,
-    pub(crate) error: String,
-}
-
-impl CreateDirError {
-    pub(crate) fn for_dir(dir: String) -> impl FnOnce(&io::Error) -> CreateDirError {
-        move |error| CreateDirError {
-            dir,
-            error: error.to_string(),
-        }
+fn error_for_dir(dir: String) -> impl FnOnce(&io::Error) -> ErrorDetails {
+    move |error| ErrorDetails::CreateDirError {
+        dir,
+        error: error.to_string(),
     }
 }
-
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "`path` internal error")]
-#[notion_fail(code = "UnknownError")]
-pub(crate) struct PathInternalError;
 
 /// This creates the parent directory of the input path, assuming the input path is a file.
 pub fn ensure_containing_dir_exists<P: AsRef<Path>>(path: &P) -> Fallible<()> {
-    if let Some(dir) = path.as_ref().parent() {
-        fs::create_dir_all(dir)
-            .with_context(CreateDirError::for_dir(dir.to_string_lossy().to_string()))
-    } else {
-        // this was called for a file with no parent directory
-        throw!(PathInternalError.unknown());
-    }
+    path.as_ref()
+        .parent()
+        .ok_or(ErrorDetails::PathError.into())
+        .and_then(|dir| {
+            fs::create_dir_all(dir).with_context(error_for_dir(dir.to_string_lossy().to_string()))
+        })
 }
 
 /// Reads a file, if it exists.

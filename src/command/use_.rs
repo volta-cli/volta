@@ -4,11 +4,11 @@
 
 use serde::Deserialize;
 
+use notion_core::error::ErrorDetails;
 use notion_core::session::Session;
 use notion_fail::{throw, Fallible};
 
 use crate::command::Command;
-use crate::error::CliParseError;
 use crate::Notion;
 
 #[derive(Debug, Deserialize)]
@@ -42,7 +42,7 @@ See 'notion --help' for more information.
     }
 
     fn go(_: Notion, _: &mut Session) -> Fallible<()> {
-        throw!(CliParseError {
+        throw!(ErrorDetails::CliParseError {
             usage: None,
             error: format!("no such command: `use`\n{}", Use::USAGE)
         });

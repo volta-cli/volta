@@ -4,10 +4,10 @@ use std::ffi::OsString;
 use std::io::Read;
 use std::process::{Command, Stdio};
 
+use crate::error::ErrorDetails;
 use crate::path::{ARCH, OS};
 use cmdline_words_parser::StrExt;
-use failure::Fail;
-use notion_fail::{throw, FailExt, Fallible, ResultExt};
+use notion_fail::{throw, Fallible, ResultExt};
 use semver::Version;
 
 const ARCH_TEMPLATE: &'static str = "{{arch}}";
@@ -65,10 +65,9 @@ fn execute_binary(bin: &str, extra_arg: Option<String>) -> Fallible<String> {
     let cmd = if let Some(word) = words.next() {
         word
     } else {
-        throw!(InvalidCommandError {
+        throw!(ErrorDetails::InvalidHookCommand {
             command: String::from(bin.trim()),
-        }
-        .unknown())
+        })
     };
     let mut args: Vec<OsString> = words.map(OsString::from).collect();
 
@@ -87,12 +86,6 @@ fn execute_binary(bin: &str, extra_arg: Option<String>) -> Fallible<String> {
     let mut url = String::new();
     child.stdout.unwrap().read_to_string(&mut url).unknown()?;
     Ok(url.trim().to_string())
-}
-
-#[derive(Fail, Debug)]
-#[fail(display = "Invalid hook command: '{}'", command)]
-pub struct InvalidCommandError {
-    command: String,
 }
 
 #[cfg(test)]

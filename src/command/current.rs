@@ -2,11 +2,9 @@ use std::string::ToString;
 
 use serde::Deserialize;
 
-use failure::Fail;
-
+use notion_core::error::ErrorDetails;
 use notion_core::session::{ActivityKind, Session};
-use notion_fail::{throw, ExitCode, Fallible, NotionFail};
-use notion_fail_derive::*;
+use notion_fail::{throw, ExitCode, Fallible};
 
 use crate::command::{Command, CommandName, Help};
 use crate::Notion;
@@ -16,11 +14,6 @@ pub(crate) struct Args {
     flag_project: bool,
     flag_user: bool,
 }
-
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "no versions found")]
-#[notion_fail(code = "NoVersionMatch")]
-struct NoVersionsFoundError;
 
 pub(crate) enum Current {
     Help,
@@ -108,7 +101,7 @@ Options:
         };
         session.add_event_end(ActivityKind::Current, ExitCode::Success);
         if !result {
-            throw!(NoVersionsFoundError);
+            throw!(ErrorDetails::NoVersionsFound);
         }
         Ok(())
     }
