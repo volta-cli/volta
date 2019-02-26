@@ -1,7 +1,12 @@
 // Serialization for npm package information
 
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::Write;
 
+use crate::fs::ensure_containing_dir_exists;
+use crate::path;
+use crate::toolchain;
 use notion_fail::Fallible;
 use notion_fail::ResultExt;
 use semver::Version;
@@ -39,6 +44,23 @@ pub struct DistInfo {
     pub tarball: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PackageConfig {
+    pub name: String,
+    pub version: String,
+    pub platform: toolchain::serial::Platform,
+    pub bins: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct BinConfig {
+    pub name: String,
+    pub package: String,
+    pub version: String,
+    pub path: String,
+    pub platform: toolchain::serial::Platform,
+}
+
 impl PackageMetadata {
     pub fn into_index(self) -> Fallible<super::PackageIndex> {
         let latest_version = Version::parse(&self.dist_tags.latest).unknown()?;
@@ -61,3 +83,70 @@ impl PackageMetadata {
     }
 }
 
+impl super::PackageConfig {
+    pub fn to_serial(&self) -> PackageConfig {
+        PackageConfig {
+            name: self.name.to_string(),
+            version: self.version.to_string(),
+            platform: self.platform.to_serial(),
+            bins: self.bins.clone(),
+        }
+    }
+}
+
+impl super::BinConfig {
+    pub fn to_serial(&self) -> BinConfig {
+        BinConfig {
+            name: self.name.to_string(),
+            package: self.package.to_string(),
+            version: self.version.to_string(),
+            path: self.path.to_string(),
+            platform: self.platform.to_serial(),
+        }
+    }
+}
+
+impl PackageConfig {
+    pub fn to_json(&self) -> Fallible<String> {
+        serde_json::to_string_pretty(&self).unknown()
+    }
+
+    // TODO: from_json()
+
+    // write the package config info to disk
+    pub fn write(&self) -> Fallible<()> {
+        let src = self.to_json()?;
+        let config_file_path = path::user_package_config_file(&self.name)?;
+        ensure_containing_dir_exists(&config_file_path)?;
+        let mut file = File::create(&config_file_path).unknown()?;
+        file.write_all(src.as_bytes()).unknown()?;
+        Ok(())
+    }
+
+    // TODO: read()
+}
+
+impl BinConfig {
+    pub fn to_json(&self) -> Fallible<String> {
+        serde_json::to_string_pretty(&self).unknown()
+    }
+
+    // TODO: from_json()
+
+    // write the binary config info to disk
+    pub fn write(&self) -> Fallible<()> {
+        let src = self.to_json()?;
+        let bin_config_path = path::user_tool_bin_config(&self.name)?;
+        ensure_containing_dir_exists(&bin_config_path)?;
+        let mut file = File::create(&bin_config_path).unknown()?;
+        file.write_all(src.as_bytes()).unknown()?;
+        Ok(())
+        // TODO: will need this somewhere else
+        // canonicalize because path is relative, and sometimes uses '.' char
+        // let binary_file = self.image_dir.join(bin_path).canonicalize().unknown()?;
+        // println!("{:?} ~> {:?}", shim_file, binary_file);
+        // path::create_file_symlink(binary_file, shim_file).unknown()?;
+    }
+
+    // TODO: read()
+}

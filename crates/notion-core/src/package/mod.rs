@@ -1,7 +1,7 @@
 //! Provides types for installing packages to the user toolchain.
 
 use std::fs::rename;
-use std::process::{Command, Stdio};
+use std::process::{Command, ExitStatus, Stdio};
 use std::ffi::OsStr;
 use std::collections::HashMap;
 use std::fs::File;
@@ -82,24 +82,42 @@ pub struct PackageHasNoExecutablesError;
 #[notion_fail(code = "ConfigurationError")]
 pub struct PackageUnpackError;
 
-/// Thrown when package install fails.
+/// Thrown when package install command fails to execute.
 #[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Error installing package: {}", error)]
+#[fail(display = "Error executing package install command: {}", error)]
 #[notion_fail(code = "FileSystemError")]
-pub (crate) struct InstallCmdFailError {
+pub (crate) struct PackageInstallIoError {
     error: String,
 }
 
-impl InstallCmdFailError {
+impl PackageInstallIoError {
     pub(crate) fn from_io_error(error: &io::Error) -> Self {
         if let Some(inner_err) = error.get_ref() {
-            InstallCmdFailError {
+            PackageInstallIoError {
                 error: inner_err.to_string(),
             }
         } else {
-            InstallCmdFailError {
+            PackageInstallIoError {
                 error: error.to_string(),
             }
+        }
+    }
+}
+
+/// Thrown when package install command is not successful.
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "Command `{:?}` failed with status {}", cmd, status)]
+#[notion_fail(code = "FileSystemError")]
+pub (crate) struct PackageInstallFailedError {
+    cmd: String,
+    status: ExitStatus,
+}
+
+impl PackageInstallFailedError {
+    pub(crate) fn new(cmd: String, status: ExitStatus) -> Self {
+        PackageInstallFailedError {
+            cmd,
+            status,
         }
     }
 }
@@ -132,17 +150,43 @@ enum Installer {
     Yarn,
 }
 
+/// Configuration information about an installed package.
+pub (crate) struct PackageConfig {
+    /// The package name
+    name: String,
+    /// The package version
+    version: Version,
+    /// The platform used to install this package
+    platform: PlatformSpec,
+    /// The binaries installed by this package
+    bins: Vec<String>,
+}
+
+/// Configuration information about an installed binary from a package.
+pub (crate) struct BinConfig {
+    /// The binary name
+    name: String,
+    /// The package that installed this binary
+    package: String,
+    /// The package version
+    version: Version,
+    /// The relative path of the binary in the installed package
+    path: String,
+    /// The platform used to install this binary
+    platform: PlatformSpec,
+}
+
 impl PackageDistro {
     pub fn new(name: String, shasum: String, version: Version, tarball_url: String) -> Fallible<Self> {
-            Ok(PackageDistro {
-                name: name.clone(),
-                shasum,
-                version: version.clone(),
-                tarball_url,
-                image_dir: path::package_image_dir(&name, &version.to_string())?,
-                distro_file: path::package_distro_file(&name, &version.to_string())?,
-                shasum_file: path::package_distro_shasum(&name, &version.to_string())?,
-            })
+        Ok(PackageDistro {
+            name: name.clone(),
+            shasum,
+            version: version.clone(),
+            tarball_url,
+            image_dir: path::package_image_dir(&name, &version.to_string())?,
+            distro_file: path::package_distro_file(&name, &version.to_string())?,
+            shasum_file: path::package_distro_shasum(&name, &version.to_string())?,
+        })
     }
 
     pub fn fetch(&self) -> Fallible<Fetched<PackageVersion>> {
@@ -160,7 +204,6 @@ impl PackageDistro {
                 bar.inc(read as u64);
             })
             .unknown()?;
-        // bar.finish_and_clear();
         bar.finish();
 
         ensure_containing_dir_exists(&self.image_dir)?;
@@ -173,7 +216,6 @@ impl PackageDistro {
         f.write_all(self.shasum.as_bytes()).unknown()?;
         f.sync_all().unknown()?;
 
-        // TODO: different error for this
         let pkg_info = Manifest::for_dir(&self.image_dir).with_context(DepPackageReadError::from_error)?;
         let bin_map = pkg_info.bin;
         if bin_map.is_empty() {
@@ -281,56 +323,50 @@ impl PackageVersion {
     }
 
     pub fn install(&self, platform: &PlatformSpec, session: &mut Session) -> Fallible<()> {
-        // checkout the image to use
         let image = platform.checkout(session)?;
-
+        // use yarn if it is installed, otherwise default to npm
         let mut install_cmd = if let Some(ref _yarn) = image.yarn {
-            // use yarn to install
             install_command_for(Installer::Yarn, &self.image_dir.clone().into_os_string(), &image.path()?)
         } else {
-            // otherwise use npm
             install_command_for(Installer::Npm, &self.image_dir.clone().into_os_string(), &image.path()?)
         };
 
-        let output = install_cmd.output().with_context(InstallCmdFailError::from_io_error)?;
-
+        let output = install_cmd.output().with_context(PackageInstallIoError::from_io_error)?;
         if !output.status.success() {
-            eprintln!("Whoops! `{:?}` failed with status {}", install_cmd, output.status);
-            unimplemented!("TODO: error that `{:?}` failed", install_cmd);
+            throw!(PackageInstallFailedError::new(format!("{:?}", install_cmd), output.status));
         }
 
-        self.write_platform_and_shims(&platform)?;
+        self.write_config_and_shims(&platform)?;
 
         Ok(())
     }
 
-    fn write_platform_and_shims(&self, platform_spec: &PlatformSpec) -> Fallible<()> {
-        // the platform information for the installed executables
-        let src = platform_spec.to_serial().to_json()?;
+    fn package_config(&self, platform_spec: &PlatformSpec) -> PackageConfig {
+        PackageConfig {
+            name: self.name.to_string(),
+            version: self.version.clone(),
+            platform: platform_spec.clone(),
+            bins: self.bins.iter().map(|(name, _path)| name.to_string()).collect(),
+        }
+    }
 
+    fn bin_config(&self, bin_name: String, bin_path: String, platform_spec: &PlatformSpec) -> BinConfig {
+        BinConfig {
+            name: bin_name,
+            package: self.name.to_string(),
+            version: self.version.clone(),
+            path: bin_path,
+            platform: platform_spec.clone(),
+        }
+    }
+
+    fn write_config_and_shims(&self, platform_spec: &PlatformSpec) -> Fallible<()> {
+        self.package_config(&platform_spec).to_serial().write()?;
         for (bin_name, bin_path) in self.bins.iter() {
-
-            // write config
-            let config_file_path = path::user_package_config_file(bin_name)?;
-            ensure_containing_dir_exists(&config_file_path)?;
-            // TODO: handle errors here, or throw known errors
-            let mut file = File::create(&config_file_path).unknown()?;
-            file.write_all(src.as_bytes()).unknown()?;
-
-            // write the symlink to the binary
-            // TODO: this should be part of the config data?
-            let shim_file = path::user_tool_bin_link(bin_name)?;
-            // canonicalize because path is relative, and sometimes uses '.' char
-            let binary_file = self.image_dir.join(bin_path).canonicalize().unknown()?;
-            ensure_containing_dir_exists(&shim_file)?;
-            println!("{:?} ~> {:?}", shim_file, binary_file);
-            // TODO: handle errors for this, like notion-core/src/shim.rs
-            path::create_file_symlink(binary_file, shim_file).unknown()?;
-
+            self.bin_config(bin_name.to_string(), bin_path.to_string(), &platform_spec).to_serial().write()?;
             // write the link to launchscript/bin
             shim::create(&bin_name)?;
         }
-
         Ok(())
     }
 }
@@ -352,6 +388,8 @@ impl Installer {
     }
 }
 
+// TODO
+
 /// Information about a user tool.
 pub struct UserTool {
     pub bin_path: PathBuf,
@@ -360,9 +398,12 @@ pub struct UserTool {
 
 impl UserTool {
     pub fn from_config(name: &str, session: &mut Session, src: &str) -> Fallible<Option<Self>> {
+
+
         if let Some(platform_spec) = Platform::from_json(src.to_string())?.into_image()? {
             Ok(Some(UserTool {
-                bin_path: path::user_tool_bin_link(&name)?,
+                // TODO: have to read the config
+                bin_path: path::user_tool_bin_config(&name)?,
                 image: platform_spec.checkout(session)?,
             }))
         } else {
@@ -372,9 +413,10 @@ impl UserTool {
 }
 
 pub fn user_tool(tool_name: &str, session: &mut Session) -> Fallible<Option<UserTool>> {
-    let config_path = path::user_package_config_file(&tool_name)?;
-    if config_path.exists() {
-        let config_data = File::open(config_path).unknown()?.read_into_string().unknown()?;
+    let bin_config_path = path::user_tool_bin_config(tool_name)?;
+
+    if bin_config_path.exists() {
+        let config_data = File::open(bin_config_path).unknown()?.read_into_string().unknown()?;
         Ok(UserTool::from_config(&tool_name, session, &config_data)?)
     } else {
         Ok(None) // no config means the tool is not installed
