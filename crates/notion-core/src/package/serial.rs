@@ -1,8 +1,10 @@
 // Serialization for npm package information
 
+use readext::ReadExt;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
+use std::path::PathBuf;
 
 use crate::fs::ensure_containing_dir_exists;
 use crate::path;
@@ -95,6 +97,11 @@ impl super::PackageConfig {
 }
 
 impl super::BinConfig {
+    pub fn from_file(file: PathBuf) -> Fallible<Self> {
+        let config_src = File::open(file).unknown()?.read_into_string().unknown()?;
+        BinConfig::from_json(config_src.to_string())?.into_config()
+    }
+
     pub fn to_serial(&self) -> BinConfig {
         BinConfig {
             name: self.name.to_string(),

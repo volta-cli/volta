@@ -121,6 +121,26 @@ impl PackageInstallFailedError {
     }
 }
 
+/// Thrown when package tries to install a binary that is already installed.
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "Conflict with bin '{}' already installed by '{}' version {}", bin_name, package, version)]
+#[notion_fail(code = "FileSystemError")]
+pub (crate) struct BinaryAlreadyInstalledError {
+    bin_name: String,
+    package: String,
+    version: String,
+}
+
+impl BinaryAlreadyInstalledError {
+    pub(crate) fn new(bin_name: String, package: String, version: Version) -> Self {
+        BinaryAlreadyInstalledError {
+            bin_name,
+            package,
+            version: version.to_string(),
+        }
+    }
+}
+
 /// A provisioned Package distribution.
 //#[derive(Debug)]
 pub struct PackageDistro {
@@ -221,9 +241,15 @@ impl PackageDistro {
             throw!(PackageHasNoExecutablesError);
         }
 
-        // TODO: check for conflicts with installed bins
-        // some packages may have bins with the same name
-        // warn and ask the user what to do? or just fail? probably fail for now
+        for (bin_name, bin_path) in bin_map.iter() {
+            // check for conflicts with installed bins
+            // some packages may install bins with the same name
+            let bin_config_file = path::user_tool_bin_config(&bin_name)?;
+            if bin_config_file.exists() {
+                let bin_config = BinConfig::from_file(bin_config_file)?;
+                throw!(BinaryAlreadyInstalledError::new(bin_name.to_string(), bin_config.package, bin_config.version));
+            }
+        }
 
         Ok(Fetched::Now(PackageVersion::new(
             self.name.clone(),
@@ -407,10 +433,9 @@ impl UserTool {
 }
 
 pub fn user_tool(tool_name: &str, session: &mut Session) -> Fallible<Option<UserTool>> {
-    let bin_config_path = path::user_tool_bin_config(tool_name)?;
-    if bin_config_path.exists() {
-        let config_src = File::open(bin_config_path).unknown()?.read_into_string().unknown()?;
-        let bin_config = serial::BinConfig::from_json(config_src.to_string())?.into_config()?;
+    let bin_config_file = path::user_tool_bin_config(tool_name)?;
+    if bin_config_file.exists() {
+        let bin_config = BinConfig::from_file(bin_config_file)?;
         Ok(UserTool::from_config(bin_config, session)?)
     } else {
         Ok(None) // no config means the tool is not installed

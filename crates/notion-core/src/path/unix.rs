@@ -76,8 +76,7 @@ cfg_if::cfg_if! {
 //                         3.7.1/                          package_image_dir("ember-cli", "3.7.1")
 //             user/                                       user_toolchain_dir
 //                 bins/
-//                     ember ~> ../../image/packages/ember-cli/3.7.1/bin/ember
-//                     tsc ~> (same idea)                  user_tool_bin_link("tsc")
+//                     tsc.json                            user_tool_bin_config("tsc")
 //                 packages/                               user_package_dir
 //                     ember/                              (the binary name, not the package name)
 //                         config.json                     user_package_config_file("ember")
