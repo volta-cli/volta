@@ -111,7 +111,9 @@ impl PackageConfig {
         serde_json::to_string_pretty(&self).unknown()
     }
 
-    // TODO: from_json()
+    pub fn from_json(src: String) -> Fallible<Self> {
+        serde_json::de::from_str(&src).unknown()
+    }
 
     // write the package config info to disk
     pub fn write(&self) -> Fallible<()> {
@@ -122,8 +124,6 @@ impl PackageConfig {
         file.write_all(src.as_bytes()).unknown()?;
         Ok(())
     }
-
-    // TODO: read()
 }
 
 impl BinConfig {
@@ -131,7 +131,9 @@ impl BinConfig {
         serde_json::to_string_pretty(&self).unknown()
     }
 
-    // TODO: from_json()
+    pub fn from_json(src: String) -> Fallible<Self> {
+        serde_json::de::from_str(&src).unknown()
+    }
 
     // write the binary config info to disk
     pub fn write(&self) -> Fallible<()> {
@@ -141,12 +143,15 @@ impl BinConfig {
         let mut file = File::create(&bin_config_path).unknown()?;
         file.write_all(src.as_bytes()).unknown()?;
         Ok(())
-        // TODO: will need this somewhere else
-        // canonicalize because path is relative, and sometimes uses '.' char
-        // let binary_file = self.image_dir.join(bin_path).canonicalize().unknown()?;
-        // println!("{:?} ~> {:?}", shim_file, binary_file);
-        // path::create_file_symlink(binary_file, shim_file).unknown()?;
     }
 
-    // TODO: read()
+    pub fn into_config(self) -> Fallible<super::BinConfig> {
+        Ok(super::BinConfig {
+            name: self.name,
+            package: self.package,
+            version: Version::parse(&self.version).unknown()?,
+            path: self.path,
+            platform: self.platform.into_image()?.unwrap(),
+        })
+    }
 }

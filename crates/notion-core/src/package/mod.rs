@@ -33,7 +33,6 @@ use crate::platform::PlatformSpec;
 use crate::manifest::Manifest;
 use crate::session::Session;
 use crate::project::DepPackageReadError;
-use crate::toolchain::serial::Platform;
 use crate::shim;
 use crate::platform::Image;
 use crate::fs::read_file_opt;
@@ -151,7 +150,7 @@ enum Installer {
 }
 
 /// Configuration information about an installed package.
-pub (crate) struct PackageConfig {
+pub struct PackageConfig {
     /// The package name
     name: String,
     /// The package version
@@ -163,7 +162,7 @@ pub (crate) struct PackageConfig {
 }
 
 /// Configuration information about an installed binary from a package.
-pub (crate) struct BinConfig {
+pub struct BinConfig {
     /// The binary name
     name: String,
     /// The package that installed this binary
@@ -388,8 +387,6 @@ impl Installer {
     }
 }
 
-// TODO
-
 /// Information about a user tool.
 pub struct UserTool {
     pub bin_path: PathBuf,
@@ -397,27 +394,24 @@ pub struct UserTool {
 }
 
 impl UserTool {
-    pub fn from_config(name: &str, session: &mut Session, src: &str) -> Fallible<Option<Self>> {
+    pub fn from_config(bin_config: BinConfig, session: &mut Session) -> Fallible<Option<Self>> {
+        let image_dir = path::package_image_dir(&bin_config.package, &bin_config.version.to_string())?;
+        // canonicalize because path is relative, and sometimes uses '.' char
+        let bin_path = image_dir.join(bin_config.path).canonicalize().unknown()?;
 
-
-        if let Some(platform_spec) = Platform::from_json(src.to_string())?.into_image()? {
-            Ok(Some(UserTool {
-                // TODO: have to read the config
-                bin_path: path::user_tool_bin_config(&name)?,
-                image: platform_spec.checkout(session)?,
-            }))
-        } else {
-            Ok(None)
-        }
+        Ok(Some(UserTool {
+            bin_path,
+            image: bin_config.platform.checkout(session)?,
+        }))
     }
 }
 
 pub fn user_tool(tool_name: &str, session: &mut Session) -> Fallible<Option<UserTool>> {
     let bin_config_path = path::user_tool_bin_config(tool_name)?;
-
     if bin_config_path.exists() {
-        let config_data = File::open(bin_config_path).unknown()?.read_into_string().unknown()?;
-        Ok(UserTool::from_config(&tool_name, session, &config_data)?)
+        let config_src = File::open(bin_config_path).unknown()?.read_into_string().unknown()?;
+        let bin_config = serial::BinConfig::from_json(config_src.to_string())?.into_config()?;
+        Ok(UserTool::from_config(bin_config, session)?)
     } else {
         Ok(None) // no config means the tool is not installed
     }
