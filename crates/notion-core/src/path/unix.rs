@@ -6,17 +6,11 @@ use std::os::unix;
 use std::path::PathBuf;
 
 use dirs;
-use failure::Fail;
 
-use notion_fail::{ExitCode, Fallible, NotionFail};
-use notion_fail_derive::*;
+use crate::error::ErrorDetails;
+use notion_fail::Fallible;
 
 use super::{node_image_dir, notion_home, shim_dir};
-
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "environment variable 'HOME' is not set")]
-#[notion_fail(code = "EnvironmentError")]
-pub(crate) struct NoHomeEnvVar;
 
 // These are taken from: https://nodejs.org/dist/index.json and are used
 // by `path::archive_root_dir` to determine the root directory of the
@@ -86,7 +80,7 @@ cfg_if::cfg_if! {
 //         hooks.toml                                      user_hooks_file
 
 pub fn default_notion_home() -> Fallible<PathBuf> {
-    let home = dirs::home_dir().ok_or(NoHomeEnvVar)?;
+    let home = dirs::home_dir().ok_or(ErrorDetails::NoHomeEnvironmentVar)?;
     Ok(home.join(".notion"))
 }
 

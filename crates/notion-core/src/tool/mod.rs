@@ -8,14 +8,12 @@ use std::marker::Sized;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 
-use failure::Fail;
-
 use crate::env::UNSAFE_GLOBAL;
+use crate::error::ErrorDetails;
 use crate::session::{ActivityKind, Session};
 use crate::style;
 use crate::version::VersionSpec;
-use notion_fail::{ExitCode, FailExt, Fallible, NotionError, NotionFail};
-use notion_fail_derive::*;
+use notion_fail::{throw, ExitCode, FailExt, Fallible, NotionError};
 
 mod binary;
 mod node;
@@ -81,23 +79,14 @@ impl Display for ToolSpec {
     }
 }
 
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "{}", error)]
-#[notion_fail(code = "ExecutionFailure")]
-pub(crate) struct BinaryExecError {
-    pub(crate) error: String,
-}
-
-impl BinaryExecError {
-    pub(crate) fn from_io_error(error: &io::Error) -> Self {
-        if let Some(inner_err) = error.get_ref() {
-            BinaryExecError {
-                error: inner_err.to_string(),
-            }
-        } else {
-            BinaryExecError {
-                error: error.to_string(),
-            }
+fn binary_exec_error(error: &io::Error) -> ErrorDetails {
+    if let Some(inner_err) = error.get_ref() {
+        ErrorDetails::BinaryExecError {
+            error: inner_err.to_string(),
+        }
+    } else {
+        ErrorDetails::BinaryExecError {
+            error: error.to_string(),
         }
     }
 }
@@ -150,7 +139,7 @@ pub trait Tool: Sized {
                 session.exit_tool(code);
             }
             Err(err) => {
-                let notion_err = err.with_context(BinaryExecError::from_io_error);
+                let notion_err = err.with_context(binary_exec_error);
                 display_error(&notion_err);
                 session.add_event_error(ActivityKind::Tool, &notion_err);
                 session.exit(ExitCode::ExecutionFailure);
@@ -166,10 +155,6 @@ fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
     command
 }
 
-#[derive(Fail, Debug)]
-#[fail(display = "Tool name could not be determined")]
-struct NoArg0Error;
-
 fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
     let opt = args.next().and_then(|arg0| {
         Path::new(&arg0)
@@ -179,32 +164,9 @@ fn arg0(args: &mut ArgsOs) -> Fallible<OsString> {
     if let Some(file_name) = opt {
         Ok(file_name)
     } else {
-        Err(NoArg0Error.unknown())
+        throw!(ErrorDetails::CouldNotDetermineTool);
     }
 }
-
-#[derive(Debug, Fail, NotionFail)]
-#[fail(
-    display = r#"
-No {} version selected.
-
-See `notion help pin` for help adding {} to a project toolchain.
-
-See `notion help install` for help adding {} to your personal toolchain."#,
-    tool, tool, tool
-)]
-#[notion_fail(code = "NoVersionMatch")]
-struct NoSuchToolError {
-    tool: String,
-}
-
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = r#"
-Global package installs are not recommended.
-
-Consider using `notion install` to add a package to your toolchain (see `notion help install` for more info)."#)]
-#[notion_fail(code = "InvalidArguments")]
-struct NoGlobalInstallError;
 
 fn intercept_global_installs() -> bool {
     if cfg!(feature = "intercept-globals") {

@@ -10,8 +10,7 @@ use tempfile::tempdir_in;
 use archive::{Archive, Tarball};
 use notion_fail::{Fallible, ResultExt};
 
-use super::{Distro, Fetched};
-use crate::distro::error::DownloadError;
+use super::{download_tool_error, Distro, Fetched};
 use crate::distro::DistroVersion;
 use crate::fs::ensure_containing_dir_exists;
 use crate::hook::ToolHooks;
@@ -82,9 +81,9 @@ impl YarnDistro {
 
         ensure_containing_dir_exists(&distro_file)?;
         Ok(YarnDistro {
-            archive: Tarball::fetch(url, &distro_file).with_context(DownloadError::for_tool(
+            archive: Tarball::fetch(url, &distro_file).with_context(download_tool_error(
                 ToolSpec::Yarn(VersionSpec::exact(&version)),
-                url.to_string(),
+                url,
             ))?,
             version: version,
         })

@@ -2,36 +2,19 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io::{self, Read};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
-use failure::Fail;
-
+use crate::error::ErrorDetails;
 use crate::platform::PlatformSpec;
 use detect_indent;
-use notion_fail::{throw, ExitCode, Fallible, NotionFail, ResultExt};
-use notion_fail_derive::*;
+use notion_fail::{throw, Fallible, ResultExt};
 use semver::Version;
 use serde::Serialize;
 use serde_json;
 
 pub(crate) mod serial;
-
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Could not read package info: {}", error)]
-#[notion_fail(code = "FileSystemError")]
-pub(crate) struct PackageReadError {
-    pub(crate) error: String,
-}
-
-impl PackageReadError {
-    pub(crate) fn from_io_error(error: &io::Error) -> Self {
-        PackageReadError {
-            error: error.to_string(),
-        }
-    }
-}
 
 /// A Node manifest file.
 pub struct Manifest {
@@ -57,10 +40,12 @@ impl Manifest {
             }
             Err(error) => {
                 if project_root.is_dir() {
-                    throw!(PackageReadError::from_io_error(&error));
+                    throw!(ErrorDetails::PackageReadError {
+                        error: error.to_string(),
+                    });
                 }
 
-                throw!(PackageReadError {
+                throw!(ErrorDetails::PackageReadError {
                     error: format!(
                         "directory does not exist: {}",
                         project_root.to_string_lossy().into_owned()

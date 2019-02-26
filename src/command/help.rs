@@ -1,14 +1,13 @@
 use serde::Deserialize;
 
+use notion_core::error::ErrorDetails;
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::{throw, ExitCode, Fallible};
 
 use crate::command::{
     Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Install, Pin, Use, Version,
 };
-use crate::{CliParseError, Notion};
-#[cfg(feature = "notion-dev")]
-use command::Shim;
+use crate::Notion;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
@@ -45,7 +44,7 @@ Options:
                 if let Ok(name) = command.parse() {
                     Help::Command(name)
                 } else {
-                    throw!(CliParseError {
+                    throw!(ErrorDetails::CliParseError {
                         usage: None,
                         error: format!("no such command: `{}`", command),
                     });
@@ -70,8 +69,6 @@ Options:
                 Help::Command(CommandName::Version) => Version::USAGE,
                 Help::Command(CommandName::Fetch) => Fetch::USAGE,
                 Help::Command(CommandName::Install) => Install::USAGE,
-                #[cfg(feature = "notion-dev")]
-                Help::Command(CommandName::Shim) => Shim::USAGE,
             }
         );
         session.add_event_end(ActivityKind::Help, ExitCode::Success);

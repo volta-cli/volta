@@ -3,12 +3,10 @@ use std::ffi::OsStr;
 use std::process::Command;
 
 use super::{command_for, Tool};
+use crate::error::ErrorDetails;
 use crate::session::Session;
 
-use failure::Fail;
-
-use notion_fail::{throw, ExitCode, Fallible, NotionFail};
-use notion_fail_derive::*;
+use notion_fail::{throw, Fallible};
 
 /// Represents a delegated script.
 pub struct Script(Command);
@@ -16,7 +14,7 @@ pub struct Script(Command);
 #[cfg(windows)]
 impl Tool for Script {
     fn new(_session: &mut Session) -> Fallible<Self> {
-        throw!(ToolUnimplementedError::new())
+        throw!(ErrorDetails::ToolNotImplemented);
     }
 
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
@@ -42,7 +40,7 @@ impl Tool for Script {
 #[cfg(unix)]
 impl Tool for Script {
     fn new(_session: &mut Session) -> Fallible<Self> {
-        throw!(ToolUnimplementedError::new())
+        throw!(ErrorDetails::ToolNotImplemented);
     }
 
     fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
@@ -51,16 +49,5 @@ impl Tool for Script {
 
     fn command(self) -> Command {
         self.0
-    }
-}
-
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "this tool is not yet implemented")]
-#[notion_fail(code = "ExecutableNotFound")]
-pub(crate) struct ToolUnimplementedError;
-
-impl ToolUnimplementedError {
-    pub(crate) fn new() -> Self {
-        ToolUnimplementedError
     }
 }

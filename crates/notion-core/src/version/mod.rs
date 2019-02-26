@@ -3,11 +3,10 @@ pub(crate) mod serial;
 use std::fmt;
 use std::str::FromStr;
 
-use failure::Fail;
 use semver::{ReqParseError, SemVerError, Version, VersionReq};
 
-use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
-use notion_fail_derive::*;
+use crate::error::ErrorDetails;
+use notion_fail::{Fallible, ResultExt};
 
 use self::serial::parse_requirements;
 
@@ -41,16 +40,15 @@ impl VersionSpec {
 
     pub fn parse(s: impl AsRef<str>) -> Fallible<Self> {
         let s = s.as_ref();
-        s.parse()
-            .with_context(VersionParseError::from_req_parse_error)
+        s.parse().with_context(version_req_parse_error)
     }
 
     pub fn parse_requirements(s: impl AsRef<str>) -> Fallible<VersionReq> {
-        parse_requirements(s.as_ref()).with_context(VersionParseError::from_req_parse_error)
+        parse_requirements(s.as_ref()).with_context(version_req_parse_error)
     }
 
     pub fn parse_version(s: impl AsRef<str>) -> Fallible<Version> {
-        Version::parse(s.as_ref()).with_context(VersionParseError::from_semver_error)
+        Version::parse(s.as_ref()).with_context(version_parse_error)
     }
 }
 
@@ -70,23 +68,14 @@ impl FromStr for VersionSpec {
     }
 }
 
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "{}", error)]
-#[notion_fail(code = "NoVersionMatch")]
-pub(crate) struct VersionParseError {
-    pub(crate) error: String,
+fn version_req_parse_error(error: &ReqParseError) -> ErrorDetails {
+    ErrorDetails::VersionParseError {
+        error: error.to_string(),
+    }
 }
 
-impl VersionParseError {
-    fn from_req_parse_error(error: &ReqParseError) -> Self {
-        VersionParseError {
-            error: error.to_string(),
-        }
-    }
-
-    fn from_semver_error(error: &SemVerError) -> Self {
-        VersionParseError {
-            error: error.to_string(),
-        }
+fn version_parse_error(error: &SemVerError) -> ErrorDetails {
+    ErrorDetails::VersionParseError {
+        error: error.to_string(),
     }
 }
