@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use dirs;
 
 use crate::error::ErrorDetails;
-use notion_fail::Fallible;
+use notion_fail::{Fallible, ResultExt};
 use winreg::enums::HKEY_LOCAL_MACHINE;
 use winreg::RegKey;
 
