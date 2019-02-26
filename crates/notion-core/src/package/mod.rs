@@ -337,7 +337,7 @@ impl PackageVersion {
         })
     }
 
-    // TODO: description
+    // parse the "engines" string to a VersionSpec, for matching against available Node versions
     pub fn engines_spec(&self) -> Fallible<VersionSpec> {
         let manifest = Manifest::for_dir(&self.image_dir)?;
         let engines = match manifest.engines() {
@@ -443,11 +443,13 @@ pub fn user_tool(tool_name: &str, session: &mut Session) -> Fallible<Option<User
 }
 
 
-// TODO: description
+// build a package install command using the specified directory and path
 fn install_command_for(installer: Installer, in_dir: &OsStr, path_var: &OsStr) -> Command {
     let mut command = installer.cmd();
     command.current_dir(in_dir);
     command.env("PATH", path_var);
+    // connect stdout and stderr to the current stdout and stderr for this process
+    // (so the user can see the install progress in real time)
     command.stdout(Stdio::inherit());
     command.stderr(Stdio::inherit());
     command
@@ -456,7 +458,7 @@ fn install_command_for(installer: Installer, in_dir: &OsStr, path_var: &OsStr) -
 /// Information about a package.
 pub struct NpmPackage;
 
-// TODO: description
+/// Index of versions of a specific package.
 pub struct PackageIndex {
     latest: Version,
     entries: Vec<PackageEntry>,

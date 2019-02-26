@@ -172,7 +172,7 @@ impl Session {
         Ok(())
     }
 
-    // TODO: description
+    /// Fetch and unpack a version of Node matching the input requirements.
     pub fn install_node(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
         let node_distro = self.fetch_node(version_spec)?.into_version();
         let toolchain = self.toolchain.get_mut()?;
@@ -180,7 +180,7 @@ impl Session {
         Ok(())
     }
 
-    // TODO: description
+    /// Fetch and unpack a version of Yarn matching the input requirements.
     pub fn install_yarn(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
         let yarn_distro = self.fetch_yarn(version_spec)?.into_version();
         let toolchain = self.toolchain.get_mut()?;
@@ -189,11 +189,12 @@ impl Session {
     }
 
     // TODO: do this for npm as well - like install_yarn and install_package combined...
+    /// Fetch and unpack a version of Npm matching the input requirements.
     pub fn install_npm(&mut self, _version_spec: &VersionSpec) -> Fallible<()> {
         Ok(())
     }
 
-    // TODO: description, and use toolspec?
+    /// Fetch, unpack, and install a package matching the input requirements.
     pub fn install_package(&mut self, name: &String, version: &VersionSpec) -> Fallible<()> {
         // fetches and unpacks package
         let fetched_package = self.fetch_package(name, version)?;
@@ -254,9 +255,8 @@ impl Session {
         inventory.fetch_package(name, version_spec, hooks)
     }
 
-    /// Updates toolchain in package.json with the Tool version matching the specified semantic
+    /// Updates toolchain in package.json with the Node version matching the specified semantic
     /// versioning requirements.
-    // TODO: description
     pub fn pin_node(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
         if let Some(ref project) = self.project()? {
             let node_version = self.fetch_node(version_spec)?.into_version();
@@ -267,7 +267,8 @@ impl Session {
         Ok(())
     }
 
-    // TODO: description
+    /// Updates toolchain in package.json with the Yarn version matching the specified semantic
+    /// versioning requirements.
     pub fn pin_yarn(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
         if let Some(ref project) = self.project()? {
             let yarn_version = self.fetch_yarn(version_spec)?.into_version();
@@ -279,11 +280,13 @@ impl Session {
     }
 
     // TODO: do this for npm as well, like pin_yarn
+    /// Updates toolchain in package.json with the Npm version matching the specified semantic
+    /// versioning requirements.
     pub fn pin_npm(&mut self, _version_spec: &VersionSpec) -> Fallible<()> {
         Ok(())
     }
 
-    // TODO: description
+    /// Gets the installed UserTool with the input name, if any.
     pub fn get_user_tool(&mut self, tool_name: &OsStr) -> Fallible<Option<UserTool>> {
         match tool_name.to_str() {
             Some(tool_name_str) => package::user_tool(&tool_name_str, self),
