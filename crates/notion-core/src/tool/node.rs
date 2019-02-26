@@ -2,7 +2,8 @@ use std::env::{args_os, ArgsOs};
 use std::ffi::OsStr;
 use std::process::Command;
 
-use super::{arg0, command_for, NoSuchToolError, Tool};
+use super::{arg0, command_for, Tool};
+use crate::error::ErrorDetails;
 use crate::session::{ActivityKind, Session};
 
 use notion_fail::{throw, Fallible};
@@ -20,7 +21,7 @@ impl Tool for Node {
             let image = platform.checkout(session)?;
             Ok(Self::from_components(&exe, args, &image.path()?))
         } else {
-            throw!(NoSuchToolError {
+            throw!(ErrorDetails::NoSuchTool {
                 tool: "Node".to_string()
             });
         }

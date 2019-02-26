@@ -3,10 +3,8 @@ use std::ffi::{OsStr, OsString};
 use std::io;
 use std::process::{Command, ExitStatus};
 
-use super::{
-    arg0, command_for, display_error, intercept_global_installs, NoGlobalInstallError,
-    NoSuchToolError, Tool,
-};
+use super::{arg0, command_for, display_error, intercept_global_installs, Tool};
+use crate::error::ErrorDetails;
 use crate::session::{ActivityKind, Session};
 
 use notion_fail::{throw, Fallible};
@@ -22,7 +20,7 @@ impl Tool for Npm {
         let exe = arg0(&mut args)?;
 
         if intercept_global_installs() && is_global_npm_install() {
-            throw!(NoGlobalInstallError);
+            throw!(ErrorDetails::NoGlobalInstalls);
         }
 
         if let Some(ref platform) = session.current_platform()? {
@@ -31,7 +29,7 @@ impl Tool for Npm {
         } else {
             // Using 'Node' as the tool name since the npm version is derived from the Node version
             // This way the error message will prompt the user to add 'Node' to their toolchain, instead of 'npm'
-            throw!(NoSuchToolError {
+            throw!(ErrorDetails::NoSuchTool {
                 tool: "Node".to_string()
             });
         }

@@ -9,7 +9,6 @@ use std::str::FromStr;
 use std::string::ToString;
 use std::time::{Duration, SystemTime};
 
-use failure::Fail;
 use headers_011::Headers011;
 use lazycell::LazyCell;
 use reqwest;
@@ -20,14 +19,14 @@ use tempfile::NamedTempFile;
 use crate::distro::node::NodeDistro;
 use crate::distro::yarn::YarnDistro;
 use crate::distro::{Distro, DistroVersion, Fetched};
+use crate::error::ErrorDetails;
 use crate::fs::{ensure_containing_dir_exists, read_file_opt};
 use crate::hook::{HookConfig, ToolHooks};
 use crate::path;
 use crate::style::progress_spinner;
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
-use notion_fail::{throw, ExitCode, Fallible, NotionFail, ResultExt};
-use notion_fail_derive::*;
+use notion_fail::{throw, Fallible, ResultExt};
 use semver::{Version, VersionReq};
 
 pub(crate) mod serial;
@@ -128,22 +127,6 @@ impl Inventory {
     }
 }
 
-/// Thrown when there is no Node version matching a requested semver specifier.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "No Node version found for {}", matching)]
-#[notion_fail(code = "NoVersionMatch")]
-struct NoNodeVersionFoundError {
-    matching: String,
-}
-
-/// Thrown when there is no Yarn version matching a requested semver specifier.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "No Yarn version found for {}", matching)]
-#[notion_fail(code = "NoVersionMatch")]
-struct NoYarnVersionFoundError {
-    matching: String,
-}
-
 impl<D: Distro> Collection<D> {
     /// Tests whether this Collection contains the specified Tool version.
     pub fn contains(&self, version: &Version) -> bool {
@@ -181,19 +164,9 @@ pub trait FetchResolve<D: Distro> {
     ) -> Fallible<Version>;
 }
 
-/// Thrown when the public registry for Node or Yarn could not be downloaded.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Could not fetch public registry\n{}", error)]
-#[notion_fail(code = "NetworkError")]
-pub(crate) struct RegistryFetchError {
-    error: String,
-}
-
-impl RegistryFetchError {
-    pub(crate) fn from_error(error: &reqwest::Error) -> RegistryFetchError {
-        RegistryFetchError {
-            error: error.to_string(),
-        }
+fn registry_fetch_error(error: &reqwest::Error) -> ErrorDetails {
+    ErrorDetails::RegistryFetchError {
+        error: error.to_string(),
     }
 }
 
@@ -240,7 +213,7 @@ impl FetchResolve<NodeDistro> for NodeCollection {
         if let Some(version) = version_opt {
             Ok(version)
         } else {
-            throw!(NoNodeVersionFoundError {
+            throw!(ErrorDetails::NodeVersionNotFound {
                 matching: "latest".to_string()
             })
         }
@@ -266,7 +239,7 @@ impl FetchResolve<NodeDistro> for NodeCollection {
         if let Some(version) = version_opt {
             Ok(version)
         } else {
-            throw!(NoNodeVersionFoundError {
+            throw!(ErrorDetails::NodeVersionNotFound {
                 matching: matching.to_string()
             })
         }
@@ -299,7 +272,7 @@ impl FetchResolve<YarnDistro> for YarnCollection {
             _ => public_yarn_latest_version(),
         };
         let mut response: reqwest::Response =
-            reqwest::get(&url).with_context(RegistryFetchError::from_error)?;
+            reqwest::get(&url).with_context(registry_fetch_error)?;
         Version::parse(&response.text().unknown()?).unknown()
     }
 
@@ -318,7 +291,7 @@ impl FetchResolve<YarnDistro> for YarnCollection {
 
         let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
         let releases: serial::YarnIndex = reqwest::get(&url)
-            .with_context(RegistryFetchError::from_error)?
+            .with_context(registry_fetch_error)?
             .json()
             .unknown()?;
         let releases = releases.into_index()?.entries;
@@ -328,7 +301,7 @@ impl FetchResolve<YarnDistro> for YarnCollection {
         if let Some(version) = version_opt {
             Ok(version)
         } else {
-            throw!(NoYarnVersionFoundError {
+            throw!(ErrorDetails::YarnVersionNotFound {
                 matching: matching.to_string()
             })
         }
@@ -398,7 +371,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
         None => {
             let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
             let mut response: reqwest::Response =
-                reqwest::get(url).with_context(RegistryFetchError::from_error)?;
+                reqwest::get(url).with_context(registry_fetch_error)?;
             let response_text: String = response.text().unknown()?;
             let cached: NamedTempFile = NamedTempFile::new_in(path::tmp_dir()?).unknown()?;
 

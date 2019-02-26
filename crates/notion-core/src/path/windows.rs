@@ -7,12 +7,11 @@ use std::os::windows;
 use std::path::{Path, PathBuf};
 
 use dirs;
-use failure::Fail;
+
+use crate::error::ErrorDetails;
+use notion_fail::Fallible;
 use winreg::enums::HKEY_LOCAL_MACHINE;
 use winreg::RegKey;
-
-use notion_fail::{ExitCode, Fallible, NotionFail, ResultExt};
-use notion_fail_derive::*;
 
 use super::{node_archive_root_dir_name, node_image_dir, shim_dir};
 
@@ -38,11 +37,6 @@ cfg_if::cfg_if! {
         compile_error!("Unsupported target_arch variant of Windows (expected 'x86' or 'x64').");
     }
 }
-
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Windows LocalAppData directory not found")]
-#[notion_fail(code = "EnvironmentError")]
-pub(crate) struct NoDataLocalDir;
 
 // C:\Users\johndoe\AppData\Local\
 //     Notion\
@@ -87,7 +81,7 @@ pub(crate) struct NoDataLocalDir;
 //         launchscript.exe                                launchscript_file
 
 pub fn default_notion_home() -> Fallible<PathBuf> {
-    let home = dirs::data_local_dir().ok_or(NoDataLocalDir)?;
+    let home = dirs::data_local_dir().ok_or(ErrorDetails::NoLocalDataDir)?;
     Ok(home.join("Notion"))
 }
 

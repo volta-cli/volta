@@ -313,7 +313,7 @@ pub struct NotionError {
 
 impl Fail for NotionError {
     fn cause(&self) -> Option<&dyn Fail> {
-        Some(self.error.cause())
+        Some(self.error.as_fail())
     }
 
     fn backtrace(&self) -> Option<&Backtrace> {
@@ -330,7 +330,7 @@ impl fmt::Display for NotionError {
 impl NotionError {
     /// Returns a reference to the underlying failure of this error.
     pub fn as_fail(&self) -> &dyn Fail {
-        self.error.cause()
+        self.error.as_fail()
     }
 
     /// Gets a reference to the `Backtrace` for this error.
@@ -415,7 +415,7 @@ struct UnknownNotionError {
 
 impl fmt::Debug for UnknownNotionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Debug::fmt(self.error.cause(), f)
+        fmt::Debug::fmt(self.error.as_fail(), f)
     }
 }
 
@@ -427,7 +427,7 @@ impl Display for UnknownNotionError {
 
 impl Fail for UnknownNotionError {
     fn cause(&self) -> Option<&dyn Fail> {
-        Some(self.error.cause())
+        Some(self.error.as_fail())
     }
 
     fn backtrace(&self) -> Option<&Backtrace> {

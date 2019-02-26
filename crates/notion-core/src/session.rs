@@ -5,6 +5,7 @@
 use std::rc::Rc;
 
 use crate::distro::{DistroVersion, Fetched};
+use crate::error::ErrorDetails;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
 use crate::inventory::{Inventory, LazyInventory};
 use crate::platform::PlatformSpec;
@@ -16,11 +17,8 @@ use crate::version::VersionSpec;
 use std::fmt::{self, Display, Formatter};
 use std::process::exit;
 
-use failure::Fail;
-
 use crate::event::EventLog;
-use notion_fail::{throw, ExitCode, Fallible, NotionError, NotionFail};
-use notion_fail_derive::*;
+use notion_fail::{throw, ExitCode, Fallible, NotionError};
 use semver::Version;
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
@@ -68,18 +66,6 @@ impl Display for ActivityKind {
             &ActivityKind::Shim => "shim",
         };
         f.write_str(s)
-    }
-}
-
-/// Thrown when the user tries to pin Node or Yarn versions outside of a package.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Not in a node package")]
-#[notion_fail(code = "ConfigurationError")]
-pub(crate) struct NotInPackageError;
-
-impl NotInPackageError {
-    pub(crate) fn new() -> Self {
-        NotInPackageError
     }
 }
 
@@ -199,7 +185,7 @@ impl Session {
             let distro_version = self.fetch(toolspec)?.into_version();
             project.pin(&distro_version)?;
         } else {
-            throw!(NotInPackageError::new());
+            throw!(ErrorDetails::NotInPackage);
         }
         Ok(())
     }

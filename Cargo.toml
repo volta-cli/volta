@@ -1,6 +1,6 @@
 [package]
 name = "notion"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["David Herman <david.herman@gmail.com>"]
 license = "BSD-2-Clause"
 repository = "https://github.com/notion-cli/notion"
@@ -11,6 +11,7 @@ universal-docs = ["notion-core/universal-docs"]
 mock-network = ["mockito", "notion-core/mock-network"]
 notion-dev = []
 smoke-tests = []
+intercept-globals = ["notion-core/intercept-globals"]
 
 [[bin]]
 name = "notion"

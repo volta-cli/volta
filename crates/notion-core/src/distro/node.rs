@@ -9,8 +9,7 @@ use archive::{self, Archive};
 use serde::Deserialize;
 use tempfile::tempdir_in;
 
-use super::{Distro, Fetched};
-use crate::distro::error::DownloadError;
+use super::{download_tool_error, Distro, Fetched};
 use crate::distro::DistroVersion;
 use crate::fs::ensure_containing_dir_exists;
 use crate::hook::ToolHooks;
@@ -130,12 +129,10 @@ impl NodeDistro {
 
         ensure_containing_dir_exists(&distro_file)?;
         Ok(NodeDistro {
-            archive: archive::fetch_native(url, &distro_file).with_context(
-                DownloadError::for_tool(
-                    ToolSpec::Node(VersionSpec::exact(&version)),
-                    url.to_string(),
-                ),
-            )?,
+            archive: archive::fetch_native(url, &distro_file).with_context(download_tool_error(
+                ToolSpec::Node(VersionSpec::exact(&version)),
+                url,
+            ))?,
             version: version,
         })
     }

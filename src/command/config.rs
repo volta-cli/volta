@@ -4,14 +4,13 @@ use std::str::FromStr;
 use docopt::Docopt;
 use serde::Deserialize;
 
+use notion_core::error::ErrorDetails;
 use notion_core::session::Session;
 use notion_fail::{throw, FailExt, Fallible};
 
 use crate::command::{Command, CommandName, Help};
+use crate::error::cli_parse_error;
 use crate::Notion;
-
-use crate::CliParseError;
-use crate::CommandUnimplementedError;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Args {
@@ -118,7 +117,7 @@ fn parse_subcommand<'de, T: Deserialize<'de>>(
     let usage = format!("Usage: notion config {} {}", subcommand, usage);
     Docopt::new(&usage[..])
         .and_then(|d| d.argv(argv).deserialize())
-        .map_err(|err| err.with_context(CliParseError::from_docopt))
+        .map_err(|err| err.with_context(cli_parse_error))
 }
 
 impl Command for Config {
@@ -183,13 +182,21 @@ Config commands:
             Config::Help => Help::Command(CommandName::Config).run(session),
             Config::Subcommand(Subcommand::Get { key: _ }) => Ok(()),
             Config::Subcommand(Subcommand::Set { key: _, value: _ }) => {
-                throw!(CommandUnimplementedError::new("set"))
+                throw!(ErrorDetails::CommandNotImplemented {
+                    command_name: "set".to_string()
+                })
             }
             Config::Subcommand(Subcommand::Delete { key: _ }) => {
-                throw!(CommandUnimplementedError::new("delete"))
+                throw!(ErrorDetails::CommandNotImplemented {
+                    command_name: "delete".to_string()
+                })
             }
-            Config::Subcommand(Subcommand::List) => throw!(CommandUnimplementedError::new("list")),
-            Config::Subcommand(Subcommand::Edit) => throw!(CommandUnimplementedError::new("edit")),
+            Config::Subcommand(Subcommand::List) => throw!(ErrorDetails::CommandNotImplemented {
+                command_name: "list".to_string()
+            }),
+            Config::Subcommand(Subcommand::Edit) => throw!(ErrorDetails::CommandNotImplemented {
+                command_name: "edit".to_string()
+            }),
         };
         //session.add_event_end(ActivityKind::Version, 0);
         result

@@ -1,3 +1,7 @@
+# Version 0.2.1
+
+- Move preventing globals behind a feature flag (#273)
+
 # Version 0.2.0
 
 - Add support for OpenSSL 1.1.1 (#267)

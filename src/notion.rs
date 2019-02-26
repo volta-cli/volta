@@ -1,6 +1,4 @@
 use docopt;
-use failure;
-
 mod command;
 mod error;
 
@@ -9,18 +7,17 @@ use std::string::ToString;
 use docopt::Docopt;
 use serde::Deserialize;
 
+use notion_core::error::ErrorDetails;
 use notion_core::path;
 use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, display_unknown_error, ErrorContext};
 use notion_fail::{throw, ExitCode, FailExt, Fallible, NotionError};
 
-use crate::command::{
+use crate::error::{cli_parse_error, DocoptExt, NotionErrorExt};
+use command::{
     Activate, Command, CommandName, Config, Current, Deactivate, Fetch, Help, Install, Pin, Use,
     Version,
 };
-use crate::error::{CliParseError, CommandUnimplementedError, DocoptExt, NotionErrorExt};
-#[cfg(feature = "notion-dev")]
-use command::Shim;
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -147,7 +144,7 @@ See 'notion help <command>' for more information on a specific command.
                 // the command name is not one of the expected set, we get
                 // an Error::Deserialize.
                 else if let docopt::Error::Deserialize(_) = err {
-                    throw!(CliParseError {
+                    throw!(ErrorDetails::CliParseError {
                         usage: None,
                         error: if let Some(command) = command_string {
                             format!("no such command: `{}`", command)
@@ -159,7 +156,7 @@ See 'notion help <command>' for more information on a specific command.
                 // Otherwise the other docopt error messages are pretty
                 // reasonable, so just wrap and then rethrow.
                 else {
-                    throw!(err.with_context(CliParseError::from_docopt));
+                    throw!(err.with_context(cli_parse_error));
                 }
             }
         })
@@ -175,8 +172,6 @@ See 'notion help <command>' for more information on a specific command.
             CommandName::Current => Current::go(self, session),
             CommandName::Deactivate => Deactivate::go(self, session),
             CommandName::Activate => Activate::go(self, session),
-            #[cfg(feature = "notion-dev")]
-            CommandName::Shim => Shim::go(self, session),
             CommandName::Help => Help::go(self, session),
             CommandName::Version => Version::go(self, session),
         }
