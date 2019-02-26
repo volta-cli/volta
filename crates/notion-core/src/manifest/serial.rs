@@ -71,7 +71,7 @@ pub struct ToolchainSpec {
     pub yarn: Option<String>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Engines {
     pub node: String,
 }
@@ -204,7 +204,7 @@ where
 #[cfg(test)]
 pub mod tests {
 
-    use super::{BinMap, Manifest};
+    use super::{BinMap, Engines, Manifest};
     use serde_json;
     use std::collections::HashMap;
 
@@ -246,7 +246,7 @@ pub mod tests {
             manifest_all.description,
             Some("This is a description".to_string())
         );
-        asssert_eq!(manifest_all.engines, "8.* || >= 10.*");
+        assert_eq!(manifest_all.engines, Some(Engines { node: "8.* || >= 10.*".to_string() }));
         // (checking the rest of the fields in other tests)
     }
 

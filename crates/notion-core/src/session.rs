@@ -172,9 +172,6 @@ impl Session {
         Ok(())
     }
 
-    // TODO: install should be a trait on VersionSpec? or ToolSpec?
-    // (to avoid the install_* functions)
-
     // TODO: description
     pub fn install_node(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
         let node_distro = self.fetch_node(version_spec)?.into_version();
@@ -191,13 +188,10 @@ impl Session {
         Ok(())
     }
 
-    // TODO: do this for npm as well
-    // fn install_npm(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
-    //     let node_distro = self.fetch_node(version_spec)?.into_version();
-    //     let toolchain = self.toolchain.get_mut()?;
-    //     toolchain.set_active_npm(node_distro)?;
-    //     Ok(())
-    // }
+    // TODO: do this for npm as well - like install_yarn and install_package combined...
+    pub fn install_npm(&mut self, _version_spec: &VersionSpec) -> Fallible<()> {
+        Ok(())
+    }
 
     // TODO: description, and use toolspec?
     pub fn install_package(&mut self, name: &String, version: &VersionSpec) -> Fallible<()> {
@@ -232,9 +226,6 @@ impl Session {
         package_version.install(&use_platform, self)
     }
 
-    // TODO: fetch should be a trait on VersionSpec? or ToolSpec?
-    // (to avoid the multiple fetch_* functions)
-
     /// Fetches a Node version matching the specified semantic versioning requirements.
     pub fn fetch_node(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<NodeVersion>> {
         let inventory = self.inventory.get_mut()?;
@@ -244,6 +235,13 @@ impl Session {
 
     /// Fetches a Yarn version matching the specified semantic versioning requirements.
     pub fn fetch_yarn(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<Version>> {
+        let inventory = self.inventory.get_mut()?;
+        let hooks = self.hooks.get()?;
+        inventory.yarn.fetch(&version_spec, hooks.yarn.as_ref())
+    }
+
+    // TODO: do this for npm
+    pub fn fetch_npm(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<Version>> {
         let inventory = self.inventory.get_mut()?;
         let hooks = self.hooks.get()?;
         inventory.yarn.fetch(&version_spec, hooks.yarn.as_ref())
@@ -280,16 +278,10 @@ impl Session {
         Ok(())
     }
 
-    // TODO: do this for npm as well
-    // pub fn pin_npm(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
-    //     if let Some(ref project) = self.project()? {
-    //         let npm_version = self.fetch_npm(version_spec)?.into_version();
-    //         project.pin(&npm_version)?;
-    //     } else {
-    //         throw!(ErrorDetails::NotInPackageError::new());
-    //     }
-    //     Ok(())
-    // }
+    // TODO: do this for npm as well, like pin_yarn
+    pub fn pin_npm(&mut self, _version_spec: &VersionSpec) -> Fallible<()> {
+        Ok(())
+    }
 
     // TODO: description
     pub fn get_user_tool(&mut self, tool_name: &OsStr) -> Fallible<Option<UserTool>> {

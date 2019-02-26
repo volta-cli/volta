@@ -23,14 +23,7 @@ impl Command for Install {
             Install::Help => {
                 Help::Command(CommandName::Install).run(session)?;
             }
-            Install::Tool(toolspec) => {
-                match toolspec {
-                    ToolSpec::Node(version) => session.install_node(&version)?,
-                    ToolSpec::Yarn(version) => session.install_yarn(&version)?,
-                    ToolSpec::Npm(version) => unimplemented!("TODO"), // session.install_npm(&version)?,
-                    ToolSpec::Package(name, version) => session.install_package(&name, &version)?,
-                }
-            }
+            Install::Tool(toolspec) => toolspec.install(session)?,
         };
 
         let tool = ToolSpec::from_str_and_version(&self.tool, version);

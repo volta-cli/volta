@@ -112,7 +112,7 @@ impl NodeIndex {
                     Ok(v) => {
                         entries.push(super::NodeEntry {
                             version: Version::parse(version).unknown()?,
-                            npm: Version::parse(&npm).unknown()?,
+                            npm: v,
                             files: data,
                         });
                     }

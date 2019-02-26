@@ -47,6 +47,16 @@ impl ToolSpec {
             package => ToolSpec::Package(package.to_string(), version),
         }
     }
+
+    pub fn install(&self, session: &mut Session) -> Fallible<()> {
+        match self {
+            ToolSpec::Node(version) => session.install_node(&version)?,
+            ToolSpec::Yarn(version) => session.install_yarn(&version)?,
+            ToolSpec::Npm(version) => session.install_npm(&version)?,
+            ToolSpec::Package(name, version) => session.install_package(&name, &version)?,
+        }
+        Ok(())
+    }
 }
 
 impl Debug for ToolSpec {

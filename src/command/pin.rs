@@ -1,4 +1,5 @@
-use structopt::StructOpt;
+use failure::Fail;
+use serde::Deserialize;
 
 use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, ErrorContext};

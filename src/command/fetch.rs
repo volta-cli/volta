@@ -25,8 +25,8 @@ impl Command for Fetch {
                 match toolspec {
                     ToolSpec::Node(version) => { session.fetch_node(&version)?; }
                     ToolSpec::Yarn(version) => { session.fetch_yarn(&version)?; }
-                    ToolSpec::Npm(version) => unimplemented!("TODO"),
-                    ToolSpec::Package(name, version) => unimplemented!("TODO: error that you can't fetch a package?"),
+                    ToolSpec::Npm(version) =>  { session.fetch_npm(&version)?; }
+                    ToolSpec::Package(name, version) => { session.fetch_package(&name, &version)?; }
                 }
             }
         };

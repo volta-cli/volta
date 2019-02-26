@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::io::Read;
+use std::io;
 use std::str;
 use std::fs::read_dir;
 use std::path::Path;
@@ -69,6 +70,40 @@ struct NoPackageFoundError {
     matching: VersionSpec,
 }
 
+/// Thrown when a user tries to install or fetch a package with no executables.
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "Package has no binaries or executables - nothing to do")]
+#[notion_fail(code = "InvalidArguments")]
+pub struct PackageHasNoExecutablesError;
+
+/// Thrown when a package has been unpacked but is not formed correctly.
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "Package unpack error: Could not determine unpack directory name")]
+#[notion_fail(code = "ConfigurationError")]
+pub struct PackageUnpackError;
+
+/// Thrown when package install fails.
+#[derive(Debug, Fail, NotionFail)]
+#[fail(display = "Error installing package: {}", error)]
+#[notion_fail(code = "FileSystemError")]
+pub (crate) struct InstallCmdFailError {
+    error: String,
+}
+
+impl InstallCmdFailError {
+    pub(crate) fn from_io_error(error: &io::Error) -> Self {
+        if let Some(inner_err) = error.get_ref() {
+            InstallCmdFailError {
+                error: inner_err.to_string(),
+            }
+        } else {
+            InstallCmdFailError {
+                error: error.to_string(),
+            }
+        }
+    }
+}
+
 /// A provisioned Package distribution.
 //#[derive(Debug)]
 pub struct PackageDistro {
@@ -89,6 +124,12 @@ pub struct PackageVersion {
     // map of binary names to locations
     pub bins: HashMap<String, String>,
     image_dir: PathBuf,
+}
+
+/// Programs used to install packages.
+enum Installer {
+    Npm,
+    Yarn,
 }
 
 impl PackageDistro {
@@ -136,7 +177,7 @@ impl PackageDistro {
         let pkg_info = Manifest::for_dir(&self.image_dir).with_context(DepPackageReadError::from_error)?;
         let bin_map = pkg_info.bin;
         if bin_map.is_empty() {
-            unimplemented!("TODO: Need to throw an error for this - user tool has no binaries");
+            throw!(PackageHasNoExecutablesError);
         }
 
         // TODO: check for conflicts with installed bins
@@ -214,7 +255,8 @@ fn find_unpack_dir(in_dir: &Path) -> Fallible<PathBuf> {
     if dirs.len() == 1 {
         Ok(dirs[0].to_path_buf())
     } else {
-        unimplemented!("TODO: throw error that there's more than just a directory here");
+        // there is more than just a directory here, something is wrong
+        throw!(PackageUnpackError);
     }
 }
 
@@ -242,26 +284,19 @@ impl PackageVersion {
         // checkout the image to use
         let image = platform.checkout(session)?;
 
-        if let Some(ref _yarn) = image.yarn {
+        let mut install_cmd = if let Some(ref _yarn) = image.yarn {
             // use yarn to install
-            println!("Running `yarn install` in dir {:?}", &self.image_dir);
-            let output = install_command_for("yarn", &self.image_dir.clone().into_os_string(), &image.path()?)
-                .output()
-                .expect("Failed to execute `yarn install`");
-            if !output.status.success() {
-                eprintln!("Whoops! `yarn install` failed with status {}", output.status);
-                unimplemented!("TODO: error that `yarn install` failed");
-            }
+            install_command_for(Installer::Yarn, &self.image_dir.clone().into_os_string(), &image.path()?)
         } else {
             // otherwise use npm
-            println!("Running `npm install` in dir {:?}", &self.image_dir);
-            let output = install_command_for("npm", &self.image_dir.clone().into_os_string(), &image.path()?)
-                .output()
-                .expect("Failed to execute `npm install`");
-            if !output.status.success() {
-                eprintln!("Whoops! `npm install` failed with status {}", output.status);
-                unimplemented!("TODO: error that `npm install` failed");
-            }
+            install_command_for(Installer::Npm, &self.image_dir.clone().into_os_string(), &image.path()?)
+        };
+
+        let output = install_cmd.output().with_context(InstallCmdFailError::from_io_error)?;
+
+        if !output.status.success() {
+            eprintln!("Whoops! `{:?}` failed with status {}", install_cmd, output.status);
+            unimplemented!("TODO: error that `{:?}` failed", install_cmd);
         }
 
         self.write_platform_and_shims(&platform)?;
@@ -300,7 +335,24 @@ impl PackageVersion {
     }
 }
 
-// TODO: description
+impl Installer {
+    pub fn cmd(&self) -> Command {
+        match self {
+            Installer::Npm => {
+                let mut command = Command::new("npm");
+                command.args(&["install", "--only=production"]);
+                command
+            }
+            Installer::Yarn => {
+                let mut command = Command::new("yarn");
+                command.args(&["install", "--production"]);
+                command
+            }
+        }
+    }
+}
+
+/// Information about a user tool.
 pub struct UserTool {
     pub bin_path: PathBuf,
     pub image: Image,
@@ -331,11 +383,8 @@ pub fn user_tool(tool_name: &str, session: &mut Session) -> Fallible<Option<User
 
 
 // TODO: description
-fn install_command_for(exe: &str, in_dir: &OsStr, path_var: &OsStr) -> Command {
-    let mut command = Command::new(exe);
-    command.arg("install");
-    command.arg("--only=production"); // TODO: npm only, but doesn't work for yarn
-    // command.arg("--production"); // TODO: yarn only, deprecated in npm
+fn install_command_for(installer: Installer, in_dir: &OsStr, path_var: &OsStr) -> Command {
+    let mut command = installer.cmd();
     command.current_dir(in_dir);
     command.env("PATH", path_var);
     command.stdout(Stdio::inherit());
