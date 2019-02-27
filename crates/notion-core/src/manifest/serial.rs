@@ -246,7 +246,12 @@ pub mod tests {
             manifest_all.description,
             Some("This is a description".to_string())
         );
-        assert_eq!(manifest_all.engines, Some(Engines { node: "8.* || >= 10.*".to_string() }));
+        assert_eq!(
+            manifest_all.engines,
+            Some(Engines {
+                node: "8.* || >= 10.*".to_string()
+            })
+        );
         // (checking the rest of the fields in other tests)
     }
 

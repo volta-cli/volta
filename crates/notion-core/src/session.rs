@@ -4,23 +4,21 @@
 
 use std::rc::Rc;
 
+use crate::distro::node::NodeVersion;
+use crate::distro::Fetched;
 use crate::error::ErrorDetails;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
-use crate::distro::Fetched;
-use crate::inventory::{Inventory, LazyInventory};
-use crate::package::PackageVersion;
+use crate::inventory::{FetchResolve, Inventory, LazyInventory};
+use crate::package;
+use crate::package::{PackageVersion, UserTool};
 use crate::platform::PlatformSpec;
 use crate::project::{LazyProject, Project};
 use crate::toolchain::LazyToolchain;
 use crate::version::VersionSpec;
-use crate::inventory::FetchResolve;
-use crate::distro::node::NodeVersion;
-use crate::package::UserTool;
-use crate::package;
 
+use std::ffi::OsStr;
 use std::fmt::{self, Display, Formatter};
 use std::process::exit;
-use std::ffi::OsStr;
 
 use crate::event::EventLog;
 use notion_fail::{throw, ExitCode, Fallible, NotionError};
@@ -154,7 +152,11 @@ impl Session {
 
         if !inventory.node.contains(version) {
             let hooks = self.hooks.get()?;
-            inventory.node.fetch("node".to_string(), &VersionSpec::exact(version), hooks.node.as_ref())?;
+            inventory.node.fetch(
+                "node".to_string(),
+                &VersionSpec::exact(version),
+                hooks.node.as_ref(),
+            )?;
         }
 
         Ok(())
@@ -166,7 +168,11 @@ impl Session {
 
         if !inventory.yarn.contains(version) {
             let hooks = self.hooks.get()?;
-            inventory.yarn.fetch("yarn".to_string(), &VersionSpec::exact(version), hooks.yarn.as_ref())?;
+            inventory.yarn.fetch(
+                "yarn".to_string(),
+                &VersionSpec::exact(version),
+                hooks.yarn.as_ref(),
+            )?;
         }
 
         Ok(())
@@ -213,7 +219,10 @@ impl Session {
         //
         // If you specify an "engines" field, then npm will require that "node" be somewhere on that list. If "engines" is omitted, then npm will just assume that it works on node.
         let req_node_version = package_version.engines_spec()?;
-        println!("required node version(s) from \"engines\": \"{}\"", req_node_version);
+        println!(
+            "required node version(s) from \"engines\": \"{}\"",
+            req_node_version
+        );
 
         let node_version = self.fetch_node(&req_node_version)?.into_version();
 
@@ -231,14 +240,18 @@ impl Session {
     pub fn fetch_node(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<NodeVersion>> {
         let inventory = self.inventory.get_mut()?;
         let hooks = self.hooks.get()?;
-        inventory.node.fetch("node".to_string(), &version_spec, hooks.node.as_ref())
+        inventory
+            .node
+            .fetch("node".to_string(), &version_spec, hooks.node.as_ref())
     }
 
     /// Fetches a Yarn version matching the specified semantic versioning requirements.
     pub fn fetch_yarn(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<Version>> {
         let inventory = self.inventory.get_mut()?;
         let hooks = self.hooks.get()?;
-        inventory.yarn.fetch("yarn".to_string(), &version_spec, hooks.yarn.as_ref())
+        inventory
+            .yarn
+            .fetch("yarn".to_string(), &version_spec, hooks.yarn.as_ref())
     }
 
     /// Fetches a Npm version matching the specified semantic versioning requirements.
@@ -250,10 +263,16 @@ impl Session {
     }
 
     /// Fetches a Packge version matching the specified semantic versioning requirements.
-    pub fn fetch_package(&mut self, name: String, version_spec: &VersionSpec) -> Fallible<Fetched<PackageVersion>> {
+    pub fn fetch_package(
+        &mut self,
+        name: String,
+        version_spec: &VersionSpec,
+    ) -> Fallible<Fetched<PackageVersion>> {
         let inventory = self.inventory.get_mut()?;
         let hooks = self.hooks.get()?;
-        inventory.packages.fetch(name, version_spec, hooks.package.as_ref())
+        inventory
+            .packages
+            .fetch(name, version_spec, hooks.package.as_ref())
     }
 
     /// Updates toolchain in package.json with the Node version matching the specified semantic

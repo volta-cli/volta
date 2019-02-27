@@ -1,42 +1,32 @@
 //! Provides types for installing packages to the user toolchain.
 
-use std::fs::rename;
-use std::process::{Command, Stdio};
-use std::ffi::OsStr;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::Write;
-use std::io::Read;
-use std::io;
+use std::ffi::OsStr;
+use std::fs::{read_dir, rename, File};
+use std::io::{self, Read, Write};
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 use std::str;
-use std::fs::read_dir;
-use std::path::Path;
-use std::path::PathBuf;
 
-use sha1::{Sha1, Digest};
 use hex;
 use semver::Version;
+use sha1::{Digest, Sha1};
 
-use crate::inventory::Collection;
-use crate::hook::ToolHooks;
-use crate::distro::Distro;
+use crate::distro::{download_tool_error, Distro, Fetched};
 use crate::error::ErrorDetails;
-use crate::version::VersionSpec;
-use crate::distro::Fetched;
-use crate::path;
-use archive::Tarball;
-use crate::distro::download_tool_error;
-use crate::tool::ToolSpec;
-use crate::style::{progress_bar};
-use tempfile::tempdir_in;
-use crate::fs::ensure_containing_dir_exists;
-use crate::platform::PlatformSpec;
+use crate::fs::{ensure_containing_dir_exists, read_file_opt};
+use crate::hook::ToolHooks;
+use crate::inventory::Collection;
 use crate::manifest::Manifest;
+use crate::path;
+use crate::platform::{Image, PlatformSpec};
 use crate::session::Session;
 use crate::shim;
-use crate::platform::Image;
-use crate::fs::read_file_opt;
-use archive::Archive;
+use crate::style::progress_bar;
+use crate::tool::ToolSpec;
+use crate::version::VersionSpec;
+use archive::{Archive, Tarball};
+use tempfile::tempdir_in;
 
 use notion_fail::{throw, Fallible, ResultExt};
 
@@ -112,7 +102,11 @@ impl Distro for PackageDistro {
     type VersionDetails = PackageVersion;
     type ResolvedVersion = PackageEntry;
 
-    fn new(name: String, entry: Self::ResolvedVersion, _hooks: Option<&ToolHooks<Self>>) -> Fallible<Self> {
+    fn new(
+        name: String,
+        entry: Self::ResolvedVersion,
+        _hooks: Option<&ToolHooks<Self>>,
+    ) -> Fallible<Self> {
         let version = entry.version;
         // TODO: do something like Node and Yarn for this
         Ok(PackageDistro {
@@ -132,7 +126,9 @@ impl Distro for PackageDistro {
         let bar = progress_bar(
             archive.action(),
             &format!("{}-v{}", self.name, self.version),
-            archive.uncompressed_size().unwrap_or(archive.compressed_size()),
+            archive
+                .uncompressed_size()
+                .unwrap_or(archive.compressed_size()),
         );
 
         let temp = tempdir_in(path::tmp_dir()?).unknown()?;
@@ -169,7 +165,11 @@ impl Distro for PackageDistro {
             let bin_config_file = path::user_tool_bin_config(&bin_name)?;
             if bin_config_file.exists() {
                 let bin_config = BinConfig::from_file(bin_config_file)?;
-                throw!(ErrorDetails::BinaryAlreadyInstalled { bin_name: bin_name.to_string(), package: bin_config.package, version: bin_config.version.to_string() });
+                throw!(ErrorDetails::BinaryAlreadyInstalled {
+                    bin_name: bin_name.to_string(),
+                    package: bin_config.package,
+                    version: bin_config.version.to_string()
+                });
             }
         }
 
@@ -196,15 +196,10 @@ impl PackageDistro {
             println!("downloaded package is NOT OK, fetching");
             // otherwise have to download
             ensure_containing_dir_exists(&self.distro_file)?;
-            Tarball::fetch(&self.tarball_url, &self.distro_file).with_context(
-                download_tool_error(
-                    ToolSpec::Package(
-                        self.name.to_string(),
-                        VersionSpec::exact(&self.version)
-                    ),
-                    self.tarball_url.to_string()
-                )
-            )
+            Tarball::fetch(&self.tarball_url, &self.distro_file).with_context(download_tool_error(
+                ToolSpec::Package(self.name.to_string(), VersionSpec::exact(&self.version)),
+                self.tarball_url.to_string(),
+            ))
         }
     }
 
@@ -213,7 +208,6 @@ impl PackageDistro {
         let mut buffer = Vec::new();
 
         if let Ok(mut distro) = File::open(&self.distro_file) {
-
             if let Some(stored_shasum) = read_file_opt(&self.shasum_file).unknown()? {
                 println!("read shasum from disk: {}", stored_shasum);
 
@@ -255,7 +249,7 @@ fn find_unpack_dir(in_dir: &Path) -> Fallible<PathBuf> {
 }
 
 impl PackageVersion {
-    pub fn new(name: String, version: Version, bins: HashMap<String, String>) -> Fallible<Self>{
+    pub fn new(name: String, version: Version, bins: HashMap<String, String>) -> Fallible<Self> {
         Ok(PackageVersion {
             name: name.clone(),
             version: version.clone(),
@@ -269,23 +263,36 @@ impl PackageVersion {
         let manifest = Manifest::for_dir(&self.image_dir)?;
         let engines = match manifest.engines() {
             Some(e) => e,
-            None=> "*".to_string(), // if nothing specified, match all versions of Node
+            None => "*".to_string(), // if nothing specified, match all versions of Node
         };
-        Ok(VersionSpec::Semver(VersionSpec::parse_requirements(engines)?))
+        Ok(VersionSpec::Semver(VersionSpec::parse_requirements(
+            engines,
+        )?))
     }
 
     pub fn install(&self, platform: &PlatformSpec, session: &mut Session) -> Fallible<()> {
         let image = platform.checkout(session)?;
         // use yarn if it is installed, otherwise default to npm
         let mut install_cmd = if let Some(ref _yarn) = image.yarn {
-            install_command_for(Installer::Yarn, &self.image_dir.clone().into_os_string(), &image.path()?)
+            install_command_for(
+                Installer::Yarn,
+                &self.image_dir.clone().into_os_string(),
+                &image.path()?,
+            )
         } else {
-            install_command_for(Installer::Npm, &self.image_dir.clone().into_os_string(), &image.path()?)
+            install_command_for(
+                Installer::Npm,
+                &self.image_dir.clone().into_os_string(),
+                &image.path()?,
+            )
         };
 
         let output = install_cmd.output().with_context(install_error)?;
         if !output.status.success() {
-            throw!(ErrorDetails::PackageInstallFailed { cmd: format!("{:?}", install_cmd), status: output.status });
+            throw!(ErrorDetails::PackageInstallFailed {
+                cmd: format!("{:?}", install_cmd),
+                status: output.status
+            });
         }
 
         self.write_config_and_shims(&platform)?;
@@ -298,11 +305,20 @@ impl PackageVersion {
             name: self.name.to_string(),
             version: self.version.clone(),
             platform: platform_spec.clone(),
-            bins: self.bins.iter().map(|(name, _path)| name.to_string()).collect(),
+            bins: self
+                .bins
+                .iter()
+                .map(|(name, _path)| name.to_string())
+                .collect(),
         }
     }
 
-    fn bin_config(&self, bin_name: String, bin_path: String, platform_spec: &PlatformSpec) -> BinConfig {
+    fn bin_config(
+        &self,
+        bin_name: String,
+        bin_path: String,
+        platform_spec: &PlatformSpec,
+    ) -> BinConfig {
         BinConfig {
             name: bin_name,
             package: self.name.to_string(),
@@ -315,7 +331,9 @@ impl PackageVersion {
     fn write_config_and_shims(&self, platform_spec: &PlatformSpec) -> Fallible<()> {
         self.package_config(&platform_spec).to_serial().write()?;
         for (bin_name, bin_path) in self.bins.iter() {
-            self.bin_config(bin_name.to_string(), bin_path.to_string(), &platform_spec).to_serial().write()?;
+            self.bin_config(bin_name.to_string(), bin_path.to_string(), &platform_spec)
+                .to_serial()
+                .write()?;
             // write the link to launchscript/bin
             shim::create(&bin_name)?;
         }
@@ -348,7 +366,8 @@ pub struct UserTool {
 
 impl UserTool {
     pub fn from_config(bin_config: BinConfig, session: &mut Session) -> Fallible<Option<Self>> {
-        let image_dir = path::package_image_dir(&bin_config.package, &bin_config.version.to_string())?;
+        let image_dir =
+            path::package_image_dir(&bin_config.package, &bin_config.version.to_string())?;
         // canonicalize because path is relative, and sometimes uses '.' char
         let bin_path = image_dir.join(bin_config.path).canonicalize().unknown()?;
 
@@ -368,7 +387,6 @@ pub fn user_tool(tool_name: &str, session: &mut Session) -> Fallible<Option<User
         Ok(None) // no config means the tool is not installed
     }
 }
-
 
 // build a package install command using the specified directory and path
 fn install_command_for(installer: Installer, in_dir: &OsStr, path_var: &OsStr) -> Command {

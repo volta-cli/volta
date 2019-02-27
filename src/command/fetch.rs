@@ -21,14 +21,20 @@ impl Command for Fetch {
         session.add_event_start(ActivityKind::Fetch);
         match self {
             Fetch::Help => Help::Command(CommandName::Fetch).run(session)?,
-            Fetch::Tool(toolspec) => {
-                match toolspec {
-                    ToolSpec::Node(version) => { session.fetch_node(&version)?; }
-                    ToolSpec::Yarn(version) => { session.fetch_yarn(&version)?; }
-                    ToolSpec::Npm(version) =>  { session.fetch_npm(&version)?; }
-                    ToolSpec::Package(name, version) => { session.fetch_package(name.to_string(), &version)?; }
+            Fetch::Tool(toolspec) => match toolspec {
+                ToolSpec::Node(version) => {
+                    session.fetch_node(&version)?;
                 }
-            }
+                ToolSpec::Yarn(version) => {
+                    session.fetch_yarn(&version)?;
+                }
+                ToolSpec::Npm(version) => {
+                    session.fetch_npm(&version)?;
+                }
+                ToolSpec::Package(name, version) => {
+                    session.fetch_package(name.to_string(), &version)?;
+                }
+            },
         };
         session.add_event_end(ActivityKind::Fetch, ExitCode::Success);
         Ok(ExitCode::Success)

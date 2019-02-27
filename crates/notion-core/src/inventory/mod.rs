@@ -16,18 +16,14 @@ use reqwest::hyper_011::header::{CacheControl, CacheDirective, Expires, HttpDate
 use serde_json;
 use tempfile::NamedTempFile;
 
-use crate::package::PackageIndex;
-use crate::package::serial::PackageMetadata; // TODO: this should be part of package probably...
-use crate::package::PackageEntry;
-use crate::package::PackageDistro;
-use crate::distro::node::NodeDistro;
-use crate::distro::node::NodeVersion;
+use crate::distro::node::{NodeDistro, NodeVersion};
 use crate::distro::yarn::YarnDistro;
 use crate::distro::{Distro, Fetched};
 use crate::error::ErrorDetails;
 use crate::fs::{ensure_containing_dir_exists, read_file_opt};
 use crate::hook::ToolHooks;
-use crate::package::PackageVersion;
+use crate::package::serial::PackageMetadata;
+use crate::package::{PackageDistro, PackageEntry, PackageIndex, PackageVersion};
 use crate::path;
 use crate::style::progress_spinner;
 use crate::version::VersionSpec;
@@ -38,7 +34,6 @@ pub(crate) mod serial;
 
 #[cfg(feature = "mock-network")]
 use mockito;
-
 
 // ISSUE (#86): Move public repository URLs to config file
 cfg_if::cfg_if! {
@@ -147,18 +142,31 @@ pub trait FetchResolve<D: Distro> {
     ) -> Fallible<Fetched<Self::FetchedVersion>>;
 
     /// Resolves the specified semantic versioning requirements into a distribution
-    fn resolve(&self, name: String, matching: &VersionSpec, hooks: Option<&ToolHooks<D>>) -> Fallible<D> {
+    fn resolve(
+        &self,
+        name: String,
+        matching: &VersionSpec,
+        hooks: Option<&ToolHooks<D>>,
+    ) -> Fallible<D> {
         let version = match *matching {
             VersionSpec::Latest => self.resolve_latest(name.clone(), hooks)?,
-            VersionSpec::Semver(ref requirement) => self.resolve_semver(name.clone(), requirement, hooks)?,
-            VersionSpec::Exact(ref version) => self.resolve_exact(name.clone(), version.clone(), hooks)?,
+            VersionSpec::Semver(ref requirement) => {
+                self.resolve_semver(name.clone(), requirement, hooks)?
+            }
+            VersionSpec::Exact(ref version) => {
+                self.resolve_exact(name.clone(), version.clone(), hooks)?
+            }
         };
 
         D::new(name, version, hooks)
     }
 
     /// Resolves the latest version for this tool, using either the `latest` hook or the public registry
-    fn resolve_latest(&self, name: String, hooks: Option<&ToolHooks<D>>) -> Fallible<D::ResolvedVersion>;
+    fn resolve_latest(
+        &self,
+        name: String,
+        hooks: Option<&ToolHooks<D>>,
+    ) -> Fallible<D::ResolvedVersion>;
 
     /// Resolves a SemVer version for this tool, using either the `index` hook or the public registry
     fn resolve_semver(
@@ -169,7 +177,12 @@ pub trait FetchResolve<D: Distro> {
     ) -> Fallible<D::ResolvedVersion>;
 
     /// Resolves an exact version of this tool
-    fn resolve_exact(&self, name: String, version: Version, hooks: Option<&ToolHooks<D>>) -> Fallible<D::ResolvedVersion>;
+    fn resolve_exact(
+        &self,
+        name: String,
+        version: Version,
+        hooks: Option<&ToolHooks<D>>,
+    ) -> Fallible<D::ResolvedVersion>;
 }
 
 pub fn registry_fetch_error(error: &reqwest::Error) -> ErrorDetails {
@@ -201,14 +214,22 @@ impl FetchResolve<NodeDistro> for NodeCollection {
         let distro = self.resolve(name, matching, hooks)?;
         let fetched = distro.fetch(&self).unknown()?;
 
-        if let &Fetched::Now(NodeVersion { runtime: ref version, .. }) = &fetched {
+        if let &Fetched::Now(NodeVersion {
+            runtime: ref version,
+            ..
+        }) = &fetched
+        {
             self.versions.insert(version.clone());
         }
 
         Ok(fetched)
     }
 
-    fn resolve_latest(&self, _name: String, hooks: Option<&ToolHooks<NodeDistro>>) -> Fallible<Version> {
+    fn resolve_latest(
+        &self,
+        _name: String,
+        hooks: Option<&ToolHooks<NodeDistro>>,
+    ) -> Fallible<Version> {
         // NOTE: This assumes the registry always produces a list in sorted order
         //       from newest to oldest. This should be specified as a requirement
         //       when we document the plugin API.
@@ -257,7 +278,12 @@ impl FetchResolve<NodeDistro> for NodeCollection {
         }
     }
 
-    fn resolve_exact(&self, _name: String, version: Version, _hooks: Option<&ToolHooks<NodeDistro>>) -> Fallible<Version> {
+    fn resolve_exact(
+        &self,
+        _name: String,
+        version: Version,
+        _hooks: Option<&ToolHooks<NodeDistro>>,
+    ) -> Fallible<Version> {
         Ok(version.clone())
     }
 }
@@ -282,7 +308,11 @@ impl FetchResolve<YarnDistro> for YarnCollection {
         Ok(fetched)
     }
 
-    fn resolve_latest(&self, _name: String, hooks: Option<&ToolHooks<YarnDistro>>) -> Fallible<Version> {
+    fn resolve_latest(
+        &self,
+        _name: String,
+        hooks: Option<&ToolHooks<YarnDistro>>,
+    ) -> Fallible<Version> {
         let url = match hooks {
             Some(&ToolHooks {
                 latest: Some(ref hook),
@@ -327,26 +357,30 @@ impl FetchResolve<YarnDistro> for YarnCollection {
         }
     }
 
-    fn resolve_exact(&self, _name: String, version: Version, _hooks: Option<&ToolHooks<YarnDistro>>) -> Fallible<Version> {
+    fn resolve_exact(
+        &self,
+        _name: String,
+        version: Version,
+        _hooks: Option<&ToolHooks<YarnDistro>>,
+    ) -> Fallible<Version> {
         Ok(version.clone())
     }
 }
 
 // use the input predicate to match a package in the index
-fn match_package_entry(index: PackageIndex, predicate: impl Fn(&PackageEntry) -> bool) -> Fallible<Option<PackageEntry>> {
+fn match_package_entry(
+    index: PackageIndex,
+    predicate: impl Fn(&PackageEntry) -> bool,
+) -> Fallible<Option<PackageEntry>> {
     let mut entries = index.entries.into_iter();
     Ok(entries.find(predicate))
 }
 
 // fetch metadata for the input url
 fn resolve_package_metadata(package_info_url: &str) -> Fallible<PackageMetadata> {
-    let spinner = progress_spinner(&format!(
-            "Fetching package metadata: {}",
-            package_info_url
-            ));
+    let spinner = progress_spinner(&format!("Fetching package metadata: {}", package_info_url));
     let mut response: reqwest::Response =
-        reqwest::get(package_info_url)
-        .with_context(registry_fetch_error)?;
+        reqwest::get(package_info_url).with_context(registry_fetch_error)?;
     let response_text: String = response.text().unknown()?;
 
     let metadata: PackageMetadata = serde_json::de::from_str(&response_text).unknown()?;
@@ -375,7 +409,11 @@ impl FetchResolve<PackageDistro> for PackageCollection {
         Ok(fetched)
     }
 
-    fn resolve_latest(&self, name: String, hooks: Option<&ToolHooks<PackageDistro>>) -> Fallible<PackageEntry> {
+    fn resolve_latest(
+        &self,
+        name: String,
+        hooks: Option<&ToolHooks<PackageDistro>>,
+    ) -> Fallible<PackageEntry> {
         let url = match hooks {
             Some(&ToolHooks {
                 latest: Some(ref hook),
@@ -387,7 +425,10 @@ impl FetchResolve<PackageDistro> for PackageCollection {
         let package_index = resolve_package_metadata(&url)?.into_index()?;
         let latest = package_index.latest.clone();
 
-        let entry_opt = match_package_entry(package_index, |&PackageEntry { version: ref v, .. }| &latest == v)?;
+        let entry_opt =
+            match_package_entry(package_index, |&PackageEntry { version: ref v, .. }| {
+                &latest == v
+            })?;
 
         if let Some(entry) = entry_opt {
             Ok(entry)
@@ -415,7 +456,10 @@ impl FetchResolve<PackageDistro> for PackageCollection {
 
         let package_index = resolve_package_metadata(&url)?.into_index()?;
 
-        let entry_opt = match_package_entry(package_index, |&PackageEntry { version: ref v, .. }| matching.matches(v))?;
+        let entry_opt =
+            match_package_entry(package_index, |&PackageEntry { version: ref v, .. }| {
+                matching.matches(v)
+            })?;
 
         if let Some(entry) = entry_opt {
             Ok(entry)
@@ -427,7 +471,12 @@ impl FetchResolve<PackageDistro> for PackageCollection {
         }
     }
 
-    fn resolve_exact(&self, name: String, exact_version: Version, hooks: Option<&ToolHooks<PackageDistro>>) -> Fallible<PackageEntry> {
+    fn resolve_exact(
+        &self,
+        name: String,
+        exact_version: Version,
+        hooks: Option<&ToolHooks<PackageDistro>>,
+    ) -> Fallible<PackageEntry> {
         let url = match hooks {
             Some(&ToolHooks {
                 index: Some(ref hook),
@@ -438,7 +487,10 @@ impl FetchResolve<PackageDistro> for PackageCollection {
 
         let package_index = resolve_package_metadata(&url)?.into_index()?;
 
-        let entry_opt = match_package_entry(package_index, |&PackageEntry { version: ref v, .. }| &exact_version == v)?;
+        let entry_opt =
+            match_package_entry(package_index, |&PackageEntry { version: ref v, .. }| {
+                &exact_version == v
+            })?;
 
         if let Some(entry) = entry_opt {
             Ok(entry)
@@ -448,7 +500,6 @@ impl FetchResolve<PackageDistro> for PackageCollection {
                 matching: VersionSpec::Latest,
             })
         }
-
     }
 }
 

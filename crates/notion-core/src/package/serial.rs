@@ -14,7 +14,6 @@ use notion_fail::ResultExt;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 
-
 // see npm registry API doc:
 // https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md
 
@@ -81,7 +80,10 @@ impl PackageMetadata {
         // sort entries by version, largest to smallest
         entries.sort_by(|a, b| a.version.cmp(&b.version).reverse());
 
-        Ok(super::PackageIndex{ latest: latest_version, entries: entries })
+        Ok(super::PackageIndex {
+            latest: latest_version,
+            entries: entries,
+        })
     }
 }
 

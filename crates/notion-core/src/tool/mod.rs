@@ -53,7 +53,9 @@ impl ToolSpec {
             ToolSpec::Node(version) => session.install_node(&version)?,
             ToolSpec::Yarn(version) => session.install_yarn(&version)?,
             ToolSpec::Npm(version) => session.install_npm(&version)?,
-            ToolSpec::Package(name, version) => session.install_package(name.to_string(), &version)?,
+            ToolSpec::Package(name, version) => {
+                session.install_package(name.to_string(), &version)?
+            }
         }
         Ok(())
     }

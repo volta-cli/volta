@@ -10,9 +10,8 @@ use std::rc::Rc;
 use lazycell::LazyCell;
 use semver::Version;
 
-use crate::distro::node::load_default_npm_version;
+use crate::distro::node::{load_default_npm_version, NodeVersion};
 use crate::error::ErrorDetails;
-use crate::distro::node::NodeVersion;
 use crate::manifest::{serial, Manifest};
 use crate::platform::PlatformSpec;
 use crate::shim;
@@ -226,7 +225,6 @@ impl Project {
 
     /// Writes the specified version of Node to the `toolchain.node` key in package.json.
     pub fn pin_node(&self, node_version: &NodeVersion) -> Fallible<()> {
-
         // prevent writing the npm version if it is equal to the default version
         let default_npm = load_default_npm_version(&node_version.runtime).ok();
         let npm_str = if Some(node_version.npm.clone()) == default_npm {
@@ -241,13 +239,15 @@ impl Project {
             self.manifest().yarn_str().clone(),
         );
         Manifest::update_toolchain(toolchain, self.package_file())?;
-        println!("Pinned node version {} in package.json", node_version.runtime);
+        println!(
+            "Pinned node version {} in package.json",
+            node_version.runtime
+        );
         Ok(())
     }
 
     /// Writes the specified version of Yarn to the `toolchain.yarn` key in package.json.
     pub fn pin_yarn(&self, yarn_version: &Version) -> Fallible<()> {
-
         if let Some(platform) = self.manifest().platform() {
             let toolchain = serial::ToolchainSpec::new(
                 platform.node_runtime.to_string(),

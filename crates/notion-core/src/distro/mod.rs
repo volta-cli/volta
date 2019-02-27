@@ -42,7 +42,11 @@ pub trait Distro: Sized {
     type ResolvedVersion;
 
     /// Provisions a new Distro based on the name, Version and Possible Hooks
-    fn new(name: String, version: Self::ResolvedVersion, hooks: Option<&ToolHooks<Self>>) -> Fallible<Self>;
+    fn new(
+        name: String,
+        version: Self::ResolvedVersion,
+        hooks: Option<&ToolHooks<Self>>,
+    ) -> Fallible<Self>;
 
     /// Produces a reference to this distro's Tool version.
     fn version(&self) -> &Version;

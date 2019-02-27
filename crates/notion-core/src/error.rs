@@ -68,7 +68,6 @@ pub enum ErrorDetails {
     /// Thrown when a user tries to install or fetch a package with no executables.
     NoPackageExecutables,
 
-
     /// Thrown when there is no Node version matching a requested semver specifier.
     NoPackageFound {
         name: String,

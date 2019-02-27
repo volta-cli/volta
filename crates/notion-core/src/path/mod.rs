@@ -141,7 +141,9 @@ pub fn user_package_config_file(bin_name: &str) -> Fallible<PathBuf> {
 }
 
 pub fn user_tool_bin_config(bin_name: &str) -> Fallible<PathBuf> {
-    Ok(user_toolchain_dir()?.join("bins").join(format!("{}.json", bin_name)))
+    Ok(user_toolchain_dir()?
+        .join("bins")
+        .join(format!("{}.json", bin_name)))
 }
 
 pub fn node_distro_file_name(version: &str) -> String {
@@ -188,7 +190,6 @@ pub fn package_shasum_file_name(name: &str, version: &str) -> String {
 pub fn package_archive_root_dir_name(name: &str, version: &str) -> String {
     format!("{}-{}", name, version)
 }
-
 
 #[cfg(test)]
 pub mod tests {

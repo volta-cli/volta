@@ -15,7 +15,7 @@ use crate::fs::ensure_containing_dir_exists;
 use crate::hook::ToolHooks;
 use crate::inventory::NodeCollection;
 use crate::path;
-use crate::style::{progress_bar};
+use crate::style::progress_bar;
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
 
@@ -151,7 +151,11 @@ impl Distro for NodeDistro {
     type ResolvedVersion = Version;
 
     /// Provisions a new Distro based on the Version and possible Hooks
-    fn new(_name: String, version: Self::ResolvedVersion, hooks: Option<&ToolHooks<Self>>) -> Fallible<Self> {
+    fn new(
+        _name: String,
+        version: Self::ResolvedVersion,
+        hooks: Option<&ToolHooks<Self>>,
+    ) -> Fallible<Self> {
         match hooks {
             Some(&ToolHooks {
                 distro: Some(ref hook),
@@ -178,7 +182,7 @@ impl Distro for NodeDistro {
 
             return Ok(Fetched::Already(NodeVersion {
                 runtime: self.version,
-                npm
+                npm,
             }));
         }
 
@@ -222,7 +226,7 @@ impl Distro for NodeDistro {
         bar.finish_and_clear();
         Ok(Fetched::Now(NodeVersion {
             runtime: self.version,
-            npm
+            npm,
         }))
     }
 }
