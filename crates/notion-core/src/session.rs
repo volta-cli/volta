@@ -13,9 +13,9 @@ use crate::platform::PlatformSpec;
 use crate::project::{LazyProject, Project};
 use crate::toolchain::LazyToolchain;
 use crate::version::VersionSpec;
-use crate::inventory::FetchResolve; // trait has to be in scope :wink:
+use crate::inventory::FetchResolve;
 use crate::distro::node::NodeVersion;
-use crate::package::UserTool; // TODO: maybe this should be in tool mod?
+use crate::package::UserTool;
 use crate::package;
 
 use std::fmt::{self, Display, Formatter};

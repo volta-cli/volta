@@ -1,8 +1,9 @@
 //! The view layer of Notion, with utilities for styling command-line output.
 
 use std::env;
-use std::fmt::{self, Display, Formatter};
+use std::fmt::Display;
 
+use archive::Action;
 use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 use notion_fail::NotionError;
@@ -89,25 +90,6 @@ fn display_development_details(err: &NotionError) {
     // If not, we should let the user know how to see the backtrace
     if env::var("RUST_BACKTRACE").is_err() {
         eprintln!("Run with NOTION_DEV=1 and RUST_BACKTRACE=1 for a backtrace.");
-    }
-}
-
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
-pub enum Action {
-    Fetching,
-}
-
-impl Action {
-    // this is the maximum width of the displayed Action strings, used for formatting
-    const MAX_WIDTH: usize = 10;
-}
-
-impl Display for Action {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
-        let s = match self {
-            &Action::Fetching => "Fetching",
-        };
-        f.write_str(s)
     }
 }
 

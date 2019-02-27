@@ -17,8 +17,30 @@ pub struct HttpError {
 pub use crate::tarball::Tarball;
 pub use crate::zip::Zip;
 
+use std::fmt::{self, Display, Formatter};
 use std::fs::File;
 use std::path::Path;
+
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
+pub enum Action {
+    Fetching,
+    Unpacking,
+}
+
+impl Action {
+    /// The maximum width of the displayed Action strings, used for formatting
+    pub const MAX_WIDTH: usize = 10;
+}
+
+impl Display for Action {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        let s = match self {
+            &Action::Fetching => "Fetching",
+            &Action::Unpacking => "Unpacking",
+        };
+        f.write_str(s)
+    }
+}
 
 pub trait Archive {
     fn compressed_size(&self) -> u64;
@@ -30,6 +52,8 @@ pub trait Archive {
         dest: &Path,
         progress: &mut FnMut(&(), usize),
     ) -> Result<(), failure::Error>;
+
+    fn action(&self) -> Action;
 }
 
 cfg_if::cfg_if! {

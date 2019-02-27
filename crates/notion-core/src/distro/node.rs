@@ -15,7 +15,7 @@ use crate::fs::ensure_containing_dir_exists;
 use crate::hook::ToolHooks;
 use crate::inventory::NodeCollection;
 use crate::path;
-use crate::style::{progress_bar, Action};
+use crate::style::{progress_bar};
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
 
@@ -183,7 +183,7 @@ impl Distro for NodeDistro {
 
         let temp = tempdir_in(path::tmp_dir()?).unknown()?;
         let bar = progress_bar(
-            Action::Fetching,
+            self.archive.action(),
             &format!("v{}", self.version),
             self.archive
                 .uncompressed_size()

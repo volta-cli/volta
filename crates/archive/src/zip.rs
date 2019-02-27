@@ -12,11 +12,13 @@ use zip_rs::ZipArchive;
 
 use failure;
 
+use super::Action;
 use super::Archive;
 
 pub struct Zip {
     compressed_size: u64,
     data: File,
+    action: Action,
 }
 
 impl Zip {
@@ -27,6 +29,7 @@ impl Zip {
         Ok(Box::new(Zip {
             compressed_size,
             data: source,
+            action: Action::Unpacking,
         }))
     }
 
@@ -52,6 +55,7 @@ impl Zip {
         Ok(Box::new(Zip {
             compressed_size,
             data: file,
+            action: Action::Fetching,
         }))
     }
 }
@@ -98,6 +102,9 @@ impl Archive for Zip {
             }
         }
         Ok(())
+    }
+    fn action(&self) -> Action {
+        self.action
     }
 }
 

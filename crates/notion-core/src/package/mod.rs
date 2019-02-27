@@ -13,7 +13,6 @@ use std::fs::read_dir;
 use std::path::Path;
 use std::path::PathBuf;
 
-use readext::ReadExt;
 use sha1::{Sha1, Digest};
 use hex;
 use semver::Version;
@@ -26,7 +25,7 @@ use crate::path;
 use archive::Tarball;
 use crate::distro::error::DownloadError;
 use crate::tool::ToolSpec;
-use crate::style::{progress_bar, Action};
+use crate::style::{progress_bar};
 use tempfile::tempdir_in;
 use crate::fs::ensure_containing_dir_exists;
 use crate::platform::PlatformSpec;
@@ -142,7 +141,7 @@ impl BinaryAlreadyInstalledError {
 }
 
 /// A provisioned Package distribution.
-//#[derive(Debug)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub struct PackageDistro {
     name: String,
     shasum: String,
@@ -154,7 +153,7 @@ pub struct PackageDistro {
 }
 
 /// A package version.
-// #[derive(Eq, PartialEq, Clone, Debug)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub struct PackageVersion {
     pub name: String,
     pub version: Version,
@@ -212,7 +211,7 @@ impl PackageDistro {
         let archive = self.load_or_fetch_archive()?;
 
         let bar = progress_bar(
-            Action::Fetching,
+            archive.action(),
             &format!("{}-v{}", self.name, self.version),
             archive.uncompressed_size().unwrap_or(archive.compressed_size()),
         );
@@ -241,7 +240,7 @@ impl PackageDistro {
             throw!(PackageHasNoExecutablesError);
         }
 
-        for (bin_name, bin_path) in bin_map.iter() {
+        for (bin_name, _bin_path) in bin_map.iter() {
             // check for conflicts with installed bins
             // some packages may install bins with the same name
             let bin_config_file = path::user_tool_bin_config(&bin_name)?;
@@ -308,7 +307,6 @@ impl PackageDistro {
         // something went wrong, package is not valid
         Ok(false)
     }
-
 }
 
 // Figure out the unpacked package directory name dynamically, because
@@ -478,7 +476,7 @@ impl NpmPackage {
     pub fn resolve_public(name: &String, matching: &VersionSpec) -> Fallible<PackageDistro> {
         let index: PackageIndex = resolve_package_metadata(name)?.into_index()?;
 
-        let matching_package_entry = index.match_something(matching);
+        let matching_package_entry = index.match_package(matching);
         if let Some(entry) = matching_package_entry {
             Ok(PackageDistro::new(
                 name.to_string(),
@@ -497,7 +495,7 @@ impl NpmPackage {
 
 impl PackageIndex {
     /// Try to find a match for the input VersionSpec in this index.
-    pub fn match_something(self, matching: &VersionSpec) -> Option<PackageEntry> {
+    pub fn match_package(self, matching: &VersionSpec) -> Option<PackageEntry> {
         match *matching {
             VersionSpec::Latest => {
                 let latest = self.latest.clone();

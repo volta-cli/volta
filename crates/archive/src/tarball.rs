@@ -15,6 +15,7 @@ use reqwest::Response;
 use tar;
 use tee::TeeReader;
 
+use super::Action;
 use super::Archive;
 
 /// A Node installation tarball.
@@ -22,6 +23,7 @@ pub struct Tarball {
     compressed_size: u64,
     uncompressed_size: u64,
     data: Box<Read>,
+    action: Action,
 }
 
 #[derive(Fail, Debug)]
@@ -54,6 +56,7 @@ impl Tarball {
             uncompressed_size,
             compressed_size,
             data: Box::new(source),
+            action: Action::Unpacking,
         }))
     }
 
@@ -82,6 +85,7 @@ impl Tarball {
             uncompressed_size,
             compressed_size,
             data,
+            action: Action::Fetching,
         }))
     }
 }
@@ -102,6 +106,9 @@ impl Archive for Tarball {
         let mut tarball = tar::Archive::new(ProgressRead::new(decoded, (), progress));
         tarball.unpack(dest)?;
         Ok(())
+    }
+    fn action(&self) -> Action {
+        self.action
     }
 }
 
