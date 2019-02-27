@@ -262,7 +262,7 @@ impl Session {
             let node_version = self.fetch_node(version_spec)?.into_version();
             project.pin_node(&node_version)?;
         } else {
-            throw!(ErrorDetails::NotInPackageError::new());
+            throw!(ErrorDetails::NotInPackage);
         }
         Ok(())
     }
@@ -274,7 +274,7 @@ impl Session {
             let yarn_version = self.fetch_yarn(version_spec)?.into_version();
             project.pin_yarn(&yarn_version)?;
         } else {
-            throw!(ErrorDetails::NotInPackageError::new());
+            throw!(ErrorDetails::NotInPackage);
         }
         Ok(())
     }
@@ -286,7 +286,7 @@ impl Session {
             let npm_version = self.fetch_npm(version_spec)?.into_version();
             project.pin_npm(&npm_version)?;
         } else {
-            throw!(NotInPackageError::new());
+            throw!(ErrorDetails::NotInPackage);
         }
         Ok(())
     }

@@ -1,7 +1,7 @@
 //! Provides types for installing packages to the user toolchain.
 
 use std::fs::rename;
-use std::process::{Command, ExitStatus, Stdio};
+use std::process::{Command, Stdio};
 use std::ffi::OsStr;
 use std::collections::HashMap;
 use std::fs::File;
@@ -17,13 +17,14 @@ use sha1::{Sha1, Digest};
 use hex;
 use semver::Version;
 
-use crate::inventory::RegistryFetchError;
+use crate::error::ErrorDetails;
+use crate::inventory::registry_fetch_error;
 use crate::style::progress_spinner;
 use crate::version::VersionSpec;
 use crate::distro::Fetched;
 use crate::path;
 use archive::Tarball;
-use crate::distro::error::DownloadError;
+use crate::distro::download_tool_error;
 use crate::tool::ToolSpec;
 use crate::style::{progress_bar};
 use tempfile::tempdir_in;
@@ -31,15 +32,12 @@ use crate::fs::ensure_containing_dir_exists;
 use crate::platform::PlatformSpec;
 use crate::manifest::Manifest;
 use crate::session::Session;
-use crate::project::DepPackageReadError;
 use crate::shim;
 use crate::platform::Image;
 use crate::fs::read_file_opt;
 use archive::Archive;
 
-use notion_fail::{throw, ExitCode, Fallible, NotionFail, ResultExt};
-use failure::Fail;
-use notion_fail_derive::*;
+use notion_fail::{throw, Fallible, ResultExt};
 
 pub(crate) mod serial;
 
@@ -59,83 +57,14 @@ cfg_if::cfg_if! {
     }
 }
 
-/// Thrown when there is no Node version matching a requested semver specifier.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "No version of '{}' found for {}", name, matching)]
-#[notion_fail(code = "NoVersionMatch")]
-struct NoPackageFoundError {
-    name: String,
-    matching: VersionSpec,
-}
-
-/// Thrown when a user tries to install or fetch a package with no executables.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Package has no binaries or executables - nothing to do")]
-#[notion_fail(code = "InvalidArguments")]
-pub struct PackageHasNoExecutablesError;
-
-/// Thrown when a package has been unpacked but is not formed correctly.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Package unpack error: Could not determine unpack directory name")]
-#[notion_fail(code = "ConfigurationError")]
-pub struct PackageUnpackError;
-
-/// Thrown when package install command fails to execute.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Error executing package install command: {}", error)]
-#[notion_fail(code = "FileSystemError")]
-pub (crate) struct PackageInstallIoError {
-    error: String,
-}
-
-impl PackageInstallIoError {
-    pub(crate) fn from_io_error(error: &io::Error) -> Self {
-        if let Some(inner_err) = error.get_ref() {
-            PackageInstallIoError {
-                error: inner_err.to_string(),
-            }
-        } else {
-            PackageInstallIoError {
-                error: error.to_string(),
-            }
+fn install_error(error: &io::Error) -> ErrorDetails {
+    if let Some(inner_err) = error.get_ref() {
+        ErrorDetails::PackageInstallIoError {
+            error: inner_err.to_string(),
         }
-    }
-}
-
-/// Thrown when package install command is not successful.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Command `{:?}` failed with status {}", cmd, status)]
-#[notion_fail(code = "FileSystemError")]
-pub (crate) struct PackageInstallFailedError {
-    cmd: String,
-    status: ExitStatus,
-}
-
-impl PackageInstallFailedError {
-    pub(crate) fn new(cmd: String, status: ExitStatus) -> Self {
-        PackageInstallFailedError {
-            cmd,
-            status,
-        }
-    }
-}
-
-/// Thrown when package tries to install a binary that is already installed.
-#[derive(Debug, Fail, NotionFail)]
-#[fail(display = "Conflict with bin '{}' already installed by '{}' version {}", bin_name, package, version)]
-#[notion_fail(code = "FileSystemError")]
-pub (crate) struct BinaryAlreadyInstalledError {
-    bin_name: String,
-    package: String,
-    version: String,
-}
-
-impl BinaryAlreadyInstalledError {
-    pub(crate) fn new(bin_name: String, package: String, version: Version) -> Self {
-        BinaryAlreadyInstalledError {
-            bin_name,
-            package,
-            version: version.to_string(),
+    } else {
+        ErrorDetails::PackageInstallIoError {
+            error: error.to_string(),
         }
     }
 }
@@ -234,10 +163,14 @@ impl PackageDistro {
         f.write_all(self.shasum.as_bytes()).unknown()?;
         f.sync_all().unknown()?;
 
-        let pkg_info = Manifest::for_dir(&self.image_dir).with_context(DepPackageReadError::from_error)?;
+        let pkg_info = Manifest::for_dir(&self.image_dir).with_context(|error| {
+            ErrorDetails::DepPackageReadError {
+                error: error.to_string(),
+            }
+        })?;
         let bin_map = pkg_info.bin;
         if bin_map.is_empty() {
-            throw!(PackageHasNoExecutablesError);
+            throw!(ErrorDetails::NoPackageExecutables);
         }
 
         for (bin_name, _bin_path) in bin_map.iter() {
@@ -246,7 +179,7 @@ impl PackageDistro {
             let bin_config_file = path::user_tool_bin_config(&bin_name)?;
             if bin_config_file.exists() {
                 let bin_config = BinConfig::from_file(bin_config_file)?;
-                throw!(BinaryAlreadyInstalledError::new(bin_name.to_string(), bin_config.package, bin_config.version));
+                throw!(ErrorDetails::BinaryAlreadyInstalled { bin_name: bin_name.to_string(), package: bin_config.package, version: bin_config.version.to_string() });
             }
         }
 
@@ -268,7 +201,7 @@ impl PackageDistro {
             // otherwise have to download
             ensure_containing_dir_exists(&self.distro_file)?;
             Tarball::fetch(&self.tarball_url, &self.distro_file).with_context(
-                DownloadError::for_tool(
+                download_tool_error(
                     ToolSpec::Package(
                         self.name.to_string(),
                         VersionSpec::exact(&self.version)
@@ -321,7 +254,7 @@ fn find_unpack_dir(in_dir: &Path) -> Fallible<PathBuf> {
         Ok(dirs[0].to_path_buf())
     } else {
         // there is more than just a directory here, something is wrong
-        throw!(PackageUnpackError);
+        throw!(ErrorDetails::PackageUnpackError);
     }
 }
 
@@ -354,9 +287,9 @@ impl PackageVersion {
             install_command_for(Installer::Npm, &self.image_dir.clone().into_os_string(), &image.path()?)
         };
 
-        let output = install_cmd.output().with_context(PackageInstallIoError::from_io_error)?;
+        let output = install_cmd.output().with_context(install_error)?;
         if !output.status.success() {
-            throw!(PackageInstallFailedError::new(format!("{:?}", install_cmd), output.status));
+            throw!(ErrorDetails::PackageInstallFailed { cmd: format!("{:?}", install_cmd), status: output.status });
         }
 
         self.write_config_and_shims(&platform)?;
@@ -485,7 +418,7 @@ impl NpmPackage {
                 entry.tarball
             )?)
         } else {
-            throw!(NoPackageFoundError {
+            throw!(ErrorDetails::NoPackageFound {
                 name: name.to_string(),
                 matching: matching.clone()
             })
@@ -527,7 +460,7 @@ fn resolve_package_metadata(name: &String) -> Fallible<serial::PackageMetadata> 
             ));
     let mut response: reqwest::Response =
         reqwest::get(package_info_uri.as_str())
-        .with_context(RegistryFetchError::from_error)?;
+        .with_context(registry_fetch_error)?;
     let response_text: String = response.text().unknown()?;
 
     let metadata: serial::PackageMetadata = serde_json::de::from_str(&response_text).unknown()?;

@@ -257,7 +257,7 @@ impl Project {
             Manifest::update_toolchain(toolchain, self.package_file())?;
             println!("Pinned yarn version {} in package.json", yarn_version);
         } else {
-            throw!(ErrorDetails::NoPinnedNodeVersion::new());
+            throw!(ErrorDetails::NoPinnedNodeVersion);
         }
         Ok(())
     }
@@ -273,7 +273,7 @@ impl Project {
             Manifest::update_toolchain(toolchain, self.package_file())?;
             println!("Pinned npm version {} in package.json", npm_version);
         } else {
-            throw!(NoPinnedNodeVersion::new());
+            throw!(ErrorDetails::NoPinnedNodeVersion);
         }
         Ok(())
     }
