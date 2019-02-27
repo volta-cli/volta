@@ -14,10 +14,6 @@ smoke-tests = []
 intercept-globals = ["notion-core/intercept-globals"]
 
 [[bin]]
-name = "notion"
-path = "src/notion.rs"
-
-[[bin]]
 name = "shim"
 path = "src/shim.rs"
 
