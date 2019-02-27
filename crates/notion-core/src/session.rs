@@ -279,10 +279,15 @@ impl Session {
         Ok(())
     }
 
-    // TODO: do this for npm as well, like pin_yarn
     /// Updates toolchain in package.json with the Npm version matching the specified semantic
     /// versioning requirements.
-    pub fn pin_npm(&mut self, _version_spec: &VersionSpec) -> Fallible<()> {
+    pub fn pin_npm(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
+        if let Some(ref project) = self.project()? {
+            let npm_version = self.fetch_npm(version_spec)?.into_version();
+            project.pin_npm(&npm_version)?;
+        } else {
+            throw!(NotInPackageError::new());
+        }
         Ok(())
     }
 

@@ -224,9 +224,6 @@ impl Project {
         path
     }
 
-    // TODO: pin should be a DistroVersion trait on NodeVersion, YarnVersion, etc.
-    // (so it can be defined there, instead of pin_* functions)
-
     /// Writes the specified version of Node to the `toolchain.node` key in package.json.
     pub fn pin_node(&self, node_version: &NodeVersion) -> Fallible<()> {
 
@@ -265,9 +262,21 @@ impl Project {
         Ok(())
     }
 
-    // ISSUE (#175) When we can `notion install npm` then it can be pinned in the toolchain
-    // pub fn pin_npm() {
-    // }
+    /// Writes the specified version of Npm to the `toolchain.npm` key in package.json.
+    pub fn pin_npm(&self, npm_version: &Version) -> Fallible<()> {
+        if let Some(platform) = self.manifest().platform() {
+            let toolchain = serial::ToolchainSpec::new(
+                platform.node_runtime.to_string(),
+                Some(npm_version.to_string()),
+                self.manifest().yarn_str().clone(),
+            );
+            Manifest::update_toolchain(toolchain, self.package_file())?;
+            println!("Pinned npm version {} in package.json", npm_version);
+        } else {
+            throw!(NoPinnedNodeVersion::new());
+        }
+        Ok(())
+    }
 }
 
 // unit tests
