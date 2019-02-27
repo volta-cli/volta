@@ -6,6 +6,7 @@ use std::str::FromStr;
 use lazycell::LazyCell;
 use toml;
 
+use crate::package::PackageDistro;
 use crate::distro::node::NodeDistro;
 use crate::distro::yarn::YarnDistro;
 use crate::distro::Distro;
@@ -50,6 +51,7 @@ impl LazyHookConfig {
 pub struct HookConfig {
     pub node: Option<ToolHooks<NodeDistro>>,
     pub yarn: Option<ToolHooks<YarnDistro>>,
+    pub package: Option<ToolHooks<PackageDistro>>,
     pub events: Option<EventHooks>,
 }
 

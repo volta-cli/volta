@@ -3,7 +3,7 @@ use std::iter::FromIterator;
 use std::marker::PhantomData;
 use std::path::Path;
 
-use super::{NodeCollection, YarnCollection};
+use super::{NodeCollection, PackageCollection, YarnCollection};
 use crate::fs::read_dir_eager;
 use crate::path;
 use notion_fail::{Fallible, ResultExt};
@@ -72,6 +72,28 @@ impl YarnCollection {
         let versions = versions_matching(&path::yarn_inventory_dir()?, &re)?;
 
         Ok(YarnCollection {
+            versions: versions,
+            phantom: PhantomData,
+        })
+    }
+}
+
+impl PackageCollection {
+    pub(crate) fn load() -> Fallible<Self> {
+        // TODO: all of this mess
+        let re = Regex::new(
+            r"(?x)
+            yarn
+            -
+            v(?P<version>\d+\.\d+\.\d+) # Yarn version
+            \.tar\.gz
+            ",
+        )
+        .unwrap();
+
+        let versions = versions_matching(&path::yarn_inventory_dir()?, &re)?;
+
+        Ok(PackageCollection {
             versions: versions,
             phantom: PhantomData,
         })

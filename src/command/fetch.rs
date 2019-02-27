@@ -26,7 +26,7 @@ impl Command for Fetch {
                     ToolSpec::Node(version) => { session.fetch_node(&version)?; }
                     ToolSpec::Yarn(version) => { session.fetch_yarn(&version)?; }
                     ToolSpec::Npm(version) =>  { session.fetch_npm(&version)?; }
-                    ToolSpec::Package(name, version) => { session.fetch_package(&name, &version)?; }
+                    ToolSpec::Package(name, version) => { session.fetch_package(name.to_string(), &version)?; }
                 }
             }
         };

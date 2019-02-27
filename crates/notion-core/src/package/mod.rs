@@ -17,9 +17,10 @@ use sha1::{Sha1, Digest};
 use hex;
 use semver::Version;
 
+use crate::inventory::Collection;
+use crate::hook::ToolHooks;
+use crate::distro::Distro;
 use crate::error::ErrorDetails;
-use crate::inventory::registry_fetch_error;
-use crate::style::progress_spinner;
 use crate::version::VersionSpec;
 use crate::distro::Fetched;
 use crate::path;
@@ -40,22 +41,6 @@ use archive::Archive;
 use notion_fail::{throw, Fallible, ResultExt};
 
 pub(crate) mod serial;
-
-#[cfg(feature = "mock-network")]
-use mockito;
-use serde_json;
-
-cfg_if::cfg_if! {
-    if #[cfg(feature = "mock-network")] {
-        fn public_package_registry_root() -> String {
-            mockito::SERVER_URL.to_string()
-        }
-    } else {
-        fn public_package_registry_root() -> String {
-            "https://registry.npmjs.org".to_string()
-        }
-    }
-}
 
 fn install_error(error: &io::Error) -> ErrorDetails {
     if let Some(inner_err) = error.get_ref() {
@@ -123,20 +108,25 @@ pub struct BinConfig {
     platform: PlatformSpec,
 }
 
-impl PackageDistro {
-    pub fn new(name: String, shasum: String, version: Version, tarball_url: String) -> Fallible<Self> {
+impl Distro for PackageDistro {
+    type VersionDetails = PackageVersion;
+    type ResolvedVersion = PackageEntry;
+
+    fn new(name: String, entry: Self::ResolvedVersion, _hooks: Option<&ToolHooks<Self>>) -> Fallible<Self> {
+        let version = entry.version;
+        // TODO: do something like Node and Yarn for this
         Ok(PackageDistro {
-            name: name.clone(),
-            shasum,
+            name: name.to_string(),
+            shasum: entry.shasum,
             version: version.clone(),
-            tarball_url,
+            tarball_url: entry.tarball,
             image_dir: path::package_image_dir(&name, &version.to_string())?,
             distro_file: path::package_distro_file(&name, &version.to_string())?,
             shasum_file: path::package_distro_shasum(&name, &version.to_string())?,
         })
     }
 
-    pub fn fetch(&self) -> Fallible<Fetched<PackageVersion>> {
+    fn fetch(self, _collection: &Collection<Self>) -> Fallible<Fetched<PackageVersion>> {
         let archive = self.load_or_fetch_archive()?;
 
         let bar = progress_bar(
@@ -190,6 +180,12 @@ impl PackageDistro {
         )?))
     }
 
+    fn version(&self) -> &Version {
+        &self.version
+    }
+}
+
+impl PackageDistro {
     /// Loads the package tarball from disk, or fetches from URL.
     fn load_or_fetch_archive(&self) -> Fallible<Box<Archive>> {
         // try to use existing downloaded package
@@ -391,81 +387,13 @@ pub struct NpmPackage;
 
 /// Index of versions of a specific package.
 pub struct PackageIndex {
-    latest: Version,
-    entries: Vec<PackageEntry>,
+    pub latest: Version,
+    pub entries: Vec<PackageEntry>,
 }
 
 #[derive(Debug)]
 pub struct PackageEntry {
-    version: Version,
-    tarball: String,
-    shasum: String,
+    pub version: Version,
+    pub tarball: String,
+    pub shasum: String,
 }
-
-impl NpmPackage {
-
-    // TODO: should this be method of PackageDistro?
-    // (so I don't have to pass around name, would be nice...)
-    pub fn resolve_public(name: &String, matching: &VersionSpec) -> Fallible<PackageDistro> {
-        let index: PackageIndex = resolve_package_metadata(name)?.into_index()?;
-
-        let matching_package_entry = index.match_package(matching);
-        if let Some(entry) = matching_package_entry {
-            Ok(PackageDistro::new(
-                name.to_string(),
-                entry.shasum,
-                entry.version,
-                entry.tarball
-            )?)
-        } else {
-            throw!(ErrorDetails::NoPackageFound {
-                name: name.to_string(),
-                matching: matching.clone()
-            })
-        }
-    }
-}
-
-impl PackageIndex {
-    /// Try to find a match for the input VersionSpec in this index.
-    pub fn match_package(self, matching: &VersionSpec) -> Option<PackageEntry> {
-        match *matching {
-            VersionSpec::Latest => {
-                let latest = self.latest.clone();
-                self.match_package_version(|&PackageEntry { version: ref v, .. }| &latest == v)
-            }
-            VersionSpec::Semver(ref matching) => {
-                self.match_package_version(|&PackageEntry { version: ref v, .. }| matching.matches(v))
-            }
-            VersionSpec::Exact(ref exact) => {
-                self.match_package_version(|&PackageEntry { version: ref v, .. }| exact == v)
-            }
-        }
-    }
-
-    // use the input predicate to match a package in the index
-    fn match_package_version(self, predicate: impl Fn(&PackageEntry) -> bool) -> Option<PackageEntry> {
-        let mut entries = self.entries.into_iter();
-        entries.find(predicate)
-    }
-}
-
-
-// TODO: this has side effects, so needs acceptance & smoke tests
-fn resolve_package_metadata(name: &String) -> Fallible<serial::PackageMetadata> {
-    let package_info_uri = format!("{}/{}", public_package_registry_root(), name);
-    let spinner = progress_spinner(&format!(
-            "Fetching package metadata: {}",
-            package_info_uri
-            ));
-    let mut response: reqwest::Response =
-        reqwest::get(package_info_uri.as_str())
-        .with_context(registry_fetch_error)?;
-    let response_text: String = response.text().unknown()?;
-
-    let metadata: serial::PackageMetadata = serde_json::de::from_str(&response_text).unknown()?;
-
-    spinner.finish_and_clear();
-    Ok(metadata)
-}
-

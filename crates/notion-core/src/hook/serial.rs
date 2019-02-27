@@ -155,6 +155,8 @@ impl HookConfig {
             } else {
                 None
             },
+            // TODO: actually do this
+            package: None,
             events: if let Some(e) = self.events {
                 Some(e.into_event_hooks()?)
             } else {

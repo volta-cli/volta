@@ -154,7 +154,7 @@ impl Session {
 
         if !inventory.node.contains(version) {
             let hooks = self.hooks.get()?;
-            inventory.node.fetch(&VersionSpec::exact(version), hooks.node.as_ref())?;
+            inventory.node.fetch("node".to_string(), &VersionSpec::exact(version), hooks.node.as_ref())?;
         }
 
         Ok(())
@@ -166,7 +166,7 @@ impl Session {
 
         if !inventory.yarn.contains(version) {
             let hooks = self.hooks.get()?;
-            inventory.yarn.fetch(&VersionSpec::exact(version), hooks.yarn.as_ref())?;
+            inventory.yarn.fetch("yarn".to_string(), &VersionSpec::exact(version), hooks.yarn.as_ref())?;
         }
 
         Ok(())
@@ -195,7 +195,7 @@ impl Session {
     }
 
     /// Fetch, unpack, and install a package matching the input requirements.
-    pub fn install_package(&mut self, name: &String, version: &VersionSpec) -> Fallible<()> {
+    pub fn install_package(&mut self, name: String, version: &VersionSpec) -> Fallible<()> {
         // fetches and unpacks package
         let fetched_package = self.fetch_package(name, version)?;
         let package_version = fetched_package.version();
@@ -231,28 +231,29 @@ impl Session {
     pub fn fetch_node(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<NodeVersion>> {
         let inventory = self.inventory.get_mut()?;
         let hooks = self.hooks.get()?;
-        inventory.node.fetch(&version_spec, hooks.node.as_ref())
+        inventory.node.fetch("node".to_string(), &version_spec, hooks.node.as_ref())
     }
 
     /// Fetches a Yarn version matching the specified semantic versioning requirements.
     pub fn fetch_yarn(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<Version>> {
         let inventory = self.inventory.get_mut()?;
         let hooks = self.hooks.get()?;
-        inventory.yarn.fetch(&version_spec, hooks.yarn.as_ref())
+        inventory.yarn.fetch("yarn".to_string(), &version_spec, hooks.yarn.as_ref())
     }
 
-    // TODO: do this for npm
-    pub fn fetch_npm(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<Version>> {
-        let inventory = self.inventory.get_mut()?;
-        let hooks = self.hooks.get()?;
-        inventory.yarn.fetch(&version_spec, hooks.yarn.as_ref())
+    /// Fetches a Npm version matching the specified semantic versioning requirements.
+    pub fn fetch_npm(&mut self, _version_spec: &VersionSpec) -> Fallible<Fetched<Version>> {
+        let _inventory = self.inventory.get_mut()?;
+        let _hooks = self.hooks.get()?;
+        // TODO: inventory.fetch_npm(&version_spec, hooks.npm.as_ref())
+        unimplemented!("not yet");
     }
 
     /// Fetches a Packge version matching the specified semantic versioning requirements.
-    pub fn fetch_package(&mut self, name: &String, version_spec: &VersionSpec) -> Fallible<Fetched<PackageVersion>> {
+    pub fn fetch_package(&mut self, name: String, version_spec: &VersionSpec) -> Fallible<Fetched<PackageVersion>> {
         let inventory = self.inventory.get_mut()?;
         let hooks = self.hooks.get()?;
-        inventory.fetch_package(name, version_spec, hooks)
+        inventory.packages.fetch(name, version_spec, hooks.package.as_ref())
     }
 
     /// Updates toolchain in package.json with the Node version matching the specified semantic
