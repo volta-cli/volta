@@ -105,12 +105,8 @@ pub fn notion_file() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("notion"))
 }
 
-pub fn launchbin_file() -> Fallible<PathBuf> {
-    Ok(notion_home()?.join("launchbin"))
-}
-
-pub fn launchscript_file() -> Fallible<PathBuf> {
-    Ok(notion_home()?.join("launchscript"))
+pub fn shim_executable() -> Fallible<PathBuf> {
+    Ok(notion_home()?.join("shim"))
 }
 
 pub fn create_file_symlink(src: PathBuf, dst: PathBuf) -> Result<(), io::Error> {

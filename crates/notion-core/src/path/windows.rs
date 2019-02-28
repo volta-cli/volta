@@ -87,12 +87,8 @@ pub fn node_image_3p_bin_dir(_node: &str, _npm: &str) -> Fallible<PathBuf> {
     unimplemented!("global 3rd party executables not yet implemented for Windows")
 }
 
-pub fn launchbin_file() -> Fallible<PathBuf> {
-    Ok(notion_home()?.join("launchbin.exe"))
-}
-
-pub fn launchscript_file() -> Fallible<PathBuf> {
-    Ok(notion_home()?.join("launchscript.exe"))
+pub fn shim_executable() -> Fallible<PathBuf> {
+    Ok(notion_home()?.join("shim.exe"))
 }
 
 pub fn notion_file() -> Fallible<PathBuf> {
