@@ -13,6 +13,7 @@ use crate::fs::ensure_containing_dir_exists;
 use crate::fs::read_dir_eager;
 use crate::path;
 use crate::toolchain;
+use crate::version::version_parse_error;
 use notion_fail::{Fallible, ResultExt};
 use readext::ReadExt;
 
@@ -136,21 +137,11 @@ impl NodeIndex {
                     files: HashSet::from_iter(entry.files.into_iter()),
                 };
                 let version = trim_version(&entry.version[..]);
-                // TODO: for now, since the new version parser doesn't work for things like
-                // "1.1.0-beta-10", which is used by really old versions of npm
-                match Version::parse(&npm) {
-                    Ok(v) => {
-                        entries.push(super::NodeEntry {
-                            version: Version::parse(version).unknown()?,
-                            npm: v,
-                            files: data,
-                        });
-                    }
-                    Err(e) => {
-                        // just print the error, don't error out for now
-                        eprintln!("error parsing npm version {}: {}", npm, e);
-                    }
-                }
+                entries.push(super::NodeEntry {
+                    version: Version::parse(version).with_context(version_parse_error)?,
+                    npm: Version::parse(&npm).with_context(version_parse_error)?,
+                    files: data,
+                });
             }
         }
         Ok(super::NodeIndex { entries })

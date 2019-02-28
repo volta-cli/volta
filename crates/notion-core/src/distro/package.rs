@@ -188,10 +188,8 @@ impl PackageDistro {
     fn load_or_fetch_archive(&self) -> Fallible<Box<Archive>> {
         // try to use existing downloaded package
         if self.downloaded_pkg_is_ok()? {
-            println!("downloaded package is OK, using that");
             Tarball::load(File::open(&self.distro_file).unknown()?).unknown()
         } else {
-            println!("downloaded package is NOT OK, fetching");
             // otherwise have to download
             ensure_containing_dir_exists(&self.distro_file)?;
             Tarball::fetch(&self.tarball_url, &self.distro_file).with_context(download_tool_error(
@@ -207,25 +205,19 @@ impl PackageDistro {
 
         if let Ok(mut distro) = File::open(&self.distro_file) {
             if let Some(stored_shasum) = read_file_opt(&self.shasum_file).unknown()? {
-                println!("read shasum from disk: {}", stored_shasum);
-
                 distro.read_to_end(&mut buffer).unknown()?;
-                println!("read distro file");
 
                 // calculate the shasum
                 let mut hasher = Sha1::new();
                 hasher.input(buffer);
                 let result = hasher.result();
-                println!("hashed that file");
                 let calculated_shasum = hex::encode(&result);
-                println!("calculated shasum: {}", calculated_shasum);
 
                 return Ok(stored_shasum == calculated_shasum);
             }
         }
 
-        println!("package is not valid, going to download");
-        // something went wrong, package is not valid
+        // the files don't exist, or the shasum doesn't match
         Ok(false)
     }
 }

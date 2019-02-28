@@ -218,11 +218,6 @@ impl Session {
         //
         // If you specify an "engines" field, then npm will require that "node" be somewhere on that list. If "engines" is omitted, then npm will just assume that it works on node.
         let req_node_version = package_version.engines_spec()?;
-        println!(
-            "required node version(s) from \"engines\": \"{}\"",
-            req_node_version
-        );
-
         let node_version = self.fetch_node(&req_node_version)?.into_version();
 
         use_platform = Rc::new(PlatformSpec {
