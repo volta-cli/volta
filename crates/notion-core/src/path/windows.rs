@@ -46,9 +46,10 @@ cfg_if::cfg_if! {
 //                     node-v4.8.4-win-x64.zip             node_archive_file("4.8.4")
 //                     node-v4.8.4-npm                     node_npm_version_file("4.8.4")
 //                     ...
-//                 packages/                               package_inventory_dir
-//                     ember-cli/                          package_distro_dir("ember-cli")
+//                 packages\                               package_inventory_dir
+//                     ember-cli\                          package_distro_dir("ember-cli")
 //                         ember-cli-3.7.1.tgz             package_distro_file("ember-cli", "3.7.1")
+//                         ember-cli-3.7.1.shasum          package_distro_shasum("ember-cli", "3.7.1")
 //                 yarn\                                   yarn_inventory_dir
 //             image\                                      image_dir
 //                 node\                                   node_image_root_dir
@@ -57,16 +58,14 @@ cfg_if::cfg_if! {
 //                                                         node_image_bin_dir("10.13.0", "6.4.0")
 //                 yarn\                                   yarn_image_root_dir
 //                     1.7.0\                              yarn_image_dir("1.7.0")
-//                 packages/                               package_image_root_dir
-//                     ember-cli/
-//                         3.7.1/                          package_image_dir("ember-cli", "3.7.1")
+//                 packages\                               package_image_root_dir
+//                     ember-cli\
+//                         3.7.1\                          package_image_dir("ember-cli", "3.7.1")
 //             user\                                       user_toolchain_dir
 //                 bins\
-//                     ember ~> ..\packages\ember-cli
-//                 packages\
-//                     ember-cli\
-//                         package.json
-//                         contents\
+//                     tsc.json                            user_tool_bin_config("tsc")
+//                 packages\                               user_package_dir
+//                     ember-cli.json                      user_package_config_file("ember-cli")
 //                 platform.json                           user_platform_file
 //         notion.exe                                      notion_file
 //         launchbin.exe                                   launchbin_file

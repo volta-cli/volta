@@ -136,8 +136,8 @@ pub fn user_package_dir() -> Fallible<PathBuf> {
     Ok(user_toolchain_dir()?.join("packages"))
 }
 
-pub fn user_package_config_file(bin_name: &str) -> Fallible<PathBuf> {
-    Ok(user_package_dir()?.join(bin_name).join("config.json"))
+pub fn user_package_config_file(package_name: &str) -> Fallible<PathBuf> {
+    Ok(user_package_dir()?.join(format!("{}.json", package_name)))
 }
 
 pub fn user_tool_bin_config(bin_name: &str) -> Fallible<PathBuf> {

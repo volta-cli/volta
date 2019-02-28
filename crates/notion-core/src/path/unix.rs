@@ -78,8 +78,7 @@ cfg_if::cfg_if! {
 //                 bins/
 //                     tsc.json                            user_tool_bin_config("tsc")
 //                 packages/                               user_package_dir
-//                     ember/                              (the binary name, not the package name)
-//                         config.json                     user_package_config_file("ember")
+//                     ember-cli.json                      user_package_config_file("ember-cli")
 //                 platform.json                           user_platform_file
 //         notion                                          notion_file
 //         launchbin                                       launchbin_file

@@ -308,7 +308,7 @@ impl PackageConfig {
         serde_json::to_string_pretty(&self).unknown()
     }
 
-    // not used yet
+    // not used yet - needed for listing and uninstall
     #[allow(dead_code)]
     pub fn from_json(src: String) -> Fallible<Self> {
         serde_json::de::from_str(&src).unknown()
