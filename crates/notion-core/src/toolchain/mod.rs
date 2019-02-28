@@ -104,53 +104,22 @@ impl Toolchain {
     }
 
     /// Set the active Npm version in the user platform file.
-    // TODO:
-    // pub fn set_active_npm(&mut self, distro_version: DistroVersion) -> Fallible<()> {
-    //     let mut dirty = false;
+    pub fn set_active_npm(&mut self, npm_version: Version) -> Fallible<()> {
+        let mut dirty = false;
 
-    //     match distro_version {
-    //         DistroVersion::Node(node, npm) => {
-    //             if let Some(ref mut platform) = self.platform {
-    //                 if platform.node_runtime != node {
-    //                     platform.node_runtime = node;
-    //                     dirty = true;
-    //                 }
+        if let &mut Some(ref mut platform) = &mut self.platform {
+            if platform.npm != Some(npm_version.clone()) {
+                platform.npm = Some(npm_version);
+                dirty = true;
+            }
+        }
 
-    //                 if platform.npm != Some(npm.clone()) {
-    //                     platform.npm = Some(npm);
-    //                     dirty = true;
-    //                 }
-    //             } else {
-    //                 self.platform = Some(PlatformSpec {
-    //                     node_runtime: node,
-    //                     npm: Some(npm),
-    //                     yarn: None,
-    //                 });
-    //                 dirty = true;
-    //             }
-    //         }
-    //         DistroVersion::Yarn(version) => {
-    //             if let &mut Some(ref mut platform) = &mut self.platform {
-    //                 if platform.yarn != Some(version.clone()) {
-    //                     platform.yarn = Some(version);
-    //                     dirty = true;
-    //                 }
-    //             }
-    //         }
-    //         // ISSUE (#175) When we can `notion install npm` then it can be set in the platform file.
-    //         DistroVersion::Npm(_) => unimplemented!("cannot set npm in platform file"),
-    //         DistroVersion::Package(name, _) => {
-    //             unimplemented!("cannot set {} in platform file", name)
-    //         }
-    //     }
+        if dirty {
+            self.save()?;
+        }
 
-    //     // both
-    //     if dirty {
-    //         self.save()?;
-    //     }
-
-    //     Ok(())
-    // }
+        Ok(())
+    }
 
     pub fn save(&self) -> Fallible<()> {
         let path = user_platform_file()?;
