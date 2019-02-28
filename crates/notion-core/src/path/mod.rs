@@ -52,16 +52,12 @@ pub fn package_inventory_dir() -> Fallible<PathBuf> {
     Ok(inventory_dir()?.join("packages"))
 }
 
-pub fn package_distro_dir(name: &str) -> Fallible<PathBuf> {
-    Ok(package_inventory_dir()?.join(name))
-}
-
 pub fn package_distro_file(name: &str, version: &str) -> Fallible<PathBuf> {
-    Ok(package_distro_dir(name)?.join(package_distro_file_name(name, version)))
+    Ok(package_inventory_dir()?.join(package_distro_file_name(name, version)))
 }
 
 pub fn package_distro_shasum(name: &str, version: &str) -> Fallible<PathBuf> {
-    Ok(package_distro_dir(name)?.join(package_shasum_file_name(name, version)))
+    Ok(package_inventory_dir()?.join(package_shasum_file_name(name, version)))
 }
 
 pub fn node_cache_dir() -> Fallible<PathBuf> {

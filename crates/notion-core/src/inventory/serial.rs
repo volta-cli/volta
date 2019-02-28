@@ -88,22 +88,11 @@ impl YarnCollection {
 }
 
 impl PackageCollection {
+    // loads an empty PackageCollection
+    // ISSUE(#288) Collection only supports versions - for packages we also need names
     pub(crate) fn load() -> Fallible<Self> {
-        // TODO: all of this mess
-        let re = Regex::new(
-            r"(?x)
-            yarn
-            -
-            v(?P<version>\d+\.\d+\.\d+) # Yarn version
-            \.tar\.gz
-            ",
-        )
-        .unwrap();
-
-        let versions = versions_matching(&path::yarn_inventory_dir()?, &re)?;
-
         Ok(PackageCollection {
-            versions: versions,
+            versions: BTreeSet::new(),
             phantom: PhantomData,
         })
     }

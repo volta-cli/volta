@@ -106,7 +106,6 @@ impl Distro for PackageDistro {
         _hooks: Option<&ToolHooks<Self>>,
     ) -> Fallible<Self> {
         let version = entry.version;
-        // TODO: do something like Node and Yarn for this
         Ok(PackageDistro {
             name: name.to_string(),
             shasum: entry.shasum,

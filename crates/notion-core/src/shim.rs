@@ -36,7 +36,6 @@ fn is_3p_shim(name: &str) -> bool {
 pub fn create(shim_name: &str) -> Fallible<ShimResult> {
     let executable = path::shim_executable()?;
     let shim = path::shim_file(shim_name)?;
-    // TODO: this should be a hard link?
     match path::create_file_symlink(executable, shim) {
         Ok(_) => Ok(ShimResult::Created),
         Err(err) => {
