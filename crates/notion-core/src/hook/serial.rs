@@ -4,6 +4,7 @@ use std::marker::PhantomData;
 use crate::distro::node::NodeDistro;
 use crate::distro::yarn::YarnDistro;
 use crate::distro::Distro;
+use crate::package::PackageDistro;
 use failure::Fail;
 use notion_fail::{FailExt, Fallible};
 use serde::{Deserialize, Serialize};
@@ -110,6 +111,7 @@ impl PublishHook {
 pub struct HookConfig {
     pub node: Option<ToolHooks<NodeDistro>>,
     pub yarn: Option<ToolHooks<YarnDistro>>,
+    pub packages: Option<ToolHooks<PackageDistro>>,
     pub events: Option<EventHooks>,
 }
 
@@ -155,8 +157,11 @@ impl HookConfig {
             } else {
                 None
             },
-            // TODO: actually do this
-            package: None,
+            package: if let Some(p) = self.packages {
+                Some(p.into_tool_hooks()?)
+            } else {
+                None
+            },
             events: if let Some(e) = self.events {
                 Some(e.into_event_hooks()?)
             } else {
