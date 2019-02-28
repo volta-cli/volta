@@ -2,9 +2,9 @@ use super::tool;
 use std::marker::PhantomData;
 
 use crate::distro::node::NodeDistro;
+use crate::distro::package::PackageDistro;
 use crate::distro::yarn::YarnDistro;
 use crate::distro::Distro;
-use crate::package::PackageDistro;
 use failure::Fail;
 use notion_fail::{FailExt, Fallible};
 use serde::{Deserialize, Serialize};

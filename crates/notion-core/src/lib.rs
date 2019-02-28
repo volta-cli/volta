@@ -11,7 +11,6 @@ mod hook;
 pub mod inventory;
 pub mod manifest;
 pub mod monitor;
-pub mod package;
 pub mod path;
 pub mod platform;
 pub mod project;

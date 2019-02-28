@@ -1,6 +1,7 @@
 //! Provides types for fetching tool distributions into the local inventory.
 
 pub mod node;
+pub mod package;
 pub mod yarn;
 
 use crate::error::ErrorDetails;

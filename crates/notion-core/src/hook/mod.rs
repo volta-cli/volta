@@ -7,10 +7,10 @@ use lazycell::LazyCell;
 use toml;
 
 use crate::distro::node::NodeDistro;
+use crate::distro::package::PackageDistro;
 use crate::distro::yarn::YarnDistro;
 use crate::distro::Distro;
 use crate::fs::touch;
-use crate::package::PackageDistro;
 use crate::path::user_hooks_file;
 use notion_fail::{Fallible, NotionError, ResultExt};
 use readext::ReadExt;

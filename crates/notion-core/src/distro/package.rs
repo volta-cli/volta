@@ -30,8 +30,6 @@ use tempfile::tempdir_in;
 
 use notion_fail::{throw, Fallible, ResultExt};
 
-pub(crate) mod serial;
-
 fn install_error(error: &io::Error) -> ErrorDetails {
     if let Some(inner_err) = error.get_ref() {
         ErrorDetails::PackageInstallIoError {
@@ -47,13 +45,13 @@ fn install_error(error: &io::Error) -> ErrorDetails {
 /// A provisioned Package distribution.
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub struct PackageDistro {
-    name: String,
-    shasum: String,
-    tarball_url: String,
-    version: Version,
-    image_dir: PathBuf,
-    shasum_file: PathBuf,
-    distro_file: PathBuf,
+    pub name: String,
+    pub shasum: String,
+    pub tarball_url: String,
+    pub version: Version,
+    pub image_dir: PathBuf,
+    pub shasum_file: PathBuf,
+    pub distro_file: PathBuf,
 }
 
 /// A package version.
@@ -75,27 +73,27 @@ enum Installer {
 /// Configuration information about an installed package.
 pub struct PackageConfig {
     /// The package name
-    name: String,
+    pub name: String,
     /// The package version
-    version: Version,
+    pub version: Version,
     /// The platform used to install this package
-    platform: PlatformSpec,
+    pub platform: PlatformSpec,
     /// The binaries installed by this package
-    bins: Vec<String>,
+    pub bins: Vec<String>,
 }
 
 /// Configuration information about an installed binary from a package.
 pub struct BinConfig {
     /// The binary name
-    name: String,
+    pub name: String,
     /// The package that installed this binary
-    package: String,
+    pub package: String,
     /// The package version
-    version: Version,
+    pub version: Version,
     /// The relative path of the binary in the installed package
-    path: String,
+    pub path: String,
     /// The platform used to install this binary
-    platform: PlatformSpec,
+    pub platform: PlatformSpec,
 }
 
 impl Distro for PackageDistro {
@@ -399,9 +397,6 @@ fn install_command_for(installer: Installer, in_dir: &OsStr, path_var: &OsStr) -
     command.stderr(Stdio::inherit());
     command
 }
-
-/// Information about a package.
-pub struct NpmPackage;
 
 /// Index of versions of a specific package.
 pub struct PackageIndex {

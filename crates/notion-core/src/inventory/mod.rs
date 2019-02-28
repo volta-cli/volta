@@ -17,13 +17,12 @@ use serde_json;
 use tempfile::NamedTempFile;
 
 use crate::distro::node::{NodeDistro, NodeVersion};
+use crate::distro::package::{PackageDistro, PackageEntry, PackageIndex, PackageVersion};
 use crate::distro::yarn::YarnDistro;
 use crate::distro::{Distro, Fetched};
 use crate::error::ErrorDetails;
 use crate::fs::{ensure_containing_dir_exists, read_file_opt};
 use crate::hook::ToolHooks;
-use crate::package::serial::PackageMetadata;
-use crate::package::{PackageDistro, PackageEntry, PackageIndex, PackageVersion};
 use crate::path;
 use crate::style::progress_spinner;
 use crate::version::VersionSpec;
@@ -377,13 +376,13 @@ fn match_package_entry(
 }
 
 // fetch metadata for the input url
-fn resolve_package_metadata(package_info_url: &str) -> Fallible<PackageMetadata> {
+fn resolve_package_metadata(package_info_url: &str) -> Fallible<serial::PackageMetadata> {
     let spinner = progress_spinner(&format!("Fetching package metadata: {}", package_info_url));
     let mut response: reqwest::Response =
         reqwest::get(package_info_url).with_context(registry_fetch_error)?;
     let response_text: String = response.text().unknown()?;
 
-    let metadata: PackageMetadata = serde_json::de::from_str(&response_text).unknown()?;
+    let metadata: serial::PackageMetadata = serde_json::de::from_str(&response_text).unknown()?;
 
     spinner.finish_and_clear();
     Ok(metadata)

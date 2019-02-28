@@ -5,12 +5,11 @@
 use std::rc::Rc;
 
 use crate::distro::node::NodeVersion;
+use crate::distro::package::{self, PackageVersion, UserTool};
 use crate::distro::Fetched;
 use crate::error::ErrorDetails;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
 use crate::inventory::{FetchResolve, Inventory, LazyInventory};
-use crate::package;
-use crate::package::{PackageVersion, UserTool};
 use crate::platform::PlatformSpec;
 use crate::project::{LazyProject, Project};
 use crate::toolchain::LazyToolchain;
