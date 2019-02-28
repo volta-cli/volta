@@ -301,7 +301,12 @@ impl Session {
     /// versioning requirements.
     pub fn pin_npm(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
         if let Some(ref project) = self.project()? {
-            let npm_version = self.fetch_npm(version_spec)?.into_version().version;
+            let inventory = self.inventory.get_mut()?;
+            let hooks = self.hooks.get()?;
+            let npm_version = inventory
+                .packages
+                .resolve("npm".to_string(), version_spec, hooks.package.as_ref())?
+                .version;
             project.pin_npm(&npm_version)?;
         } else {
             throw!(ErrorDetails::NotInPackage);
