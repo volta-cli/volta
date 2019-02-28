@@ -285,6 +285,18 @@ impl SandboxBuilder {
         self
     }
 
+    /// Setup mock to return the available npm versions (chainable)
+    pub fn npm_available_versions(mut self, body: &str) -> Self {
+        let mock = mock("GET", "/registry/npm")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(body)
+            .create();
+        self.root.mocks.push(mock);
+
+        self
+    }
+
     /// Setup mock to return a 404 for any GET request
     /// Note: Mocks are matched in reverse order, so any created _after_ this will work
     ///       While those created before will not

@@ -178,6 +178,20 @@ const YARN_VERSION_FIXTURES: [DistroMetadata; 4] = [
     },
 ];
 
+const NPM_VERSION_INFO: &'static str = r#"
+{
+    "name":"npm",
+    "dist-tags": { "latest":"6.8.0" },
+    "versions": {
+        "1.2.3": { "version":"1.2.3", "dist": { "shasum":"", "tarball":"" }},
+        "4.5.6": { "version":"4.5.6", "dist": { "shasum":"", "tarball":"" }},
+        "5.10.1": { "version":"5.10.1", "dist": { "shasum":"", "tarball":"" }},
+        "5.10.12": { "version":"5.10.12", "dist": { "shasum":"", "tarball":"" }},
+        "8.1.5": { "version":"8.1.5", "dist": { "shasum":"", "tarball":"" }}
+    }
+}
+"#;
+
 #[test]
 fn pin_node() {
     let s = sandbox()
@@ -340,5 +354,25 @@ fn pin_yarn_leaves_npm() {
     assert_eq!(
         s.read_package_json(),
         package_json_with_pinned_node_npm_yarn("1.2.3", "3.4.5", "1.4.159"),
+    )
+}
+
+#[test]
+fn pin_npm() {
+    let s = sandbox()
+        .package_json(&package_json_with_pinned_node("1.2.3"))
+        .npm_available_versions(NPM_VERSION_INFO)
+        .build();
+
+    assert_that!(
+        s.notion("pin npm 5.10"),
+        execs()
+            .with_status(0)
+            .with_stdout_contains("Pinned npm version 5.10.12 in package.json")
+    );
+
+    assert_eq!(
+        s.read_package_json(),
+        package_json_with_pinned_node_npm("1.2.3", "5.10.12"),
     )
 }
