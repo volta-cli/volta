@@ -10,7 +10,6 @@ use notion_core::path;
 
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 
-// catalog.toml
 #[derive(PartialEq, Clone)]
 pub struct FileBuilder {
     path: PathBuf,
@@ -39,10 +38,37 @@ impl FileBuilder {
     }
 }
 
+#[derive(PartialEq, Clone)]
+pub struct SymlinkBuilder {
+    from_file: PathBuf,
+    to_file: PathBuf,
+}
+
+impl SymlinkBuilder {
+    pub fn new(from_file: PathBuf, to_file: PathBuf) -> SymlinkBuilder {
+        SymlinkBuilder { from_file, to_file }
+    }
+
+    pub fn build(&self) {
+        // ensure the parent directories exist
+        self.from_file
+            .parent()
+            .expect("could not get symlink parent")
+            .mkdir_p();
+        self.to_file
+            .parent()
+            .expect("could not get symlink parent")
+            .mkdir_p();
+
+        ok_or_panic! { path::create_file_symlink(self.to_file.clone(), self.from_file.clone()) };
+    }
+}
+
 #[must_use]
 pub struct TempProjectBuilder {
     root: TempProject,
     files: Vec<FileBuilder>,
+    symlinks: Vec<SymlinkBuilder>,
 }
 
 impl TempProjectBuilder {
@@ -55,6 +81,7 @@ impl TempProjectBuilder {
         TempProjectBuilder {
             root: TempProject { root },
             files: vec![],
+            symlinks: vec![],
         }
     }
 
@@ -62,6 +89,14 @@ impl TempProjectBuilder {
     pub fn package_json(mut self, contents: &str) -> Self {
         let package_file = package_json_file(self.root());
         self.files.push(FileBuilder::new(package_file, contents));
+        self
+    }
+
+    /// Create a link to the launchbin binary for the temporary project (chainable)
+    pub fn with_launchbin(mut self) -> Self {
+        let launchbin_file = ok_or_panic! { path::launchbin_file() };
+        self.symlinks
+            .push(SymlinkBuilder::new(launchbin_file, launchbin_exe()));
         self
     }
 
@@ -81,6 +116,7 @@ impl TempProjectBuilder {
         ok_or_panic!(path::package_inventory_dir()).ensure_empty();
         ok_or_panic!(path::node_image_root_dir()).ensure_empty();
         ok_or_panic!(path::yarn_image_root_dir()).ensure_empty();
+        ok_or_panic!(path::package_image_root_dir()).ensure_empty();
         ok_or_panic!(path::user_toolchain_dir()).ensure_empty();
         ok_or_panic!(path::tmp_dir()).ensure_empty();
         // and these files do not exist
@@ -92,9 +128,12 @@ impl TempProjectBuilder {
         ok_or_panic!(path::create_file_symlink(shim_exe(), self.root.node_exe()));
         ok_or_panic!(path::create_file_symlink(shim_exe(), self.root.yarn_exe()));
 
-        // write files
+        // write files and symlinks
         for file_builder in self.files {
             file_builder.build();
+        }
+        for symlink_builder in self.symlinks {
+            symlink_builder.build();
         }
 
         let TempProjectBuilder { root, .. } = self;
@@ -171,6 +210,21 @@ impl TempProject {
         self.root().join(format!("yarn{}", env::consts::EXE_SUFFIX))
     }
 
+    /// Create a `ProcessBuilder` to run Yarn.
+    pub fn npm(&self, cmd: &str) -> ProcessBuilder {
+        let mut p = self.process(&npm_exe());
+        split_and_add_args(&mut p, cmd);
+        p
+    }
+
+    /// Create a `ProcessBuilder` to run a package executable.
+    pub fn exec_shim(&self, exe: &str, cmd: &str) -> ProcessBuilder {
+        let shim_file = ok_or_panic! { path::shim_file(exe) };
+        let mut p = self.process(shim_file);
+        split_and_add_args(&mut p, cmd);
+        p
+    }
+
     /// Verify that the input Node version has been fetched.
     pub fn node_version_is_fetched(&self, version: &str) -> bool {
         let distro_file_name = path::node_distro_file_name(version);
@@ -215,6 +269,47 @@ impl TempProject {
             serde_json::from_str(&platform_contents).expect("could not parse platform.json");
         assert_eq!(json_contents["yarn"], version);
     }
+
+    /// Verify that the input Npm version has been fetched.
+    pub fn npm_version_is_fetched(&self, version: &str) -> bool {
+        let package_file = ok_or_panic! { path::package_distro_file("npm", version) };
+        let shasum_file = ok_or_panic! { path::package_distro_shasum("npm", version) };
+        package_file.exists() && shasum_file.exists()
+    }
+
+    /// Verify that the input Npm version has been unpacked.
+    pub fn npm_version_is_unpacked(&self, version: &str) -> bool {
+        let unpack_dir = ok_or_panic! { path::package_image_dir("npm", version) };
+        unpack_dir.exists()
+    }
+
+    /// Verify that the input Npm version has been installed.
+    pub fn assert_npm_version_is_installed(&self, version: &str) -> () {
+        let user_platform = ok_or_panic! { path::user_platform_file() };
+        let platform_contents = read_file_to_string(user_platform);
+        let json_contents: serde_json::Value =
+            serde_json::from_str(&platform_contents).expect("could not parse platform.json");
+        assert_eq!(json_contents["node"]["npm"], version);
+    }
+
+    /// Verify that the input Npm version has been fetched.
+    pub fn package_version_is_fetched(&self, name: &str, version: &str) -> bool {
+        let package_file = ok_or_panic! { path::package_distro_file(name, version) };
+        let shasum_file = ok_or_panic! { path::package_distro_shasum(name, version) };
+        package_file.exists() && shasum_file.exists()
+    }
+
+    /// Verify that the input Npm version has been unpacked.
+    pub fn package_version_is_unpacked(&self, name: &str, version: &str) -> bool {
+        let unpack_dir = ok_or_panic! { path::package_image_dir(name, version) };
+        unpack_dir.exists()
+    }
+
+    /// Verify that the input Npm version has been fetched.
+    pub fn shim_exists(&self, name: &str) -> bool {
+        let shim_file = ok_or_panic! { path::shim_file(name) };
+        shim_file.exists()
+    }
 }
 
 impl Drop for TempProject {
@@ -250,6 +345,14 @@ fn notion_exe() -> PathBuf {
 
 fn shim_exe() -> PathBuf {
     cargo_dir().join(format!("shim{}", env::consts::EXE_SUFFIX))
+}
+
+fn npm_exe() -> PathBuf {
+    cargo_dir().join(format!("npm{}", env::consts::EXE_SUFFIX))
+}
+
+fn launchbin_exe() -> PathBuf {
+    cargo_dir().join(format!("launchbin{}", env::consts::EXE_SUFFIX))
 }
 
 fn split_and_add_args(p: &mut ProcessBuilder, s: &str) {

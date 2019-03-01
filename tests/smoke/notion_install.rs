@@ -1,6 +1,6 @@
 use crate::support::temp_project::temp_project;
 
-use hamcrest2::{assert_that, core::Matcher};
+use hamcrest2::prelude::*;
 use test_support::matchers::execs;
 
 #[test]
@@ -35,4 +35,53 @@ fn install_yarn() {
     assert_eq!(p.yarn_version_is_fetched("1.9.2"), true);
     assert_eq!(p.yarn_version_is_unpacked("1.9.2"), true);
     p.assert_yarn_version_is_installed("1.9.2");
+}
+
+// TODO: this test fails - fix it after rebasing
+#[test]
+fn install_npm() {
+    let p = temp_project().with_launchbin().build();
+
+    // node 11.10.0 is bundled with npm 6.7.0
+    assert_that!(p.notion("install node 11.10.0"), execs().with_status(0));
+    assert_that!(
+        p.npm("--version"),
+        execs().with_status(0).with_stdout_contains("6.7.0")
+    );
+
+    // install npm 6.8.0 and verify that is installed correctly
+    assert_that!(p.notion("install npm 6.8.0"), execs().with_status(0));
+    assert_eq!(p.npm_version_is_fetched("6.8.0"), true);
+    assert_eq!(p.npm_version_is_unpacked("6.8.0"), true);
+    p.assert_npm_version_is_installed("6.8.0");
+
+    assert_that!(
+        p.npm("--version"),
+        execs().with_status(0).with_stdout_contains("6.8.0")
+    );
+}
+
+const COWSAY_HELLO: &'static str = r#" _______
+< hello >
+ -------
+        \   ^__^
+         \  (oo)\_______
+            (__)\       )\/\
+                ||----w |
+                ||     ||"#;
+
+#[test]
+fn install_package() {
+    let p = temp_project().with_launchbin().build();
+
+    assert_that!(p.notion("install cowsay 1.4.0"), execs().with_status(0));
+    assert_eq!(p.shim_exists("cowsay"), true);
+
+    assert_eq!(p.package_version_is_fetched("cowsay", "1.4.0"), true);
+    assert_eq!(p.package_version_is_unpacked("cowsay", "1.4.0"), true);
+
+    assert_that!(
+        p.exec_shim("cowsay", "hello"),
+        execs().with_status(0).with_stdout_contains(COWSAY_HELLO)
+    );
 }
