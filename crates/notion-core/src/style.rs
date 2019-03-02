@@ -1,7 +1,6 @@
 //! The view layer of Notion, with utilities for styling command-line output.
 
 use std::env;
-use std::fmt::Display;
 
 use archive::Action;
 use console::style;

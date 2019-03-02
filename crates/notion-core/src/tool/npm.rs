@@ -22,13 +22,21 @@ impl Tool for Npm {
             throw!(ErrorDetails::NoGlobalInstalls);
         }
 
-        if let Some(ref platform) = session.current_platform()? {
+        // if we're in a pinned project, use npm from that platform
+        if let Some(ref platform) = session.project_platform()? {
             let image = platform.checkout(session)?;
             Ok(Self::from_components(
                 OsStr::new("npm"),
                 args,
                 &image.path()?,
             ))
+        } else if let Some(user_tool) = session.get_user_tool(OsStr::new("npm"))? {
+            // npm is installed as a user tool
+            return Ok(Self::from_components(
+                &user_tool.bin_path.as_os_str(),
+                args,
+                &user_tool.image.path()?,
+            ));
         } else {
             // Using 'Node' as the tool name since the npm version is derived from the Node version
             // This way the error message will prompt the user to add 'Node' to their toolchain, instead of 'npm'

@@ -61,10 +61,10 @@ impl Tool for Binary {
         }
 
         // try to use the user toolchain
-        if let Some(user_tool) = session.get_user_tool(&exe)? {
+        if let Some(user_tool) = session.get_user_tool(&params.executable)? {
             return Ok(Self::from_components(
                 &user_tool.bin_path.as_os_str(),
-                args,
+                params.args,
                 &user_tool.image.path()?,
             ));
         }

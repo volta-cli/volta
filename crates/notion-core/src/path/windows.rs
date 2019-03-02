@@ -67,8 +67,7 @@ cfg_if::cfg_if! {
 //                     ember-cli.json                      user_package_config_file("ember-cli")
 //                 platform.json                           user_platform_file
 //         notion.exe                                      notion_file
-//         launchbin.exe                                   launchbin_file
-//         launchscript.exe                                launchscript_file
+//         shim.exe                                        shim_executable
 //         hooks.toml                                      user_hooks_file
 
 pub fn default_notion_home() -> Fallible<PathBuf> {

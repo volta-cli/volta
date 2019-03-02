@@ -38,37 +38,10 @@ impl FileBuilder {
     }
 }
 
-#[derive(PartialEq, Clone)]
-pub struct SymlinkBuilder {
-    from_file: PathBuf,
-    to_file: PathBuf,
-}
-
-impl SymlinkBuilder {
-    pub fn new(from_file: PathBuf, to_file: PathBuf) -> SymlinkBuilder {
-        SymlinkBuilder { from_file, to_file }
-    }
-
-    pub fn build(&self) {
-        // ensure the parent directories exist
-        self.from_file
-            .parent()
-            .expect("could not get symlink parent")
-            .mkdir_p();
-        self.to_file
-            .parent()
-            .expect("could not get symlink parent")
-            .mkdir_p();
-
-        ok_or_panic! { path::create_file_symlink(self.to_file.clone(), self.from_file.clone()) };
-    }
-}
-
 #[must_use]
 pub struct TempProjectBuilder {
     root: TempProject,
     files: Vec<FileBuilder>,
-    symlinks: Vec<SymlinkBuilder>,
 }
 
 impl TempProjectBuilder {
@@ -81,7 +54,6 @@ impl TempProjectBuilder {
         TempProjectBuilder {
             root: TempProject { root },
             files: vec![],
-            symlinks: vec![],
         }
     }
 
@@ -89,14 +61,6 @@ impl TempProjectBuilder {
     pub fn package_json(mut self, contents: &str) -> Self {
         let package_file = package_json_file(self.root());
         self.files.push(FileBuilder::new(package_file, contents));
-        self
-    }
-
-    /// Create a link to the launchbin binary for the temporary project (chainable)
-    pub fn with_launchbin(mut self) -> Self {
-        let launchbin_file = ok_or_panic! { path::launchbin_file() };
-        self.symlinks
-            .push(SymlinkBuilder::new(launchbin_file, launchbin_exe()));
         self
     }
 
@@ -124,16 +88,17 @@ impl TempProjectBuilder {
         ok_or_panic!(path::shim_executable()).rm();
         ok_or_panic!(path::user_hooks_file()).rm();
         ok_or_panic!(path::user_platform_file()).rm();
-        // create symlinks to shim executable for node and yarn
+        // create symlinks to shim executable for node, yarn, and packages
         ok_or_panic!(path::create_file_symlink(shim_exe(), self.root.node_exe()));
         ok_or_panic!(path::create_file_symlink(shim_exe(), self.root.yarn_exe()));
+        ok_or_panic!(path::create_file_symlink(
+            shim_exe(),
+            ok_or_panic!(path::shim_executable())
+        ));
 
-        // write files and symlinks
+        // write files
         for file_builder in self.files {
             file_builder.build();
-        }
-        for symlink_builder in self.symlinks {
-            symlink_builder.build();
         }
 
         let TempProjectBuilder { root, .. } = self;
@@ -210,11 +175,15 @@ impl TempProject {
         self.root().join(format!("yarn{}", env::consts::EXE_SUFFIX))
     }
 
-    /// Create a `ProcessBuilder` to run Yarn.
+    /// Create a `ProcessBuilder` to run Npm.
     pub fn npm(&self, cmd: &str) -> ProcessBuilder {
-        let mut p = self.process(&npm_exe());
+        let mut p = self.process(&self.npm_exe());
         split_and_add_args(&mut p, cmd);
         p
+    }
+
+    pub fn npm_exe(&self) -> PathBuf {
+        self.root().join(format!("npm{}", env::consts::EXE_SUFFIX))
     }
 
     /// Create a `ProcessBuilder` to run a package executable.
@@ -345,14 +314,6 @@ fn notion_exe() -> PathBuf {
 
 fn shim_exe() -> PathBuf {
     cargo_dir().join(format!("shim{}", env::consts::EXE_SUFFIX))
-}
-
-fn npm_exe() -> PathBuf {
-    cargo_dir().join(format!("npm{}", env::consts::EXE_SUFFIX))
-}
-
-fn launchbin_exe() -> PathBuf {
-    cargo_dir().join(format!("launchbin{}", env::consts::EXE_SUFFIX))
 }
 
 fn split_and_add_args(p: &mut ProcessBuilder, s: &str) {

@@ -194,6 +194,7 @@ impl Session {
     }
 
     /// Fetch, unpack, and install a version of Npm matching the input requirements.
+    // TODO: does this need to change?
     pub fn install_npm(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
         let npm_version = self.install_package("npm".to_string(), version_spec)?;
         let toolchain = self.toolchain.get_mut()?;
@@ -260,7 +261,7 @@ impl Session {
             .fetch("npm".to_string(), version_spec, hooks.package.as_ref())
     }
 
-    /// Fetches a Packge version matching the specified semantic versioning requirements.
+    /// Fetches a Package version matching the specified semantic versioning requirements.
     pub fn fetch_package(
         &mut self,
         name: String,
