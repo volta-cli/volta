@@ -52,7 +52,8 @@ impl ToolSpec {
         match self {
             ToolSpec::Node(version) => session.install_node(&version)?,
             ToolSpec::Yarn(version) => session.install_yarn(&version)?,
-            ToolSpec::Npm(version) => session.install_npm(&version)?,
+            // ISSUE(#292): Implement install for npm
+            ToolSpec::Npm(_version) => unimplemented!("Installing npm is not supported yet"),
             ToolSpec::Package(name, version) => {
                 session.install_package(name.to_string(), &version)?;
             }

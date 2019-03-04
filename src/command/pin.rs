@@ -32,7 +32,8 @@ impl Command for Pin {
         match toolspec {
             ToolSpec::Node(version) => session.pin_node(&version)?,
             ToolSpec::Yarn(version) => session.pin_yarn(&version)?,
-            ToolSpec::Npm(version) => session.pin_npm(&version)?,
+            // ISSUE(#292): Implement install for npm
+            ToolSpec::Npm(_version) => unimplemented!("Pinning npm is not supported yet"),
             ToolSpec::Package(_name, _version) => throw!(ErrorDetails::CannotPinPackage),
         }
 

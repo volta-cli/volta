@@ -23,7 +23,9 @@ fn fetch_yarn() {
 }
 
 #[test]
+#[ignore]
 fn fetch_npm() {
+    // ISSUE(#292): Get this test working after pinning npm is correct
     let p = temp_project().build();
 
     assert_that!(p.notion("fetch npm 6.7.0"), execs().with_status(0));

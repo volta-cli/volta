@@ -28,8 +28,9 @@ impl Command for Fetch {
                 ToolSpec::Yarn(version) => {
                     session.fetch_yarn(&version)?;
                 }
-                ToolSpec::Npm(version) => {
-                    session.fetch_npm(&version)?;
+                ToolSpec::Npm(_version) => {
+                    // ISSUE(#292): Implement install for npm
+                    unimplemented!("Fetching npm is not supported yet");
                 }
                 ToolSpec::Package(name, version) => {
                     session.fetch_package(name.to_string(), &version)?;

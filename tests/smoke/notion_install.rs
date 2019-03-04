@@ -40,15 +40,15 @@ fn install_yarn() {
 #[test]
 #[ignore]
 fn install_npm() {
+    // ISSUE(#292): Get this test working for npm install
     let p = temp_project().build();
 
     // node 11.10.0 is bundled with npm 6.7.0
     assert_that!(p.notion("install node 11.10.0"), execs().with_status(0));
-    // TODO: this part fails
-    // assert_that!(
-    //     p.npm("--version"),
-    //     execs().with_status(0).with_stdout_contains("6.7.0")
-    // );
+    assert_that!(
+        p.npm("--version"),
+        execs().with_status(0).with_stdout_contains("6.7.0")
+    );
 
     // install npm 6.8.0 and verify that is installed correctly
     assert_that!(p.notion("install npm 6.8.0"), execs().with_status(0));
@@ -56,11 +56,10 @@ fn install_npm() {
     assert_eq!(p.npm_version_is_unpacked("6.8.0"), true);
     p.assert_npm_version_is_installed("6.8.0");
 
-    // TODO: and this part fails
-    // assert_that!(
-    //     p.npm("--version"),
-    //     execs().with_status(0).with_stdout_contains("6.8.0")
-    // );
+    assert_that!(
+        p.npm("--version"),
+        execs().with_status(0).with_stdout_contains("6.8.0")
+    );
 }
 
 const COWSAY_HELLO: &'static str = r#" _______

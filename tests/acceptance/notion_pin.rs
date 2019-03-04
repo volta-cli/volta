@@ -358,7 +358,9 @@ fn pin_yarn_leaves_npm() {
 }
 
 #[test]
+#[ignore]
 fn pin_npm() {
+    // ISSUE(#292): Get this test working after pinning npm is correct
     let s = sandbox()
         .package_json(&package_json_with_pinned_node("1.2.3"))
         .npm_available_versions(NPM_VERSION_INFO)

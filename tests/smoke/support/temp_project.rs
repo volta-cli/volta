@@ -241,6 +241,7 @@ impl TempProject {
 
     /// Verify that the input Npm version has been fetched.
     pub fn npm_version_is_fetched(&self, version: &str) -> bool {
+        // ISSUE(#292): This is maybe the wrong place to put npm?
         let package_file = ok_or_panic! { path::package_distro_file("npm", version) };
         let shasum_file = ok_or_panic! { path::package_distro_shasum("npm", version) };
         package_file.exists() && shasum_file.exists()
@@ -248,6 +249,7 @@ impl TempProject {
 
     /// Verify that the input Npm version has been unpacked.
     pub fn npm_version_is_unpacked(&self, version: &str) -> bool {
+        // ISSUE(#292): This is maybe the wrong place to unpack npm?
         let unpack_dir = ok_or_panic! { path::package_image_dir("npm", version) };
         unpack_dir.exists()
     }
@@ -261,20 +263,20 @@ impl TempProject {
         assert_eq!(json_contents["node"]["npm"], version);
     }
 
-    /// Verify that the input Npm version has been fetched.
+    /// Verify that the input package version has been fetched.
     pub fn package_version_is_fetched(&self, name: &str, version: &str) -> bool {
         let package_file = ok_or_panic! { path::package_distro_file(name, version) };
         let shasum_file = ok_or_panic! { path::package_distro_shasum(name, version) };
         package_file.exists() && shasum_file.exists()
     }
 
-    /// Verify that the input Npm version has been unpacked.
+    /// Verify that the input package version has been unpacked.
     pub fn package_version_is_unpacked(&self, name: &str, version: &str) -> bool {
         let unpack_dir = ok_or_panic! { path::package_image_dir(name, version) };
         unpack_dir.exists()
     }
 
-    /// Verify that the input Npm version has been fetched.
+    /// Verify that the input package version has been fetched.
     pub fn shim_exists(&self, name: &str) -> bool {
         let shim_file = ok_or_panic! { path::shim_file(name) };
         shim_file.exists()

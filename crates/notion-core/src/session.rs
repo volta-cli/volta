@@ -193,7 +193,7 @@ impl Session {
     }
 
     /// Fetch, unpack, and install a version of Npm matching the input requirements.
-    // TODO: does this need to change?
+    // ISSUE(#292): Install npm as part of the platform
     pub fn install_npm(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
         let npm_version = self.install_package("npm".to_string(), version_spec)?;
         let toolchain = self.toolchain.get_mut()?;

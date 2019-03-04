@@ -370,9 +370,9 @@ impl FetchResolve<YarnDistro> for YarnCollection {
 fn match_package_entry(
     index: PackageIndex,
     predicate: impl Fn(&PackageEntry) -> bool,
-) -> Fallible<Option<PackageEntry>> {
+) -> Option<PackageEntry> {
     let mut entries = index.entries.into_iter();
-    Ok(entries.find(predicate))
+    entries.find(predicate)
 }
 
 // fetch metadata for the input url
@@ -427,7 +427,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
         let entry_opt =
             match_package_entry(package_index, |&PackageEntry { version: ref v, .. }| {
                 &latest == v
-            })?;
+            });
 
         if let Some(entry) = entry_opt {
             Ok(entry)
@@ -458,7 +458,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
         let entry_opt =
             match_package_entry(package_index, |&PackageEntry { version: ref v, .. }| {
                 matching.matches(v)
-            })?;
+            });
 
         if let Some(entry) = entry_opt {
             Ok(entry)
@@ -489,7 +489,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
         let entry_opt =
             match_package_entry(package_index, |&PackageEntry { version: ref v, .. }| {
                 &exact_version == v
-            })?;
+            });
 
         if let Some(entry) = entry_opt {
             Ok(entry)

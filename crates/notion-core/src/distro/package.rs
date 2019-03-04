@@ -252,7 +252,7 @@ impl PackageVersion {
         let manifest = Manifest::for_dir(&self.image_dir)?;
         let engines = match manifest.engines() {
             Some(e) => e,
-            None => "*".to_string(), // if nothing specified, match all versions of Node
+            None => "*".to_string(), // if nothing specified, can use any version of Node
         };
         Ok(VersionSpec::Semver(VersionSpec::parse_requirements(
             engines,
@@ -323,7 +323,7 @@ impl PackageVersion {
             self.bin_config(bin_name.to_string(), bin_path.to_string(), &platform_spec)
                 .to_serial()
                 .write()?;
-            // write the link to launchscript/bin
+            // create a link to the shim executable
             shim::create(&bin_name)?;
         }
         Ok(())
