@@ -4,7 +4,6 @@ use std::process::Command;
 
 use super::{command_for, Tool};
 use crate::error::ErrorDetails;
-//use crate::path;
 use crate::session::{ActivityKind, Session};
 
 use notion_fail::{throw, Fallible};

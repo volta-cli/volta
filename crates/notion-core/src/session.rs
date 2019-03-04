@@ -21,7 +21,6 @@ use std::process::exit;
 
 use crate::event::EventLog;
 use notion_fail::{throw, ExitCode, Fallible, NotionError};
-// use notion_fail::ResultExt;
 use semver::Version;
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]

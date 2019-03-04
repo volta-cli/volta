@@ -11,7 +11,6 @@ use archive::{Archive, Tarball};
 use notion_fail::{Fallible, ResultExt};
 
 use super::{download_tool_error, Distro, Fetched};
-//use crate::distro::DistroVersion;
 use crate::fs::ensure_containing_dir_exists;
 use crate::hook::ToolHooks;
 use crate::inventory::YarnCollection;

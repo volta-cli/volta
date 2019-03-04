@@ -10,7 +10,6 @@ use serde::Deserialize;
 use tempfile::tempdir_in;
 
 use super::{download_tool_error, Distro, Fetched};
-//use crate::distro::DistroVersion;
 use crate::fs::ensure_containing_dir_exists;
 use crate::hook::ToolHooks;
 use crate::inventory::NodeCollection;

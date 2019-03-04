@@ -1,6 +1,6 @@
-use failure::Fail;
 use serde::Deserialize;
 
+use notion_core::error::ErrorDetails;
 use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, ErrorContext};
 use notion_core::tool::ToolSpec;
@@ -32,8 +32,8 @@ impl Command for Pin {
         match toolspec {
             ToolSpec::Node(version) => session.pin_node(&version)?,
             ToolSpec::Yarn(version) => session.pin_yarn(&version)?,
-            ToolSpec::Npm(version) => unimplemented!("TODO"),
-            ToolSpec::Package(name, version) => unimplemented!("TODO: error that you can't pin a package"),
+            ToolSpec::Npm(version) => session.pin_npm(&version)?,
+            ToolSpec::Package(_name, _version) => throw!(ErrorDetails::CannotPinPackage),
         }
 
         if let Some(project) = session.project()? {
