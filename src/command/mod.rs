@@ -1,4 +1,5 @@
 mod activate;
+mod completions;
 mod config;
 mod current;
 mod deactivate;
@@ -7,6 +8,7 @@ mod install;
 mod pin;
 
 pub(crate) use activate::Activate;
+pub(crate) use completions::Completions;
 pub(crate) use config::Config;
 pub(crate) use current::Current;
 pub(crate) use deactivate::Deactivate;

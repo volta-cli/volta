@@ -59,6 +59,22 @@ pub(crate) enum Subcommand {
     /// Re-enable Notion in the current shell
     #[structopt(name = "activate", author = "")]
     Activate(command::Activate),
+
+    /// Generate Notion completions.
+    #[structopt(
+        name = "completions",
+        author = "",
+        long_about = "Generate Notion completions.
+
+By default, completions will be generated for the value of your current shell,
+shell, i.e. the value of `SHELL`. If you set the `<shell>` option, completions
+will be generated for that shell instead.
+
+If you specify a directory, the completions will be written to a file there;
+otherwise, they will be written to `stdout`.
+    "
+    )]
+    Completions(command::Completions),
 }
 
 impl Subcommand {
@@ -71,6 +87,7 @@ impl Subcommand {
             Subcommand::Current(current) => current.run(session),
             Subcommand::Deactivate(deactivate) => deactivate.run(session),
             Subcommand::Activate(activate) => activate.run(session),
+            Subcommand::Completions(completions) => completions.run(session),
         }
     }
 }

@@ -13,7 +13,8 @@ pub fn main() {
 
     session.add_event_start(ActivityKind::Notion);
 
-    let exit_code = match cli::Notion::from_args().command.run(&mut session) {
+    let notion = cli::Notion::from_args();
+    let exit_code = match notion.command.run(&mut session) {
         Ok(_) => ExitCode::Success,
         Err(err) => {
             display_error(ErrorContext::Notion, &err);

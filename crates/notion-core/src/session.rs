@@ -41,6 +41,7 @@ pub enum ActivityKind {
     Version,
     Binary,
     Shim,
+    Completions,
 }
 
 impl Display for ActivityKind {
@@ -64,6 +65,7 @@ impl Display for ActivityKind {
             &ActivityKind::Version => "version",
             &ActivityKind::Binary => "binary",
             &ActivityKind::Shim => "shim",
+            &ActivityKind::Completions => "completions",
         };
         f.write_str(s)
     }
