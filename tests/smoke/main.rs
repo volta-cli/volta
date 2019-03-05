@@ -17,7 +17,5 @@ cfg_if::cfg_if! {
         mod notion_fetch;
         mod notion_install;
         mod autodownload;
-        #[macro_use] // to use the assert_that! macro
-        extern crate hamcrest2;
     }
 }

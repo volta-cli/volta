@@ -184,7 +184,7 @@ pub trait FetchResolve<D: Distro> {
     ) -> Fallible<D::ResolvedVersion>;
 }
 
-pub fn registry_fetch_error(error: &reqwest::Error) -> ErrorDetails {
+fn registry_fetch_error(error: &reqwest::Error) -> ErrorDetails {
     ErrorDetails::RegistryFetchError {
         error: error.to_string(),
     }

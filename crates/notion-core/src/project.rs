@@ -240,8 +240,8 @@ impl Project {
         );
         Manifest::update_toolchain(toolchain, self.package_file())?;
         println!(
-            "Pinned node version {} in package.json",
-            node_version.runtime
+            "Pinned node version {} (with npm {}) in package.json",
+            node_version.runtime, node_version.npm
         );
         Ok(())
     }

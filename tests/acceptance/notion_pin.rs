@@ -1,4 +1,5 @@
 use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, YarnFixture};
+use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
 
@@ -202,9 +203,9 @@ fn pin_node() {
 
     assert_that!(
         s.notion("pin node 6"),
-        execs()
-            .with_status(0)
-            .with_stdout_contains("Pinned node version 6.19.62 in package.json")
+        execs().with_status(0).with_stdout_contains(
+            "Pinned node version 6.19.62 (with npm 3.10.1066) in package.json"
+        )
     );
 
     assert_eq!(
@@ -223,9 +224,9 @@ fn pin_node_latest() {
 
     assert_that!(
         s.notion("pin node latest"),
-        execs()
-            .with_status(0)
-            .with_stdout_contains("Pinned node version 10.99.1040 in package.json")
+        execs().with_status(0).with_stdout_contains(
+            "Pinned node version 10.99.1040 (with npm 6.2.26) in package.json"
+        )
     );
 
     assert_eq!(
@@ -247,7 +248,7 @@ fn pin_node_removes_npm() {
         s.notion("pin node 8"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Pinned node version 8.9.10 in package.json")
+            .with_stdout_contains("Pinned node version 8.9.10 (with npm 5.6.7) in package.json")
     );
 
     assert_eq!(

@@ -57,7 +57,7 @@ pub trait Distro: Sized {
     fn fetch(self, collection: &Collection<Self>) -> Fallible<Fetched<Self::VersionDetails>>;
 }
 
-pub fn download_tool_error(
+fn download_tool_error(
     toolspec: ToolSpec,
     from_url: impl AsRef<str>,
 ) -> impl FnOnce(&failure::Error) -> ErrorDetails {

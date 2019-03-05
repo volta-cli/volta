@@ -1,4 +1,5 @@
 use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, YarnFixture};
+use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
 

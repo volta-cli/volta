@@ -74,7 +74,7 @@ fn version_req_parse_error(error: &ReqParseError) -> ErrorDetails {
     }
 }
 
-pub fn version_parse_error(error: &SemVerError) -> ErrorDetails {
+pub(crate) fn version_parse_error(error: &SemVerError) -> ErrorDetails {
     ErrorDetails::VersionParseError {
         error: error.to_string(),
     }

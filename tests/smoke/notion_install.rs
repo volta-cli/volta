@@ -1,5 +1,6 @@
 use crate::support::temp_project::temp_project;
 
+use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
 
