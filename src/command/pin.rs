@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use notion_core::session::{ActivityKind, Session};
-use notion_core::style::{display_error, display_unknown_error, ErrorContext};
+use notion_core::style::{display_error, ErrorContext};
 use notion_core::tool::ToolSpec;
 use notion_core::version::VersionSpec;
 use notion_fail::{ExitCode, Fallible};
@@ -59,11 +59,7 @@ Options:
             let errors = project.autoshim();
 
             for error in errors {
-                if error.is_user_friendly() {
-                    display_error(ErrorContext::Notion, &error);
-                } else {
-                    display_unknown_error(ErrorContext::Notion, &error);
-                }
+                display_error(ErrorContext::Notion, &error);
             }
         }
         session.add_event_end(ActivityKind::Pin, ExitCode::Success);

@@ -5,8 +5,6 @@ use notion_core::tool::ToolSpec;
 use notion_core::version::VersionSpec;
 use notion_fail::{ExitCode, Fallible};
 
-use result::ResultOptionExt;
-
 use crate::command::{Command, CommandName, Help};
 use crate::Notion;
 
@@ -51,7 +49,7 @@ Supported Tools:
     ) -> Fallible<Self> {
         let version = arg_version
             .map(VersionSpec::parse)
-            .invert()?
+            .transpose()?
             .unwrap_or_default();
 
         Ok(Install::Tool(ToolSpec::from_str(&arg_tool, version)))

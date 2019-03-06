@@ -10,7 +10,7 @@ use serde::Deserialize;
 use notion_core::error::ErrorDetails;
 use notion_core::path;
 use notion_core::session::{ActivityKind, Session};
-use notion_core::style::{display_error, display_unknown_error, ErrorContext};
+use notion_core::style::{display_error, ErrorContext};
 use notion_fail::{throw, ExitCode, FailExt, Fallible, NotionError};
 
 use crate::error::{cli_parse_error, DocoptExt, NotionErrorExt};
@@ -179,11 +179,7 @@ See 'notion help <command>' for more information on a specific command.
 }
 
 fn display_error_and_usage(err: &NotionError) {
-    if err.is_user_friendly() {
-        display_error(ErrorContext::Notion, err);
-    } else {
-        display_unknown_error(ErrorContext::Notion, err);
-    }
+    display_error(ErrorContext::Notion, err);
 
     if let Some(ref usage) = err.usage() {
         eprintln!();

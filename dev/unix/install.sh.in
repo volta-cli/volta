@@ -8,39 +8,9 @@ notion_unpack_notion() {
 END_BINARY_PAYLOAD
 }
 
-notion_unpack_node() {
+notion_unpack_shim() {
   base64 --decode <<'END_BINARY_PAYLOAD'
-<PLACEHOLDER_NODE_PAYLOAD>
-END_BINARY_PAYLOAD
-}
-
-notion_unpack_npm() {
-  base64 --decode <<'END_BINARY_PAYLOAD'
-<PLACEHOLDER_NPM_PAYLOAD>
-END_BINARY_PAYLOAD
-}
-
-notion_unpack_npx() {
-  base64 --decode <<'END_BINARY_PAYLOAD'
-<PLACEHOLDER_NPX_PAYLOAD>
-END_BINARY_PAYLOAD
-}
-
-notion_unpack_yarn() {
-  base64 --decode <<'END_BINARY_PAYLOAD'
-<PLACEHOLDER_YARN_PAYLOAD>
-END_BINARY_PAYLOAD
-}
-
-notion_unpack_launchbin() {
-  base64 --decode <<'END_BINARY_PAYLOAD'
-<PLACEHOLDER_LAUNCHBIN_PAYLOAD>
-END_BINARY_PAYLOAD
-}
-
-notion_unpack_launchscript() {
-  base64 --decode <<'END_BINARY_PAYLOAD'
-<PLACEHOLDER_LAUNCHSCRIPT_PAYLOAD>
+<PLACEHOLDER_SHIM_PAYLOAD>
 END_BINARY_PAYLOAD
 }
 
@@ -99,23 +69,31 @@ notion_create_binaries() {
 
   INSTALL_DIR="$(notion_install_dir)"
 
-  # Remove any existing symlinks for npm and npx so that the binaries can be installed
-  # using -f so there is no error if the files don't exist
-  rm -f "${INSTALL_DIR}"/bin/npm
-  rm -f "${INSTALL_DIR}"/bin/npx
-
-
   notion_unpack_notion        > "${INSTALL_DIR}"/notion
-  notion_unpack_node          > "${INSTALL_DIR}"/bin/node
-  notion_unpack_npm           > "${INSTALL_DIR}"/bin/npm
-  notion_unpack_npx           > "${INSTALL_DIR}"/bin/npx
-  notion_unpack_yarn          > "${INSTALL_DIR}"/bin/yarn
-  notion_unpack_launchscript  > "${INSTALL_DIR}"/launchscript
-  notion_unpack_launchbin     > "${INSTALL_DIR}"/launchbin
+  notion_unpack_shim          > "${INSTALL_DIR}"/shim
   notion_unpack_bash_launcher > "${INSTALL_DIR}"/load.sh
   notion_unpack_fish_launcher > "${INSTALL_DIR}"/load.fish
 
-  chmod 755 "${INSTALL_DIR}/"/notion "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}"/launch*
+  # Remove any existing binaries for tools so that the symlinks can be installed
+  # using -f so there is no error if the files don't exist
+  rm -f "${INSTALL_DIR}"/bin/node
+  rm -f "${INSTALL_DIR}"/bin/npm
+  rm -f "${INSTALL_DIR}"/bin/npx
+  rm -f "${INSTALL_DIR}"/bin/yarn
+
+  for FILE_NAME in "${INSTALL_DIR}"/bin/*; do
+    if [ -e "${FILE_NAME}" ] && ! [ -d "${FILE_NAME}" ]; then
+      rm -f "${FILE_NAME}"
+      ln -s "${INSTALL_DIR}"/shim "${FILE_NAME}"
+    fi
+  done
+
+  ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/node
+  ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/npm
+  ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/npx
+  ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/yarn
+
+  chmod 755 "${INSTALL_DIR}/"/notion "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}"/shim
 }
 
 notion_try_profile() {

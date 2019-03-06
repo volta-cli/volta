@@ -1,8 +1,8 @@
-use std::env::{args_os, ArgsOs};
-use std::ffi::OsStr;
+use std::env::ArgsOs;
+use std::ffi::{OsStr, OsString};
 use std::process::Command;
 
-use super::{arg0, command_for, Tool};
+use super::{command_for, Tool};
 use crate::error::ErrorDetails;
 use crate::path;
 use crate::session::{ActivityKind, Session};
@@ -12,27 +12,33 @@ use notion_fail::{throw, Fallible};
 /// Represents a delegated binary executable.
 pub struct Binary(Command);
 
-impl Tool for Binary {
-    fn new(session: &mut Session) -> Fallible<Self> {
-        session.add_event_start(ActivityKind::Binary);
+/// Represents the arguments needed for a binary executable
+/// Both the executable name and the arguments to pass to it
+pub struct BinaryArgs {
+    pub executable: OsString,
+    pub args: ArgsOs,
+}
 
-        let mut args = args_os();
-        let exe = arg0(&mut args)?;
+impl Tool for Binary {
+    type Arguments = BinaryArgs;
+
+    fn new(params: BinaryArgs, session: &mut Session) -> Fallible<Self> {
+        session.add_event_start(ActivityKind::Binary);
 
         // first try to use the project toolchain
         if let Some(project) = session.project()? {
             // check if the executable is a direct dependency
-            if project.has_direct_bin(&exe)? {
+            if project.has_direct_bin(&params.executable)? {
                 // use the full path to the file
                 let mut path_to_bin = project.local_bin_dir();
-                path_to_bin.push(&exe);
+                path_to_bin.push(&params.executable);
 
                 // if we're in a pinned project, use the project's platform.
                 if let Some(ref platform) = session.project_platform()? {
                     let image = platform.checkout(session)?;
                     return Ok(Self::from_components(
                         &path_to_bin.as_os_str(),
-                        args,
+                        params.args,
                         &image.path()?,
                     ));
                 }
@@ -42,7 +48,7 @@ impl Tool for Binary {
                     let image = platform.checkout(session)?;
                     return Ok(Self::from_components(
                         &path_to_bin.as_os_str(),
-                        args,
+                        params.args,
                         &image.path()?,
                     ));
                 }
@@ -62,10 +68,10 @@ impl Tool for Binary {
             let node_str = image.node.runtime.to_string();
             let npm_str = image.node.npm.to_string();
             let mut third_p_bin_dir = path::node_image_3p_bin_dir(&node_str, &npm_str)?;
-            third_p_bin_dir.push(&exe);
+            third_p_bin_dir.push(&params.executable);
             return Ok(Self::from_components(
                 &third_p_bin_dir.as_os_str(),
-                args,
+                params.args,
                 &image.path()?,
             ));
         };
@@ -73,7 +79,7 @@ impl Tool for Binary {
         // at this point, there is no project or user toolchain
         // the user is executing a Notion shim that doesn't have a way to execute it
         throw!(ErrorDetails::NoToolChain {
-            shim_name: exe.to_string_lossy().to_string(),
+            shim_name: params.executable.to_string_lossy().to_string(),
         });
     }
 

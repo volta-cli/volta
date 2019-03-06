@@ -85,10 +85,12 @@ impl TempProjectBuilder {
         ok_or_panic!(path::tmp_dir()).ensure_empty();
         // and these files do not exist
         ok_or_panic!(path::notion_file()).rm();
-        ok_or_panic!(path::launchbin_file()).rm();
-        ok_or_panic!(path::launchscript_file()).rm();
+        ok_or_panic!(path::shim_executable()).rm();
         ok_or_panic!(path::user_hooks_file()).rm();
         ok_or_panic!(path::user_platform_file()).rm();
+        // create symlinks to shim executable for node and yarn
+        ok_or_panic!(path::create_file_symlink(shim_exe(), self.root.node_exe()));
+        ok_or_panic!(path::create_file_symlink(shim_exe(), self.root.yarn_exe()));
 
         // write files
         for file_builder in self.files {
@@ -149,16 +151,24 @@ impl TempProject {
 
     /// Create a `ProcessBuilder` to run Node.
     pub fn node(&self, cmd: &str) -> ProcessBuilder {
-        let mut p = self.process(&node_exe());
+        let mut p = self.process(&self.node_exe());
         split_and_add_args(&mut p, cmd);
         p
     }
 
+    pub fn node_exe(&self) -> PathBuf {
+        self.root().join(format!("node{}", env::consts::EXE_SUFFIX))
+    }
+
     /// Create a `ProcessBuilder` to run Yarn.
     pub fn yarn(&self, cmd: &str) -> ProcessBuilder {
-        let mut p = self.process(&yarn_exe());
+        let mut p = self.process(&self.yarn_exe());
         split_and_add_args(&mut p, cmd);
         p
+    }
+
+    pub fn yarn_exe(&self) -> PathBuf {
+        self.root().join(format!("yarn{}", env::consts::EXE_SUFFIX))
     }
 
     /// Verify that the input Node version has been fetched.
@@ -207,6 +217,12 @@ impl TempProject {
     }
 }
 
+impl Drop for TempProject {
+    fn drop(&mut self) {
+        self.root().rm_rf();
+    }
+}
+
 // Generates a temporary project environment
 pub fn temp_project() -> TempProjectBuilder {
     TempProjectBuilder::new(paths::root().join("temp-project"))
@@ -232,12 +248,8 @@ fn notion_exe() -> PathBuf {
     cargo_dir().join(format!("notion{}", env::consts::EXE_SUFFIX))
 }
 
-fn node_exe() -> PathBuf {
-    cargo_dir().join(format!("node{}", env::consts::EXE_SUFFIX))
-}
-
-fn yarn_exe() -> PathBuf {
-    cargo_dir().join(format!("yarn{}", env::consts::EXE_SUFFIX))
+fn shim_exe() -> PathBuf {
+    cargo_dir().join(format!("shim{}", env::consts::EXE_SUFFIX))
 }
 
 fn split_and_add_args(p: &mut ProcessBuilder, s: &str) {

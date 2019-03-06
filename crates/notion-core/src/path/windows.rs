@@ -113,12 +113,8 @@ fn install_dir() -> Fallible<PathBuf> {
     Ok(PathBuf::from(install_path))
 }
 
-pub fn launchbin_file() -> Fallible<PathBuf> {
-    Ok(install_dir()?.join("launchbin.exe"))
-}
-
-pub fn launchscript_file() -> Fallible<PathBuf> {
-    Ok(install_dir()?.join("launchscript.exe"))
+pub fn shim_executable() -> Fallible<PathBuf> {
+    Ok(install_dir()?.join("shim.exe"))
 }
 
 pub fn notion_file() -> Fallible<PathBuf> {

@@ -4,9 +4,11 @@ use std::env;
 use std::fmt::{self, Display, Formatter};
 
 use console::style;
-use failure::Fail;
 use indicatif::{ProgressBar, ProgressStyle};
+use notion_fail::NotionError;
 use term_size;
+
+const NOTION_DEV: &'static str = "NOTION_DEV";
 
 /// Represents the context from which an error is being reported.
 pub enum ErrorContext {
@@ -18,13 +20,27 @@ pub enum ErrorContext {
 }
 
 /// Displays an error to stderr.
-pub fn display_error<E: Display>(cx: ErrorContext, err: &E) {
+pub fn display_error(cx: ErrorContext, err: &NotionError) {
     display_error_prefix(cx);
+    if err.is_user_friendly() {
+        display_user_friendly_error(err);
+    } else {
+        display_internal_error(err);
+    }
+}
+
+/// Displays a user-friendly error to stderr
+fn display_user_friendly_error(err: &NotionError) {
     eprintln!("{}", err);
+
+    if env::var(NOTION_DEV).is_ok() {
+        eprintln!();
+        display_development_details(err);
+    }
 }
 
 /// Displays an error to stderr with a styled prefix.
-pub fn display_error_prefix(cx: ErrorContext) {
+fn display_error_prefix(cx: ErrorContext) {
     match cx {
         ErrorContext::Notion => {
             // Since the command here was `notion`, it would be redundant to say that this was
@@ -42,25 +58,12 @@ pub fn display_error_prefix(cx: ErrorContext) {
 }
 
 /// Displays a generic message for internal errors to stderr.
-pub fn display_unknown_error<E: Fail>(cx: ErrorContext, err: &E) {
-    display_error_prefix(cx);
+fn display_internal_error(err: &NotionError) {
     eprintln!("an internal error occurred");
     eprintln!();
 
-    if env::var("NOTION_DEV").is_ok() {
-        eprintln!("{} {:?}", style("details:").yellow().bold(), err);
-        eprintln!();
-
-        let backtrace = err.backtrace();
-
-        // For now, we require RUST_BACKTRACE for this to work.
-        // See: https://github.com/notion-cli/notion/issues/75
-
-        if backtrace.is_some() && env::var("RUST_BACKTRACE").is_ok() {
-            eprintln!("{:?}", backtrace.unwrap());
-        } else {
-            eprintln!("Run with NOTION_DEV=1 and RUST_BACKTRACE=1 for a backtrace.");
-        }
+    if env::var(NOTION_DEV).is_ok() {
+        display_development_details(err);
     } else {
         eprintln!("Notion is still a pre-alpha project, so we expect to run into some bugs,");
         eprintln!("but we'd love to hear about them so we can fix them!");
@@ -75,6 +78,17 @@ pub fn display_unknown_error<E: Fail>(cx: ErrorContext, err: &E) {
             style("https://github.com/notion-cli/notion/issues").bold()
         );
         eprintln!();
+    }
+}
+
+fn display_development_details(err: &NotionError) {
+    eprintln!("{} {:?}", style("details:").yellow().bold(), err);
+    eprintln!();
+
+    // If `RUST_BACKTRACE` is set, then the backtrace will be included in the above output
+    // If not, we should let the user know how to see the backtrace
+    if env::var("RUST_BACKTRACE").is_err() {
+        eprintln!("Run with NOTION_DEV=1 and RUST_BACKTRACE=1 for a backtrace.");
     }
 }
 
