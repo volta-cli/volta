@@ -60,23 +60,34 @@
         <Directory Id='TARGETDIR' Name='SourceDir'>
             <Directory Id='$(var.PlatformProgramFilesFolder)' Name='PFiles'>
                 <Directory Id='INSTALLDIR' Name='Notion'>
-                    <Component Id='InstallDir' Guid='*' Win64='$(var.Win64)'>
-                        <RegistryValue
-                            Root='HKLM'
-                            Key='Software\[Manufacturer]\[ProductName]'
-                            Name='InstallDir'
-                            Type='string'
-                            Value='[APPLICATIONFOLDER]'
-                            KeyPath='yes' />
-                        <Environment
-                            Id='INSTALLPATH'
-                            Name='PATH'
-                            Value='[APPLICATIONFOLDER]'
-                            Permanent='no'
-                            Part='first'
-                            Action='set'
-                            System='yes' />
+                    <Component Id='shimBinary' Guid='*' Win64='$(var.Win64)'>
+                        <File
+                            Id='shimEXE'
+                            Name='shim.exe'
+                            DiskId='1'
+                            Source='target\release\shim.exe'
+                            KeyPath='yes'/>
                     </Component>
+
+                    <Directory Id='INSTALLBINDIR' Name='bin'>
+                        <Component Id='InstallDir' Guid='*' Win64='$(var.Win64)'>
+                            <RegistryValue
+                                Root='HKLM'
+                                Key='Software\[Manufacturer]\[ProductName]'
+                                Name='InstallDir'
+                                Type='string'
+                                Value='[INSTALLDIR]'
+                                KeyPath='yes' />
+                            <Environment
+                                Id='INSTALLPATH'
+                                Name='PATH'
+                                Value='[INSTALLBINDIR]'
+                                Permanent='no'
+                                Part='first'
+                                Action='set'
+                                System='yes' />
+                        </Component>
+                    </Directory>
                 </Directory>
             </Directory>
             <Component Id='UserBinDir' Guid='*' Win64='$(var.Win64)'>
@@ -98,7 +109,7 @@
             </Component>
         </Directory>
 
-        <ComponentGroup Id='Binaries' Directory='INSTALLDIR'>
+        <ComponentGroup Id='Binaries' Directory='INSTALLBINDIR'>
             <Component Id='notionBinary' Guid='*' Win64='$(var.Win64)'>
                 <File
                     Id='notionEXE'
@@ -107,28 +118,12 @@
                     Source='target\release\notion.exe'
                     KeyPath='yes'/>
             </Component>
-            <Component Id='launchbinBinary' Guid='*' Win64='$(var.Win64)'>
-                <File
-                    Id='launchbinEXE'
-                    Name='launchbin.exe'
-                    DiskId='1'
-                    Source='target\release\launchbin.exe'
-                    KeyPath='yes'/>
-            </Component>
-            <Component Id='launchscriptBinary' Guid='*' Win64='$(var.Win64)'>
-                <File
-                    Id='launchscriptEXE'
-                    Name='launchscript.exe'
-                    DiskId='1'
-                    Source='target\release\launchscript.exe'
-                    KeyPath='yes'/>
-            </Component>
             <Component Id='nodeBinary' Guid='*' Win64='$(var.Win64)'>
                 <File
                     Id='nodeEXE'
                     Name='node.exe'
                     DiskId='1'
-                    Source='target\release\node.exe'
+                    Source='target\release\shim.exe'
                     KeyPath='yes'/>
             </Component>
             <Component Id='npmBinary' Guid='*' Win64='$(var.Win64)'>
@@ -136,7 +131,7 @@
                     Id='npmEXE'
                     Name='npm.exe'
                     DiskId='1'
-                    Source='target\release\npm.exe'
+                    Source='target\release\shim.exe'
                     KeyPath='yes'/>
             </Component>
             <Component Id='npxBinary' Guid='*' Win64='$(var.Win64)'>
@@ -144,7 +139,7 @@
                     Id='npxEXE'
                     Name='npx.exe'
                     DiskId='1'
-                    Source='target\release\npx.exe'
+                    Source='target\release\shim.exe'
                     KeyPath='yes'/>
             </Component>
             <Component Id='yarnBinary' Guid='*' Win64='$(var.Win64)'>
@@ -152,7 +147,7 @@
                     Id='yarnEXE'
                     Name='yarn.exe'
                     DiskId='1'
-                    Source='target\release\yarn.exe'
+                    Source='target\release\shim.exe'
                     KeyPath='yes'/>
             </Component>
         </ComponentGroup>
@@ -160,6 +155,7 @@
         <Feature Id='MainProgram'>
             <ComponentRef Id='InstallDir'/>
             <ComponentRef Id='UserBinDir'/>
+            <ComponentRef Id='shimBinary'/>
             <ComponentGroupRef Id='Binaries'/>
         </Feature>
 

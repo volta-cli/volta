@@ -76,9 +76,13 @@ cfg_if::cfg_if! {
 //
 // C:\Program Files\
 //     Notion\                                             (Path stored in Windows Registry by installer)
-//         notion.exe                                      notion_file
-//         launchbin.exe                                   launchbin_file
-//         launchscript.exe                                launchscript_file
+//         bin\
+//             notion.exe                                  notion_file
+//             node.exe                                    copy of shim_executable
+//             npm.exe                                     copy of shim_executable
+//             npx.exe                                     copy of shim_executable
+//             yarn.exe                                    copy of shim_executable
+//         shim.exe                                        shim_executable
 
 pub fn default_notion_home() -> Fallible<PathBuf> {
     let home = dirs::data_local_dir().ok_or(ErrorDetails::NoLocalDataDir)?;
@@ -118,7 +122,7 @@ pub fn shim_executable() -> Fallible<PathBuf> {
 }
 
 pub fn notion_file() -> Fallible<PathBuf> {
-    Ok(install_dir()?.join("notion.exe"))
+    Ok(install_dir()?.join("bin").join("notion.exe"))
 }
 
 pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {

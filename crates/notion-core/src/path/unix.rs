@@ -75,8 +75,7 @@ cfg_if::cfg_if! {
 //                         contents/
 //                 platform.json                           user_platform_file
 //         notion                                          notion_file
-//         launchbin                                       launchbin_file
-//         launchscript                                    launchscript_file
+//         shim                                            shim_file
 //         hooks.toml                                      user_hooks_file
 
 pub fn default_notion_home() -> Fallible<PathBuf> {
