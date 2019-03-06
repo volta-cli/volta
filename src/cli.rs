@@ -1,19 +1,14 @@
 use structopt::StructOpt;
 
+use crate::command::{self, Command};
 use notion_core::session::Session;
 use notion_fail::Fallible;
-
-use crate::command::{self, Command};
 
 #[derive(StructOpt)]
 #[structopt(
     name = "Notion",
     about = "The hassle-free JavaScript toolchain manager",
     author = "",
-    usage = "notion [flags] [<command> <args> ...]
-
-    To install a tool in your user toolchain, use `notion install`.
-    To pin a tool in a project toolchain, use `notion pin`.",
     raw(setting = "structopt::clap::AppSettings::ArgRequiredElseHelp"),
     raw(global_setting = "structopt::clap::AppSettings::ColoredHelp"),
     raw(global_setting = "structopt::clap::AppSettings::ColorAlways"),
@@ -64,6 +59,7 @@ pub(crate) enum Subcommand {
     #[structopt(
         name = "completions",
         author = "",
+        raw(setting = "structopt::clap::AppSettings::ArgRequiredElseHelp"),
         long_about = "Generate Notion completions.
 
 By default, completions will be generated for the value of your current shell,
@@ -75,6 +71,14 @@ otherwise, they will be written to `stdout`.
     "
     )]
     Completions(command::Completions),
+
+    #[structopt(
+        name = "use",
+        author = "",
+        template = "{usage}",
+        raw(usage = "usage!()", setting = "structopt::clap::AppSettings::Hidden")
+    )]
+    Use(command::Use),
 }
 
 impl Subcommand {
@@ -88,6 +92,7 @@ impl Subcommand {
             Subcommand::Deactivate(deactivate) => deactivate.run(session),
             Subcommand::Activate(activate) => activate.run(session),
             Subcommand::Completions(completions) => completions.run(session),
+            Subcommand::Use(r#use) => r#use.run(session),
         }
     }
 }

@@ -1,11 +1,13 @@
-mod activate;
-mod completions;
-mod config;
-mod current;
-mod deactivate;
-mod fetch;
-mod install;
-mod pin;
+pub(crate) mod activate;
+pub(crate) mod completions;
+pub(crate) mod config;
+pub(crate) mod current;
+pub(crate) mod deactivate;
+pub(crate) mod fetch;
+pub(crate) mod install;
+pub(crate) mod pin;
+#[macro_use]
+pub(crate) mod r#use;
 
 pub(crate) use activate::Activate;
 pub(crate) use completions::Completions;
@@ -15,6 +17,7 @@ pub(crate) use deactivate::Deactivate;
 pub(crate) use fetch::Fetch;
 pub(crate) use install::Install;
 pub(crate) use pin::Pin;
+pub(crate) use r#use::Use;
 
 use notion_core::session::Session;
 use notion_fail::Fallible;

@@ -1,5 +1,6 @@
-mod cli;
+#[macro_use]
 mod command;
+mod cli;
 
 use structopt::StructOpt;
 
