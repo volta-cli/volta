@@ -8,7 +8,9 @@ pub(crate) mod install;
 pub(crate) mod pin;
 #[macro_use]
 pub(crate) mod r#use;
+pub(crate) mod which;
 
+pub(crate) use self::which::Which;
 pub(crate) use activate::Activate;
 pub(crate) use completions::Completions;
 pub(crate) use config::Config;

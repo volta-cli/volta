@@ -72,6 +72,10 @@ otherwise, they will be written to `stdout`.
     )]
     Completions(command::Completions),
 
+    /// Locate the actual binary that will be called by Notion
+    #[structopt(name = "which", author = "")]
+    Which(command::Which),
+
     #[structopt(
         name = "use",
         author = "",
@@ -92,6 +96,7 @@ impl Subcommand {
             Subcommand::Deactivate(deactivate) => deactivate.run(session),
             Subcommand::Activate(activate) => activate.run(session),
             Subcommand::Completions(completions) => completions.run(session),
+            Subcommand::Which(which) => which.run(session),
             Subcommand::Use(r#use) => r#use.run(session),
         }
     }
