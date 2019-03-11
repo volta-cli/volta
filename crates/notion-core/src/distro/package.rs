@@ -186,7 +186,7 @@ impl PackageDistro {
     /// Loads the package tarball from disk, or fetches from URL.
     fn load_or_fetch_archive(&self) -> Fallible<Box<Archive>> {
         // try to use existing downloaded package
-        if self.downloaded_pkg_is_ok()? {
+        if self.downloaded_pkg_is_ok() {
             Tarball::load(File::open(&self.distro_file).unknown()?).unknown()
         } else {
             // otherwise have to download
@@ -199,25 +199,25 @@ impl PackageDistro {
     }
 
     /// Verify downloaded package, returning a PackageVersion if it is ok.
-    fn downloaded_pkg_is_ok(&self) -> Fallible<bool> {
+    fn downloaded_pkg_is_ok(&self) -> bool {
         let mut buffer = Vec::new();
 
         if let Ok(mut distro) = File::open(&self.distro_file) {
-            if let Some(stored_shasum) = read_file_opt(&self.shasum_file).unknown()? {
-                distro.read_to_end(&mut buffer).unknown()?;
+            if let Ok(Some(stored_shasum)) = read_file_opt(&self.shasum_file) {
+                if distro.read_to_end(&mut buffer).is_ok() {
+                    // calculate the shasum
+                    let mut hasher = Sha1::new();
+                    hasher.input(buffer);
+                    let result = hasher.result();
+                    let calculated_shasum = hex::encode(&result);
 
-                // calculate the shasum
-                let mut hasher = Sha1::new();
-                hasher.input(buffer);
-                let result = hasher.result();
-                let calculated_shasum = hex::encode(&result);
-
-                return Ok(stored_shasum == calculated_shasum);
+                    return stored_shasum == calculated_shasum;
+                }
             }
         }
 
         // the files don't exist, or the shasum doesn't match
-        Ok(false)
+        false
     }
 }
 
@@ -262,7 +262,7 @@ impl PackageVersion {
     pub fn install(&self, platform: &PlatformSpec, session: &mut Session) -> Fallible<()> {
         let image = platform.checkout(session)?;
         // use yarn if it is installed, otherwise default to npm
-        let mut install_cmd = if let Some(ref _yarn) = image.yarn {
+        let mut install_cmd = if image.yarn.is_some() {
             install_command_for(
                 Installer::Yarn,
                 &self.image_dir.clone().into_os_string(),
