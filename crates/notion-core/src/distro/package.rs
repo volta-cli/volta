@@ -239,11 +239,12 @@ fn find_unpack_dir(in_dir: &Path) -> Fallible<PathBuf> {
 
 impl PackageVersion {
     pub fn new(name: String, version: Version, bins: HashMap<String, String>) -> Fallible<Self> {
+        let image_dir = path::package_image_dir(&name, &version.to_string())?;
         Ok(PackageVersion {
-            name: name.clone(),
-            version: version.clone(),
+            name,
+            version,
             bins,
-            image_dir: path::package_image_dir(&name, &version.to_string())?,
+            image_dir,
         })
     }
 
