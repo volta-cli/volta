@@ -1,70 +1,34 @@
-use serde::Deserialize;
+use structopt::StructOpt;
 
 use notion_core::session::{ActivityKind, Session};
 use notion_core::tool::ToolSpec;
 use notion_core::version::VersionSpec;
 use notion_fail::{ExitCode, Fallible};
 
-use crate::command::{Command, CommandName, Help};
-use crate::Notion;
+use crate::command::Command;
 
-#[derive(Debug, Deserialize)]
-pub(crate) struct Args {
-    arg_tool: String,
-    arg_version: Option<String>,
-}
+#[derive(StructOpt)]
+pub(crate) struct Install {
+    /// The tool to install, e.g. `node` or `npm` or `yarn`
+    tool: String,
 
-pub(crate) enum Install {
-    Help,
-    Tool(ToolSpec),
+    /// The version of the tool to install, e.g. `1.2.3` or `latest`
+    version: Option<String>,
 }
 
 impl Command for Install {
-    type Args = Args;
-
-    const USAGE: &'static str = "
-Install a tool in the user toolchain
-
-Usage:
-    notion install <tool> [<version>]
-    notion install -h | --help
-
-Options:
-    -h, --help     Display this message
-
-Supported Tools:
-    Currently Notion supports installing `node` and `yarn` - support for more tools is coming soon!
-";
-
-    fn help() -> Self {
-        Install::Help
-    }
-
-    fn parse(
-        _: Notion,
-        Args {
-            arg_tool,
-            arg_version,
-        }: Args,
-    ) -> Fallible<Self> {
-        let version = arg_version
-            .map(VersionSpec::parse)
-            .transpose()?
-            .unwrap_or_default();
-
-        Ok(Install::Tool(ToolSpec::from_str(&arg_tool, version)))
-    }
-
     fn run(self, session: &mut Session) -> Fallible<()> {
         session.add_event_start(ActivityKind::Install);
-        match self {
-            Install::Help => {
-                Help::Command(CommandName::Install).run(session)?;
-            }
-            Install::Tool(toolspec) => {
-                session.install(&toolspec)?;
-            }
+
+        let version = match self.version {
+            Some(version_string) => VersionSpec::parse(version_string).unwrap_or_default(),
+            None => VersionSpec::default(),
         };
+
+        let tool = ToolSpec::from_str_and_version(&self.tool, version);
+
+        session.install(&tool)?;
+
         session.add_event_end(ActivityKind::Install, ExitCode::Success);
         Ok(())
     }

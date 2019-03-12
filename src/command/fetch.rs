@@ -1,61 +1,30 @@
-use serde::Deserialize;
+use structopt::StructOpt;
 
 use notion_core::session::{ActivityKind, Session};
 use notion_core::tool::ToolSpec;
 use notion_core::version::VersionSpec;
 use notion_fail::{ExitCode, Fallible};
 
-use crate::command::{Command, CommandName, Help};
-use crate::Notion;
+use crate::command::Command;
 
-#[derive(Debug, Deserialize)]
-pub(crate) struct Args {
-    arg_tool: String,
-    arg_version: String,
-}
+#[derive(StructOpt)]
+pub(crate) struct Fetch {
+    /// The tool to install, e.g. `node` or `npm` or `yarn`
+    tool: String,
 
-pub(crate) enum Fetch {
-    Help,
-    Tool(ToolSpec),
+    /// The version of the tool to install, e.g. `1.2.3` or `latest`
+    version: String,
 }
 
 impl Command for Fetch {
-    type Args = Args;
-
-    const USAGE: &'static str = "
-Fetch a tool to the local machine
-
-Usage:
-    notion fetch <tool> <version>
-    notion fetch -h | --help
-
-Options:
-    -h, --help     Display this message
-";
-
-    fn help() -> Self {
-        Fetch::Help
-    }
-
-    fn parse(
-        _: Notion,
-        Args {
-            arg_tool,
-            arg_version,
-        }: Args,
-    ) -> Fallible<Self> {
-        let version = VersionSpec::parse(&arg_version)?;
-        Ok(Fetch::Tool(ToolSpec::from_str(&arg_tool, version)))
-    }
-
     fn run(self, session: &mut Session) -> Fallible<()> {
         session.add_event_start(ActivityKind::Fetch);
-        match self {
-            Fetch::Help => Help::Command(CommandName::Fetch).run(session)?,
-            Fetch::Tool(toolspec) => {
-                session.fetch(&toolspec)?;
-            }
-        };
+
+        let version = VersionSpec::parse(&self.version)?;
+        let tool = ToolSpec::from_str_and_version(&self.tool, version);
+
+        session.fetch(&tool)?;
+
         session.add_event_end(ActivityKind::Fetch, ExitCode::Success);
         Ok(())
     }

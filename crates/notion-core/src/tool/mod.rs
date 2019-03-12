@@ -39,7 +39,7 @@ pub enum ToolSpec {
 }
 
 impl ToolSpec {
-    pub fn from_str(tool_name: &str, version: VersionSpec) -> Self {
+    pub fn from_str_and_version(tool_name: &str, version: VersionSpec) -> Self {
         match tool_name {
             "node" => ToolSpec::Node(version),
             "yarn" => ToolSpec::Yarn(version),
