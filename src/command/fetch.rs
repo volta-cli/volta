@@ -19,24 +19,25 @@ pub(crate) struct Fetch {
 impl Command for Fetch {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Fetch);
-        match self {
-            Fetch::Help => Help::Command(CommandName::Fetch).run(session)?,
-            Fetch::Tool(toolspec) => match toolspec {
-                ToolSpec::Node(version) => {
-                    session.fetch_node(&version)?;
-                }
-                ToolSpec::Yarn(version) => {
-                    session.fetch_yarn(&version)?;
-                }
-                ToolSpec::Npm(_version) => {
-                    // ISSUE(#292): Implement install for npm
-                    unimplemented!("Fetching npm is not supported yet");
-                }
-                ToolSpec::Package(name, version) => {
-                    session.fetch_package(name.to_string(), &version)?;
-                }
-            },
-        };
+
+        let version = VersionSpec::parse(&self.version)?;
+        let tool = ToolSpec::from_str_and_version(&self.tool, version);
+
+        match tool {
+            ToolSpec::Node(version) => {
+                session.fetch_node(&version)?;
+            }
+            ToolSpec::Yarn(version) => {
+                session.fetch_yarn(&version)?;
+            }
+            ToolSpec::Npm(_version) => {
+                // ISSUE(#292): Implement install for npm
+                unimplemented!("Fetching npm is not supported yet");
+            }
+            ToolSpec::Package(name, version) => {
+                session.fetch_package(name.to_string(), &version)?;
+            }
+        }
         session.add_event_end(ActivityKind::Fetch, ExitCode::Success);
         Ok(ExitCode::Success)
     }

@@ -19,16 +19,14 @@ pub(crate) struct Install {
 impl Command for Install {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Install);
-        match self {
-            Install::Help => {
-                Help::Command(CommandName::Install).run(session)?;
-            }
-            Install::Tool(toolspec) => toolspec.install(session)?,
-        };
 
+        let version = match self.version {
+            Some(version_string) => VersionSpec::parse(version_string).unwrap_or_default(),
+            None => VersionSpec::default(),
+        };
         let tool = ToolSpec::from_str_and_version(&self.tool, version);
 
-        session.install(&tool)?;
+        tool.install(session)?;
 
         session.add_event_end(ActivityKind::Install, ExitCode::Success);
         Ok(ExitCode::Success)

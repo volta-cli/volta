@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use structopt::StructOpt;
 
 use notion_core::error::ErrorDetails;
 use notion_core::session::{ActivityKind, Session};
@@ -29,7 +29,7 @@ impl Command for Pin {
 
         let tool = ToolSpec::from_str_and_version(&self.tool, version);
 
-        match toolspec {
+        match tool {
             ToolSpec::Node(version) => session.pin_node(&version)?,
             ToolSpec::Yarn(version) => session.pin_yarn(&version)?,
             // ISSUE(#292): Implement install for npm
