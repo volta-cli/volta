@@ -10,8 +10,8 @@ macro_rules! usage {
         "notion-use
 
 DEPRECATED:
-    To install a tool in your user toolchain, use `notion install`.
-    To pin a tool in a project toolchain, use `notion pin`.
+    To install a tool in your toolchain, use `notion install`.
+    To pin your project's runtime or package manager, use `notion pin`.
 "
     };
 }
