@@ -9,6 +9,10 @@ use notion_fail::Fallible;
     name = "Notion",
     about = "The hassle-free JavaScript toolchain manager",
     author = "",
+    long_about = "The hassle-free JavaScript toolchain manager
+
+    To install a tool in your toolchain, use `notion install`.
+    To pin your project's runtime or package manager, use `notion pin`.",
     raw(setting = "structopt::clap::AppSettings::ArgRequiredElseHelp"),
     raw(global_setting = "structopt::clap::AppSettings::ColoredHelp"),
     raw(global_setting = "structopt::clap::AppSettings::ColorAlways"),
@@ -31,11 +35,11 @@ pub(crate) enum Subcommand {
     #[structopt(name = "fetch", author = "")]
     Fetch(command::Fetch),
 
-    /// Install a tool in the user toolchain.
+    /// Install a tool in your toolchain.
     #[structopt(name = "install", author = "")]
     Install(command::Install),
 
-    /// Select a tool for the current project's toolchain
+    /// Pin your project's runtime or package manager.
     #[structopt(name = "pin", author = "")]
     Pin(command::Pin),
 
