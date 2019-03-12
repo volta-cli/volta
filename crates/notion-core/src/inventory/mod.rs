@@ -421,7 +421,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
             _ => format!("{}/{}", public_package_registry_root(), name),
         };
 
-        let package_index = resolve_package_metadata(&url)?.into_index()?;
+        let package_index = resolve_package_metadata(&url)?.into_index();
         let latest = package_index.latest.clone();
 
         let entry_opt =
@@ -453,7 +453,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
             _ => format!("{}/{}", public_package_registry_root(), name),
         };
 
-        let package_index = resolve_package_metadata(&url)?.into_index()?;
+        let package_index = resolve_package_metadata(&url)?.into_index();
 
         let entry_opt =
             match_package_entry(package_index, |&PackageEntry { version: ref v, .. }| {
@@ -484,7 +484,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
             _ => format!("{}/{}", public_package_registry_root(), name),
         };
 
-        let package_index = resolve_package_metadata(&url)?.into_index()?;
+        let package_index = resolve_package_metadata(&url)?.into_index();
 
         let entry_opt =
             match_package_entry(package_index, |&PackageEntry { version: ref v, .. }| {

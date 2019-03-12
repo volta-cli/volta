@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::collections::{BTreeSet, HashSet};
-use std::fs::File;
-use std::io::Write;
+use std::fs::{read_to_string, write};
 use std::iter::FromIterator;
 use std::marker::PhantomData;
 use std::path::Path;
@@ -9,13 +8,13 @@ use std::path::PathBuf;
 
 use super::{NodeCollection, PackageCollection, YarnCollection};
 use crate::distro::package;
+use crate::error::ErrorDetails;
 use crate::fs::ensure_containing_dir_exists;
 use crate::fs::read_dir_eager;
 use crate::path;
 use crate::toolchain;
 use crate::version::version_parse_error;
 use notion_fail::{Fallible, ResultExt};
-use readext::ReadExt;
 
 use regex::Regex;
 use semver::Version;
@@ -197,13 +196,15 @@ pub struct PackageMetadata {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PackageVersionInfo {
     // there's a lot more in there, but right now just care about the version
-    pub version: String,
+    #[serde(with = "version_serde")]
+    pub version: Version,
     pub dist: DistInfo,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PackageDistTags {
-    pub latest: String,
+    #[serde(with = "version_serde")]
+    pub latest: Version,
     pub beta: Option<String>,
 }
 
@@ -216,7 +217,8 @@ pub struct DistInfo {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PackageConfig {
     pub name: String,
-    pub version: String,
+    #[serde(with = "version_serde")]
+    pub version: Version,
     pub platform: toolchain::serial::Platform,
     pub bins: Vec<String>,
 }
@@ -225,20 +227,59 @@ pub struct PackageConfig {
 pub struct BinConfig {
     pub name: String,
     pub package: String,
-    pub version: String,
+    #[serde(with = "version_serde")]
+    pub version: Version,
     pub path: String,
     pub platform: toolchain::serial::Platform,
 }
 
-impl PackageMetadata {
-    pub fn into_index(self) -> Fallible<package::PackageIndex> {
-        let latest_version = Version::parse(&self.dist_tags.latest).unknown()?;
+// custom serialization and de-serialization for Version
+// because Version doesn't work with serde out of the box
+mod version_serde {
+    use semver::Version;
+    use serde::de::{Error, Visitor};
+    use serde::{self, Deserializer, Serializer};
+    use std::fmt;
 
+    struct VersionVisitor;
+
+    impl<'de> Visitor<'de> for VersionVisitor {
+        type Value = Version;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+            formatter.write_str("string")
+        }
+
+        // parse the version from the string
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: Error,
+        {
+            Version::parse(value).map_err(Error::custom)
+        }
+    }
+
+    pub fn serialize<S>(version: &Version, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        s.serialize_str(&version.to_string())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Version, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_string(VersionVisitor)
+    }
+}
+
+impl PackageMetadata {
+    pub fn into_index(self) -> package::PackageIndex {
         let mut entries = Vec::new();
         for (_, version_info) in self.versions {
-            let parsed_version = Version::parse(&version_info.version).unknown()?;
             let entry = package::PackageEntry {
-                version: parsed_version,
+                version: version_info.version,
                 tarball: version_info.dist.tarball,
                 shasum: version_info.dist.shasum,
             };
@@ -246,12 +287,12 @@ impl PackageMetadata {
         }
 
         // sort entries by version, largest to smallest
-        entries.sort_by(|a, b| a.version.cmp(&b.version).reverse());
+        entries.sort_by(|a, b| b.version.cmp(&a.version));
 
-        Ok(package::PackageIndex {
-            latest: latest_version,
+        package::PackageIndex {
+            latest: self.dist_tags.latest,
             entries: entries,
-        })
+        }
     }
 }
 
@@ -259,7 +300,7 @@ impl package::PackageConfig {
     pub fn to_serial(&self) -> PackageConfig {
         PackageConfig {
             name: self.name.to_string(),
-            version: self.version.to_string(),
+            version: self.version.clone(),
             platform: self.platform.to_serial(),
             bins: self.bins.clone(),
         }
@@ -268,15 +309,15 @@ impl package::PackageConfig {
 
 impl package::BinConfig {
     pub fn from_file(file: PathBuf) -> Fallible<Self> {
-        let config_src = File::open(file).unknown()?.read_into_string().unknown()?;
-        BinConfig::from_json(config_src.to_string())?.into_config()
+        let config_src = read_to_string(file).unknown()?;
+        BinConfig::from_json(config_src)?.into_config()
     }
 
     pub fn to_serial(&self) -> BinConfig {
         BinConfig {
             name: self.name.to_string(),
             package: self.package.to_string(),
-            version: self.version.to_string(),
+            version: self.version.clone(),
             path: self.path.to_string(),
             platform: self.platform.to_serial(),
         }
@@ -299,9 +340,7 @@ impl PackageConfig {
         let src = self.to_json()?;
         let config_file_path = path::user_package_config_file(&self.name)?;
         ensure_containing_dir_exists(&config_file_path)?;
-        let mut file = File::create(&config_file_path).unknown()?;
-        file.write_all(src.as_bytes()).unknown()?;
-        Ok(())
+        write(config_file_path, src).unknown()
     }
 }
 
@@ -319,18 +358,19 @@ impl BinConfig {
         let src = self.to_json()?;
         let bin_config_path = path::user_tool_bin_config(&self.name)?;
         ensure_containing_dir_exists(&bin_config_path)?;
-        let mut file = File::create(&bin_config_path).unknown()?;
-        file.write_all(src.as_bytes()).unknown()?;
-        Ok(())
+        write(bin_config_path, src).unknown()
     }
 
     pub fn into_config(self) -> Fallible<package::BinConfig> {
         Ok(package::BinConfig {
-            name: self.name,
+            name: self.name.clone(),
             package: self.package,
-            version: Version::parse(&self.version).unknown()?,
+            version: self.version,
             path: self.path,
-            platform: self.platform.into_image()?.unwrap(),
+            platform: self
+                .platform
+                .into_image()?
+                .ok_or(ErrorDetails::NoBinPlatform { binary: self.name })?,
         })
     }
 }

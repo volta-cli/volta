@@ -233,7 +233,7 @@ fn find_unpack_dir(in_dir: &Path) -> Fallible<PathBuf> {
         Ok(dirs[0].to_path_buf())
     } else {
         // there is more than just a directory here, something is wrong
-        throw!(ErrorDetails::PackageUnpackError);
+        Err(ErrorDetails::PackageUnpackError.into())
     }
 }
 
@@ -251,13 +251,10 @@ impl PackageVersion {
     // parse the "engines" string to a VersionSpec, for matching against available Node versions
     pub fn engines_spec(&self) -> Fallible<VersionSpec> {
         let manifest = Manifest::for_dir(&self.image_dir)?;
-        let engines = match manifest.engines() {
-            Some(e) => e,
-            None => "*".to_string(), // if nothing specified, can use any version of Node
-        };
-        Ok(VersionSpec::Semver(VersionSpec::parse_requirements(
-            engines,
-        )?))
+        // if nothing specified, can use any version of Node
+        let engines = manifest.engines().unwrap_or("*".to_string());
+        let spec = VersionSpec::parse_requirements(engines)?;
+        Ok(VersionSpec::Semver(spec))
     }
 
     pub fn install(&self, platform: &PlatformSpec, session: &mut Session) -> Fallible<()> {
@@ -355,16 +352,16 @@ pub struct UserTool {
 }
 
 impl UserTool {
-    pub fn from_config(bin_config: BinConfig, session: &mut Session) -> Fallible<Option<Self>> {
+    pub fn from_config(bin_config: BinConfig, session: &mut Session) -> Fallible<Self> {
         let image_dir =
             path::package_image_dir(&bin_config.package, &bin_config.version.to_string())?;
         // canonicalize because path is relative, and sometimes uses '.' char
         let bin_path = image_dir.join(bin_config.path).canonicalize().unknown()?;
 
-        Ok(Some(UserTool {
+        Ok(UserTool {
             bin_path,
             image: bin_config.platform.checkout(session)?,
-        }))
+        })
     }
 }
 
@@ -372,21 +369,23 @@ pub fn user_tool(tool_name: &str, session: &mut Session) -> Fallible<Option<User
     let bin_config_file = path::user_tool_bin_config(tool_name)?;
     if bin_config_file.exists() {
         let bin_config = BinConfig::from_file(bin_config_file)?;
-        Ok(UserTool::from_config(bin_config, session)?)
+        UserTool::from_config(bin_config, session).map(Some)
     } else {
         Ok(None) // no config means the tool is not installed
     }
 }
 
-// build a package install command using the specified directory and path
+/// Build a package install command using the specified directory and path
+///
+/// Note: connects stdout and stderr to the current stdout and stderr for this process
+/// (so the user can see the install progress in real time)
 fn install_command_for(installer: Installer, in_dir: &OsStr, path_var: &OsStr) -> Command {
     let mut command = installer.cmd();
-    command.current_dir(in_dir);
-    command.env("PATH", path_var);
-    // connect stdout and stderr to the current stdout and stderr for this process
-    // (so the user can see the install progress in real time)
-    command.stdout(Stdio::inherit());
-    command.stderr(Stdio::inherit());
+    command
+        .current_dir(in_dir)
+        .env("PATH", path_var)
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit());
     command
 }
 

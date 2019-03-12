@@ -54,6 +54,11 @@ pub enum ErrorDetails {
         command: String,
     },
 
+    /// Thrown when BinConfig (read from file) does not contain Platform info.
+    NoBinPlatform {
+        binary: String,
+    },
+
     /// Thrown when there is no Node version matching a requested semver specifier.
     NodeVersionNotFound {
         matching: String,
@@ -174,6 +179,9 @@ impl fmt::Display for ErrorDetails {
             ),
             ErrorDetails::DownloadToolNotFound { tool } => write!(f, "{} not found", tool),
             ErrorDetails::InvalidHookCommand { command } => write!(f, "Invalid hook command: '{}'", command),
+            ErrorDetails::NoBinPlatform { binary } => {
+                write!(f, "Platform info for executable `{}` is missing", binary)
+            }
             ErrorDetails::NodeVersionNotFound { matching } => {
                 write!(f, "No Node version found for {}", matching)
             }
@@ -244,6 +252,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
             ErrorDetails::DownloadToolNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::InvalidHookCommand { .. } => ExitCode::UnknownError,
+            ErrorDetails::NoBinPlatform { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NoGlobalInstalls => ExitCode::InvalidArguments,
             ErrorDetails::NoHomeEnvironmentVar => ExitCode::EnvironmentError,

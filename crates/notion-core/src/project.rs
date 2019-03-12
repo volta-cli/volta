@@ -226,12 +226,16 @@ impl Project {
     /// Writes the specified version of Node to the `toolchain.node` key in package.json.
     pub fn pin_node(&self, node_version: &NodeVersion) -> Fallible<()> {
         // prevent writing the npm version if it is equal to the default version
-        let default_npm = load_default_npm_version(&node_version.runtime).ok();
-        let npm_str = if Some(node_version.npm.clone()) == default_npm {
-            None
-        } else {
-            Some(node_version.npm.to_string())
-        };
+
+        let npm_str = load_default_npm_version(&node_version.runtime)
+            .ok()
+            .and_then(|default| {
+                if node_version.npm == default {
+                    None
+                } else {
+                    Some(node_version.npm.to_string())
+                }
+            });
 
         let toolchain = serial::ToolchainSpec::new(
             node_version.runtime.to_string(),
