@@ -59,8 +59,6 @@ pub enum ErrorDetails {
     /// Thrown when a user tries to pin a Yarn version before pinning a Node version.
     NoPinnedNodeVersion,
 
-    NoPlatformSpecified,
-
     NoSuchTool {
         tool: String,
     },
@@ -157,10 +155,6 @@ Consider using `notion install` to add a package to your toolchain (see `notion 
             ErrorDetails::NoPinnedNodeVersion => {
                 write!(f, "There is no pinned node version for this project")
             }
-            ErrorDetails::NoPlatformSpecified => write!(f, r"No toolchain found to resolve executable
-
-You do not appear to be in a project and you have not set a personal version of node.
-See `notion help install` for help adding Node to your personal toolchain."),
             ErrorDetails::NoSuchTool { tool } => write!(f, r#"
 No {} version selected.
 
@@ -216,7 +210,6 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::NoHomeEnvironmentVar => ExitCode::EnvironmentError,
             ErrorDetails::NoLocalDataDir => ExitCode::EnvironmentError,
             ErrorDetails::NoPinnedNodeVersion => ExitCode::ConfigurationError,
-            ErrorDetails::NoPlatformSpecified => ExitCode::ConfigurationError,
             ErrorDetails::NoSuchTool { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NotInPackage => ExitCode::ConfigurationError,
             ErrorDetails::NoToolChain { .. } => ExitCode::ExecutionFailure,

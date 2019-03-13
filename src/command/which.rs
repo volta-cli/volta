@@ -3,9 +3,9 @@ use std::env;
 use structopt::StructOpt;
 use which::which_in;
 
-use notion_core::error::ErrorDetails;
+use notion_core::platform::System;
 use notion_core::session::{ActivityKind, Session};
-use notion_fail::{throw, ExitCode, Fallible, ResultExt};
+use notion_fail::{ExitCode, Fallible, ResultExt};
 
 use crate::command::Command;
 
@@ -19,25 +19,28 @@ impl Command for Which {
     fn run(self, session: &mut Session) -> Fallible<()> {
         session.add_event_start(ActivityKind::Which);
 
-        let platform = session.current_platform()?;
+        // Treat any error with obtaining the current platform image as if the image doesn't exist
+        // However, errors in obtaining the current working directory or the System path should
+        // still be treated as errors.
+        let cwd = env::current_dir().unknown()?;
+        let path = match session
+            .current_platform()
+            .unwrap_or(None)
+            .and_then(|platform| platform.checkout(session).ok())
+            .and_then(|image| image.path().ok())
+        {
+            Some(path) => path,
+            None => System::path()?,
+        };
 
-        match platform {
-            Some(platform) => {
-                let image = platform.checkout(session)?;
-                let path = image.path()?;
-                let cwd = env::current_dir().unknown()?;
-
-                match which_in(&self.binary, Some(path), cwd) {
-                    Ok(result) => {
-                        println!("{}", result.to_string_lossy());
-                    }
-                    Err(_) => {
-                        // `which_in` Will return an Err if it can't find the binary in the path.
-                        // In that case, we want to do nothing, instead of showing the user an error
-                    }
-                };
+        match which_in(&self.binary, Some(path), cwd) {
+            Ok(result) => {
+                println!("{}", result.to_string_lossy());
             }
-            None => throw!(ErrorDetails::NoPlatformSpecified),
+            Err(_) => {
+                // `which_in` Will return an Err if it can't find the binary in the path
+                // In that case, we want to do nothing, instead of showing the user an error
+            }
         }
 
         session.add_event_end(ActivityKind::Which, ExitCode::Success);
