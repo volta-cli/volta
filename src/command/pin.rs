@@ -18,7 +18,7 @@ pub(crate) struct Pin {
 }
 
 impl Command for Pin {
-    fn run(self, session: &mut Session) -> Fallible<()> {
+    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Pin);
 
         let version = VersionSpec::parse(&self.version)?;
@@ -34,6 +34,6 @@ impl Command for Pin {
         }
 
         session.add_event_end(ActivityKind::Pin, ExitCode::Success);
-        Ok(())
+        Ok(ExitCode::Success)
     }
 }

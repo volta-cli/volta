@@ -16,7 +16,7 @@ pub(crate) struct Which {
 }
 
 impl Command for Which {
-    fn run(self, session: &mut Session) -> Fallible<()> {
+    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Which);
 
         // Treat any error with obtaining the current platform image as if the image doesn't exist
@@ -36,14 +36,17 @@ impl Command for Which {
         match which_in(&self.binary, Some(path), cwd) {
             Ok(result) => {
                 println!("{}", result.to_string_lossy());
+                session.add_event_end(ActivityKind::Which, ExitCode::Success);
+
+                Ok(ExitCode::Success)
             }
             Err(_) => {
                 // `which_in` Will return an Err if it can't find the binary in the path
-                // In that case, we want to do nothing, instead of showing the user an error
+                // In that case, we don't want to print anything out, but we want to return
+                // Exit Code 1 (ExitCode::UnknownError)
+                session.add_event_end(ActivityKind::Which, ExitCode::UnknownError);
+                Ok(ExitCode::UnknownError)
             }
         }
-
-        session.add_event_end(ActivityKind::Which, ExitCode::Success);
-        Ok(())
     }
 }

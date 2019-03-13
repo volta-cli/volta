@@ -20,7 +20,7 @@ pub(crate) struct Current {
 }
 
 impl Command for Current {
-    fn run(self, session: &mut Session) -> Fallible<()> {
+    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Current);
 
         let result = match (self.project, self.user) {
@@ -72,7 +72,7 @@ impl Command for Current {
             throw!(ErrorDetails::NoVersionsFound)
         }
 
-        Ok(())
+        Ok(ExitCode::Success)
     }
 }
 

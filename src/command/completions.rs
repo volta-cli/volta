@@ -28,7 +28,7 @@ pub(crate) struct Completions {
 }
 
 impl Command for Completions {
-    fn run(self, session: &mut Session) -> Fallible<()> {
+    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Completions);
 
         // If the user passed a shell, we'll use that; otherwise, we'll try to
@@ -64,6 +64,6 @@ impl Command for Completions {
         }
 
         session.add_event_end(ActivityKind::Completions, ExitCode::Success);
-        Ok(())
+        Ok(ExitCode::Success)
     }
 }

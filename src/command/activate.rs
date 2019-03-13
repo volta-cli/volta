@@ -11,7 +11,7 @@ use crate::command::Command;
 pub(crate) struct Activate {}
 
 impl Command for Activate {
-    fn run(self, session: &mut Session) -> Fallible<()> {
+    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Activate);
         let shell = CurrentShell::detect()?;
 
@@ -22,6 +22,6 @@ impl Command for Activate {
 
         shell.save_postscript(&postscript)?;
         session.add_event_end(ActivityKind::Activate, ExitCode::Success);
-        Ok(())
+        Ok(ExitCode::Success)
     }
 }
