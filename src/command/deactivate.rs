@@ -11,7 +11,7 @@ use crate::command::Command;
 pub(crate) struct Deactivate {}
 
 impl Command for Deactivate {
-    fn run(self, session: &mut Session) -> Fallible<()> {
+    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Deactivate);
         let shell = CurrentShell::detect()?;
 
@@ -22,6 +22,6 @@ impl Command for Deactivate {
 
         shell.save_postscript(&postscript)?;
         session.add_event_end(ActivityKind::Deactivate, ExitCode::Success);
-        Ok(())
+        Ok(ExitCode::Success)
     }
 }

@@ -25,11 +25,11 @@ pub enum Config {
 }
 
 impl Command for Config {
-    fn run(self, session: &mut Session) -> Fallible<()> {
+    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Version);
 
-        let result = match self {
-            Config::Get { key: _ } => Ok(()),
+        match self {
+            Config::Get { key: _ } => {}
             Config::Set { key: _, value: _ } => throw!(ErrorDetails::CommandNotImplemented {
                 command_name: "set".to_string()
             }),
@@ -45,7 +45,6 @@ impl Command for Config {
         };
 
         session.add_event_end(ActivityKind::Version, ExitCode::Success);
-
-        result
+        Ok(ExitCode::Success)
     }
 }

@@ -17,7 +17,7 @@ pub(crate) struct Fetch {
 }
 
 impl Command for Fetch {
-    fn run(self, session: &mut Session) -> Fallible<()> {
+    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Fetch);
 
         let version = VersionSpec::parse(&self.version)?;
@@ -26,6 +26,6 @@ impl Command for Fetch {
         session.fetch(&tool)?;
 
         session.add_event_end(ActivityKind::Fetch, ExitCode::Success);
-        Ok(())
+        Ok(ExitCode::Success)
     }
 }

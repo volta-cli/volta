@@ -17,7 +17,7 @@ pub(crate) struct Install {
 }
 
 impl Command for Install {
-    fn run(self, session: &mut Session) -> Fallible<()> {
+    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Install);
 
         let version = match self.version {
@@ -30,6 +30,6 @@ impl Command for Install {
         session.install(&tool)?;
 
         session.add_event_end(ActivityKind::Install, ExitCode::Success);
-        Ok(())
+        Ok(ExitCode::Success)
     }
 }

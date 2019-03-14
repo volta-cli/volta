@@ -20,10 +20,10 @@ DEPRECATED:
 pub(crate) struct Use {}
 
 impl Command for Use {
-    fn run(self, session: &mut Session) -> Fallible<()> {
+    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Help);
         eprintln!(usage!());
         session.add_event_end(ActivityKind::Help, ExitCode::Success);
-        Ok(())
+        Ok(ExitCode::Success)
     }
 }

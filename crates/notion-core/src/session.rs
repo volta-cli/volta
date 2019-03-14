@@ -42,6 +42,7 @@ pub enum ActivityKind {
     Binary,
     Shim,
     Completions,
+    Which,
 }
 
 impl Display for ActivityKind {
@@ -66,6 +67,7 @@ impl Display for ActivityKind {
             &ActivityKind::Binary => "binary",
             &ActivityKind::Shim => "shim",
             &ActivityKind::Completions => "completions",
+            &ActivityKind::Which => "which",
         };
         f.write_str(s)
     }

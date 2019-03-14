@@ -2,7 +2,7 @@ use structopt::StructOpt;
 
 use crate::command::{self, Command};
 use notion_core::session::Session;
-use notion_fail::Fallible;
+use notion_fail::{ExitCode, Fallible};
 
 #[derive(StructOpt)]
 #[structopt(
@@ -76,6 +76,10 @@ otherwise, they will be written to `stdout`.
     )]
     Completions(command::Completions),
 
+    /// Locate the actual binary that will be called by Notion
+    #[structopt(name = "which", author = "")]
+    Which(command::Which),
+
     #[structopt(
         name = "use",
         author = "",
@@ -86,7 +90,7 @@ otherwise, they will be written to `stdout`.
 }
 
 impl Subcommand {
-    pub(crate) fn run(self, session: &mut Session) -> Fallible<()> {
+    pub(crate) fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         match self {
             Subcommand::Fetch(fetch) => fetch.run(session),
             Subcommand::Install(install) => install.run(session),
@@ -96,6 +100,7 @@ impl Subcommand {
             Subcommand::Deactivate(deactivate) => deactivate.run(session),
             Subcommand::Activate(activate) => activate.run(session),
             Subcommand::Completions(completions) => completions.run(session),
+            Subcommand::Which(which) => which.run(session),
             Subcommand::Use(r#use) => r#use.run(session),
         }
     }
