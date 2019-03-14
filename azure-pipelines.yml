@@ -10,8 +10,13 @@ pool:
   vmImage: 'Ubuntu-16.04'
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+- script: |
+    # the unit tests for all crates (without mocking the network)
+    # run single-threaded because some tests change environment variables, which is not thread-safe
+    cargo test --package notion-core --package notion-fail --package archive --package notion-fail-derive --package progress-read -- --test-threads=1
+    NOTION_DEV=1 RUST_BACKTRACE=full cargo test --features mock-network
+    NOTION_DEV=1 RUST_BACKTRACE=full cargo test --test smoke --features smoke-tests -- --test-threads 1
+  displayName: 'Tests'
 
 - script: |
     echo Add other tasks to build, test, and deploy your project.
