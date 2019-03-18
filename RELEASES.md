@@ -1,3 +1,11 @@
+# Version 0.2.2
+
+- Add `notion which` command (#293)
+- Show progress when fetching Notion installer (#279)
+- Improved styling for usage information (#283)
+- Support for `fish` shell (#266, #290)
+- Consolidate binaries, for a ~2/3 size reduction of Notion installer (#274)
+
 # Version 0.2.1
 
 - Move preventing globals behind a feature flag (#273)
