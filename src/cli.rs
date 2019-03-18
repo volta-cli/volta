@@ -17,7 +17,8 @@ use notion_fail::Fallible;
     raw(global_setting = "structopt::clap::AppSettings::ColoredHelp"),
     raw(global_setting = "structopt::clap::AppSettings::ColorAlways"),
     raw(global_setting = "structopt::clap::AppSettings::DeriveDisplayOrder"),
-    raw(global_setting = "structopt::clap::AppSettings::DontCollapseArgsInUsage")
+    raw(global_setting = "structopt::clap::AppSettings::DontCollapseArgsInUsage"),
+    raw(global_setting = "structopt::clap::AppSettings::VersionlessSubcommands"),
 )]
 pub(crate) struct Notion {
     #[structopt(subcommand)]
