@@ -14,14 +14,18 @@ pub(crate) struct Pin {
     tool: String,
 
     /// The version of the tool to install, e.g. `1.2.3` or `latest`
-    version: String,
+    version: Option<String>,
 }
 
 impl Command for Pin {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Pin);
 
-        let version = VersionSpec::parse(&self.version)?;
+        let version = match self.version {
+            Some(version_string) => VersionSpec::parse(&version_string)?,
+            None => VersionSpec::default(),
+        };
+
         let tool = ToolSpec::from_str_and_version(&self.tool, version);
         session.pin(&tool)?;
 
