@@ -121,7 +121,7 @@ impl Distro for PackageDistro {
         let archive = self.load_or_fetch_archive()?;
 
         let bar = progress_bar(
-            archive.action(),
+            archive.origin(),
             &format!("{}-v{}", self.name, self.version),
             archive
                 .uncompressed_size()

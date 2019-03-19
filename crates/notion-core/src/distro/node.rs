@@ -187,7 +187,7 @@ impl Distro for NodeDistro {
 
         let temp = tempdir_in(path::tmp_dir()?).unknown()?;
         let bar = progress_bar(
-            self.archive.action(),
+            self.archive.origin(),
             &format!("v{}", self.version),
             self.archive
                 .uncompressed_size()
