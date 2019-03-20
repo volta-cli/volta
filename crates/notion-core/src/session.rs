@@ -317,7 +317,7 @@ impl Session {
     /// Gets the installed UserTool with the input name, if any.
     pub fn get_user_tool(&mut self, tool_name: &OsStr) -> Fallible<Option<UserTool>> {
         match tool_name.to_str() {
-            Some(tool_name_str) => package::user_tool(&tool_name_str, self),
+            Some(tool_name_str) => UserTool::from_name(&tool_name_str, self),
             _ => Ok(None),
         }
     }

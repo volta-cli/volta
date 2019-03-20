@@ -71,6 +71,26 @@ enum Installer {
 }
 
 /// Configuration information about an installed package.
+///
+/// This information will be stored in ~/.notion/tools/user/packages/<package>.json.
+///
+/// For an example, this looks like:
+///
+/// {
+///   "name": "cowsay",
+///   "version": "1.4.0",
+///   "platform": {
+///     "node": {
+///       "runtime": "11.10.1",
+///       "npm": "6.7.0"
+///     },
+///     "yarn": null
+///   },
+///   "bins": [
+///     "cowsay",
+///     "cowthink"
+///   ]
+/// }
 pub struct PackageConfig {
     /// The package name
     pub name: String,
@@ -83,6 +103,24 @@ pub struct PackageConfig {
 }
 
 /// Configuration information about an installed binary from a package.
+///
+/// This information will be stored in ~/.notion/tools/user/bins/<bin-name>.json.
+///
+/// For an example, this looks like:
+///
+/// {
+///   "name": "cowsay",
+///   "package": "cowsay",
+///   "version": "1.4.0",
+///   "path": "./cli.js",
+///   "platform": {
+///     "node": {
+///       "runtime": "11.10.1",
+///       "npm": "6.7.0"
+///     },
+///     "yarn": null
+///   }
+/// }
 pub struct BinConfig {
     /// The binary name
     pub name: String,
@@ -345,6 +383,7 @@ impl Installer {
 }
 
 /// Information about a user tool.
+/// This is defined in RFC#27: https://github.com/notion-cli/rfcs/pull/27
 pub struct UserTool {
     pub bin_path: PathBuf,
     pub image: Image,
@@ -362,15 +401,15 @@ impl UserTool {
             image: bin_config.platform.checkout(session)?,
         })
     }
-}
 
-pub fn user_tool(tool_name: &str, session: &mut Session) -> Fallible<Option<UserTool>> {
-    let bin_config_file = path::user_tool_bin_config(tool_name)?;
-    if bin_config_file.exists() {
-        let bin_config = BinConfig::from_file(bin_config_file)?;
-        UserTool::from_config(bin_config, session).map(Some)
-    } else {
-        Ok(None) // no config means the tool is not installed
+    pub fn from_name(tool_name: &str, session: &mut Session) -> Fallible<Option<UserTool>> {
+        let bin_config_file = path::user_tool_bin_config(tool_name)?;
+        if bin_config_file.exists() {
+            let bin_config = BinConfig::from_file(bin_config_file)?;
+            UserTool::from_config(bin_config, session).map(Some)
+        } else {
+            Ok(None) // no config means the tool is not installed
+        }
     }
 }
 
