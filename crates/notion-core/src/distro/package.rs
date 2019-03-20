@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 use std::ffi::OsStr;
-use std::fs::{read_dir, rename, File};
+use std::fs::{rename, File};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -14,7 +14,7 @@ use sha1::{Digest, Sha1};
 
 use crate::distro::{download_tool_error, Distro, Fetched};
 use crate::error::ErrorDetails;
-use crate::fs::{ensure_containing_dir_exists, read_file_opt};
+use crate::fs::{ensure_containing_dir_exists, read_dir_eager, read_file_opt};
 use crate::hook::ToolHooks;
 use crate::inventory::Collection;
 use crate::manifest::Manifest;
@@ -224,17 +224,16 @@ impl PackageDistro {
 // Figure out the unpacked package directory name dynamically, because
 // packages typically extract to a "package" directory, but not always
 fn find_unpack_dir(in_dir: &Path) -> Fallible<PathBuf> {
-    let mut dirs = Vec::new();
-    for entry in read_dir(in_dir).unknown()? {
-        let entry = entry.unknown()?;
-        dirs.push(entry.path());
+    let dirs: Vec<_> = read_dir_eager(in_dir).unknown()?.collect();
+
+    // if there is only one directory, return that
+    if let [(entry, metadata)] = dirs.as_slice() {
+        if metadata.is_dir() {
+            return Ok(entry.path().to_path_buf());
+        }
     }
-    if dirs.len() == 1 {
-        Ok(dirs[0].to_path_buf())
-    } else {
-        // there is more than just a directory here, something is wrong
-        Err(ErrorDetails::PackageUnpackError.into())
-    }
+    // there is more than just a single directory here, something is wrong
+    Err(ErrorDetails::PackageUnpackError.into())
 }
 
 impl PackageVersion {
