@@ -1,5 +1,6 @@
 use crate::platform::PlatformSpec;
 
+use crate::version::{option_version_serde, version_serde};
 use notion_fail::{Fallible, ResultExt};
 
 use semver::Version;
@@ -8,8 +9,10 @@ use serde_json;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct NodeVersion {
-    pub runtime: String,
-    pub npm: Option<String>,
+    #[serde(with = "version_serde")]
+    pub runtime: Version,
+    #[serde(with = "option_version_serde")]
+    pub npm: Option<Version>,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -17,33 +20,18 @@ pub struct Platform {
     #[serde(default)]
     pub node: Option<NodeVersion>,
     #[serde(default)]
-    pub yarn: Option<String>,
+    #[serde(with = "option_version_serde")]
+    pub yarn: Option<Version>,
 }
 
 impl Platform {
     pub fn into_image(self) -> Fallible<Option<PlatformSpec>> {
-        Ok(match self.node {
-            Some(NodeVersion { runtime, npm }) => {
-                let node_runtime = Version::parse(&runtime).unknown()?;
-                let npm = if let Some(npm_version) = npm {
-                    Some(Version::parse(&npm_version).unknown()?)
-                } else {
-                    None
-                };
-                let yarn = if let Some(yarn) = self.yarn {
-                    Some(Version::parse(&yarn).unknown()?)
-                } else {
-                    None
-                };
-
-                Some(PlatformSpec {
-                    node_runtime,
-                    npm,
-                    yarn,
-                })
-            }
-            None => None,
-        })
+        let yarn = self.yarn;
+        Ok(self.node.map(|node_version| PlatformSpec {
+            node_runtime: node_version.runtime,
+            npm: node_version.npm,
+            yarn,
+        }))
     }
 
     /// Deserialize the input JSON String into a Platform
@@ -65,10 +53,10 @@ impl PlatformSpec {
     pub fn to_serial(&self) -> Platform {
         Platform {
             node: Some(NodeVersion {
-                runtime: self.node_runtime.to_string(),
-                npm: self.npm.as_ref().map(|npm| npm.to_string()),
+                runtime: self.node_runtime.clone(),
+                npm: self.npm.clone(),
             }),
-            yarn: self.yarn.as_ref().map(|yarn| yarn.to_string()),
+            yarn: self.yarn.clone(),
         }
     }
 }
@@ -78,7 +66,7 @@ pub mod tests {
 
     use super::*;
     use crate::platform;
-    use semver;
+    use semver::Version;
 
     // NOTE: serde_json is required with the "preserve_order" feature in Cargo.toml,
     // so these tests will serialized/deserialize in a predictable order
@@ -96,10 +84,10 @@ pub mod tests {
         let json_str = BASIC_JSON_STR.to_string();
         let platform = Platform::from_json(json_str).expect("could not parse JSON string");
         let expected_platform = Platform {
-            yarn: Some("1.2.3".to_string()),
+            yarn: Some(Version::parse("1.2.3").expect("could not parse version")),
             node: Some(NodeVersion {
-                runtime: "4.5.6".to_string(),
-                npm: Some("7.8.9".to_string()),
+                runtime: Version::parse("4.5.6").expect("could not parse version"),
+                npm: Some(Version::parse("7.8.9").expect("could not parse version")),
             }),
         };
         assert_eq!(platform, expected_platform);
@@ -119,9 +107,9 @@ pub mod tests {
     #[test]
     fn test_to_json() {
         let platform = platform::PlatformSpec {
-            yarn: Some(semver::Version::parse("1.2.3").expect("could not parse semver version")),
-            node_runtime: semver::Version::parse("4.5.6").expect("could not parse semver version"),
-            npm: Some(semver::Version::parse("7.8.9").expect("could not parse semver version")),
+            yarn: Some(Version::parse("1.2.3").expect("could not parse version")),
+            node_runtime: Version::parse("4.5.6").expect("could not parse version"),
+            npm: Some(Version::parse("7.8.9").expect("could not parse version")),
         };
         let json_str = platform
             .to_serial()

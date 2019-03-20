@@ -13,7 +13,7 @@ use crate::fs::ensure_containing_dir_exists;
 use crate::fs::read_dir_eager;
 use crate::path;
 use crate::toolchain;
-use crate::version::version_parse_error;
+use crate::version::{option_version_serde, version_serde};
 use notion_fail::{Fallible, ResultExt};
 
 use regex::Regex;
@@ -102,18 +102,12 @@ pub struct NodeIndex(Vec<NodeEntry>);
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct NodeEntry {
-    pub version: String,
-    pub npm: Option<String>,
+    #[serde(with = "version_serde")]
+    pub version: Version,
+    #[serde(default)] // handles Option
+    #[serde(with = "option_version_serde")]
+    pub npm: Option<Version>,
     pub files: Vec<String>,
-}
-
-fn trim_version(s: &str) -> &str {
-    let s = s.trim();
-    if s.starts_with('v') {
-        s[1..].trim()
-    } else {
-        s
-    }
 }
 
 impl NodeIndex {
@@ -124,10 +118,9 @@ impl NodeIndex {
                 let data = super::NodeDistroFiles {
                     files: HashSet::from_iter(entry.files.into_iter()),
                 };
-                let version = trim_version(&entry.version[..]);
                 entries.push(super::NodeEntry {
-                    version: Version::parse(version).with_context(version_parse_error)?,
-                    npm: Version::parse(&npm).with_context(version_parse_error)?,
+                    version: entry.version,
+                    npm,
                     files: data,
                 });
             }
@@ -143,7 +136,8 @@ pub struct YarnIndex(Vec<YarnEntry>);
 pub struct YarnEntry {
     /// Yarn releases are given a tag name of the form "v$version" where $version
     /// is the release's version string.
-    pub tag_name: String,
+    #[serde(with = "version_serde")]
+    pub tag_name: Version,
 
     /// The GitHub API provides a list of assets. Some Yarn releases don't include
     /// a tarball, so we don't support them and remove them from the set of available
@@ -155,7 +149,8 @@ impl YarnEntry {
     /// Is this entry a full release, i.e., does this entry's asset list include a
     /// proper release tarball?
     fn is_full_release(&self) -> bool {
-        let release_filename = &format!("yarn-{}.tar.gz", self.tag_name)[..];
+        let release_filename = &format!("yarn-v{}.tar.gz", self.tag_name)[..];
+        println!("checking release filename: {}", release_filename);
         self.assets
             .iter()
             .any(|&YarnAsset { ref name }| name == release_filename)
@@ -173,8 +168,7 @@ impl YarnIndex {
         let mut entries = BTreeSet::new();
         for entry in self.0 {
             if entry.is_full_release() {
-                let version = trim_version(&entry.tag_name[..]);
-                entries.insert(Version::parse(version).unknown()?);
+                entries.insert(entry.tag_name);
             }
         }
         Ok(super::YarnIndex { entries })
@@ -231,47 +225,6 @@ pub struct BinConfig {
     pub version: Version,
     pub path: String,
     pub platform: toolchain::serial::Platform,
-}
-
-// custom serialization and de-serialization for Version
-// because Version doesn't work with serde out of the box
-mod version_serde {
-    use semver::Version;
-    use serde::de::{Error, Visitor};
-    use serde::{self, Deserializer, Serializer};
-    use std::fmt;
-
-    struct VersionVisitor;
-
-    impl<'de> Visitor<'de> for VersionVisitor {
-        type Value = Version;
-
-        fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-            formatter.write_str("string")
-        }
-
-        // parse the version from the string
-        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-        where
-            E: Error,
-        {
-            Version::parse(value).map_err(Error::custom)
-        }
-    }
-
-    pub fn serialize<S>(version: &Version, s: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        s.serialize_str(&version.to_string())
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Version, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_string(VersionVisitor)
-    }
 }
 
 impl PackageMetadata {
