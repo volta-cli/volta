@@ -24,10 +24,9 @@ impl Command for Install {
             Some(version_string) => VersionSpec::parse(version_string).unwrap_or_default(),
             None => VersionSpec::default(),
         };
-
         let tool = ToolSpec::from_str_and_version(&self.tool, version);
 
-        session.install(&tool)?;
+        tool.install(session)?;
 
         session.add_event_end(ActivityKind::Install, ExitCode::Success);
         Ok(ExitCode::Success)

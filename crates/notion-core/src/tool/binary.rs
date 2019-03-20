@@ -4,7 +4,6 @@ use std::process::Command;
 
 use super::{command_for, Tool};
 use crate::error::ErrorDetails;
-use crate::path;
 use crate::session::{ActivityKind, Session};
 
 use notion_fail::{throw, Fallible};
@@ -60,21 +59,14 @@ impl Tool for Binary {
             }
         }
 
-        // next try to use the user toolchain
-        if let Some(ref platform) = session.user_platform()? {
-            // use the full path to the binary
-            // ISSUE (#160): Look up the platform image bound to the user tool.
-            let image = platform.checkout(session)?;
-            let node_str = image.node.runtime.to_string();
-            let npm_str = image.node.npm.to_string();
-            let mut third_p_bin_dir = path::node_image_3p_bin_dir(&node_str, &npm_str)?;
-            third_p_bin_dir.push(&params.executable);
+        // try to use the user toolchain
+        if let Some(user_tool) = session.get_user_tool(&params.executable)? {
             return Ok(Self::from_components(
-                &third_p_bin_dir.as_os_str(),
+                &user_tool.bin_path.as_os_str(),
                 params.args,
-                &image.path()?,
+                &user_tool.image.path()?,
             ));
-        };
+        }
 
         // at this point, there is no project or user toolchain
         // the user is executing a Notion shim that doesn't have a way to execute it

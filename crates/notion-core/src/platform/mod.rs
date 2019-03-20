@@ -54,6 +54,7 @@ impl Image {
     pub fn bins(&self) -> Fallible<Vec<PathBuf>> {
         let node_str = self.node.runtime.to_string();
         let npm_str = self.node.npm.to_string();
+        // ISSUE(#292): Install npm, and handle using that
         let mut bins = vec![path::node_image_bin_dir(&node_str, &npm_str)?];
         if let Some(ref yarn) = self.yarn {
             let yarn_str = yarn.to_string();

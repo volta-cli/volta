@@ -7,6 +7,7 @@ use lazycell::LazyCell;
 use toml;
 
 use crate::distro::node::NodeDistro;
+use crate::distro::package::PackageDistro;
 use crate::distro::yarn::YarnDistro;
 use crate::distro::Distro;
 use crate::fs::touch;
@@ -50,6 +51,7 @@ impl LazyHookConfig {
 pub struct HookConfig {
     pub node: Option<ToolHooks<NodeDistro>>,
     pub yarn: Option<ToolHooks<YarnDistro>>,
+    pub package: Option<ToolHooks<PackageDistro>>,
     pub events: Option<EventHooks>,
 }
 

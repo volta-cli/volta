@@ -23,7 +23,7 @@ failure_derive = "0.1.1"
 notion-fail = { path = "../notion-fail" }
 notion-fail-derive = { path = "../notion-fail-derive" }
 lazycell = "1.2.0"
-semver = "0.9.0"
+semver = { git = "https://github.com/mikrostew/semver", branch = "new-parser" }
 cmdline_words_parser = "0.0.2"
 reqwest = { version = "0.9.9", features = ["hyper-011"] }
 headers-011 = { path = "../headers-011" }
@@ -36,3 +36,5 @@ envoy = "0.1.3"
 mockito = { version = "0.14.0", optional = true }
 regex = "1.0.6"
 dirs = "1.0.4"
+sha-1 = "0.8.1"
+hex = "0.3.2"

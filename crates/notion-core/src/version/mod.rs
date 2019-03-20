@@ -79,3 +79,87 @@ fn version_parse_error(error: &SemVerError) -> ErrorDetails {
         error: error.to_string(),
     }
 }
+
+// remove the leading 'v' from the version string, if present
+fn trim_version(s: &str) -> &str {
+    let s = s.trim();
+    if s.starts_with('v') {
+        s[1..].trim()
+    } else {
+        s
+    }
+}
+
+// custom serialization and de-serialization for Version
+// because Version doesn't work with serde out of the box
+pub mod version_serde {
+    use semver::Version;
+    use serde::de::{Error, Visitor};
+    use serde::{self, Deserializer, Serializer};
+    use std::fmt;
+
+    struct VersionVisitor;
+
+    impl<'de> Visitor<'de> for VersionVisitor {
+        type Value = Version;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+            formatter.write_str("string")
+        }
+
+        // parse the version from the string
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: Error,
+        {
+            Version::parse(super::trim_version(value)).map_err(Error::custom)
+        }
+    }
+
+    pub fn serialize<S>(version: &Version, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        s.serialize_str(&version.to_string())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Version, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_string(VersionVisitor)
+    }
+
+}
+
+// custom serialization and de-serialization for Option<Version>
+// because Version doesn't work with serde out of the box
+pub mod option_version_serde {
+    use semver::Version;
+    use serde::de::Error;
+    use serde::{self, Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(version: &Option<Version>, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match version {
+            Some(v) => s.serialize_str(&v.to_string()),
+            None => s.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Version>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s: Option<String> = Option::deserialize(deserializer)?;
+        if let Some(v) = s {
+            return Ok(Some(
+                Version::parse(super::trim_version(&v)).map_err(Error::custom)?,
+            ));
+        }
+        Ok(None)
+    }
+
+}

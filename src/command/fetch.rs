@@ -23,8 +23,21 @@ impl Command for Fetch {
         let version = VersionSpec::parse(&self.version)?;
         let tool = ToolSpec::from_str_and_version(&self.tool, version);
 
-        session.fetch(&tool)?;
-
+        match tool {
+            ToolSpec::Node(version) => {
+                session.fetch_node(&version)?;
+            }
+            ToolSpec::Yarn(version) => {
+                session.fetch_yarn(&version)?;
+            }
+            ToolSpec::Npm(_version) => {
+                // ISSUE(#292): Implement install for npm
+                unimplemented!("Fetching npm is not supported yet");
+            }
+            ToolSpec::Package(name, version) => {
+                session.fetch_package(name.to_string(), &version)?;
+            }
+        }
         session.add_event_end(ActivityKind::Fetch, ExitCode::Success);
         Ok(ExitCode::Success)
     }

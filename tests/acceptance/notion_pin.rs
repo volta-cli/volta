@@ -1,5 +1,6 @@
 use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, YarnFixture};
-use hamcrest2::{assert_that, core::Matcher};
+use hamcrest2::assert_that;
+use hamcrest2::prelude::*;
 use test_support::matchers::execs;
 
 use notion_fail::ExitCode;
@@ -178,6 +179,20 @@ const YARN_VERSION_FIXTURES: [DistroMetadata; 4] = [
     },
 ];
 
+const NPM_VERSION_INFO: &'static str = r#"
+{
+    "name":"npm",
+    "dist-tags": { "latest":"6.8.0" },
+    "versions": {
+        "1.2.3": { "version":"1.2.3", "dist": { "shasum":"", "tarball":"" }},
+        "4.5.6": { "version":"4.5.6", "dist": { "shasum":"", "tarball":"" }},
+        "5.10.1": { "version":"5.10.1", "dist": { "shasum":"", "tarball":"" }},
+        "5.10.12": { "version":"5.10.12", "dist": { "shasum":"", "tarball":"" }},
+        "8.1.5": { "version":"8.1.5", "dist": { "shasum":"", "tarball":"" }}
+    }
+}
+"#;
+
 #[test]
 fn pin_node() {
     let s = sandbox()
@@ -188,9 +203,9 @@ fn pin_node() {
 
     assert_that!(
         s.notion("pin node 6"),
-        execs()
-            .with_status(0)
-            .with_stdout_contains("Pinned node version 6.19.62 (npm 3.10.1066) in package.json")
+        execs().with_status(0).with_stdout_contains(
+            "Pinned node version 6.19.62 (with npm 3.10.1066) in package.json"
+        )
     );
 
     assert_eq!(
@@ -209,9 +224,9 @@ fn pin_node_latest() {
 
     assert_that!(
         s.notion("pin node latest"),
-        execs()
-            .with_status(0)
-            .with_stdout_contains("Pinned node version 10.99.1040 (npm 6.2.26) in package.json")
+        execs().with_status(0).with_stdout_contains(
+            "Pinned node version 10.99.1040 (with npm 6.2.26) in package.json"
+        )
     );
 
     assert_eq!(
@@ -233,7 +248,7 @@ fn pin_node_removes_npm() {
         s.notion("pin node 8"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Pinned node version 8.9.10 (npm 5.6.7) in package.json")
+            .with_stdout_contains("Pinned node version 8.9.10 (with npm 5.6.7) in package.json")
     );
 
     assert_eq!(
@@ -340,5 +355,27 @@ fn pin_yarn_leaves_npm() {
     assert_eq!(
         s.read_package_json(),
         package_json_with_pinned_node_npm_yarn("1.2.3", "3.4.5", "1.4.159"),
+    )
+}
+
+#[test]
+#[ignore]
+fn pin_npm() {
+    // ISSUE(#292): Get this test working after pinning npm is correct
+    let s = sandbox()
+        .package_json(&package_json_with_pinned_node("1.2.3"))
+        .npm_available_versions(NPM_VERSION_INFO)
+        .build();
+
+    assert_that!(
+        s.notion("pin npm 5.10"),
+        execs()
+            .with_status(0)
+            .with_stdout_contains("Pinned npm version 5.10.12 in package.json")
+    );
+
+    assert_eq!(
+        s.read_package_json(),
+        package_json_with_pinned_node_npm("1.2.3", "5.10.12"),
     )
 }

@@ -52,6 +52,14 @@ pub fn package_inventory_dir() -> Fallible<PathBuf> {
     Ok(inventory_dir()?.join("packages"))
 }
 
+pub fn package_distro_file(name: &str, version: &str) -> Fallible<PathBuf> {
+    Ok(package_inventory_dir()?.join(package_distro_file_name(name, version)))
+}
+
+pub fn package_distro_shasum(name: &str, version: &str) -> Fallible<PathBuf> {
+    Ok(package_inventory_dir()?.join(package_shasum_file_name(name, version)))
+}
+
 pub fn node_cache_dir() -> Fallible<PathBuf> {
     Ok(cache_dir()?.join("node"))
 }
@@ -88,6 +96,14 @@ pub fn yarn_image_bin_dir(version: &str) -> Fallible<PathBuf> {
     Ok(yarn_image_dir(version)?.join("bin"))
 }
 
+pub fn package_image_root_dir() -> Fallible<PathBuf> {
+    Ok(image_dir()?.join("packages"))
+}
+
+pub fn package_image_dir(name: &str, version: &str) -> Fallible<PathBuf> {
+    Ok(package_image_root_dir()?.join(name).join(version))
+}
+
 pub fn shim_dir() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("bin"))
 }
@@ -110,6 +126,20 @@ pub fn user_toolchain_dir() -> Fallible<PathBuf> {
 
 pub fn user_platform_file() -> Fallible<PathBuf> {
     Ok(user_toolchain_dir()?.join("platform.json"))
+}
+
+pub fn user_package_dir() -> Fallible<PathBuf> {
+    Ok(user_toolchain_dir()?.join("packages"))
+}
+
+pub fn user_package_config_file(package_name: &str) -> Fallible<PathBuf> {
+    Ok(user_package_dir()?.join(format!("{}.json", package_name)))
+}
+
+pub fn user_tool_bin_config(bin_name: &str) -> Fallible<PathBuf> {
+    Ok(user_toolchain_dir()?
+        .join("bins")
+        .join(format!("{}.json", bin_name)))
 }
 
 pub fn node_distro_file_name(version: &str) -> String {
@@ -143,6 +173,18 @@ pub fn yarn_distro_file_name(version: &str) -> String {
 
 pub fn yarn_archive_root_dir_name(version: &str) -> String {
     format!("yarn-v{}", version)
+}
+
+pub fn package_distro_file_name(name: &str, version: &str) -> String {
+    format!("{}.tgz", package_archive_root_dir_name(name, version))
+}
+
+pub fn package_shasum_file_name(name: &str, version: &str) -> String {
+    format!("{}.shasum", package_archive_root_dir_name(name, version))
+}
+
+pub fn package_archive_root_dir_name(name: &str, version: &str) -> String {
+    format!("{}-{}", name, version)
 }
 
 #[cfg(test)]

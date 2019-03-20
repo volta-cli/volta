@@ -8,9 +8,9 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use lazycell::LazyCell;
+use semver::Version;
 
-use crate::distro::node::load_default_npm_version;
-use crate::distro::DistroVersion;
+use crate::distro::node::{load_default_npm_version, NodeVersion};
 use crate::error::ErrorDetails;
 use crate::manifest::{serial, Manifest};
 use crate::platform::PlatformSpec;
@@ -223,42 +223,62 @@ impl Project {
         path
     }
 
-    /// Writes the specified version of Node or Yarn to the `toolchain` in package.json.
-    pub fn pin(&self, distro_version: &DistroVersion) -> Fallible<()> {
-        match distro_version {
-            DistroVersion::Node(runtime, npm) => {
-                // prevent writing the npm version if it is equal to the default version
-                let default_npm = load_default_npm_version(&runtime).ok();
-                let npm_str = if Some(npm.clone()) == default_npm {
+    /// Writes the specified version of Node to the `toolchain.node` key in package.json.
+    pub fn pin_node(&self, node_version: &NodeVersion) -> Fallible<()> {
+        // prevent writing the npm version if it is equal to the default version
+
+        let npm_str = load_default_npm_version(&node_version.runtime)
+            .ok()
+            .and_then(|default| {
+                if node_version.npm == default {
                     None
                 } else {
-                    Some(npm.to_string())
-                };
-
-                let toolchain = serial::ToolchainSpec::new(
-                    runtime.to_string(),
-                    npm_str,
-                    self.manifest().yarn_str().clone(),
-                );
-                Manifest::update_toolchain(toolchain, self.package_file())?;
-            }
-            DistroVersion::Yarn(version) => {
-                if let Some(platform) = self.manifest().platform() {
-                    let toolchain = serial::ToolchainSpec::new(
-                        platform.node_runtime.to_string(),
-                        platform.npm.as_ref().map(|npm| npm.to_string()),
-                        Some(version.to_string()),
-                    );
-                    Manifest::update_toolchain(toolchain, self.package_file())?;
-                } else {
-                    throw!(ErrorDetails::NoPinnedNodeVersion);
+                    Some(node_version.npm.to_string())
                 }
-            }
-            // ISSUE (#175) When we can `notion install npm` then it can be pinned in the toolchain
-            DistroVersion::Npm(_) => unimplemented!("cannot pin npm in \"toolchain\""),
-            DistroVersion::Package(_, _) => throw!(ErrorDetails::CannotPinPackage),
+            });
+
+        let toolchain = serial::ToolchainSpec::new(
+            node_version.runtime.to_string(),
+            npm_str,
+            self.manifest().yarn_str().clone(),
+        );
+        Manifest::update_toolchain(toolchain, self.package_file())?;
+        println!(
+            "Pinned node version {} (with npm {}) in package.json",
+            node_version.runtime, node_version.npm
+        );
+        Ok(())
+    }
+
+    /// Writes the specified version of Yarn to the `toolchain.yarn` key in package.json.
+    pub fn pin_yarn(&self, yarn_version: &Version) -> Fallible<()> {
+        if let Some(platform) = self.manifest().platform() {
+            let toolchain = serial::ToolchainSpec::new(
+                platform.node_runtime.to_string(),
+                platform.npm.as_ref().map(|npm| npm.to_string()),
+                Some(yarn_version.to_string()),
+            );
+            Manifest::update_toolchain(toolchain, self.package_file())?;
+            println!("Pinned yarn version {} in package.json", yarn_version);
+        } else {
+            throw!(ErrorDetails::NoPinnedNodeVersion);
         }
-        println!("Pinned {} in package.json", distro_version);
+        Ok(())
+    }
+
+    /// Writes the specified version of Npm to the `toolchain.npm` key in package.json.
+    pub fn pin_npm(&self, npm_version: &Version) -> Fallible<()> {
+        if let Some(platform) = self.manifest().platform() {
+            let toolchain = serial::ToolchainSpec::new(
+                platform.node_runtime.to_string(),
+                Some(npm_version.to_string()),
+                self.manifest().yarn_str().clone(),
+            );
+            Manifest::update_toolchain(toolchain, self.package_file())?;
+            println!("Pinned npm version {} in package.json", npm_version);
+        } else {
+            throw!(ErrorDetails::NoPinnedNodeVersion);
+        }
         Ok(())
     }
 }

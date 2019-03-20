@@ -47,6 +47,19 @@ impl ToolSpec {
             package => ToolSpec::Package(package.to_string(), version),
         }
     }
+
+    pub fn install(&self, session: &mut Session) -> Fallible<()> {
+        match self {
+            ToolSpec::Node(version) => session.install_node(&version)?,
+            ToolSpec::Yarn(version) => session.install_yarn(&version)?,
+            // ISSUE(#292): Implement install for npm
+            ToolSpec::Npm(_version) => unimplemented!("Installing npm is not supported yet"),
+            ToolSpec::Package(name, version) => {
+                session.install_package(name.to_string(), &version)?;
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Debug for ToolSpec {

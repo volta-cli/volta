@@ -2,6 +2,7 @@ use super::tool;
 use std::marker::PhantomData;
 
 use crate::distro::node::NodeDistro;
+use crate::distro::package::PackageDistro;
 use crate::distro::yarn::YarnDistro;
 use crate::distro::Distro;
 use failure::Fail;
@@ -110,6 +111,7 @@ impl PublishHook {
 pub struct HookConfig {
     pub node: Option<ToolHooks<NodeDistro>>,
     pub yarn: Option<ToolHooks<YarnDistro>>,
+    pub packages: Option<ToolHooks<PackageDistro>>,
     pub events: Option<EventHooks>,
 }
 
@@ -144,44 +146,29 @@ pub struct ToolHooks<I> {
 
 impl HookConfig {
     pub fn into_hook_config(self) -> Fallible<super::HookConfig> {
+        let node = self.node.map(|n| n.into_tool_hooks()).transpose()?;
+        let yarn = self.yarn.map(|y| y.into_tool_hooks()).transpose()?;
+        let package = self.packages.map(|p| p.into_tool_hooks()).transpose()?;
+        let events = self.events.map(|e| e.into_event_hooks()).transpose()?;
         Ok(super::HookConfig {
-            node: if let Some(n) = self.node {
-                Some(n.into_tool_hooks()?)
-            } else {
-                None
-            },
-            yarn: if let Some(y) = self.yarn {
-                Some(y.into_tool_hooks()?)
-            } else {
-                None
-            },
-            events: if let Some(e) = self.events {
-                Some(e.into_event_hooks()?)
-            } else {
-                None
-            },
+            node,
+            yarn,
+            package,
+            events,
         })
     }
 }
 
 impl<D: Distro> ToolHooks<D> {
     pub fn into_tool_hooks(self) -> Fallible<super::ToolHooks<D>> {
+        let distro = self.distro.map(|d| d.into_distro_hook()).transpose()?;
+        let latest = self.latest.map(|d| d.into_metadata_hook()).transpose()?;
+        let index = self.index.map(|d| d.into_metadata_hook()).transpose()?;
+
         Ok(super::ToolHooks {
-            distro: if let Some(h) = self.distro {
-                Some(h.into_distro_hook()?)
-            } else {
-                None
-            },
-            latest: if let Some(h) = self.latest {
-                Some(h.into_metadata_hook()?)
-            } else {
-                None
-            },
-            index: if let Some(h) = self.index {
-                Some(h.into_metadata_hook()?)
-            } else {
-                None
-            },
+            distro,
+            latest,
+            index,
             phantom: PhantomData,
         })
     }

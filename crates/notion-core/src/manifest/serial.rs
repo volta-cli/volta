@@ -58,6 +58,8 @@ pub struct Manifest {
     // (see https://docs.npmjs.com/files/package.json#bin)
     #[serde(default)] // handles Option
     pub bin: Option<BinMap<String, String>>,
+
+    pub engines: Option<Engines>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -67,6 +69,11 @@ pub struct ToolchainSpec {
     pub npm: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub yarn: Option<String>,
+}
+
+#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Engines {
+    pub node: String,
 }
 
 impl Manifest {
@@ -88,6 +95,7 @@ impl Manifest {
             dependencies: self.dependencies,
             dev_dependencies: self.dev_dependencies,
             bin: map,
+            engines: self.engines.map(|e| e.node),
         })
     }
 
@@ -196,7 +204,7 @@ where
 #[cfg(test)]
 pub mod tests {
 
-    use super::{BinMap, Manifest};
+    use super::{BinMap, Engines, Manifest};
     use serde_json;
     use std::collections::HashMap;
 
@@ -224,6 +232,9 @@ pub mod tests {
             },
             "bin": {
                 "somebin": "cli.js"
+            },
+            "engines": {
+                "node": "8.* || >= 10.*"
             }
         }"#;
         let manifest_all: Manifest =
@@ -234,6 +245,12 @@ pub mod tests {
         assert_eq!(
             manifest_all.description,
             Some("This is a description".to_string())
+        );
+        assert_eq!(
+            manifest_all.engines,
+            Some(Engines {
+                node: "8.* || >= 10.*".to_string()
+            })
         );
         // (checking the rest of the fields in other tests)
     }
