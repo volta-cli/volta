@@ -1,6 +1,7 @@
 //! Provides types for fetching tool distributions into the local inventory.
 
 pub mod node;
+pub mod package;
 pub mod yarn;
 
 use crate::error::ErrorDetails;
@@ -11,9 +12,9 @@ use archive::HttpError;
 use notion_fail::Fallible;
 use reqwest::StatusCode;
 use semver::Version;
-use std::fmt::{self, Display, Formatter};
 
 /// The result of a requested installation.
+#[derive(Debug)]
 pub enum Fetched<V> {
     /// Indicates that the given tool was already installed.
     Already(V),
@@ -37,44 +38,23 @@ impl<V> Fetched<V> {
     }
 }
 
-/// Abstraction to contain info about Distro versions.
-#[derive(Eq, PartialEq, Clone, Debug)]
-pub enum DistroVersion {
-    // the version of the Node runtime, and the npm version installed with that
-    Node(Version, Version),
-    Yarn(Version),
-    Npm(Version),
-    Package(String, Version),
-}
-
-impl Display for DistroVersion {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
-        let s = match self {
-            &DistroVersion::Node(ref runtime, ref npm) => {
-                format!("node version {} (npm {})", runtime, npm)
-            }
-            &DistroVersion::Yarn(ref version) => format!("yarn version {}", version),
-            &DistroVersion::Npm(ref version) => format!("npm version {}", version),
-            &DistroVersion::Package(ref name, ref version) => {
-                format!("{} version {}", name, version)
-            }
-        };
-        f.write_str(&s)
-    }
-}
-
 pub trait Distro: Sized {
     type VersionDetails;
+    type ResolvedVersion;
 
-    /// Provisions a new Distro based on the Version and Possible Hooks
-    fn new(version: Version, hooks: Option<&ToolHooks<Self>>) -> Fallible<Self>;
+    /// Provisions a new Distro based on the name, Version and Possible Hooks
+    fn new(
+        name: String,
+        version: Self::ResolvedVersion,
+        hooks: Option<&ToolHooks<Self>>,
+    ) -> Fallible<Self>;
 
     /// Produces a reference to this distro's Tool version.
     fn version(&self) -> &Version;
 
     /// Fetches this version of the Tool. (It is left to the responsibility of the `Collection`
     /// to update its state after fetching succeeds.)
-    fn fetch(self, collection: &Collection<Self>) -> Fallible<Fetched<DistroVersion>>;
+    fn fetch(self, collection: &Collection<Self>) -> Fallible<Fetched<Self::VersionDetails>>;
 }
 
 fn download_tool_error(

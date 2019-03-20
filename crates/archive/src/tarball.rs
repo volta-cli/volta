@@ -16,12 +16,14 @@ use tar;
 use tee::TeeReader;
 
 use super::Archive;
+use super::Origin;
 
 /// A Node installation tarball.
 pub struct Tarball {
     compressed_size: u64,
     uncompressed_size: u64,
     data: Box<Read>,
+    origin: Origin,
 }
 
 #[derive(Fail, Debug)]
@@ -54,6 +56,7 @@ impl Tarball {
             uncompressed_size,
             compressed_size,
             data: Box::new(source),
+            origin: Origin::Local,
         }))
     }
 
@@ -82,6 +85,7 @@ impl Tarball {
             uncompressed_size,
             compressed_size,
             data,
+            origin: Origin::Remote,
         }))
     }
 }
@@ -102,6 +106,9 @@ impl Archive for Tarball {
         let mut tarball = tar::Archive::new(ProgressRead::new(decoded, (), progress));
         tarball.unpack(dest)?;
         Ok(())
+    }
+    fn origin(&self) -> Origin {
+        self.origin
     }
 }
 

@@ -20,6 +20,13 @@ pub use crate::zip::Zip;
 use std::fs::File;
 use std::path::Path;
 
+/// Metadata describing whether an archive comes from a local or remote origin.
+#[derive(Copy, Clone)]
+pub enum Origin {
+    Local,
+    Remote,
+}
+
 pub trait Archive {
     fn compressed_size(&self) -> u64;
     fn uncompressed_size(&self) -> Option<u64>;
@@ -30,6 +37,8 @@ pub trait Archive {
         dest: &Path,
         progress: &mut FnMut(&(), usize),
     ) -> Result<(), failure::Error>;
+
+    fn origin(&self) -> Origin;
 }
 
 cfg_if::cfg_if! {

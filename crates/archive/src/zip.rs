@@ -13,10 +13,12 @@ use zip_rs::ZipArchive;
 use failure;
 
 use super::Archive;
+use super::Origin;
 
 pub struct Zip {
     compressed_size: u64,
     data: File,
+    origin: Origin,
 }
 
 impl Zip {
@@ -27,6 +29,7 @@ impl Zip {
         Ok(Box::new(Zip {
             compressed_size,
             data: source,
+            origin: Origin::Local,
         }))
     }
 
@@ -52,6 +55,7 @@ impl Zip {
         Ok(Box::new(Zip {
             compressed_size,
             data: file,
+            origin: Origin::Remote,
         }))
     }
 }
@@ -98,6 +102,9 @@ impl Archive for Zip {
             }
         }
         Ok(())
+    }
+    fn origin(&self) -> Origin {
+        self.origin
     }
 }
 

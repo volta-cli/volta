@@ -40,13 +40,26 @@ pub enum ToolSpec {
 }
 
 impl ToolSpec {
-    pub fn from_str(tool_name: &str, version: VersionSpec) -> Self {
+    pub fn from_str_and_version(tool_name: &str, version: VersionSpec) -> Self {
         match tool_name {
             "node" => ToolSpec::Node(version),
             "yarn" => ToolSpec::Yarn(version),
             "npm" => ToolSpec::Npm(version),
             package => ToolSpec::Package(package.to_string(), version),
         }
+    }
+
+    pub fn install(&self, session: &mut Session) -> Fallible<()> {
+        match self {
+            ToolSpec::Node(version) => session.install_node(&version)?,
+            ToolSpec::Yarn(version) => session.install_yarn(&version)?,
+            // ISSUE(#292): Implement install for npm
+            ToolSpec::Npm(_version) => unimplemented!("Installing npm is not supported yet"),
+            ToolSpec::Package(name, version) => {
+                session.install_package(name.to_string(), &version)?;
+            }
+        }
+        Ok(())
     }
 }
 

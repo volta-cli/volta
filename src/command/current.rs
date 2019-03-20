@@ -1,85 +1,33 @@
 use std::string::ToString;
 
-use serde::Deserialize;
+use structopt::StructOpt;
 
 use notion_core::error::ErrorDetails;
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::{throw, ExitCode, Fallible};
 
-use crate::command::{Command, CommandName, Help};
-use crate::Notion;
+use crate::command::Command;
 
-#[derive(Debug, Deserialize)]
-pub(crate) struct Args {
-    flag_project: bool,
-    flag_user: bool,
-}
+#[derive(StructOpt)]
+pub(crate) struct Current {
+    /// Display the current project's Node version
+    #[structopt(short = "p", long = "project")]
+    project: bool,
 
-pub(crate) enum Current {
-    Help,
-    Project,
-    User,
-    All,
+    /// Display the user's Node version
+    #[structopt(short = "u", long = "user")]
+    user: bool,
 }
 
 impl Command for Current {
-    type Args = Args;
-
-    const USAGE: &'static str = "
-Display the currently activated Node version
-
-Usage:
-    notion current [options]
-
-Options:
-    -h, --help     Display this message
-    -p, --project  Display the current project's Node version
-    -u, --user     Display the user's Node version
-";
-
-    fn help() -> Self {
-        Current::Help
-    }
-
-    fn parse(
-        _: Notion,
-        Args {
-            flag_project,
-            flag_user,
-        }: Args,
-    ) -> Fallible<Current> {
-        Ok(if !flag_project && flag_user {
-            Current::User
-        } else if flag_project && !flag_user {
-            Current::Project
-        } else {
-            Current::All
-        })
-    }
-
-    fn run(self, session: &mut Session) -> Fallible<()> {
+    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Current);
 
-        let result = match self {
-            Current::Help => {
-                Help::Command(CommandName::Current).run(session)?;
-                true
-            }
-            Current::Project => project_node_version(&session)?
-                .map(|version| {
-                    println!("v{}", version);
-                })
-                .is_some(),
-            Current::User => user_node_version(session)?
-                .map(|version| {
-                    println!("v{}", version);
-                })
-                .is_some(),
-            Current::All => {
-                let (project, user) = (
-                    project_node_version(&session)?,
-                    user_node_version(&session)?,
-                );
+        let result = match (self.project, self.user) {
+            // both or neither => "all"
+            (true, true) | (false, false) => {
+                let project = project_node_version(&session)?;
+                let user = user_node_version(&session)?;
 
                 let user_active = project.is_none() && user.is_some();
                 let any = project.is_some() || user.is_some();
@@ -98,12 +46,33 @@ Options:
 
                 any
             }
+
+            // Only project set
+            (true, false) => match project_node_version(&session)? {
+                Some(version) => {
+                    println!("v{}", version);
+                    true
+                }
+                None => false,
+            },
+
+            // Only user set
+            (false, true) => match user_node_version(&session)? {
+                Some(version) => {
+                    println!("v{}", version);
+                    true
+                }
+                None => false,
+            },
         };
+
         session.add_event_end(ActivityKind::Current, ExitCode::Success);
+
         if !result {
-            throw!(ErrorDetails::NoVersionsFound);
+            throw!(ErrorDetails::NoVersionsFound)
         }
-        Ok(())
+
+        Ok(ExitCode::Success)
     }
 }
 

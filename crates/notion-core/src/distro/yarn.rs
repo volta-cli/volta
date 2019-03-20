@@ -11,12 +11,11 @@ use archive::{Archive, Tarball};
 use notion_fail::{Fallible, ResultExt};
 
 use super::{download_tool_error, Distro, Fetched};
-use crate::distro::DistroVersion;
 use crate::fs::ensure_containing_dir_exists;
 use crate::hook::ToolHooks;
 use crate::inventory::YarnCollection;
 use crate::path;
-use crate::style::{progress_bar, Action};
+use crate::style::progress_bar;
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
 
@@ -100,9 +99,14 @@ impl YarnDistro {
 
 impl Distro for YarnDistro {
     type VersionDetails = Version;
+    type ResolvedVersion = Version;
 
     /// Provisions a new Distro based on the Version and possible Hooks
-    fn new(version: Version, hooks: Option<&ToolHooks<Self>>) -> Fallible<Self> {
+    fn new(
+        _name: String,
+        version: Self::ResolvedVersion,
+        hooks: Option<&ToolHooks<Self>>,
+    ) -> Fallible<Self> {
         match hooks {
             Some(&ToolHooks {
                 distro: Some(ref hook),
@@ -123,14 +127,14 @@ impl Distro for YarnDistro {
 
     /// Fetches this version of Yarn. (It is left to the responsibility of the `YarnCollection`
     /// to update its state after fetching succeeds.)
-    fn fetch(self, collection: &YarnCollection) -> Fallible<Fetched<DistroVersion>> {
+    fn fetch(self, collection: &YarnCollection) -> Fallible<Fetched<Version>> {
         if collection.contains(&self.version) {
-            return Ok(Fetched::Already(DistroVersion::Yarn(self.version)));
+            return Ok(Fetched::Already(self.version));
         }
 
         let temp = tempdir_in(path::tmp_dir()?).unknown()?;
         let bar = progress_bar(
-            Action::Fetching,
+            self.archive.origin(),
             &format!("v{}", self.version),
             self.archive
                 .uncompressed_size()
@@ -157,6 +161,6 @@ impl Distro for YarnDistro {
         .unknown()?;
 
         bar.finish_and_clear();
-        Ok(Fetched::Now(DistroVersion::Yarn(self.version)))
+        Ok(Fetched::Now(self.version))
     }
 }

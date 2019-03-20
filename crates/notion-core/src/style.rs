@@ -1,8 +1,8 @@
 //! The view layer of Notion, with utilities for styling command-line output.
 
 use std::env;
-use std::fmt::{self, Display, Formatter};
 
+use archive::Origin;
 use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 use notion_fail::NotionError;
@@ -92,32 +92,23 @@ fn display_development_details(err: &NotionError) {
     }
 }
 
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
-pub enum Action {
-    Fetching,
-}
-
-impl Action {
-    // this is the maximum width of the displayed Action strings, used for formatting
-    const MAX_WIDTH: usize = 10;
-}
-
-impl Display for Action {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
-        let s = match self {
-            &Action::Fetching => "Fetching",
-        };
-        f.write_str(s)
+/// Determines the string to display based on the Origin of the operation.
+fn action_str(origin: Origin) -> &'static str {
+    match origin {
+        Origin::Local => "Unpacking",
+        Origin::Remote => "Fetching",
     }
 }
 
-/// Constructs a command-line progress bar with the specified Action enum
-/// (e.g., `Action::Installing`), details string (e.g., `"v1.23.4"`), and logical
+/// Constructs a command-line progress bar based on the specified Origin enum
+/// (e.g., `Origin::Remote`), details string (e.g., `"v1.23.4"`), and logical
 /// length (i.e., the number of logical progress steps in the process being
 /// visualized by the progress bar).
-pub fn progress_bar(action: Action, details: &str, len: u64) -> ProgressBar {
+pub fn progress_bar(origin: Origin, details: &str, len: u64) -> ProgressBar {
     let display_width = term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
-    let msg_width = Action::MAX_WIDTH + 1 + details.len();
+    let action = action_str(origin);
+    let action_width = action.len() + 2; // plus 2 spaces to look nice
+    let msg_width = action_width + 1 + details.len();
 
     //   Installing v1.23.4  [====================>                   ]  50%
     // |----------| |-----|   |--------------------------------------|  |-|
@@ -129,9 +120,9 @@ pub fn progress_bar(action: Action, details: &str, len: u64) -> ProgressBar {
 
     bar.set_message(&format!(
         "{: >width$} {}",
-        style(action.to_string()).green().bold(),
+        style(action).green().bold(),
         details,
-        width = Action::MAX_WIDTH
+        width = action_width,
     ));
     bar.set_style(
         ProgressStyle::default_bar()

@@ -10,12 +10,11 @@ use serde::Deserialize;
 use tempfile::tempdir_in;
 
 use super::{download_tool_error, Distro, Fetched};
-use crate::distro::DistroVersion;
 use crate::fs::ensure_containing_dir_exists;
 use crate::hook::ToolHooks;
 use crate::inventory::NodeCollection;
 use crate::path;
-use crate::style::{progress_bar, Action};
+use crate::style::progress_bar;
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
 
@@ -148,9 +147,14 @@ impl NodeDistro {
 
 impl Distro for NodeDistro {
     type VersionDetails = NodeVersion;
+    type ResolvedVersion = Version;
 
     /// Provisions a new Distro based on the Version and possible Hooks
-    fn new(version: Version, hooks: Option<&ToolHooks<Self>>) -> Fallible<Self> {
+    fn new(
+        _name: String,
+        version: Self::ResolvedVersion,
+        hooks: Option<&ToolHooks<Self>>,
+    ) -> Fallible<Self> {
         match hooks {
             Some(&ToolHooks {
                 distro: Some(ref hook),
@@ -171,16 +175,19 @@ impl Distro for NodeDistro {
 
     /// Fetches this version of Node. (It is left to the responsibility of the `NodeCollection`
     /// to update its state after fetching succeeds.)
-    fn fetch(self, collection: &NodeCollection) -> Fallible<Fetched<DistroVersion>> {
+    fn fetch(self, collection: &NodeCollection) -> Fallible<Fetched<NodeVersion>> {
         if collection.contains(&self.version) {
             let npm = load_default_npm_version(&self.version)?;
 
-            return Ok(Fetched::Already(DistroVersion::Node(self.version, npm)));
+            return Ok(Fetched::Already(NodeVersion {
+                runtime: self.version,
+                npm,
+            }));
         }
 
         let temp = tempdir_in(path::tmp_dir()?).unknown()?;
         let bar = progress_bar(
-            Action::Fetching,
+            self.archive.origin(),
             &format!("v{}", self.version),
             self.archive
                 .uncompressed_size()
@@ -216,6 +223,9 @@ impl Distro for NodeDistro {
         .unknown()?;
 
         bar.finish_and_clear();
-        Ok(Fetched::Now(DistroVersion::Node(self.version, npm)))
+        Ok(Fetched::Now(NodeVersion {
+            runtime: self.version,
+            npm,
+        }))
     }
 }
