@@ -5,7 +5,7 @@ use notion_core::session::{ActivityKind, Session};
 use notion_core::style::{display_error, ErrorContext};
 use notion_core::tool::ToolSpec;
 use notion_core::version::VersionSpec;
-use notion_fail::{ExitCode, Fallible};
+use notion_fail::{throw, ExitCode, Fallible};
 
 use crate::command::Command;
 
