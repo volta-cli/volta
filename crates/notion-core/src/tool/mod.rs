@@ -11,9 +11,8 @@ use std::process::{Command, ExitStatus};
 use crate::env::UNSAFE_GLOBAL;
 use crate::error::ErrorDetails;
 use crate::session::Session;
-use crate::style;
 use crate::version::VersionSpec;
-use notion_fail::{Fallible, NotionError, ResultExt};
+use notion_fail::{Fallible, ResultExt};
 
 mod binary;
 mod node;
@@ -26,10 +25,6 @@ use self::node::Node;
 use self::npm::Npm;
 use self::npx::Npx;
 use self::yarn::Yarn;
-
-fn display_tool_error(err: &NotionError) {
-    style::display_error(style::ErrorContext::Shim, err);
-}
 
 pub enum ToolSpec {
     Node(VersionSpec),
