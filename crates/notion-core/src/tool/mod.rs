@@ -130,14 +130,10 @@ pub trait Tool: Sized {
     /// Extracts the `Command` from this tool.
     fn command(self) -> Command;
 
-    /// Perform any tasks which must be run after the tool runs but before exiting.
-    fn finalize(_session: &Session, _maybe_status: &io::Result<ExitStatus>) {}
-
     /// Delegates the current process to this tool.
     fn exec(self, session: &Session) -> Fallible<ExitStatus> {
         let mut command = self.command();
         let status = command.status();
-        Self::finalize(session, &status);
         status.with_context(binary_exec_error)
     }
 }
