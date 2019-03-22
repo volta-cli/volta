@@ -245,9 +245,9 @@ fn pin_node_no_version() {
 
     assert_that!(
         s.notion("pin node"),
-        execs()
-            .with_status(0)
-            .with_stdout_contains("Pinned node version 10.99.1040 (npm 6.2.26) in package.json")
+        execs().with_status(0).with_stdout_contains(
+            "Pinned node version 10.99.1040 (with npm 6.2.26) in package.json"
+        )
     );
 
     assert_eq!(
