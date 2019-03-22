@@ -11,9 +11,8 @@ use std::process::{Command, ExitStatus};
 use crate::env::UNSAFE_GLOBAL;
 use crate::error::ErrorDetails;
 use crate::session::Session;
-use crate::style;
 use crate::version::VersionSpec;
-use notion_fail::{Fallible, NotionError, ResultExt};
+use notion_fail::{Fallible, ResultExt};
 
 mod binary;
 mod node;
@@ -26,10 +25,6 @@ use self::node::Node;
 use self::npm::Npm;
 use self::npx::Npx;
 use self::yarn::Yarn;
-
-fn display_tool_error(err: &NotionError) {
-    style::display_error(style::ErrorContext::Shim, err);
-}
 
 pub enum ToolSpec {
     Node(VersionSpec),
@@ -107,10 +102,10 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
     // all the possible `Tool` implementations and fill it dynamically,
     // as they have different sizes and associated types.
     match &exe.to_str() {
-        Some("node") => Node::new(args, session)?.exec(session),
-        Some("npm") => Npm::new(args, session)?.exec(session),
-        Some("npx") => Npx::new(args, session)?.exec(session),
-        Some("yarn") => Yarn::new(args, session)?.exec(session),
+        Some("node") => Node::new(args, session)?.exec(),
+        Some("npm") => Npm::new(args, session)?.exec(),
+        Some("npx") => Npx::new(args, session)?.exec(),
+        Some("yarn") => Yarn::new(args, session)?.exec(),
         _ => Binary::new(
             BinaryArgs {
                 executable: exe,
@@ -118,7 +113,7 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
             },
             session,
         )?
-        .exec(session),
+        .exec(),
     }
 }
 
@@ -135,14 +130,10 @@ pub trait Tool: Sized {
     /// Extracts the `Command` from this tool.
     fn command(self) -> Command;
 
-    /// Perform any tasks which must be run after the tool runs but before exiting.
-    fn finalize(_session: &Session, _maybe_status: &io::Result<ExitStatus>) {}
-
     /// Delegates the current process to this tool.
-    fn exec(self, session: &Session) -> Fallible<ExitStatus> {
+    fn exec(self) -> Fallible<ExitStatus> {
         let mut command = self.command();
         let status = command.status();
-        Self::finalize(session, &status);
         status.with_context(binary_exec_error)
     }
 }
