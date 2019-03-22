@@ -233,6 +233,27 @@ impl Session {
         Ok(package_version.version.clone())
     }
 
+    /// Uninstall the specified package.
+    ///
+    /// This removes:
+    /// * the json config files
+    /// * the shims
+    /// * the unpacked and initialized package
+    ///
+    /// This optionally clears the inventory for this package, removing:
+    /// * the downloaded tarball and shasum files
+    pub fn uninstall_package(&mut self, name: String, remove_all: bool) -> Fallible<()> {
+        // TODO: read the config files to see where things are
+
+        // TODO: remove the shims
+
+        // TODO: remove any unpacked and initialized packages
+
+        // TODO: remove the config files
+
+        Ok(())
+    }
+
     /// Fetches a Node version matching the specified semantic versioning requirements.
     pub fn fetch_node(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<NodeVersion>> {
         let inventory = self.inventory.get_mut()?;

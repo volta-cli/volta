@@ -1,4 +1,3 @@
-// TODO: all of this haha
 use structopt::StructOpt;
 
 use notion_core::session::{ActivityKind, Session};
@@ -12,9 +11,10 @@ use crate::command::Command;
 pub(crate) struct Uninstall {
     /// The tool to uninstall, e.g. `node`, `npm`, `yarn`, or <package>
     tool: String,
-    // TODO: need this?
-    // /// The version of the tool to uninstall, e.g. `1.2.3` or `latest`
-    // version: Option<String>,
+
+    /// Remove the cached tarball files
+    #[structopt(short = "f", long = "full")]
+    remove_all: bool,
 }
 
 impl Command for Uninstall {
@@ -24,7 +24,7 @@ impl Command for Uninstall {
         let version = VersionSpec::default();
         let tool = ToolSpec::from_str_and_version(&self.tool, version);
 
-        tool.uninstall(session)?;
+        tool.uninstall(session, self.remove_all)?;
 
         session.add_event_end(ActivityKind::Uninstall, ExitCode::Success);
         Ok(ExitCode::Success)
