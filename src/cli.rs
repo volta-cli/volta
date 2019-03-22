@@ -13,58 +13,90 @@ use notion_fail::{ExitCode, Fallible};
 
     To install a tool in your toolchain, use `notion install`.
     To pin your project's runtime or package manager, use `notion pin`.",
-    raw(setting = "structopt::clap::AppSettings::ArgRequiredElseHelp"),
     raw(global_setting = "structopt::clap::AppSettings::ColoredHelp"),
     raw(global_setting = "structopt::clap::AppSettings::ColorAlways"),
     raw(global_setting = "structopt::clap::AppSettings::DeriveDisplayOrder"),
-    raw(global_setting = "structopt::clap::AppSettings::DontCollapseArgsInUsage")
+    raw(global_setting = "structopt::clap::AppSettings::DisableVersion"),
+    raw(global_setting = "structopt::clap::AppSettings::DontCollapseArgsInUsage"),
+    raw(global_setting = "structopt::clap::AppSettings::VersionlessSubcommands")
 )]
 pub(crate) struct Notion {
     #[structopt(subcommand)]
-    pub(crate) command: Subcommand,
+    pub(crate) command: Option<Subcommand>,
 
     // not yet implemented!
-    #[structopt(long = "verbose", help = "switch on verbosity", global = true)]
+    #[structopt(long = "verbose", help = "Enables verbose diagnostics", global = true)]
     #[allow(dead_code)]
     pub(crate) verbose: bool,
+
+    #[structopt(
+        short = "v",
+        long = "version",
+        help = "Prints the current version of Notion"
+    )]
+    pub(crate) version: bool,
+}
+
+impl Notion {
+    pub(crate) fn run(self, session: &mut Session) -> Fallible<ExitCode> {
+        if self.version {
+            println!("{}", env!("CARGO_PKG_VERSION"));
+            Ok(ExitCode::Success)
+        } else if let Some(command) = self.command {
+            command.run(session)
+        } else {
+            Notion::from_iter(["notion", "help"].iter()).run(session)
+        }
+    }
 }
 
 #[derive(StructOpt)]
 pub(crate) enum Subcommand {
-    /// Fetch a tool to the local machine
-    #[structopt(name = "fetch", author = "")]
+    /// Fetches a tool to the local machine
+    #[structopt(name = "fetch", author = "", version = "")]
     Fetch(command::Fetch),
 
-    /// Install a tool in your toolchain.
-    #[structopt(name = "install", author = "")]
+    /// Installs a tool in your toolchain
+    #[structopt(name = "install", author = "", version = "")]
     Install(command::Install),
 
-    /// Pin your project's runtime or package manager.
-    #[structopt(name = "pin", author = "")]
+    /// Pins your project's runtime or package manager
+    #[structopt(name = "pin", author = "", version = "")]
     Pin(command::Pin),
 
-    /// Get or set configuration values
-    #[structopt(name = "config", author = "")]
+    /// Gets or sets configuration values
+    #[structopt(name = "config", author = "", version = "")]
     Config(command::Config),
 
-    /// Display the currently activated Node version
-    #[structopt(name = "current", author = "")]
+    /// Displays the currently activated Node version
+    #[structopt(name = "current", author = "", version = "")]
     Current(command::Current),
 
-    /// Disable Notion in the current shell
-    #[structopt(name = "deactivate", author = "")]
+    /// Disables Notion in the current shell
+    #[structopt(
+        name = "deactivate",
+        author = "",
+        version = "",
+        raw(setting = "structopt::clap::AppSettings::Hidden")
+    )]
     Deactivate(command::Deactivate),
 
-    /// Re-enable Notion in the current shell
-    #[structopt(name = "activate", author = "")]
+    /// Re-enables Notion in the current shell
+    #[structopt(
+        name = "activate",
+        author = "",
+        version = "",
+        raw(setting = "structopt::clap::AppSettings::Hidden")
+    )]
     Activate(command::Activate),
 
-    /// Generate Notion completions.
+    /// Generates Notion completions
     #[structopt(
         name = "completions",
         author = "",
+        version = "",
         raw(setting = "structopt::clap::AppSettings::ArgRequiredElseHelp"),
-        long_about = "Generate Notion completions.
+        long_about = "Generates Notion completions
 
 By default, completions will be generated for the value of your current shell,
 shell, i.e. the value of `SHELL`. If you set the `<shell>` option, completions
@@ -76,15 +108,19 @@ otherwise, they will be written to `stdout`.
     )]
     Completions(command::Completions),
 
-    /// Locate the actual binary that will be called by Notion
-    #[structopt(name = "which", author = "")]
+    /// Locates the actual binary that will be called by Notion
+    #[structopt(name = "which", author = "", version = "")]
     Which(command::Which),
 
     #[structopt(
         name = "use",
         author = "",
+        version = "",
         template = "{usage}",
-        raw(usage = "usage!()", setting = "structopt::clap::AppSettings::Hidden")
+        raw(
+            usage = "crate::command::r#use::USAGE",
+            setting = "structopt::clap::AppSettings::Hidden"
+        )
     )]
     Use(command::Use),
 }
