@@ -13,7 +13,7 @@ jobs:
   - job: Install
     steps:
       - script: $(installCmd)
-        displayName: 'Install Rust'
+        displayName: Install Rust
     strategy:
       matrix:
         ubuntu:
@@ -47,11 +47,27 @@ jobs:
   - job: Test
     steps:
       # the unit tests for all crates (without mocking the network)
-      # run single-threaded because some tests change environment variables, which is not thread-safe
-      - script: cargo test --package notion-core --package notion-fail --package archive --package notion-fail-derive --package progress-read -- --test-threads=1
+      # run single-threaded because some tests change environment variables,
+      # which is not thread-safe
+      - script: |
+          cargo test --all
+            --package notion-core \
+            --package notion-fail \
+            --package archive \
+            --package notion-fail-derive \
+            --package progress-read \
+            -- --test-threads=1
+        displayName: 
 
       # the acceptance tests, using network mocks
-      - script: NOTION_DEV=1 RUST_BACKTRACE=full cargo test --features mock-network
+      - script: |
+          NOTION_DEV=1 RUST_BACKTRACE=full cargo test --features mock-network
+
       # smoke tests: real data and no mocks
-      - script: NOTION_DEV=1 RUST_BACKTRACE=full cargo test --test smoke --features smoke-tests -- --test-threads 1
-    displayName: 'Tests'
+      - script: |
+          NOTION_DEV=1 RUST_BACKTRACE=full cargo test \
+            --test smoke \
+            --features smoke-tests \
+            -- --test-threads 1
+    displayName: Run Tests
+    dependsOn: Install
