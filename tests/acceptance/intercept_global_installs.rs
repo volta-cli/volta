@@ -119,7 +119,7 @@ fn npm_allows_global_install_with_env_variable() {
     assert_that!(
         s.npm("i -g ember-cli"),
         execs()
-            .with_status(MISSING_EXECUTABLE_EXIT_CODE)
+            .with_status(ExitCode::ExecutionFailure as i32)
             .with_stderr_does_not_contain("Global package installs are not recommended.")
     );
 }
