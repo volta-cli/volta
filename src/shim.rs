@@ -1,5 +1,5 @@
+use notion_core::error::{display_error, ErrorContext};
 use notion_core::session::{ActivityKind, Session};
-use notion_core::style::{display_error, ErrorContext};
 use notion_core::tool::execute_tool;
 
 use notion_fail::ExitCode;
