@@ -29,12 +29,15 @@ pub(crate) struct Notion {
     #[allow(dead_code)]
     pub(crate) verbose: bool,
 
-    #[structopt(short = "v", long = "version", help = "Prints the current version of Notion")]
+    #[structopt(
+        short = "v",
+        long = "version",
+        help = "Prints the current version of Notion"
+    )]
     pub(crate) version: bool,
 }
 
 impl Notion {
-
     pub(crate) fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         if self.version {
             println!("{}", env!("CARGO_PKG_VERSION"));
@@ -45,7 +48,6 @@ impl Notion {
             Notion::from_iter(["notion", "help"].iter()).run(session)
         }
     }
-
 }
 
 #[derive(StructOpt)]
@@ -118,7 +120,7 @@ otherwise, they will be written to `stdout`.
         raw(
             usage = "crate::command::r#use::USAGE",
             setting = "structopt::clap::AppSettings::Hidden"
-        ),
+        )
     )]
     Use(command::Use),
 }

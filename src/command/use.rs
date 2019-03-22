@@ -31,7 +31,8 @@ impl Command for Use {
         let result = Err(ErrorDetails::DeprecatedCommandError {
             command: "use".to_string(),
             advice: ADVICE.to_string(),
-        }.into());
+        }
+        .into());
         session.add_event_end(ActivityKind::Help, ExitCode::InvalidArguments);
         result
     }
