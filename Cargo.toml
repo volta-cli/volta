@@ -11,7 +11,6 @@ universal-docs = ["notion-core/universal-docs"]
 mock-network = ["mockito", "notion-core/mock-network"]
 notion-dev = []
 smoke-tests = []
-intercept-globals = ["notion-core/intercept-globals"]
 
 [[bin]]
 name = "shim"

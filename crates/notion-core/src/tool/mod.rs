@@ -167,10 +167,6 @@ fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
 }
 
 fn intercept_global_installs() -> bool {
-    if cfg!(feature = "intercept-globals") {
-        // We should only intercept global installs if the NOTION_UNSAFE_GLOBAL variable is not set
-        env::var_os(UNSAFE_GLOBAL).is_none()
-    } else {
-        false
-    }
+    // We should only intercept global installs if the NOTION_UNSAFE_GLOBAL variable is not set
+    env::var_os(UNSAFE_GLOBAL).is_none()
 }
