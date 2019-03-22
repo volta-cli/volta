@@ -22,7 +22,7 @@ const ADVICE: &'static str = "
 #[derive(StructOpt)]
 pub(crate) struct Use {
     #[allow(dead_code)]
-    anything: Vec<String>,
+    anything: Vec<String>, // Prevent StructOpt argument errors when invoking e.g. `notion use node`
 }
 
 impl Command for Use {
