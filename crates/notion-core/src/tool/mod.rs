@@ -102,10 +102,10 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
     // all the possible `Tool` implementations and fill it dynamically,
     // as they have different sizes and associated types.
     match &exe.to_str() {
-        Some("node") => Node::new(args, session)?.exec(session),
-        Some("npm") => Npm::new(args, session)?.exec(session),
-        Some("npx") => Npx::new(args, session)?.exec(session),
-        Some("yarn") => Yarn::new(args, session)?.exec(session),
+        Some("node") => Node::new(args, session)?.exec(),
+        Some("npm") => Npm::new(args, session)?.exec(),
+        Some("npx") => Npx::new(args, session)?.exec(),
+        Some("yarn") => Yarn::new(args, session)?.exec(),
         _ => Binary::new(
             BinaryArgs {
                 executable: exe,
@@ -113,7 +113,7 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
             },
             session,
         )?
-        .exec(session),
+        .exec(),
     }
 }
 
@@ -131,7 +131,7 @@ pub trait Tool: Sized {
     fn command(self) -> Command;
 
     /// Delegates the current process to this tool.
-    fn exec(self, session: &Session) -> Fallible<ExitStatus> {
+    fn exec(self) -> Fallible<ExitStatus> {
         let mut command = self.command();
         let status = command.status();
         status.with_context(binary_exec_error)
