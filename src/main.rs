@@ -4,7 +4,7 @@ mod cli;
 
 use structopt::StructOpt;
 
-use notion_core::error::{display_error, display_verbose_error, ErrorContext};
+use notion_core::error::{ErrorContext, ErrorReporter};
 use notion_core::session::{ActivityKind, Session};
 
 /// The entry point for the `notion` CLI.
@@ -16,11 +16,12 @@ pub fn main() {
     let notion = cli::Notion::from_args();
     let verbose = notion.verbose;
     let exit_code = notion.run(&mut session).unwrap_or_else(|err| {
-        if verbose {
-            display_verbose_error(ErrorContext::Notion, &err);
+        let reporter = if verbose {
+            ErrorReporter::verbose()
         } else {
-            display_error(ErrorContext::Notion, &err);
-        }
+            ErrorReporter::new()
+        };
+        reporter.report(ErrorContext::Notion, &err);
         session.add_event_error(ActivityKind::Notion, &err);
         err.exit_code()
     });

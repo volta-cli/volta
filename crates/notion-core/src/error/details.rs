@@ -1,24 +1,11 @@
-use std::env;
 use std::fmt;
 use std::process::ExitStatus;
 
 use failure::Fail;
-use notion_fail::{ExitCode, NotionError, NotionFail};
+use notion_fail::{ExitCode, NotionFail};
 
-use crate::style::{format_error_details, format_error_message};
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
-
-const NOTION_DEV: &'static str = "NOTION_DEV";
-
-/// Represents the context from which an error is being reported.
-pub enum ErrorContext {
-    /// An error reported from the `notion` executable.
-    Notion,
-
-    /// An error reported from a shim.
-    Shim,
-}
 
 #[derive(Debug, Fail)]
 pub enum ErrorDetails {
@@ -306,22 +293,4 @@ impl NotionFail for ErrorDetails {
     fn is_user_friendly(&self) -> bool {
         true
     }
-}
-
-pub fn display_error(cx: ErrorContext, err: &NotionError) {
-    let message = format_error_message(cx, err);
-
-    eprint!("{}", message);
-
-    if env::var(NOTION_DEV).is_ok() {
-        let details = format_error_details(err);
-        eprint!("{}", details);
-    }
-}
-
-pub fn display_verbose_error(cx: ErrorContext, err: &NotionError) {
-    let message = format_error_message(cx, err);
-    let details = format_error_details(err);
-
-    eprint!("{}{}", message, details);
 }
