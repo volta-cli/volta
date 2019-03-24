@@ -1,11 +1,8 @@
 //! The view layer of Notion, with utilities for styling command-line output.
-
-use std::env;
-use std::fmt::Write;
-
 use crate::error::ErrorContext;
 use archive::Origin;
-use console::style;
+use console::{style, StyledObject};
+use failure::Fail;
 use indicatif::{ProgressBar, ProgressStyle};
 use notion_fail::NotionError;
 use term_size;
@@ -21,82 +18,41 @@ Please feel free to reach out to us at \x1b[36m\x1b[1m@notionjs\x1b[0m on Twitte
     \x1b[1mhttps://github.com/notion-cli/notion/issues\x1b[0m
 ";
 
-macro_rules! write_str {
-    ( $( $x:expr ),* ) => {
-        write!($( $x, )*).expect("write! with String cannot fail")
-    }
-}
-
-macro_rules! writeln_str {
-    ( $( $x:expr ),* ) => {
-        writeln!($( $x, )*).expect("write! with String cannot fail")
-    }
-}
-
-/// Formats the error message to a string
+/// Format an error for output in the given context
 pub(crate) fn format_error_message(cx: ErrorContext, err: &NotionError) -> String {
-    let mut message = String::with_capacity(100);
+    let prefix = error_prefix(cx);
 
-    format_error_prefix(&mut message, cx);
     if err.is_user_friendly() {
-        writeln_str!(message, "{}", err);
+        format!("{} {}", prefix, err)
     } else {
-        writeln_str!(message, "{}", INTERNAL_ERROR_MESSAGE);
+        format!("{} {}", prefix, INTERNAL_ERROR_MESSAGE)
     }
-
-    message
 }
 
-/// Formats verbose error details to string
-pub(crate) fn format_error_details(err: &NotionError) -> String {
-    let mut details = String::new();
-
-    format_error_cause(&mut details, err);
-    format_error_backtrace(&mut details, err);
-
-    details
+/// Format the underlying cause of an error
+pub(crate) fn format_error_cause(inner: &Fail) -> String {
+    format!(
+        "{}{} {}",
+        style("cause").underlined().bold(),
+        style(":").bold(),
+        inner
+    )
 }
 
-/// Formats a styled prefix for an error
-fn format_error_prefix(msg: &mut String, cx: ErrorContext) {
+fn error_prefix(cx: ErrorContext) -> StyledObject<&'static str> {
     match cx {
         ErrorContext::Notion => {
             // Since the command here was `notion`, it would be redundant to say that this was
             // a Notion error, so we are less explicit in the heading.
-            write_str!(msg, "{} ", style("error:").red().bold());
+            style("error:").red().bold()
         }
         ErrorContext::Shim => {
             // Since a Notion error is rare case for a shim, it can be surprising to a user.
             // To make it extra clear that this was a failure that happened in Notion when
             // attempting to delegate to a shim, we are more explicit about the fact that it's
             // a Notion error.
-            write_str!(msg, "{} ", style("Notion error:").red().bold());
+            style("Notion error:").red().bold()
         }
-    }
-}
-
-/// Formats the underlying cause of an error, if it exists
-fn format_error_cause(msg: &mut String, err: &NotionError) {
-    if let Some(inner) = err.as_fail().cause() {
-        writeln_str!(msg);
-        write_str!(
-            msg,
-            "{}{} ",
-            style("cause").bold().underlined(),
-            style(":").bold()
-        );
-        writeln_str!(msg, "{}", inner);
-    }
-}
-
-/// Formats the backtrace for an error, if available
-fn format_error_backtrace(msg: &mut String, err: &NotionError) {
-    // ISSUE #75 - Once we have a way to determine backtraces without RUST_BACKTRACE, we can make this always available
-    // Until then, we know that if the env var is not set, the backtrace will be empty
-    if env::var("RUST_BACKTRACE").is_ok() {
-        writeln_str!(msg);
-        // Note: The implementation of `Display` for Backtrace includes a 'stack backtrace:' prefix
-        writeln_str!(msg, "{}", err.backtrace());
     }
 }
 

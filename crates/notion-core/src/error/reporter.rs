@@ -1,12 +1,13 @@
 use std::env::{self, args_os};
+use std::fmt::Write as FmtWrite;
 use std::fs::File;
-use std::io::Write;
+use std::io::Write as IoWrite;
 
 use crate::fs::ensure_containing_dir_exists;
 use crate::path::log_dir;
-use crate::style::{format_error_details, format_error_message};
+use crate::style::{format_error_cause, format_error_message};
 use chrono::Local;
-use failure::Error;
+use failure::{Error, Fail};
 use notion_fail::NotionError;
 
 const NOTION_DEV: &'static str = "NOTION_DEV";
@@ -20,6 +21,7 @@ pub enum ErrorContext {
     Shim,
 }
 
+#[derive(PartialEq)]
 pub enum ErrorReporter {
     /// Reports errors in the standard, concise format
     Standard,
@@ -44,24 +46,43 @@ impl ErrorReporter {
     }
 
     /// Report an error, both to the terminal and the error log
-    pub fn report(&self, cx: ErrorContext, err: &NotionError) {
+    pub fn report(self, cx: ErrorContext, err: &NotionError) {
         let message = format_error_message(cx, err);
-        let details = format_error_details(err);
 
-        match self {
-            ErrorReporter::Standard => eprint!("{}", message),
-            ErrorReporter::Verbose => eprint!("{}{}", message, details),
-        }
+        eprintln!("{}", message);
 
-        match write_error_log(message, details) {
-            Ok(log_file) => {
-                eprintln!("Error log written to: {}", log_file);
+        // Only consider additional details if the error has an underlying cause
+        if let Some(inner) = err.as_fail().cause() {
+            let details = compose_error_details(err, inner);
+
+            if self == ErrorReporter::Verbose {
+                eprintln!();
+                eprintln!("{}", details);
             }
-            Err(_) => {
-                eprintln!("Unable to write error log!");
+
+            match write_error_log(message, details) {
+                Ok(log_file) => {
+                    eprintln!("Error details written to: {}", log_file);
+                }
+                Err(_) => {
+                    eprintln!("Unable to write error log!");
+                }
             }
         }
     }
+}
+
+fn compose_error_details(err: &NotionError, inner: &Fail) -> String {
+    let mut details = format_error_cause(inner);
+
+    // ISSUE #75 - Once we have a way to determine backtraces without RUST_BACKTRACE, we can make this always available
+    // Until then, we know that if the env var is not set, the backtrace will be empty
+    if env::var("RUST_BACKTRACE").is_ok() {
+        // Note: The implementation of `Display` for Backtrace includes a 'stack backtrace:' prefix
+        write!(details, "\n\n{}", err.backtrace()).expect("write! to a String doesn't fail");
+    }
+
+    details
 }
 
 fn write_error_log(message: String, details: String) -> Result<String, Error> {
@@ -76,7 +97,9 @@ fn write_error_log(message: String, details: String) -> Result<String, Error> {
     writeln!(log_file, "{}", collect_arguments())?;
     writeln!(log_file, "Notion v{}", env!("CARGO_PKG_VERSION"))?;
     writeln!(log_file)?;
-    write!(log_file, "{}{}", message, details)?;
+    writeln!(log_file, "{}", message)?;
+    writeln!(log_file)?;
+    writeln!(log_file, "{}", details)?;
 
     Ok(file_name)
 }
