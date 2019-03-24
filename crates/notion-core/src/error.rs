@@ -40,6 +40,11 @@ pub enum ErrorDetails {
         error: String,
     },
 
+    DeprecatedCommandError {
+        command: String,
+        advice: String,
+    },
+
     DownloadToolNetworkError {
         tool: ToolSpec,
         from_url: String,
@@ -168,6 +173,9 @@ impl fmt::Display for ErrorDetails {
             ErrorDetails::DepPackageReadError { error } => {
                 write!(f, "Could not read dependent package info: {}", error)
             }
+            ErrorDetails::DeprecatedCommandError { command, advice } => {
+                write!(f, "The subcommand `{}` is deprecated.\n{}", command, advice)
+            }
             ErrorDetails::DownloadToolNetworkError {
                 tool,
                 from_url,
@@ -249,6 +257,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::CouldNotDetermineTool => ExitCode::UnknownError,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DepPackageReadError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::DeprecatedCommandError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
             ErrorDetails::DownloadToolNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::InvalidHookCommand { .. } => ExitCode::UnknownError,

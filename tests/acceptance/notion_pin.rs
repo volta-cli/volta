@@ -236,6 +236,27 @@ fn pin_node_latest() {
 }
 
 #[test]
+fn pin_node_no_version() {
+    let s = sandbox()
+        .package_json(BASIC_PACKAGE_JSON)
+        .node_available_versions(NODE_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .build();
+
+    assert_that!(
+        s.notion("pin node"),
+        execs().with_status(0).with_stdout_contains(
+            "Pinned node version 10.99.1040 (with npm 6.2.26) in package.json"
+        )
+    );
+
+    assert_eq!(
+        s.read_package_json(),
+        package_json_with_pinned_node("10.99.1040"),
+    )
+}
+
+#[test]
 fn pin_node_removes_npm() {
     // Pinning Node will set the pinned version of npm to the default for that version, so it will be omitted
     let s = sandbox()
@@ -306,6 +327,27 @@ fn pin_yarn_latest() {
 
     assert_that!(
         s.notion("pin yarn latest"),
+        execs()
+            .with_status(0)
+            .with_stdout_contains("Pinned yarn version 1.2.42 in package.json")
+    );
+
+    assert_eq!(
+        s.read_package_json(),
+        package_json_with_pinned_node_yarn("1.2.3", "1.2.42"),
+    )
+}
+
+#[test]
+fn pin_yarn_no_version() {
+    let s = sandbox()
+        .package_json(&package_json_with_pinned_node("1.2.3"))
+        .yarn_latest("1.2.42")
+        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .build();
+
+    assert_that!(
+        s.notion("pin yarn"),
         execs()
             .with_status(0)
             .with_stdout_contains("Pinned yarn version 1.2.42 in package.json")

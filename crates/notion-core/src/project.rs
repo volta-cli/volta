@@ -14,8 +14,7 @@ use crate::distro::node::{load_default_npm_version, NodeVersion};
 use crate::error::ErrorDetails;
 use crate::manifest::{serial, Manifest};
 use crate::platform::PlatformSpec;
-use crate::shim;
-use notion_fail::{throw, Fallible, NotionError, ResultExt};
+use notion_fail::{throw, Fallible, ResultExt};
 
 fn is_node_root(dir: &Path) -> bool {
     dir.join("package.json").is_file()
@@ -143,26 +142,6 @@ impl Project {
         Ok(false)
     }
 
-    /// Automatically shim the binaries of all direct dependencies of this project and
-    /// return a vector of any errors which occurred while doing so.
-    pub fn autoshim(&self) -> Vec<NotionError> {
-        let dependent_binaries = self.dependent_binary_names_fault_tolerant();
-        let mut errors = Vec::new();
-
-        for result in dependent_binaries {
-            match result {
-                Ok(name) => {
-                    if let Err(error) = shim::create(&name) {
-                        errors.push(error);
-                    }
-                }
-                Err(error) => errors.push(error),
-            }
-        }
-
-        errors
-    }
-
     /// Returns a mapping of the names to paths for all the binaries installed
     /// by direct dependencies of the current project.
     fn dependent_binaries(&self) -> Fallible<HashMap<String, String>> {
@@ -183,33 +162,6 @@ impl Project {
             }
         }
         Ok(dependent_bins)
-    }
-
-    /// Gets the names of the binaries of all direct dependencies and returns them along
-    /// with any errors which occurred while doing so.
-    fn dependent_binary_names_fault_tolerant(&self) -> Vec<Fallible<String>> {
-        let mut results = Vec::new();
-        let dependencies = &self.manifest.merged_dependencies();
-        let dependency_paths = dependencies
-            .iter()
-            .map(|name| self.get_dependency_path(name));
-
-        for dependency_path in dependency_paths {
-            match Manifest::for_dir(&dependency_path) {
-                Ok(dependency) => {
-                    for (name, _path) in dependency.bin {
-                        results.push(Result::Ok(name.clone()))
-                    }
-                }
-                Err(error) => {
-                    if !error.to_string().contains("directory does not exist") {
-                        results.push(Result::Err(error))
-                    }
-                }
-            }
-        }
-
-        results
     }
 
     /// Convert dependency names to the path to each project.
@@ -287,7 +239,7 @@ impl Project {
 
 #[cfg(test)]
 pub mod tests {
-    use std::collections::{HashMap, HashSet};
+    use std::collections::HashMap;
     use std::ffi::OsStr;
     use std::path::PathBuf;
 
@@ -314,33 +266,6 @@ pub mod tests {
         expected_bins.insert("bin-1".to_string(), "./lib/cli.js".to_string());
         expected_bins.insert("bin-2".to_string(), "./lib/cli.js".to_string());
         assert_eq!(dep_bins, expected_bins);
-    }
-
-    #[test]
-    fn gets_binary_names() {
-        let project = Project::for_dir(&fixture_path("basic")).unwrap().unwrap();
-        let binary_names = project.dependent_binary_names_fault_tolerant();
-        let mut expected = HashSet::new();
-
-        expected.insert("eslint".to_string());
-        expected.insert("rsvp".to_string());
-        expected.insert("bin-1".to_string());
-        expected.insert("bin-2".to_string());
-
-        let mut iterator = binary_names.iter();
-        let mut actual = HashSet::new();
-
-        while let Some(fallible) = iterator.next() {
-            match fallible {
-                Ok(binary_name) => {
-                    actual.insert(binary_name.clone());
-                }
-
-                Err(error) => panic!("encountered error {:?}", error),
-            }
-        }
-
-        assert_eq!(actual, expected);
     }
 
     #[test]

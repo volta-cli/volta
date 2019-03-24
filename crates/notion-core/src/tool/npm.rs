@@ -1,9 +1,8 @@
 use std::env::{args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
-use std::io;
-use std::process::{Command, ExitStatus};
+use std::process::Command;
 
-use super::{command_for, display_tool_error, intercept_global_installs, Tool};
+use super::{command_for, intercept_global_installs, Tool};
 use crate::error::ErrorDetails;
 use crate::session::{ActivityKind, Session};
 
@@ -45,18 +44,6 @@ impl Tool for Npm {
 
     fn command(self) -> Command {
         self.0
-    }
-
-    fn finalize(session: &Session, maybe_status: &io::Result<ExitStatus>) {
-        if let Ok(_) = maybe_status {
-            if let Ok(Some(project)) = session.project() {
-                let errors = project.autoshim();
-
-                for error in errors {
-                    display_tool_error(&error);
-                }
-            }
-        }
     }
 }
 

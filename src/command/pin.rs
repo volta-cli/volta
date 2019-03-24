@@ -2,7 +2,6 @@ use structopt::StructOpt;
 
 use notion_core::error::ErrorDetails;
 use notion_core::session::{ActivityKind, Session};
-use notion_core::style::{display_error, ErrorContext};
 use notion_core::tool::ToolSpec;
 use notion_core::version::VersionSpec;
 use notion_fail::{throw, ExitCode, Fallible};
@@ -35,14 +34,6 @@ impl Command for Pin {
             // ISSUE(#292): Implement install for npm
             ToolSpec::Npm(_version) => unimplemented!("Pinning npm is not supported yet"),
             ToolSpec::Package(_name, _version) => throw!(ErrorDetails::CannotPinPackage),
-        }
-
-        if let Some(project) = session.project()? {
-            let errors = project.autoshim();
-
-            for error in errors {
-                display_error(ErrorContext::Notion, &error);
-            }
         }
 
         session.add_event_end(ActivityKind::Pin, ExitCode::Success);

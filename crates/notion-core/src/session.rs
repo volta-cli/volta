@@ -5,7 +5,7 @@
 use std::rc::Rc;
 
 use crate::distro::node::NodeVersion;
-use crate::distro::package::{self, PackageVersion, UserTool};
+use crate::distro::package::{PackageVersion, UserTool};
 use crate::distro::Fetched;
 use crate::error::ErrorDetails;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
