@@ -1,7 +1,12 @@
 use crate::ir::{Ir, Entry};
-use syn::parse::{Parse, ParseStream, Result};
+use proc_macro2::TokenStream;
+use std::collections::HashMap;
+use syn;
+use syn::parse::{self, Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::{braced, token, Attribute, Ident, LitStr, Token, Visibility};
+
+pub(crate) type Result<T> = ::std::result::Result<T, TokenStream>;
 
 /// Abstract syntax tree (AST) for the surface syntax of the `layout!` macro.
 ///
@@ -21,7 +26,7 @@ pub(crate) struct Ast {
 }
 
 impl Parse for Ast {
-    fn parse(input: ParseStream) -> Result<Self> {
+    fn parse(input: ParseStream) -> parse::Result<Self> {
         let attrs: Vec<Attribute> = input.call(Attribute::parse_outer)?;
         let visibility: Visibility = input.parse()?;
         input.parse::<Token![struct]>()?;
@@ -33,7 +38,7 @@ impl Parse for Ast {
 
 impl Ast {
     /// Lowers the AST to a flattened intermediate representation.
-    pub(crate) fn flatten(self) -> Ir {
+    pub(crate) fn flatten(self) -> Result<Ir> {
         let mut results = Ir {
             name: self.name,
             attrs: self.attrs,
@@ -43,9 +48,9 @@ impl Ast {
             exes: vec![],
         };
 
-        self.directory.flatten(&mut results, vec![]);
+        self.directory.flatten(&mut results, vec![])?;
 
-        results
+        Ok(results)
     }
 }
 
@@ -65,7 +70,7 @@ struct Directory {
 }
 
 impl Parse for Directory {
-    fn parse(input: ParseStream) -> Result<Self> {
+    fn parse(input: ParseStream) -> parse::Result<Self> {
         let content;
         Ok(Directory {
             brace_token: braced!(content in input),
@@ -74,11 +79,17 @@ impl Parse for Directory {
     }
 }
 
-// FIXME: this should have proper validation for no dupes, with good spans for error messages
+enum EntryKind {
+    Exe,
+    File,
+    Dir,
+}
 
 impl Directory {
     /// Lowers the directory to a flattened intermediate representation.
-    fn flatten(self, results: &mut Ir, context: Vec<LitStr>) {
+    fn flatten(self, results: &mut Ir, context: Vec<LitStr>) -> Result<()> {
+        let mut visited_entries = HashMap::new();
+
         for pair in self.entries.into_pairs() {
             let (prefix, punc) = pair.into_tuple();
 
@@ -90,23 +101,81 @@ impl Directory {
 
             match punc {
                 Some(FieldContents::Dir(dir)) => {
+                    let filename = prefix.filename.value();
+
+                    if filename.ends_with(".exe") {
+                        let error = syn::Error::new(
+                            prefix.filename.span(),
+                            "the `.exe` extension is not allowed for directory names",
+                        );
+                        return Err(error.to_compile_error());
+                    }
+
+                    if let Some(kind) = visited_entries.get(&filename) {
+                        let message = match kind {
+                            EntryKind::Exe => {
+                                format!("filename `{}` is a duplicate of `{}` executable on non-Windows operating systems", filename, filename)
+                            }
+                            _ => {
+                                format!("duplicate filename `{}`", filename)
+                            }
+                        };
+                        let error = syn::Error::new(prefix.filename.span(), message);
+                        return Err(error.to_compile_error());
+                    }
+
+                    visited_entries.insert(filename.clone(), EntryKind::Dir);
+
                     results.dirs.push(entry);
                     let mut sub_context = context.clone();
                     sub_context.push(prefix.filename);
-                    dir.flatten(results, sub_context);
+                    dir.flatten(results, sub_context)?;
                 }
                 _ => {
                     let filename = prefix.filename.value();
                     if filename.ends_with(".exe") {
                         let filename = &filename[0..filename.len() - 4];
+
+                        if let Some(kind) = visited_entries.get(filename) {
+                            let message = match kind {
+                                EntryKind::Exe => {
+                                    format!("duplicate filename `{}.exe`", filename)
+                                }
+                                EntryKind::File => {
+                                    format!("executable `{}` (on non-Windows operating systems) is a duplicate of `{}` filename", filename, filename)
+                                }
+                                EntryKind::Dir => {
+                                    format!("executable `{}` (on non-Windows operating systems) is a duplicate of `{}` directory name", filename, filename)
+                                }
+                            };
+                            let error = syn::Error::new(prefix.filename.span(), message);
+                            return Err(error.to_compile_error());
+                        }
+
+                        visited_entries.insert(filename.to_string(), EntryKind::Exe);
                         entry.filename = LitStr::new(filename, prefix.filename.span());
                         results.exes.push(entry);
                     } else {
+                        if let Some(kind) = visited_entries.get(&filename) {
+                            let message = match kind {
+                                EntryKind::Exe => {
+                                    format!("filename `{}` is a duplicate of `{}` executable on non-Windows operating systems", filename, filename)
+                                }
+                                _ => {
+                                    format!("duplicate filename `{}`", filename)
+                                }
+                            };
+                            let error = syn::Error::new(prefix.filename.span(), message);
+                            return Err(error.to_compile_error());
+                        }
+
+                        visited_entries.insert(filename, EntryKind::File);
                         results.files.push(entry);
                     }
                 }
             }
         }
+        Ok(())
     }
 }
 
@@ -130,7 +199,7 @@ struct FieldPrefix {
 }
 
 impl Parse for FieldPrefix {
-    fn parse(input: ParseStream) -> Result<Self> {
+    fn parse(input: ParseStream) -> parse::Result<Self> {
         Ok(FieldPrefix {
             filename: input.parse()?,
             colon: input.parse()?,
@@ -149,7 +218,7 @@ enum FieldContents {
 }
 
 impl Parse for FieldContents {
-    fn parse(input: ParseStream) -> Result<Self> {
+    fn parse(input: ParseStream) -> parse::Result<Self> {
         let lookahead = input.lookahead1();
         Ok(if lookahead.peek(Token![;]) {
             let semi = input.parse()?;
