@@ -201,6 +201,7 @@ impl SandboxBuilder {
                 root,
                 mocks: vec![],
                 env_vars: vec![],
+                env_vars_remove: vec![],
                 path: OsString::new(),
             },
             files: vec![],
@@ -243,6 +244,12 @@ impl SandboxBuilder {
     /// Set an environment variable for the sandbox (chainable)
     pub fn env(mut self, name: &str, value: &str) -> Self {
         self.root.env_vars.push(EnvVar::new(name, value));
+        self
+    }
+
+    /// Unset an environment variable for the sandbox (chainable)
+    pub fn env_remove(mut self, name: &str) -> Self {
+        self.root.env_vars_remove.push(name.to_string());
         self
     }
 
@@ -453,6 +460,7 @@ pub struct Sandbox {
     root: PathBuf,
     mocks: Vec<mockito::Mock>,
     env_vars: Vec<EnvVar>,
+    env_vars_remove: Vec<String>,
     path: OsString,
 }
 
@@ -481,6 +489,10 @@ impl Sandbox {
         // overrides for env vars
         for env_var in &self.env_vars {
             p.env(&env_var.name, &env_var.value);
+        }
+
+        for env_var_name in &self.env_vars_remove {
+            p.env_remove(env_var_name);
         }
 
         p
