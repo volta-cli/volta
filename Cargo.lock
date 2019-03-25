@@ -1077,7 +1077,7 @@ dependencies = [
  "failure_derive 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "hamcrest2 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "mockito 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "notion-core 0.1.0",
+ "notion-core 0.2.2",
  "notion-fail 0.1.0",
  "notion-fail-derive 0.1.0",
  "rand 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1092,7 +1092,7 @@ dependencies = [
 
 [[package]]
 name = "notion-core"
-version = "0.1.0"
+version = "0.2.2"
 dependencies = [
  "archive 0.1.0",
  "cfg-if 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
