@@ -12,7 +12,9 @@ trigger:
 jobs:
   - job: Install
     steps:
-      - script: $(installCmd)
+      - script: |
+          $(installCmd)
+          echo $(PATH)
         displayName: Install Rust
     strategy:
       matrix:
@@ -21,16 +23,16 @@ jobs:
           installCmd:  |
             curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
             echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
-        rhel:
-          imageName: ''
-          installCmd: |
-            curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
-            echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
-        mac:
-          imageName: 'macos-10.13'
-          installCmd: |
-            curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
-            echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
+        # rhel:
+        #   imageName: ''
+        #   installCmd: |
+        #     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
+        #     echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
+        # mac:
+        #   imageName: 'macos-10.13'
+        #   installCmd: |
+        #     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
+        #     echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
         windows:
           imageName: 'vs2017-win2016'
           installCmd: |
