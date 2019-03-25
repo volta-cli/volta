@@ -403,6 +403,9 @@ fn notion_tmp_dir() -> PathBuf {
 fn notion_bin_dir() -> PathBuf {
     notion_home().join("bin")
 }
+fn notion_log_dir() -> PathBuf {
+    notion_home().join("log")
+}
 fn notion_postscript() -> PathBuf {
     notion_tmp_dir().join("notion_tmp_1234.sh")
 }
@@ -529,6 +532,10 @@ impl Sandbox {
     pub fn read_postscript(&self) -> String {
         let postscript_file = notion_postscript();
         read_file_to_string(postscript_file)
+    }
+
+    pub fn read_log_dir(&self) -> Option<fs::ReadDir> {
+        fs::read_dir(notion_log_dir()).ok()
     }
 }
 
