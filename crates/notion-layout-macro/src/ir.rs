@@ -11,6 +11,7 @@ use syn::{Attribute, Ident, LitStr, Visibility};
 
 // These seem to be leaked implementation details of the `quote` macro that have
 // to be imported by users. You can ignore them; they simply pacify the compiler.
+#[allow(unused_imports)]
 use quote::{multi_zip_expr, nested_tuples_pat, pounded_var_names, quote_each_token, quote_spanned};
 
 /// The intermediate representation (IR) of a struct type defined by the `layout!`
