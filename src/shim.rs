@@ -21,7 +21,7 @@ pub fn main() {
             session.exit_tool(code);
         }
         Err(err) => {
-            ErrorReporter::new().report(ErrorContext::Shim, &err);
+            ErrorReporter::from_env(env!("CARGO_PKG_VERSION")).report(ErrorContext::Shim, &err);
             session.add_event_error(ActivityKind::Tool, &err);
             session.exit(ExitCode::ExecutionFailure);
         }

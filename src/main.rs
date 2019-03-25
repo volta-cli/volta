@@ -16,12 +16,8 @@ pub fn main() {
     let notion = cli::Notion::from_args();
     let verbose = notion.verbose;
     let exit_code = notion.run(&mut session).unwrap_or_else(|err| {
-        let reporter = if verbose {
-            ErrorReporter::verbose()
-        } else {
-            ErrorReporter::new()
-        };
-        reporter.report(ErrorContext::Notion, &err);
+        ErrorReporter::from_flag(env!("CARGO_PKG_VERSION"), verbose)
+            .report(ErrorContext::Notion, &err);
         session.add_event_error(ActivityKind::Notion, &err);
         err.exit_code()
     });
