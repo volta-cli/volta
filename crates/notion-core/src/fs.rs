@@ -7,6 +7,8 @@ use std::path::{Path, PathBuf};
 use crate::error::ErrorDetails;
 use notion_fail::{Fallible, ResultExt};
 
+use regex::Regex;
+
 pub fn touch(path: &Path) -> Fallible<File> {
     if !path.is_file() {
         let basedir = path.parent().unwrap();
@@ -66,4 +68,21 @@ pub fn read_dir_eager(dir: &Path) -> Fallible<impl Iterator<Item = (DirEntry, Me
         })
         .collect::<Fallible<Vec<(DirEntry, Metadata)>>>()?
         .into_iter())
+}
+
+/// Reads the contents of a directory and returns a Vec of all files found in
+/// the directory that match the input regex.
+pub fn files_matching(dir: &Path, re: &Regex) -> Fallible<Vec<PathBuf>> {
+    Ok(read_dir_eager(dir)?
+        .filter(|(_, metadata)| metadata.is_file())
+        .filter_map(|(entry, _)| {
+            if let Some(file_name) = entry.path().file_name() {
+                println!("files_matching - got file_name: {:?}", file_name);
+                if re.is_match(&file_name.to_string_lossy()) {
+                    return Some(entry.path());
+                }
+            }
+            None
+        })
+        .collect::<Vec<PathBuf>>())
 }

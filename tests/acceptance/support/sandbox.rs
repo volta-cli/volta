@@ -355,6 +355,52 @@ impl SandboxBuilder {
         this
     }
 
+    /// Set a package config file for the sandbox (chainable)
+    pub fn package_config(mut self, name: &str, contents: &str) -> Self {
+        let package_cfg_file = package_config_file(name);
+        self.files
+            .push(FileBuilder::new(package_cfg_file, contents));
+        self
+    }
+
+    /// Set a bin config file for the sandbox (chainable)
+    pub fn binary_config(mut self, name: &str, contents: &str) -> Self {
+        let bin_cfg_file = binary_config_file(name);
+        self.files.push(FileBuilder::new(bin_cfg_file, contents));
+        self
+    }
+
+    /// Set a shim file for the sandbox (chainable)
+    pub fn shim(mut self, name: &str) -> Self {
+        let shim_file = shim_file(name);
+        self.files
+            .push(FileBuilder::new(shim_file, "contents don't matter"));
+        self
+    }
+
+    /// Set an unpackaged package for the sandbox (chainable)
+    pub fn package_image(mut self, name: &str, version: &str) -> Self {
+        let package_img_dir = package_image_dir(name, version);
+        let package_json = package_img_dir.join("package.json");
+        self.files.push(FileBuilder::new(
+            package_json,
+            &format!(r#"{{"name":"{}","version":"{}"}}"#, name, version),
+        ));
+        self
+    }
+
+    /// Set cached package tarballs for the sandbox (chainable)
+    pub fn package_inventory(mut self, name: &str, version: &str) -> Self {
+        let pkg_inventory_dir = package_inventory_dir();
+        let package_tarball = pkg_inventory_dir.join(format!("{}-{}.tgz", name, version));
+        self.files
+            .push(FileBuilder::new(package_tarball, "tarball contents"));
+        let package_shasum = pkg_inventory_dir.join(format!("{}-{}.shasum", name, version));
+        self.files
+            .push(FileBuilder::new(package_shasum, "shasum contents"));
+        self
+    }
+
     /// Create the project
     pub fn build(mut self) -> Sandbox {
         // First, clean the directory if it already exists
@@ -425,6 +471,9 @@ fn inventory_dir() -> PathBuf {
 fn user_dir() -> PathBuf {
     notion_tools_dir().join("user")
 }
+fn image_dir() -> PathBuf {
+    notion_tools_dir().join("image")
+}
 fn node_inventory_dir() -> PathBuf {
     inventory_dir().join("node")
 }
@@ -432,7 +481,7 @@ fn yarn_inventory_dir() -> PathBuf {
     inventory_dir().join("yarn")
 }
 fn package_inventory_dir() -> PathBuf {
-    inventory_dir().join("package")
+    inventory_dir().join("packages")
 }
 fn cache_dir() -> PathBuf {
     notion_home().join("cache")
@@ -451,6 +500,18 @@ fn node_index_expiry_file() -> PathBuf {
 fn package_json_file(mut root: PathBuf) -> PathBuf {
     root.push("package.json");
     root
+}
+fn package_config_file(name: &str) -> PathBuf {
+    user_dir().join("packages").join(format!("{}.json", name))
+}
+fn binary_config_file(name: &str) -> PathBuf {
+    user_dir().join("bins").join(format!("{}.json", name))
+}
+fn shim_file(name: &str) -> PathBuf {
+    notion_bin_dir().join(name)
+}
+fn package_image_dir(name: &str, version: &str) -> PathBuf {
+    image_dir().join("packages").join(name).join(version)
 }
 fn user_platform_file() -> PathBuf {
     user_dir().join("platform.json")
@@ -548,6 +609,34 @@ impl Sandbox {
 
     pub fn read_log_dir(&self) -> Option<fs::ReadDir> {
         fs::read_dir(notion_log_dir()).ok()
+    }
+
+    // check that files in the sandbox exist
+
+    pub fn package_config_exists(name: &str) -> bool {
+        package_config_file(name).exists()
+    }
+    pub fn bin_config_exists(name: &str) -> bool {
+        binary_config_file(name).exists()
+    }
+    pub fn shim_exists(name: &str) -> bool {
+        shim_file(name).exists()
+    }
+    pub fn package_image_exists(name: &str, version: &str) -> bool {
+        let package_img_dir = package_image_dir(name, version);
+        package_img_dir.join("package.json").exists()
+    }
+    pub fn pkg_inventory_tarball_exists(name: &str, version: &str) -> bool {
+        let pkg_inventory_dir = package_inventory_dir();
+        pkg_inventory_dir
+            .join(format!("{}-{}.tgz", name, version))
+            .exists()
+    }
+    pub fn pkg_inventory_shasum_exists(name: &str, version: &str) -> bool {
+        let pkg_inventory_dir = package_inventory_dir();
+        pkg_inventory_dir
+            .join(format!("{}-{}.shasum", name, version))
+            .exists()
     }
 }
 

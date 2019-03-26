@@ -2,28 +2,24 @@
 //! execution of a Notion tool, including their current directory, Notion
 //! hook configuration, and the state of the local inventory.
 
-use std::fs;
-use std::io;
+use std::ffi::OsStr;
+use std::fmt::{self, Display, Formatter};
+use std::process::exit;
 use std::rc::Rc;
 
 use crate::distro::node::NodeVersion;
-use crate::distro::package::{PackageConfig, PackageVersion, UserTool};
+use crate::distro::package::{PackageVersion, UserTool};
 use crate::distro::Fetched;
 use crate::error::ErrorDetails;
+use crate::event::EventLog;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
 use crate::inventory::{FetchResolve, Inventory, LazyInventory};
-use crate::path;
 use crate::platform::PlatformSpec;
 use crate::project::{LazyProject, Project};
 use crate::toolchain::LazyToolchain;
 use crate::version::VersionSpec;
 
-use std::ffi::OsStr;
-use std::fmt::{self, Display, Formatter};
-use std::process::exit;
-
-use crate::event::EventLog;
-use notion_fail::{throw, ExitCode, Fallible, NotionError, ResultExt};
+use notion_fail::{throw, ExitCode, Fallible, NotionError};
 use semver::Version;
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
@@ -75,12 +71,6 @@ impl Display for ActivityKind {
             &ActivityKind::Which => "which",
         };
         f.write_str(s)
-    }
-}
-
-fn file_deletion_error(err: &io::Error) -> ErrorDetails {
-    ErrorDetails::FileDeletionError {
-        error: err.to_string(),
     }
 }
 
@@ -243,41 +233,8 @@ impl Session {
     }
 
     /// Uninstall the specified package.
-    ///
-    /// This removes:
-    /// * the json config files
-    /// * the shims
-    /// * the unpacked and initialized package
-    ///
-    /// This optionally clears the inventory for this package, removing:
-    /// * the downloaded tarball and shasum files
-    pub fn uninstall_package(&mut self, name: String, _remove_all: bool) -> Fallible<()> {
-        // read the config file to see where things are
-        let package_config_file = path::user_package_config_file(&name)?;
-        if !package_config_file.exists() {
-            throw!(ErrorDetails::PackageNotInstalled { package: name });
-        }
-        let package_config = PackageConfig::from_file(&package_config_file)?;
-
-        // remove the shims and binary config files
-        for bin_name in package_config.bins {
-            let shim = path::shim_file(&bin_name)?;
-            fs::remove_file(shim).with_context(file_deletion_error)?;
-            let config_file = path::user_tool_bin_config(&bin_name)?;
-            fs::remove_file(config_file).with_context(file_deletion_error)?;
-        }
-
-        // remove any unpacked and initialized packages
-        let package_image_dir = path::package_image_root_dir()?.join(name);
-        fs::remove_dir(package_image_dir).with_context(file_deletion_error)?;
-
-        // TODO: optionally remove from inventory
-        // let package_inv_dir = path::package_inventory_dir(&name)?;
-
-        // remove the package config file
-        fs::remove_file(package_config_file).with_context(file_deletion_error)?;
-
-        Ok(())
+    pub fn uninstall_package(&self, name: String, remove_all: bool) -> Fallible<()> {
+        PackageVersion::uninstall(name, remove_all)
     }
 
     /// Fetches a Node version matching the specified semantic versioning requirements.
