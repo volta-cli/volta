@@ -15,8 +15,8 @@ layout! {
         }
         "bin": shim_dir { }
         "notion.exe": notion_file;
-        "launchbin.exe": launchbin_file;
-        "launchscript.exe": launchscript_file;
+        "launchbin[.exe]": launchbin_file;
+        "launchscript[.exe]": launchscript_file;
         "config.toml": user_config_file;
         "shell": shell_dir { }
         "tools": tools_dir {

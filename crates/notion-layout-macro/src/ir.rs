@@ -30,8 +30,6 @@ pub(crate) struct Ir {
     pub(crate) exes: Vec<Entry>,
 }
 
-// FIXME: these should get proper spans
-
 impl Ir {
     fn dir_names(&self) -> impl Iterator<Item=&Ident> {
         self.dirs.iter().map(|entry| &entry.name)
@@ -57,11 +55,17 @@ impl Ir {
 
         let attrs = self.attrs.iter();
         let visibility = self.visibility.clone();
-        let field_names = self.field_names();
+
+        let field_names = self.field_names().map(|field_name| {
+            // Use the field name's span for good duplicate-field-name error messages.
+            quote_spanned! {field_name.span()=>
+                #field_name : ::std::path::PathBuf ,
+            }
+        });
 
         quote! {
             #(#attrs)* #visibility struct #name {
-                #(#field_names : ::std::path::PathBuf),* ,
+                #(#field_names)*
                 root: ::std::path::PathBuf,
             }
         }
@@ -73,7 +77,7 @@ impl Ir {
 
         quote! {
             impl #name {
-                // FIXME: add doc comment
+                /// Creates all subdirectories in this directory layout.
                 pub fn create(&self) -> ::std::io::Result<()> {
                     #(::std::fs::create_dir_all(self.#dir_names())?;)*
                     ::std::result::Result::Ok(())
@@ -84,14 +88,26 @@ impl Ir {
 
     fn to_item_methods(&self) -> TokenStream {
         let name = &self.name;
-        let field_names1 = self.field_names();
-        let field_names2 = self.field_names();
+
+        let methods = self.field_names().map(|field_name| {
+            // Markdown-formatted field name for the doc comment.
+            let markdown_field_name = format!("`{}`", field_name.to_string());
+            let markdown_field_name = LitStr::new(&markdown_field_name, field_name.span());
+
+            // Use the field name's span for good duplicate-method-name error messages.
+            quote_spanned! {field_name.span()=>
+                #[doc = "Returns the "]
+                #[doc = #markdown_field_name]
+                #[doc = " path."]
+                pub fn #field_name(&self) -> &::std::path::Path { &self.#field_name }
+            }
+        });
 
         quote! {
             impl #name {
-                // FIXME: add doc comments
-                #(pub fn #field_names1(&self) -> &::std::path::Path { &self.#field_names2 })*
+                #(#methods)*
 
+                /// Returns the root path for this directory layout.
                 pub fn root(&self) -> &::std::path::Path { &self.root }
             }
         }
@@ -99,7 +115,6 @@ impl Ir {
 
     fn to_ctor(&self) -> TokenStream {
         let name = &self.name;
-        // FIXME: not sure this is the best span() to use
         let root = Ident::new("root", self.name.span());
 
         let dir_names = self.dir_names();
@@ -120,9 +135,15 @@ impl Ir {
         let all_names = dir_names.chain(file_names).chain(exe_names);
         let all_inits = dir_inits.chain(file_inits).chain(exe_inits);
 
+        let markdown_struct_name = format!("`{}`", name.to_string());
+        let markdown_struct_name = LitStr::new(&markdown_struct_name, name.span());
+
         quote! {
             impl #name {
-                fn new(#root: ::std::path::PathBuf) -> Self {
+                #[doc = "Constructs a new instance of the "]
+                #[doc = #markdown_struct_name]
+                #[doc = " layout, rooted at `root`."]
+                pub fn new(#root: ::std::path::PathBuf) -> Self {
                     Self {
                         #(#all_names: #all_inits),* ,
                         #root: #root

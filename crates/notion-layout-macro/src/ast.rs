@@ -65,6 +65,7 @@ impl Ast {
 /// }
 /// ```
 struct Directory {
+    #[allow(dead_code)]
     brace_token: token::Brace,
     entries: Punctuated<FieldPrefix, FieldContents>,
 }
@@ -103,7 +104,7 @@ impl Directory {
                 Some(FieldContents::Dir(dir)) => {
                     let filename = prefix.filename.value();
 
-                    if filename.ends_with(".exe") {
+                    if filename.ends_with(".exe") || filename.ends_with("[.exe]") {
                         let error = syn::Error::new(
                             prefix.filename.span(),
                             "the `.exe` extension is not allowed for directory names",
@@ -133,8 +134,8 @@ impl Directory {
                 }
                 _ => {
                     let filename = prefix.filename.value();
-                    if filename.ends_with(".exe") {
-                        let filename = &filename[0..filename.len() - 4];
+                    if filename.ends_with("[.exe]") {
+                        let filename = &filename[0..filename.len() - 6];
 
                         if let Some(kind) = visited_entries.get(filename) {
                             let message = match kind {
@@ -189,11 +190,12 @@ impl Directory {
 /// This is followed either by a semicolon (`;`), indicating that the field is a
 /// file, or a braced directory entry, indicating that the field is a directory.
 ///
-/// If the `LitStr` contains the suffix `".exe"`, it is treated specially as an
+/// If the `LitStr` contains the suffix `"[.exe]"` it is treated specially as an
 /// executable file, whose suffix (or lack thereof) is determined by the current
 /// operating system (using the `std::env::consts::EXE_SUFFIX` constant).
 struct FieldPrefix {
     filename: LitStr,
+    #[allow(dead_code)]
     colon: Token![:],
     name: Ident,
 }
