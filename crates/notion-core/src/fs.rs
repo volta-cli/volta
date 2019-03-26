@@ -77,7 +77,6 @@ pub fn files_matching(dir: &Path, re: &Regex) -> Fallible<Vec<PathBuf>> {
         .filter(|(_, metadata)| metadata.is_file())
         .filter_map(|(entry, _)| {
             if let Some(file_name) = entry.path().file_name() {
-                println!("files_matching - got file_name: {:?}", file_name);
                 if re.is_match(&file_name.to_string_lossy()) {
                     return Some(entry.path());
                 }
