@@ -1,5 +1,5 @@
+use notion_core::error::{ErrorContext, ErrorReporter};
 use notion_core::session::{ActivityKind, Session};
-use notion_core::style::{display_error, ErrorContext};
 use notion_core::tool::execute_tool;
 
 use notion_fail::ExitCode;
@@ -21,7 +21,7 @@ pub fn main() {
             session.exit_tool(code);
         }
         Err(err) => {
-            display_error(ErrorContext::Shim, &err);
+            ErrorReporter::from_env(env!("CARGO_PKG_VERSION")).report(ErrorContext::Shim, &err);
             session.add_event_error(ActivityKind::Tool, &err);
             session.exit(ExitCode::ExecutionFailure);
         }

@@ -24,9 +24,7 @@ pub(crate) struct Notion {
     #[structopt(subcommand)]
     pub(crate) command: Option<Subcommand>,
 
-    // not yet implemented!
     #[structopt(long = "verbose", help = "Enables verbose diagnostics", global = true)]
-    #[allow(dead_code)]
     pub(crate) verbose: bool,
 
     #[structopt(

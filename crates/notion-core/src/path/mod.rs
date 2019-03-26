@@ -40,6 +40,10 @@ pub fn tmp_dir() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("tmp"))
 }
 
+pub fn log_dir() -> Fallible<PathBuf> {
+    Ok(notion_home()?.join("log"))
+}
+
 pub fn node_inventory_dir() -> Fallible<PathBuf> {
     Ok(inventory_dir()?.join("node"))
 }
