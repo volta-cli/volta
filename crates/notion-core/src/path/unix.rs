@@ -117,6 +117,10 @@ pub fn shim_executable() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("shim"))
 }
 
+pub fn env_paths() -> Fallible<Vec<PathBuf>> {
+    Ok(vec![shim_dir()?])
+}
+
 /// Create a symlink. The `dst` path will be a symbolic link pointing to the `src` path.
 pub fn create_file_symlink(src: PathBuf, dst: PathBuf) -> Result<(), io::Error> {
     unix::fs::symlink(src, dst)

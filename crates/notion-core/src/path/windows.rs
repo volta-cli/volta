@@ -108,11 +108,23 @@ pub fn node_archive_npm_package_json_path(version: &str) -> PathBuf {
         .join("package.json")
 }
 
-fn install_dir() -> Fallible<PathBuf> {
-    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-    let notion_key = hklm.open_subkey(NOTION_REGISTRY_PATH).unknown()?;
-    let install_path: String = notion_key.get_value(NOTION_INSTALL_DIR).unknown()?;
-    Ok(PathBuf::from(install_path))
+cfg_if::cfg_if! {
+    if #[cfg(feature = "mock-network")] {
+        fn install_dir() -> Fallible<PathBuf> {
+            Ok(PathBuf::from(r#"Z:\"#))
+        }
+    } else {
+        fn install_dir() -> Fallible<PathBuf> {
+            let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+            let notion_key = hklm.open_subkey(NOTION_REGISTRY_PATH).unknown()?;
+            let install_path: String = notion_key.get_value(NOTION_INSTALL_DIR).unknown()?;
+            Ok(PathBuf::from(install_path))
+        }
+    }
+}
+
+pub fn install_bin_dir() -> Fallible<PathBuf> {
+    Ok(install_dir()?.join("bin"))
 }
 
 pub fn shim_executable() -> Fallible<PathBuf> {
@@ -120,11 +132,15 @@ pub fn shim_executable() -> Fallible<PathBuf> {
 }
 
 pub fn notion_file() -> Fallible<PathBuf> {
-    Ok(install_dir()?.join("bin").join("notion.exe"))
+    Ok(install_bin_dir()?.join("notion.exe"))
 }
 
 pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
     Ok(shim_dir()?.join(&format!("{}.exe", toolname)))
+}
+
+pub fn env_paths() -> Fallible<Vec<PathBuf>> {
+    Ok(vec![shim_dir()?, install_bin_dir()?])
 }
 
 /// Create a symlink. The `dst` path will be a symbolic link pointing to the `src` path.
