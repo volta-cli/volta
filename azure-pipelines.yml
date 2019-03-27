@@ -6,78 +6,42 @@
 trigger:
 - master
 
-# pool:
-#   vmImage: $(imageName)
 
 jobs:
   - job: Install
-    steps:
-      - script: |
-          $(installCmd)
-          echo $(PATH)
-        displayName: Install Rust
     strategy:
       matrix:
         ubuntu:
           imageName: 'ubuntu-16.04'
-          installCmd:  |
-            curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
-            export PATH="$HOME/.cargo/bin:$PATH"
-            echo "##vso[task.setvariable variable=PATH]$PATH"
-            rustc --version
-            cargo --version
-        # rhel:
-        #   imageName: ''
-        #   installCmd: |
-        #     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
-        #     export PATH="$HOME/.cargo/bin:$PATH"
-        #     echo "##vso[task.setvariable variable=PATH]$PATH"
-        # mac:
-        #   imageName: 'macos-10.13'
-        #   installCmd: |
-        #     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
-        #     export PATH="$HOME/.cargo/bin:$PATH"
-        #     echo "##vso[task.setvariable variable=PATH]$PATH"
+        mac:
+          imageName: 'macos-10.13'
         windows:
           imageName: 'vs2017-win2016'
-          installCmd: |
-            curl -sSf -o rustup-init.exe https://win.rustup.rs
-            rustup-init.exe -y --default-toolchain stable
-            set PATH=%PATH%;%USERPROFILE%\.cargo\bin
-            echo "##vso[task.setvariable variable=PATH]%PATH%;%USERPROFILE%\.cargo\bin"
-            rustc --version
-            cargo --version
+    pool:
+      vmImage: $(imageName)
+    steps:
+      - template: ci/install-rust.yml
+      - template: ci/test.yml
+      - template: ci/formatting.yml
 
   - job: Formatting
+    strategy:
+      matrix:
+        ubuntu:
+          imageName: 'ubuntu-16.04'
     steps:
-      - script: rustup component add rustfmt
-      - script: cargo fmt --all -q -- --check
+      - template: ci/formatting.yml
     dependsOn: Install
 
   - job: Test
+    strategy:
+      matrix:
+        ubuntu:
+          imageName: 'ubuntu-16.04'
+        mac:
+          imageName: 'macos-10.13'
+        windows:
+          imageName: 'vs2017-win2016'
     steps:
-      # the unit tests for all crates (without mocking the network)
-      # run single-threaded because some tests change environment variables,
-      # which is not thread-safe
-      - script: |
-          cargo test --all
-            --package notion-core \
-            --package notion-fail \
-            --package archive \
-            --package notion-fail-derive \
-            --package progress-read \
-            -- --test-threads=1
-        displayName: 
-
-      # the acceptance tests, using network mocks
-      - script: |
-          NOTION_DEV=1 RUST_BACKTRACE=full cargo test --features mock-network
-
-      # smoke tests: real data and no mocks
-      - script: |
-          NOTION_DEV=1 RUST_BACKTRACE=full cargo test \
-            --test smoke \
-            --features smoke-tests \
-            -- --test-threads 1
-    displayName: Run Tests
+      - template: ci/test.yml
     dependsOn: Install
