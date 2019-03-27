@@ -7,7 +7,7 @@ use crate::fs::ensure_containing_dir_exists;
 use crate::path::log_dir;
 use crate::style::{format_error_cause, format_error_message};
 use chrono::Local;
-use failure::{Error, Fail};
+use failure::Error;
 use notion_fail::NotionError;
 
 const NOTION_DEV: &'static str = "NOTION_DEV";
@@ -57,10 +57,7 @@ impl ErrorReporter {
 
         eprintln!("{}", message);
 
-        // Only consider additional details if the error has an underlying cause
-        if let Some(inner) = err.as_fail().cause() {
-            let details = compose_error_details(err, inner);
-
+        if let Some(details) = compose_error_details(err) {
             if self.verbose {
                 eprintln!();
                 eprintln!("{}", details);
@@ -98,8 +95,31 @@ impl ErrorReporter {
     }
 }
 
-fn compose_error_details(err: &NotionError, inner: &Fail) -> String {
-    let mut details = format_error_cause(inner);
+fn compose_error_details(err: &NotionError) -> Option<String> {
+    // Only compose details if there is an underlying cause for the error
+    let mut current = match err.as_fail().cause() {
+        Some(cause) => cause,
+        None => {
+            return None;
+        }
+    };
+    let mut details = String::new();
+
+    // Walk up the tree of causes and include all of them
+    loop {
+        write!(details, "{}", format_error_cause(current))
+            .expect("write! to a String doesn't fail");
+
+        match current.cause() {
+            Some(cause) => {
+                write!(details, "\n\n").expect("write! to a String doesn't fail");
+                current = cause;
+            }
+            None => {
+                break;
+            }
+        };
+    }
 
     // ISSUE #75 - Once we have a way to determine backtraces without RUST_BACKTRACE, we can make this always available
     // Until then, we know that if the env var is not set, the backtrace will be empty
@@ -108,7 +128,7 @@ fn compose_error_details(err: &NotionError, inner: &Fail) -> String {
         write!(details, "\n\n{}", err.backtrace()).expect("write! to a String doesn't fail");
     }
 
-    details
+    Some(details)
 }
 
 /// Combines all the arguments into a single String
