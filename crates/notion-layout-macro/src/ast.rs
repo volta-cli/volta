@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use syn;
 use syn::parse::{self, Parse, ParseStream};
 use syn::punctuated::Punctuated;
-use syn::{braced, token, Attribute, Ident, LitStr, Token, Visibility};
+use syn::{braced, Attribute, Ident, LitStr, Token, Visibility};
 
 pub(crate) type Result<T> = ::std::result::Result<T, TokenStream>;
 
@@ -16,29 +16,64 @@ pub(crate) type Result<T> = ::std::result::Result<T, TokenStream>;
 /// Attribute* Visibility "struct" Ident Directory
 /// ```
 ///
+/// This AST gets lowered by the `flatten` method to a vector of intermediate
+/// representation (IR) trees. See the `Ir` type for details.
+pub(crate) struct Ast {
+    decls: Vec<LayoutStruct>,
+}
+
+impl Parse for Ast {
+    fn parse(input: ParseStream) -> parse::Result<Self> {
+        let mut decls = Vec::new();
+        while !input.is_empty() {
+            let decl = input.call(LayoutStruct::parse)?;
+            decls.push(decl);
+        }
+        Ok(Ast { decls })
+    }
+}
+
+impl Ast {
+    /// Compiles (macro-expands) the AST.
+    pub(crate) fn compile(self) -> TokenStream {
+        self.decls.into_iter().map(|decl| {
+            match decl.flatten() {
+                Ok(ir) => ir.codegen(),
+                Err(err) => err,
+            }
+        }).collect()
+    }
+}
+
+/// Represents a single type LayoutStruct in the AST, which takes the form:
+///
+/// ```
+/// Attribute* Visibility "struct" Ident Directory
+/// ```
+///
 /// This AST gets lowered by the `flatten` method to a flat list of entries,
 /// organized by entry type. See the `Ir` type for details.
-pub(crate) struct Ast {
+pub(crate) struct LayoutStruct {
     attrs: Vec<Attribute>,
     visibility: Visibility,
     name: Ident,
     directory: Directory,
 }
 
-impl Parse for Ast {
+impl Parse for LayoutStruct {
     fn parse(input: ParseStream) -> parse::Result<Self> {
         let attrs: Vec<Attribute> = input.call(Attribute::parse_outer)?;
         let visibility: Visibility = input.parse()?;
         input.parse::<Token![struct]>()?;
         let name: Ident = input.parse()?;
         let directory: Directory = input.parse()?;
-        Ok(Ast { attrs, visibility, name, directory })
+        Ok(LayoutStruct { attrs, visibility, name, directory })
     }
 }
 
-impl Ast {
+impl LayoutStruct {
     /// Lowers the AST to a flattened intermediate representation.
-    pub(crate) fn flatten(self) -> Result<Ir> {
+    fn flatten(self) -> Result<Ir> {
         let mut results = Ir {
             name: self.name,
             attrs: self.attrs,
@@ -65,16 +100,14 @@ impl Ast {
 /// }
 /// ```
 struct Directory {
-    #[allow(dead_code)]
-    brace_token: token::Brace,
     entries: Punctuated<FieldPrefix, FieldContents>,
 }
 
 impl Parse for Directory {
     fn parse(input: ParseStream) -> parse::Result<Self> {
         let content;
+        braced!(content in input);
         Ok(Directory {
-            brace_token: braced!(content in input),
             entries: content.parse_terminated(FieldPrefix::parse)?,
         })
     }
@@ -195,18 +228,15 @@ impl Directory {
 /// operating system (using the `std::env::consts::EXE_SUFFIX` constant).
 struct FieldPrefix {
     filename: LitStr,
-    #[allow(dead_code)]
-    colon: Token![:],
     name: Ident,
 }
 
 impl Parse for FieldPrefix {
     fn parse(input: ParseStream) -> parse::Result<Self> {
-        Ok(FieldPrefix {
-            filename: input.parse()?,
-            colon: input.parse()?,
-            name: input.parse()?,
-        })
+        let filename = input.parse()?;
+        input.parse::<Token![:]>()?;
+        let name = input.parse()?;
+        Ok(FieldPrefix { filename, name })
     }
 }
 

@@ -4,7 +4,13 @@ use std::path::PathBuf;
 use notion_layout_macro::layout;
 
 layout! {
-    /// The V1 layout schema for Notion.
+    /// The V1 layout for the core Notion installation directory.
+    pub struct NotionInstall {
+        "notion[.exe]": notion_file;
+        "shim[.exe]": shim_executable;
+    }
+
+    /// The V1 layout schema for the Notion user home directory.
     pub struct NotionHome {
         ".schema": schema_file;
         "cache": cache_dir {
@@ -14,9 +20,6 @@ layout! {
             }
         }
         "bin": shim_dir { }
-        "notion.exe": notion_file;
-        "launchbin[.exe]": launchbin_file;
-        "launchscript[.exe]": launchscript_file;
         "config.toml": user_config_file;
         "shell": shell_dir { }
         "tools": tools_dir {

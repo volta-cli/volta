@@ -15,8 +15,14 @@ use syn::parse_macro_input;
 ///
 /// ```
 /// layout! {
-///     Attribute* Visibility "struct" Ident Directory
+///     LayoutStruct*
 /// }
+/// ```
+///
+/// The syntax of a `LayoutStruct` takes the form:
+///
+/// ```
+/// Attribute* Visibility "struct" Ident Directory
 /// ```
 ///
 /// The syntax of a `Directory` takes the form:
@@ -47,9 +53,6 @@ use syn::parse_macro_input;
 #[proc_macro]
 pub fn layout(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as Ast);
-    let expanded = match ast.flatten() {
-        Ok(ir) => ir.codegen(),
-        Err(err) => err,
-    };
+    let expanded = ast.compile();
     TokenStream::from(expanded)
 }
