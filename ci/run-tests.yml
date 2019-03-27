@@ -3,7 +3,7 @@ steps:
   # run single-threaded because some tests change environment variables,
   # which is not thread-safe
   - script: |
-      cargo test --all \
+      cargo test \
         --package notion-core \
         --package notion-fail \
         --package archive \
