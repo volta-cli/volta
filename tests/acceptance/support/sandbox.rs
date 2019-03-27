@@ -508,7 +508,7 @@ fn binary_config_file(name: &str) -> PathBuf {
     user_dir().join("bins").join(format!("{}.json", name))
 }
 fn shim_file(name: &str) -> PathBuf {
-    notion_bin_dir().join(name)
+    notion_bin_dir().join(format!("{}{}", name, env::consts::EXE_SUFFIX))
 }
 fn package_image_dir(name: &str, version: &str) -> PathBuf {
     image_dir().join("packages").join(name).join(version)
