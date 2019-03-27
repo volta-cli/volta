@@ -8,38 +8,56 @@ trigger:
 
 
 jobs:
-  - job: Install
+  - job: install_nix
     strategy:
       matrix:
         ubuntu:
           imageName: 'ubuntu-16.04'
         mac:
           imageName: 'macos-10.13'
+    pool:
+      vmImage: $(imageName)
+    steps:
+      - template: ci/install-rust.yml
+    displayName: Install (not Windows)
+
+  - job: install_windows
+    strategy:
+      matrix:
         windows:
           imageName: 'vs2017-win2016'
     pool:
       vmImage: $(imageName)
     steps:
       - template: ci/install-rust.yml
+    displayName: Install (Windows)
 
-  - job: Formatting
+  - job: formatting
     strategy:
       matrix:
         ubuntu:
           imageName: 'ubuntu-16.04'
     steps:
       - template: ci/check-formatting.yml
-    dependsOn: Install
+    dependsOn: install_nix
+    displayName: Check Formatting
 
-  - job: Test
+  - job: test_nix
     strategy:
       matrix:
         ubuntu:
           imageName: 'ubuntu-16.04'
         mac:
           imageName: 'macos-10.13'
+    steps:
+      - template: ci/run-tests.yml
+    dependsOn: install_nix
+  
+  - job: test_windows
+    strategy:
+      matrix:
         windows:
           imageName: 'vs2017-win2016'
     steps:
       - template: ci/run-tests.yml
-    dependsOn: Install
+    dependsOn: install_windows
