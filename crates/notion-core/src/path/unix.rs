@@ -53,6 +53,7 @@ cfg_if::cfg_if! {
 //             npx
 //             ...
 //             ember
+//         log/                                            log_dir
 //         tools/                                          tools_dir
 //             inventory/                                  inventory_dir
 //                 node/                                   node_inventory_dir

@@ -37,6 +37,7 @@ pub fn ensure_notion_dirs_exist() -> Fallible<()> {
         fs::create_dir_all(yarn_image_root_dir()?).unknown()?;
         fs::create_dir_all(user_toolchain_dir()?).unknown()?;
         fs::create_dir_all(tmp_dir()?).unknown()?;
+        fs::create_dir_all(log_dir()?).unknown()?;
     }
 
     Ok(())
