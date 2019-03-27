@@ -6,7 +6,6 @@
 trigger:
 - master
 
-
 jobs:
   - job: nix
     strategy:
