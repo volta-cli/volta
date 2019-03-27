@@ -30,7 +30,7 @@ jobs:
         ubuntu:
           imageName: 'ubuntu-16.04'
     steps:
-      - template: ci/formatting.yml
+      - template: ci/check-formatting.yml
     dependsOn: Install
 
   - job: Test
@@ -43,5 +43,5 @@ jobs:
         windows:
           imageName: 'vs2017-win2016'
     steps:
-      - template: ci/test.yml
+      - template: ci/run-tests.yml
     dependsOn: Install
