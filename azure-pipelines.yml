@@ -4,16 +4,17 @@
 # https://aka.ms/yaml
 
 trigger:
-- master
+  - master
+  - refs/tags/*
 
 jobs:
   - job: nix
     strategy:
       matrix:
         ubuntu:
-          imageName: 'ubuntu-16.04'
+          imageName: "ubuntu-16.04"
         mac:
-          imageName: 'macos-10.13'
+          imageName: "macos-10.13"
     pool:
       vmImage: $(imageName)
     steps:
@@ -26,10 +27,34 @@ jobs:
     strategy:
       matrix:
         windows:
-          imageName: 'vs2017-win2016'
+          imageName: "vs2017-win2016"
     pool:
       vmImage: $(imageName)
     steps:
       - template: ci/install-rust.yml
       - template: ci/run-tests.yml
     displayName: Build and Test Windows
+
+  - job: publish_docs
+    displayName: Publish Docs
+    # Using macOS for this b/c it's substantially the fastest.
+    strategy:
+      matrix:
+        mac:
+          imageName: "macos-10.13"
+    steps:
+      - template: ci/publish-docs.yml
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+
+  - job: publish_release
+    strategy:
+      matrix:
+        ubuntu:
+          imageName: "ubuntu-16.04"
+        mac:
+          imageName: "macos-10.13"
+        windows:
+          imageName: "vs2017-win2016"
+    steps:
+      - template: ci/publish-release.yml
+    condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))

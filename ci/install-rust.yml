@@ -19,6 +19,6 @@ steps:
 
   # All platforms.
   - script: |
-        rustc -Vv
-        cargo -V
+      rustc -Vv
+      cargo -V
     displayName: Log Rust and Cargo versions

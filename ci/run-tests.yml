@@ -4,7 +4,7 @@ steps:
   # which is not thread-safe
   - script: cargo test --package notion-core --package notion-fail --package archive --package notion-fail-derive --package progress-read -- --test-threads=1
     displayName: Unit Tests
-  
+
   # the acceptance tests, using network mocks
   - script: cargo test --features mock-network
     env:
