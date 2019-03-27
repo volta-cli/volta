@@ -11,3 +11,4 @@ steps:
     condition: eq(variables['Agent.OS'], 'Windows_NT')
 
   - script: cargo build --release
+  # TODO: push to GitHub Releases page
