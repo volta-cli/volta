@@ -21,8 +21,6 @@ jobs:
       vmImage: $(imageName)
     steps:
       - template: ci/install-rust.yml
-      - template: ci/test.yml
-      - template: ci/formatting.yml
 
   - job: Formatting
     strategy:
