@@ -387,11 +387,7 @@ impl PackageVersion {
             let package_config = PackageConfig::from_file(&package_config_file)?;
 
             for bin_name in package_config.bins {
-                let shim = path::shim_file(&bin_name)?;
-                fs::remove_file(shim).with_context(file_deletion_error)?;
-                let config_file = path::user_tool_bin_config(&bin_name)?;
-                fs::remove_file(config_file).with_context(file_deletion_error)?;
-                println!("Removed executable '{}' installed by '{}'", bin_name, name);
+                PackageVersion::remove_config_and_shims(&bin_name, &name)?;
             }
 
             fs::remove_file(package_config_file).with_context(file_deletion_error)?;
@@ -401,11 +397,7 @@ impl PackageVersion {
             if user_bin_dir.exists() {
                 let orphaned_bins = binaries_from_package(&name)?;
                 for bin_name in orphaned_bins {
-                    let shim = path::shim_file(&bin_name)?;
-                    fs::remove_file(shim).with_context(file_deletion_error)?;
-                    let config_file = path::user_tool_bin_config(&bin_name)?;
-                    fs::remove_file(config_file).with_context(file_deletion_error)?;
-                    println!("Removed executable '{}' installed by '{}'", bin_name, name);
+                    PackageVersion::remove_config_and_shims(&bin_name, &name)?;
                 }
             }
         }
@@ -431,6 +423,15 @@ impl PackageVersion {
         }
 
         println!("Package '{}' uninstalled", name);
+        Ok(())
+    }
+
+    fn remove_config_and_shims(bin_name: &str, name: &str) -> Fallible<()> {
+        let shim = path::shim_file(&bin_name)?;
+        fs::remove_file(shim).with_context(file_deletion_error)?;
+        let config_file = path::user_tool_bin_config(&bin_name)?;
+        fs::remove_file(config_file).with_context(file_deletion_error)?;
+        println!("Removed executable '{}' installed by '{}'", bin_name, name);
         Ok(())
     }
 }
