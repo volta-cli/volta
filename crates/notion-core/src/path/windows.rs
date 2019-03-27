@@ -109,7 +109,8 @@ pub fn node_archive_npm_package_json_path(version: &str) -> PathBuf {
 }
 
 cfg_if::cfg_if! {
-    if #[cfg(feature = "mock-network")] {
+    // We don't want to be reading from the Registry when testing, so use a fixture PathBuf
+    if #[cfg(test)] {
         fn install_dir() -> Fallible<PathBuf> {
             Ok(PathBuf::from(r#"Z:\"#))
         }
