@@ -33,4 +33,4 @@ jobs:
     steps:
       - template: ci/install-rust.yml
       - template: ci/run-tests.yml
-    displayName: Windows
+    displayName: Build and Test Windows
