@@ -107,12 +107,11 @@ fn compose_error_details(err: &NotionError) -> Option<String> {
 
     // Walk up the tree of causes and include all of them
     loop {
-        write!(details, "{}", format_error_cause(current))
-            .expect("write! to a String doesn't fail");
+        details.push_str(&format_error_cause(current));
 
         match current.cause() {
             Some(cause) => {
-                write!(details, "\n\n").expect("write! to a String doesn't fail");
+                details.push_str("\n\n");
                 current = cause;
             }
             None => {
