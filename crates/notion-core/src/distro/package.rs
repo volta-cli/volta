@@ -172,11 +172,7 @@ impl Distro for PackageDistro {
         f.write_all(self.shasum.as_bytes()).unknown()?;
         f.sync_all().unknown()?;
 
-        let pkg_info = Manifest::for_dir(&self.image_dir).with_context(|error| {
-            ErrorDetails::DepPackageReadError {
-                error: error.to_string(),
-            }
-        })?;
+        let pkg_info = Manifest::for_dir(&self.image_dir)?;
         let bin_map = pkg_info.bin;
         if bin_map.is_empty() {
             throw!(ErrorDetails::NoPackageExecutables);

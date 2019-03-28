@@ -150,11 +150,8 @@ impl Project {
 
         // use those project paths to get the "bin" info for each project
         for pkg_path in all_dep_paths {
-            let pkg_info = Manifest::for_dir(&pkg_path).with_context(|error| {
-                ErrorDetails::DepPackageReadError {
-                    error: error.to_string(),
-                }
-            })?;
+            let pkg_info =
+                Manifest::for_dir(&pkg_path).with_context(|_| ErrorDetails::DepPackageReadError)?;
             let bin_map = pkg_info.bin;
             for (name, path) in bin_map.iter() {
                 dependent_bins.insert(name.clone(), path.clone());

@@ -38,7 +38,11 @@ impl Manifest {
             file: package_file.to_string_lossy().to_string(),
         })?;
 
-        let serial: serial::Manifest = serde_json::de::from_reader(file).unknown()?;
+        let serial: serial::Manifest = serde_json::de::from_reader(file).with_context(|_| {
+            ErrorDetails::PackageParseError {
+                file: package_file.to_string_lossy().to_string(),
+            }
+        })?;
         serial.into_manifest()
     }
 

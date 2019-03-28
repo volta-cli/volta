@@ -39,9 +39,8 @@ pub enum ErrorDetails {
         error: String,
     },
 
-    DepPackageReadError {
-        error: String,
-    },
+    /// Thrown when reading dependency package info fails
+    DepPackageReadError,
 
     DeprecatedCommandError {
         command: String,
@@ -105,6 +104,12 @@ pub enum ErrorDetails {
         from_url: String,
     },
 
+    /// Thrown when parsing a package manifest fails
+    PackageParseError {
+        file: String,
+    },
+
+    /// Thrown when reading a package manifest fails
     PackageReadError {
         file: String,
     },
@@ -198,8 +203,10 @@ Use `notion install` to add a package to your toolchain (see `notion help instal
             ErrorDetails::CreateDirError { dir, error } => {
                 write!(f, "Could not create directory {}: {}", dir, error)
             }
-            ErrorDetails::DepPackageReadError { error } => {
-                write!(f, "Could not read dependent package info: {}", error)
+            ErrorDetails::DepPackageReadError => {
+                write!(f, "Could not read package info for dependencies.
+
+Please ensure that all dependencies have been installed.")
             }
             ErrorDetails::DeprecatedCommandError { command, advice } => {
                 write!(f, "The subcommand `{}` is deprecated.\n{}", command, advice)
@@ -284,11 +291,17 @@ from {}
 Please verify your internet connection.",
                 from_url
             ),
+            ErrorDetails::PackageParseError { file } => {
+                write!(f, "Could not parse project manifest
+at {}
+
+Please ensure that the file is correctly formatted.", file)
+            },
             ErrorDetails::PackageReadError { file } => {
                 write!(f, "Could not read project manifest
 from {}
 
-Please ensure that the file exists and is correctly formatted.", file)
+Please ensure that the file exists.", file)
             }
             ErrorDetails::PackageUnpackError => write!(
                 f,
@@ -357,7 +370,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::CommandNotImplemented { .. } => ExitCode::NotYetImplemented,
             ErrorDetails::CouldNotDetermineTool => ExitCode::UnknownError,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
-            ErrorDetails::DepPackageReadError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::DepPackageReadError => ExitCode::FileSystemError,
             ErrorDetails::DeprecatedCommandError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
             ErrorDetails::InvalidHookCommand { .. } => ExitCode::UnknownError,
@@ -376,6 +389,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::PackageInstallFailed => ExitCode::FileSystemError,
             ErrorDetails::PackageMetadataFetchError { .. } => ExitCode::NetworkError,
+            ErrorDetails::PackageParseError { .. } => ExitCode::ConfigurationError,
             ErrorDetails::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::PackageUnpackError => ExitCode::ConfigurationError,
             ErrorDetails::PackageVersionNotFound { .. } => ExitCode::NoVersionMatch,
