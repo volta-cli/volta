@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fs::{rename, File};
-use std::io::{self, Read, Write};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::str;
@@ -29,18 +29,6 @@ use archive::{Archive, Tarball};
 use tempfile::tempdir_in;
 
 use notion_fail::{throw, Fallible, ResultExt};
-
-fn install_error(error: &io::Error) -> ErrorDetails {
-    if let Some(inner_err) = error.get_ref() {
-        ErrorDetails::PackageInstallIoError {
-            error: inner_err.to_string(),
-        }
-    } else {
-        ErrorDetails::PackageInstallIoError {
-            error: error.to_string(),
-        }
-    }
-}
 
 /// A provisioned Package distribution.
 #[derive(Eq, PartialEq, Clone, Debug)]
@@ -311,12 +299,12 @@ impl PackageVersion {
             )
         };
 
-        let output = install_cmd.output().with_context(install_error)?;
+        let output = install_cmd
+            .output()
+            .with_context(|_| ErrorDetails::PackageInstallFailed)?;
+
         if !output.status.success() {
-            throw!(ErrorDetails::PackageInstallFailed {
-                cmd: format!("{:?}", install_cmd),
-                status: output.status
-            });
+            throw!(ErrorDetails::PackageInstallFailed);
         }
 
         self.write_config_and_shims(&platform)?;

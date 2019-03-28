@@ -1,5 +1,4 @@
 use std::fmt;
-use std::process::ExitStatus;
 
 use failure::Fail;
 use notion_fail::{ExitCode, NotionFail};
@@ -99,15 +98,7 @@ pub enum ErrorDetails {
     },
 
     /// Thrown when package install command is not successful.
-    PackageInstallFailed {
-        cmd: String,
-        status: ExitStatus,
-    },
-
-    /// Thrown when package install command fails to execute.
-    PackageInstallIoError {
-        error: String,
-    },
+    PackageInstallFailed,
 
     /// Thrown when there is an error fetching package metadata
     PackageMetadataFetchError {
@@ -281,12 +272,10 @@ Use `notion install yarn` to select a default version (see `notion help install 
 This project is configured to use version {} of npm.",
                 version
             ),
-            ErrorDetails::PackageInstallFailed { cmd, status } => {
-                write!(f, "Command `{}` failed with status {}", cmd, status)
-            }
-            ErrorDetails::PackageInstallIoError { error } => {
-                write!(f, "Error executing package install command: {}", error)
-            }
+            // Confirming permissions is a Weak CTA in this case, but it seems the most likely error vector
+            ErrorDetails::PackageInstallFailed => write!(f, "Could not install package dependencies.
+
+Please ensure you have correct permissions to the Notion directory."),
             ErrorDetails::PackageMetadataFetchError { from_url } => write!(
                 f,
                 "Could not download package metadata
@@ -385,8 +374,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::NoUserYarn => ExitCode::ConfigurationError,
             ErrorDetails::NoVersionsFound => ExitCode::NoVersionMatch,
             ErrorDetails::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
-            ErrorDetails::PackageInstallFailed { .. } => ExitCode::FileSystemError,
-            ErrorDetails::PackageInstallIoError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::PackageInstallFailed => ExitCode::FileSystemError,
             ErrorDetails::PackageMetadataFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::PackageUnpackError => ExitCode::ConfigurationError,
