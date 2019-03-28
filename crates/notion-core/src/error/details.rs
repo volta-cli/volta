@@ -135,8 +135,19 @@ pub enum ErrorDetails {
         from_url: String,
     },
 
-    SymlinkError {
-        error: String,
+    /// Thrown when Notion is unable to create a shim
+    ShimCreateError {
+        name: String,
+    },
+
+    /// Thrown when trying to remove a built-in shim (`node`, `yarn`, etc.)
+    ShimRemoveBuiltInError {
+        name: String,
+    },
+
+    /// Thrown when Notion is unable to remove a shim
+    ShimRemoveError {
+        name: String,
     },
 
     ToolNotImplemented,
@@ -307,7 +318,14 @@ from {}
 Please verify your internet connection.",
                 tool, from_url
             ),
-            ErrorDetails::SymlinkError { error } => write!(f, "{}", error),
+            ErrorDetails::ShimCreateError { name } => write!(f, r#"Could not create shim for "{}"
+
+Please ensure you have correct permissions to the Notion directory."#, name),
+            // This case does not have a CTA as there is no avenue to allow users to remove built-in shims
+            ErrorDetails::ShimRemoveBuiltInError { name } => write!(f, r#"Cannot remove built-in shim for "{}""#, name),
+            ErrorDetails::ShimRemoveError { name } => write!(f, r#"Could not remove shim for "{}"
+
+Please ensure you have correct permissions to the Notion directory."#, name),
             ErrorDetails::ToolNotImplemented => write!(f, "this tool is not yet implemented"),
             ErrorDetails::UnrecognizedShell { name } => write!(f, "Unrecognized shell: {}", name),
             ErrorDetails::UnspecifiedPostscript => {
@@ -372,7 +390,9 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::PackageVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::PathError => ExitCode::UnknownError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
-            ErrorDetails::SymlinkError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::ShimCreateError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::ShimRemoveBuiltInError { .. } => ExitCode::InvalidArguments,
+            ErrorDetails::ShimRemoveError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ToolNotImplemented => ExitCode::ExecutableNotFound,
             ErrorDetails::UnrecognizedShell { .. } => ExitCode::EnvironmentError,
             ErrorDetails::UnspecifiedPostscript => ExitCode::EnvironmentError,
