@@ -184,10 +184,13 @@ pub trait FetchResolve<D: Distro> {
     ) -> Fallible<D::ResolvedVersion>;
 }
 
-fn registry_fetch_error(error: &reqwest::Error) -> ErrorDetails {
-    ErrorDetails::RegistryFetchError {
-        error: error.to_string(),
-    }
+fn registry_fetch_error(
+    tool: impl AsRef<str>,
+    from_url: impl AsRef<str>,
+) -> impl FnOnce(&reqwest::Error) -> ErrorDetails {
+    let tool = tool.as_ref().to_string();
+    let from_url = from_url.as_ref().to_string();
+    |_| ErrorDetails::RegistryFetchError { tool, from_url }
 }
 
 fn match_node_version(
@@ -319,8 +322,8 @@ impl FetchResolve<YarnDistro> for YarnCollection {
             }) => hook.resolve("latest-version")?,
             _ => public_yarn_latest_version(),
         };
-        let mut response: reqwest::Response =
-            reqwest::get(&url).with_context(registry_fetch_error)?;
+        let mut response: reqwest::Response = reqwest::get(&url)
+            .with_context(|_| ErrorDetails::YarnLatestFetchError { from_url: url })?;
         Version::parse(&response.text().unknown()?).unknown()
     }
 
@@ -340,7 +343,7 @@ impl FetchResolve<YarnDistro> for YarnCollection {
 
         let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
         let releases: serial::YarnIndex = reqwest::get(&url)
-            .with_context(registry_fetch_error)?
+            .with_context(registry_fetch_error("Yarn", &url))?
             .json()
             .unknown()?;
         let releases = releases.into_index()?.entries;
@@ -378,8 +381,11 @@ fn match_package_entry(
 // fetch metadata for the input url
 fn resolve_package_metadata(package_info_url: &str) -> Fallible<serial::PackageMetadata> {
     let spinner = progress_spinner(&format!("Fetching package metadata: {}", package_info_url));
-    let mut response: reqwest::Response =
-        reqwest::get(package_info_url).with_context(registry_fetch_error)?;
+    let mut response: reqwest::Response = reqwest::get(package_info_url).with_context(|_| {
+        ErrorDetails::PackageMetadataFetchError {
+            from_url: package_info_url.to_string(),
+        }
+    })?;
     let response_text: String = response.text().unknown()?;
 
     let metadata: serial::PackageMetadata = serde_json::de::from_str(&response_text).unknown()?;
@@ -565,7 +571,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
         None => {
             let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
             let mut response: reqwest::Response =
-                reqwest::get(url).with_context(registry_fetch_error)?;
+                reqwest::get(url).with_context(registry_fetch_error("Node", url))?;
             let response_text: String = response.text().unknown()?;
             let cached: NamedTempFile = NamedTempFile::new_in(path::tmp_dir()?).unknown()?;
 
