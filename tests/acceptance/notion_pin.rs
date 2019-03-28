@@ -203,9 +203,11 @@ fn pin_node() {
 
     assert_that!(
         s.notion("pin node 6"),
-        execs().with_status(0).with_stdout_contains(
-            "Pinned node version 6.19.62 (with npm 3.10.1066) in package.json"
-        )
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stdout_contains(
+                "Pinned node version 6.19.62 (with npm 3.10.1066) in package.json"
+            )
     );
 
     assert_eq!(
@@ -224,9 +226,11 @@ fn pin_node_latest() {
 
     assert_that!(
         s.notion("pin node latest"),
-        execs().with_status(0).with_stdout_contains(
-            "Pinned node version 10.99.1040 (with npm 6.2.26) in package.json"
-        )
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stdout_contains(
+                "Pinned node version 10.99.1040 (with npm 6.2.26) in package.json"
+            )
     );
 
     assert_eq!(
@@ -245,9 +249,11 @@ fn pin_node_no_version() {
 
     assert_that!(
         s.notion("pin node"),
-        execs().with_status(0).with_stdout_contains(
-            "Pinned node version 10.99.1040 (with npm 6.2.26) in package.json"
-        )
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stdout_contains(
+                "Pinned node version 10.99.1040 (with npm 6.2.26) in package.json"
+            )
     );
 
     assert_eq!(
@@ -268,7 +274,7 @@ fn pin_node_removes_npm() {
     assert_that!(
         s.notion("pin node 8"),
         execs()
-            .with_status(0)
+            .with_status(ExitCode::Success as i32)
             .with_stdout_contains("Pinned node version 8.9.10 (with npm 5.6.7) in package.json")
     );
 
@@ -290,7 +296,9 @@ fn pin_yarn_no_node() {
         s.notion("pin yarn 1.4"),
         execs()
             .with_status(ExitCode::ConfigurationError as i32)
-            .with_stderr_contains("error: There is no pinned node version for this project")
+            .with_stderr_contains(
+                "[..]Cannot pin Yarn because the Node version is not pinned in this project."
+            )
     );
 
     assert_eq!(s.read_package_json(), BASIC_PACKAGE_JSON,)
@@ -307,7 +315,7 @@ fn pin_yarn() {
     assert_that!(
         s.notion("pin yarn 1.4"),
         execs()
-            .with_status(0)
+            .with_status(ExitCode::Success as i32)
             .with_stdout_contains("Pinned yarn version 1.4.159 in package.json")
     );
 
@@ -328,7 +336,7 @@ fn pin_yarn_latest() {
     assert_that!(
         s.notion("pin yarn latest"),
         execs()
-            .with_status(0)
+            .with_status(ExitCode::Success as i32)
             .with_stdout_contains("Pinned yarn version 1.2.42 in package.json")
     );
 
@@ -349,7 +357,7 @@ fn pin_yarn_no_version() {
     assert_that!(
         s.notion("pin yarn"),
         execs()
-            .with_status(0)
+            .with_status(ExitCode::Success as i32)
             .with_stdout_contains("Pinned yarn version 1.2.42 in package.json")
     );
 
@@ -369,8 +377,8 @@ fn pin_yarn_missing_release() {
     assert_that!(
         s.notion("pin yarn 1.3.1"),
         execs()
-            .with_status(4)
-            .with_stderr_contains("error: yarn version 1.3.1 not found")
+            .with_status(ExitCode::NetworkError as i32)
+            .with_stderr_contains("[..]Could not download yarn version 1.3.1")
     );
 
     assert_eq!(
@@ -390,7 +398,7 @@ fn pin_yarn_leaves_npm() {
     assert_that!(
         s.notion("pin yarn 1.4"),
         execs()
-            .with_status(0)
+            .with_status(ExitCode::Success as i32)
             .with_stdout_contains("Pinned yarn version 1.4.159 in package.json")
     );
 
@@ -412,7 +420,7 @@ fn pin_npm() {
     assert_that!(
         s.notion("pin npm 5.10"),
         execs()
-            .with_status(0)
+            .with_status(ExitCode::Success as i32)
             .with_stdout_contains("Pinned npm version 5.10.12 in package.json")
     );
 
