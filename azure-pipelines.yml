@@ -1,0 +1,61 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  - master
+  - refs/tags/*
+
+jobs:
+  - job: nix
+    strategy:
+      matrix:
+        ubuntu:
+          imageName: "ubuntu-16.04"
+        mac:
+          imageName: "macos-10.13"
+    pool:
+      vmImage: $(imageName)
+    steps:
+      - template: ci/install-rust.yml
+      - template: ci/check-formatting.yml
+      - template: ci/run-tests.yml
+    displayName: Non-Windows OSes
+
+  - job: windows
+    strategy:
+      matrix:
+        windows:
+          imageName: "vs2017-win2016"
+    pool:
+      vmImage: $(imageName)
+    steps:
+      - template: ci/install-rust.yml
+      - template: ci/run-tests.yml
+    displayName: Build and Test Windows
+
+  - job: publish_docs
+    displayName: Publish Docs
+    # Using macOS for this b/c it's substantially the fastest.
+    strategy:
+      matrix:
+        mac:
+          imageName: "macos-10.13"
+    steps:
+      - template: ci/publish-docs.yml
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+
+  - job: publish_release
+    displayName: Publish Release artifacts
+    strategy:
+      matrix:
+        ubuntu:
+          imageName: "ubuntu-16.04"
+        mac:
+          imageName: "macos-10.13"
+        windows:
+          imageName: "vs2017-win2016"
+    steps:
+      - template: ci/publish-release.yml
+    condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))

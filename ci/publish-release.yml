@@ -1,0 +1,14 @@
+steps:
+  - script: |
+      echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
+    displayName: Set install path (not Windows)
+    condition: not(eq(variables['Agent.OS'], 'Windows_NT'))
+
+  - script: |
+      set PATH=%PATH%;%USERPROFILE%\.cargo\bin
+      echo "##vso[task.setvariable variable=PATH;]%PATH%;%USERPROFILE%\.cargo\bin"
+    displayName: Set install path (Windows)
+    condition: eq(variables['Agent.OS'], 'Windows_NT')
+
+  - script: cargo build --release
+  # TODO: push to GitHub Releases page
