@@ -73,15 +73,24 @@ pub fn read_dir_eager(dir: &Path) -> Fallible<impl Iterator<Item = (DirEntry, Me
 /// Reads the contents of a directory and returns a Vec of all files found in
 /// the directory that match the input regex.
 pub fn files_matching(dir: &Path, re: &Regex) -> Fallible<Vec<PathBuf>> {
+    dir_entry_match(dir, |entry| {
+        if let Some(file_name) = entry.path().file_name() {
+            if re.is_match(&file_name.to_string_lossy()) {
+                return Some(entry.path());
+            }
+        }
+        None
+    })
+}
+
+/// Reads the contents of a directory and returns a Vec of the matched results
+/// from the input function
+pub fn dir_entry_match<T, F>(dir: &Path, mut f: F) -> Fallible<Vec<T>>
+where
+    F: FnMut(&DirEntry) -> Option<T>,
+{
     Ok(read_dir_eager(dir)?
         .filter(|(_, metadata)| metadata.is_file())
-        .filter_map(|(entry, _)| {
-            if let Some(file_name) = entry.path().file_name() {
-                if re.is_match(&file_name.to_string_lossy()) {
-                    return Some(entry.path());
-                }
-            }
-            None
-        })
-        .collect::<Vec<PathBuf>>())
+        .filter_map(|(entry, _)| f(&entry))
+        .collect::<Vec<T>>())
 }

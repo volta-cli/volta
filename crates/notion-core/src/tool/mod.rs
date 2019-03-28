@@ -58,10 +58,10 @@ impl ToolSpec {
 
     pub fn uninstall(&self, session: &mut Session, remove_all: bool) -> Fallible<()> {
         match self {
-            ToolSpec::Node(_version) => unimplemented!("Uninstalling node not supported yet"),
-            ToolSpec::Yarn(_version) => unimplemented!("Uninstalling node not supported yet"),
+            ToolSpec::Node(_version) => unimplemented!("Uninstalling Node not supported yet"),
+            ToolSpec::Yarn(_version) => unimplemented!("Uninstalling Yarn not supported yet"),
             // ISSUE(#292): Implement install for npm
-            ToolSpec::Npm(_version) => unimplemented!("Uninstalling node not supported yet"),
+            ToolSpec::Npm(_version) => unimplemented!("Uninstalling Npm not supported yet"),
             ToolSpec::Package(name, _version) => {
                 session.uninstall_package(name.to_string(), remove_all)?;
             }

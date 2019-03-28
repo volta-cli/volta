@@ -14,7 +14,9 @@ use sha1::{Digest, Sha1};
 
 use crate::distro::{download_tool_error, Distro, Fetched};
 use crate::error::ErrorDetails;
-use crate::fs::{ensure_containing_dir_exists, files_matching, read_dir_eager, read_file_opt};
+use crate::fs::{
+    dir_entry_match, ensure_containing_dir_exists, files_matching, read_dir_eager, read_file_opt,
+};
 use crate::hook::ToolHooks;
 use crate::inventory::Collection;
 use crate::manifest::Manifest;
@@ -440,18 +442,15 @@ impl PackageVersion {
 /// all the binaries installed by the input package.
 pub fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
     let bin_config_dir = path::user_bin_dir()?;
-    Ok(read_dir_eager(&bin_config_dir)?
-        .filter(|(_, metadata)| metadata.is_file())
-        .filter_map(|(entry, _)| {
-            let path = entry.path();
-            if let Ok(config) = BinConfig::from_file(path) {
-                if config.package == package.to_string() {
-                    return Some(config.name);
-                }
-            };
-            None
-        })
-        .collect::<Vec<String>>())
+    dir_entry_match(&bin_config_dir, |entry| {
+        let path = entry.path();
+        if let Ok(config) = BinConfig::from_file(path) {
+            if config.package == package.to_string() {
+                return Some(config.name);
+            }
+        };
+        None
+    })
 }
 
 impl Installer {
