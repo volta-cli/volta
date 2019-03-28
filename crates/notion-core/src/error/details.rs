@@ -153,7 +153,7 @@ pub enum ErrorDetails {
     UnspecifiedShell,
 
     VersionParseError {
-        error: String,
+        version: String,
     },
 
     /// Thrown when there is an error fetching the latest version of Yarn
@@ -314,7 +314,9 @@ Please verify your internet connection.",
                 write!(f, "Notion postscript file not specified")
             }
             ErrorDetails::UnspecifiedShell => write!(f, "Notion shell not specified"),
-            ErrorDetails::VersionParseError { error } => write!(f, "{}", error),
+            ErrorDetails::VersionParseError { version } => write!(f, r#"Could not parse version "{}"
+
+Please verify the intended version."#, version),
             ErrorDetails::YarnLatestFetchError { from_url } => write!(
                 f,
                 "Could not fetch latest version of Yarn
