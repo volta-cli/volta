@@ -14,9 +14,7 @@ pub enum ErrorDetails {
         version: String,
     },
 
-    BinaryExecError {
-        error: String,
-    },
+    BinaryExecError,
 
     /// Thrown when a binary could not be found in the local inventory
     BinaryNotFound {
@@ -183,7 +181,9 @@ impl fmt::Display for ErrorDetails {
                 "Conflict with bin '{}' already installed by '{}' version {}",
                 bin_name, package, version
             ),
-            ErrorDetails::BinaryExecError { error } => write!(f, "{}", error),
+            ErrorDetails::BinaryExecError => write!(f, "Could not execute command.
+
+See `notion help install` and `notion help pin` for info about making tools available."),
             ErrorDetails::BinaryNotFound { name } => write!(f, r#"Could not find executable "{}"
 
 Use `notion install` to add a package to your toolchain (see `notion help install` for more info)."#, name),
@@ -359,7 +359,7 @@ impl NotionFail for ErrorDetails {
     fn exit_code(&self) -> ExitCode {
         match self {
             ErrorDetails::BinaryAlreadyInstalled { .. } => ExitCode::FileSystemError,
-            ErrorDetails::BinaryExecError { .. } => ExitCode::ExecutionFailure,
+            ErrorDetails::BinaryExecError => ExitCode::ExecutionFailure,
             ErrorDetails::BinaryNotFound { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::CannotPinPackage => ExitCode::InvalidArguments,
             ErrorDetails::CommandNotImplemented { .. } => ExitCode::NotYetImplemented,
