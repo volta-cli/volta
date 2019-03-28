@@ -214,7 +214,7 @@ impl FetchResolve<NodeDistro> for NodeCollection {
         hooks: Option<&ToolHooks<NodeDistro>>,
     ) -> Fallible<Fetched<NodeVersion>> {
         let distro = self.resolve(name, matching, hooks)?;
-        let fetched = distro.fetch(&self).unknown()?;
+        let fetched = distro.fetch(&self)?;
 
         if let &Fetched::Now(NodeVersion {
             runtime: ref version,
@@ -301,7 +301,7 @@ impl FetchResolve<YarnDistro> for YarnCollection {
         hooks: Option<&ToolHooks<YarnDistro>>,
     ) -> Fallible<Fetched<Self::FetchedVersion>> {
         let distro = self.resolve(name, &matching, hooks)?;
-        let fetched = distro.fetch(&self).unknown()?;
+        let fetched = distro.fetch(&self)?;
 
         if let &Fetched::Now(ref version) = &fetched {
             self.versions.insert(version.clone());
@@ -405,7 +405,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
         hooks: Option<&ToolHooks<PackageDistro>>,
     ) -> Fallible<Fetched<Self::FetchedVersion>> {
         let distro = self.resolve(name, &matching, hooks)?;
-        let fetched = distro.fetch(&self).unknown()?;
+        let fetched = distro.fetch(&self)?;
 
         if let &Fetched::Now(PackageVersion { ref version, .. }) = &fetched {
             self.versions.insert(version.clone());
