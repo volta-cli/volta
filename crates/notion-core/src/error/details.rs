@@ -115,7 +115,7 @@ pub enum ErrorDetails {
     },
 
     PackageReadError {
-        error: String,
+        file: String,
     },
 
     /// Thrown when a package has been unpacked but is not formed correctly.
@@ -295,8 +295,11 @@ from {}
 Please verify your internet connection.",
                 from_url
             ),
-            ErrorDetails::PackageReadError { error } => {
-                write!(f, "Could not read package info: {}", error)
+            ErrorDetails::PackageReadError { file } => {
+                write!(f, "Could not read project manifest
+from {}
+
+Please ensure that the file exists and is correctly formatted.", file)
             }
             ErrorDetails::PackageUnpackError => write!(
                 f,
