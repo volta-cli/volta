@@ -26,8 +26,6 @@ pub enum ErrorDetails {
     /// Thrown when a user tries to `notion pin` something other than node/yarn/npm.
     CannotPinPackage,
 
-    CliParseError,
-
     CommandNotImplemented {
         command_name: String,
     },
@@ -36,7 +34,6 @@ pub enum ErrorDetails {
 
     CreateDirError {
         dir: String,
-        error: String,
     },
 
     /// Thrown when reading dependency package info fails
@@ -193,15 +190,14 @@ Use `notion install` to add a package to your toolchain (see `notion help instal
             ErrorDetails::CannotPinPackage => {
                 write!(f, "Only node, yarn, and npm can be pinned in a project")
             }
-            ErrorDetails::CliParseError => {
-                write!(f, "There was a problem parsing the command line input")
-            }
             ErrorDetails::CommandNotImplemented { command_name } => {
                 write!(f, "command `{}` is not yet implemented", command_name)
             }
             ErrorDetails::CouldNotDetermineTool => write!(f, "Tool name could not be determined"),
-            ErrorDetails::CreateDirError { dir, error } => {
-                write!(f, "Could not create directory {}: {}", dir, error)
+            ErrorDetails::CreateDirError { dir } => {
+                write!(f, "Could not create directory {}
+
+Please ensure that you have the correct permissions.", dir)
             }
             ErrorDetails::DepPackageReadError => {
                 write!(f, "Could not read package info for dependencies.
@@ -366,7 +362,6 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::BinaryExecError { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::BinaryNotFound { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::CannotPinPackage => ExitCode::InvalidArguments,
-            ErrorDetails::CliParseError => ExitCode::UnknownError,
             ErrorDetails::CommandNotImplemented { .. } => ExitCode::NotYetImplemented,
             ErrorDetails::CouldNotDetermineTool => ExitCode::UnknownError,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
