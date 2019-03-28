@@ -25,9 +25,7 @@ impl Tool for Node {
                 &image.path()?,
             ))
         } else {
-            throw!(ErrorDetails::NoSuchTool {
-                tool: "Node".to_string()
-            });
+            throw!(ErrorDetails::NoPlatform);
         }
     }
 

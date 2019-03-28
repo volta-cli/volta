@@ -286,7 +286,7 @@ impl FetchResolve<NodeDistro> for NodeCollection {
         version: Version,
         _hooks: Option<&ToolHooks<NodeDistro>>,
     ) -> Fallible<Version> {
-        Ok(version.clone())
+        Ok(version)
     }
 }
 
@@ -365,7 +365,7 @@ impl FetchResolve<YarnDistro> for YarnCollection {
         version: Version,
         _hooks: Option<&ToolHooks<YarnDistro>>,
     ) -> Fallible<Version> {
-        Ok(version.clone())
+        Ok(version)
     }
 }
 
@@ -438,9 +438,9 @@ impl FetchResolve<PackageDistro> for PackageCollection {
         if let Some(entry) = entry_opt {
             Ok(entry)
         } else {
-            throw!(ErrorDetails::NoPackageFound {
+            throw!(ErrorDetails::PackageVersionNotFound {
                 name: name.to_string(),
-                matching: VersionSpec::Latest,
+                matching: String::from("latest"),
             })
         }
     }
@@ -469,9 +469,9 @@ impl FetchResolve<PackageDistro> for PackageCollection {
         if let Some(entry) = entry_opt {
             Ok(entry)
         } else {
-            throw!(ErrorDetails::NoPackageFound {
+            throw!(ErrorDetails::PackageVersionNotFound {
                 name: name.to_string(),
-                matching: VersionSpec::Latest,
+                matching: matching.to_string(),
             })
         }
     }
@@ -500,9 +500,9 @@ impl FetchResolve<PackageDistro> for PackageCollection {
         if let Some(entry) = entry_opt {
             Ok(entry)
         } else {
-            throw!(ErrorDetails::NoPackageFound {
+            throw!(ErrorDetails::PackageVersionNotFound {
                 name: name.to_string(),
-                matching: VersionSpec::Latest,
+                matching: exact_version.to_string(),
             })
         }
     }

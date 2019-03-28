@@ -46,8 +46,7 @@ impl LazyDependentBins {
 
     /// Forces creating the dependent bins and returns an immutable reference to it.
     pub fn get(&self, project: &Project) -> Fallible<&HashMap<String, String>> {
-        self.bins
-            .try_borrow_with(|| Ok(project.dependent_binaries()?))
+        self.bins.try_borrow_with(|| project.dependent_binaries())
     }
 }
 

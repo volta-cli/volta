@@ -5,7 +5,6 @@ use failure::Fail;
 use notion_fail::{ExitCode, NotionFail};
 
 use crate::tool::ToolSpec;
-use crate::version::VersionSpec;
 
 #[derive(Debug, Fail)]
 pub enum ErrorDetails {
@@ -18,6 +17,11 @@ pub enum ErrorDetails {
 
     BinaryExecError {
         error: String,
+    },
+
+    /// Thrown when a binary could not be found in the local inventory
+    BinaryNotFound {
+        name: String,
     },
 
     /// Thrown when a user tries to `notion pin` something other than node/yarn/npm.
@@ -73,25 +77,20 @@ pub enum ErrorDetails {
     /// Thrown when a user tries to install or fetch a package with no executables.
     NoPackageExecutables,
 
-    /// Thrown when there is no package version matching a requested semver specifier.
-    NoPackageFound {
-        name: String,
-        matching: VersionSpec,
-    },
-
     /// Thrown when a user tries to pin a Yarn version before pinning a Node version.
     NoPinnedNodeVersion,
 
-    NoSuchTool {
-        tool: String,
-    },
+    /// Thrown when the platform (Node version) could not be determined
+    NoPlatform,
+
+    /// Thrown when Yarn is not set in a project
+    NoProjectYarn,
 
     /// Thrown when the user tries to pin Node or Yarn versions outside of a package.
     NotInPackage,
 
-    NoToolChain {
-        shim_name: String,
-    },
+    /// Thrown when default Yarn is not set
+    NoUserYarn,
 
     NoVersionsFound,
 
@@ -121,6 +120,12 @@ pub enum ErrorDetails {
 
     /// Thrown when a package has been unpacked but is not formed correctly.
     PackageUnpackError,
+
+    /// Thrown when there is no package version matching a requested semver specifier.
+    PackageVersionNotFound {
+        name: String,
+        matching: String,
+    },
 
     PathError,
 
@@ -175,6 +180,9 @@ impl fmt::Display for ErrorDetails {
                 bin_name, package, version
             ),
             ErrorDetails::BinaryExecError { error } => write!(f, "{}", error),
+            ErrorDetails::BinaryNotFound { name } => write!(f, r#"Could not find executable "{}"
+
+Use `notion install` to add a package to your toolchain (see `notion help install` for more info)."#, name),
             ErrorDetails::CannotPinPackage => {
                 write!(f, "Only node, yarn, and npm can be pinned in a project")
             }
@@ -228,28 +236,32 @@ Use `notion install` to add a package to your toolchain (see `notion help instal
             ErrorDetails::NoPackageExecutables => {
                 write!(f, "Package has no binaries or executables - nothing to do")
             }
-            ErrorDetails::NoPackageFound { name, matching } => {
-                write!(f, "No version of '{}' found for {}", name, matching)
-            }
             ErrorDetails::NoPinnedNodeVersion => write!(
                 f,
                 "Cannot pin Yarn because the Node version is not pinned in this project.
 
 Use `notion pin node` to pin Node first, then pin a Yarn version."
             ),
-            ErrorDetails::NoSuchTool { tool } => write!(
+            ErrorDetails::NoPlatform => write!(
                 f,
-                "No {} version selected.
+                "Could not determine Node version.
 
-See `notion help pin` for help adding {} to a project toolchain.
+Use `notion pin node` to select a version for a project.
+Use `notion install node` to select a default version."
+            ),
+            ErrorDetails::NoProjectYarn => write!(
+                f,
+                "No Yarn version found in this project.
 
-See `notion help install` for help adding {} to your personal toolchain.",
-                tool, tool, tool
+Use `notion pin yarn` to select a version (see `notion help pin` for more info)."
             ),
             ErrorDetails::NotInPackage => write!(f, "Not in a node package"),
-            ErrorDetails::NoToolChain { shim_name } => {
-                write!(f, "No toolchain available to run {}", shim_name)
-            }
+            ErrorDetails::NoUserYarn => write!(
+                f,
+                "Could not determine Yarn version.
+
+Use `notion install yarn` to select a default version (see `notion help install for more info)."
+            ),
             ErrorDetails::NoVersionsFound => write!(f, "no versions found"),
             ErrorDetails::NpxNotAvailable { version } => write!(
                 f,
@@ -279,6 +291,13 @@ Please verify your internet connection.",
                 f,
                 "Package unpack error: Could not determine unpack directory name"
             ),
+            ErrorDetails::PackageVersionNotFound { name, matching } => write!(
+                f,
+                r#"Could not find {} version matching "{}" in the package registry.
+
+Please verify that the version is correct."#,
+                name, matching
+            ),
             ErrorDetails::PathError => write!(f, "`path` internal error"),
             ErrorDetails::RegistryFetchError { tool, from_url } => write!(
                 f,
@@ -304,9 +323,13 @@ from {}
 Please verify your internet connection.",
                 from_url
             ),
-            ErrorDetails::YarnVersionNotFound { matching } => {
-                write!(f, "No Yarn version found for {}", matching)
-            }
+            ErrorDetails::YarnVersionNotFound { matching } => write!(
+                f,
+                r#"Could not find Yarn version matching "{}" in the version registry.
+
+Please verify that the version is correct."#,
+                matching
+            ),
         }
     }
 }
@@ -316,6 +339,7 @@ impl NotionFail for ErrorDetails {
         match self {
             ErrorDetails::BinaryAlreadyInstalled { .. } => ExitCode::FileSystemError,
             ErrorDetails::BinaryExecError { .. } => ExitCode::ExecutionFailure,
+            ErrorDetails::BinaryNotFound { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::CannotPinPackage => ExitCode::InvalidArguments,
             ErrorDetails::CliParseError => ExitCode::UnknownError,
             ErrorDetails::CommandNotImplemented { .. } => ExitCode::NotYetImplemented,
@@ -331,11 +355,11 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::NoHomeEnvironmentVar => ExitCode::EnvironmentError,
             ErrorDetails::NoLocalDataDir => ExitCode::EnvironmentError,
             ErrorDetails::NoPackageExecutables { .. } => ExitCode::InvalidArguments,
-            ErrorDetails::NoPackageFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NoPinnedNodeVersion => ExitCode::ConfigurationError,
-            ErrorDetails::NoSuchTool { .. } => ExitCode::NoVersionMatch,
+            ErrorDetails::NoPlatform => ExitCode::ConfigurationError,
+            ErrorDetails::NoProjectYarn => ExitCode::ConfigurationError,
             ErrorDetails::NotInPackage => ExitCode::ConfigurationError,
-            ErrorDetails::NoToolChain { .. } => ExitCode::ExecutionFailure,
+            ErrorDetails::NoUserYarn => ExitCode::ConfigurationError,
             ErrorDetails::NoVersionsFound => ExitCode::NoVersionMatch,
             ErrorDetails::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::PackageInstallFailed { .. } => ExitCode::FileSystemError,
@@ -343,6 +367,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::PackageMetadataFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::PackageUnpackError => ExitCode::ConfigurationError,
+            ErrorDetails::PackageVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::PathError => ExitCode::UnknownError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::SymlinkError { .. } => ExitCode::FileSystemError,
