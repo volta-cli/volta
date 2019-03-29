@@ -14,9 +14,7 @@ use sha1::{Digest, Sha1};
 
 use crate::distro::{download_tool_error, Distro, Fetched};
 use crate::error::ErrorDetails;
-use crate::fs::{
-    dir_entry_match, ensure_containing_dir_exists, files_matching, read_dir_eager, read_file_opt,
-};
+use crate::fs::{dir_entry_match, ensure_containing_dir_exists, read_dir_eager, read_file_opt};
 use crate::hook::ToolHooks;
 use crate::inventory::Collection;
 use crate::manifest::Manifest;
@@ -31,7 +29,6 @@ use archive::{Archive, Tarball};
 use tempfile::tempdir_in;
 
 use notion_fail::{throw, Fallible, ResultExt};
-use regex::Regex;
 
 fn install_error(error: &io::Error) -> ErrorDetails {
     if let Some(inner_err) = error.get_ref() {
@@ -379,10 +376,7 @@ impl PackageVersion {
     /// * the json config files
     /// * the shims
     /// * the unpacked and initialized package
-    ///
-    /// This optionally clears the inventory for this package, removing:
-    /// * the downloaded tarball and shasum files
-    pub fn uninstall(name: String, remove_all: bool) -> Fallible<()> {
+    pub fn uninstall(name: String) -> Fallible<()> {
         // if the package config file exists, use that to remove any installed bins and shims
         let package_config_file = path::user_package_config_file(&name)?;
         if package_config_file.exists() {
@@ -408,20 +402,6 @@ impl PackageVersion {
         let package_image_dir = path::package_image_root_dir()?.join(&name);
         if package_image_dir.exists() {
             fs::remove_dir_all(package_image_dir).with_context(file_deletion_error)?;
-        }
-
-        // if the `--full` option was passed in, remove package files from the inventory
-        if remove_all {
-            // all cached files for the package name
-            let re = Regex::new(&format!(r"^{}-\d+\.\d+\.\d+.*\.(tgz|shasum)$", name)).unwrap();
-            let inventory_dir = path::package_inventory_dir()?;
-
-            let cached_files = files_matching(&inventory_dir, &re)?;
-            for file in cached_files {
-                fs::remove_file(&file).with_context(file_deletion_error)?;
-            }
-
-            println!("Removed cached files for '{}'", name);
         }
 
         println!("Package '{}' uninstalled", name);

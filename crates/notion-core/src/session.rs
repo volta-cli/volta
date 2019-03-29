@@ -233,8 +233,8 @@ impl Session {
     }
 
     /// Uninstall the specified package.
-    pub fn uninstall_package(&self, name: String, remove_all: bool) -> Fallible<()> {
-        PackageVersion::uninstall(name, remove_all)
+    pub fn uninstall_package(&self, name: String) -> Fallible<()> {
+        PackageVersion::uninstall(name)
     }
 
     /// Fetches a Node version matching the specified semantic versioning requirements.

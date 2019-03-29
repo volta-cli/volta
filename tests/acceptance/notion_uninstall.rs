@@ -129,66 +129,6 @@ fn uninstall_package_no_bins() {
 }
 
 #[test]
-fn uninstall_package_full() {
-    // everything exists, and it should all be removed
-    let s = sandbox()
-        .package_config("cowsay", PKG_CONFIG_BASIC)
-        .binary_config("cowsay", &bin_config("cowsay"))
-        .binary_config("cowthink", &bin_config("cowthink"))
-        .shim("cowsay")
-        .shim("cowthink")
-        .package_image("cowsay", "1.4.0")
-        .package_inventory("cowsay", "1.4.0")
-        .build();
-
-    assert_that!(
-        s.notion("uninstall cowsay --full"),
-        execs()
-            .with_status(0)
-            .with_stdout_contains("Removed executable 'cowsay' installed by 'cowsay'")
-            .with_stdout_contains("Removed executable 'cowthink' installed by 'cowsay'")
-            .with_stdout_contains("Removed cached files for 'cowsay'")
-            .with_stdout_contains("Package 'cowsay' uninstalled")
-    );
-
-    // check that everything is deleted
-    assert!(!Sandbox::package_config_exists("cowsay"));
-    assert!(!Sandbox::bin_config_exists("cowsay"));
-    assert!(!Sandbox::bin_config_exists("cowthink"));
-    assert!(!Sandbox::shim_exists("cowsay"));
-    assert!(!Sandbox::shim_exists("cowthink"));
-    assert!(!Sandbox::package_image_exists("cowsay", "1.4.0"));
-    // including the inventory files
-    assert!(!Sandbox::pkg_inventory_tarball_exists("cowsay", "1.4.0"));
-    assert!(!Sandbox::pkg_inventory_shasum_exists("cowsay", "1.4.0"));
-}
-
-#[test]
-fn uninstall_package_full_archive_only() {
-    // only the tarball and shasum files exist, and those should be removed
-    let s = sandbox().package_inventory("cowsay", "1.4.0").build();
-
-    assert_that!(
-        s.notion("uninstall cowsay --full"),
-        execs()
-            .with_status(0)
-            .with_stdout_contains("Removed cached files for 'cowsay'")
-            .with_stdout_contains("Package 'cowsay' uninstalled")
-    );
-
-    // check that everything is deleted
-    assert!(!Sandbox::package_config_exists("cowsay"));
-    assert!(!Sandbox::bin_config_exists("cowsay"));
-    assert!(!Sandbox::bin_config_exists("cowthink"));
-    assert!(!Sandbox::shim_exists("cowsay"));
-    assert!(!Sandbox::shim_exists("cowthink"));
-    assert!(!Sandbox::package_image_exists("cowsay", "1.4.0"));
-    // including the inventory files
-    assert!(!Sandbox::pkg_inventory_tarball_exists("cowsay", "1.4.0"));
-    assert!(!Sandbox::pkg_inventory_shasum_exists("cowsay", "1.4.0"));
-}
-
-#[test]
 fn uninstall_package_no_image() {
     // there is no unpacked & initialized package, but everything should be removed
     // (without erroring and failing to remove everything)
