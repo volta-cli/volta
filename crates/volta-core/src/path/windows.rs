@@ -6,28 +6,20 @@ use std::io;
 use std::os::windows;
 use std::path::{Path, PathBuf};
 
+use crate::distro::node::NodeDistro;
 use crate::error::ErrorDetails;
 use cfg_if::cfg_if;
 use dirs;
 use volta_fail::Fallible;
 
-use super::{node_archive_root_dir_name, node_image_dir, shim_dir};
+use super::{node_image_dir, shim_dir};
 
-// These are taken from: https://nodejs.org/dist/index.json and are used
-// by `path::archive_root_dir` to determine the root directory of the
-// contents of a Node installer archive.
+// This path needs to exactly match the Registry Key in the Windows Installer
+// wix/main.wxs -
+const VOLTA_REGISTRY_PATH: &'static str = r#"Software\The Volta Maintainers\Volta"#;
 
-pub const OS: &'static str = "win";
-
-cfg_if! {
-    if #[cfg(target_arch = "x86")] {
-        pub const ARCH: &'static str = "x86";
-    } else if #[cfg(target_arch = "x86_64")] {
-        pub const ARCH: &'static str = "x64";
-    } else {
-        compile_error!("Unsupported target_arch variant of Windows (expected 'x86' or 'x64').");
-    }
-}
+// This Key needs to exactly match the Name from the above element in the Windows Installer
+const VOLTA_INSTALL_DIR: &'static str = "InstallDir";
 
 // C:\Users\johndoe\AppData\Local\
 //     Volta\
@@ -93,7 +85,7 @@ pub fn node_image_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
 }
 
 pub fn node_archive_npm_package_json_path(version: &str) -> PathBuf {
-    Path::new(&node_archive_root_dir_name(version))
+    Path::new(&NodeDistro::basename(version))
         .join("node_modules")
         .join("npm")
         .join("package.json")

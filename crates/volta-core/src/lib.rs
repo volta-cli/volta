@@ -5,7 +5,7 @@
 #![cfg_attr(feature = "cross-platform-docs", feature(doc_cfg))]
 
 mod command;
-mod distro;
+pub mod distro;
 pub mod env;
 pub mod error;
 mod event;

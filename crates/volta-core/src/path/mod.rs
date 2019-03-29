@@ -177,138 +177,19 @@ pub fn user_tool_bin_config(bin_name: &str) -> Fallible<PathBuf> {
     Ok(user_bin_dir()?.join(format!("{}.json", bin_name)))
 }
 
-pub fn node_distro_file_name(version: &str) -> String {
-    format!(
-        "{}.{}",
-        node_archive_root_dir_name(version),
-        archive_extension()
-    )
-}
-
 pub fn node_npm_version_file(version: &str) -> Fallible<PathBuf> {
     let filename = format!("node-v{}-npm", version);
     Ok(node_inventory_dir()?.join(&filename))
 }
 
-pub fn node_archive_root_dir_name(version: &str) -> String {
-    format!("node-v{}-{}-{}", version, OS, ARCH)
-}
-
-pub fn yarn_distro_file_name(version: &str) -> String {
-    format!("{}.tar.gz", yarn_archive_root_dir_name(version))
-}
-
-pub fn yarn_archive_root_dir_name(version: &str) -> String {
-    format!("yarn-v{}", version)
-}
-
 pub fn package_distro_file_name(name: &str, version: &str) -> String {
-    format!("{}.tgz", package_archive_root_dir_name(name, version))
+    format!("{}.tgz", package_basename(name, version))
 }
 
 pub fn package_shasum_file_name(name: &str, version: &str) -> String {
-    format!("{}.shasum", package_archive_root_dir_name(name, version))
+    format!("{}.shasum", package_basename(name, version))
 }
 
-pub fn package_archive_root_dir_name(name: &str, version: &str) -> String {
+fn package_basename(name: &str, version: &str) -> String {
     format!("{}-{}", name, version)
-}
-
-fn is_node_root(dir: &Path) -> bool {
-    dir.join("package.json").is_file()
-}
-
-fn is_node_modules(dir: &Path) -> bool {
-    dir.file_name() == Some(OsStr::new("node_modules"))
-}
-
-fn is_dependency(dir: &Path) -> bool {
-    dir.parent().map_or(false, |parent| is_node_modules(parent))
-}
-
-fn is_project_root(dir: &Path) -> bool {
-    is_node_root(dir) && !is_dependency(dir)
-}
-
-pub fn find_project_dir(base_dir: &Path) -> Option<&Path> {
-    let mut dir = base_dir.clone();
-    while !is_project_root(dir) {
-        dir = match dir.parent() {
-            Some(parent) => parent,
-            None => {
-                return None;
-            }
-        }
-    }
-
-    Some(dir)
-}
-
-#[cfg(test)]
-pub mod tests {
-    use super::*;
-
-    fn fixture_path(fixture_dirs: &[&str]) -> PathBuf {
-        let mut cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        cargo_manifest_dir.push("fixtures");
-
-        for fixture_dir in fixture_dirs.iter() {
-            cargo_manifest_dir.push(fixture_dir);
-        }
-
-        cargo_manifest_dir
-    }
-
-    #[test]
-    fn test_node_distro_file_name() {
-        assert_eq!(
-            node_distro_file_name("1.2.3"),
-            format!("node-v1.2.3-{}-{}.{}", OS, ARCH, archive_extension())
-        );
-    }
-
-    #[test]
-    fn test_node_archive_root_dir() {
-        assert_eq!(
-            node_archive_root_dir_name("1.2.3"),
-            format!("node-v1.2.3-{}-{}", OS, ARCH)
-        );
-    }
-
-    #[test]
-    fn test_yarn_distro_file_name() {
-        assert_eq!(yarn_distro_file_name("1.2.3"), "yarn-v1.2.3.tar.gz");
-    }
-
-    #[test]
-    fn yarn_node_archive_root_dir() {
-        assert_eq!(
-            yarn_archive_root_dir_name("1.2.3"),
-            "yarn-v1.2.3".to_string()
-        );
-    }
-
-    #[test]
-    fn test_find_project_dir_direct() {
-        let base_dir = fixture_path(&["basic"]);
-        let project_dir = find_project_dir(&base_dir).expect("Failed to find project directory");
-
-        assert_eq!(project_dir, base_dir);
-    }
-
-    #[test]
-    fn test_find_project_dir_ancestor() {
-        let base_dir = fixture_path(&["basic", "subdir"]);
-        let project_dir = find_project_dir(&base_dir).expect("Failed to find project directory");
-
-        assert_eq!(project_dir, fixture_path(&["basic"]));
-    }
-
-    #[test]
-    fn test_find_project_dir_dependency() {
-        let base_dir = fixture_path(&["basic", "node_modules", "eslint"]);
-        let project_dir = find_project_dir(&base_dir).expect("Failed to find project directory");
-
-        assert_eq!(project_dir, fixture_path(&["basic"]));
-    }
 }

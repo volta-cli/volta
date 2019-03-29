@@ -5,7 +5,7 @@ use std::process::Stdio;
 
 use crate::command::create_command;
 use crate::error::ErrorDetails;
-use crate::path::{ARCH, OS};
+use crate::distro::node::{ARCH, OS};
 use cmdline_words_parser::StrExt;
 use log::debug;
 use semver::Version;
@@ -101,7 +101,7 @@ fn execute_binary(bin: &str, extra_arg: Option<String>) -> Fallible<String> {
 #[cfg(test)]
 pub mod tests {
     use super::{DistroHook, MetadataHook};
-    use crate::path::{ARCH, OS};
+    use crate::distro::node::{ARCH, OS};
     use semver::Version;
 
     #[test]

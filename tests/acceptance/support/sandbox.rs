@@ -9,7 +9,8 @@ use reqwest::hyper_011::header::HttpDate;
 
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 
-use volta_core::path::{archive_extension, create_file_symlink, ARCH, OS};
+use volta_core::distro::node::{ARCH, OS};
+use volta_core::path::{archive_extension, create_file_symlink};
 
 #[cfg(feature = "mock-network")]
 use mockito::{self, mock, Matcher};

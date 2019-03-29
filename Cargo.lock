@@ -1076,6 +1076,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "notion-layout"
 version = "0.1.0"
 dependencies = [
+ "cfg-if 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "notion-layout-macro 0.1.0",
 ]
 

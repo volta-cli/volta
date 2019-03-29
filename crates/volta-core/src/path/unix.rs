@@ -7,38 +7,11 @@ use std::path::{Path, PathBuf};
 
 use dirs;
 
+use crate::distro::node::NodeDistro;
 use crate::error::ErrorDetails;
 use volta_fail::Fallible;
 
-use super::{node_archive_root_dir_name, node_image_dir, shim_dir, volta_home};
-
-// These are taken from: https://nodejs.org/dist/index.json and are used
-// by `path::archive_root_dir` to determine the root directory of the
-// contents of a Node installer archive.
-
-cfg_if::cfg_if! {
-    if #[cfg(target_os = "macos")] {
-        /// The OS component of a Node distribution tarball's name.
-        pub const OS: &'static str = "darwin";
-    } else if #[cfg(target_os = "linux")] {
-        /// The OS component of a Node distribution tarball's name.
-        pub const OS: &'static str = "linux";
-    } else {
-        compile_error!("Unsupported target_os variant of unix (expected 'macos' or 'linux').");
-    }
-}
-
-cfg_if::cfg_if! {
-    if #[cfg(target_arch = "x86")] {
-        /// The system architecture component of a Node distribution tarball's name.
-        pub const ARCH: &'static str = "x86";
-    } else if #[cfg(target_arch = "x86_64")] {
-        /// The system architecture component of a Node distribution tarball's name.
-        pub const ARCH: &'static str = "x64";
-    } else {
-        compile_error!("Unsupported target_arch variant of unix (expected 'x86' or 'x64').");
-    }
-}
+use super::{node_image_dir, shim_dir, volta_home};
 
 // ~/
 //     .volta/
@@ -98,7 +71,7 @@ pub fn node_image_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
 }
 
 pub fn node_archive_npm_package_json_path(version: &str) -> PathBuf {
-    Path::new(&node_archive_root_dir_name(version))
+    Path::new(&NodeDistro::basename(version))
         .join("lib")
         .join("node_modules")
         .join("npm")

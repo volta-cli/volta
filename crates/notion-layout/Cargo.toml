@@ -5,3 +5,4 @@ authors = ["David Herman <david.herman@gmail.com>"]
 
 [dependencies]
 notion-layout-macro = { path = "../notion-layout-macro" }
+cfg-if = "0.1"

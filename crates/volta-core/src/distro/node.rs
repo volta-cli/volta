@@ -18,6 +18,7 @@ use crate::style::{progress_bar, tool_version};
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
 
+use cfg_if::cfg_if;
 use log::debug;
 use semver::Version;
 use volta_fail::{Fallible, ResultExt};
@@ -26,7 +27,7 @@ use volta_fail::{Fallible, ResultExt};
 use mockito;
 use serde_json;
 
-cfg_if::cfg_if! {
+cfg_if! {
     if #[cfg(feature = "mock-network")] {
         fn public_node_server_root() -> String {
             mockito::SERVER_URL.to_string()
@@ -35,6 +36,47 @@ cfg_if::cfg_if! {
         fn public_node_server_root() -> String {
             "https://nodejs.org/dist".to_string()
         }
+    }
+}
+
+// These are taken from: https://nodejs.org/dist/index.json and are used
+// by `NodeDistro::basename` to determine the name and internal layout of
+// a Node distribution archive.
+
+cfg_if! {
+    if #[cfg(target_os = "windows")] {
+        /// The OS component of a Node distro's filename.
+        pub const OS: &'static str = "win";
+    } else if #[cfg(target_os = "macos")] {
+        /// The OS component of a Node distro's filename.
+        pub const OS: &'static str = "darwin";
+    } else if #[cfg(target_os = "linux")] {
+        /// The OS component of a Node distro's filename.
+        pub const OS: &'static str = "linux";
+    } else {
+        compile_error!("Unsupported operating system (expected Windows, macOS, or Linux).");
+    }
+}
+
+cfg_if! {
+    if #[cfg(target_arch = "x86")] {
+        /// The system architecture component of a Node distro's name.
+        pub const ARCH: &'static str = "x86";
+    } else if #[cfg(target_arch = "x86_64")] {
+        /// The system architecture component of a Node distro's name.
+        pub const ARCH: &'static str = "x64";
+    } else {
+        compile_error!("Unsupported target_arch variant (expected 'x86' or 'x64').");
+    }
+}
+
+cfg_if! {
+    if #[cfg(target_os = "windows")] {
+        /// Filename extension for Node distro files.
+        pub const NODE_DISTRO_EXTENSION: &'static str = "zip";
+    } else {
+        /// Filename extension for Node distro files.
+        pub const NODE_DISTRO_EXTENSION: &'static str = "tar.gz";
     }
 }
 
@@ -107,9 +149,25 @@ impl Manifest {
 }
 
 impl NodeDistro {
+    pub(crate) fn basename(version: &str) -> String {
+        format!("node-v{}-{}-{}", &version, OS, ARCH)
+    }
+
+    fn filename(version: &str) -> String {
+        format!("{}.{}", NodeDistro::basename(version), NODE_DISTRO_EXTENSION)
+    }
+
+    fn npm_manifest_entry(version: &str) -> PathBuf {
+        Path::new(&NodeDistro::basename(version))
+            .join("lib")
+            .join("node_modules")
+            .join("npm")
+            .join("package.json")
+    }
+
     /// Provision a Node distribution from the public Node distributor (`https://nodejs.org`).
     fn public(version: Version) -> Fallible<Self> {
-        let distro_file_name = path::node_distro_file_name(&version.to_string());
+        let distro_file_name = NodeDistro::filename(&version.to_string());
         let url = format!(
             "{}/v{}/{}",
             public_node_server_root(),
@@ -121,7 +179,7 @@ impl NodeDistro {
 
     /// Provision a Node distribution from a remote distributor.
     fn remote(version: Version, url: &str) -> Fallible<Self> {
-        let distro_file_name = path::node_distro_file_name(&version.to_string());
+        let distro_file_name = NodeDistro::filename(&version.to_string());
         let distro_file = path::node_inventory_dir()?.join(&distro_file_name);
 
         if let Some(archive) = load_cached_distro(&distro_file) {
@@ -163,7 +221,7 @@ impl Distro for NodeDistro {
             }) => {
                 debug!("Using node.distro hook to determine download URL");
                 let url =
-                    hook.resolve(&version, &path::node_distro_file_name(&version.to_string()))?;
+                    hook.resolve(&version, &NodeDistro::filename(&version.to_string()))?;
                 NodeDistro::remote(version, &url)
             }
             _ => NodeDistro::public(version),
@@ -215,9 +273,12 @@ impl Distro for NodeDistro {
                 version: version_string.clone(),
             })?;
 
+        let version_string = self.version.to_string();
+        let root_dir_name = NodeDistro::basename(&version_string);
+
         let npm_package_json = temp
             .path()
-            .join(path::node_archive_npm_package_json_path(&version_string));
+            .join(NodeDistro::npm_manifest_entry(&version_string));
 
         let npm = Manifest::version(&npm_package_json)?;
 
@@ -228,11 +289,7 @@ impl Distro for NodeDistro {
 
         ensure_containing_dir_exists(&dest)?;
 
-        rename(
-            temp.path()
-                .join(path::node_archive_root_dir_name(&version_string)),
-            &dest,
-        )
+        rename(temp.path().join(root_dir_name), &dest)
         .with_context(|_| ErrorDetails::SetupToolImageError {
             tool: String::from("Node"),
             version: version_string.clone(),
@@ -249,4 +306,27 @@ impl Distro for NodeDistro {
             npm,
         }))
     }
+}
+
+#[cfg(test)]
+pub mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_filename() {
+        assert_eq!(
+            NodeDistro::filename("1.2.3"),
+            format!("node-v1.2.3-{}-{}.{}", OS, ARCH, NODE_DISTRO_EXTENSION)
+        );
+    }
+
+    #[test]
+    fn test_basename() {
+        assert_eq!(
+            NodeDistro::basename("1.2.3"),
+            format!("node-v1.2.3-{}-{}", OS, ARCH)
+        );
+    }
+
 }

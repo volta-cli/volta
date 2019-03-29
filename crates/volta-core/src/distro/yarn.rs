@@ -55,10 +55,19 @@ fn load_cached_distro(file: &PathBuf) -> Option<Box<dyn Archive>> {
 }
 
 impl YarnDistro {
+
+    fn basename(version: &str) -> String {
+        format!("yarn-v{}", version)
+    }
+
+    fn filename(version: &str) -> String {
+        format!("{}.tar.gz", YarnDistro::basename(version))
+    }
+
     /// Provision a Yarn distribution from the public distributor (`https://yarnpkg.com`).
     fn public(version: Version) -> Fallible<Self> {
         let version_str = version.to_string();
-        let distro_file_name = path::yarn_distro_file_name(&version_str);
+        let distro_file_name = YarnDistro::filename(&version_str);
         let url = format!(
             "{}/v{}/{}",
             public_yarn_server_root(),
@@ -70,7 +79,7 @@ impl YarnDistro {
 
     /// Provision a Yarn distribution from a remote distributor.
     fn remote(version: Version, url: &str) -> Fallible<Self> {
-        let distro_file_name = path::yarn_distro_file_name(&version.to_string());
+        let distro_file_name = YarnDistro::filename(&version.to_string());
         let distro_file = path::yarn_inventory_dir()?.join(&distro_file_name);
 
         if let Some(archive) = load_cached_distro(&distro_file) {
@@ -112,7 +121,7 @@ impl Distro for YarnDistro {
             }) => {
                 debug!("Using yarn.distro hook to determine download URL");
                 let url =
-                    hook.resolve(&version, &path::yarn_distro_file_name(&version.to_string()))?;
+                    hook.resolve(&version, &YarnDistro::filename(&version.to_string()))?;
                 YarnDistro::remote(version, &url)
             }
             _ => YarnDistro::public(version),
@@ -162,11 +171,7 @@ impl Distro for YarnDistro {
 
         ensure_containing_dir_exists(&dest)?;
 
-        rename(
-            temp.path()
-                .join(path::yarn_archive_root_dir_name(&version_string)),
-            &dest,
-        )
+        rename(temp.path().join(YarnDistro::basename(&version_string)), &dest)
         .with_context(|_| ErrorDetails::SetupToolImageError {
             tool: String::from("Yarn"),
             version: version_string.clone(),
@@ -179,4 +184,24 @@ impl Distro for YarnDistro {
         debug!("Installing yarn in {}", dest.display());
         Ok(Fetched::Now(self.version))
     }
+}
+
+#[cfg(test)]
+pub mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_filename() {
+        assert_eq!(YarnDistro::filename("1.2.3"), "yarn-v1.2.3.tar.gz");
+    }
+
+    #[test]
+    fn test_basename() {
+        assert_eq!(
+            YarnDistro::basename("1.2.3"),
+            "yarn-v1.2.3".to_string()
+        );
+    }
+
 }

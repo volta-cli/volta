@@ -20,8 +20,6 @@ layout! {
             }
         }
         "bin": shim_dir { }
-        "config.toml": user_config_file;
-        "shell": shell_dir { }
         "tools": tools_dir {
             "inventory": inventory_dir {
                 "node": node_inventory_dir { }
@@ -34,15 +32,21 @@ layout! {
                 "yarn": yarn_image_root_dir { }
             }
             "user": user_toolchain_dir {
-                "bins": user_tool_binaries_dir { }
-                "packages": user_tool_packages_dir { }
+                "bins": user_tool_bin_dir { }
+                "packages": user_package_dir { }
                 "platform.json": user_platform_file;
             }
         }
+        "tmp": tmp_dir { }
+        "hooks.toml": user_hooks_file;
     }
 }
 
 impl NotionHome {
+    pub fn node_distro_file_name(node: &str) -> PathBuf {
+        unimplemented!()
+    }
+
     pub fn node_image_dir(&self, node: &str, npm: &str) -> PathBuf {
         self.node_image_root_dir().join(node).join(npm)
     }
