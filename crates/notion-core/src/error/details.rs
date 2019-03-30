@@ -55,6 +55,10 @@ pub enum ErrorDetails {
         tool: ToolSpec,
     },
 
+    FileDeletionError {
+        error: String,
+    },
+
     InvalidHookCommand {
         command: String,
     },
@@ -104,6 +108,8 @@ pub enum ErrorDetails {
         version: String,
     },
 
+    PackageConfigNotFound,
+
     /// Thrown when package install command is not successful.
     PackageInstallFailed {
         cmd: String,
@@ -113,6 +119,10 @@ pub enum ErrorDetails {
     /// Thrown when package install command fails to execute.
     PackageInstallIoError {
         error: String,
+    },
+
+    PackageNotInstalled {
+        package: String,
     },
 
     PackageReadError {
@@ -186,6 +196,7 @@ impl fmt::Display for ErrorDetails {
                 tool, from_url, error
             ),
             ErrorDetails::DownloadToolNotFound { tool } => write!(f, "{} not found", tool),
+            ErrorDetails::FileDeletionError { error } => write!(f, "Error deleting file: {}", error),
             ErrorDetails::InvalidHookCommand { command } => write!(f, "Invalid hook command: '{}'", command),
             ErrorDetails::NoBinPlatform { binary } => {
                 write!(f, "Platform info for executable `{}` is missing", binary)
@@ -221,8 +232,10 @@ See `notion help install` for help adding {} to your personal toolchain."#, tool
 'npx' is only available with npm >= 5.2.0
 
 This project is configured to use version {} of npm."#, version),
+            ErrorDetails::PackageConfigNotFound => write!(f, "Package config file not found"),
             ErrorDetails::PackageInstallFailed { cmd, status } => write!(f, "Command `{}` failed with status {}", cmd, status),
             ErrorDetails::PackageInstallIoError { error } => write!(f, "Error executing package install command: {}", error),
+            ErrorDetails::PackageNotInstalled { package } => write!(f, "Package `{}` is not installed", package),
             ErrorDetails::PackageReadError { error } => {
                 write!(f, "Could not read package info: {}", error)
             }
@@ -260,6 +273,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::DeprecatedCommandError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
             ErrorDetails::DownloadToolNotFound { .. } => ExitCode::NoVersionMatch,
+            ErrorDetails::FileDeletionError { .. } => ExitCode::FileSystemError,
             ErrorDetails::InvalidHookCommand { .. } => ExitCode::UnknownError,
             ErrorDetails::NoBinPlatform { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
@@ -274,8 +288,10 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::NoToolChain { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::NoVersionsFound => ExitCode::NoVersionMatch,
             ErrorDetails::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
+            ErrorDetails::PackageConfigNotFound => ExitCode::NoVersionMatch,
             ErrorDetails::PackageInstallFailed { .. } => ExitCode::FileSystemError,
             ErrorDetails::PackageInstallIoError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::PackageNotInstalled { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::PackageUnpackError => ExitCode::ConfigurationError,
             ErrorDetails::PathError => ExitCode::UnknownError,

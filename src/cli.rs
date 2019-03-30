@@ -58,6 +58,10 @@ pub(crate) enum Subcommand {
     #[structopt(name = "install", author = "", version = "")]
     Install(command::Install),
 
+    /// Uninstalls a tool from your toolchain
+    #[structopt(name = "uninstall", author = "", version = "")]
+    Uninstall(command::Uninstall),
+
     /// Pins your project's runtime or package manager
     #[structopt(name = "pin", author = "", version = "")]
     Pin(command::Pin),
@@ -128,6 +132,7 @@ impl Subcommand {
         match self {
             Subcommand::Fetch(fetch) => fetch.run(session),
             Subcommand::Install(install) => install.run(session),
+            Subcommand::Uninstall(uninstall) => uninstall.run(session),
             Subcommand::Pin(pin) => pin.run(session),
             Subcommand::Config(config) => config.run(session),
             Subcommand::Current(current) => current.run(session),

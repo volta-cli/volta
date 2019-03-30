@@ -67,3 +67,15 @@ pub fn read_dir_eager(dir: &Path) -> Fallible<impl Iterator<Item = (DirEntry, Me
         .collect::<Fallible<Vec<(DirEntry, Metadata)>>>()?
         .into_iter())
 }
+
+/// Reads the contents of a directory and returns a Vec of the matched results
+/// from the input function
+pub fn dir_entry_match<T, F>(dir: &Path, mut f: F) -> Fallible<Vec<T>>
+where
+    F: FnMut(&DirEntry) -> Option<T>,
+{
+    Ok(read_dir_eager(dir)?
+        .filter(|(_, metadata)| metadata.is_file())
+        .filter_map(|(entry, _)| f(&entry))
+        .collect::<Vec<T>>())
+}
