@@ -396,9 +396,24 @@ impl UserTool {
         // canonicalize because path is relative, and sometimes uses '.' char
         let bin_path = image_dir.join(bin_config.path).canonicalize().unknown()?;
 
+        // If the user does not have yarn set in the platform for this binary, use the default
+        // This is necessary because some tools (e.g. ember-cli with the --yarn option) invoke `yarn`
+        let platform = match bin_config.platform.yarn {
+            Some(_) => bin_config.platform,
+            None => {
+                let yarn = session
+                    .user_platform()?
+                    .and_then(|ref plat| plat.yarn.clone());
+                PlatformSpec {
+                    yarn,
+                    ..bin_config.platform
+                }
+            }
+        };
+
         Ok(UserTool {
             bin_path,
-            image: bin_config.platform.checkout(session)?,
+            image: platform.checkout(session)?,
         })
     }
 
