@@ -16,7 +16,7 @@ use crate::error::ErrorDetails;
 use crate::fs::ensure_containing_dir_exists;
 use crate::hook::ToolHooks;
 use crate::inventory::YarnCollection;
-use crate::path;
+use crate::layout::layout;
 use crate::style::{progress_bar, tool_version};
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
@@ -56,11 +56,11 @@ fn load_cached_distro(file: &PathBuf) -> Option<Box<dyn Archive>> {
 
 impl YarnDistro {
 
-    fn basename(version: &str) -> String {
+    pub fn basename(version: &str) -> String {
         format!("yarn-v{}", version)
     }
 
-    fn filename(version: &str) -> String {
+    pub fn filename(version: &str) -> String {
         format!("{}.tar.gz", YarnDistro::basename(version))
     }
 
@@ -80,7 +80,7 @@ impl YarnDistro {
     /// Provision a Yarn distribution from a remote distributor.
     fn remote(version: Version, url: &str) -> Fallible<Self> {
         let distro_file_name = YarnDistro::filename(&version.to_string());
-        let distro_file = path::yarn_inventory_dir()?.join(&distro_file_name);
+        let distro_file = layout()?.user.yarn_inventory_dir().join(&distro_file_name);
 
         if let Some(archive) = load_cached_distro(&distro_file) {
             debug!(
@@ -144,7 +144,8 @@ impl Distro for YarnDistro {
             return Ok(Fetched::Already(self.version));
         }
 
-        let tmp_root = path::tmp_dir()?;
+        let layout = layout()?;
+        let tmp_root = layout.user.tmp_dir();
         let temp = tempdir_in(&tmp_root)
             .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })?;
         debug!("Unpacking yarn into {}", temp.path().display());
@@ -167,7 +168,7 @@ impl Distro for YarnDistro {
                 version: version_string.clone(),
             })?;
 
-        let dest = path::yarn_image_dir(&version_string)?;
+        let dest = layout.user.yarn_image_dir(&version_string);
 
         ensure_containing_dir_exists(&dest)?;
 

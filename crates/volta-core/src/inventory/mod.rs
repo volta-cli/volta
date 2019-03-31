@@ -26,7 +26,7 @@ use crate::distro::{Distro, Fetched};
 use crate::error::ErrorDetails;
 use crate::fs::{ensure_containing_dir_exists, read_file_opt};
 use crate::hook::ToolHooks;
-use crate::path;
+use crate::layout::layout;
 use crate::style::progress_spinner;
 use crate::version::VersionSpec;
 
@@ -612,7 +612,8 @@ pub struct NodeDistroFiles {
 
 /// Reads a public index from the Node cache, if it exists and hasn't expired.
 fn read_cached_opt() -> Fallible<Option<serial::NodeIndex>> {
-    let expiry_file = path::node_index_expiry_file()?;
+    let layout = layout()?;
+    let expiry_file = layout.user.node_index_expiry_file();
     let expiry = read_file_opt(&expiry_file)
         .with_context(|_| ErrorDetails::ReadNodeIndexExpiryError { file: expiry_file })?;
 
@@ -622,7 +623,7 @@ fn read_cached_opt() -> Fallible<Option<serial::NodeIndex>> {
         let current_date = HttpDate::from(SystemTime::now());
 
         if current_date < expiry_date {
-            let index_file = path::node_index_file()?;
+            let index_file = layout.user.node_index_file();
             let cached = read_file_opt(&index_file)
                 .with_context(|_| ErrorDetails::ReadNodeIndexCacheError { file: index_file })?;
 
@@ -668,7 +669,8 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
                     }
                 })?;
 
-            let tmp_root = path::tmp_dir()?;
+            let layout = layout()?;
+            let tmp_root = layout.user.tmp_dir();
             // Helper to lazily determine temp dir string, without moving the file into the closures below
             let get_tmp_root = || tmp_root.to_owned();
 
@@ -688,7 +690,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
                     })?;
             }
 
-            let index_cache_file = path::node_index_file()?;
+            let index_cache_file = layout.user.node_index_file();
             ensure_containing_dir_exists(&index_cache_file)?;
             cached.persist(&index_cache_file).with_context(|_| {
                 ErrorDetails::WriteNodeIndexCacheError {
@@ -720,7 +722,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
                 })?;
             }
 
-            let index_expiry_file = path::node_index_expiry_file()?;
+            let index_expiry_file = layout.user.node_index_expiry_file();
             ensure_containing_dir_exists(&index_expiry_file)?;
             expiry.persist(&index_expiry_file).with_context(|_| {
                 ErrorDetails::WriteNodeIndexExpiryError {

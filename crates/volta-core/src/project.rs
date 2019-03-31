@@ -12,8 +12,8 @@ use semver::Version;
 use crate::distro::node::{load_default_npm_version, NodeVersion};
 use crate::distro::package::BinConfig;
 use crate::error::ErrorDetails;
+use crate::layout::layout;
 use crate::manifest::{serial, Manifest};
-use crate::path;
 use crate::platform::PlatformSpec;
 use log::debug;
 use volta_fail::{Fallible, ResultExt};
@@ -44,6 +44,22 @@ pub struct Project {
     project_root: PathBuf,
 }
 
+fn is_node_root(dir: &Path) -> bool {
+    dir.join("package.json").is_file()
+}
+
+fn is_node_modules(dir: &Path) -> bool {
+    dir.file_name() == Some(OsStr::new("node_modules"))
+}
+
+fn is_dependency(dir: &Path) -> bool {
+    dir.parent().map_or(false, |parent| is_node_modules(parent))
+}
+
+fn is_project_root(dir: &Path) -> bool {
+    is_node_root(dir) && !is_dependency(dir)
+}
+
 impl Project {
     /// Returns the Node project containing the current working directory,
     /// if any.
@@ -53,9 +69,23 @@ impl Project {
         Self::for_dir(&current_dir)
     }
 
+    pub(crate) fn find_dir(base_dir: &Path) -> Option<&Path> {
+        let mut dir = base_dir.clone();
+        while !is_project_root(dir) {
+            dir = match dir.parent() {
+                Some(parent) => parent,
+                None => {
+                    return None;
+                }
+            }
+        }
+
+        Some(dir)
+    }
+
     /// Returns the Node project for the input directory, if any.
     fn for_dir(base_dir: &Path) -> Fallible<Option<Rc<Project>>> {
-        match path::find_project_dir(base_dir) {
+        match Self::find_dir(base_dir) {
             Some(dir) => {
                 debug!("Found project manifest at {}", dir.display());
                 Ok(Some(Rc::new(Project {
@@ -96,7 +126,7 @@ impl Project {
     /// Returns true if the input binary name is a direct dependency of the input project
     pub fn has_direct_bin(&self, bin_name: &OsStr) -> Fallible<bool> {
         if let Some(name) = bin_name.to_str() {
-            let config_path = path::user_tool_bin_config(name)?;
+            let config_path = layout()?.user.user_tool_bin_config(name);
             if config_path.exists() {
                 let config = BinConfig::from_file(config_path)?;
                 return Ok(self.has_direct_dependency(&config.package));

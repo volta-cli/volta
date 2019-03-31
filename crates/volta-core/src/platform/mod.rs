@@ -7,7 +7,7 @@ use semver::Version;
 
 use crate::distro::node::{load_default_npm_version, NodeVersion};
 use crate::error::ErrorDetails;
-use crate::path;
+use crate::layout::layout;
 use crate::session::Session;
 use volta_fail::{Fallible, ResultExt};
 
@@ -56,11 +56,12 @@ impl Image {
     pub fn bins(&self) -> Fallible<Vec<PathBuf>> {
         let node_str = self.node.runtime.to_string();
         let npm_str = self.node.npm.to_string();
+        let layout = layout()?;
         // ISSUE(#292): Install npm, and handle using that
-        let mut bins = vec![path::node_image_bin_dir(&node_str, &npm_str)?];
+        let mut bins = vec![layout.user.node_image_bin_dir(&node_str, &npm_str)];
         if let Some(ref yarn) = self.yarn {
             let yarn_str = yarn.to_string();
-            bins.push(path::yarn_image_bin_dir(&yarn_str)?);
+            bins.push(layout.user.yarn_image_bin_dir(&yarn_str));
         }
         Ok(bins)
     }
@@ -72,7 +73,7 @@ impl Image {
         let old_path = envoy::path().unwrap_or(envoy::Var::from(""));
         let mut new_path = old_path.split();
 
-        for remove_path in path::env_paths()? {
+        for remove_path in layout()?.env_paths() {
             new_path = new_path.remove(remove_path);
         }
 
@@ -95,7 +96,7 @@ impl System {
         let old_path = envoy::path().unwrap_or(envoy::Var::from(""));
         let mut new_path = old_path.split();
 
-        for remove_path in path::env_paths()? {
+        for remove_path in layout()?.env_paths() {
             new_path = new_path.remove(remove_path);
         }
 
@@ -108,7 +109,7 @@ impl System {
         let old_path = envoy::path().unwrap_or(envoy::Var::from(""));
         let mut new_path = old_path.split();
 
-        for add_path in path::env_paths()? {
+        for add_path in layout()?.env_paths() {
             if !old_path.split().any(|part| part == add_path) {
                 new_path = new_path.prefix_entry(add_path);
             }
@@ -126,12 +127,22 @@ fn build_path_error(_err: &JoinPathsError) -> ErrorDetails {
 mod test {
 
     use super::*;
-    #[cfg(windows)]
-    use crate::path::install_bin_dir;
-    use crate::path::{shim_dir, volta_home};
+    use crate::layout::layout;
     use semver::Version;
     use std;
     use std::path::PathBuf;
+
+    fn volta_home() -> PathBuf {
+        layout().unwrap().user.root().to_path_buf()
+    }
+
+    fn shim_dir() -> PathBuf {
+        layout().unwrap().user.shim_dir().to_path_buf()
+    }
+
+    fn install_bin_dir() -> PathBuf {
+        layout().unwrap().install.bin_dir().to_path_buf()
+    }
 
     // Since unit tests are run in parallel, tests that modify the PATH environment variable are subject to race conditions
     // To prevent that, ensure that all tests that rely on PATH are run in serial by adding them to this meta-test
@@ -148,12 +159,11 @@ mod test {
             "PATH",
             format!(
                 "/usr/bin:/blah:{}:/doesnt/matter/bin",
-                shim_dir().unwrap().to_string_lossy()
+                shim_dir().to_string_lossy()
             ),
         );
 
         let node_bin = volta_home()
-            .unwrap()
             .join("tools")
             .join("image")
             .join("node")
@@ -163,7 +173,6 @@ mod test {
         let expected_node_bin = node_bin.as_path().to_str().unwrap();
 
         let yarn_bin = volta_home()
-            .unwrap()
             .join("tools")
             .join("image")
             .join("yarn")
@@ -208,7 +217,7 @@ mod test {
     #[cfg(windows)]
     fn test_image_path() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
-        pathbufs.push(shim_dir().unwrap());
+        pathbufs.push(shim_dir());
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
         pathbufs.push(install_bin_dir().unwrap());
         pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
@@ -221,7 +230,6 @@ mod test {
         std::env::set_var("PATH", path_with_shims);
 
         let node_bin = volta_home()
-            .unwrap()
             .join("tools")
             .join("image")
             .join("node")
@@ -230,7 +238,6 @@ mod test {
         let expected_node_bin = node_bin.as_path().to_str().unwrap();
 
         let yarn_bin = volta_home()
-            .unwrap()
             .join("tools")
             .join("image")
             .join("yarn")
@@ -276,7 +283,7 @@ mod test {
     fn test_system_path() {
         std::env::set_var(
             "PATH",
-            format!("{}:/usr/bin:/bin", shim_dir().unwrap().to_string_lossy()),
+            format!("{}:/usr/bin:/bin", shim_dir().to_string_lossy()),
         );
 
         let expected_path = String::from("/usr/bin:/bin");
@@ -290,7 +297,7 @@ mod test {
     #[cfg(windows)]
     fn test_system_path() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
-        pathbufs.push(shim_dir().unwrap());
+        pathbufs.push(shim_dir());
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
         pathbufs.push(install_bin_dir().unwrap());
         pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
@@ -313,7 +320,7 @@ mod test {
     #[cfg(unix)]
     fn test_system_enabled_path() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
-        pathbufs.push(shim_dir().unwrap());
+        pathbufs.push(shim_dir());
         pathbufs.push(PathBuf::from("/usr/bin"));
         pathbufs.push(PathBuf::from("/bin"));
 
@@ -340,8 +347,8 @@ mod test {
     #[cfg(windows)]
     fn test_system_enabled_path() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
-        pathbufs.push(install_bin_dir().unwrap());
-        pathbufs.push(shim_dir().unwrap());
+        pathbufs.push(install_bin_dir());
+        pathbufs.push(shim_dir());
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
         pathbufs.push(PathBuf::from("D:\\\\Program Files"));
 

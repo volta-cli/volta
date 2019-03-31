@@ -7,7 +7,7 @@ use semver::Version;
 use crate::distro::node::NodeVersion;
 use crate::error::ErrorDetails;
 use crate::fs::touch;
-use crate::path::user_platform_file;
+use crate::layout::layout;
 use crate::platform::PlatformSpec;
 
 use log::debug;
@@ -45,7 +45,8 @@ pub struct Toolchain {
 
 impl Toolchain {
     fn current() -> Fallible<Toolchain> {
-        let path = user_platform_file()?;
+        let layout = layout()?;
+        let path = layout.user.user_platform_file();
         let src = touch(&path)
             .and_then(|mut file| file.read_into_string())
             .with_context(|_| ErrorDetails::ReadPlatformError { file: path.clone() })?;
@@ -128,9 +129,10 @@ impl Toolchain {
     }
 
     pub fn save(&self) -> Fallible<()> {
-        let path = user_platform_file()?;
+        let layout = layout()?;
+        let path = layout.user.user_platform_file();
         let result = match &self.platform {
-            Some(platform) => {
+            &Some(ref platform) => {
                 let src = platform.to_serial().to_json()?;
                 write(&path, src)
             }

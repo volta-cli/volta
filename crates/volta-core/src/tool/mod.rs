@@ -16,7 +16,7 @@ use volta_fail::{throw, Fallible, ResultExt};
 use crate::command::create_command;
 use crate::env::UNSAFE_GLOBAL;
 use crate::error::ErrorDetails;
-use crate::path;
+use crate::layout::layout;
 use crate::platform::System;
 use crate::session::Session;
 use crate::version::VersionSpec;
@@ -51,7 +51,7 @@ enum CommandArg {
 /// dealing with multiple tools.
 ///
 /// [`Ord`]: https://doc.rust-lang.org/1.34.0/core/cmp/trait.Ord.html
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ToolSpec {
     Node(VersionSpec),
     Npm(VersionSpec),
@@ -218,7 +218,7 @@ impl Display for ToolSpec {
 }
 
 pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
-    path::ensure_volta_dirs_exist()?;
+    layout()?.create().unknown()?;
 
     let mut args = args_os();
     let exe = get_tool_name(&mut args)?;

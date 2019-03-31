@@ -13,7 +13,7 @@ use crate::error::ErrorDetails;
 use crate::fs::ensure_containing_dir_exists;
 use crate::hook::ToolHooks;
 use crate::inventory::NodeCollection;
-use crate::path;
+use crate::layout::layout;
 use crate::style::{progress_bar, tool_version};
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
@@ -99,7 +99,7 @@ pub struct NodeVersion {
 
 /// Load the local npm version file to determine the default npm version for a given version of Node
 pub fn load_default_npm_version(node: &Version) -> Fallible<Version> {
-    let npm_version_file_path = path::node_npm_version_file(&node.to_string())?;
+    let npm_version_file_path = layout()?.user.node_npm_version_file(&node.to_string());
     let npm_version = read_to_string(&npm_version_file_path).with_context(|_| {
         ErrorDetails::ReadDefaultNpmError {
             file: npm_version_file_path,
@@ -110,7 +110,7 @@ pub fn load_default_npm_version(node: &Version) -> Fallible<Version> {
 
 /// Save the default npm version to the filesystem for a given version of Node
 fn save_default_npm_version(node: &Version, npm: &Version) -> Fallible<()> {
-    let npm_version_file_path = path::node_npm_version_file(&node.to_string())?;
+    let npm_version_file_path = layout()?.user.node_npm_version_file(&node.to_string());
     write(&npm_version_file_path, npm.to_string().as_bytes()).with_context(|_| {
         ErrorDetails::WriteDefaultNpmError {
             file: npm_version_file_path,
@@ -149,11 +149,11 @@ impl Manifest {
 }
 
 impl NodeDistro {
-    pub(crate) fn basename(version: &str) -> String {
+    pub fn basename(version: &str) -> String {
         format!("node-v{}-{}-{}", &version, OS, ARCH)
     }
 
-    fn filename(version: &str) -> String {
+    pub fn filename(version: &str) -> String {
         format!("{}.{}", NodeDistro::basename(version), NODE_DISTRO_EXTENSION)
     }
 
@@ -180,7 +180,7 @@ impl NodeDistro {
     /// Provision a Node distribution from a remote distributor.
     fn remote(version: Version, url: &str) -> Fallible<Self> {
         let distro_file_name = NodeDistro::filename(&version.to_string());
-        let distro_file = path::node_inventory_dir()?.join(&distro_file_name);
+        let distro_file = layout()?.user.node_inventory_dir().join(&distro_file_name);
 
         if let Some(archive) = load_cached_distro(&distro_file) {
             debug!(
@@ -249,7 +249,9 @@ impl Distro for NodeDistro {
             }));
         }
 
-        let tmp_root = path::tmp_dir()?;
+        let layout = layout()?;
+
+        let tmp_root = layout.user.tmp_dir();
         let temp = tempdir_in(&tmp_root)
             .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })?;
         debug!("Unpacking node into {}", temp.path().display());
@@ -285,7 +287,7 @@ impl Distro for NodeDistro {
         // Save the npm version number in the npm version file for this distro:
         save_default_npm_version(&self.version, &npm)?;
 
-        let dest = path::node_image_dir(&version_string, &npm.to_string())?;
+        let dest = layout.user.node_image_dir(&version_string, &npm.to_string());
 
         ensure_containing_dir_exists(&dest)?;
 

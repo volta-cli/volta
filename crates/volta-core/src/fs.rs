@@ -2,7 +2,7 @@
 
 use std::fs::{self, create_dir_all, read_dir, DirEntry, File, Metadata};
 use std::io::{self, ErrorKind};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::error::ErrorDetails;
 use volta_fail::{Fallible, ResultExt};
@@ -50,7 +50,7 @@ pub fn delete_dir_error<P: AsRef<Path>>(directory: &P) -> impl FnOnce(&io::Error
 }
 
 /// Reads a file, if it exists.
-pub fn read_file_opt(path: &PathBuf) -> io::Result<Option<String>> {
+pub fn read_file_opt(path: impl AsRef<Path>) -> io::Result<Option<String>> {
     let result: io::Result<String> = fs::read_to_string(path);
 
     match result {
@@ -96,4 +96,13 @@ where
         .filter(|(_, metadata)| metadata.is_file())
         .filter_map(|(entry, _)| f(&entry))
         .collect::<Vec<T>>())
+}
+
+/// Create a symlink. The `dst` path will be a symbolic link pointing to the `src` path.
+pub fn symlink_file(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result<(), io::Error> {
+    #[cfg(unix)]
+    return std::os::unix::fs::symlink(src, dst);
+
+    #[cfg(windows)]
+    return std::os::windows::fs::symlink_file(src, dst);
 }

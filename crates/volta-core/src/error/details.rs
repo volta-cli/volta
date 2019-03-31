@@ -18,7 +18,7 @@ an issue at https://github.com/volta-cli/volta/issues with the details!";
 const PERMISSIONS_CTA: &'static str =
     "Please ensure you have correct permissions to the Volta directory.";
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum CreatePostscriptErrorPath {
     Directory(PathBuf),
     Unknown,
@@ -33,7 +33,7 @@ impl fmt::Display for CreatePostscriptErrorPath {
     }
 }
 
-#[derive(Debug, Fail, PartialEq)]
+#[derive(Clone, Debug, Fail, PartialEq)]
 pub enum ErrorDetails {
     /// Thrown when package tries to install a binary that is already installed.
     BinaryAlreadyInstalled {

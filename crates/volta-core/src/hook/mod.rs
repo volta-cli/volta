@@ -12,9 +12,11 @@ use crate::distro::package::PackageDistro;
 use crate::distro::yarn::YarnDistro;
 use crate::distro::Distro;
 use crate::error::ErrorDetails;
-use crate::path::{find_project_dir, user_hooks_file};
+use crate::fs::touch;
+use crate::layout::layout;
 use log::debug;
-use volta_fail::{Fallible, ResultExt};
+use readext::ReadExt;
+use volta_fail::{Fallible, ResultExt, VoltaError};
 
 pub(crate) mod serial;
 pub mod tool;
@@ -126,7 +128,7 @@ impl HookConfig {
     /// specified directory is not itself a project, its ancestors will be
     /// searched.
     fn for_dir(base_dir: &Path) -> Fallible<Option<Self>> {
-        match find_project_dir(&base_dir) {
+        match Project::find_dir(&base_dir) {
             Some(project_dir) => {
                 let path = project_dir.join(".volta").join("hooks.json");
                 let hooks_config = Self::from_file(&path)?;
@@ -160,7 +162,7 @@ impl HookConfig {
 
     /// Returns the per-user hooks, loaded from the filesystem.
     fn for_user() -> Fallible<Option<Self>> {
-        let path = user_hooks_file()?;
+        let path = layout()?.user.user_hooks_file();
         let hooks_config = Self::from_file(&path)?;
 
         if hooks_config.is_some() {

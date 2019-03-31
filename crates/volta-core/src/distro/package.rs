@@ -25,8 +25,8 @@ use crate::fs::{
 };
 use crate::hook::ToolHooks;
 use crate::inventory::Collection;
+use crate::layout::layout;
 use crate::manifest::Manifest;
-use crate::path;
 use crate::platform::{Image, PlatformSpec};
 use crate::session::Session;
 use crate::shim;
@@ -166,14 +166,15 @@ impl Distro for PackageDistro {
         _hooks: Option<&ToolHooks<Self>>,
     ) -> Fallible<Self> {
         let version = entry.version;
+        let layout = layout()?;
         Ok(PackageDistro {
             name: name.to_string(),
             shasum: entry.shasum,
             version: version.clone(),
             tarball_url: entry.tarball,
-            image_dir: path::package_image_dir(name, &version.to_string())?,
-            distro_file: path::package_distro_file(name, &version.to_string())?,
-            shasum_file: path::package_distro_shasum(name, &version.to_string())?,
+            image_dir: layout.user.package_image_dir(&name, &version.to_string()),
+            distro_file: layout.user.package_distro_file(&name, &version.to_string()),
+            shasum_file: layout.user.package_distro_shasum(&name, &version.to_string()),
         })
     }
 
@@ -203,6 +204,14 @@ impl Distro for PackageDistro {
                 .unwrap_or(archive.compressed_size()),
         );
 
+<<<<<<< HEAD
+=======
+        let layout = layout()?;
+        let tmp_root = layout.user.tmp_dir();
+        let temp = tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError {
+            in_dir: tmp_root.to_string_lossy().to_string(),
+        })?;
+>>>>>>> Replace `notion_core::path` with the layout module!
         archive
             .unpack(temp.path(), &mut |_, read| {
                 bar.inc(read as u64);
@@ -303,7 +312,8 @@ impl PackageDistro {
     fn is_installed(&self) -> bool {
         // check that package config file contains the same version
         // (that is written after a package has been installed)
-        if let Ok(pkg_config_file) = path::user_package_config_file(&self.name) {
+        if let Ok(layout) = layout() {
+            let pkg_config_file = layout.user.user_package_config_file(&self.name);
             if let Ok(package_config) = PackageConfig::from_file(&pkg_config_file) {
                 return package_config.version == self.version;
             }
@@ -321,7 +331,7 @@ impl PackageDistro {
         for (bin_name, _bin_path) in bin_map.iter() {
             // check for conflicts with installed bins
             // some packages may install bins with the same name
-            let bin_config_file = path::user_tool_bin_config(&bin_name)?;
+            let bin_config_file = layout()?.user.user_tool_bin_config(&bin_name);
             if bin_config_file.exists() {
                 let bin_config = BinConfig::from_file(bin_config_file)?;
                 // if the bin was installed by the package that is currently being installed,
@@ -378,7 +388,8 @@ fn find_unpack_dir(in_dir: &Path) -> Fallible<PathBuf> {
 
 impl PackageVersion {
     pub fn new(name: String, version: Version, bins: HashMap<String, String>) -> Fallible<Self> {
-        let image_dir = path::package_image_dir(&name, &version.to_string())?;
+        let layout = layout()?;
+        let image_dir = layout.user.package_image_dir(&name, &version.to_string());
         Ok(PackageVersion {
             name,
             version,
@@ -510,8 +521,10 @@ impl PackageVersion {
     /// * the shims
     /// * the unpacked and initialized package
     pub fn uninstall(name: &str) -> Fallible<()> {
+        let layout = layout()?;
+
         // if the package config file exists, use that to remove any installed bins and shims
-        let package_config_file = path::user_package_config_file(name)?;
+        let package_config_file = layout.user.user_package_config_file(&name);
         if package_config_file.exists() {
             let package_config = PackageConfig::from_file(&package_config_file)?;
 
@@ -523,7 +536,7 @@ impl PackageVersion {
                 .with_context(delete_file_error(&package_config_file))?;
         } else {
             // there is no package config - check for orphaned binaries
-            let user_bin_dir = path::user_bin_dir()?;
+            let user_bin_dir = layout.user.user_tool_bin_dir();
             if user_bin_dir.exists() {
                 let orphaned_bins = binaries_from_package(name)?;
                 for bin_name in orphaned_bins {
@@ -533,7 +546,7 @@ impl PackageVersion {
         }
 
         // if any unpacked and initialized packages exists, remove them
-        let package_image_dir = path::package_image_root_dir()?.join(name);
+        let package_image_dir = layout.user.package_image_root_dir().join(&name);
         if package_image_dir.exists() {
             fs::remove_dir_all(&package_image_dir)
                 .with_context(delete_dir_error(&package_image_dir))?;
@@ -544,7 +557,7 @@ impl PackageVersion {
 
     fn remove_config_and_shim(bin_name: &str, name: &str) -> Fallible<()> {
         shim::delete(bin_name)?;
-        let config_file = path::user_tool_bin_config(&bin_name)?;
+        let config_file = layout()?.user.user_tool_bin_config(&bin_name);
         fs::remove_file(&config_file).with_context(delete_file_error(&config_file))?;
         info!("Removed executable '{}' installed by '{}'", bin_name, name);
         Ok(())
@@ -571,7 +584,8 @@ fn delete_file_error(file: &PathBuf) -> impl FnOnce(&io::Error) -> ErrorDetails 
 /// Reads the contents of a directory and returns a Vec containing the names of
 /// all the binaries installed by the input package.
 pub fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
-    let bin_config_dir = path::user_bin_dir()?;
+    let layout = layout()?;
+    let bin_config_dir = layout.user.user_tool_bin_dir();
     dir_entry_match(&bin_config_dir, |entry| {
         let path = entry.path();
         if let Ok(config) = BinConfig::from_file(path) {
@@ -656,7 +670,7 @@ impl UserTool {
     }
 
     pub fn from_name(tool_name: &str, session: &mut Session) -> Fallible<Option<UserTool>> {
-        let bin_config_file = path::user_tool_bin_config(tool_name)?;
+        let bin_config_file = layout()?.user.user_tool_bin_config(tool_name);
         if bin_config_file.exists() {
             let bin_config = BinConfig::from_file(bin_config_file)?;
             UserTool::from_config(bin_config, session).map(Some)
@@ -676,7 +690,7 @@ where
     P: AsRef<Path>,
 {
     // canonicalize because path is relative, and sometimes uses '.' char
-    path::package_image_dir(package, &version.to_string())?
+    layout()?.user.package_image_dir(package, &version.to_string())
         .join(bin_path)
         .canonicalize()
         .with_context(|_| ErrorDetails::ExecutablePathError {

@@ -9,8 +9,8 @@ use reqwest::hyper_011::header::HttpDate;
 
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 
-use volta_core::distro::node::{ARCH, OS};
-use volta_core::path::{archive_extension, create_file_symlink};
+use volta_core::distro::node::{ARCH, NODE_DISTRO_EXTENSION, OS};
+use volta_core::fs::symlink_file;
 
 #[cfg(feature = "mock-network")]
 use mockito::{self, mock, Matcher};
@@ -154,19 +154,17 @@ impl From<DistroMetadata> for YarnFixture {
 impl DistroFixture for NodeFixture {
     fn server_path(&self) -> String {
         let version = &self.metadata.version;
-        let extension = archive_extension();
         format!(
             "/v{}/node-v{}-{}-{}.{}",
-            version, version, OS, ARCH, extension
+            version, version, OS, ARCH, NODE_DISTRO_EXTENSION
         )
     }
 
     fn fixture_path(&self) -> String {
         let version = &self.metadata.version;
-        let extension = archive_extension();
         format!(
             "tests/fixtures/node-v{}-{}-{}.{}",
-            version, OS, ARCH, extension
+            version, OS, ARCH, NODE_DISTRO_EXTENSION
         )
     }
 
@@ -412,8 +410,8 @@ impl SandboxBuilder {
         ok_or_panic! { fs::create_dir_all(volta_tmp_dir()) };
 
         // Make sure the shims to npm and yarn exist
-        ok_or_panic! { create_file_symlink(shim_exe(), self.root.npm_exe()) };
-        ok_or_panic! { create_file_symlink(shim_exe(), self.root.yarn_exe()) };
+        ok_or_panic! { symlink_file(shim_exe(), self.root.npm_exe()) };
+        ok_or_panic! { symlink_file(shim_exe(), self.root.yarn_exe()) };
 
         // write node and yarn caches
         for cache in self.caches.iter() {

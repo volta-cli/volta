@@ -1,7 +1,38 @@
 use crate::executable;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use notion_layout_macro::layout;
+
+pub struct NotionLayout {
+    pub install: NotionInstall,
+    pub user: NotionHome,
+}
+
+impl NotionLayout {
+    pub fn new(install: PathBuf, home: PathBuf) -> Self {
+        NotionLayout {
+            install: NotionInstall::new(install),
+            user: NotionHome::new(home),
+        }
+    }
+
+    pub fn create(&self) -> ::std::io::Result<()> {
+        self.install.create()?;
+        self.user.create()?;
+        Ok(())
+    }
+
+    pub fn env_paths(&self) -> Vec<PathBuf> {
+        if cfg!(windows) {
+            vec![
+                self.user.shim_dir().to_path_buf(),
+                self.install.bin_dir().to_path_buf()
+            ]
+        } else {
+            vec![self.user.shim_dir().to_path_buf()]
+        }
+    }
+}
 
 layout! {
     /// The V1 layout for the core Notion installation directory.
@@ -20,6 +51,7 @@ layout! {
             }
         }
         "bin": shim_dir { }
+        "log": log_dir { }
         "tools": tools_dir {
             "inventory": inventory_dir {
                 "node": node_inventory_dir { }
@@ -38,13 +70,33 @@ layout! {
             }
         }
         "tmp": tmp_dir { }
-        "hooks.toml": user_hooks_file;
+        "hooks.json": user_hooks_file;
+    }
+}
+
+fn package_distro_file_name(name: &str, version: &str) -> String {
+    format!("{}.tgz", package_basename(name, version))
+}
+
+fn package_shasum_file_name(name: &str, version: &str) -> String {
+    format!("{}.shasum", package_basename(name, version))
+}
+
+fn package_basename(name: &str, version: &str) -> String {
+    format!("{}-{}", name, version)
+}
+
+impl NotionInstall {
+    pub fn bin_dir(&self) -> &Path {
+        // FIXME: should be <root>\bin on Windows
+        self.root()
     }
 }
 
 impl NotionHome {
-    pub fn node_distro_file_name(node: &str) -> PathBuf {
-        unimplemented!()
+    pub fn node_npm_version_file(&self, version: &str) -> PathBuf {
+        let filename = format!("node-v{}-npm", version);
+        self.node_inventory_dir().join(&filename)
     }
 
     pub fn node_image_dir(&self, node: &str, npm: &str) -> PathBuf {
@@ -59,15 +111,6 @@ impl NotionHome {
         }
     }
 
-    pub fn node_image_3p_bin_dir(&self, node: &str, npm: &str) -> PathBuf {
-        if cfg!(windows) {
-            // ISSUE (#90): Figure out where binaries are globally installed on Windows
-            unimplemented!("global 3rd party executables not yet implemented for Windows")
-        } else {
-            self.node_image_dir(node, npm).join("lib").join("node_modules").join(".bin")
-        }
-    }
-
     pub fn yarn_image_dir(&self, version: &str) -> PathBuf {
         self.yarn_image_root_dir().join(version)
     }
@@ -78,5 +121,30 @@ impl NotionHome {
 
     pub fn shim_file(&self, toolname: &str) -> PathBuf {
         self.shim_dir().join(&executable(toolname))
+    }
+
+    pub fn shim_git_bash_file(&self, toolname: &Ustr) -> PathBuf {
+        self.shim_dir().join(toolname)
+    }
+
+    pub fn package_image_dir(&self, name: &str, version: &str) -> PathBuf {
+        self.package_image_root_dir().join(name).join(version)
+    }
+
+    pub fn package_distro_file(&self, name: &str, version: &str) -> PathBuf {
+        self.package_inventory_dir().join(package_distro_file_name(name, version))
+    }
+
+    pub fn package_distro_shasum(&self, name: &str, version: &str) -> PathBuf {
+        self.package_inventory_dir().join(package_shasum_file_name(name, version))
+    }
+
+    pub fn user_package_config_file(&self, package_name: &str) -> PathBuf {
+        self.user_package_dir().join(format!("{}.json", package_name))
+    }
+
+    pub fn user_tool_bin_config(&self, bin_name: &str) -> PathBuf {
+        self.user_tool_bin_dir()
+            .join(format!("{}.json", bin_name))
     }
 }

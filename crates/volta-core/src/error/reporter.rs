@@ -5,8 +5,8 @@ use std::io::Write as IoWrite;
 use std::path::PathBuf;
 
 use crate::fs::ensure_containing_dir_exists;
-use crate::path::log_dir;
-use crate::style::format_error_cause;
+use crate::layout::layout;
+use crate::style::{format_error_cause, format_error_message};
 use chrono::Local;
 use failure::Error;
 use log::{debug, error};
@@ -43,7 +43,7 @@ fn write_error_log(
     let file_name = Local::now()
         .format("volta-error-%Y-%m-%d_%H_%M_%S%.3f.log")
         .to_string();
-    let log_file_path = log_dir()?.join(&file_name);
+    let log_file_path = layout()?.user.log_dir().join(&file_name);
 
     ensure_containing_dir_exists(&log_file_path)?;
     let mut log_file = File::create(&log_file_path)?;

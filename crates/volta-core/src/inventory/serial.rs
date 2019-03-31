@@ -9,9 +9,8 @@ use std::path::PathBuf;
 use super::{NodeCollection, PackageCollection, YarnCollection};
 use crate::distro::package;
 use crate::error::ErrorDetails;
-use crate::fs::ensure_containing_dir_exists;
-use crate::fs::read_dir_eager;
-use crate::path;
+use crate::fs::{ensure_containing_dir_exists, read_dir_eager};
+use crate::layout::layout;
 use crate::toolchain;
 use crate::version::{option_version_serde, version_serde, VersionSpec};
 use volta_fail::{Fallible, ResultExt};
@@ -69,7 +68,7 @@ impl NodeCollection {
         )
         .unwrap();
 
-        let versions = versions_matching(&path::node_inventory_dir()?, &re)?;
+        let versions = versions_matching(layout()?.user.node_inventory_dir(), &re)?;
 
         Ok(NodeCollection {
             versions: versions,
@@ -90,7 +89,7 @@ impl YarnCollection {
         )
         .unwrap();
 
-        let versions = versions_matching(&path::yarn_inventory_dir()?, &re)?;
+        let versions = versions_matching(layout()?.user.yarn_inventory_dir(), &re)?;
 
         Ok(YarnCollection {
             versions: versions,
@@ -332,7 +331,7 @@ impl PackageConfig {
     // write the package config info to disk
     pub fn write(&self) -> Fallible<()> {
         let src = self.to_json()?;
-        let config_file_path = path::user_package_config_file(&self.name)?;
+        let config_file_path = layout()?.user.user_package_config_file(&self.name);
         ensure_containing_dir_exists(&config_file_path)?;
         write(&config_file_path, src).with_context(|_| ErrorDetails::WritePackageConfigError {
             file: config_file_path,
@@ -364,7 +363,7 @@ impl BinConfig {
     // write the binary config info to disk
     pub fn write(&self) -> Fallible<()> {
         let src = self.to_json()?;
-        let bin_config_path = path::user_tool_bin_config(&self.name)?;
+        let bin_config_path = layout()?.user.user_tool_bin_config(&self.name);
         ensure_containing_dir_exists(&bin_config_path)?;
         write(&bin_config_path, src).with_context(|_| ErrorDetails::WriteBinConfigError {
             file: bin_config_path,
