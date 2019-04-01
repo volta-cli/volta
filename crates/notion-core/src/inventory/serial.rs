@@ -18,7 +18,7 @@ use notion_fail::{throw, Fallible, ResultExt};
 
 use regex::Regex;
 use semver::Version;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 /// Reads the contents of a directory and returns the set of all versions found
 /// in the directory's listing by matching filenames against the specified regex
@@ -38,6 +38,16 @@ fn versions_matching(dir: &Path, re: &Regex) -> Fallible<BTreeSet<Version>> {
             None
         })
         .collect::<Fallible<BTreeSet<Version>>>()?)
+}
+
+fn lts_version_serde<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    match String::deserialize(deserializer) {
+        Ok(_t) => Ok(true),
+        Err(_e) => Ok(false),
+    }
 }
 
 impl NodeCollection {
@@ -108,6 +118,8 @@ pub struct NodeEntry {
     #[serde(with = "option_version_serde")]
     pub npm: Option<Version>,
     pub files: Vec<String>,
+    #[serde(deserialize_with = "lts_version_serde")]
+    pub lts: bool,
 }
 
 impl NodeIndex {
@@ -122,6 +134,7 @@ impl NodeIndex {
                     version: entry.version,
                     npm,
                     files: data,
+                    lts: entry.lts,
                 });
             }
         }
