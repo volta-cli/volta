@@ -34,6 +34,16 @@ pub enum ErrorDetails {
         dir: String,
     },
 
+    /// Thrown when deleting a directory fails
+    DeleteDirectoryError {
+        directory: String,
+    },
+
+    /// Thrown when deleting a file fails
+    DeleteFileError {
+        file: String,
+    },
+
     /// Thrown when reading dependency package info fails
     DepPackageReadError,
 
@@ -45,10 +55,6 @@ pub enum ErrorDetails {
     DownloadToolNetworkError {
         tool: ToolSpec,
         from_url: String,
-    },
-
-    FileDeletionError {
-        error: String,
     },
 
     InvalidHookCommand {
@@ -203,6 +209,14 @@ Use `notion install` to add a package to your toolchain (see `notion help instal
 
 Please ensure that you have the correct permissions.", dir)
             }
+            ErrorDetails::DeleteDirectoryError { directory } => write!(f, "Could not remove directory
+at {}
+
+Please ensure you have correct permissions to the Notion directory.", directory),
+            ErrorDetails::DeleteFileError { file } => write!(f, "Could not remove file
+at {}
+
+Please ensure you have correct permissions to the Notion directory.", file),
             ErrorDetails::DepPackageReadError => {
                 write!(f, "Could not read package info for dependencies.
 
@@ -219,7 +233,6 @@ from {}
 Please verify your internet connection and ensure the correct version is specified.",
                 tool, from_url
             ),
-            ErrorDetails::FileDeletionError { error } => write!(f, "Error deleting file: {}", error),
             ErrorDetails::InvalidHookCommand { command } => write!(f, "Invalid hook command: '{}'", command),
             ErrorDetails::NoBinPlatform { binary } => {
                 write!(f, "Platform info for executable `{}` is missing", binary)
@@ -368,10 +381,11 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::CommandNotImplemented { .. } => ExitCode::NotYetImplemented,
             ErrorDetails::CouldNotDetermineTool => ExitCode::UnknownError,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::DeleteDirectoryError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::DeleteFileError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DepPackageReadError => ExitCode::FileSystemError,
             ErrorDetails::DeprecatedCommandError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
-            ErrorDetails::FileDeletionError { .. } => ExitCode::FileSystemError,
             ErrorDetails::InvalidHookCommand { .. } => ExitCode::UnknownError,
             ErrorDetails::NoBinPlatform { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
