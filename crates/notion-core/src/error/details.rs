@@ -47,6 +47,10 @@ pub enum ErrorDetails {
         from_url: String,
     },
 
+    FileDeletionError {
+        error: String,
+    },
+
     InvalidHookCommand {
         command: String,
     },
@@ -215,9 +219,8 @@ from {}
 Please verify your internet connection and ensure the correct version is specified.",
                 tool, from_url
             ),
-            ErrorDetails::InvalidHookCommand { command } => {
-                write!(f, "Invalid hook command: '{}'", command)
-            }
+            ErrorDetails::FileDeletionError { error } => write!(f, "Error deleting file: {}", error),
+            ErrorDetails::InvalidHookCommand { command } => write!(f, "Invalid hook command: '{}'", command),
             ErrorDetails::NoBinPlatform { binary } => {
                 write!(f, "Platform info for executable `{}` is missing", binary)
             }
@@ -368,6 +371,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::DepPackageReadError => ExitCode::FileSystemError,
             ErrorDetails::DeprecatedCommandError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
+            ErrorDetails::FileDeletionError { .. } => ExitCode::FileSystemError,
             ErrorDetails::InvalidHookCommand { .. } => ExitCode::UnknownError,
             ErrorDetails::NoBinPlatform { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,

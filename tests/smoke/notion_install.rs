@@ -22,6 +22,15 @@ fn install_node() {
 }
 
 #[test]
+fn install_node_lts() {
+    let p = temp_project().build();
+
+    assert_that!(p.notion("install node lts"), execs().with_status(0));
+
+    assert_that!(p.node("--version"), execs().with_status(0));
+}
+
+#[test]
 fn install_yarn() {
     let p = temp_project().build();
 

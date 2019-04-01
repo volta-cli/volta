@@ -2,8 +2,8 @@
 
 use std::collections::HashMap;
 use std::ffi::OsStr;
-use std::fs::{rename, File};
-use std::io::{Read, Write};
+use std::fs::{self, rename, File};
+use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::str;
@@ -14,7 +14,7 @@ use sha1::{Digest, Sha1};
 
 use crate::distro::{download_tool_error, Distro, Fetched};
 use crate::error::ErrorDetails;
-use crate::fs::{ensure_containing_dir_exists, read_dir_eager, read_file_opt};
+use crate::fs::{dir_entry_match, ensure_containing_dir_exists, read_dir_eager, read_file_opt};
 use crate::hook::ToolHooks;
 use crate::inventory::Collection;
 use crate::manifest::Manifest;
@@ -347,6 +347,74 @@ impl PackageVersion {
         }
         Ok(())
     }
+
+    /// Uninstall the specified package.
+    ///
+    /// This removes:
+    /// * the json config files
+    /// * the shims
+    /// * the unpacked and initialized package
+    pub fn uninstall(name: String) -> Fallible<()> {
+        // if the package config file exists, use that to remove any installed bins and shims
+        let package_config_file = path::user_package_config_file(&name)?;
+        if package_config_file.exists() {
+            let package_config = PackageConfig::from_file(&package_config_file)?;
+
+            for bin_name in package_config.bins {
+                PackageVersion::remove_config_and_shims(&bin_name, &name)?;
+            }
+
+            fs::remove_file(package_config_file).with_context(file_deletion_error)?;
+        } else {
+            // there is no package config - check for orphaned binaries
+            let user_bin_dir = path::user_bin_dir()?;
+            if user_bin_dir.exists() {
+                let orphaned_bins = binaries_from_package(&name)?;
+                for bin_name in orphaned_bins {
+                    PackageVersion::remove_config_and_shims(&bin_name, &name)?;
+                }
+            }
+        }
+
+        // if any unpacked and initialized packages exists, remove them
+        let package_image_dir = path::package_image_root_dir()?.join(&name);
+        if package_image_dir.exists() {
+            fs::remove_dir_all(package_image_dir).with_context(file_deletion_error)?;
+        }
+
+        println!("Package '{}' uninstalled", name);
+        Ok(())
+    }
+
+    fn remove_config_and_shims(bin_name: &str, name: &str) -> Fallible<()> {
+        let shim = path::shim_file(&bin_name)?;
+        fs::remove_file(shim).with_context(file_deletion_error)?;
+        let config_file = path::user_tool_bin_config(&bin_name)?;
+        fs::remove_file(config_file).with_context(file_deletion_error)?;
+        println!("Removed executable '{}' installed by '{}'", bin_name, name);
+        Ok(())
+    }
+}
+
+fn file_deletion_error(err: &io::Error) -> ErrorDetails {
+    ErrorDetails::FileDeletionError {
+        error: err.to_string(),
+    }
+}
+
+/// Reads the contents of a directory and returns a Vec containing the names of
+/// all the binaries installed by the input package.
+pub fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
+    let bin_config_dir = path::user_bin_dir()?;
+    dir_entry_match(&bin_config_dir, |entry| {
+        let path = entry.path();
+        if let Ok(config) = BinConfig::from_file(path) {
+            if config.package == package.to_string() {
+                return Some(config.name);
+            }
+        };
+        None
+    })
 }
 
 impl Installer {

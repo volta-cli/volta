@@ -149,6 +149,7 @@ pub trait FetchResolve<D: Distro> {
     ) -> Fallible<D> {
         let version = match *matching {
             VersionSpec::Latest => self.resolve_latest(name.clone(), hooks)?,
+            VersionSpec::Lts => self.resolve_lts(name.clone(), hooks)?,
             VersionSpec::Semver(ref requirement) => {
                 self.resolve_semver(name.clone(), requirement, hooks)?
             }
@@ -174,6 +175,15 @@ pub trait FetchResolve<D: Distro> {
         matching: &VersionReq,
         hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<D::ResolvedVersion>;
+
+    /// Resolves an LTS version for this tool
+    fn resolve_lts(
+        &self,
+        name: String,
+        hooks: Option<&ToolHooks<D>>,
+    ) -> Fallible<D::ResolvedVersion> {
+        return self.resolve_latest(name, hooks);
+    }
 
     /// Resolves an exact version of this tool
     fn resolve_exact(
@@ -276,6 +286,29 @@ impl FetchResolve<NodeDistro> for NodeCollection {
         } else {
             throw!(ErrorDetails::NodeVersionNotFound {
                 matching: matching.to_string()
+            })
+        }
+    }
+
+    fn resolve_lts(
+        &self,
+        _name: String,
+        hooks: Option<&ToolHooks<NodeDistro>>,
+    ) -> Fallible<Version> {
+        let url = match hooks {
+            Some(&ToolHooks {
+                index: Some(ref hook),
+                ..
+            }) => hook.resolve("index.json")?,
+            _ => public_node_version_index(),
+        };
+        let version_opt = match_node_version(&url, |&NodeEntry { lts: val, .. }| val)?;
+
+        if let Some(version) = version_opt {
+            Ok(version)
+        } else {
+            throw!(ErrorDetails::NodeVersionNotFound {
+                matching: "lts".to_string()
             })
         }
     }
@@ -518,6 +551,7 @@ pub struct NodeEntry {
     pub version: Version,
     pub npm: Version,
     pub files: NodeDistroFiles,
+    pub lts: bool,
 }
 
 /// The public Yarn index.

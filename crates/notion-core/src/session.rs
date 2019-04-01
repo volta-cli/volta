@@ -2,12 +2,16 @@
 //! execution of a Notion tool, including their current directory, Notion
 //! hook configuration, and the state of the local inventory.
 
+use std::ffi::OsStr;
+use std::fmt::{self, Display, Formatter};
+use std::process::exit;
 use std::rc::Rc;
 
 use crate::distro::node::NodeVersion;
 use crate::distro::package::{PackageVersion, UserTool};
 use crate::distro::Fetched;
 use crate::error::ErrorDetails;
+use crate::event::EventLog;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
 use crate::inventory::{FetchResolve, Inventory, LazyInventory};
 use crate::platform::PlatformSpec;
@@ -15,11 +19,6 @@ use crate::project::{LazyProject, Project};
 use crate::toolchain::LazyToolchain;
 use crate::version::VersionSpec;
 
-use std::ffi::OsStr;
-use std::fmt::{self, Display, Formatter};
-use std::process::exit;
-
-use crate::event::EventLog;
 use notion_fail::{throw, ExitCode, Fallible, NotionError};
 use semver::Version;
 
@@ -231,6 +230,11 @@ impl Session {
         // finally, install the package
         package_version.install(&use_platform, self)?;
         Ok(package_version.version.clone())
+    }
+
+    /// Uninstall the specified package.
+    pub fn uninstall_package(&self, name: String) -> Fallible<()> {
+        PackageVersion::uninstall(name)
     }
 
     /// Fetches a Node version matching the specified semantic versioning requirements.
