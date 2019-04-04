@@ -23,20 +23,12 @@ impl Tool for Yarn {
 
         if let Some(ref platform) = session.current_platform()? {
             let image = platform.checkout(session)?;
-            Ok(Self::from_components(
-                OsStr::new("yarn"),
-                args,
-                &image.path()?,
-            ))
+            Ok(Yarn(command_for(OsStr::new("yarn"), args, &image.path()?)))
         } else {
             throw!(ErrorDetails::NoSuchTool {
                 tool: "Yarn".to_string()
             });
         }
-    }
-
-    fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
-        Yarn(command_for(exe, args, path_var))
     }
 
     fn command(self) -> Command {

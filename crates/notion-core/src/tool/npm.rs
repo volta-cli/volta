@@ -23,11 +23,7 @@ impl Tool for Npm {
 
         if let Some(ref platform) = session.current_platform()? {
             let image = platform.checkout(session)?;
-            Ok(Self::from_components(
-                OsStr::new("npm"),
-                args,
-                &image.path()?,
-            ))
+            Ok(Npm(command_for(OsStr::new("npm"), args, &image.path()?)))
         } else {
             // Using 'Node' as the tool name since the npm version is derived from the Node version
             // This way the error message will prompt the user to add 'Node' to their toolchain, instead of 'npm'
@@ -35,10 +31,6 @@ impl Tool for Npm {
                 tool: "Node".to_string()
             });
         }
-    }
-
-    fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
-        Npm(command_for(exe, args, path_var))
     }
 
     fn command(self) -> Command {

@@ -28,6 +28,13 @@ use crate::version::VersionSpec;
 use archive::{Archive, Tarball};
 use tempfile::tempdir_in;
 
+cfg_if::cfg_if! {
+    if #[cfg(windows)] {
+        use regex::Regex;
+        use std::io::{BufRead, BufReader};
+    }
+}
+
 use notion_fail::{throw, Fallible, ResultExt};
 
 fn install_error(error: &io::Error) -> ErrorDetails {
@@ -122,9 +129,10 @@ pub struct PackageConfig {
 ///   "platform": {
 ///     "node": {
 ///       "runtime": "11.10.1",
-///       "npm": "6.7.0"
+///       "npm": "6.7.0",
+///       "yarn": null
 ///     },
-///     "yarn": null
+///     "loader": "node"
 ///   }
 /// }
 pub struct BinConfig {
@@ -138,6 +146,8 @@ pub struct BinConfig {
     pub path: String,
     /// The platform used to install this binary
     pub platform: PlatformSpec,
+    /// The loader information for the script, if any
+    pub loader: Option<String>,
 }
 
 impl Distro for PackageDistro {
@@ -348,6 +358,7 @@ impl PackageVersion {
         bin_name: String,
         bin_path: String,
         platform_spec: &PlatformSpec,
+        loader: Option<String>,
     ) -> BinConfig {
         BinConfig {
             name: bin_name,
@@ -355,19 +366,50 @@ impl PackageVersion {
             version: self.version.clone(),
             path: bin_path,
             platform: platform_spec.clone(),
+            loader,
         }
     }
 
     fn write_config_and_shims(&self, platform_spec: &PlatformSpec) -> Fallible<()> {
         self.package_config(&platform_spec).to_serial().write()?;
         for (bin_name, bin_path) in self.bins.iter() {
-            self.bin_config(bin_name.to_string(), bin_path.to_string(), &platform_spec)
-                .to_serial()
-                .write()?;
+            let loader = self.determine_script_loader(bin_path)?;
+            self.bin_config(
+                bin_name.to_string(),
+                bin_path.to_string(),
+                &platform_spec,
+                loader,
+            )
+            .to_serial()
+            .write()?;
             // create a link to the shim executable
             shim::create(&bin_name)?;
         }
         Ok(())
+    }
+
+    /// On Unix, shebang loaders work correctly, so we don't need to bother storing loader information
+    #[cfg(unix)]
+    fn determine_script_loader(&self, _bin_path: &str) -> Fallible<Option<String>> {
+        Ok(None)
+    }
+
+    /// On Windows, we need to read the executable and try to find a shebang loader
+    /// If it exists, we store the command in the BinConfig so that the shim can execute it correctly
+    #[cfg(windows)]
+    fn determine_script_loader(&self, bin_path: &str) -> Fallible<Option<String>> {
+        let full_path = bin_full_path(&self.name, &self.version, bin_path)?;
+        let script = File::open(full_path).unknown()?;
+        if let Some(Ok(first_line)) = BufReader::new(script).lines().next() {
+            // Note: Regex adapted from @zkochan/cmd-shim package used by Yarn
+            // https://github.com/pnpm/cmd-shim/blob/bac160cc554e5157e4c5f5e595af30740be3519a/index.js#L42
+            let re = Regex::new(r#"^#!\s*(?:/usr/bin/env)?\s*(?P<exe>[^ \t]+).*$"#)
+                .expect("Regex is valid");
+            if let Some(caps) = re.captures(&first_line) {
+                return Ok(Some(caps["exe"].to_string()));
+            }
+        }
+        Ok(None)
     }
 
     /// Uninstall the specified package.
@@ -455,18 +497,17 @@ impl Installer {
 pub struct UserTool {
     pub bin_path: PathBuf,
     pub image: Image,
+    pub loader: Option<String>,
 }
 
 impl UserTool {
     pub fn from_config(bin_config: BinConfig, session: &mut Session) -> Fallible<Self> {
-        let image_dir =
-            path::package_image_dir(&bin_config.package, &bin_config.version.to_string())?;
-        // canonicalize because path is relative, and sometimes uses '.' char
-        let bin_path = image_dir.join(bin_config.path).canonicalize().unknown()?;
+        let full_path = bin_full_path(&bin_config.package, &bin_config.version, &bin_config.path)?;
 
         Ok(UserTool {
-            bin_path,
+            bin_path: full_path,
             image: bin_config.platform.checkout(session)?,
+            loader: bin_config.loader,
         })
     }
 
@@ -479,6 +520,14 @@ impl UserTool {
             Ok(None) // no config means the tool is not installed
         }
     }
+}
+
+fn bin_full_path(package: &str, version: &Version, bin_path: &str) -> Fallible<PathBuf> {
+    // canonicalize because path is relative, and sometimes uses '.' char
+    path::package_image_dir(package, &version.to_string())?
+        .join(bin_path)
+        .canonicalize()
+        .unknown()
 }
 
 /// Build a package install command using the specified directory and path

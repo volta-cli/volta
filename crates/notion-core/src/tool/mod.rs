@@ -140,9 +140,6 @@ pub trait Tool: Sized {
     /// Constructs a new instance.
     fn new(args: Self::Arguments, session: &mut Session) -> Fallible<Self>;
 
-    /// Constructs a new instance, using the specified command-line and `PATH` variable.
-    fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self;
-
     /// Extracts the `Command` from this tool.
     fn command(self) -> Command;
 
@@ -176,7 +173,10 @@ fn tool_name_from_file_name(file_name: &OsStr) -> OsString {
 }
 
 #[cfg(unix)]
-fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
+fn command_for<A>(exe: &OsStr, args: A, path_var: &OsStr) -> Command
+where
+    A: Iterator<Item = OsString>,
+{
     let mut command = Command::new(exe);
     command.args(args);
     command.env("PATH", path_var);
@@ -184,7 +184,10 @@ fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
 }
 
 #[cfg(windows)]
-fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
+fn command_for<A>(exe: &OsStr, args: A, path_var: &OsStr) -> Command
+where
+    A: Iterator<Item = OsString>,
+{
     // Several of the node utilities are implemented as `.bat` or `.cmd` files
     // When executing those files with `Command`, we need to call them with:
     //    cmd.exe /C <COMMAND> <ARGUMENTS>

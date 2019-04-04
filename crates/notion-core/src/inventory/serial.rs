@@ -238,6 +238,8 @@ pub struct BinConfig {
     pub version: Version,
     pub path: String,
     pub platform: toolchain::serial::Platform,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loader: Option<String>,
 }
 
 impl PackageMetadata {
@@ -294,6 +296,7 @@ impl package::BinConfig {
             version: self.version.clone(),
             path: self.path.to_string(),
             platform: self.platform.to_serial(),
+            loader: self.loader.clone(),
         }
     }
 }
@@ -355,6 +358,7 @@ impl BinConfig {
                 .platform
                 .into_image()?
                 .ok_or(ErrorDetails::NoBinPlatform { binary: self.name })?,
+            loader: self.loader,
         })
     }
 }
