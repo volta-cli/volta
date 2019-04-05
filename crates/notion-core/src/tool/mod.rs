@@ -8,6 +8,7 @@ use std::marker::Sized;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 
+use crate::command::create_command;
 use crate::env::UNSAFE_GLOBAL;
 use crate::error::ErrorDetails;
 use crate::path;
@@ -172,30 +173,11 @@ fn tool_name_from_file_name(file_name: &OsStr) -> OsString {
     }
 }
 
-#[cfg(unix)]
 fn command_for<A>(exe: &OsStr, args: A, path_var: &OsStr) -> Command
 where
     A: Iterator<Item = OsString>,
 {
-    let mut command = Command::new(exe);
-    command.args(args);
-    command.env("PATH", path_var);
-    command
-}
-
-#[cfg(windows)]
-fn command_for<A>(exe: &OsStr, args: A, path_var: &OsStr) -> Command
-where
-    A: Iterator<Item = OsString>,
-{
-    // Several of the node utilities are implemented as `.bat` or `.cmd` files
-    // When executing those files with `Command`, we need to call them with:
-    //    cmd.exe /C <COMMAND> <ARGUMENTS>
-    // Instead of: <COMMAND> <ARGUMENTS>
-    // See: https://github.com/rust-lang/rust/issues/42791 For a longer discussion
-    let mut command = Command::new("cmd.exe");
-    command.arg("/C");
-    command.arg(exe);
+    let mut command = create_command(exe);
     command.args(args);
     command.env("PATH", path_var);
     command

@@ -12,6 +12,7 @@ use hex;
 use semver::Version;
 use sha1::{Digest, Sha1};
 
+use crate::command::create_command;
 use crate::distro::{download_tool_error, Distro, Fetched};
 use crate::error::ErrorDetails;
 use crate::fs::{dir_entry_match, ensure_containing_dir_exists, read_dir_eager, read_file_opt};
@@ -395,7 +396,7 @@ impl PackageVersion {
     }
 
     /// On Windows, we need to read the executable and try to find a shebang loader
-    /// If it exists, we store the command in the BinConfig so that the shim can execute it correctly
+    /// If it exists, we store the loader in the BinConfig so that the shim can execute it correctly
     #[cfg(windows)]
     fn determine_script_loader(&self, bin_path: &str) -> Fallible<Option<String>> {
         let full_path = bin_full_path(&self.name, &self.version, bin_path)?;
@@ -479,12 +480,12 @@ impl Installer {
     pub fn cmd(&self) -> Command {
         match self {
             Installer::Npm => {
-                let mut command = Command::new("npm");
+                let mut command = create_command("npm");
                 command.args(&["install", "--only=production"]);
                 command
             }
             Installer::Yarn => {
-                let mut command = Command::new("yarn");
+                let mut command = create_command("yarn");
                 command.args(&["install", "--production"]);
                 command
             }
