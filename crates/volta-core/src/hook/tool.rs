@@ -4,8 +4,8 @@ use std::ffi::OsString;
 use std::process::Stdio;
 
 use crate::command::create_command;
-use crate::error::ErrorDetails;
 use crate::distro::node::{ARCH, OS};
+use crate::error::ErrorDetails;
 use cmdline_words_parser::StrExt;
 use log::debug;
 use semver::Version;

@@ -154,7 +154,11 @@ impl NodeDistro {
     }
 
     pub fn filename(version: &str) -> String {
-        format!("{}.{}", NodeDistro::basename(version), NODE_DISTRO_EXTENSION)
+        format!(
+            "{}.{}",
+            NodeDistro::basename(version),
+            NODE_DISTRO_EXTENSION
+        )
     }
 
     fn npm_manifest_entry(version: &str) -> PathBuf {
@@ -287,7 +291,9 @@ impl Distro for NodeDistro {
         // Save the npm version number in the npm version file for this distro:
         save_default_npm_version(&self.version, &npm)?;
 
-        let dest = layout.user.node_image_dir(&version_string, &npm.to_string());
+        let dest = layout
+            .user
+            .node_image_dir(&version_string, &npm.to_string());
 
         ensure_containing_dir_exists(&dest)?;
 

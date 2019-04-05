@@ -56,7 +56,6 @@ fn load_cached_distro(file: &PathBuf) -> Option<Box<dyn Archive>> {
 }
 
 impl YarnDistro {
-
     pub fn basename(version: &str) -> String {
         format!("yarn-v{}", version)
     }
@@ -200,10 +199,7 @@ pub mod tests {
 
     #[test]
     fn test_basename() {
-        assert_eq!(
-            YarnDistro::basename("1.2.3"),
-            "yarn-v1.2.3".to_string()
-        );
+        assert_eq!(YarnDistro::basename("1.2.3"), "yarn-v1.2.3".to_string());
     }
 
 }

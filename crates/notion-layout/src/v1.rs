@@ -132,19 +132,21 @@ impl NotionHome {
     }
 
     pub fn package_distro_file(&self, name: &str, version: &str) -> PathBuf {
-        self.package_inventory_dir().join(package_distro_file_name(name, version))
+        self.package_inventory_dir()
+            .join(package_distro_file_name(name, version))
     }
 
     pub fn package_distro_shasum(&self, name: &str, version: &str) -> PathBuf {
-        self.package_inventory_dir().join(package_shasum_file_name(name, version))
+        self.package_inventory_dir()
+            .join(package_shasum_file_name(name, version))
     }
 
     pub fn user_package_config_file(&self, package_name: &str) -> PathBuf {
-        self.user_package_dir().join(format!("{}.json", package_name))
+        self.user_package_dir()
+            .join(format!("{}.json", package_name))
     }
 
     pub fn user_tool_bin_config(&self, bin_name: &str) -> PathBuf {
-        self.user_tool_bin_dir()
-            .join(format!("{}.json", bin_name))
+        self.user_tool_bin_dir().join(format!("{}.json", bin_name))
     }
 }

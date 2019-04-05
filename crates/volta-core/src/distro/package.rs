@@ -174,7 +174,9 @@ impl Distro for PackageDistro {
             tarball_url: entry.tarball,
             image_dir: layout.user.package_image_dir(&name, &version.to_string()),
             distro_file: layout.user.package_distro_file(&name, &version.to_string()),
-            shasum_file: layout.user.package_distro_shasum(&name, &version.to_string()),
+            shasum_file: layout
+                .user
+                .package_distro_shasum(&name, &version.to_string()),
         })
     }
 

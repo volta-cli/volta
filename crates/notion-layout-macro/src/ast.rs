@@ -1,4 +1,4 @@
-use crate::ir::{Ir, Entry};
+use crate::ir::{Entry, Ir};
 use proc_macro2::TokenStream;
 use std::collections::HashMap;
 use syn;
@@ -36,12 +36,13 @@ impl Parse for Ast {
 impl Ast {
     /// Compiles (macro-expands) the AST.
     pub(crate) fn compile(self) -> TokenStream {
-        self.decls.into_iter().map(|decl| {
-            match decl.flatten() {
+        self.decls
+            .into_iter()
+            .map(|decl| match decl.flatten() {
                 Ok(ir) => ir.codegen(),
                 Err(err) => err,
-            }
-        }).collect()
+            })
+            .collect()
     }
 }
 
@@ -67,7 +68,12 @@ impl Parse for LayoutStruct {
         input.parse::<Token![struct]>()?;
         let name: Ident = input.parse()?;
         let directory: Directory = input.parse()?;
-        Ok(LayoutStruct { attrs, visibility, name, directory })
+        Ok(LayoutStruct {
+            attrs,
+            visibility,
+            name,
+            directory,
+        })
     }
 }
 

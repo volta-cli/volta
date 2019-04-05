@@ -12,7 +12,9 @@ use syn::{Attribute, Ident, LitStr, Visibility};
 // These seem to be leaked implementation details of the `quote` macro that have
 // to be imported by users. You can ignore them; they simply pacify the compiler.
 #[allow(unused_imports)]
-use quote::{multi_zip_expr, nested_tuples_pat, pounded_var_names, quote_each_token, quote_spanned};
+use quote::{
+    multi_zip_expr, nested_tuples_pat, pounded_var_names, quote_each_token, quote_spanned,
+};
 
 /// The intermediate representation (IR) of a struct type defined by the `layout!`
 /// macro, which contains the flattened directory entries, organized into three
@@ -31,19 +33,19 @@ pub(crate) struct Ir {
 }
 
 impl Ir {
-    fn dir_names(&self) -> impl Iterator<Item=&Ident> {
+    fn dir_names(&self) -> impl Iterator<Item = &Ident> {
         self.dirs.iter().map(|entry| &entry.name)
     }
 
-    fn file_names(&self) -> impl Iterator<Item=&Ident> {
+    fn file_names(&self) -> impl Iterator<Item = &Ident> {
         self.files.iter().map(|entry| &entry.name)
     }
 
-    fn exe_names(&self) -> impl Iterator<Item=&Ident> {
+    fn exe_names(&self) -> impl Iterator<Item = &Ident> {
         self.exes.iter().map(|entry| &entry.name)
     }
 
-    fn field_names(&self) -> impl Iterator<Item=&Ident> {
+    fn field_names(&self) -> impl Iterator<Item = &Ident> {
         let dir_names = self.dir_names();
         let file_names = self.file_names();
         let exe_names = self.exe_names();
@@ -118,19 +120,13 @@ impl Ir {
         let root = Ident::new("root", self.name.span());
 
         let dir_names = self.dir_names();
-        let dir_inits = self.dirs.iter().map(|entry| {
-            entry.to_normal_init(&root)
-        });
+        let dir_inits = self.dirs.iter().map(|entry| entry.to_normal_init(&root));
 
         let file_names = self.file_names();
-        let file_inits = self.files.iter().map(|entry| {
-            entry.to_normal_init(&root)
-        });
+        let file_inits = self.files.iter().map(|entry| entry.to_normal_init(&root));
 
         let exe_names = self.exe_names();
-        let exe_inits = self.exes.iter().map(|entry| {
-            entry.to_exe_init(&root)
-        });
+        let exe_inits = self.exes.iter().map(|entry| entry.to_exe_init(&root));
 
         let all_names = dir_names.chain(file_names).chain(exe_names);
         let all_inits = dir_inits.chain(file_inits).chain(exe_inits);
