@@ -159,10 +159,12 @@ pub fn user_package_config_file(package_name: &str) -> Fallible<PathBuf> {
     Ok(user_package_dir()?.join(format!("{}.json", package_name)))
 }
 
+pub fn user_bin_dir() -> Fallible<PathBuf> {
+    Ok(user_toolchain_dir()?.join("bins"))
+}
+
 pub fn user_tool_bin_config(bin_name: &str) -> Fallible<PathBuf> {
-    Ok(user_toolchain_dir()?
-        .join("bins")
-        .join(format!("{}.json", bin_name)))
+    Ok(user_bin_dir()?.join(format!("{}.json", bin_name)))
 }
 
 pub fn node_distro_file_name(version: &str) -> String {

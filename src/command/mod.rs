@@ -6,6 +6,7 @@ pub(crate) mod deactivate;
 pub(crate) mod fetch;
 pub(crate) mod install;
 pub(crate) mod pin;
+pub(crate) mod uninstall;
 #[macro_use]
 pub(crate) mod r#use;
 pub(crate) mod which;
@@ -20,6 +21,7 @@ pub(crate) use fetch::Fetch;
 pub(crate) use install::Install;
 pub(crate) use pin::Pin;
 pub(crate) use r#use::Use;
+pub(crate) use uninstall::Uninstall;
 
 use notion_core::session::Session;
 use notion_fail::{ExitCode, Fallible};

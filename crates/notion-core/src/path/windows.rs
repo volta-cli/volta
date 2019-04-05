@@ -45,9 +45,9 @@ cfg_if::cfg_if! {
 //                 index.json                              node_index_file
 //                 index.json.expires                      node_index_expiry_file
 //         bin\                                            shim_dir
-//             node                                        shim_file("node")
-//             npm
-//             npx
+//             node.exe                                    shim_file("node")
+//             npm.exe
+//             npx.exe
 //             ...
 //         log\                                            log_dir
 //         tools\                                          tools_dir

@@ -14,11 +14,11 @@ use crate::fs::read_dir_eager;
 use crate::path;
 use crate::toolchain;
 use crate::version::{option_version_serde, version_serde};
-use notion_fail::{Fallible, ResultExt};
+use notion_fail::{throw, Fallible, ResultExt};
 
 use regex::Regex;
 use semver::Version;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 /// Reads the contents of a directory and returns the set of all versions found
 /// in the directory's listing by matching filenames against the specified regex
@@ -38,6 +38,16 @@ fn versions_matching(dir: &Path, re: &Regex) -> Fallible<BTreeSet<Version>> {
             None
         })
         .collect::<Fallible<BTreeSet<Version>>>()?)
+}
+
+fn lts_version_serde<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    match String::deserialize(deserializer) {
+        Ok(_t) => Ok(true),
+        Err(_e) => Ok(false),
+    }
 }
 
 impl NodeCollection {
@@ -108,6 +118,8 @@ pub struct NodeEntry {
     #[serde(with = "option_version_serde")]
     pub npm: Option<Version>,
     pub files: Vec<String>,
+    #[serde(deserialize_with = "lts_version_serde")]
+    pub lts: bool,
 }
 
 impl NodeIndex {
@@ -122,6 +134,7 @@ impl NodeIndex {
                     version: entry.version,
                     npm,
                     files: data,
+                    lts: entry.lts,
                 });
             }
         }
@@ -250,6 +263,14 @@ impl PackageMetadata {
 }
 
 impl package::PackageConfig {
+    pub fn from_file(file: &PathBuf) -> Fallible<Self> {
+        if !file.exists() {
+            throw!(ErrorDetails::PackageConfigNotFound);
+        }
+        let config_src = read_to_string(file).unknown()?;
+        PackageConfig::from_json(config_src)?.into_config()
+    }
+
     pub fn to_serial(&self) -> PackageConfig {
         PackageConfig {
             name: self.name.to_string(),
@@ -282,8 +303,6 @@ impl PackageConfig {
         serde_json::to_string_pretty(&self).unknown()
     }
 
-    // not used yet - needed for listing and uninstall
-    #[allow(dead_code)]
     pub fn from_json(src: String) -> Fallible<Self> {
         serde_json::de::from_str(&src).unknown()
     }
@@ -294,6 +313,18 @@ impl PackageConfig {
         let config_file_path = path::user_package_config_file(&self.name)?;
         ensure_containing_dir_exists(&config_file_path)?;
         write(config_file_path, src).unknown()
+    }
+
+    pub fn into_config(self) -> Fallible<package::PackageConfig> {
+        Ok(package::PackageConfig {
+            name: self.name.clone(),
+            version: self.version,
+            platform: self
+                .platform
+                .into_image()?
+                .ok_or(ErrorDetails::NoBinPlatform { binary: self.name })?,
+            bins: self.bins,
+        })
     }
 }
 
