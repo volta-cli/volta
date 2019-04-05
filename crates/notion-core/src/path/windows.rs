@@ -140,6 +140,10 @@ pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
     Ok(shim_dir()?.join(&format!("{}.exe", toolname)))
 }
 
+pub fn shim_git_bash_script_file(toolname: &str) -> Fallible<PathBuf> {
+    Ok(shim_dir()?.join(toolname))
+}
+
 pub fn env_paths() -> Fallible<Vec<PathBuf>> {
     Ok(vec![shim_dir()?, install_bin_dir()?])
 }
