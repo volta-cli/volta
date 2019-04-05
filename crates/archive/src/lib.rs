@@ -18,6 +18,8 @@ pub use crate::zip::Zip;
 use std::fs::File;
 use std::path::Path;
 
+use cfg_if::cfg_if;
+
 /// Metadata describing whether an archive comes from a local or remote origin.
 #[derive(Copy, Clone)]
 pub enum Origin {
@@ -39,7 +41,7 @@ pub trait Archive {
     fn origin(&self) -> Origin;
 }
 
-cfg_if::cfg_if! {
+cfg_if! {
     if #[cfg(unix)] {
         /// Load an archive in the native OS-preferred format from the specified file.
         ///

@@ -4,6 +4,7 @@ use std::fs::{rename, File};
 use std::path::PathBuf;
 use std::string::ToString;
 
+use cfg_if::cfg_if;
 use log::debug;
 use semver::Version;
 use tempfile::tempdir_in;
@@ -24,7 +25,7 @@ use crate::version::VersionSpec;
 #[cfg(feature = "mock-network")]
 use mockito;
 
-cfg_if::cfg_if! {
+cfg_if! {
     if #[cfg(feature = "mock-network")] {
         fn public_yarn_server_root() -> String {
             mockito::SERVER_URL.to_string()

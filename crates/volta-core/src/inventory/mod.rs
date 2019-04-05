@@ -9,6 +9,7 @@ use std::str::FromStr;
 use std::string::ToString;
 use std::time::{Duration, SystemTime};
 
+use cfg_if::cfg_if;
 use headers_011::Headers011;
 use lazycell::LazyCell;
 use log::debug;
@@ -36,7 +37,7 @@ pub(crate) mod serial;
 use mockito;
 
 // ISSUE (#86): Move public repository URLs to config file
-cfg_if::cfg_if! {
+cfg_if! {
     if #[cfg(feature = "mock-network")] {
         fn public_node_version_index() -> String {
             format!("{}/node-dist/index.json", mockito::SERVER_URL)
