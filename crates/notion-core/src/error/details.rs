@@ -233,7 +233,9 @@ from {}
 Please verify your internet connection and ensure the correct version is specified.",
                 tool, from_url
             ),
-            ErrorDetails::InvalidHookCommand { command } => write!(f, "Invalid hook command: '{}'", command),
+            ErrorDetails::InvalidHookCommand { command } => write!(f, "Invalid hook command: '{}'
+
+Please ensure that the correct command is specified.", command),
             ErrorDetails::NoBinPlatform { binary } => {
                 write!(f, "Platform info for executable `{}` is missing", binary)
             }
