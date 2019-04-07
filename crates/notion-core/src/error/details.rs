@@ -10,8 +10,8 @@ pub enum ErrorDetails {
     /// Thrown when package tries to install a binary that is already installed.
     BinaryAlreadyInstalled {
         bin_name: String,
-        package: String,
-        version: String,
+        existing_package: String,
+        new_package: String,
     },
 
     BinaryExecError,
@@ -22,7 +22,9 @@ pub enum ErrorDetails {
     },
 
     /// Thrown when a user tries to `notion pin` something other than node/yarn/npm.
-    CannotPinPackage,
+    CannotPinPackage {
+        package: String,
+    },
 
     CommandNotImplemented {
         command_name: String,
@@ -184,12 +186,14 @@ impl fmt::Display for ErrorDetails {
         match self {
             ErrorDetails::BinaryAlreadyInstalled {
                 bin_name,
-                package,
-                version,
+                existing_package,
+                new_package,
             } => write!(
                 f,
-                "Conflict with bin '{}' already installed by '{}' version {}",
-                bin_name, package, version
+                "Executable '{}' is already installed by {}
+
+Remove {} before installing {}",
+                bin_name, existing_package, existing_package, new_package
             ),
             ErrorDetails::BinaryExecError => write!(f, "Could not execute command.
 
@@ -197,8 +201,10 @@ See `notion help install` and `notion help pin` for info about making tools avai
             ErrorDetails::BinaryNotFound { name } => write!(f, r#"Could not find executable "{}"
 
 Use `notion install` to add a package to your toolchain (see `notion help install` for more info)."#, name),
-            ErrorDetails::CannotPinPackage => {
-                write!(f, "Only node, yarn, and npm can be pinned in a project")
+            ErrorDetails::CannotPinPackage { package } => {
+                write!(f, "Only node and yarn can be pinned in a project
+
+Use `npm install` or `yarn add` to select a version of {} for this project.", package)
             }
             ErrorDetails::CommandNotImplemented { command_name } => {
                 write!(f, "command `{}` is not yet implemented", command_name)
@@ -377,7 +383,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::BinaryAlreadyInstalled { .. } => ExitCode::FileSystemError,
             ErrorDetails::BinaryExecError => ExitCode::ExecutionFailure,
             ErrorDetails::BinaryNotFound { .. } => ExitCode::ExecutableNotFound,
-            ErrorDetails::CannotPinPackage => ExitCode::InvalidArguments,
+            ErrorDetails::CannotPinPackage { .. } => ExitCode::InvalidArguments,
             ErrorDetails::CommandNotImplemented { .. } => ExitCode::NotYetImplemented,
             ErrorDetails::CouldNotDetermineTool => ExitCode::UnknownError,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,

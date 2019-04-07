@@ -186,8 +186,8 @@ impl Distro for PackageDistro {
                 let bin_config = BinConfig::from_file(bin_config_file)?;
                 throw!(ErrorDetails::BinaryAlreadyInstalled {
                     bin_name: bin_name.to_string(),
-                    package: bin_config.package,
-                    version: bin_config.version.to_string()
+                    existing_package: bin_config.package,
+                    new_package: self.name,
                 });
             }
         }
