@@ -286,7 +286,9 @@ Use `notion install node` to select a default version."
 
 Use `notion pin yarn` to select a version (see `notion help pin` for more info)."
             ),
-            ErrorDetails::NotInPackage => write!(f, "Not in a node package"),
+            ErrorDetails::NotInPackage => write!(f, "Not in a node package.
+
+Use `notion install` to select a default version of a tool."),
             ErrorDetails::NoUserYarn => write!(
                 f,
                 "Could not determine Yarn version.
