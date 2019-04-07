@@ -202,7 +202,8 @@ Use `notion install` to add a package to your toolchain (see `notion help instal
 
 Use `npm install` or `yarn add` to select a version of {} for this project.", package)
             }
-            ErrorDetails::CouldNotDetermineTool => write!(f, "Tool name could not be determined"),
+            // No CTA as there is no path to fixing not being able to determine the tool name
+            ErrorDetails::CouldNotDetermineTool => write!(f, "Could not determine tool name"),
             ErrorDetails::CreateDirError { dir } => {
                 write!(f, "Could not create directory {}
 
