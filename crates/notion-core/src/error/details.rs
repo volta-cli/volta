@@ -295,7 +295,8 @@ Use `notion install` to select a default version of a tool."),
 
 Use `notion install yarn` to select a default version (see `notion help install for more info)."
             ),
-            ErrorDetails::NoVersionsFound => write!(f, "no versions found"),
+            // No CTA as this error is purely informational
+            ErrorDetails::NoVersionsFound => write!(f, "No tool versions found"),
             ErrorDetails::NpxNotAvailable { version } => write!(
                 f,
                 "'npx' is only available with npm >= 5.2.0
