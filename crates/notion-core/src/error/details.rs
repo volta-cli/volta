@@ -155,8 +155,6 @@ pub enum ErrorDetails {
         name: String,
     },
 
-    ToolNotImplemented,
-
     /// Thrown when the shell name specified in the Notion environment is not supported.
     UnrecognizedShell {
         name: String,
@@ -374,7 +372,6 @@ Please ensure you have correct permissions to the Notion directory."#, name),
             ErrorDetails::ShimRemoveError { name } => write!(f, r#"Could not remove shim for "{}"
 
 Please ensure you have correct permissions to the Notion directory."#, name),
-            ErrorDetails::ToolNotImplemented => write!(f, "this tool is not yet implemented"),
             ErrorDetails::UnrecognizedShell { name } => write!(f, "Unrecognized shell: {}", name),
             ErrorDetails::UnspecifiedPostscript => {
                 write!(f, "Notion postscript file not specified")
@@ -442,7 +439,6 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::ShimCreateError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ShimRemoveBuiltInError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::ShimRemoveError { .. } => ExitCode::FileSystemError,
-            ErrorDetails::ToolNotImplemented => ExitCode::ExecutableNotFound,
             ErrorDetails::UnrecognizedShell { .. } => ExitCode::EnvironmentError,
             ErrorDetails::UnspecifiedPostscript => ExitCode::EnvironmentError,
             ErrorDetails::UnspecifiedShell => ExitCode::EnvironmentError,
