@@ -60,7 +60,7 @@ fn unpinned_project() {
         s.notion("current"),
         execs()
             .with_status(ExitCode::NoVersionMatch as i32)
-            .with_stderr_contains("error: no versions found")
+            .with_stderr_contains("error: No tool versions found")
     );
 }
 
@@ -87,7 +87,7 @@ fn no_project() {
         s.notion("current"),
         execs()
             .with_status(ExitCode::NoVersionMatch as i32)
-            .with_stderr_contains("error: no versions found")
+            .with_stderr_contains("error: No tool versions found")
     );
 }
 
