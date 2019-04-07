@@ -376,7 +376,9 @@ Please ensure you have correct permissions to the Notion directory."#, name),
 
 Please ensure you are using a supported shell.", name),
             ErrorDetails::UnspecifiedPostscript => {
-                write!(f, "Notion postscript file not specified")
+                write!(f, "Could not determine Notion postscript file.
+
+Please nesure Notion was installed correctly.")
             }
             ErrorDetails::UnspecifiedShell => write!(f, "Notion shell not specified"),
             ErrorDetails::VersionParseError { version } => write!(f, r#"Could not parse version "{}"
