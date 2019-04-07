@@ -259,7 +259,9 @@ Use `notion install` to add a package to your toolchain (see `notion help instal
 
 Please ensure the environment variable 'HOME' is set.")
             }
-            ErrorDetails::NoLocalDataDir => write!(f, "Windows LocalAppData directory not found"),
+            ErrorDetails::NoLocalDataDir => write!(f, "Could not determine LocalAppData directory.
+
+Please ensure the directory is available."),
             ErrorDetails::NoPackageExecutables => {
                 write!(f, "Package has no binaries or executables - nothing to do")
             }
