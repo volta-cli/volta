@@ -255,7 +255,9 @@ Please verify that the version is correct."#,
 Use `notion install` to add a package to your toolchain (see `notion help install` for more info)."
             ),
             ErrorDetails::NoHomeEnvironmentVar => {
-                write!(f, "environment variable 'HOME' is not set")
+                write!(f, "Could not determine home directory.
+
+Please ensure the environment variable 'HOME' is set.")
             }
             ErrorDetails::NoLocalDataDir => write!(f, "Windows LocalAppData directory not found"),
             ErrorDetails::NoPackageExecutables => {
