@@ -263,7 +263,9 @@ Please ensure the environment variable 'HOME' is set.")
 
 Please ensure the directory is available."),
             ErrorDetails::NoPackageExecutables => {
-                write!(f, "Package has no binaries or executables - nothing to do")
+                write!(f, "Package has no executables to install.
+
+Please verify the intended package name.")
             }
             ErrorDetails::NoPinnedNodeVersion => write!(
                 f,
