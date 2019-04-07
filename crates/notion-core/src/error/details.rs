@@ -372,7 +372,9 @@ Please ensure you have correct permissions to the Notion directory."#, name),
             ErrorDetails::ShimRemoveError { name } => write!(f, r#"Could not remove shim for "{}"
 
 Please ensure you have correct permissions to the Notion directory."#, name),
-            ErrorDetails::UnrecognizedShell { name } => write!(f, "Unrecognized shell: {}", name),
+            ErrorDetails::UnrecognizedShell { name } => write!(f, "Unrecognized shell '{}'
+
+Please ensure you are using a supported shell.", name),
             ErrorDetails::UnspecifiedPostscript => {
                 write!(f, "Notion postscript file not specified")
             }
