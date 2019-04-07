@@ -57,7 +57,7 @@ impl Command for Completions {
                 if path.is_dir() {
                     app.gen_completions("notion", shell, path);
                 } else {
-                    throw!(ErrorDetails::PathError)
+                    throw!(ErrorDetails::CompletionsOutDirError)
                 }
             }
             None => app.gen_completions_to("notion", shell, &mut std::io::stdout()),

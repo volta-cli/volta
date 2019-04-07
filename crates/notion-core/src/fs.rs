@@ -20,7 +20,12 @@ pub fn touch(path: &Path) -> Fallible<File> {
 pub fn ensure_containing_dir_exists<P: AsRef<Path>>(path: &P) -> Fallible<()> {
     path.as_ref()
         .parent()
-        .ok_or(ErrorDetails::PathError.into())
+        .ok_or(
+            ErrorDetails::ContainingDirError {
+                path: path.as_ref().to_string_lossy().to_string(),
+            }
+            .into(),
+        )
         .and_then(|dir| {
             fs::create_dir_all(dir).with_context(|_| ErrorDetails::CreateDirError {
                 dir: dir.to_string_lossy().to_string(),

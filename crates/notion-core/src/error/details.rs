@@ -26,6 +26,14 @@ pub enum ErrorDetails {
         package: String,
     },
 
+    /// Thrown when the Completions out-dir is not a directory
+    CompletionsOutDirError,
+
+    /// Thrown when the containing directory could not be determined
+    ContainingDirError {
+        path: String,
+    },
+
     CouldNotDetermineTool,
 
     CreateDirError {
@@ -126,8 +134,6 @@ pub enum ErrorDetails {
         matching: String,
     },
 
-    PathError,
-
     /// Thrown when the public registry for Node or Yarn could not be downloaded.
     RegistryFetchError {
         tool: String,
@@ -201,6 +207,17 @@ Use `notion install` to add a package to your toolchain (see `notion help instal
                 write!(f, "Only node and yarn can be pinned in a project
 
 Use `npm install` or `yarn add` to select a version of {} for this project.", package)
+            }
+            ErrorDetails::CompletionsOutDirError => {
+                write!(f, "out-dir must be a directory.
+
+Please ensure the directory exists and that you have correct permissions.")
+            }
+            ErrorDetails::ContainingDirError { path } => {
+                write!(f, "Could not determine directory information
+for {}
+
+Please ensure you have correct permissions to the Notion directory.", path)
             }
             // No CTA as there is no path to fixing not being able to determine the tool name
             ErrorDetails::CouldNotDetermineTool => write!(f, "Could not determine tool name"),
@@ -341,7 +358,6 @@ Please ensure the package is correctly formatted."
 Please verify that the version is correct."#,
                 name, matching
             ),
-            ErrorDetails::PathError => write!(f, "`path` internal error"),
             ErrorDetails::RegistryFetchError { tool, from_url } => write!(
                 f,
                 "Could not download {} version registry
@@ -393,6 +409,8 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::BinaryExecError => ExitCode::ExecutionFailure,
             ErrorDetails::BinaryNotFound { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::CannotPinPackage { .. } => ExitCode::InvalidArguments,
+            ErrorDetails::CompletionsOutDirError => ExitCode::InvalidArguments,
+            ErrorDetails::ContainingDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::CouldNotDetermineTool => ExitCode::UnknownError,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DeleteDirectoryError { .. } => ExitCode::FileSystemError,
@@ -420,7 +438,6 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::PackageUnpackError => ExitCode::ConfigurationError,
             ErrorDetails::PackageVersionNotFound { .. } => ExitCode::NoVersionMatch,
-            ErrorDetails::PathError => ExitCode::UnknownError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::ShimCreateError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ShimRemoveBuiltInError { .. } => ExitCode::InvalidArguments,
