@@ -26,10 +26,6 @@ pub enum ErrorDetails {
         package: String,
     },
 
-    CommandNotImplemented {
-        command_name: String,
-    },
-
     CouldNotDetermineTool,
 
     CreateDirError {
@@ -206,9 +202,6 @@ Use `notion install` to add a package to your toolchain (see `notion help instal
 
 Use `npm install` or `yarn add` to select a version of {} for this project.", package)
             }
-            ErrorDetails::CommandNotImplemented { command_name } => {
-                write!(f, "command `{}` is not yet implemented", command_name)
-            }
             ErrorDetails::CouldNotDetermineTool => write!(f, "Tool name could not be determined"),
             ErrorDetails::CreateDirError { dir } => {
                 write!(f, "Could not create directory {}
@@ -384,7 +377,6 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::BinaryExecError => ExitCode::ExecutionFailure,
             ErrorDetails::BinaryNotFound { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::CannotPinPackage { .. } => ExitCode::InvalidArguments,
-            ErrorDetails::CommandNotImplemented { .. } => ExitCode::NotYetImplemented,
             ErrorDetails::CouldNotDetermineTool => ExitCode::UnknownError,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DeleteDirectoryError { .. } => ExitCode::FileSystemError,

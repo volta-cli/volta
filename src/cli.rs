@@ -66,10 +66,6 @@ pub(crate) enum Subcommand {
     #[structopt(name = "pin", author = "", version = "")]
     Pin(command::Pin),
 
-    /// Gets or sets configuration values
-    #[structopt(name = "config", author = "", version = "")]
-    Config(command::Config),
-
     /// Displays the currently activated Node version
     #[structopt(name = "current", author = "", version = "")]
     Current(command::Current),
@@ -134,7 +130,6 @@ impl Subcommand {
             Subcommand::Install(install) => install.run(session),
             Subcommand::Uninstall(uninstall) => uninstall.run(session),
             Subcommand::Pin(pin) => pin.run(session),
-            Subcommand::Config(config) => config.run(session),
             Subcommand::Current(current) => current.run(session),
             Subcommand::Deactivate(deactivate) => deactivate.run(session),
             Subcommand::Activate(activate) => activate.run(session),
