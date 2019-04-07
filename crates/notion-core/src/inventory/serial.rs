@@ -239,7 +239,13 @@ pub struct BinConfig {
     pub path: String,
     pub platform: toolchain::serial::Platform,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub loader: Option<String>,
+    pub loader: Option<BinLoader>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct BinLoader {
+    pub exe: String,
+    pub args: Vec<String>,
 }
 
 impl PackageMetadata {
@@ -296,7 +302,16 @@ impl package::BinConfig {
             version: self.version.clone(),
             path: self.path.to_string(),
             platform: self.platform.to_serial(),
-            loader: self.loader.clone(),
+            loader: self.loader.as_ref().map(|l| l.to_serial()),
+        }
+    }
+}
+
+impl package::BinLoader {
+    pub fn to_serial(&self) -> BinLoader {
+        BinLoader {
+            exe: self.exe.clone(),
+            args: self.args.clone(),
         }
     }
 }
@@ -358,7 +373,16 @@ impl BinConfig {
                 .platform
                 .into_image()?
                 .ok_or(ErrorDetails::NoBinPlatform { binary: self.name })?,
-            loader: self.loader,
+            loader: self.loader.map(|l| l.into_loader()),
         })
+    }
+}
+
+impl BinLoader {
+    pub fn into_loader(self) -> package::BinLoader {
+        package::BinLoader {
+            exe: self.exe,
+            args: self.args,
+        }
     }
 }

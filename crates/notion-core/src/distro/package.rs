@@ -31,6 +31,7 @@ use tempfile::tempdir_in;
 
 cfg_if::cfg_if! {
     if #[cfg(windows)] {
+        use cmdline_words_parser::StrExt;
         use regex::Regex;
         use std::io::{BufRead, BufReader};
     }
@@ -133,7 +134,9 @@ pub struct PackageConfig {
 ///       "npm": "6.7.0",
 ///       "yarn": null
 ///     },
-///     "loader": "node"
+///     "loader": {
+///       "exe": "node"
+///     }
 ///   }
 /// }
 pub struct BinConfig {
@@ -148,7 +151,14 @@ pub struct BinConfig {
     /// The platform used to install this binary
     pub platform: PlatformSpec,
     /// The loader information for the script, if any
-    pub loader: Option<String>,
+    pub loader: Option<BinLoader>,
+}
+
+pub struct BinLoader {
+    /// The loader executable
+    pub exe: String,
+    /// Any additional arguments specified for the loader
+    pub args: Vec<String>,
 }
 
 impl Distro for PackageDistro {
@@ -359,7 +369,7 @@ impl PackageVersion {
         bin_name: String,
         bin_path: String,
         platform_spec: &PlatformSpec,
-        loader: Option<String>,
+        loader: Option<BinLoader>,
     ) -> BinConfig {
         BinConfig {
             name: bin_name,
@@ -391,23 +401,31 @@ impl PackageVersion {
 
     /// On Unix, shebang loaders work correctly, so we don't need to bother storing loader information
     #[cfg(unix)]
-    fn determine_script_loader(&self, _bin_path: &str) -> Fallible<Option<String>> {
+    fn determine_script_loader(&self, _bin_path: &str) -> Fallible<Option<BinLoader>> {
         Ok(None)
     }
 
     /// On Windows, we need to read the executable and try to find a shebang loader
     /// If it exists, we store the loader in the BinConfig so that the shim can execute it correctly
     #[cfg(windows)]
-    fn determine_script_loader(&self, bin_path: &str) -> Fallible<Option<String>> {
+    fn determine_script_loader(&self, bin_path: &str) -> Fallible<Option<BinLoader>> {
         let full_path = bin_full_path(&self.name, &self.version, bin_path)?;
         let script = File::open(full_path).unknown()?;
         if let Some(Ok(first_line)) = BufReader::new(script).lines().next() {
             // Note: Regex adapted from @zkochan/cmd-shim package used by Yarn
             // https://github.com/pnpm/cmd-shim/blob/bac160cc554e5157e4c5f5e595af30740be3519a/index.js#L42
-            let re = Regex::new(r#"^#!\s*(?:/usr/bin/env)?\s*(?P<exe>[^ \t]+).*$"#)
+            let re = Regex::new(r#"^#!\s*(?:/usr/bin/env)?\s*(?P<exe>[^ \t]+) ?(?P<args>.*)$"#)
                 .expect("Regex is valid");
             if let Some(caps) = re.captures(&first_line) {
-                return Ok(Some(caps["exe"].to_string()));
+                let args = caps["args"]
+                    .to_string()
+                    .parse_cmdline_words()
+                    .map(|word| word.to_string())
+                    .collect();
+                return Ok(Some(BinLoader {
+                    exe: caps["exe"].to_string(),
+                    args,
+                }));
             }
         }
         Ok(None)
@@ -452,8 +470,7 @@ impl PackageVersion {
     }
 
     fn remove_config_and_shims(bin_name: &str, name: &str) -> Fallible<()> {
-        let shim = path::shim_file(&bin_name)?;
-        fs::remove_file(shim).with_context(file_deletion_error)?;
+        shim::delete(bin_name)?;
         let config_file = path::user_tool_bin_config(&bin_name)?;
         fs::remove_file(config_file).with_context(file_deletion_error)?;
         println!("Removed executable '{}' installed by '{}'", bin_name, name);
@@ -498,7 +515,7 @@ impl Installer {
 pub struct UserTool {
     pub bin_path: PathBuf,
     pub image: Image,
-    pub loader: Option<String>,
+    pub loader: Option<BinLoader>,
 }
 
 impl UserTool {

@@ -64,9 +64,14 @@ impl Tool for Binary {
         if let Some(user_tool) = session.get_user_tool(&params.executable)? {
             let tool_path = user_tool.bin_path.into_os_string();
             let cmd = match user_tool.loader {
-                Some(exe) => command_for(
-                    exe.as_ref(),
-                    once(tool_path).chain(params.args),
+                Some(loader) => command_for(
+                    loader.exe.as_ref(),
+                    loader
+                        .args
+                        .iter()
+                        .map(|arg| OsString::from(arg))
+                        .chain(once(tool_path))
+                        .chain(params.args),
                     &user_tool.image.path()?,
                 ),
                 None => command_for(&tool_path, params.args, &user_tool.image.path()?),
