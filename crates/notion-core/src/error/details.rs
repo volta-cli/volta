@@ -330,7 +330,9 @@ Please ensure that the file exists.", file)
             }
             ErrorDetails::PackageUnpackError => write!(
                 f,
-                "Package unpack error: Could not determine unpack directory name"
+                "Could not determine package directory layout.
+
+Please ensure the package is correctly formatted."
             ),
             ErrorDetails::PackageVersionNotFound { name, matching } => write!(
                 f,
