@@ -237,7 +237,9 @@ Please verify your internet connection and ensure the correct version is specifi
 
 Please ensure that the correct command is specified.", command),
             ErrorDetails::NoBinPlatform { binary } => {
-                write!(f, "Platform info for executable `{}` is missing", binary)
+                write!(f, "Platform info for executable `{}` is missing
+
+Please uninstall and re-install the package that provides that executable.", binary)
             }
             ErrorDetails::NodeVersionNotFound { matching } => write!(
                 f,
