@@ -40,6 +40,8 @@ pub enum ErrorDetails {
         dir: String,
     },
 
+    CurrentDirError,
+
     /// Thrown when deleting a directory fails
     DeleteDirectoryError {
         directory: String,
@@ -224,6 +226,9 @@ Please ensure you have correct permissions to the Notion directory.", path)
 
 Please ensure that you have the correct permissions.", dir)
             }
+            ErrorDetails::CurrentDirError => write!(f, "Could not determine current directory
+
+Please ensure that you have the correct permissions."),
             ErrorDetails::DeleteDirectoryError { directory } => write!(f, "Could not remove directory
 at {}
 
@@ -414,6 +419,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::ContainingDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::CouldNotDetermineTool => ExitCode::UnknownError,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::CurrentDirError => ExitCode::EnvironmentError,
             ErrorDetails::DeleteDirectoryError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DeleteFileError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DepPackageReadError => ExitCode::FileSystemError,
