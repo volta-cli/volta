@@ -321,7 +321,7 @@ impl PackageConfig {
             version: self.version,
             platform: self
                 .platform
-                .into_image()?
+                .into_platform()?
                 .ok_or(ErrorDetails::NoBinPlatform { binary: self.name })?,
             bins: self.bins,
         })
@@ -353,7 +353,7 @@ impl BinConfig {
             path: self.path,
             platform: self
                 .platform
-                .into_image()?
+                .into_platform()?
                 .ok_or(ErrorDetails::NoBinPlatform { binary: self.name })?,
         })
     }

@@ -1,5 +1,4 @@
-use std::fs::File;
-use std::io::Write;
+use std::fs::write;
 
 use lazycell::LazyCell;
 use readext::ReadExt;
@@ -51,8 +50,11 @@ impl Toolchain {
             .with_context(|_| ErrorDetails::ReadPlatformError {
                 file: path.to_string_lossy().to_string(),
             })?;
+        let parsed =
+            serial::Platform::from_json(src).with_context(|_| ErrorDetails::ParsePlatformError)?;
+
         Ok(Toolchain {
-            platform: serial::Platform::from_json(src)?.into_image()?,
+            platform: parsed.into_platform()?,
         })
     }
 
@@ -128,16 +130,18 @@ impl Toolchain {
 
     pub fn save(&self) -> Fallible<()> {
         let path = user_platform_file()?;
-        let mut file = File::create(&path).unknown()?;
-        match &self.platform {
-            &Some(ref platform) => {
-                let src = platform.to_serial().to_json()?;
-                file.write_all(src.as_bytes()).unknown()?;
+        let result = match &self.platform {
+            Some(ref platform) => {
+                let src = platform
+                    .to_serial()
+                    .to_json()
+                    .with_context(|_| ErrorDetails::StringifyPlatformError)?;
+                write(&path, src)
             }
-            &None => {
-                file.write_all(b"{}").unknown()?;
-            }
-        }
-        Ok(())
+            None => write(&path, "{}"),
+        };
+        result.with_context(|_| ErrorDetails::WritePlatformError {
+            file: path.to_string_lossy().to_string(),
+        })
     }
 }
