@@ -63,7 +63,23 @@ pub enum ErrorDetails {
         from_url: String,
     },
 
+    /// Thrown when executing a hook command fails
+    ExecuteHookError {
+        command: String,
+    },
+
+    /// Thrown when a hook contains multiple fields (prefix, template, or bin)
+    HookMultipleFieldsSpecified,
+
+    /// Thrown when a hook doesn't contain any of the known fields (prefix, template, or bin)
+    HookNoFieldsSpecified,
+
     InvalidHookCommand {
+        command: String,
+    },
+
+    /// Thrown when output from a hook command could not be read
+    InvalidHookOutput {
         command: String,
     },
 
@@ -134,12 +150,21 @@ pub enum ErrorDetails {
         matching: String,
     },
 
+    /// Thrown when unable to parse the hooks.toml file
+    ParseHooksError,
+
+    /// Thrown when a publish hook contains both the url and bin fields
+    PublishHookBothUrlAndBin,
+
+    /// Thrown when a publish hook contains neither url nor bin fields
+    PublishHookNeitherUrlNorBin,
+
     /// Thrown when there was an error reading the user bin directory
     ReadBinConfigDirError {
         dir: String,
     },
 
-    /// Thrown when there was an error opening the Hooks.toml file
+    /// Thrown when there was an error opening the hooks.toml file
     ReadHooksError {
         file: String,
     },
@@ -268,9 +293,21 @@ from {}
 Please verify your internet connection and ensure the correct version is specified.",
                 tool, from_url
             ),
+            ErrorDetails::ExecuteHookError { command } => write!(f, "Could not execute hook command: '{}'
+
+Please ensure that the corrent command is specified.", command),
+            ErrorDetails::HookMultipleFieldsSpecified => write!(f, "Hook configuration includes multiple hook types.
+
+Please include only one of 'bin', 'prefix', or 'template'"),
+            ErrorDetails::HookNoFieldsSpecified => write!(f, "Hook configuration includes no hook types.
+
+Please include one of 'bin', 'prefix', or 'template'"),
             ErrorDetails::InvalidHookCommand { command } => write!(f, "Invalid hook command: '{}'
 
 Please ensure that the correct command is specified.", command),
+            ErrorDetails::InvalidHookOutput { command } => write!(f, "Could not read output from hook command: '{}'
+
+Please ensure that the command output is valid UTF-8 text.", command),
             ErrorDetails::NoBinPlatform { binary } => {
                 write!(f, "Platform info for executable `{}` is missing
 
@@ -376,6 +413,15 @@ Please ensure the package is correctly formatted."
 Please verify that the version is correct."#,
                 name, matching
             ),
+            ErrorDetails::ParseHooksError => write!(f, "Could not parse hooks.toml configuration file.
+
+Please ensure the file is correctly formatted."),
+            ErrorDetails::PublishHookBothUrlAndBin => write!(f, "Publish hook configuration includes both hook types.
+
+Please include only one of 'bin' or 'url'"),
+            ErrorDetails::PublishHookNeitherUrlNorBin => write!(f, "Publish hook configuration includes no hook types.
+
+Please include one of 'bin' or 'url'"),
             ErrorDetails::ReadBinConfigDirError { dir } => write!(f, "Could not read executable metadata directory
 at {}
 
@@ -455,7 +501,11 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::DepPackageReadError => ExitCode::FileSystemError,
             ErrorDetails::DeprecatedCommandError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
-            ErrorDetails::InvalidHookCommand { .. } => ExitCode::UnknownError,
+            ErrorDetails::ExecuteHookError { .. } => ExitCode::ExecutionFailure,
+            ErrorDetails::HookMultipleFieldsSpecified => ExitCode::ConfigurationError,
+            ErrorDetails::HookNoFieldsSpecified => ExitCode::ConfigurationError,
+            ErrorDetails::InvalidHookCommand { .. } => ExitCode::ExecutableNotFound,
+            ErrorDetails::InvalidHookOutput { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::NoBinPlatform { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NoGlobalInstalls => ExitCode::InvalidArguments,
@@ -475,6 +525,9 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::PackageUnpackError => ExitCode::ConfigurationError,
             ErrorDetails::PackageVersionNotFound { .. } => ExitCode::NoVersionMatch,
+            ErrorDetails::ParseHooksError => ExitCode::ConfigurationError,
+            ErrorDetails::PublishHookBothUrlAndBin => ExitCode::ConfigurationError,
+            ErrorDetails::PublishHookNeitherUrlNorBin => ExitCode::ConfigurationError,
             ErrorDetails::ReadBinConfigDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ReadHooksError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ReadInventoryDirError { .. } => ExitCode::FileSystemError,

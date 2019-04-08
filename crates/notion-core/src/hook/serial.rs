@@ -5,8 +5,8 @@ use crate::distro::node::NodeDistro;
 use crate::distro::package::PackageDistro;
 use crate::distro::yarn::YarnDistro;
 use crate::distro::Distro;
-use failure::Fail;
-use notion_fail::{FailExt, Fallible};
+use crate::error::ErrorDetails;
+use notion_fail::Fallible;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -21,14 +21,6 @@ pub struct PublishHook {
     url: Option<String>,
     bin: Option<String>,
 }
-
-#[derive(Fail, Debug)]
-#[fail(display = "Hook contains more than one of 'prefix', 'template', or 'bin' fields")]
-struct MultipleFieldsSpecified;
-
-#[derive(Fail, Debug)]
-#[fail(display = "Hook must contain either a 'prefix', 'template', or 'bin' field")]
-struct NoFieldSpecified;
 
 impl ResolveHook {
     fn into_hook<H, P, T, B>(self, to_prefix: P, to_template: T, to_bin: B) -> Fallible<H>
@@ -57,8 +49,8 @@ impl ResolveHook {
                 prefix: None,
                 template: None,
                 bin: None,
-            } => Err(NoFieldSpecified.unknown()),
-            _ => Err(MultipleFieldsSpecified.unknown()),
+            } => Err(ErrorDetails::HookNoFieldsSpecified.into()),
+            _ => Err(ErrorDetails::HookMultipleFieldsSpecified.into()),
         }
     }
 
@@ -79,14 +71,6 @@ impl ResolveHook {
     }
 }
 
-#[derive(Fail, Debug)]
-#[fail(display = "Hook contains both 'url' and 'bin' fields")]
-struct BothUrlAndBin;
-
-#[derive(Fail, Debug)]
-#[fail(display = "Hook must contain either a 'url' or 'bin' field")]
-struct NeitherUrlNorBin;
-
 impl PublishHook {
     pub fn into_publish(self) -> Fallible<super::Publish> {
         match self {
@@ -101,8 +85,8 @@ impl PublishHook {
             PublishHook {
                 url: None,
                 bin: None,
-            } => Err(NeitherUrlNorBin.unknown()),
-            _ => Err(BothUrlAndBin.unknown()),
+            } => Err(ErrorDetails::PublishHookNeitherUrlNorBin.into()),
+            _ => Err(ErrorDetails::PublishHookBothUrlAndBin.into()),
         }
     }
 }

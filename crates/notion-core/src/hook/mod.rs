@@ -85,8 +85,9 @@ impl FromStr for HookConfig {
     type Err = NotionError;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
-        let serial: serial::HookConfig = toml::from_str(src).unknown()?;
-        Ok(serial.into_hook_config()?)
+        let serial: serial::HookConfig =
+            toml::from_str(src).with_context(|_| ErrorDetails::ParseHooksError)?;
+        serial.into_hook_config()
     }
 }
 
