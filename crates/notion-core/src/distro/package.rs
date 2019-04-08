@@ -421,6 +421,9 @@ pub fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
         };
         None
     })
+    .with_context(|_| ErrorDetails::ReadBinConfigDirError {
+        dir: bin_config_dir.to_string_lossy().to_string(),
+    })
 }
 
 impl Installer {

@@ -7,13 +7,15 @@ use std::path::{Path, PathBuf};
 use crate::error::ErrorDetails;
 use notion_fail::{Fallible, ResultExt};
 
-pub fn touch(path: &Path) -> Fallible<File> {
+/// Opens a file, creating it if it doesn't exist
+pub fn touch(path: &Path) -> io::Result<File> {
     if !path.is_file() {
-        let basedir = path.parent().unwrap();
-        create_dir_all(basedir).unknown()?;
-        File::create(path).unknown()?;
+        if let Some(basedir) = path.parent() {
+            create_dir_all(basedir)?;
+        }
+        File::create(path)?;
     }
-    File::open(path).unknown()
+    File::open(path)
 }
 
 /// This creates the parent directory of the input path, assuming the input path is a file.
@@ -56,25 +58,27 @@ pub fn read_file_opt(path: &PathBuf) -> io::Result<Option<String>> {
 /// Note that this function allocates an intermediate vector of directory entries to
 /// construct the iterator from, so if a directory is expected to be very large, it
 /// will allocate temporary data proportional to the number of entries.
-pub fn read_dir_eager(dir: &Path) -> Fallible<impl Iterator<Item = (DirEntry, Metadata)>> {
-    Ok(read_dir(dir)
-        .unknown()?
+pub fn read_dir_eager(dir: &Path) -> io::Result<impl Iterator<Item = (DirEntry, Metadata)>> {
+    let entries = read_dir(dir)?;
+    let vec = entries
         .map(|entry| {
-            let entry = entry.unknown()?;
-            let metadata = entry.metadata().unknown()?;
+            let entry = entry?;
+            let metadata = entry.metadata()?;
             Ok((entry, metadata))
         })
-        .collect::<Fallible<Vec<(DirEntry, Metadata)>>>()?
-        .into_iter())
+        .collect::<io::Result<Vec<(DirEntry, Metadata)>>>()?;
+
+    Ok(vec.into_iter())
 }
 
 /// Reads the contents of a directory and returns a Vec of the matched results
 /// from the input function
-pub fn dir_entry_match<T, F>(dir: &Path, mut f: F) -> Fallible<Vec<T>>
+pub fn dir_entry_match<T, F>(dir: &Path, mut f: F) -> io::Result<Vec<T>>
 where
     F: FnMut(&DirEntry) -> Option<T>,
 {
-    Ok(read_dir_eager(dir)?
+    let entries = read_dir_eager(dir)?;
+    Ok(entries
         .filter(|(_, metadata)| metadata.is_file())
         .filter_map(|(entry, _)| f(&entry))
         .collect::<Vec<T>>())

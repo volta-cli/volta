@@ -134,6 +134,26 @@ pub enum ErrorDetails {
         matching: String,
     },
 
+    /// Thrown when there was an error reading the user bin directory
+    ReadBinConfigDirError {
+        dir: String,
+    },
+
+    /// Thrown when there was an error opening the Hooks.toml file
+    ReadHooksError {
+        file: String,
+    },
+
+    /// Thrown when there was an error reading the inventory contents
+    ReadInventoryDirError {
+        dir: String,
+    },
+
+    /// Thrown when there was an error opening the user platform file
+    ReadPlatformError {
+        file: String,
+    },
+
     /// Thrown when the public registry for Node or Yarn could not be downloaded.
     RegistryFetchError {
         tool: String,
@@ -356,6 +376,22 @@ Please ensure the package is correctly formatted."
 Please verify that the version is correct."#,
                 name, matching
             ),
+            ErrorDetails::ReadBinConfigDirError { dir } => write!(f, "Could not read executable metadata directory
+at {}
+
+Please ensure you have correct permissions to the Notion directory.", dir),
+            ErrorDetails::ReadHooksError { file } => write!(f, "Could not read hooks file
+from {}
+
+Please ensure you have correct permissions to the Notion directory.", file),
+            ErrorDetails::ReadInventoryDirError { dir } => write!(f, "Could not read tool inventory contents
+from {}
+
+Please ensure you have correct permissions to the Notion directory.", dir),
+            ErrorDetails::ReadPlatformError { file } => write!(f, "Could not read default platform file
+from {}
+
+Please ensure you have correct permissions to the Notion directory.", file),
             ErrorDetails::RegistryFetchError { tool, from_url } => write!(
                 f,
                 "Could not download {} version registry
@@ -439,6 +475,10 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::PackageUnpackError => ExitCode::ConfigurationError,
             ErrorDetails::PackageVersionNotFound { .. } => ExitCode::NoVersionMatch,
+            ErrorDetails::ReadBinConfigDirError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::ReadHooksError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::ReadInventoryDirError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::ReadPlatformError { .. } => ExitCode::FileSystemError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::ShimCreateError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ShimRemoveBuiltInError { .. } => ExitCode::InvalidArguments,

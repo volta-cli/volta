@@ -6,6 +6,7 @@ use readext::ReadExt;
 use semver::Version;
 
 use crate::distro::node::NodeVersion;
+use crate::error::ErrorDetails;
 use crate::fs::touch;
 use crate::path::user_platform_file;
 use crate::platform::PlatformSpec;
@@ -45,7 +46,11 @@ pub struct Toolchain {
 impl Toolchain {
     fn current() -> Fallible<Toolchain> {
         let path = user_platform_file()?;
-        let src = touch(&path)?.read_into_string().unknown()?;
+        let src = touch(&path)
+            .and_then(|mut file| file.read_into_string())
+            .with_context(|_| ErrorDetails::ReadPlatformError {
+                file: path.to_string_lossy().to_string(),
+            })?;
         Ok(Toolchain {
             platform: serial::Platform::from_json(src)?.into_image()?,
         })

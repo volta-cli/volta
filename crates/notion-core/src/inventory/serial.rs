@@ -13,7 +13,7 @@ use crate::fs::ensure_containing_dir_exists;
 use crate::fs::read_dir_eager;
 use crate::path;
 use crate::toolchain;
-use crate::version::{option_version_serde, version_serde};
+use crate::version::{option_version_serde, version_serde, VersionSpec};
 use notion_fail::{Fallible, ResultExt};
 
 use regex::Regex;
@@ -27,17 +27,20 @@ use serde::{Deserialize, Deserializer, Serialize};
 /// The regex should contain the `version` named capture by using the Rust regex
 /// syntax `?P<version>`.
 fn versions_matching(dir: &Path, re: &Regex) -> Fallible<BTreeSet<Version>> {
-    Ok(read_dir_eager(dir)?
+    let contents = read_dir_eager(dir).with_context(|_| ErrorDetails::ReadInventoryDirError {
+        dir: dir.to_string_lossy().to_string(),
+    })?;
+    contents
         .filter(|(_, metadata)| metadata.is_file())
         .filter_map(|(entry, _)| {
             if let Some(file_name) = entry.path().file_name() {
                 if let Some(caps) = re.captures(&file_name.to_string_lossy()) {
-                    return Some(Version::parse(&caps["version"]).unknown());
+                    return Some(VersionSpec::parse_version(&caps["version"]));
                 }
             }
             None
         })
-        .collect::<Fallible<BTreeSet<Version>>>()?)
+        .collect::<Fallible<BTreeSet<Version>>>()
 }
 
 fn lts_version_serde<'de, D>(deserializer: D) -> Result<bool, D::Error>
