@@ -40,6 +40,9 @@ pub enum ErrorDetails {
         dir: String,
     },
 
+    /// Thrown when unable to create the postscript file
+    CreatePostscriptError,
+
     /// Thrown when deleting a directory fails
     DeleteDirectoryError {
         directory: String,
@@ -224,6 +227,9 @@ Please ensure you have correct permissions to the Notion directory.", path)
 
 Please ensure that you have the correct permissions.", dir)
             }
+            ErrorDetails::CreatePostscriptError => write!(f, "Could not create postscript file.
+
+Please ensure you have correct permissions to the Notion directory."),
             ErrorDetails::DeleteDirectoryError { directory } => write!(f, "Could not remove directory
 at {}
 
@@ -414,6 +420,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::ContainingDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::CouldNotDetermineTool => ExitCode::UnknownError,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::CreatePostscriptError => ExitCode::FileSystemError,
             ErrorDetails::DeleteDirectoryError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DeleteFileError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DepPackageReadError => ExitCode::FileSystemError,
