@@ -134,6 +134,11 @@ pub enum ErrorDetails {
         matching: String,
     },
 
+    /// Thrown when writing a package manifest fails
+    PackageWriteError {
+        file: String,
+    },
+
     /// Thrown when the public registry for Node or Yarn could not be downloaded.
     RegistryFetchError {
         tool: String,
@@ -154,6 +159,9 @@ pub enum ErrorDetails {
     ShimRemoveError {
         name: String,
     },
+
+    /// Thrown when serializing the toolchain to JSON fails
+    StringifyToolchainError,
 
     /// Thrown when the shell name specified in the Notion environment is not supported.
     UnrecognizedShell {
@@ -356,6 +364,10 @@ Please ensure the package is correctly formatted."
 Please verify that the version is correct."#,
                 name, matching
             ),
+            ErrorDetails::PackageWriteError { file } => write!(f, "Could not write project manifest
+to {}
+
+Please ensure you have correct permissions.", file),
             ErrorDetails::RegistryFetchError { tool, from_url } => write!(
                 f,
                 "Could not download {} version registry
@@ -372,6 +384,8 @@ Please ensure you have correct permissions to the Notion directory."#, name),
             ErrorDetails::ShimRemoveError { name } => write!(f, r#"Could not remove shim for "{}"
 
 Please ensure you have correct permissions to the Notion directory."#, name),
+            // Note: No CTA as this is a purely internal operation and serializing should not fail
+            ErrorDetails::StringifyToolchainError => write!(f, "Could not serialize toolchain settings."),
             ErrorDetails::UnrecognizedShell { name } => write!(f, "Unrecognized shell '{}'
 
 Please ensure you are using a supported shell.", name),
@@ -439,10 +453,12 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::PackageUnpackError => ExitCode::ConfigurationError,
             ErrorDetails::PackageVersionNotFound { .. } => ExitCode::NoVersionMatch,
+            ErrorDetails::PackageWriteError { .. } => ExitCode::FileSystemError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::ShimCreateError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ShimRemoveBuiltInError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::ShimRemoveError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::StringifyToolchainError => ExitCode::UnknownError,
             ErrorDetails::UnrecognizedShell { .. } => ExitCode::EnvironmentError,
             ErrorDetails::UnspecifiedPostscript => ExitCode::EnvironmentError,
             ErrorDetails::UnspecifiedShell => ExitCode::EnvironmentError,
