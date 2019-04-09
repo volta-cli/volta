@@ -14,7 +14,7 @@ use crate::fs::read_dir_eager;
 use crate::path;
 use crate::toolchain;
 use crate::version::{option_version_serde, version_serde};
-use notion_fail::{throw, Fallible, ResultExt};
+use notion_fail::{Fallible, ResultExt};
 
 use regex::Regex;
 use semver::Version;
@@ -264,9 +264,6 @@ impl PackageMetadata {
 
 impl package::PackageConfig {
     pub fn from_file(file: &PathBuf) -> Fallible<Self> {
-        if !file.exists() {
-            throw!(ErrorDetails::PackageConfigNotFound);
-        }
         let config_src = read_to_string(file).unknown()?;
         PackageConfig::from_json(config_src)?.into_config()
     }

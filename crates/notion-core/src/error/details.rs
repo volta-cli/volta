@@ -1,11 +1,9 @@
 use std::fmt;
-use std::process::ExitStatus;
 
 use failure::Fail;
 use notion_fail::{ExitCode, NotionFail};
 
 use crate::tool::ToolSpec;
-use crate::version::VersionSpec;
 
 #[derive(Debug, Fail)]
 pub enum ErrorDetails {
@@ -16,14 +14,15 @@ pub enum ErrorDetails {
         version: String,
     },
 
-    BinaryExecError {
-        error: String,
+    BinaryExecError,
+
+    /// Thrown when a binary could not be found in the local inventory
+    BinaryNotFound {
+        name: String,
     },
 
     /// Thrown when a user tries to `notion pin` something other than node/yarn/npm.
     CannotPinPackage,
-
-    CliParseError,
 
     CommandNotImplemented {
         command_name: String,
@@ -33,12 +32,20 @@ pub enum ErrorDetails {
 
     CreateDirError {
         dir: String,
-        error: String,
     },
 
-    DepPackageReadError {
-        error: String,
+    /// Thrown when deleting a directory fails
+    DeleteDirectoryError {
+        directory: String,
     },
+
+    /// Thrown when deleting a file fails
+    DeleteFileError {
+        file: String,
+    },
+
+    /// Thrown when reading dependency package info fails
+    DepPackageReadError,
 
     DeprecatedCommandError {
         command: String,
@@ -48,15 +55,6 @@ pub enum ErrorDetails {
     DownloadToolNetworkError {
         tool: ToolSpec,
         from_url: String,
-        error: String,
-    },
-
-    DownloadToolNotFound {
-        tool: ToolSpec,
-    },
-
-    FileDeletionError {
-        error: String,
     },
 
     InvalidHookCommand {
@@ -82,25 +80,20 @@ pub enum ErrorDetails {
     /// Thrown when a user tries to install or fetch a package with no executables.
     NoPackageExecutables,
 
-    /// Thrown when there is no package version matching a requested semver specifier.
-    NoPackageFound {
-        name: String,
-        matching: VersionSpec,
-    },
-
     /// Thrown when a user tries to pin a Yarn version before pinning a Node version.
     NoPinnedNodeVersion,
 
-    NoSuchTool {
-        tool: String,
-    },
+    /// Thrown when the platform (Node version) could not be determined
+    NoPlatform,
+
+    /// Thrown when Yarn is not set in a project
+    NoProjectYarn,
 
     /// Thrown when the user tries to pin Node or Yarn versions outside of a package.
     NotInPackage,
 
-    NoToolChain {
-        shim_name: String,
-    },
+    /// Thrown when default Yarn is not set
+    NoUserYarn,
 
     NoVersionsFound,
 
@@ -108,39 +101,54 @@ pub enum ErrorDetails {
         version: String,
     },
 
-    PackageConfigNotFound,
-
     /// Thrown when package install command is not successful.
-    PackageInstallFailed {
-        cmd: String,
-        status: ExitStatus,
+    PackageInstallFailed,
+
+    /// Thrown when there is an error fetching package metadata
+    PackageMetadataFetchError {
+        from_url: String,
     },
 
-    /// Thrown when package install command fails to execute.
-    PackageInstallIoError {
-        error: String,
+    /// Thrown when parsing a package manifest fails
+    PackageParseError {
+        file: String,
     },
 
-    PackageNotInstalled {
-        package: String,
-    },
-
+    /// Thrown when reading a package manifest fails
     PackageReadError {
-        error: String,
+        file: String,
     },
 
     /// Thrown when a package has been unpacked but is not formed correctly.
     PackageUnpackError,
 
+    /// Thrown when there is no package version matching a requested semver specifier.
+    PackageVersionNotFound {
+        name: String,
+        matching: String,
+    },
+
     PathError,
 
     /// Thrown when the public registry for Node or Yarn could not be downloaded.
     RegistryFetchError {
-        error: String,
+        tool: String,
+        from_url: String,
     },
 
-    SymlinkError {
-        error: String,
+    /// Thrown when Notion is unable to create a shim
+    ShimCreateError {
+        name: String,
+    },
+
+    /// Thrown when trying to remove a built-in shim (`node`, `yarn`, etc.)
+    ShimRemoveBuiltInError {
+        name: String,
+    },
+
+    /// Thrown when Notion is unable to remove a shim
+    ShimRemoveError {
+        name: String,
     },
 
     ToolNotImplemented,
@@ -157,7 +165,12 @@ pub enum ErrorDetails {
     UnspecifiedShell,
 
     VersionParseError {
-        error: String,
+        version: String,
+    },
+
+    /// Thrown when there is an error fetching the latest version of Yarn
+    YarnLatestFetchError {
+        from_url: String,
     },
 
     /// Thrown when there is no Yarn version matching a requested semver specifier.
@@ -169,92 +182,191 @@ pub enum ErrorDetails {
 impl fmt::Display for ErrorDetails {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ErrorDetails::BinaryAlreadyInstalled { bin_name, package, version } => write!(f, "Conflict with bin '{}' already installed by '{}' version {}", bin_name, package, version),
-            ErrorDetails::BinaryExecError { error } => write!(f, "{}", error),
+            ErrorDetails::BinaryAlreadyInstalled {
+                bin_name,
+                package,
+                version,
+            } => write!(
+                f,
+                "Conflict with bin '{}' already installed by '{}' version {}",
+                bin_name, package, version
+            ),
+            ErrorDetails::BinaryExecError => write!(f, "Could not execute command.
+
+See `notion help install` and `notion help pin` for info about making tools available."),
+            ErrorDetails::BinaryNotFound { name } => write!(f, r#"Could not find executable "{}"
+
+Use `notion install` to add a package to your toolchain (see `notion help install` for more info)."#, name),
             ErrorDetails::CannotPinPackage => {
                 write!(f, "Only node, yarn, and npm can be pinned in a project")
             }
-            ErrorDetails::CliParseError => write!(f, "There was a problem parsing the command line input"),
-            ErrorDetails::CommandNotImplemented { command_name } => write!(f, "command `{}` is not yet implemented", command_name),
-            ErrorDetails::CouldNotDetermineTool => write!(f, "Tool name could not be determined"),
-            ErrorDetails::CreateDirError { dir, error } => {
-                write!(f, "Could not create directory {}: {}", dir, error)
+            ErrorDetails::CommandNotImplemented { command_name } => {
+                write!(f, "command `{}` is not yet implemented", command_name)
             }
-            ErrorDetails::DepPackageReadError { error } => {
-                write!(f, "Could not read dependent package info: {}", error)
+            ErrorDetails::CouldNotDetermineTool => write!(f, "Tool name could not be determined"),
+            ErrorDetails::CreateDirError { dir } => {
+                write!(f, "Could not create directory {}
+
+Please ensure that you have the correct permissions.", dir)
+            }
+            ErrorDetails::DeleteDirectoryError { directory } => write!(f, "Could not remove directory
+at {}
+
+Please ensure you have correct permissions to the Notion directory.", directory),
+            ErrorDetails::DeleteFileError { file } => write!(f, "Could not remove file
+at {}
+
+Please ensure you have correct permissions to the Notion directory.", file),
+            ErrorDetails::DepPackageReadError => {
+                write!(f, "Could not read package info for dependencies.
+
+Please ensure that all dependencies have been installed.")
             }
             ErrorDetails::DeprecatedCommandError { command, advice } => {
                 write!(f, "The subcommand `{}` is deprecated.\n{}", command, advice)
             }
-            ErrorDetails::DownloadToolNetworkError {
-                tool,
-                from_url,
-                error,
-            } => write!(
+            ErrorDetails::DownloadToolNetworkError { tool, from_url } => write!(
                 f,
-                "Failed to download {} from {}\n{}",
-                tool, from_url, error
+                "Could not download {}
+from {}
+
+Please verify your internet connection and ensure the correct version is specified.",
+                tool, from_url
             ),
-            ErrorDetails::DownloadToolNotFound { tool } => write!(f, "{} not found", tool),
-            ErrorDetails::FileDeletionError { error } => write!(f, "Error deleting file: {}", error),
             ErrorDetails::InvalidHookCommand { command } => write!(f, "Invalid hook command: '{}'", command),
             ErrorDetails::NoBinPlatform { binary } => {
                 write!(f, "Platform info for executable `{}` is missing", binary)
             }
-            ErrorDetails::NodeVersionNotFound { matching } => {
-                write!(f, "No Node version found for {}", matching)
-            }
-            ErrorDetails::NoGlobalInstalls => write!(f, r#"
-Global package installs are not recommended.
+            ErrorDetails::NodeVersionNotFound { matching } => write!(
+                f,
+                r#"Could not find Node version matching "{}" in the version registry.
 
-Consider using `notion install` to add a package to your toolchain (see `notion help install` for more info)."#),
+Please verify that the version is correct."#,
+                matching
+            ),
+            ErrorDetails::NoGlobalInstalls => write!(
+                f,
+                "Global package installs are not recommended.
+
+Use `notion install` to add a package to your toolchain (see `notion help install` for more info)."
+            ),
             ErrorDetails::NoHomeEnvironmentVar => {
                 write!(f, "environment variable 'HOME' is not set")
             }
             ErrorDetails::NoLocalDataDir => write!(f, "Windows LocalAppData directory not found"),
-            ErrorDetails::NoPackageExecutables => write!(f, "Package has no binaries or executables - nothing to do"),
-            ErrorDetails::NoPackageFound { name, matching } => write!(f, "No version of '{}' found for {}", name, matching),
-            ErrorDetails::NoPinnedNodeVersion => {
-                write!(f, "There is no pinned node version for this project")
+            ErrorDetails::NoPackageExecutables => {
+                write!(f, "Package has no binaries or executables - nothing to do")
             }
-            ErrorDetails::NoSuchTool { tool } => write!(f, r#"
-No {} version selected.
+            ErrorDetails::NoPinnedNodeVersion => write!(
+                f,
+                "Cannot pin Yarn because the Node version is not pinned in this project.
 
-See `notion help pin` for help adding {} to a project toolchain.
+Use `notion pin node` to pin Node first, then pin a Yarn version."
+            ),
+            ErrorDetails::NoPlatform => write!(
+                f,
+                "Could not determine Node version.
 
-See `notion help install` for help adding {} to your personal toolchain."#, tool, tool, tool),
+Use `notion pin node` to select a version for a project.
+Use `notion install node` to select a default version."
+            ),
+            ErrorDetails::NoProjectYarn => write!(
+                f,
+                "No Yarn version found in this project.
+
+Use `notion pin yarn` to select a version (see `notion help pin` for more info)."
+            ),
             ErrorDetails::NotInPackage => write!(f, "Not in a node package"),
-            ErrorDetails::NoToolChain { shim_name } => {
-                write!(f, "No toolchain available to run {}", shim_name)
-            }
-            ErrorDetails::NoVersionsFound => write!(f, "no versions found"),
-            ErrorDetails::NpxNotAvailable { version } => write!(f, r#"
-'npx' is only available with npm >= 5.2.0
+            ErrorDetails::NoUserYarn => write!(
+                f,
+                "Could not determine Yarn version.
 
-This project is configured to use version {} of npm."#, version),
-            ErrorDetails::PackageConfigNotFound => write!(f, "Package config file not found"),
-            ErrorDetails::PackageInstallFailed { cmd, status } => write!(f, "Command `{}` failed with status {}", cmd, status),
-            ErrorDetails::PackageInstallIoError { error } => write!(f, "Error executing package install command: {}", error),
-            ErrorDetails::PackageNotInstalled { package } => write!(f, "Package `{}` is not installed", package),
-            ErrorDetails::PackageReadError { error } => {
-                write!(f, "Could not read package info: {}", error)
+Use `notion install yarn` to select a default version (see `notion help install for more info)."
+            ),
+            ErrorDetails::NoVersionsFound => write!(f, "no versions found"),
+            ErrorDetails::NpxNotAvailable { version } => write!(
+                f,
+                "'npx' is only available with npm >= 5.2.0
+
+This project is configured to use version {} of npm.",
+                version
+            ),
+            // Confirming permissions is a Weak CTA in this case, but it seems the most likely error vector
+            ErrorDetails::PackageInstallFailed => write!(f, "Could not install package dependencies.
+
+Please ensure you have correct permissions to the Notion directory."),
+            ErrorDetails::PackageMetadataFetchError { from_url } => write!(
+                f,
+                "Could not download package metadata
+from {}
+
+Please verify your internet connection.",
+                from_url
+            ),
+            ErrorDetails::PackageParseError { file } => {
+                write!(f, "Could not parse project manifest
+at {}
+
+Please ensure that the file is correctly formatted.", file)
+            },
+            ErrorDetails::PackageReadError { file } => {
+                write!(f, "Could not read project manifest
+from {}
+
+Please ensure that the file exists.", file)
             }
-            ErrorDetails::PackageUnpackError => write!(f, "Package unpack error: Could not determine unpack directory name"),
+            ErrorDetails::PackageUnpackError => write!(
+                f,
+                "Package unpack error: Could not determine unpack directory name"
+            ),
+            ErrorDetails::PackageVersionNotFound { name, matching } => write!(
+                f,
+                r#"Could not find {} version matching "{}" in the package registry.
+
+Please verify that the version is correct."#,
+                name, matching
+            ),
             ErrorDetails::PathError => write!(f, "`path` internal error"),
-            ErrorDetails::RegistryFetchError { error } => {
-                write!(f, "Could not fetch public registry\n{}", error)
-            }
-            ErrorDetails::SymlinkError { error } => write!(f, "{}", error),
+            ErrorDetails::RegistryFetchError { tool, from_url } => write!(
+                f,
+                "Could not download {} version registry
+from {}
+
+Please verify your internet connection.",
+                tool, from_url
+            ),
+            ErrorDetails::ShimCreateError { name } => write!(f, r#"Could not create shim for "{}"
+
+Please ensure you have correct permissions to the Notion directory."#, name),
+            // This case does not have a CTA as there is no avenue to allow users to remove built-in shims
+            ErrorDetails::ShimRemoveBuiltInError { name } => write!(f, r#"Cannot remove built-in shim for "{}""#, name),
+            ErrorDetails::ShimRemoveError { name } => write!(f, r#"Could not remove shim for "{}"
+
+Please ensure you have correct permissions to the Notion directory."#, name),
             ErrorDetails::ToolNotImplemented => write!(f, "this tool is not yet implemented"),
             ErrorDetails::UnrecognizedShell { name } => write!(f, "Unrecognized shell: {}", name),
             ErrorDetails::UnspecifiedPostscript => {
                 write!(f, "Notion postscript file not specified")
             }
             ErrorDetails::UnspecifiedShell => write!(f, "Notion shell not specified"),
-            ErrorDetails::VersionParseError { error } => write!(f, "{}", error),
-            ErrorDetails::YarnVersionNotFound { matching } => {
-                write!(f, "No Yarn version found for {}", matching)
-            }
+            ErrorDetails::VersionParseError { version } => write!(f, r#"Could not parse version "{}"
+
+Please verify the intended version."#, version),
+            ErrorDetails::YarnLatestFetchError { from_url } => write!(
+                f,
+                "Could not fetch latest version of Yarn
+from {}
+
+Please verify your internet connection.",
+                from_url
+            ),
+            ErrorDetails::YarnVersionNotFound { matching } => write!(
+                f,
+                r#"Could not find Yarn version matching "{}" in the version registry.
+
+Please verify that the version is correct."#,
+                matching
+            ),
         }
     }
 }
@@ -263,17 +375,17 @@ impl NotionFail for ErrorDetails {
     fn exit_code(&self) -> ExitCode {
         match self {
             ErrorDetails::BinaryAlreadyInstalled { .. } => ExitCode::FileSystemError,
-            ErrorDetails::BinaryExecError { .. } => ExitCode::ExecutionFailure,
+            ErrorDetails::BinaryExecError => ExitCode::ExecutionFailure,
+            ErrorDetails::BinaryNotFound { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::CannotPinPackage => ExitCode::InvalidArguments,
-            ErrorDetails::CliParseError => ExitCode::UnknownError,
             ErrorDetails::CommandNotImplemented { .. } => ExitCode::NotYetImplemented,
             ErrorDetails::CouldNotDetermineTool => ExitCode::UnknownError,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
-            ErrorDetails::DepPackageReadError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::DeleteDirectoryError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::DeleteFileError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::DepPackageReadError => ExitCode::FileSystemError,
             ErrorDetails::DeprecatedCommandError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
-            ErrorDetails::DownloadToolNotFound { .. } => ExitCode::NoVersionMatch,
-            ErrorDetails::FileDeletionError { .. } => ExitCode::FileSystemError,
             ErrorDetails::InvalidHookCommand { .. } => ExitCode::UnknownError,
             ErrorDetails::NoBinPlatform { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
@@ -281,27 +393,30 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::NoHomeEnvironmentVar => ExitCode::EnvironmentError,
             ErrorDetails::NoLocalDataDir => ExitCode::EnvironmentError,
             ErrorDetails::NoPackageExecutables { .. } => ExitCode::InvalidArguments,
-            ErrorDetails::NoPackageFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NoPinnedNodeVersion => ExitCode::ConfigurationError,
-            ErrorDetails::NoSuchTool { .. } => ExitCode::NoVersionMatch,
+            ErrorDetails::NoPlatform => ExitCode::ConfigurationError,
+            ErrorDetails::NoProjectYarn => ExitCode::ConfigurationError,
             ErrorDetails::NotInPackage => ExitCode::ConfigurationError,
-            ErrorDetails::NoToolChain { .. } => ExitCode::ExecutionFailure,
+            ErrorDetails::NoUserYarn => ExitCode::ConfigurationError,
             ErrorDetails::NoVersionsFound => ExitCode::NoVersionMatch,
             ErrorDetails::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
-            ErrorDetails::PackageConfigNotFound => ExitCode::NoVersionMatch,
-            ErrorDetails::PackageInstallFailed { .. } => ExitCode::FileSystemError,
-            ErrorDetails::PackageInstallIoError { .. } => ExitCode::FileSystemError,
-            ErrorDetails::PackageNotInstalled { .. } => ExitCode::NoVersionMatch,
+            ErrorDetails::PackageInstallFailed => ExitCode::FileSystemError,
+            ErrorDetails::PackageMetadataFetchError { .. } => ExitCode::NetworkError,
+            ErrorDetails::PackageParseError { .. } => ExitCode::ConfigurationError,
             ErrorDetails::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::PackageUnpackError => ExitCode::ConfigurationError,
+            ErrorDetails::PackageVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::PathError => ExitCode::UnknownError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
-            ErrorDetails::SymlinkError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::ShimCreateError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::ShimRemoveBuiltInError { .. } => ExitCode::InvalidArguments,
+            ErrorDetails::ShimRemoveError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ToolNotImplemented => ExitCode::ExecutableNotFound,
             ErrorDetails::UnrecognizedShell { .. } => ExitCode::EnvironmentError,
             ErrorDetails::UnspecifiedPostscript => ExitCode::EnvironmentError,
             ErrorDetails::UnspecifiedShell => ExitCode::EnvironmentError,
             ErrorDetails::VersionParseError { .. } => ExitCode::NoVersionMatch,
+            ErrorDetails::YarnLatestFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::YarnVersionNotFound { .. } => ExitCode::NoVersionMatch,
         }
     }

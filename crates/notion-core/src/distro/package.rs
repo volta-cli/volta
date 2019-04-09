@@ -30,24 +30,6 @@ use tempfile::tempdir_in;
 
 use notion_fail::{throw, Fallible, ResultExt};
 
-fn install_error(error: &io::Error) -> ErrorDetails {
-    if let Some(inner_err) = error.get_ref() {
-        ErrorDetails::PackageInstallIoError {
-            error: inner_err.to_string(),
-        }
-    } else {
-        ErrorDetails::PackageInstallIoError {
-            error: error.to_string(),
-        }
-    }
-}
-
-fn file_deletion_error(err: &io::Error) -> ErrorDetails {
-    ErrorDetails::FileDeletionError {
-        error: err.to_string(),
-    }
-}
-
 /// A provisioned Package distribution.
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub struct PackageDistro {
@@ -190,11 +172,7 @@ impl Distro for PackageDistro {
         f.write_all(self.shasum.as_bytes()).unknown()?;
         f.sync_all().unknown()?;
 
-        let pkg_info = Manifest::for_dir(&self.image_dir).with_context(|error| {
-            ErrorDetails::DepPackageReadError {
-                error: error.to_string(),
-            }
-        })?;
+        let pkg_info = Manifest::for_dir(&self.image_dir)?;
         let bin_map = pkg_info.bin;
         if bin_map.is_empty() {
             throw!(ErrorDetails::NoPackageExecutables);
@@ -317,12 +295,12 @@ impl PackageVersion {
             )
         };
 
-        let output = install_cmd.output().with_context(install_error)?;
+        let output = install_cmd
+            .output()
+            .with_context(|_| ErrorDetails::PackageInstallFailed)?;
+
         if !output.status.success() {
-            throw!(ErrorDetails::PackageInstallFailed {
-                cmd: format!("{:?}", install_cmd),
-                status: output.status
-            });
+            throw!(ErrorDetails::PackageInstallFailed);
         }
 
         self.write_config_and_shims(&platform)?;
@@ -386,7 +364,8 @@ impl PackageVersion {
                 PackageVersion::remove_config_and_shims(&bin_name, &name)?;
             }
 
-            fs::remove_file(package_config_file).with_context(file_deletion_error)?;
+            fs::remove_file(&package_config_file)
+                .with_context(delete_file_error(&package_config_file))?;
         } else {
             // there is no package config - check for orphaned binaries
             let user_bin_dir = path::user_bin_dir()?;
@@ -401,7 +380,8 @@ impl PackageVersion {
         // if any unpacked and initialized packages exists, remove them
         let package_image_dir = path::package_image_root_dir()?.join(&name);
         if package_image_dir.exists() {
-            fs::remove_dir_all(package_image_dir).with_context(file_deletion_error)?;
+            fs::remove_dir_all(&package_image_dir)
+                .with_context(delete_dir_error(&package_image_dir))?;
         }
 
         println!("Package '{}' uninstalled", name);
@@ -410,12 +390,22 @@ impl PackageVersion {
 
     fn remove_config_and_shims(bin_name: &str, name: &str) -> Fallible<()> {
         let shim = path::shim_file(&bin_name)?;
-        fs::remove_file(shim).with_context(file_deletion_error)?;
+        fs::remove_file(&shim).with_context(delete_file_error(&shim))?;
         let config_file = path::user_tool_bin_config(&bin_name)?;
-        fs::remove_file(config_file).with_context(file_deletion_error)?;
+        fs::remove_file(&config_file).with_context(delete_file_error(&config_file))?;
         println!("Removed executable '{}' installed by '{}'", bin_name, name);
         Ok(())
     }
+}
+
+fn delete_file_error(file: &PathBuf) -> impl FnOnce(&io::Error) -> ErrorDetails {
+    let file = file.to_string_lossy().to_string();
+    |_| ErrorDetails::DeleteFileError { file }
+}
+
+fn delete_dir_error(directory: &PathBuf) -> impl FnOnce(&io::Error) -> ErrorDetails {
+    let directory = directory.to_string_lossy().to_string();
+    |_| ErrorDetails::DeleteDirectoryError { directory }
 }
 
 /// Reads the contents of a directory and returns a Vec containing the names of

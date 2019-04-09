@@ -9,7 +9,7 @@ use std::rc::Rc;
 use crate::error::ErrorDetails;
 use crate::platform::PlatformSpec;
 use detect_indent;
-use notion_fail::{throw, Fallible, ResultExt};
+use notion_fail::{Fallible, ResultExt};
 use semver::Version;
 use serde::Serialize;
 use serde_json;
@@ -33,28 +33,17 @@ pub struct Manifest {
 impl Manifest {
     /// Loads and parses a Node manifest for the project rooted at the specified path.
     pub fn for_dir(project_root: &Path) -> Fallible<Manifest> {
-        let maybe_file = File::open(project_root.join("package.json"));
+        let package_file = project_root.join("package.json");
+        let file = File::open(&package_file).with_context(|_| ErrorDetails::PackageReadError {
+            file: package_file.to_string_lossy().to_string(),
+        })?;
 
-        match maybe_file {
-            Ok(file) => {
-                let serial: serial::Manifest = serde_json::de::from_reader(file).unknown()?;
-                serial.into_manifest()
+        let serial: serial::Manifest = serde_json::de::from_reader(file).with_context(|_| {
+            ErrorDetails::PackageParseError {
+                file: package_file.to_string_lossy().to_string(),
             }
-            Err(error) => {
-                if project_root.is_dir() {
-                    throw!(ErrorDetails::PackageReadError {
-                        error: error.to_string(),
-                    });
-                }
-
-                throw!(ErrorDetails::PackageReadError {
-                    error: format!(
-                        "directory does not exist: {}",
-                        project_root.to_string_lossy().into_owned()
-                    ),
-                });
-            }
-        }
+        })?;
+        serial.into_manifest()
     }
 
     /// Returns a reference to the platform image specified by manifest, if any.

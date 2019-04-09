@@ -46,8 +46,7 @@ impl LazyDependentBins {
 
     /// Forces creating the dependent bins and returns an immutable reference to it.
     pub fn get(&self, project: &Project) -> Fallible<&HashMap<String, String>> {
-        self.bins
-            .try_borrow_with(|| Ok(project.dependent_binaries()?))
+        self.bins.try_borrow_with(|| project.dependent_binaries())
     }
 }
 
@@ -151,11 +150,8 @@ impl Project {
 
         // use those project paths to get the "bin" info for each project
         for pkg_path in all_dep_paths {
-            let pkg_info = Manifest::for_dir(&pkg_path).with_context(|error| {
-                ErrorDetails::DepPackageReadError {
-                    error: error.to_string(),
-                }
-            })?;
+            let pkg_info =
+                Manifest::for_dir(&pkg_path).with_context(|_| ErrorDetails::DepPackageReadError)?;
             let bin_map = pkg_info.bin;
             for (name, path) in bin_map.iter() {
                 dependent_bins.insert(name.clone(), path.clone());

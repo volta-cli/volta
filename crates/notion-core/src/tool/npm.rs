@@ -29,11 +29,7 @@ impl Tool for Npm {
                 &image.path()?,
             ))
         } else {
-            // Using 'Node' as the tool name since the npm version is derived from the Node version
-            // This way the error message will prompt the user to add 'Node' to their toolchain, instead of 'npm'
-            throw!(ErrorDetails::NoSuchTool {
-                tool: "Node".to_string()
-            });
+            throw!(ErrorDetails::NoPlatform);
         }
     }
 

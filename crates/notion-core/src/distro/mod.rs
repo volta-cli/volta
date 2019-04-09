@@ -8,9 +8,7 @@ use crate::error::ErrorDetails;
 use crate::hook::ToolHooks;
 use crate::inventory::Collection;
 use crate::tool::ToolSpec;
-use archive::HttpError;
 use notion_fail::Fallible;
-use reqwest::StatusCode;
 use semver::Version;
 
 /// The result of a requested installation.
@@ -58,18 +56,9 @@ pub trait Distro: Sized {
 }
 
 fn download_tool_error(
-    toolspec: ToolSpec,
+    tool: ToolSpec,
     from_url: impl AsRef<str>,
 ) -> impl FnOnce(&failure::Error) -> ErrorDetails {
     let from_url = from_url.as_ref().to_string();
-    move |error| match error.downcast_ref::<HttpError>() {
-        Some(HttpError {
-            code: StatusCode::NOT_FOUND,
-        }) => ErrorDetails::DownloadToolNotFound { tool: toolspec },
-        Some(_) | None => ErrorDetails::DownloadToolNetworkError {
-            tool: toolspec,
-            error: error.to_string(),
-            from_url,
-        },
-    }
+    |_| ErrorDetails::DownloadToolNetworkError { tool, from_url }
 }

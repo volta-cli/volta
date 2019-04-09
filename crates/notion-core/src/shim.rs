@@ -6,18 +6,6 @@ use crate::error::ErrorDetails;
 use crate::path;
 use notion_fail::{throw, FailExt, Fallible};
 
-fn symlink_error(error: &io::Error) -> ErrorDetails {
-    if let Some(inner_err) = error.get_ref() {
-        ErrorDetails::SymlinkError {
-            error: inner_err.to_string(),
-        }
-    } else {
-        ErrorDetails::SymlinkError {
-            error: error.to_string(),
-        }
-    }
-}
-
 #[derive(PartialEq)]
 pub enum ShimResult {
     Created,
@@ -42,7 +30,9 @@ pub fn create(shim_name: &str) -> Fallible<ShimResult> {
             if err.kind() == io::ErrorKind::AlreadyExists {
                 Ok(ShimResult::AlreadyExists)
             } else {
-                throw!(err.with_context(symlink_error));
+                throw!(err.with_context(|_| ErrorDetails::ShimCreateError {
+                    name: shim_name.to_string(),
+                }));
             }
         }
     }
@@ -50,8 +40,8 @@ pub fn create(shim_name: &str) -> Fallible<ShimResult> {
 
 pub fn delete(shim_name: &str) -> Fallible<ShimResult> {
     if !is_3p_shim(shim_name) {
-        throw!(ErrorDetails::SymlinkError {
-            error: format!("cannot delete `{}`, not a 3rd-party executable", shim_name),
+        throw!(ErrorDetails::ShimRemoveBuiltInError {
+            name: shim_name.to_string(),
         });
     }
     let shim = path::shim_file(shim_name)?;
@@ -61,7 +51,9 @@ pub fn delete(shim_name: &str) -> Fallible<ShimResult> {
             if err.kind() == io::ErrorKind::NotFound {
                 Ok(ShimResult::DoesntExist)
             } else {
-                throw!(err.with_context(symlink_error));
+                throw!(err.with_context(|_| ErrorDetails::ShimRemoveError {
+                    name: shim_name.to_string(),
+                }));
             }
         }
     }
