@@ -355,9 +355,10 @@ impl FetchResolve<YarnDistro> for YarnCollection {
             }) => hook.resolve("latest-version")?,
             _ => public_yarn_latest_version(),
         };
-        let mut response: reqwest::Response = reqwest::get(&url)
+        let response_text = reqwest::get(&url)
+            .and_then(|mut resp| resp.text())
             .with_context(|_| ErrorDetails::YarnLatestFetchError { from_url: url })?;
-        Version::parse(&response.text().unknown()?).unknown()
+        VersionSpec::parse_version(response_text)
     }
 
     fn resolve_semver(
@@ -376,9 +377,8 @@ impl FetchResolve<YarnDistro> for YarnCollection {
 
         let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
         let releases: serial::YarnIndex = reqwest::get(&url)
-            .with_context(registry_fetch_error("Yarn", &url))?
-            .json()
-            .unknown()?;
+            .and_then(|mut resp| resp.json())
+            .with_context(registry_fetch_error("Yarn", &url))?;
         let releases = releases.into_index()?.entries;
         spinner.finish_and_clear();
         let version_opt = releases.into_iter().rev().find(|v| matching.matches(v));
@@ -414,14 +414,18 @@ fn match_package_entry(
 // fetch metadata for the input url
 fn resolve_package_metadata(package_info_url: &str) -> Fallible<serial::PackageMetadata> {
     let spinner = progress_spinner(&format!("Fetching package metadata: {}", package_info_url));
-    let mut response: reqwest::Response = reqwest::get(package_info_url).with_context(|_| {
-        ErrorDetails::PackageMetadataFetchError {
+    let response_text = reqwest::get(package_info_url)
+        .and_then(|mut resp| resp.text())
+        .with_context(|_| ErrorDetails::PackageMetadataFetchError {
             from_url: package_info_url.to_string(),
-        }
-    })?;
-    let response_text: String = response.text().unknown()?;
+        })?;
 
-    let metadata: serial::PackageMetadata = serde_json::de::from_str(&response_text).unknown()?;
+    let metadata: serial::PackageMetadata =
+        serde_json::de::from_str(&response_text).with_context(|_| {
+            ErrorDetails::ParsePackageMetadataError {
+                from_url: package_info_url.to_string(),
+            }
+        })?;
 
     spinner.finish_and_clear();
     Ok(metadata)
@@ -567,17 +571,28 @@ pub struct NodeDistroFiles {
 
 /// Reads a public index from the Node cache, if it exists and hasn't expired.
 fn read_cached_opt() -> Fallible<Option<serial::NodeIndex>> {
-    let expiry: Option<String> = read_file_opt(&path::node_index_expiry_file()?).unknown()?;
+    let expiry_file = path::node_index_expiry_file()?;
+    let expiry: Option<String> =
+        read_file_opt(&expiry_file).with_context(|_| ErrorDetails::ReadNodeIndexExpiryError {
+            file: expiry_file.to_string_lossy().to_string(),
+        })?;
 
     if let Some(string) = expiry {
-        let expiry_date: HttpDate = HttpDate::from_str(&string).unknown()?;
+        let expiry_date: HttpDate = HttpDate::from_str(&string)
+            .with_context(|_| ErrorDetails::ParseNodeIndexExpiryError)?;
         let current_date: HttpDate = HttpDate::from(SystemTime::now());
 
         if current_date < expiry_date {
-            let cached: Option<String> = read_file_opt(&path::node_index_file()?).unknown()?;
+            let index_file = path::node_index_file()?;
+            let cached: Option<String> = read_file_opt(&index_file).with_context(|_| {
+                ErrorDetails::ReadNodeIndexCacheError {
+                    file: index_file.to_string_lossy().to_string(),
+                }
+            })?;
 
             if let Some(string) = cached {
-                return Ok(serde_json::de::from_str(&string).unknown()?);
+                return serde_json::de::from_str(&string)
+                    .with_context(|_| ErrorDetails::ParseNodeIndexCacheError);
             }
         }
     }
@@ -604,45 +619,71 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
         Some(serial) => Ok(serial),
         None => {
             let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
+
             let mut response: reqwest::Response =
                 reqwest::get(url).with_context(registry_fetch_error("Node", url))?;
-            let response_text: String = response.text().unknown()?;
-            let cached: NamedTempFile = NamedTempFile::new_in(path::tmp_dir()?).unknown()?;
+            let response_text = response
+                .text()
+                .with_context(registry_fetch_error("Node", url))?;
+            let index: serial::NodeIndex =
+                serde_json::de::from_str(&response_text).with_context(|_| {
+                    ErrorDetails::ParseNodeIndexError {
+                        from_url: url.to_string(),
+                    }
+                })?;
+
+            let cached: NamedTempFile = NamedTempFile::new_in(path::tmp_dir()?)
+                .with_context(|_| ErrorDetails::CreateTempFileError)?;
 
             // Block to borrow cached for cached_file.
             {
                 let mut cached_file: &File = cached.as_file();
-                cached_file.write(response_text.as_bytes()).unknown()?;
+                cached_file
+                    .write(response_text.as_bytes())
+                    .with_context(|_| ErrorDetails::WriteNodeIndexCacheError {
+                        file: cached.path().to_string_lossy().to_string(),
+                    })?;
             }
 
             let index_cache_file = path::node_index_file()?;
             ensure_containing_dir_exists(&index_cache_file)?;
-            cached.persist(index_cache_file).unknown()?;
+            cached.persist(&index_cache_file).with_context(|_| {
+                ErrorDetails::WriteNodeIndexCacheError {
+                    file: index_cache_file.to_string_lossy().to_string(),
+                }
+            })?;
 
-            let expiry: NamedTempFile = NamedTempFile::new_in(path::tmp_dir()?).unknown()?;
+            let expiry: NamedTempFile = NamedTempFile::new_in(path::tmp_dir()?)
+                .with_context(|_| ErrorDetails::CreateTempFileError)?;
 
             // Block to borrow expiry for expiry_file.
             {
                 let mut expiry_file: &File = expiry.as_file();
 
-                if let Some(expires_header) = response.headers().get_011::<Expires>() {
-                    write!(expiry_file, "{}", expires_header).unknown()?;
+                let result = if let Some(expires_header) = response.headers().get_011::<Expires>() {
+                    write!(expiry_file, "{}", expires_header)
                 } else {
                     let expiry_date =
                         SystemTime::now() + Duration::from_secs(max_age(&response).into());
 
-                    write!(expiry_file, "{}", HttpDate::from(expiry_date)).unknown()?;
-                }
+                    write!(expiry_file, "{}", HttpDate::from(expiry_date))
+                };
+
+                result.with_context(|_| ErrorDetails::WriteNodeIndexExpiryError {
+                    file: expiry.path().to_string_lossy().to_string(),
+                })?;
             }
 
             let index_expiry_file = path::node_index_expiry_file()?;
             ensure_containing_dir_exists(&index_expiry_file)?;
-            expiry.persist(index_expiry_file).unknown()?;
-
-            let serial: serial::NodeIndex = serde_json::de::from_str(&response_text).unknown()?;
+            expiry.persist(&index_expiry_file).with_context(|_| {
+                ErrorDetails::WriteNodeIndexExpiryError {
+                    file: index_expiry_file.to_string_lossy().to_string(),
+                }
+            })?;
 
             spinner.finish_and_clear();
-            Ok(serial)
+            Ok(index)
         }
     }
 }
