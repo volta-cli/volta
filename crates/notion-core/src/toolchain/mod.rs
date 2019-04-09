@@ -130,9 +130,7 @@ impl Toolchain {
         let path = user_platform_file()?;
         let result = match &self.platform {
             Some(ref platform) => {
-                let src = platform
-                    .to_serial()
-                    .to_json()?;
+                let src = platform.to_serial().to_json()?;
                 write(&path, src)
             }
             None => write(&path, "{}"),
