@@ -50,11 +50,9 @@ impl Toolchain {
             .with_context(|_| ErrorDetails::ReadPlatformError {
                 file: path.to_string_lossy().to_string(),
             })?;
-        let parsed =
-            serial::Platform::from_json(src).with_context(|_| ErrorDetails::ParsePlatformError)?;
 
         Ok(Toolchain {
-            platform: parsed.into_platform()?,
+            platform: serial::Platform::from_json(src)?.into_platform()?,
         })
     }
 
@@ -134,8 +132,7 @@ impl Toolchain {
             Some(ref platform) => {
                 let src = platform
                     .to_serial()
-                    .to_json()
-                    .with_context(|_| ErrorDetails::StringifyPlatformError)?;
+                    .to_json()?;
                 write(&path, src)
             }
             None => write(&path, "{}"),

@@ -494,7 +494,7 @@ Please ensure you have correct permissions to the Notion directory.", dir),
             ErrorDetails::ReadDefaultNpmError { file } => write!(f, "Could not read default npm version
 from {}
 
-Please ensure you have correct permissiosn to the Notion directory.", file),
+Please ensure you have correct permissions to the Notion directory.", file),
             ErrorDetails::ReadHooksError { file } => write!(f, "Could not read hooks file
 from {}
 

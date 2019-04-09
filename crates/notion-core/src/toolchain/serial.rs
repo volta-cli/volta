@@ -1,7 +1,8 @@
 use crate::platform::PlatformSpec;
 
+use crate::error::ErrorDetails;
 use crate::version::{option_version_serde, version_serde};
-use notion_fail::Fallible;
+use notion_fail::{Fallible, ResultExt};
 
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -35,17 +36,19 @@ impl Platform {
     }
 
     /// Deserialize the input JSON String into a Platform
-    pub fn from_json(src: String) -> serde_json::Result<Self> {
-        if src.is_empty() {
+    pub fn from_json(src: String) -> Fallible<Self> {
+        let result = if src.is_empty() {
             serde_json::de::from_str("{}")
         } else {
             serde_json::de::from_str(&src)
-        }
+        };
+
+        result.with_context(|_| ErrorDetails::ParsePlatformError)
     }
 
     /// Serialize the Platform to a JSON String
-    pub fn to_json(self) -> serde_json::Result<String> {
-        serde_json::to_string_pretty(&self)
+    pub fn to_json(self) -> Fallible<String> {
+        serde_json::to_string_pretty(&self).with_context(|_| ErrorDetails::StringifyPlatformError)
     }
 }
 
