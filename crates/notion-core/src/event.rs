@@ -142,9 +142,9 @@ impl EventLog {
 pub mod tests {
 
     use super::EventLog;
+    use crate::error::ErrorDetails;
     use crate::session::ActivityKind;
-    use notion_fail::{ExitCode, FailExt};
-    use std::io;
+    use notion_fail::ExitCode;
 
     #[test]
     fn test_adding_events() {
@@ -163,7 +163,7 @@ pub mod tests {
         assert_eq!(event_log.events.len(), 3);
         assert_eq!(event_log.events[2].name, "version");
 
-        let error = io::Error::new(io::ErrorKind::Other, "test!").unknown();
+        let error = ErrorDetails::NoGlobalInstalls.into();
         event_log.add_event_error(ActivityKind::Install, &error);
         assert_eq!(event_log.events.len(), 4);
         assert_eq!(event_log.events[3].name, "install");
