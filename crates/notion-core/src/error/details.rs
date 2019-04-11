@@ -192,7 +192,7 @@ impl fmt::Display for ErrorDetails {
                 f,
                 "Executable '{}' is already installed by {}
 
-Remove {} before installing {}",
+Please remove {} before installing {}",
                 bin_name, existing_package, existing_package, new_package
             ),
             ErrorDetails::BinaryExecError => write!(f, "Could not execute command.
@@ -378,7 +378,7 @@ Please ensure you are using a supported shell.", name),
             ErrorDetails::UnspecifiedPostscript => {
                 write!(f, "Could not determine Notion postscript file.
 
-Please nesure Notion was installed correctly.")
+Please ensure Notion was installed correctly.")
             }
             ErrorDetails::UnspecifiedShell => write!(f, "Notion shell not specified"),
             ErrorDetails::VersionParseError { version } => write!(f, r#"Could not parse version "{}"
