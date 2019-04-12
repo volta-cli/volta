@@ -91,18 +91,18 @@ impl Manifest {
         toolchain: serial::ToolchainSpec,
         package_file: PathBuf,
     ) -> Fallible<()> {
+        // Helper for lazily creating the file name string without moving `package_file` into
+        // one of the individual `with_context` closures below.
         let get_file = || package_file.to_string_lossy().to_string();
 
         // parse the entire package.json file into a Value
-        let file = File::open(&package_file)
+        let contents = read_to_string(&package_file)
             .with_context(|_| ErrorDetails::PackageReadError { file: get_file() })?;
-        let mut v: serde_json::Value = serde_json::from_reader(file)
+        let mut v: serde_json::Value = serde_json::from_str(&contents)
             .with_context(|_| ErrorDetails::PackageParseError { file: get_file() })?;
 
         if let Some(map) = v.as_object_mut() {
             // detect indentation in package.json
-            let contents = read_to_string(&package_file)
-                .with_context(|_| ErrorDetails::PackageReadError { file: get_file() })?;
             let indent = detect_indent::detect_indent(&contents);
 
             // update the "toolchain" key
