@@ -21,6 +21,9 @@ pub enum ErrorDetails {
         name: String,
     },
 
+    /// Thrown when building the virtual environment path fails
+    BuildPathError,
+
     /// Thrown when a user tries to `notion pin` something other than node/yarn/npm.
     CannotPinPackage {
         package: String,
@@ -45,6 +48,8 @@ pub enum ErrorDetails {
 
     /// Thrown when creating a temporary file fails
     CreateTempFileError,
+
+    CurrentDirError,
 
     /// Thrown when deleting a directory fails
     DeleteDirectoryError {
@@ -372,6 +377,11 @@ See `notion help install` and `notion help pin` for info about making tools avai
             ErrorDetails::BinaryNotFound { name } => write!(f, r#"Could not find executable "{}"
 
 Use `notion install` to add a package to your toolchain (see `notion help install` for more info)."#, name),
+            ErrorDetails::BuildPathError => {
+                write!(f, "Could not create execution environment.
+
+Please ensure your PATH is valid.")
+            }
             ErrorDetails::CannotPinPackage { package } => {
                 write!(f, "Only node and yarn can be pinned in a project
 
@@ -401,6 +411,9 @@ Please ensure you have correct permissions to the Notion directory."),
             ErrorDetails::CreateTempFileError => write!(f, "Could not create temporary file.
 
 Please ensure you have correct permissions to the Notion directory."),
+            ErrorDetails::CurrentDirError => write!(f, "Could not determine current directory
+
+Please ensure that you have the correct permissions."),
             ErrorDetails::DeleteDirectoryError { directory } => write!(f, "Could not remove directory
 at {}
 
@@ -710,6 +723,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::BinaryAlreadyInstalled { .. } => ExitCode::FileSystemError,
             ErrorDetails::BinaryExecError => ExitCode::ExecutionFailure,
             ErrorDetails::BinaryNotFound { .. } => ExitCode::ExecutableNotFound,
+            ErrorDetails::BuildPathError => ExitCode::EnvironmentError,
             ErrorDetails::CannotPinPackage { .. } => ExitCode::InvalidArguments,
             ErrorDetails::CompletionsOutDirError => ExitCode::InvalidArguments,
             ErrorDetails::ContainingDirError { .. } => ExitCode::FileSystemError,
@@ -717,6 +731,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::CreateTempDirError => ExitCode::FileSystemError,
             ErrorDetails::CreateTempFileError => ExitCode::FileSystemError,
+            ErrorDetails::CurrentDirError => ExitCode::EnvironmentError,
             ErrorDetails::DeleteDirectoryError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DeleteFileError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DepPackageReadError => ExitCode::FileSystemError,

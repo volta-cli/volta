@@ -81,7 +81,8 @@ impl Project {
     /// Returns the Node project containing the current working directory,
     /// if any.
     fn for_current_dir() -> Fallible<Option<Rc<Project>>> {
-        let current_dir: &Path = &env::current_dir().unknown()?;
+        let current_dir: &Path =
+            &env::current_dir().with_context(|_| ErrorDetails::CurrentDirError)?;
         Self::for_dir(&current_dir)
     }
 
