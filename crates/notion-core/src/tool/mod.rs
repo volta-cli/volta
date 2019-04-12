@@ -3,7 +3,6 @@
 use std::env::{self, args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
 use std::fmt::{self, Debug, Display, Formatter};
-use std::io;
 use std::marker::Sized;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
@@ -96,18 +95,6 @@ impl Display for ToolSpec {
     }
 }
 
-fn binary_exec_error(error: &io::Error) -> ErrorDetails {
-    if let Some(inner_err) = error.get_ref() {
-        ErrorDetails::BinaryExecError {
-            error: inner_err.to_string(),
-        }
-    } else {
-        ErrorDetails::BinaryExecError {
-            error: error.to_string(),
-        }
-    }
-}
-
 pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
     path::ensure_notion_dirs_exist()?;
 
@@ -148,7 +135,7 @@ pub trait Tool: Sized {
     fn exec(self) -> Fallible<ExitStatus> {
         let mut command = self.command();
         let status = command.status();
-        status.with_context(binary_exec_error)
+        status.with_context(|_| ErrorDetails::BinaryExecError)
     }
 }
 

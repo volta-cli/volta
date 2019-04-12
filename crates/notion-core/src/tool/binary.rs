@@ -34,7 +34,7 @@ impl Tool for Binary {
                 path_to_bin.push(&params.executable);
 
                 // if we're in a pinned project, use the project's platform.
-                if let Some(ref platform) = session.project_platform()? {
+                if let Some(ref platform) = project.platform() {
                     let image = platform.checkout(session)?;
                     return Ok(Binary(command_for(
                         path_to_bin.as_os_str(),
@@ -54,9 +54,7 @@ impl Tool for Binary {
                 }
 
                 // if there's no user platform selected, fail.
-                throw!(ErrorDetails::NoSuchTool {
-                    tool: "Node".to_string()
-                });
+                throw!(ErrorDetails::NoPlatform);
             }
         }
 
@@ -81,8 +79,8 @@ impl Tool for Binary {
 
         // at this point, there is no project or user toolchain
         // the user is executing a Notion shim that doesn't have a way to execute it
-        throw!(ErrorDetails::NoToolChain {
-            shim_name: params.executable.to_string_lossy().to_string(),
+        throw!(ErrorDetails::BinaryNotFound {
+            name: params.executable.to_string_lossy().to_string(),
         });
     }
 

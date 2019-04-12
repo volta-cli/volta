@@ -21,9 +21,7 @@ impl Tool for Node {
             let image = platform.checkout(session)?;
             Ok(Node(command_for(OsStr::new("node"), args, &image.path()?)))
         } else {
-            throw!(ErrorDetails::NoSuchTool {
-                tool: "Node".to_string()
-            });
+            throw!(ErrorDetails::NoPlatform);
         }
     }
 

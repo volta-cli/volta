@@ -21,7 +21,7 @@ impl Command for Install {
         session.add_event_start(ActivityKind::Install);
 
         let version = match self.version {
-            Some(version_string) => VersionSpec::parse(version_string).unwrap_or_default(),
+            Some(version_string) => VersionSpec::parse(version_string)?,
             None => VersionSpec::default(),
         };
         let tool = ToolSpec::from_str_and_version(&self.tool, version);

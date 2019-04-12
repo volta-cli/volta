@@ -33,7 +33,9 @@ impl Command for Pin {
             ToolSpec::Yarn(version) => session.pin_yarn(&version)?,
             // ISSUE(#292): Implement install for npm
             ToolSpec::Npm(_version) => unimplemented!("Pinning npm is not supported yet"),
-            ToolSpec::Package(_name, _version) => throw!(ErrorDetails::CannotPinPackage),
+            ToolSpec::Package(name, _version) => {
+                throw!(ErrorDetails::CannotPinPackage { package: name })
+            }
         }
 
         session.add_event_end(ActivityKind::Pin, ExitCode::Success);

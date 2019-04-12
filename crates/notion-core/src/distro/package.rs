@@ -39,24 +39,6 @@ cfg_if::cfg_if! {
 
 use notion_fail::{throw, Fallible, ResultExt};
 
-fn install_error(error: &io::Error) -> ErrorDetails {
-    if let Some(inner_err) = error.get_ref() {
-        ErrorDetails::PackageInstallIoError {
-            error: inner_err.to_string(),
-        }
-    } else {
-        ErrorDetails::PackageInstallIoError {
-            error: error.to_string(),
-        }
-    }
-}
-
-fn file_deletion_error(err: &io::Error) -> ErrorDetails {
-    ErrorDetails::FileDeletionError {
-        error: err.to_string(),
-    }
-}
-
 /// A provisioned Package distribution.
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub struct PackageDistro {
@@ -211,11 +193,7 @@ impl Distro for PackageDistro {
         f.write_all(self.shasum.as_bytes()).unknown()?;
         f.sync_all().unknown()?;
 
-        let pkg_info = Manifest::for_dir(&self.image_dir).with_context(|error| {
-            ErrorDetails::DepPackageReadError {
-                error: error.to_string(),
-            }
-        })?;
+        let pkg_info = Manifest::for_dir(&self.image_dir)?;
         let bin_map = pkg_info.bin;
         if bin_map.is_empty() {
             throw!(ErrorDetails::NoPackageExecutables);
@@ -229,8 +207,8 @@ impl Distro for PackageDistro {
                 let bin_config = BinConfig::from_file(bin_config_file)?;
                 throw!(ErrorDetails::BinaryAlreadyInstalled {
                     bin_name: bin_name.to_string(),
-                    package: bin_config.package,
-                    version: bin_config.version.to_string()
+                    existing_package: bin_config.package,
+                    new_package: self.name,
                 });
             }
         }
@@ -338,12 +316,12 @@ impl PackageVersion {
             )
         };
 
-        let output = install_cmd.output().with_context(install_error)?;
+        let output = install_cmd
+            .output()
+            .with_context(|_| ErrorDetails::PackageInstallFailed)?;
+
         if !output.status.success() {
-            throw!(ErrorDetails::PackageInstallFailed {
-                cmd: format!("{:?}", install_cmd),
-                status: output.status
-            });
+            throw!(ErrorDetails::PackageInstallFailed);
         }
 
         self.write_config_and_shims(&platform)?;
@@ -447,7 +425,8 @@ impl PackageVersion {
                 PackageVersion::remove_config_and_shims(&bin_name, &name)?;
             }
 
-            fs::remove_file(package_config_file).with_context(file_deletion_error)?;
+            fs::remove_file(&package_config_file)
+                .with_context(delete_file_error(&package_config_file))?;
         } else {
             // there is no package config - check for orphaned binaries
             let user_bin_dir = path::user_bin_dir()?;
@@ -462,7 +441,8 @@ impl PackageVersion {
         // if any unpacked and initialized packages exists, remove them
         let package_image_dir = path::package_image_root_dir()?.join(&name);
         if package_image_dir.exists() {
-            fs::remove_dir_all(package_image_dir).with_context(file_deletion_error)?;
+            fs::remove_dir_all(&package_image_dir)
+                .with_context(delete_dir_error(&package_image_dir))?;
         }
 
         println!("Package '{}' uninstalled", name);
@@ -472,10 +452,20 @@ impl PackageVersion {
     fn remove_config_and_shims(bin_name: &str, name: &str) -> Fallible<()> {
         shim::delete(bin_name)?;
         let config_file = path::user_tool_bin_config(&bin_name)?;
-        fs::remove_file(config_file).with_context(file_deletion_error)?;
+        fs::remove_file(&config_file).with_context(delete_file_error(&config_file))?;
         println!("Removed executable '{}' installed by '{}'", bin_name, name);
         Ok(())
     }
+}
+
+fn delete_file_error(file: &PathBuf) -> impl FnOnce(&io::Error) -> ErrorDetails {
+    let file = file.to_string_lossy().to_string();
+    |_| ErrorDetails::DeleteFileError { file }
+}
+
+fn delete_dir_error(directory: &PathBuf) -> impl FnOnce(&io::Error) -> ErrorDetails {
+    let directory = directory.to_string_lossy().to_string();
+    |_| ErrorDetails::DeleteDirectoryError { directory }
 }
 
 /// Reads the contents of a directory and returns a Vec containing the names of
@@ -522,9 +512,24 @@ impl UserTool {
     pub fn from_config(bin_config: BinConfig, session: &mut Session) -> Fallible<Self> {
         let full_path = bin_full_path(&bin_config.package, &bin_config.version, &bin_config.path)?;
 
+        // If the user does not have yarn set in the platform for this binary, use the default
+        // This is necessary because some tools (e.g. ember-cli with the --yarn option) invoke `yarn`
+        let platform = match bin_config.platform.yarn {
+            Some(_) => bin_config.platform,
+            None => {
+                let yarn = session
+                    .user_platform()?
+                    .and_then(|ref plat| plat.yarn.clone());
+                PlatformSpec {
+                    yarn,
+                    ..bin_config.platform
+                }
+            }
+        };
+
         Ok(UserTool {
             bin_path: full_path,
-            image: bin_config.platform.checkout(session)?,
+            image: platform.checkout(session)?,
             loader: bin_config.loader,
         })
     }

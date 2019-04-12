@@ -25,11 +25,7 @@ impl Tool for Npm {
             let image = platform.checkout(session)?;
             Ok(Npm(command_for(OsStr::new("npm"), args, &image.path()?)))
         } else {
-            // Using 'Node' as the tool name since the npm version is derived from the Node version
-            // This way the error message will prompt the user to add 'Node' to their toolchain, instead of 'npm'
-            throw!(ErrorDetails::NoSuchTool {
-                tool: "Node".to_string()
-            });
+            throw!(ErrorDetails::NoPlatform);
         }
     }
 

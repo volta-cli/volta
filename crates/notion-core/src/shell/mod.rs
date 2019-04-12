@@ -1,5 +1,4 @@
-use std::fs::File;
-use std::io::Write;
+use std::fs::write;
 use std::path::Path;
 use std::str::FromStr;
 
@@ -29,11 +28,14 @@ pub trait Shell {
     fn compile_postscript(&self, postscript: &Postscript) -> String;
 
     fn save_postscript(&self, postscript: &Postscript) -> Fallible<()> {
-        ensure_containing_dir_exists(&self.postscript_path())?;
-        let mut file = File::create(self.postscript_path()).unknown()?;
-        file.write_all(self.compile_postscript(postscript).as_bytes())
-            .unknown()?;
-        Ok(())
+        let path = self.postscript_path();
+        ensure_containing_dir_exists(&path)?;
+        write(path, self.compile_postscript(postscript).as_bytes()).with_context(|_| {
+            let in_dir = path.parent().map_or(String::from("Unknown path"), |p| {
+                p.to_string_lossy().to_string()
+            });
+            ErrorDetails::CreatePostscriptError { in_dir }
+        })
     }
 }
 

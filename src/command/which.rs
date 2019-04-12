@@ -3,6 +3,7 @@ use std::env;
 use structopt::StructOpt;
 use which::which_in;
 
+use notion_core::error::ErrorDetails;
 use notion_core::platform::System;
 use notion_core::session::{ActivityKind, Session};
 use notion_fail::{ExitCode, Fallible, ResultExt};
@@ -22,7 +23,7 @@ impl Command for Which {
         // Treat any error with obtaining the current platform image as if the image doesn't exist
         // However, errors in obtaining the current working directory or the System path should
         // still be treated as errors.
-        let cwd = env::current_dir().unknown()?;
+        let cwd = env::current_dir().with_context(|_| ErrorDetails::CurrentDirError)?;
         let path = match session
             .current_platform()
             .unwrap_or(None)

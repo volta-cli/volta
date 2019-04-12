@@ -1,3 +1,4 @@
+use std::env::JoinPathsError;
 use std::ffi::OsString;
 use std::path::PathBuf;
 
@@ -5,6 +6,7 @@ use envoy;
 use semver::Version;
 
 use crate::distro::node::{load_default_npm_version, NodeVersion};
+use crate::error::ErrorDetails;
 use crate::path;
 use crate::session::Session;
 use notion_fail::{Fallible, ResultExt};
@@ -74,7 +76,10 @@ impl Image {
             new_path = new_path.remove(remove_path);
         }
 
-        new_path.prefix(self.bins()?).join().unknown()
+        new_path
+            .prefix(self.bins()?)
+            .join()
+            .with_context(build_path_error)
     }
 }
 
@@ -94,7 +99,7 @@ impl System {
             new_path = new_path.remove(remove_path);
         }
 
-        new_path.join().unknown()
+        new_path.join().with_context(build_path_error)
     }
 
     /// Reproduces the Notion-enabled `PATH` environment variable for situations where
@@ -109,8 +114,12 @@ impl System {
             }
         }
 
-        new_path.join().unknown()
+        new_path.join().with_context(build_path_error)
     }
+}
+
+fn build_path_error(_err: &JoinPathsError) -> ErrorDetails {
+    ErrorDetails::BuildPathError
 }
 
 #[cfg(test)]
