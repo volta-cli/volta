@@ -28,12 +28,14 @@ pub trait Shell {
     fn compile_postscript(&self, postscript: &Postscript) -> String;
 
     fn save_postscript(&self, postscript: &Postscript) -> Fallible<()> {
-        ensure_containing_dir_exists(&self.postscript_path())?;
-        write(
-            self.postscript_path(),
-            self.compile_postscript(postscript).as_bytes(),
-        )
-        .with_context(|_| ErrorDetails::CreatePostscriptError)
+        let path = self.postscript_path();
+        ensure_containing_dir_exists(&path)?;
+        write(path, self.compile_postscript(postscript).as_bytes()).with_context(|_| {
+            let in_dir = path.parent().map_or(String::from("Unknown path"), |p| {
+                p.to_string_lossy().to_string()
+            });
+            ErrorDetails::CreatePostscriptError { in_dir }
+        })
     }
 }
 

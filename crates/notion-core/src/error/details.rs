@@ -44,7 +44,9 @@ pub enum ErrorDetails {
     },
 
     /// Thrown when unable to create the postscript file
-    CreatePostscriptError,
+    CreatePostscriptError {
+        in_dir: String,
+    },
 
     CurrentDirError,
 
@@ -237,9 +239,10 @@ Please ensure you have correct permissions to the Notion directory.", path)
 
 Please ensure that you have the correct permissions.", dir)
             }
-            ErrorDetails::CreatePostscriptError => write!(f, "Could not create postscript file.
+            ErrorDetails::CreatePostscriptError { in_dir } => write!(f, "Could not create postscript file
+in {}
 
-Please ensure you have correct permissions to the Notion directory."),
+Please ensure you have correct permissions to the Notion directory.", in_dir),
             ErrorDetails::CurrentDirError => write!(f, "Could not determine current directory
 
 Please ensure that you have the correct permissions."),
@@ -434,7 +437,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::ContainingDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::CouldNotDetermineTool => ExitCode::UnknownError,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
-            ErrorDetails::CreatePostscriptError => ExitCode::FileSystemError,
+            ErrorDetails::CreatePostscriptError { .. } => ExitCode::FileSystemError,
             ErrorDetails::CurrentDirError => ExitCode::EnvironmentError,
             ErrorDetails::DeleteDirectoryError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DeleteFileError { .. } => ExitCode::FileSystemError,
