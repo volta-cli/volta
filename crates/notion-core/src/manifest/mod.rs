@@ -1,8 +1,7 @@
 //! Provides the `Manifest` type, which represents a Node manifest file (`package.json`).
 
 use std::collections::{HashMap, HashSet};
-use std::fs::File;
-use std::io::Read;
+use std::fs::{read_to_string, File};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -92,27 +91,33 @@ impl Manifest {
         toolchain: serial::ToolchainSpec,
         package_file: PathBuf,
     ) -> Fallible<()> {
-        // parse the entire package.json file into a Value
-        let file = File::open(&package_file).unknown()?;
-        let mut v: serde_json::Value = serde_json::from_reader(file).unknown()?;
+        // Helper for lazily creating the file name string without moving `package_file` into
+        // one of the individual `with_context` closures below.
+        let get_file = || package_file.to_string_lossy().to_string();
 
-        // detect indentation in package.json
-        let mut contents = String::new();
-        let mut indent_file = File::open(&package_file).unknown()?;
-        indent_file.read_to_string(&mut contents).unknown()?;
-        let indent = detect_indent::detect_indent(&contents);
+        // parse the entire package.json file into a Value
+        let contents = read_to_string(&package_file)
+            .with_context(|_| ErrorDetails::PackageReadError { file: get_file() })?;
+        let mut v: serde_json::Value = serde_json::from_str(&contents)
+            .with_context(|_| ErrorDetails::PackageParseError { file: get_file() })?;
 
         if let Some(map) = v.as_object_mut() {
+            // detect indentation in package.json
+            let indent = detect_indent::detect_indent(&contents);
+
             // update the "toolchain" key
-            let toolchain_value = serde_json::to_value(toolchain).unknown()?;
+            let toolchain_value = serde_json::to_value(toolchain)
+                .with_context(|_| ErrorDetails::StringifyToolchainError)?;
             map.insert("toolchain".to_string(), toolchain_value);
 
             // serialize the updated contents back to package.json
-            let file = File::create(package_file).unknown()?;
+            let file = File::create(&package_file)
+                .with_context(|_| ErrorDetails::PackageWriteError { file: get_file() })?;
             let formatter =
                 serde_json::ser::PrettyFormatter::with_indent(indent.indent().as_bytes());
             let mut ser = serde_json::Serializer::with_formatter(file, formatter);
-            map.serialize(&mut ser).unknown()?;
+            map.serialize(&mut ser)
+                .with_context(|_| ErrorDetails::PackageWriteError { file: get_file() })?;
         }
         Ok(())
     }
