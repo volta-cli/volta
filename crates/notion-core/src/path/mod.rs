@@ -5,6 +5,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::error::ErrorDetails;
 use notion_fail::{Fallible, ResultExt};
 
 cfg_if::cfg_if! {
@@ -28,19 +29,25 @@ cfg_if::cfg_if! {
 pub fn ensure_notion_dirs_exist() -> Fallible<()> {
     // Assume that if notion_home() exists, then the directory structure has been initialized
     if !notion_home()?.exists() {
-        fs::create_dir_all(node_cache_dir()?).unknown()?;
-        fs::create_dir_all(shim_dir()?).unknown()?;
-        fs::create_dir_all(node_inventory_dir()?).unknown()?;
-        fs::create_dir_all(package_inventory_dir()?).unknown()?;
-        fs::create_dir_all(yarn_inventory_dir()?).unknown()?;
-        fs::create_dir_all(node_image_root_dir()?).unknown()?;
-        fs::create_dir_all(yarn_image_root_dir()?).unknown()?;
-        fs::create_dir_all(user_toolchain_dir()?).unknown()?;
-        fs::create_dir_all(tmp_dir()?).unknown()?;
-        fs::create_dir_all(log_dir()?).unknown()?;
+        ensure_dir_exists(node_cache_dir()?)?;
+        ensure_dir_exists(shim_dir()?)?;
+        ensure_dir_exists(node_inventory_dir()?)?;
+        ensure_dir_exists(package_inventory_dir()?)?;
+        ensure_dir_exists(yarn_inventory_dir()?)?;
+        ensure_dir_exists(node_image_root_dir()?)?;
+        ensure_dir_exists(yarn_image_root_dir()?)?;
+        ensure_dir_exists(user_toolchain_dir()?)?;
+        ensure_dir_exists(tmp_dir()?)?;
+        ensure_dir_exists(log_dir()?)?;
     }
 
     Ok(())
+}
+
+fn ensure_dir_exists(path: PathBuf) -> Fallible<()> {
+    fs::create_dir_all(&path).with_context(|_| ErrorDetails::CreateDirError {
+        dir: path.to_string_lossy().to_string(),
+    })
 }
 
 pub fn notion_home() -> Fallible<PathBuf> {

@@ -77,6 +77,7 @@ pub fn delete(shim_name: &str) -> Fallible<ShimResult> {
 /// This bash script simply calls the shim using `cmd.exe`, so that it is resolved correctly
 #[cfg(windows)]
 mod windows {
+    use crate::error::ErrorDetails;
     use crate::path;
     use notion_fail::{FailExt, Fallible, ResultExt};
     use std::fs::{remove_file, write};
@@ -86,7 +87,9 @@ mod windows {
 
     pub fn create_git_bash_script(shim_name: &str) -> Fallible<()> {
         let script_path = path::shim_git_bash_script_file(shim_name)?;
-        write(script_path, BASH_SCRIPT).unknown()
+        write(script_path, BASH_SCRIPT).with_context(|_| ErrorDetails::ShimCreateError {
+            name: shim_name.to_string(),
+        })
     }
 
     pub fn delete_git_bash_script(shim_name: &str) -> Fallible<()> {
@@ -95,7 +98,9 @@ mod windows {
             if e.kind() == ErrorKind::NotFound {
                 Ok(())
             } else {
-                Err(e.unknown())
+                Err(e.with_context(|_| ErrorDetails::ShimRemoveError {
+                    name: shim_name.to_string(),
+                }))
             }
         })
     }

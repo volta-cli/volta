@@ -117,9 +117,12 @@ cfg_if::cfg_if! {
     } else {
         fn install_dir() -> Fallible<PathBuf> {
             let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-            let notion_key = hklm.open_subkey(NOTION_REGISTRY_PATH).unknown()?;
-            let install_path: String = notion_key.get_value(NOTION_INSTALL_DIR).unknown()?;
+            let notion_key = hklm.open_subkey(NOTION_REGISTRY_PATH).with_context(install_dir_error)?;
+            let install_path: String = notion_key.get_value(NOTION_INSTALL_DIR).with_context(install_dir_error)?;
             Ok(PathBuf::from(install_path))
+        }
+        fn install_dir_error(_err: &io::Error) -> ErrorDetails {
+            ErrorDetails::NoInstallDir
         }
     }
 }

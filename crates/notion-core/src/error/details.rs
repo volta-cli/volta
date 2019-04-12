@@ -91,6 +91,9 @@ pub enum ErrorDetails {
 
     NoHomeEnvironmentVar,
 
+    /// Thrown when the install dir could not be determined
+    NoInstallDir,
+
     NoLocalDataDir,
 
     /// Thrown when a user tries to install or fetch a package with no executables.
@@ -304,6 +307,9 @@ Use `notion install` to add a package to your toolchain (see `notion help instal
 
 Please ensure the environment variable 'HOME' is set.")
             }
+            ErrorDetails::NoInstallDir => write!(f, "Could not determine Notion install directory.
+
+Please ensure Notion was installed correctly"),
             ErrorDetails::NoLocalDataDir => write!(f, "Could not determine LocalAppData directory.
 
 Please ensure the directory is available."),
@@ -463,6 +469,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NoGlobalInstalls => ExitCode::InvalidArguments,
             ErrorDetails::NoHomeEnvironmentVar => ExitCode::EnvironmentError,
+            ErrorDetails::NoInstallDir => ExitCode::EnvironmentError,
             ErrorDetails::NoLocalDataDir => ExitCode::EnvironmentError,
             ErrorDetails::NoPackageExecutables { .. } => ExitCode::InvalidArguments,
             ErrorDetails::NoPinnedNodeVersion => ExitCode::ConfigurationError,
