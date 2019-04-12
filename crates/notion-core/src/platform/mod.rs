@@ -1,3 +1,4 @@
+use std::env::JoinPathsError;
 use std::ffi::OsString;
 use std::path::PathBuf;
 
@@ -5,6 +6,7 @@ use envoy;
 use semver::Version;
 
 use crate::distro::node::{load_default_npm_version, NodeVersion};
+use crate::error::ErrorDetails;
 use crate::path;
 use crate::session::Session;
 use notion_fail::{Fallible, ResultExt};
@@ -69,14 +71,12 @@ impl Image {
     pub fn path(&self) -> Fallible<OsString> {
         let old_path = envoy::path().unwrap_or(envoy::Var::from(""));
 
-        let new_path = old_path
+        old_path
             .split()
             .remove(path::shim_dir()?)
             .prefix(self.bins()?)
             .join()
-            .unknown()?;
-
-        Ok(new_path)
+            .with_context(build_path_error)
     }
 }
 
@@ -91,13 +91,11 @@ impl System {
     pub fn path() -> Fallible<OsString> {
         let old_path = envoy::path().unwrap_or(envoy::Var::from(""));
 
-        let new_path = old_path
+        old_path
             .split()
             .remove(path::shim_dir()?)
             .join()
-            .unknown()?;
-
-        Ok(new_path)
+            .with_context(build_path_error)
     }
 
     /// Reproduces the Notion-enabled `PATH` environment variable for situations where
@@ -107,11 +105,19 @@ impl System {
         let shim_dir = path::shim_dir()?;
 
         if !old_path.split().any(|part| part == shim_dir) {
-            Ok(old_path.split().prefix_entry(shim_dir).join().unknown()?)
+            old_path
+                .split()
+                .prefix_entry(shim_dir)
+                .join()
+                .with_context(build_path_error)
         } else {
             Ok(OsString::from(old_path))
         }
     }
+}
+
+fn build_path_error(_err: &JoinPathsError) -> ErrorDetails {
+    ErrorDetails::BuildPathError
 }
 
 #[cfg(test)]
