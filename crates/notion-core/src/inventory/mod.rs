@@ -632,8 +632,15 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
                     }
                 })?;
 
-            let cached: NamedTempFile = NamedTempFile::new_in(path::tmp_dir()?)
-                .with_context(|_| ErrorDetails::CreateTempFileError)?;
+            let tmp_root = path::tmp_dir()?;
+            // Helper to lazily determine temp dir string, without moving the file into the closures below
+            let get_tmp_root = || tmp_root.to_string_lossy().to_string();
+
+            let cached: NamedTempFile = NamedTempFile::new_in(&tmp_root).with_context(|_| {
+                ErrorDetails::CreateTempFileError {
+                    in_dir: get_tmp_root(),
+                }
+            })?;
 
             // Block to borrow cached for cached_file.
             {
@@ -653,8 +660,11 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
                 }
             })?;
 
-            let expiry: NamedTempFile = NamedTempFile::new_in(path::tmp_dir()?)
-                .with_context(|_| ErrorDetails::CreateTempFileError)?;
+            let expiry: NamedTempFile = NamedTempFile::new_in(&tmp_root).with_context(|_| {
+                ErrorDetails::CreateTempFileError {
+                    in_dir: get_tmp_root(),
+                }
+            })?;
 
             // Block to borrow expiry for expiry_file.
             {

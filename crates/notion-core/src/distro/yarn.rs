@@ -124,8 +124,10 @@ impl Distro for YarnDistro {
             return Ok(Fetched::Already(self.version));
         }
 
-        let temp =
-            tempdir_in(path::tmp_dir()?).with_context(|_| ErrorDetails::CreateTempDirError)?;
+        let tmp_root = path::tmp_dir()?;
+        let temp = tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError {
+            in_dir: tmp_root.to_string_lossy().to_string(),
+        })?;
         let bar = progress_bar(
             self.archive.origin(),
             &format!("v{}", self.version),

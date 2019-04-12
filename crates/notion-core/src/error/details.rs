@@ -44,10 +44,14 @@ pub enum ErrorDetails {
     },
 
     /// Thrown when creating a temporary directory fails
-    CreateTempDirError,
+    CreateTempDirError {
+        in_dir: String,
+    },
 
     /// Thrown when creating a temporary file fails
-    CreateTempFileError,
+    CreateTempFileError {
+        in_dir: String,
+    },
 
     CurrentDirError,
 
@@ -405,12 +409,14 @@ Please ensure you have correct permissions to the Notion directory.", path)
 
 Please ensure that you have the correct permissions.", dir)
             }
-            ErrorDetails::CreateTempDirError => write!(f, "Could not create temporary directory.
+            ErrorDetails::CreateTempDirError { in_dir } => write!(f, "Could not create temporary directory
+in {}
 
-Please ensure you have correct permissions to the Notion directory."),
-            ErrorDetails::CreateTempFileError => write!(f, "Could not create temporary file.
+Please ensure you have correct permissions to the Notion directory.", in_dir),
+            ErrorDetails::CreateTempFileError { in_dir } => write!(f, "Could not create temporary file
+in {}
 
-Please ensure you have correct permissions to the Notion directory."),
+Please ensure you have correct permissions to the Notion directory.", in_dir),
             ErrorDetails::CurrentDirError => write!(f, "Could not determine current directory
 
 Please ensure that you have the correct permissions."),
@@ -729,8 +735,8 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::ContainingDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::CouldNotDetermineTool => ExitCode::UnknownError,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
-            ErrorDetails::CreateTempDirError => ExitCode::FileSystemError,
-            ErrorDetails::CreateTempFileError => ExitCode::FileSystemError,
+            ErrorDetails::CreateTempDirError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::CreateTempFileError { .. } => ExitCode::FileSystemError,
             ErrorDetails::CurrentDirError => ExitCode::EnvironmentError,
             ErrorDetails::DeleteDirectoryError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DeleteFileError { .. } => ExitCode::FileSystemError,
