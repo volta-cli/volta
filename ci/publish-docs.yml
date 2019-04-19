@@ -8,9 +8,9 @@ steps:
 
   - script: |
       cargo doc -p progress-read --no-deps
-      cargo doc -p notion-fail --no-deps
+      cargo doc -p jetson-fail --no-deps
       cargo doc --features universal-docs -p archive --no-deps
-      cargo doc --features universal-docs -p notion-core --no-deps
+      cargo doc --features universal-docs -p jetson-core --no-deps
       cargo doc --features universal-docs --no-deps
     env:
       RUSTDOCFLAGS: --document-private-items
@@ -19,7 +19,7 @@ steps:
   - script: |
       mkdir -p publish
       mv target/doc publish/master
-      echo '<!doctype html><a href="notion">notion</a>' > publish/master/index.html
+      echo '<!doctype html><a href="jetson">jetson</a>' > publish/master/index.html
       echo '<!doctype html><a href="master">master</a>' > publish/index.html
     displayName: Prep docs for publication
 
@@ -30,7 +30,7 @@ steps:
       ls -la
       git init
       git config user.name 'Deployment Bot (from Azure Pipelines)'
-      git config user.email 'deploy@notionjs.com'
+      git config user.email 'deploy@jetson.sh'
       git config --global credential.helper 'store --file ~/.my-credentials'
-      printf "protocol=https\nhost=github.com\nusername=notion-cli-deploy\npassword=%s\n\n" "$GITHUB_TOKEN" | git credential-store --file ~/.my-credentials store
+      printf "protocol=https\nhost=github.com\nusername=jetson-cli-deploy\npassword=%s\n\n" "$GITHUB_TOKEN" | git credential-store --file ~/.my-credentials store
       npx gh-pages -d publish

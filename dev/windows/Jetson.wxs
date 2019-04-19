@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+
+  <!--
+  all built-in variables: http://wixtoolset.org/documentation/manual/v3/bundle/bundle_built_in_variables.html
+  -->
+
+  <Product Id="10F5B6C9-7D75-411E-8686-3964129D022A"
+           Name="Jetson"
+           Manufacturer="The Jetson Maintainers"
+           UpgradeCode="42A39E14-335A-4464-AA37-17FDA38FA377"
+           Language="1033"
+           Codepage="1252"
+           Version="0.1.0">
+
+    <!--
+    per-machine scope:
+    https://www.joyofsetup.com/2008/04/01/new-wix-feature-setting-package-installation-scope/
+    -->
+    <Package Id="*"
+             Keywords="Installer"
+             Description="Jetson installer"
+             Manufacturer="The Jetson Maintainers"
+             InstallerVersion="200"
+             InstallScope="perMachine"
+             Platform="x64"
+             Languages="1033"
+             SummaryCodepage="1252"
+             Compressed="yes"/>
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Jetson is already installed." />
+    <Media Id="1"
+           Cabinet="Jetson.cab"
+           EmbedCab="yes"/>
+
+    <!-- creating empty directories: https://www.packtpub.com/mapt/book/application_development/9781849513722/2/ch02lvl1sec21/creating-an-empty-folder -->
+    <DirectoryRef Id="ShimDir">
+      <Component Id="CreateShimDir"
+                 Guid="56E719E4-78BB-4841-8912-D471ADE84159"
+                 Win64="yes"
+                 KeyPath="yes">
+        <CreateFolder />
+        <!-- env vars: https://stackoverflow.com/questions/1931586/can-anyone-give-me-a-example-of-modifying-windows-environment-system-variables-i -->
+        <Environment Id="PATH" Name="PATH" Value="[ProgramFiles64Folder]Jetson;[ProgramFiles64Folder]Jetson\shim" Permanent="no" Part="first" Action="set" System="yes" />
+        <RemoveFile Id="RemoveShimHardLinks" Directory="ShimDir" Name="*.exe" On="uninstall" />
+        <RemoveFolder Id="RemoveShimDir" Directory="ShimDir" On="uninstall" />
+      </Component>
+    </DirectoryRef>
+
+    <!--
+    https://stackoverflow.com/questions/38370417/windows-installer-not-deleting-all-files-on-uninstall
+    https://pkisensee.wordpress.com/2015/10/06/windows-installer-removing-folders/
+    -->
+    <DirectoryRef Id='DataDir'>
+      <Component Id="RemoveVersionsNodeDir"
+                 Guid="*"
+                 Win64="yes">
+        <RegistryKey Root="HKLM" Key="Software\Jetson">
+          <RegistryValue Name="NodeVersions"
+                         Type="string"
+                         Value="[VersionsNodeDir]"
+                         Action="write"
+                         KeyPath="yes" />
+        </RegistryKey>
+        <CreateFolder Directory="VersionsNodeDir" />
+        <util:RemoveFolderEx Property="FINDVERSIONSNODEDIR" On="uninstall" />
+        <RemoveFolder Id="VersionsNodeDir" Directory="VersionsNodeDir" On="uninstall" />
+      </Component>
+    </DirectoryRef>
+
+    <!--
+    Secure = "yes": https://stackoverflow.com/questions/25011050/wix-removefolderex-not-working
+    -->
+    <Property Id="FINDVERSIONSNODEDIR" Secure="yes">
+      <RegistrySearch Id="RegistrySearchNodeVersions" Type="raw" Root="HKLM" Key="Software\Jetson" Name="NodeVersions" />
+    </Property>
+
+    <!-- creating empty directories: https://www.packtpub.com/mapt/book/application_development/9781849513722/2/ch02lvl1sec21/creating-an-empty-folder -->
+    <DirectoryRef Id="VersionsNodeDir">
+      <Component Id="CreateVersionsNodeDir"
+                 Guid="D142AE24-C7AB-43C3-81B4-62AC4FCB26D1"
+                 Win64="yes"
+                 KeyPath="yes">
+        <CreateFolder />
+        <RemoveFolder Id="RemoveVersionsDir" Directory="VersionsDir" On="uninstall" />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="CacheNodeDir">
+      <Component Id="CreateCacheNodeDir"
+                 Guid="4AAE1940-E00E-425C-ACDF-983BBDC1A4CA"
+                 Win64="yes"
+                 KeyPath="yes">
+        <CreateFolder />
+        <RemoveFile Id="RemoveCacheEntries" Directory="CacheNodeDir" Name="*.zip" On="uninstall" />
+        <RemoveFolder Id="RemoveCacheNodeDir" Directory="CacheNodeDir" On="uninstall" />
+        <RemoveFolder Id="RemoveCacheDir" Directory="CacheDir" On="uninstall" />
+      </Component>
+    </DirectoryRef>
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder" Name="PFiles">
+        <Directory Id="INSTALLDIR" Name="Jetson">
+          <Component Id="JetsonExecutable"
+                     Guid="F1FBF564-E557-47A8-96D3-EBD4ED39AF95"
+                     Win64="yes">
+            <File Id="JetsonEXE"
+                  Name="jetson.exe"
+                  DiskId="1"
+                  Source="$(var.JetsonProjectRoot)target\release\jetson.exe"
+                  KeyPath="yes">
+            </File>
+            <RemoveFolder Id="RemoveInstallDir" Directory="INSTALLDIR" On="uninstall" />
+          </Component>
+
+          <Directory Id="ShimDir" Name="shim" />
+        </Directory>
+      </Directory>
+
+      <Directory Id="CommonAppDataFolder" Name="PData">
+        <Directory Id="DataDir" Name="Jetson">
+          <Component Id="Launchers"
+                     Guid="83786F85-45AF-4F3F-ACA2-8D6A83C21729"
+                     Win64="yes">
+            <File Id="LaunchbinEXE"
+                  Name="launchbin.exe"
+                  DiskId="1"
+                  Source="$(var.JetsonProjectRoot)target\release\launchbin.exe"
+                  KeyPath="yes">
+            </File>
+            <File Id="LaunchscriptEXE"
+                  Name="launchscript.exe"
+                  DiskId="1"
+                  Source="$(var.JetsonProjectRoot)target\release\launchscript.exe"
+                  KeyPath="no">
+            </File>
+            <RemoveFolder Id="RemoveDataDir" Directory="DataDir" On="uninstall" />
+          </Component>
+
+          <Directory Id="VersionsDir" Name="versions">
+            <Directory Id="VersionsNodeDir" Name="node" />
+          </Directory>
+
+          <Directory Id="CacheDir" Name="cache">
+            <Directory Id="CacheNodeDir" Name="node" />
+          </Directory>
+        </Directory>
+      </Directory>
+    </Directory>
+
+    <!--
+    deferred semantics: https://www.symantec.com/connect/blogs/basic-differences-execute-immediate-and-execute-deferred-ca
+    quiet execution: http://wixtoolset.org/documentation/manual/v3/customactions/qtexec.html
+    -->
+    <CustomAction Id="MakeBinLaunchers_set"
+                  Property="MakeBinLaunchers"
+                  Value='"[SystemFolder]cmd.exe" /C mklink /H "[ProgramFiles64Folder]Jetson\shim\node.exe" "[CommonAppDataFolder]Jetson\launchbin.exe"'
+                  Execute='immediate' />
+    <CustomAction Id="MakeBinLaunchers"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <CustomAction Id="MakeScriptLaunchers_set"
+                  Property="MakeScriptLaunchers"
+                  Value='"[SystemFolder]cmd.exe" /C mklink /H "[ProgramFiles64Folder]Jetson\shim\npm.exe" "[CommonAppDataFolder]Jetson\launchscript.exe"'
+                  Execute='immediate' />
+    <CustomAction Id="MakeScriptLaunchers"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <InstallExecuteSequence>
+      <!-- conditions: https://stackoverflow.com/questions/537584/how-to-execute-custom-action-only-in-install-not-uninstall -->
+      <Custom Action="MakeBinLaunchers_set" After="InstallFiles">NOT REMOVE</Custom>
+      <Custom Action="MakeBinLaunchers" After="MakeBinLaunchers_set">NOT REMOVE</Custom>
+      <Custom Action="MakeScriptLaunchers_set" After="MakeBinLaunchers">NOT REMOVE</Custom>
+      <Custom Action="MakeScriptLaunchers" After="MakeScriptLaunchers_set">NOT REMOVE</Custom>
+    </InstallExecuteSequence>
+
+    <Feature Id="Complete">
+      <ComponentRef Id='JetsonExecutable'/>
+      <ComponentRef Id='Launchers'/>
+      <ComponentRef Id='CreateShimDir'/>
+      <ComponentRef Id='CreateVersionsNodeDir'/>
+      <ComponentRef Id='CreateCacheNodeDir'/>
+      <ComponentRef Id='RemoveVersionsNodeDir'/>
+    </Feature>
+  </Product>
+</Wix>

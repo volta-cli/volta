@@ -21,10 +21,10 @@ pub(crate) use pin::Pin;
 pub(crate) use r#use::Use;
 pub(crate) use uninstall::Uninstall;
 
-use notion_core::session::Session;
-use notion_fail::{ExitCode, Fallible};
+use jetson_core::session::Session;
+use jetson_fail::{ExitCode, Fallible};
 
-/// A Notion command.
+/// A Jetson command.
 pub(crate) trait Command: Sized {
     /// Executes the command. Returns `Ok(true)` if the process should return 0,
     /// `Ok(false)` if the process should return 1, and `Err(e)` if the process

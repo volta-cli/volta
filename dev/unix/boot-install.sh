@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 
-# This is the bootstrap Unix installer served by `https://get.notionjs.com`.
+# This is the bootstrap Unix installer served by `https://get.jetson.sh`.
 # Its responsibility is to query the system to determine what OS (and in the
 # case of Linux, what OpenSSL version) the system has, and then proceed to
-# fetch and install the appropriate build of Notion.
+# fetch and install the appropriate build of Jetson.
 
-notion_get_latest_release() {
-  curl --silent https://www.notionjs.com/latest-version
+jetson_get_latest_release() {
+  curl --silent https://www.jetson.sh/latest-version
 }
 
-notion_eprintf() {
+jetson_eprintf() {
   command printf "$1\n" 1>&2
 }
 
-notion_info() {
+jetson_info() {
   local ACTION
   local DETAILS
   ACTION="$1"
@@ -21,53 +21,53 @@ notion_info() {
   command printf '\033[1;32m%12s\033[0m %s\n' "${ACTION}" "${DETAILS}" 1>&2
 }
 
-notion_error() {
+jetson_error() {
   command printf '\033[1;31mError\033[0m: ' 1>&2
-  notion_eprintf "$1"
+  jetson_eprintf "$1"
 }
 
-notion_warning() {
+jetson_warning() {
   command printf '\033[1;33mWarning\033[0m: ' 1>&2
-  notion_eprintf "$1"
-  notion_eprintf ''
+  jetson_eprintf "$1"
+  jetson_eprintf ''
 }
 
-notion_request() {
+jetson_request() {
   command printf "\033[1m$1\033[0m" 1>&2
-  notion_eprintf ''
+  jetson_eprintf ''
 }
 
-notion_install_dir() {
-  printf %s "${NOTION_HOME:-"$HOME/.notion"}"
+jetson_install_dir() {
+  printf %s "${JETSON_HOME:-"$HOME/.jetson"}"
 }
 
 # Check for an existing installation that needs to be removed.
-notion_check_existing_installation() {
+jetson_check_existing_installation() {
   local INSTALL_DIR
-  INSTALL_DIR="$(notion_install_dir)"
+  INSTALL_DIR="$(jetson_install_dir)"
 
-  local NOTION_BIN
-  NOTION_BIN="${INSTALL_DIR}/notion"
+  local JETSON_BIN
+  JETSON_BIN="${INSTALL_DIR}/jetson"
 
-  if [[ -n "$INSTALL_DIR" && -x "$NOTION_BIN" ]]; then
-    local PREV_NOTION_VERSION    
+  if [[ -n "$INSTALL_DIR" && -x "$JETSON_BIN" ]]; then
+    local PREV_JETSON_VERSION    
     # Some 0.1.* builds would eagerly validate package.json even for benign commands,
     # so just to be safe we'll ignore errors and consider those to be 0.1 as well.
-    PREV_NOTION_VERSION="$(($NOTION_BIN --version 2>/dev/null || echo 0.1) | sed -E 's/^.*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')"
-    if [[ "$PREV_NOTION_VERSION" == 0.1* || "$PREV_NOTION_VERSION" == 0.2* ]]; then
-      notion_eprintf ""
-      notion_error "Your Notion installation is out of date and can't be automatically upgraded."
-      notion_request "       Please delete or move $(notion_install_dir) and try again."
-      notion_eprintf ""
-      notion_eprintf "(We plan to implement automatic upgrades in the future. Thanks for bearing with us!)"
-      notion_eprintf ""
+    PREV_JETSON_VERSION="$(($JETSON_BIN --version 2>/dev/null || echo 0.1) | sed -E 's/^.*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')"
+    if [[ "$PREV_JETSON_VERSION" == 0.1* || "$PREV_JETSON_VERSION" == 0.2* ]]; then
+      jetson_eprintf ""
+      jetson_error "Your Jetson installation is out of date and can't be automatically upgraded."
+      jetson_request "       Please delete or move $(jetson_install_dir) and try again."
+      jetson_eprintf ""
+      jetson_eprintf "(We plan to implement automatic upgrades in the future. Thanks for bearing with us!)"
+      jetson_eprintf ""
       exit 1
     fi
   fi
 }
 
 # determines the major and minor version of OpenSSL on the system
-notion_get_openssl_version() {
+jetson_get_openssl_version() {
   local LIB
   local LIBNAME
   local FULLVERSION
@@ -80,8 +80,8 @@ notion_get_openssl_version() {
   LIBNAME="$(echo $LIB | awk '{print $1;}')"
 
   if [[ "$LIBNAME" != "OpenSSL" ]]; then
-    notion_error "Your system SSL library ($LIBNAME) is not currently supported on this OS."
-    notion_eprintf ""
+    jetson_error "Your system SSL library ($LIBNAME) is not currently supported on this OS."
+    jetson_eprintf ""
     exit 1
   fi
 
@@ -91,35 +91,35 @@ notion_get_openssl_version() {
   echo "${MAJOR}.${MINOR}"
 }
 
-notion_info 'Checking' "for existing Notion installation"
-notion_check_existing_installation
+jetson_info 'Checking' "for existing Jetson installation"
+jetson_check_existing_installation
 
-NOTION_LATEST_VERSION=$(notion_get_latest_release)
+JETSON_LATEST_VERSION=$(jetson_get_latest_release)
 
 case $(uname) in
     Linux)
-        if [[ "$NOTION_LATEST_VERSION" == 0.1* ]]; then
-          NOTION_OS=linux
+        if [[ "$JETSON_LATEST_VERSION" == 0.1* ]]; then
+          JETSON_OS=linux
         else
-          NOTION_OS="linux-openssl-$(notion_get_openssl_version)"
+          JETSON_OS="linux-openssl-$(jetson_get_openssl_version)"
         fi
-        NOTION_PRETTY_OS=Linux
+        JETSON_PRETTY_OS=Linux
         ;;
     Darwin)
-        NOTION_OS=macos
-        NOTION_PRETTY_OS=macOS
+        JETSON_OS=macos
+        JETSON_PRETTY_OS=macOS
         ;;
     *)
-        notion_error "The current operating system does not appear to be supported by Notion."
-        notion_eprintf ""
+        jetson_error "The current operating system does not appear to be supported by Jetson."
+        jetson_eprintf ""
         exit 1
 esac
 
-NOTION_INSTALLER="https://github.com/notion-cli/notion/releases/download/v${NOTION_LATEST_VERSION}/notion-${NOTION_LATEST_VERSION}-${NOTION_OS}.sh"
+JETSON_INSTALLER="https://github.com/jetson-cli/jetson/releases/download/v${JETSON_LATEST_VERSION}/jetson-${JETSON_LATEST_VERSION}-${JETSON_OS}.sh"
 
-notion_info 'Fetching' "${NOTION_PRETTY_OS} installer"
+jetson_info 'Fetching' "${JETSON_PRETTY_OS} installer"
 
-curl -#SLf ${NOTION_INSTALLER} | bash
+curl -#SLf ${JETSON_INSTALLER} | bash
 STATUS=$?
 
 exit $STATUS

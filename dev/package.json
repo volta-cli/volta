@@ -1,7 +1,7 @@
 {
   "name": "example",
   "version": "1.0",
-  "description": "an example Node project using notion",
+  "description": "an example Node project using jetson",
   "author": "Dave Herman <david.herman@gmail.com>",
   "main": "lib/index.js",
   "devDependencies": {

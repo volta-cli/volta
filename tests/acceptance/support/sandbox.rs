@@ -9,7 +9,7 @@ use reqwest::hyper_011::header::HttpDate;
 
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 
-use notion_core::path::{archive_extension, create_file_symlink, ARCH, OS};
+use jetson_core::path::{archive_extension, create_file_symlink, ARCH, OS};
 
 #[cfg(feature = "mock-network")]
 use mockito::{self, mock, Matcher};
@@ -206,7 +206,7 @@ impl SandboxBuilder {
             },
             files: vec![],
             caches: vec![],
-            path_dirs: vec![notion_bin_dir()],
+            path_dirs: vec![jetson_bin_dir()],
         }
     }
 
@@ -237,8 +237,8 @@ impl SandboxBuilder {
     }
 
     /// Set the shell for the sandbox (chainable)
-    pub fn notion_shell(self, shell_name: &str) -> Self {
-        self.env("NOTION_SHELL", shell_name)
+    pub fn jetson_shell(self, shell_name: &str) -> Self {
+        self.env("JETSON_SHELL", shell_name)
     }
 
     /// Set an environment variable for the sandbox (chainable)
@@ -414,7 +414,7 @@ impl SandboxBuilder {
         ok_or_panic! { fs::create_dir_all(node_inventory_dir()) };
         ok_or_panic! { fs::create_dir_all(package_inventory_dir()) };
         ok_or_panic! { fs::create_dir_all(yarn_inventory_dir()) };
-        ok_or_panic! { fs::create_dir_all(notion_tmp_dir()) };
+        ok_or_panic! { fs::create_dir_all(jetson_tmp_dir()) };
 
         // Make sure the shims to npm and yarn exist
         ok_or_panic! { create_file_symlink(shim_exe(), self.root.npm_exe()) };
@@ -430,7 +430,7 @@ impl SandboxBuilder {
             file_builder.build();
         }
 
-        // join dirs for the path (notion bin path is already first)
+        // join dirs for the path (jetson bin path is already first)
         self.root.path = env::join_paths(self.path_dirs.iter()).unwrap();
 
         let SandboxBuilder { root, .. } = self;
@@ -447,32 +447,32 @@ impl SandboxBuilder {
 fn home_dir() -> PathBuf {
     paths::home()
 }
-fn notion_home() -> PathBuf {
-    home_dir().join(".notion")
+fn jetson_home() -> PathBuf {
+    home_dir().join(".jetson")
 }
-fn notion_tmp_dir() -> PathBuf {
-    notion_home().join("tmp")
+fn jetson_tmp_dir() -> PathBuf {
+    jetson_home().join("tmp")
 }
-fn notion_bin_dir() -> PathBuf {
-    notion_home().join("bin")
+fn jetson_bin_dir() -> PathBuf {
+    jetson_home().join("bin")
 }
-fn notion_log_dir() -> PathBuf {
-    notion_home().join("log")
+fn jetson_log_dir() -> PathBuf {
+    jetson_home().join("log")
 }
-fn notion_postscript() -> PathBuf {
-    notion_tmp_dir().join("notion_tmp_1234.sh")
+fn jetson_postscript() -> PathBuf {
+    jetson_tmp_dir().join("jetson_tmp_1234.sh")
 }
-fn notion_tools_dir() -> PathBuf {
-    notion_home().join("tools")
+fn jetson_tools_dir() -> PathBuf {
+    jetson_home().join("tools")
 }
 fn inventory_dir() -> PathBuf {
-    notion_tools_dir().join("inventory")
+    jetson_tools_dir().join("inventory")
 }
 fn user_dir() -> PathBuf {
-    notion_tools_dir().join("user")
+    jetson_tools_dir().join("user")
 }
 fn image_dir() -> PathBuf {
-    notion_tools_dir().join("image")
+    jetson_tools_dir().join("image")
 }
 fn node_inventory_dir() -> PathBuf {
     inventory_dir().join("node")
@@ -484,7 +484,7 @@ fn package_inventory_dir() -> PathBuf {
     inventory_dir().join("packages")
 }
 fn cache_dir() -> PathBuf {
-    notion_home().join("cache")
+    jetson_home().join("cache")
 }
 fn node_cache_dir() -> PathBuf {
     cache_dir().join("node")
@@ -508,7 +508,7 @@ fn binary_config_file(name: &str) -> PathBuf {
     user_dir().join("bins").join(format!("{}.json", name))
 }
 fn shim_file(name: &str) -> PathBuf {
-    notion_bin_dir().join(format!("{}{}", name, env::consts::EXE_SUFFIX))
+    jetson_bin_dir().join(format!("{}{}", name, env::consts::EXE_SUFFIX))
 }
 fn package_image_dir(name: &str, version: &str) -> PathBuf {
     image_dir().join("packages").join(name).join(version)
@@ -540,11 +540,11 @@ impl Sandbox {
     pub fn process<T: AsRef<OsStr>>(&self, program: T) -> ProcessBuilder {
         let mut p = test_support::process::process(program);
         p.cwd(self.root())
-            // sandbox the Notion environment
-            .env("NOTION_HOME", notion_home())
+            // sandbox the Jetson environment
+            .env("JETSON_HOME", jetson_home())
             .env("PATH", &self.path)
-            .env("NOTION_POSTSCRIPT", notion_postscript())
-            .env_remove("NOTION_SHELL")
+            .env("JETSON_POSTSCRIPT", jetson_postscript())
+            .env_remove("JETSON_SHELL")
             .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
 
         // overrides for env vars
@@ -559,17 +559,17 @@ impl Sandbox {
         p
     }
 
-    /// Create a `ProcessBuilder` to run notion.
+    /// Create a `ProcessBuilder` to run jetson.
     /// Arguments can be separated by spaces.
     /// Example:
-    ///     assert_that(p.notion("use node 9.5"), execs());
-    pub fn notion(&self, cmd: &str) -> ProcessBuilder {
-        let mut p = self.process(&notion_exe());
+    ///     assert_that(p.jetson("use node 9.5"), execs());
+    pub fn jetson(&self, cmd: &str) -> ProcessBuilder {
+        let mut p = self.process(&jetson_exe());
         split_and_add_args(&mut p, cmd);
         p
     }
 
-    /// Create a `ProcessBuilder` to run the notion npm shim.
+    /// Create a `ProcessBuilder` to run the jetson npm shim.
     /// Arguments can be separated by spaces.
     /// Example:
     ///     assert_that(p.npm("install ember-cli"), execs());
@@ -583,7 +583,7 @@ impl Sandbox {
         self.root().join(format!("npm{}", env::consts::EXE_SUFFIX))
     }
 
-    /// Create a `ProcessBuilder` to run the notion yarn shim.
+    /// Create a `ProcessBuilder` to run the jetson yarn shim.
     /// Arguments can be separated by spaces.
     /// Example:
     ///     assert_that(p.yarn("add ember-cli"), execs());
@@ -603,12 +603,12 @@ impl Sandbox {
     }
 
     pub fn read_postscript(&self) -> String {
-        let postscript_file = notion_postscript();
+        let postscript_file = jetson_postscript();
         read_file_to_string(postscript_file)
     }
 
     pub fn read_log_dir(&self) -> Option<fs::ReadDir> {
-        fs::read_dir(notion_log_dir()).ok()
+        fs::read_dir(jetson_log_dir()).ok()
     }
 
     // check that files in the sandbox exist
@@ -667,8 +667,8 @@ pub fn cargo_dir() -> PathBuf {
         .unwrap_or_else(|| panic!("CARGO_BIN_PATH wasn't set. Cannot continue running test"))
 }
 
-fn notion_exe() -> PathBuf {
-    cargo_dir().join(format!("notion{}", env::consts::EXE_SUFFIX))
+fn jetson_exe() -> PathBuf {
+    cargo_dir().join(format!("jetson{}", env::consts::EXE_SUFFIX))
 }
 
 fn shim_exe() -> PathBuf {

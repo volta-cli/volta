@@ -12,6 +12,6 @@ failure = "0.1.1"
 failure_derive = "0.1.1"
 hamcrest2 = "0.2.3"
 archive = { path = "../archive" }
-notion-fail = { path = "../notion-fail" }
-notion-fail-derive = { path = "../notion-fail-derive" }
+jetson-fail = { path = "../jetson-fail" }
+jetson-fail-derive = { path = "../jetson-fail-derive" }
 serde_json = { version = "1.0.37" }

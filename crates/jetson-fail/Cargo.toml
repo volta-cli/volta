@@ -1,0 +1,11 @@
+[package]
+name = "jetson-fail"
+version = "0.1.0"
+authors = ["Dave Herman <david.herman@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+failure = "0.1.1"
+failure_derive = "0.1.1"
+jetson-fail-derive = { path = "../jetson-fail-derive" }
+serde = { version = "1.0.85", features = ["derive"] }

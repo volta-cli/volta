@@ -3,10 +3,10 @@ use std::env;
 use structopt::StructOpt;
 use which::which_in;
 
-use notion_core::error::ErrorDetails;
-use notion_core::platform::System;
-use notion_core::session::{ActivityKind, Session};
-use notion_fail::{ExitCode, Fallible, ResultExt};
+use jetson_core::error::ErrorDetails;
+use jetson_core::platform::System;
+use jetson_core::session::{ActivityKind, Session};
+use jetson_fail::{ExitCode, Fallible, ResultExt};
 
 use crate::command::Command;
 

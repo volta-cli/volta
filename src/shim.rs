@@ -1,8 +1,8 @@
-use notion_core::error::{ErrorContext, ErrorReporter};
-use notion_core::session::{ActivityKind, Session};
-use notion_core::tool::execute_tool;
+use jetson_core::error::{ErrorContext, ErrorReporter};
+use jetson_core::session::{ActivityKind, Session};
+use jetson_core::tool::execute_tool;
 
-use notion_fail::ExitCode;
+use jetson_fail::ExitCode;
 
 pub fn main() {
     let mut session = Session::new();

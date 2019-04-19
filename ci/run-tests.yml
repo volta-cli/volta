@@ -2,19 +2,19 @@ steps:
   # the unit tests for all crates (without mocking the network)
   # run single-threaded because some tests change environment variables,
   # which is not thread-safe
-  - script: cargo test --package notion-core --package notion-fail --package archive --package notion-fail-derive --package progress-read -- --test-threads=1
+  - script: cargo test --package jetson-core --package jetson-fail --package archive --package jetson-fail-derive --package progress-read -- --test-threads=1
     displayName: Unit Tests
 
   # the acceptance tests, using network mocks
   - script: cargo test --features mock-network
     env:
-      NOTION_DEV: 1
+      JETSON_DEV: 1
       RUST_BACKTRACE: full
     displayName: Acceptance Tests
 
   # smoke tests: real data and no mocks
   - script: cargo test --test smoke --features smoke-tests -- --test-threads 1
     env:
-      NOTION_DEV: 1
+      JETSON_DEV: 1
       RUST_BACKTRACE: full
     displayName: Smoke Tests

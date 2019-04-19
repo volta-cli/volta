@@ -1,9 +1,9 @@
 use structopt::StructOpt;
 
-use notion_core::session::{ActivityKind, Session};
-use notion_core::tool::ToolSpec;
-use notion_core::version::VersionSpec;
-use notion_fail::{ExitCode, Fallible};
+use jetson_core::session::{ActivityKind, Session};
+use jetson_core::tool::ToolSpec;
+use jetson_core::version::VersionSpec;
+use jetson_fail::{ExitCode, Fallible};
 
 use crate::command::Command;
 

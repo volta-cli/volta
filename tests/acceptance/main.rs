@@ -3,8 +3,8 @@ mod support;
 // test files
 
 mod intercept_global_installs;
-mod notion_current;
-mod notion_deactivate;
-mod notion_pin;
-mod notion_uninstall;
+mod jetson_current;
+mod jetson_deactivate;
+mod jetson_pin;
+mod jetson_uninstall;
 mod verbose_errors;

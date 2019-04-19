@@ -33,9 +33,9 @@
 
     <Product
         Id='*'
-        Name='Notion'
+        Name='Jetson'
         UpgradeCode='42A39E14-335A-4464-AA37-17FDA38FA377'
-        Manufacturer='The Notion Maintainers'
+        Manufacturer='The Jetson Maintainers'
         Language='1033'
         Codepage='1252'
         Version='$(var.Version)'>
@@ -43,7 +43,7 @@
         <Package Id='*'
             Keywords='Installer'
             Description='The Hassle-Free JavaScript Toolchain Manager'
-            Manufacturer='The Notion Maintainers'
+            Manufacturer='The Jetson Maintainers'
             InstallerVersion='450'
             Languages='1033'
             Compressed='yes'
@@ -59,7 +59,7 @@
 
         <Directory Id='TARGETDIR' Name='SourceDir'>
             <Directory Id='$(var.PlatformProgramFilesFolder)' Name='PFiles'>
-                <Directory Id='INSTALLDIR' Name='Notion'>
+                <Directory Id='INSTALLDIR' Name='Jetson'>
                     <Component Id='shimBinary' Guid='*' Win64='$(var.Win64)'>
                         <File
                             Id='shimEXE'
@@ -96,12 +96,12 @@
                     Key='Software\[Manufacturer]\[ProductName]'
                     Name='BinDir'
                     Type='string'
-                    Value='[LocalAppDataFolder]Notion\bin'
+                    Value='[LocalAppDataFolder]Jetson\bin'
                     KeyPath='yes' />
                 <Environment
                     Id='BINPATH'
                     Name='PATH'
-                    Value='[LocalAppDataFolder]Notion\bin'
+                    Value='[LocalAppDataFolder]Jetson\bin'
                     Permanent='no'
                     Part='first'
                     Action='set'
@@ -110,12 +110,12 @@
         </Directory>
 
         <ComponentGroup Id='Binaries' Directory='INSTALLBINDIR'>
-            <Component Id='notionBinary' Guid='*' Win64='$(var.Win64)'>
+            <Component Id='jetsonBinary' Guid='*' Win64='$(var.Win64)'>
                 <File
-                    Id='notionEXE'
-                    Name='notion.exe'
+                    Id='jetsonEXE'
+                    Name='jetson.exe'
                     DiskId='1'
-                    Source='target\release\notion.exe'
+                    Source='target\release\jetson.exe'
                     KeyPath='yes'/>
             </Component>
             <Component Id='nodeBinary' Guid='*' Win64='$(var.Win64)'>
@@ -168,10 +168,10 @@
           The product icon is the graphic that appears in the Add/Remove
           Programs control panel for the application.
         -->
-        <Icon Id='ProductICO' SourceFile='wix\notion.ico'/>
+        <Icon Id='ProductICO' SourceFile='wix\jetson.ico'/>
         <Property Id='ARPPRODUCTICON' Value='ProductICO' />
 
-        <Property Id='ARPHELPLINK' Value='https://github.com/notion-cli/notion'/>
+        <Property Id='ARPHELPLINK' Value='https://github.com/jetson-cli/jetson'/>
         <Property Id='LicenseAccepted' Value='1'/>
 
         <UI>

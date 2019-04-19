@@ -1,6 +1,6 @@
 <p align="center">
-  <a href="https://www.notionjs.com/">
-    <img alt="Notion" src="https://github.com/notion-cli/notion/blob/master/notion.png?raw=true" width="480">
+  <a href="https://www.jetson.sh/">
+    <img alt="Jetson" src="https://github.com/jetson-cli/jetson/blob/master/jetson.png?raw=true" width="480">
   </a>
 </p>
 
@@ -9,15 +9,15 @@
 </p>
 
 <p align="center">
-  <a href="https://travis-ci.org/notion-cli/notion"><img alt="Build Status" src="https://travis-ci.org/notion-cli/notion.svg?branch=master"></a>
-  <a href="https://ci.appveyor.com/project/stefanpenner/notion/branch/master"><img alt="Build Status" src="https://ci.appveyor.com/api/projects/status/2cohtlutserh8jfb/branch/master?svg=true"></a>
+  <a href="https://travis-ci.org/jetson-cli/jetson"><img alt="Build Status" src="https://travis-ci.org/jetson-cli/jetson.svg?branch=master"></a>
+  <a href="https://ci.appveyor.com/project/stefanpenner/jetson/branch/master"><img alt="Build Status" src="https://ci.appveyor.com/api/projects/status/2cohtlutserh8jfb/branch/master?svg=true"></a>
 </p>
 
 **Reliable:** Ensure everyone in your project uses an identical dev environment, from the Node version to your preferred package manager.
 
 **Universal:** Enjoy the same command-line experience in every shell and every major operating system.
 
-**Fast:** Notion is implemented in Rust and deployed as a static executable for maximum performance.
+**Fast:** Jetson is implemented in Rust and deployed as a static executable for maximum performance.
 
 ## Features
 
@@ -28,16 +28,16 @@
 - Stable tool installation—no reinstalling on every Node upgrade!
 - Extensibility hooks for site-specific customization
 
-## Installing Notion
+## Installing Jetson
 
-Read the [Getting Started Guide](https://docs.notionjs.com/guide/getting-started) on our website for detailed instructions on how to install Notion.
+Read the [Getting Started Guide](https://docs.jetson.sh/guide/getting-started) on our website for detailed instructions on how to install Jetson.
 
-## Using Notion
+## Using Jetson
 
-Read the [Understanding Notion Guide](https://docs.notionjs.com/guide/understanding) on our website for detailed instructions on how to use Notion.
+Read the [Understanding Jetson Guide](https://docs.jetson.sh/guide/understanding) on our website for detailed instructions on how to use Jetson.
 
-## Contributing to Notion
+## Contributing to Jetson
 
-Contributions are always welcome, no matter how large or small. Substantial feature ideas should be proposed as an [RFC](https://github.com/notion-cli/rfcs). Before contributing, please read the [code of conduct](CODE_OF_CONDUCT.md).
+Contributions are always welcome, no matter how large or small. Substantial feature ideas should be proposed as an [RFC](https://github.com/jetson-cli/rfcs). Before contributing, please read the [code of conduct](CODE_OF_CONDUCT.md).
 
-See the [Contributing Guide](https://docs.notionjs.com/contributing/) on our website for detailed instructions on how to contribute to Notion.
+See the [Contributing Guide](https://docs.jetson.sh/contributing/) on our website for detailed instructions on how to contribute to Jetson.

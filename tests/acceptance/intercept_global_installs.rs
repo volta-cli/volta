@@ -3,8 +3,8 @@ use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
 
-use notion_core::env::UNSAFE_GLOBAL;
-use notion_fail::ExitCode;
+use jetson_core::env::UNSAFE_GLOBAL;
+use jetson_fail::ExitCode;
 
 #[test]
 fn npm_prevents_global_install() {

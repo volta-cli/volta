@@ -1,1 +1,1 @@
-Please see https://docs.notionjs.com/contributing/
+Please see https://docs.jetson.sh/contributing/

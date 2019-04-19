@@ -1,4 +1,4 @@
-//! Utilities to use with acceptance tests in Notion.
+//! Utilities to use with acceptance tests in Jetson.
 
 #![cfg_attr(feature = "universal-docs", feature(doc_cfg))]
 

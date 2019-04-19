@@ -2,9 +2,9 @@ use std::string::ToString;
 
 use structopt::StructOpt;
 
-use notion_core::error::ErrorDetails;
-use notion_core::session::{ActivityKind, Session};
-use notion_fail::{throw, ExitCode, Fallible};
+use jetson_core::error::ErrorDetails;
+use jetson_core::session::{ActivityKind, Session};
+use jetson_fail::{throw, ExitCode, Fallible};
 
 use crate::command::Command;
 

@@ -8,8 +8,8 @@ use std::str;
 
 use failure::Fail;
 
-use notion_fail::{throw, ExitCode, Fallible, NotionFail};
-use notion_fail_derive::*;
+use jetson_fail::{throw, ExitCode, Fallible, JetsonFail};
+use jetson_fail_derive::*;
 
 /// A builder object for an external process, similar to `std::process::Command`.
 #[derive(Clone, Debug)]
@@ -202,9 +202,9 @@ pub fn process<T: AsRef<OsStr>>(cmd: T) -> ProcessBuilder {
     }
 }
 
-#[derive(Debug, Fail, NotionFail)]
+#[derive(Debug, Fail, JetsonFail)]
 #[fail(display = "{}", desc)]
-#[notion_fail(code = "ExecutionFailure")]
+#[jetson_fail(code = "ExecutionFailure")]
 pub struct ProcessError {
     pub desc: String,
     pub exit: Option<ExitStatus>,

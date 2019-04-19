@@ -4,24 +4,24 @@ mod cli;
 
 use structopt::StructOpt;
 
-use notion_core::error::{ErrorContext, ErrorReporter};
-use notion_core::session::{ActivityKind, Session};
+use jetson_core::error::{ErrorContext, ErrorReporter};
+use jetson_core::session::{ActivityKind, Session};
 
-/// The entry point for the `notion` CLI.
+/// The entry point for the `jetson` CLI.
 pub fn main() {
     let mut session = Session::new();
 
-    session.add_event_start(ActivityKind::Notion);
+    session.add_event_start(ActivityKind::Jetson);
 
-    let notion = cli::Notion::from_args();
-    let verbose = notion.verbose;
-    let exit_code = notion.run(&mut session).unwrap_or_else(|err| {
+    let jetson = cli::Jetson::from_args();
+    let verbose = jetson.verbose;
+    let exit_code = jetson.run(&mut session).unwrap_or_else(|err| {
         ErrorReporter::from_flag(env!("CARGO_PKG_VERSION"), verbose)
-            .report(ErrorContext::Notion, &err);
-        session.add_event_error(ActivityKind::Notion, &err);
+            .report(ErrorContext::Jetson, &err);
+        session.add_event_error(ActivityKind::Jetson, &err);
         err.exit_code()
     });
 
-    session.add_event_end(ActivityKind::Notion, exit_code);
+    session.add_event_end(ActivityKind::Jetson, exit_code);
     session.exit(exit_code);
 }

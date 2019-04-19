@@ -34,7 +34,7 @@ os: Visual Studio 2015
 # matrix entries to test different combinations of features.
 environment:
   fast_finish: true
-  NOTION_DEV: 1
+  JETSON_DEV: 1
   RUST_BACKTRACE: full
   matrix:
 
@@ -121,6 +121,6 @@ build: false
 # next, this runs the acceptance tests, using network mocks
 # finally this runs the smoke tests: real data and no mocks
 test_script:
-  - cargo test --package notion-core --package notion-fail --package archive --package notion-fail-derive --package progress-read -- --test-threads=1 &&
+  - cargo test --package jetson-core --package jetson-fail --package archive --package jetson-fail-derive --package progress-read -- --test-threads=1 &&
     cargo test --features mock-network &&
     cargo test --test smoke --features smoke-tests -- --test-threads 1
