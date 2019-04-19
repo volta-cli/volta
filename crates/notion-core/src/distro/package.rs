@@ -233,8 +233,14 @@ impl PackageDistro {
     }
 
     fn is_installed(&self) -> bool {
-        // TODO
-        return true;
+        // check that package config file contains the same version
+        // (that is written after a package has been installed)
+        if let Ok(pkg_config_file) = path::user_package_config_file(&self.name) {
+            if let Ok(package_config) = PackageConfig::from_file(&pkg_config_file) {
+                return package_config.version == self.version;
+            }
+        }
+        false
     }
 
     fn generate_bin_map(&self) -> Fallible<HashMap<String, String>> {
@@ -250,11 +256,15 @@ impl PackageDistro {
             let bin_config_file = path::user_tool_bin_config(&bin_name)?;
             if bin_config_file.exists() {
                 let bin_config = BinConfig::from_file(bin_config_file)?;
-                throw!(ErrorDetails::BinaryAlreadyInstalled {
-                    bin_name: bin_name.to_string(),
-                    existing_package: bin_config.package,
-                    new_package: self.name.clone(),
-                });
+                // if the bin was installed by the package that is currently being installed,
+                // that's ok - otherwise it's an error
+                if self.name != bin_config.package {
+                    throw!(ErrorDetails::BinaryAlreadyInstalled {
+                        bin_name: bin_name.to_string(),
+                        existing_package: bin_config.package,
+                        new_package: self.name.clone(),
+                    });
+                }
             }
         }
 
