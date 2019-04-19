@@ -6,9 +6,17 @@ use test_support::matchers::execs;
 use notion_core::env::UNSAFE_GLOBAL;
 use notion_fail::ExitCode;
 
+const PACKAGE_JSON: &'static str = r#"{
+    "name": "text-package",
+    "toolchain": {
+        "node": "10.22.123",
+        "yarn": "4.55.633"
+    }
+}"#;
+
 #[test]
 fn npm_prevents_global_install() {
-    let s = sandbox().build();
+    let s = sandbox().package_json(PACKAGE_JSON).build();
 
     assert_that!(
         s.npm("install ember-cli --global"),
@@ -62,22 +70,24 @@ fn npm_prevents_global_install() {
 
 #[test]
 fn npm_allows_global_install_with_env_variable() {
-    let s = sandbox().env(UNSAFE_GLOBAL, "1").build();
+    let s = sandbox()
+        .package_json(PACKAGE_JSON)
+        .env(UNSAFE_GLOBAL, "1")
+        .build();
 
-    // Since we are using a fixture for the Node version, the execution will still fail
-    // We just want to check that we didn't get the Global install error
+    // Since we are using a fake Node version, we expect to get an error about being unable to download
     assert_that!(
         s.npm("i -g ember-cli"),
         execs()
             .with_status(ExitCode::ExecutionFailure as i32)
             .with_stderr_does_not_contain("[..]Global package installs are not recommended.")
-            .with_stderr_contains("[..]Could not determine Node version.")
+            .with_stderr_contains("[..]Could not download node version[..]")
     );
 }
 
 #[test]
 fn yarn_prevents_global_add() {
-    let s = sandbox().build();
+    let s = sandbox().package_json(PACKAGE_JSON).build();
 
     assert_that!(
         s.yarn("global add ember-cli"),
@@ -103,12 +113,44 @@ fn yarn_prevents_global_add() {
 
 #[test]
 fn yarn_allows_global_add_with_env_variable() {
-    let s = sandbox().env(UNSAFE_GLOBAL, "1").build();
+    let s = sandbox()
+        .package_json(PACKAGE_JSON)
+        .env(UNSAFE_GLOBAL, "1")
+        .build();
 
-    // Since we are using a fixture for the Yarn version, the execution will still fail
-    // We just want to check that we didn't get the Global install error
+    // Since we are using a fake Yarn/Node version, we expect to get an error about being unable to download
     assert_that!(
         s.yarn("global add ember-cli"),
+        execs()
+            .with_status(ExitCode::ExecutionFailure as i32)
+            .with_stderr_does_not_contain("[..]Global package installs are not recommended.")
+            .with_stderr_contains("[..]Could not download node version[..]")
+    );
+}
+
+#[test]
+fn npm_passthrough_allows_global_add() {
+    let s = sandbox().build();
+
+    // Since we don't have the Node version, the execution will pass through to the default PATH
+    // This should still fail, so we want to ensure that we show the Notion error in that case
+    assert_that!(
+        s.npm("i -g ember-cli"),
+        execs()
+            .with_status(ExitCode::ExecutionFailure as i32)
+            .with_stderr_does_not_contain("[..]Global package installs are not recommended.")
+            .with_stderr_contains("[..]Could not determine Node version.")
+    );
+}
+
+#[test]
+fn yarn_passthrough_allows_global_add() {
+    let s = sandbox().build();
+
+    // Since we don't have the Yarn version, the execution will pass through to the default PATH
+    // This should still fail, so we want to ensure that we show the Notion error in that case
+    assert_that!(
+        s.npm("global add ember-cli"),
         execs()
             .with_status(ExitCode::ExecutionFailure as i32)
             .with_stderr_does_not_contain("[..]Global package installs are not recommended.")

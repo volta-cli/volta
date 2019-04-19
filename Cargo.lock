@@ -530,6 +530,11 @@ version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "either"
+version = "1.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "encode_unicode"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1103,6 +1108,7 @@ dependencies = [
  "console 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "detect-indent 0.1.0 (git+https://github.com/stefanpenner/detect-indent-rs)",
  "dirs 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "either 1.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "envoy 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure_derive 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2432,6 +2438,7 @@ dependencies = [
 "checksum dirs 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "88972de891f6118092b643d85a0b28e0678e0f948d7f879aa32f2d5aafe97d2a"
 "checksum dtoa 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "6d301140eb411af13d3115f9a562c85cc6b541ade9dfa314132244aaee7489dd"
 "checksum either 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "a39bffec1e2015c5d8a6773cb0cf48d0d758c842398f624c34969071f5499ea7"
+"checksum either 1.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "5527cfe0d098f36e3f8839852688e63c8fff1c90b2b405aef730615f9a7bcf7b"
 "checksum encode_unicode 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)" = "90b2c9496c001e8cb61827acdefad780795c42264c137744cae6f7d9e3450abd"
 "checksum encoding_rs 0.8.16 (registry+https://github.com/rust-lang/crates.io-index)" = "0535f350c60aac0b87ccf28319abc749391e912192255b0c00a2c12c6917bd73"
 "checksum envoy 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "bb34b6240ca977e7ab7dff6f060f9cb9a8f92c7745fe9e292b9443944d1aa768"

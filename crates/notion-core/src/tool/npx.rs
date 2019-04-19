@@ -1,50 +1,35 @@
-use std::env::ArgsOs;
-use std::ffi::OsStr;
-use std::process::Command;
+use std::ffi::{OsStr, OsString};
 
-use super::{command_for, Tool};
+use super::ToolCommand;
 use crate::error::ErrorDetails;
 use crate::session::{ActivityKind, Session};
 use crate::version::VersionSpec;
 
-use notion_fail::{throw, Fallible};
+use notion_fail::Fallible;
 
-/// Represents a `npx` executable.
-pub struct Npx(Command);
+pub(super) fn npx_command<A>(args: A, session: &mut Session) -> Fallible<ToolCommand>
+where
+    A: IntoIterator<Item = OsString>,
+{
+    session.add_event_start(ActivityKind::Npx);
 
-impl Tool for Npx {
-    type Arguments = ArgsOs;
-
-    fn new(args: ArgsOs, session: &mut Session) -> Fallible<Self> {
-        session.add_event_start(ActivityKind::Npx);
-
-        if let Some(ref platform) = session.current_platform()? {
+    match session.current_platform()? {
+        Some(ref platform) => {
             let image = platform.checkout(session)?;
 
             // npx was only included with npm 5.2.0 and higher. If the npm version is less than that, we
             // should include a helpful error message
             let required_npm = VersionSpec::parse_version("5.2.0")?;
             if image.node.npm >= required_npm {
-                Ok(Self::from_components(
-                    OsStr::new("npx"),
-                    args,
-                    &image.path()?,
-                ))
+                let path = image.path()?;
+                Ok(ToolCommand::direct(OsStr::new("npx"), args, &path))
             } else {
-                throw!(ErrorDetails::NpxNotAvailable {
-                    version: image.node.npm.to_string()
-                });
+                Err(ErrorDetails::NpxNotAvailable {
+                    version: image.node.npm.to_string(),
+                }
+                .into())
             }
-        } else {
-            throw!(ErrorDetails::NoPlatform);
         }
-    }
-
-    fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
-        Npx(command_for(exe, args, path_var))
-    }
-
-    fn command(self) -> Command {
-        self.0
+        None => ToolCommand::passthrough(OsStr::new("npx"), args, ErrorDetails::NoPlatform),
     }
 }

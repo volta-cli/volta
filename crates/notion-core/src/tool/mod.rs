@@ -3,12 +3,12 @@
 use std::env::{self, args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
 use std::fmt::{self, Debug, Display, Formatter};
-use std::marker::Sized;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 
 use crate::env::UNSAFE_GLOBAL;
 use crate::error::ErrorDetails;
+use crate::platform::System;
 use crate::session::Session;
 use crate::version::VersionSpec;
 use notion_fail::{Fallible, ResultExt};
@@ -19,11 +19,11 @@ mod npm;
 mod npx;
 mod yarn;
 
-use self::binary::{Binary, BinaryArgs};
-use self::node::Node;
-use self::npm::Npm;
-use self::npx::Npx;
-use self::yarn::Yarn;
+use self::binary::binary_command;
+use self::node::node_command;
+use self::npm::npm_command;
+use self::npx::npx_command;
+use self::yarn::yarn_command;
 
 pub enum ToolSpec {
     Node(VersionSpec),
@@ -97,44 +97,51 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
     let mut args = args_os();
     let exe = get_tool_name(&mut args)?;
 
-    // There is some duplication in the calls to `.exec` here.
-    // It's required because we can't create a single variable that holds
-    // all the possible `Tool` implementations and fill it dynamically,
-    // as they have different sizes and associated types.
-    match &exe.to_str() {
-        Some("node") => Node::new(args, session)?.exec(),
-        Some("npm") => Npm::new(args, session)?.exec(),
-        Some("npx") => Npx::new(args, session)?.exec(),
-        Some("yarn") => Yarn::new(args, session)?.exec(),
-        _ => Binary::new(
-            BinaryArgs {
-                executable: exe,
-                args,
-            },
-            session,
-        )?
-        .exec(),
-    }
+    let command = match &exe.to_str() {
+        Some("node") => node_command(args, session)?,
+        Some("npm") => npm_command(args, session)?,
+        Some("npx") => npx_command(args, session)?,
+        Some("yarn") => yarn_command(args, session)?,
+        _ => binary_command(exe, args, session)?,
+    };
+
+    command.exec()
 }
 
-/// Represents a command-line tool that Notion shims delegate to.
-pub trait Tool: Sized {
-    type Arguments;
+/// Represents the command to execute a tool
+enum ToolCommand {
+    Direct(Command),
+    Passthrough(Command, ErrorDetails),
+}
 
-    /// Constructs a new instance.
-    fn new(args: Self::Arguments, session: &mut Session) -> Fallible<Self>;
+impl ToolCommand {
+    fn direct<A>(exe: &OsStr, args: A, path_var: &OsStr) -> Self
+    where
+        A: IntoIterator<Item = OsString>,
+    {
+        ToolCommand::Direct(command_for(exe, args, path_var))
+    }
 
-    /// Constructs a new instance, using the specified command-line and `PATH` variable.
-    fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self;
+    fn passthrough<A>(exe: &OsStr, args: A, default_error: ErrorDetails) -> Fallible<Self>
+    where
+        A: IntoIterator<Item = OsString>,
+    {
+        let path = System::path()?;
+        Ok(ToolCommand::Passthrough(
+            command_for(exe, args, &path),
+            default_error,
+        ))
+    }
 
-    /// Extracts the `Command` from this tool.
-    fn command(self) -> Command;
-
-    /// Delegates the current process to this tool.
     fn exec(self) -> Fallible<ExitStatus> {
-        let mut command = self.command();
-        let status = command.status();
-        status.with_context(|_| ErrorDetails::BinaryExecError)
+        match self {
+            ToolCommand::Direct(mut command) => command
+                .status()
+                .with_context(|_| ErrorDetails::BinaryExecError),
+            ToolCommand::Passthrough(mut command, error) => {
+                command.status().with_context(|_| error)
+            }
+        }
     }
 }
 
@@ -159,7 +166,11 @@ fn tool_name_from_file_name(file_name: &OsStr) -> OsString {
     }
 }
 
-fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
+fn command_for<A: IntoIterator<Item = OsString>>(
+    exe: &OsStr,
+    args: A,
+    path_var: &OsStr,
+) -> Command {
     let mut command = Command::new(exe);
     command.args(args);
     command.env("PATH", path_var);
