@@ -14,24 +14,30 @@ use semver::Version;
 /// The result of a requested installation.
 #[derive(Debug)]
 pub enum Fetched<V> {
-    /// Indicates that the given tool was already installed.
+    /// Indicates that the given tool was already fetched and unpacked.
     Already(V),
-    /// Indicates that the given tool was not already installed but has now been installed.
+    /// Indicates that the given tool was not already fetched but has now been fetched and unpacked.
     Now(V),
+    /// Indicates that the given tool is already installed.
+    Installed(V),
 }
 
 impl<V> Fetched<V> {
     /// Consumes this value and produces the installed version.
     pub fn into_version(self) -> V {
         match self {
-            Fetched::Already(version) | Fetched::Now(version) => version,
+            Fetched::Already(version) | Fetched::Now(version) | Fetched::Installed(version) => {
+                version
+            }
         }
     }
 
     /// Produces a reference to the installed version.
     pub fn version(&self) -> &V {
         match self {
-            &Fetched::Already(ref version) | &Fetched::Now(ref version) => version,
+            &Fetched::Already(ref version)
+            | &Fetched::Now(ref version)
+            | &Fetched::Installed(ref version) => version,
         }
     }
 }

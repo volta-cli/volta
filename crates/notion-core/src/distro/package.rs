@@ -143,7 +143,17 @@ impl Distro for PackageDistro {
         })
     }
 
+    // Fetches and unpacks the PackageDistro
     fn fetch(self, _collection: &Collection<Self>) -> Fallible<Fetched<PackageVersion>> {
+        // don't need to fetch if the package is already installed
+        if self.is_installed() {
+            return Ok(Fetched::Installed(PackageVersion::new(
+                self.name.clone(),
+                self.version.clone(),
+                self.generate_bin_map()?,
+            )?));
+        }
+
         let archive = self.load_or_fetch_archive()?;
 
         let bar = progress_bar(
@@ -172,30 +182,10 @@ impl Distro for PackageDistro {
         f.write_all(self.shasum.as_bytes()).unknown()?;
         f.sync_all().unknown()?;
 
-        let pkg_info = Manifest::for_dir(&self.image_dir)?;
-        let bin_map = pkg_info.bin;
-        if bin_map.is_empty() {
-            throw!(ErrorDetails::NoPackageExecutables);
-        }
-
-        for (bin_name, _bin_path) in bin_map.iter() {
-            // check for conflicts with installed bins
-            // some packages may install bins with the same name
-            let bin_config_file = path::user_tool_bin_config(&bin_name)?;
-            if bin_config_file.exists() {
-                let bin_config = BinConfig::from_file(bin_config_file)?;
-                throw!(ErrorDetails::BinaryAlreadyInstalled {
-                    bin_name: bin_name.to_string(),
-                    existing_package: bin_config.package,
-                    new_package: self.name,
-                });
-            }
-        }
-
         Ok(Fetched::Now(PackageVersion::new(
             self.name.clone(),
             self.version.clone(),
-            bin_map,
+            self.generate_bin_map()?,
         )?))
     }
 
@@ -240,6 +230,35 @@ impl PackageDistro {
 
         // the files don't exist, or the shasum doesn't match
         false
+    }
+
+    fn is_installed(&self) -> bool {
+        // TODO
+        return true;
+    }
+
+    fn generate_bin_map(&self) -> Fallible<HashMap<String, String>> {
+        let pkg_info = Manifest::for_dir(&self.image_dir)?;
+        let bin_map = pkg_info.bin;
+        if bin_map.is_empty() {
+            throw!(ErrorDetails::NoPackageExecutables);
+        }
+
+        for (bin_name, _bin_path) in bin_map.iter() {
+            // check for conflicts with installed bins
+            // some packages may install bins with the same name
+            let bin_config_file = path::user_tool_bin_config(&bin_name)?;
+            if bin_config_file.exists() {
+                let bin_config = BinConfig::from_file(bin_config_file)?;
+                throw!(ErrorDetails::BinaryAlreadyInstalled {
+                    bin_name: bin_name.to_string(),
+                    existing_package: bin_config.package,
+                    new_package: self.name.clone(),
+                });
+            }
+        }
+
+        Ok(bin_map)
     }
 }
 
