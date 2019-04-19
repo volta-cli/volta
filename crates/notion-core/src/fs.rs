@@ -7,6 +7,11 @@ use std::path::{Path, PathBuf};
 use crate::error::ErrorDetails;
 use notion_fail::{Fallible, ResultExt};
 
+pub fn delete_dir_error<P: AsRef<Path>>(directory: &P) -> impl FnOnce(&io::Error) -> ErrorDetails {
+    let directory = directory.as_ref().to_string_lossy().to_string();
+    |_| ErrorDetails::DeleteDirectoryError { directory }
+}
+
 pub fn touch(path: &Path) -> Fallible<File> {
     if !path.is_file() {
         let basedir = path.parent().unwrap();
@@ -31,6 +36,15 @@ pub fn ensure_containing_dir_exists<P: AsRef<Path>>(path: &P) -> Fallible<()> {
                 dir: dir.to_string_lossy().to_string(),
             })
         })
+}
+
+/// This deletes the input directory, if it exists
+pub fn ensure_dir_does_not_exist<P: AsRef<Path>>(path: &P) -> Fallible<()> {
+    if path.as_ref().exists() {
+        // remove the directory and all of its contents
+        fs::remove_dir_all(path).with_context(delete_dir_error(path))?;
+    }
+    Ok(())
 }
 
 /// Reads a file, if it exists.

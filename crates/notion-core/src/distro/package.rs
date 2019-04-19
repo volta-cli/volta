@@ -14,7 +14,10 @@ use sha1::{Digest, Sha1};
 
 use crate::distro::{download_tool_error, Distro, Fetched};
 use crate::error::ErrorDetails;
-use crate::fs::{dir_entry_match, ensure_containing_dir_exists, read_dir_eager, read_file_opt};
+use crate::fs::{
+    delete_dir_error, dir_entry_match, ensure_containing_dir_exists, ensure_dir_does_not_exist,
+    read_dir_eager, read_file_opt,
+};
 use crate::hook::ToolHooks;
 use crate::inventory::Collection;
 use crate::manifest::Manifest;
@@ -172,7 +175,10 @@ impl Distro for PackageDistro {
             .unknown()?;
         bar.finish();
 
+        // ensure that the dir where this will be unpacked exists
         ensure_containing_dir_exists(&self.image_dir)?;
+        // and ensure that the target directory does not exist
+        ensure_dir_does_not_exist(&self.image_dir)?;
 
         let unpack_dir = find_unpack_dir(temp.path())?;
         rename(unpack_dir, &self.image_dir).unknown()?;
@@ -430,11 +436,6 @@ impl PackageVersion {
 fn delete_file_error(file: &PathBuf) -> impl FnOnce(&io::Error) -> ErrorDetails {
     let file = file.to_string_lossy().to_string();
     |_| ErrorDetails::DeleteFileError { file }
-}
-
-fn delete_dir_error(directory: &PathBuf) -> impl FnOnce(&io::Error) -> ErrorDetails {
-    let directory = directory.to_string_lossy().to_string();
-    |_| ErrorDetails::DeleteDirectoryError { directory }
 }
 
 /// Reads the contents of a directory and returns a Vec containing the names of
