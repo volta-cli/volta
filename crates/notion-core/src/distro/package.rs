@@ -130,7 +130,7 @@ impl Distro for PackageDistro {
     type ResolvedVersion = PackageEntry;
 
     fn new(
-        name: String,
+        name: &str,
         entry: Self::ResolvedVersion,
         _hooks: Option<&ToolHooks<Self>>,
     ) -> Fallible<Self> {
@@ -140,9 +140,9 @@ impl Distro for PackageDistro {
             shasum: entry.shasum,
             version: version.clone(),
             tarball_url: entry.tarball,
-            image_dir: path::package_image_dir(&name, &version.to_string())?,
-            distro_file: path::package_distro_file(&name, &version.to_string())?,
-            shasum_file: path::package_distro_shasum(&name, &version.to_string())?,
+            image_dir: path::package_image_dir(name, &version.to_string())?,
+            distro_file: path::package_distro_file(name, &version.to_string())?,
+            shasum_file: path::package_distro_shasum(name, &version.to_string())?,
         })
     }
 

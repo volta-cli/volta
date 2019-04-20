@@ -149,11 +149,9 @@ impl Session {
 
         if !inventory.node.contains(version) {
             let hooks = self.hooks.get()?;
-            inventory.node.fetch(
-                "node".to_string(),
-                &VersionSpec::exact(version),
-                hooks.node.as_ref(),
-            )?;
+            inventory
+                .node
+                .fetch("node", &VersionSpec::exact(version), hooks.node.as_ref())?;
         }
 
         Ok(())
@@ -165,11 +163,9 @@ impl Session {
 
         if !inventory.yarn.contains(version) {
             let hooks = self.hooks.get()?;
-            inventory.yarn.fetch(
-                "yarn".to_string(),
-                &VersionSpec::exact(version),
-                hooks.yarn.as_ref(),
-            )?;
+            inventory
+                .yarn
+                .fetch("yarn", &VersionSpec::exact(version), hooks.yarn.as_ref())?;
         }
 
         Ok(())
@@ -203,7 +199,7 @@ impl Session {
     /// Fetch, unpack, and install a package matching the input requirements.
     pub fn install_package(&mut self, name: String, version: &VersionSpec) -> Fallible<Version> {
         // fetches and unpacks package
-        let fetched_package = self.fetch_package(name.clone(), version)?;
+        let fetched_package = self.fetch_package(&name, version)?;
         let package_version = fetched_package.version();
 
         // if the package is already installed, don't re-install it
@@ -251,7 +247,7 @@ impl Session {
         let hooks = self.hooks.get()?;
         inventory
             .node
-            .fetch("node".to_string(), &version_spec, hooks.node.as_ref())
+            .fetch("node", &version_spec, hooks.node.as_ref())
     }
 
     /// Fetches a Yarn version matching the specified semantic versioning requirements.
@@ -260,7 +256,7 @@ impl Session {
         let hooks = self.hooks.get()?;
         inventory
             .yarn
-            .fetch("yarn".to_string(), &version_spec, hooks.yarn.as_ref())
+            .fetch("yarn", &version_spec, hooks.yarn.as_ref())
     }
 
     /// Fetches a Npm version matching the specified semantic versioning requirements.
@@ -269,13 +265,13 @@ impl Session {
         let hooks = self.hooks.get()?;
         inventory
             .packages
-            .fetch("npm".to_string(), version_spec, hooks.package.as_ref())
+            .fetch("npm", version_spec, hooks.package.as_ref())
     }
 
     /// Fetches a Package version matching the specified semantic versioning requirements.
     pub fn fetch_package(
         &mut self,
-        name: String,
+        name: &str,
         version_spec: &VersionSpec,
     ) -> Fallible<Fetched<PackageVersion>> {
         let inventory = self.inventory.get_mut()?;
@@ -317,7 +313,7 @@ impl Session {
             let hooks = self.hooks.get()?;
             let npm_version = inventory
                 .packages
-                .resolve("npm".to_string(), version_spec, hooks.package.as_ref())?
+                .resolve("npm", version_spec, hooks.package.as_ref())?
                 .version;
             project.pin_npm(&npm_version)?;
         } else {

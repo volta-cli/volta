@@ -135,7 +135,7 @@ pub trait FetchResolve<D: Distro> {
     /// Fetch a Distro version matching the specified semantic versioning requirements.
     fn fetch(
         &mut self,
-        name: String, // unused by Node and Yarn, but package install needs this
+        name: &str, // unused by Node and Yarn, but package install needs this
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<Fetched<Self::FetchedVersion>>;
@@ -143,7 +143,7 @@ pub trait FetchResolve<D: Distro> {
     /// Resolves the specified semantic versioning requirements into a distribution
     fn resolve(
         &self,
-        name: String,
+        name: &str,
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<D> {
@@ -215,7 +215,7 @@ impl FetchResolve<NodeDistro> for NodeCollection {
 
     fn fetch(
         &mut self,
-        name: String, // not used here, we already know this is "node"
+        name: &str, // not used here, we already know this is "node"
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<NodeDistro>>,
     ) -> Fallible<Fetched<NodeVersion>> {
@@ -321,7 +321,7 @@ impl FetchResolve<YarnDistro> for YarnCollection {
     /// Fetches a Yarn version matching the specified semantic versioning requirements.
     fn fetch(
         &mut self,
-        name: String, // not used here, we already know this is "yarn"
+        name: &str, // not used here, we already know this is "yarn"
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<YarnDistro>>,
     ) -> Fallible<Fetched<Self::FetchedVersion>> {
@@ -425,7 +425,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
     /// Fetches a package version matching the specified semantic versioning requirements.
     fn fetch(
         &mut self,
-        name: String,
+        name: &str,
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<PackageDistro>>,
     ) -> Fallible<Fetched<Self::FetchedVersion>> {
