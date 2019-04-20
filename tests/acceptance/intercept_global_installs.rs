@@ -127,33 +127,3 @@ fn yarn_allows_global_add_with_env_variable() {
             .with_stderr_contains("[..]Could not download node version[..]")
     );
 }
-
-#[test]
-fn npm_passthrough_allows_global_add() {
-    let s = sandbox().build();
-
-    // Since we don't have the Node version, the execution will pass through to the default PATH
-    // This should still fail, so we want to ensure that we show the Notion error in that case
-    assert_that!(
-        s.npm("i -g ember-cli"),
-        execs()
-            .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_does_not_contain("[..]Global package installs are not recommended.")
-            .with_stderr_contains("[..]Could not determine Node version.")
-    );
-}
-
-#[test]
-fn yarn_passthrough_allows_global_add() {
-    let s = sandbox().build();
-
-    // Since we don't have the Yarn version, the execution will pass through to the default PATH
-    // This should still fail, so we want to ensure that we show the Notion error in that case
-    assert_that!(
-        s.npm("global add ember-cli"),
-        execs()
-            .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_does_not_contain("[..]Global package installs are not recommended.")
-            .with_stderr_contains("[..]Could not determine Node version.")
-    );
-}
