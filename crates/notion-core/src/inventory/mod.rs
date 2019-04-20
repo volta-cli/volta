@@ -147,13 +147,11 @@ pub trait FetchResolve<D: Distro> {
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<D> {
-        let version = match *matching {
+        let version = match matching {
             VersionSpec::Latest => self.resolve_latest(&name, hooks)?,
             VersionSpec::Lts => self.resolve_lts(&name, hooks)?,
-            VersionSpec::Semver(ref requirement) => {
-                self.resolve_semver(&name, requirement, hooks)?
-            }
-            VersionSpec::Exact(ref version) => self.resolve_exact(&name, version.clone(), hooks)?,
+            VersionSpec::Semver(requirement) => self.resolve_semver(&name, requirement, hooks)?,
+            VersionSpec::Exact(version) => self.resolve_exact(&name, version.to_owned(), hooks)?,
         };
 
         D::new(name, version, hooks)
