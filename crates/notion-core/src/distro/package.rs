@@ -22,7 +22,7 @@ use crate::path;
 use crate::platform::{Image, PlatformSpec};
 use crate::session::Session;
 use crate::shim;
-use crate::style::progress_bar;
+use crate::style::{progress_bar, tool_version};
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
 use archive::{Archive, Tarball};
@@ -148,7 +148,7 @@ impl Distro for PackageDistro {
 
         let bar = progress_bar(
             archive.origin(),
-            &format!("{}-v{}", self.name, self.version),
+            &tool_version(&self.name, &self.version),
             archive
                 .uncompressed_size()
                 .unwrap_or(archive.compressed_size()),

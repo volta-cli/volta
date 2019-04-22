@@ -64,6 +64,14 @@ fn action_str(origin: Origin) -> &'static str {
     }
 }
 
+pub fn tool_version<N, V>(name: N, version: V) -> String
+where
+    N: std::fmt::Display + Sized,
+    V: std::fmt::Display + Sized,
+{
+    format!("{:}@{:}", name, version)
+}
+
 /// Constructs a command-line progress bar based on the specified Origin enum
 /// (e.g., `Origin::Remote`), details string (e.g., `"v1.23.4"`), and logical
 /// length (i.e., the number of logical progress steps in the process being
