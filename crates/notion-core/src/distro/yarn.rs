@@ -103,7 +103,7 @@ impl Distro for YarnDistro {
 
     /// Provisions a new Distro based on the Version and possible Hooks
     fn new(
-        _name: String,
+        _name: &str,
         version: Self::ResolvedVersion,
         hooks: Option<&ToolHooks<Self>>,
     ) -> Fallible<Self> {
