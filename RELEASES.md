@@ -1,3 +1,10 @@
+# Version 0.3.0
+
+- Support `lts` pseudo-version for Node (#331)
+- Error message improvements
+- Add `notion install` and `notion uninstall` for package binaries
+- Remove autoshimming
+
 # Version 0.2.2
 
 - Add `notion which` command (#293)

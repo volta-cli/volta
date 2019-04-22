@@ -14,7 +14,7 @@ use crate::fs::ensure_containing_dir_exists;
 use crate::hook::ToolHooks;
 use crate::inventory::NodeCollection;
 use crate::path;
-use crate::style::progress_bar;
+use crate::style::{progress_bar, tool_version};
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
 
@@ -144,7 +144,7 @@ impl Distro for NodeDistro {
 
     /// Provisions a new Distro based on the Version and possible Hooks
     fn new(
-        _name: String,
+        _name: &str,
         version: Self::ResolvedVersion,
         hooks: Option<&ToolHooks<Self>>,
     ) -> Fallible<Self> {
@@ -184,7 +184,7 @@ impl Distro for NodeDistro {
         })?;
         let bar = progress_bar(
             self.archive.origin(),
-            &format!("v{}", self.version),
+            &tool_version("node", &self.version),
             self.archive
                 .uncompressed_size()
                 .unwrap_or(self.archive.compressed_size()),

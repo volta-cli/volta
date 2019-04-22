@@ -14,7 +14,10 @@ use sha1::{Digest, Sha1};
 
 use crate::distro::{download_tool_error, Distro, Fetched};
 use crate::error::ErrorDetails;
-use crate::fs::{dir_entry_match, ensure_containing_dir_exists, read_dir_eager, read_file_opt};
+use crate::fs::{
+    delete_dir_error, dir_entry_match, ensure_containing_dir_exists, ensure_dir_does_not_exist,
+    read_dir_eager, read_file_opt,
+};
 use crate::hook::ToolHooks;
 use crate::inventory::Collection;
 use crate::manifest::Manifest;
@@ -22,7 +25,7 @@ use crate::path;
 use crate::platform::{Image, PlatformSpec};
 use crate::session::Session;
 use crate::shim;
-use crate::style::progress_bar;
+use crate::style::{progress_bar, tool_version};
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
 use archive::{Archive, Tarball};
@@ -127,7 +130,7 @@ impl Distro for PackageDistro {
     type ResolvedVersion = PackageEntry;
 
     fn new(
-        name: String,
+        name: &str,
         entry: Self::ResolvedVersion,
         _hooks: Option<&ToolHooks<Self>>,
     ) -> Fallible<Self> {
@@ -137,18 +140,28 @@ impl Distro for PackageDistro {
             shasum: entry.shasum,
             version: version.clone(),
             tarball_url: entry.tarball,
-            image_dir: path::package_image_dir(&name, &version.to_string())?,
-            distro_file: path::package_distro_file(&name, &version.to_string())?,
-            shasum_file: path::package_distro_shasum(&name, &version.to_string())?,
+            image_dir: path::package_image_dir(name, &version.to_string())?,
+            distro_file: path::package_distro_file(name, &version.to_string())?,
+            shasum_file: path::package_distro_shasum(name, &version.to_string())?,
         })
     }
 
+    // Fetches and unpacks the PackageDistro
     fn fetch(self, _collection: &Collection<Self>) -> Fallible<Fetched<PackageVersion>> {
+        // don't need to fetch if the package is already installed
+        if self.is_installed() {
+            return Ok(Fetched::Installed(PackageVersion::new(
+                self.name.clone(),
+                self.version.clone(),
+                self.generate_bin_map()?,
+            )?));
+        }
+
         let archive = self.load_or_fetch_archive()?;
 
         let bar = progress_bar(
             archive.origin(),
-            &format!("{}-v{}", self.name, self.version),
+            &tool_version(&self.name, &self.version),
             archive
                 .uncompressed_size()
                 .unwrap_or(archive.compressed_size()),
@@ -168,7 +181,10 @@ impl Distro for PackageDistro {
             })?;
         bar.finish();
 
+        // ensure that the dir where this will be unpacked exists
         ensure_containing_dir_exists(&self.image_dir)?;
+        // and ensure that the target directory does not exist
+        ensure_dir_does_not_exist(&self.image_dir)?;
 
         let unpack_dir = find_unpack_dir(temp.path())?;
         rename(&unpack_dir, &self.image_dir).with_context(|_| {
@@ -188,30 +204,10 @@ impl Distro for PackageDistro {
             }
         })?;
 
-        let pkg_info = Manifest::for_dir(&self.image_dir)?;
-        let bin_map = pkg_info.bin;
-        if bin_map.is_empty() {
-            throw!(ErrorDetails::NoPackageExecutables);
-        }
-
-        for (bin_name, _bin_path) in bin_map.iter() {
-            // check for conflicts with installed bins
-            // some packages may install bins with the same name
-            let bin_config_file = path::user_tool_bin_config(&bin_name)?;
-            if bin_config_file.exists() {
-                let bin_config = BinConfig::from_file(bin_config_file)?;
-                throw!(ErrorDetails::BinaryAlreadyInstalled {
-                    bin_name: bin_name.to_string(),
-                    existing_package: bin_config.package,
-                    new_package: self.name,
-                });
-            }
-        }
-
         Ok(Fetched::Now(PackageVersion::new(
             self.name.clone(),
             self.version.clone(),
-            bin_map,
+            self.generate_bin_map()?,
         )?))
     }
 
@@ -256,6 +252,45 @@ impl PackageDistro {
 
         distro.seek(SeekFrom::Start(0)).ok()?;
         Tarball::load(distro).ok()
+    }
+
+    fn is_installed(&self) -> bool {
+        // check that package config file contains the same version
+        // (that is written after a package has been installed)
+        if let Ok(pkg_config_file) = path::user_package_config_file(&self.name) {
+            if let Ok(package_config) = PackageConfig::from_file(&pkg_config_file) {
+                return package_config.version == self.version;
+            }
+        }
+        false
+    }
+
+    fn generate_bin_map(&self) -> Fallible<HashMap<String, String>> {
+        let pkg_info = Manifest::for_dir(&self.image_dir)?;
+        let bin_map = pkg_info.bin;
+        if bin_map.is_empty() {
+            throw!(ErrorDetails::NoPackageExecutables);
+        }
+
+        for (bin_name, _bin_path) in bin_map.iter() {
+            // check for conflicts with installed bins
+            // some packages may install bins with the same name
+            let bin_config_file = path::user_tool_bin_config(&bin_name)?;
+            if bin_config_file.exists() {
+                let bin_config = BinConfig::from_file(bin_config_file)?;
+                // if the bin was installed by the package that is currently being installed,
+                // that's ok - otherwise it's an error
+                if self.name != bin_config.package {
+                    throw!(ErrorDetails::BinaryAlreadyInstalled {
+                        bin_name: bin_name.to_string(),
+                        existing_package: bin_config.package,
+                        new_package: self.name.clone(),
+                    });
+                }
+            }
+        }
+
+        Ok(bin_map)
     }
 }
 
@@ -419,11 +454,6 @@ impl PackageVersion {
 fn delete_file_error(file: &PathBuf) -> impl FnOnce(&io::Error) -> ErrorDetails {
     let file = file.to_string_lossy().to_string();
     |_| ErrorDetails::DeleteFileError { file }
-}
-
-fn delete_dir_error(directory: &PathBuf) -> impl FnOnce(&io::Error) -> ErrorDetails {
-    let directory = directory.to_string_lossy().to_string();
-    |_| ErrorDetails::DeleteDirectoryError { directory }
 }
 
 /// Reads the contents of a directory and returns a Vec containing the names of

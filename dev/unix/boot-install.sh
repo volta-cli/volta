@@ -54,7 +54,7 @@ notion_check_existing_installation() {
     # Some 0.1.* builds would eagerly validate package.json even for benign commands,
     # so just to be safe we'll ignore errors and consider those to be 0.1 as well.
     PREV_NOTION_VERSION="$(($NOTION_BIN --version 2>/dev/null || echo 0.1) | sed -E 's/^.*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')"
-    if [[ "$PREV_NOTION_VERSION" == 0.1* ]]; then
+    if [[ "$PREV_NOTION_VERSION" == 0.1* || "$PREV_NOTION_VERSION" == 0.2* ]]; then
       notion_eprintf ""
       notion_error "Your Notion installation is out of date and can't be automatically upgraded."
       notion_request "       Please delete or move $(notion_install_dir) and try again."

@@ -135,7 +135,7 @@ pub trait FetchResolve<D: Distro> {
     /// Fetch a Distro version matching the specified semantic versioning requirements.
     fn fetch(
         &mut self,
-        name: String, // unused by Node and Yarn, but package install needs this
+        name: &str, // unused by Node and Yarn, but package install needs this
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<Fetched<Self::FetchedVersion>>;
@@ -143,19 +143,15 @@ pub trait FetchResolve<D: Distro> {
     /// Resolves the specified semantic versioning requirements into a distribution
     fn resolve(
         &self,
-        name: String,
+        name: &str,
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<D> {
-        let version = match *matching {
-            VersionSpec::Latest => self.resolve_latest(name.clone(), hooks)?,
-            VersionSpec::Lts => self.resolve_lts(name.clone(), hooks)?,
-            VersionSpec::Semver(ref requirement) => {
-                self.resolve_semver(name.clone(), requirement, hooks)?
-            }
-            VersionSpec::Exact(ref version) => {
-                self.resolve_exact(name.clone(), version.clone(), hooks)?
-            }
+        let version = match matching {
+            VersionSpec::Latest => self.resolve_latest(&name, hooks)?,
+            VersionSpec::Lts => self.resolve_lts(&name, hooks)?,
+            VersionSpec::Semver(requirement) => self.resolve_semver(&name, requirement, hooks)?,
+            VersionSpec::Exact(version) => self.resolve_exact(&name, version.to_owned(), hooks)?,
         };
 
         D::new(name, version, hooks)
@@ -164,14 +160,14 @@ pub trait FetchResolve<D: Distro> {
     /// Resolves the latest version for this tool, using either the `latest` hook or the public registry
     fn resolve_latest(
         &self,
-        name: String,
+        name: &str,
         hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<D::ResolvedVersion>;
 
     /// Resolves a SemVer version for this tool, using either the `index` hook or the public registry
     fn resolve_semver(
         &self,
-        name: String,
+        name: &str,
         matching: &VersionReq,
         hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<D::ResolvedVersion>;
@@ -179,7 +175,7 @@ pub trait FetchResolve<D: Distro> {
     /// Resolves an LTS version for this tool
     fn resolve_lts(
         &self,
-        name: String,
+        name: &str,
         hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<D::ResolvedVersion> {
         return self.resolve_latest(name, hooks);
@@ -188,7 +184,7 @@ pub trait FetchResolve<D: Distro> {
     /// Resolves an exact version of this tool
     fn resolve_exact(
         &self,
-        name: String,
+        name: &str,
         version: Version,
         hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<D::ResolvedVersion>;
@@ -219,7 +215,7 @@ impl FetchResolve<NodeDistro> for NodeCollection {
 
     fn fetch(
         &mut self,
-        name: String, // not used here, we already know this is "node"
+        name: &str, // not used here, we already know this is "node"
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<NodeDistro>>,
     ) -> Fallible<Fetched<NodeVersion>> {
@@ -239,7 +235,7 @@ impl FetchResolve<NodeDistro> for NodeCollection {
 
     fn resolve_latest(
         &self,
-        _name: String,
+        _name: &str,
         hooks: Option<&ToolHooks<NodeDistro>>,
     ) -> Fallible<Version> {
         // NOTE: This assumes the registry always produces a list in sorted order
@@ -265,7 +261,7 @@ impl FetchResolve<NodeDistro> for NodeCollection {
 
     fn resolve_semver(
         &self,
-        _name: String,
+        _name: &str,
         matching: &VersionReq,
         hooks: Option<&ToolHooks<NodeDistro>>,
     ) -> Fallible<Version> {
@@ -290,11 +286,7 @@ impl FetchResolve<NodeDistro> for NodeCollection {
         }
     }
 
-    fn resolve_lts(
-        &self,
-        _name: String,
-        hooks: Option<&ToolHooks<NodeDistro>>,
-    ) -> Fallible<Version> {
+    fn resolve_lts(&self, _name: &str, hooks: Option<&ToolHooks<NodeDistro>>) -> Fallible<Version> {
         let url = match hooks {
             Some(&ToolHooks {
                 index: Some(ref hook),
@@ -315,7 +307,7 @@ impl FetchResolve<NodeDistro> for NodeCollection {
 
     fn resolve_exact(
         &self,
-        _name: String,
+        _name: &str,
         version: Version,
         _hooks: Option<&ToolHooks<NodeDistro>>,
     ) -> Fallible<Version> {
@@ -329,7 +321,7 @@ impl FetchResolve<YarnDistro> for YarnCollection {
     /// Fetches a Yarn version matching the specified semantic versioning requirements.
     fn fetch(
         &mut self,
-        name: String, // not used here, we already know this is "yarn"
+        name: &str, // not used here, we already know this is "yarn"
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<YarnDistro>>,
     ) -> Fallible<Fetched<Self::FetchedVersion>> {
@@ -345,7 +337,7 @@ impl FetchResolve<YarnDistro> for YarnCollection {
 
     fn resolve_latest(
         &self,
-        _name: String,
+        _name: &str,
         hooks: Option<&ToolHooks<YarnDistro>>,
     ) -> Fallible<Version> {
         let url = match hooks {
@@ -363,7 +355,7 @@ impl FetchResolve<YarnDistro> for YarnCollection {
 
     fn resolve_semver(
         &self,
-        _name: String,
+        _name: &str,
         matching: &VersionReq,
         hooks: Option<&ToolHooks<YarnDistro>>,
     ) -> Fallible<Version> {
@@ -394,7 +386,7 @@ impl FetchResolve<YarnDistro> for YarnCollection {
 
     fn resolve_exact(
         &self,
-        _name: String,
+        _name: &str,
         version: Version,
         _hooks: Option<&ToolHooks<YarnDistro>>,
     ) -> Fallible<Version> {
@@ -437,7 +429,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
     /// Fetches a package version matching the specified semantic versioning requirements.
     fn fetch(
         &mut self,
-        name: String,
+        name: &str,
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<PackageDistro>>,
     ) -> Fallible<Fetched<Self::FetchedVersion>> {
@@ -453,7 +445,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
 
     fn resolve_latest(
         &self,
-        name: String,
+        name: &str,
         hooks: Option<&ToolHooks<PackageDistro>>,
     ) -> Fallible<PackageEntry> {
         let url = match hooks {
@@ -484,7 +476,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
 
     fn resolve_semver(
         &self,
-        name: String,
+        name: &str,
         matching: &VersionReq,
         hooks: Option<&ToolHooks<PackageDistro>>,
     ) -> Fallible<PackageEntry> {
@@ -515,7 +507,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
 
     fn resolve_exact(
         &self,
-        name: String,
+        name: &str,
         exact_version: Version,
         hooks: Option<&ToolHooks<PackageDistro>>,
     ) -> Fallible<PackageEntry> {

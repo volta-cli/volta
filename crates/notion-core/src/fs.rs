@@ -35,6 +35,20 @@ pub fn ensure_containing_dir_exists<P: AsRef<Path>>(path: &P) -> Fallible<()> {
         })
 }
 
+/// This deletes the input directory, if it exists
+pub fn ensure_dir_does_not_exist<P: AsRef<Path>>(path: &P) -> Fallible<()> {
+    if path.as_ref().exists() {
+        // remove the directory and all of its contents
+        fs::remove_dir_all(path).with_context(delete_dir_error(path))?;
+    }
+    Ok(())
+}
+
+pub fn delete_dir_error<P: AsRef<Path>>(directory: &P) -> impl FnOnce(&io::Error) -> ErrorDetails {
+    let directory = directory.as_ref().to_string_lossy().to_string();
+    |_| ErrorDetails::DeleteDirectoryError { directory }
+}
+
 /// Reads a file, if it exists.
 pub fn read_file_opt(path: &PathBuf) -> io::Result<Option<String>> {
     let result: io::Result<String> = fs::read_to_string(path);
