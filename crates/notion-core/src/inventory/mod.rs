@@ -203,7 +203,7 @@ fn match_node_version(
     url: &str,
     predicate: impl Fn(&NodeEntry) -> bool,
 ) -> Fallible<Option<Version>> {
-    let index: NodeIndex = resolve_node_versions(url)?.into_index()?;
+    let index = resolve_node_versions(url)?.into_index()?;
     let mut entries = index.entries.into_iter();
     Ok(entries
         .find(predicate)
@@ -222,12 +222,8 @@ impl FetchResolve<NodeDistro> for NodeCollection {
         let distro = self.resolve(name, matching, hooks)?;
         let fetched = distro.fetch(&self)?;
 
-        if let &Fetched::Now(NodeVersion {
-            runtime: ref version,
-            ..
-        }) = &fetched
-        {
-            self.versions.insert(version.clone());
+        if let &Fetched::Now(NodeVersion { ref runtime, .. }) = &fetched {
+            self.versions.insert(runtime.clone());
         }
 
         Ok(fetched)
@@ -273,9 +269,8 @@ impl FetchResolve<NodeDistro> for NodeCollection {
             }) => hook.resolve("index.json")?,
             _ => public_node_version_index(),
         };
-        let version_opt = match_node_version(&url, |&NodeEntry { version: ref v, .. }| {
-            matching.matches(v)
-        })?;
+        let version_opt =
+            match_node_version(&url, |NodeEntry { version, .. }| matching.matches(version))?;
 
         if let Some(version) = version_opt {
             Ok(version)
@@ -294,7 +289,7 @@ impl FetchResolve<NodeDistro> for NodeCollection {
             }) => hook.resolve("index.json")?,
             _ => public_node_version_index(),
         };
-        let version_opt = match_node_version(&url, |&NodeEntry { lts: val, .. }| val)?;
+        let version_opt = match_node_version(&url, |&NodeEntry { lts, .. }| lts)?;
 
         if let Some(version) = version_opt {
             Ok(version)
@@ -459,10 +454,9 @@ impl FetchResolve<PackageDistro> for PackageCollection {
         let package_index = resolve_package_metadata(&url)?.into_index();
         let latest = package_index.latest.clone();
 
-        let entry_opt =
-            match_package_entry(package_index, |&PackageEntry { version: ref v, .. }| {
-                &latest == v
-            });
+        let entry_opt = match_package_entry(package_index, |PackageEntry { version, .. }| {
+            &latest == version
+        });
 
         if let Some(entry) = entry_opt {
             Ok(entry)
@@ -490,10 +484,9 @@ impl FetchResolve<PackageDistro> for PackageCollection {
 
         let package_index = resolve_package_metadata(&url)?.into_index();
 
-        let entry_opt =
-            match_package_entry(package_index, |&PackageEntry { version: ref v, .. }| {
-                matching.matches(v)
-            });
+        let entry_opt = match_package_entry(package_index, |PackageEntry { version, .. }| {
+            matching.matches(&version)
+        });
 
         if let Some(entry) = entry_opt {
             Ok(entry)
@@ -521,10 +514,9 @@ impl FetchResolve<PackageDistro> for PackageCollection {
 
         let package_index = resolve_package_metadata(&url)?.into_index();
 
-        let entry_opt =
-            match_package_entry(package_index, |&PackageEntry { version: ref v, .. }| {
-                &exact_version == v
-            });
+        let entry_opt = match_package_entry(package_index, |PackageEntry { version, .. }| {
+            &exact_version == version
+        });
 
         if let Some(entry) = entry_opt {
             Ok(entry)
@@ -564,19 +556,19 @@ pub struct NodeDistroFiles {
 /// Reads a public index from the Node cache, if it exists and hasn't expired.
 fn read_cached_opt() -> Fallible<Option<serial::NodeIndex>> {
     let expiry_file = path::node_index_expiry_file()?;
-    let expiry: Option<String> =
+    let expiry =
         read_file_opt(&expiry_file).with_context(|_| ErrorDetails::ReadNodeIndexExpiryError {
             file: expiry_file.to_string_lossy().to_string(),
         })?;
 
     if let Some(string) = expiry {
-        let expiry_date: HttpDate = HttpDate::from_str(&string)
+        let expiry_date = HttpDate::from_str(&string)
             .with_context(|_| ErrorDetails::ParseNodeIndexExpiryError)?;
-        let current_date: HttpDate = HttpDate::from(SystemTime::now());
+        let current_date = HttpDate::from(SystemTime::now());
 
         if current_date < expiry_date {
             let index_file = path::node_index_file()?;
-            let cached: Option<String> = read_file_opt(&index_file).with_context(|_| {
+            let cached = read_file_opt(&index_file).with_context(|_| {
                 ErrorDetails::ReadNodeIndexCacheError {
                     file: index_file.to_string_lossy().to_string(),
                 }
@@ -628,7 +620,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
             // Helper to lazily determine temp dir string, without moving the file into the closures below
             let get_tmp_root = || tmp_root.to_string_lossy().to_string();
 
-            let cached: NamedTempFile = NamedTempFile::new_in(&tmp_root).with_context(|_| {
+            let cached = NamedTempFile::new_in(&tmp_root).with_context(|_| {
                 ErrorDetails::CreateTempFileError {
                     in_dir: get_tmp_root(),
                 }
@@ -652,7 +644,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
                 }
             })?;
 
-            let expiry: NamedTempFile = NamedTempFile::new_in(&tmp_root).with_context(|_| {
+            let expiry = NamedTempFile::new_in(&tmp_root).with_context(|_| {
                 ErrorDetails::CreateTempFileError {
                     in_dir: get_tmp_root(),
                 }
