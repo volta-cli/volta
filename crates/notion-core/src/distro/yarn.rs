@@ -15,7 +15,7 @@ use crate::fs::ensure_containing_dir_exists;
 use crate::hook::ToolHooks;
 use crate::inventory::YarnCollection;
 use crate::path;
-use crate::style::progress_bar;
+use crate::style::{progress_bar, tool_version};
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
 
@@ -135,7 +135,7 @@ impl Distro for YarnDistro {
         let temp = tempdir_in(path::tmp_dir()?).unknown()?;
         let bar = progress_bar(
             self.archive.origin(),
-            &format!("v{}", self.version),
+            &tool_version("yarn", &self.version),
             self.archive
                 .uncompressed_size()
                 .unwrap_or(self.archive.compressed_size()),

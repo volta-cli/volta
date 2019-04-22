@@ -206,8 +206,6 @@ impl Session {
         let fetched_package = self.fetch_package(name, version)?;
         let package_version = fetched_package.version();
 
-        let use_platform;
-
         // This uses the "engines" field from package.json to determine the node version to use
         // From https://docs.npmjs.com/files/package.json#engines:
         //
@@ -221,7 +219,7 @@ impl Session {
         let req_node_version = package_version.engines_spec()?;
         let node_version = self.fetch_node(&req_node_version)?.into_version();
 
-        use_platform = Rc::new(PlatformSpec {
+        let use_platform = Rc::new(PlatformSpec {
             node_runtime: node_version.runtime,
             npm: Some(node_version.npm),
             yarn: None,
