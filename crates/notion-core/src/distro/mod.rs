@@ -48,7 +48,7 @@ pub trait Distro: Sized {
 
     /// Provisions a new Distro based on the name, Version and Possible Hooks
     fn new(
-        name: String,
+        name: &str,
         version: Self::ResolvedVersion,
         hooks: Option<&ToolHooks<Self>>,
     ) -> Fallible<Self>;
