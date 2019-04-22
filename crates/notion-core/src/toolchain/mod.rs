@@ -1,11 +1,11 @@
-use std::fs::File;
-use std::io::Write;
+use std::fs::write;
 
 use lazycell::LazyCell;
 use readext::ReadExt;
 use semver::Version;
 
 use crate::distro::node::NodeVersion;
+use crate::error::ErrorDetails;
 use crate::fs::touch;
 use crate::path::user_platform_file;
 use crate::platform::PlatformSpec;
@@ -45,9 +45,14 @@ pub struct Toolchain {
 impl Toolchain {
     fn current() -> Fallible<Toolchain> {
         let path = user_platform_file()?;
-        let src = touch(&path)?.read_into_string().unknown()?;
+        let src = touch(&path)
+            .and_then(|mut file| file.read_into_string())
+            .with_context(|_| ErrorDetails::ReadPlatformError {
+                file: path.to_string_lossy().to_string(),
+            })?;
+
         Ok(Toolchain {
-            platform: serial::Platform::from_json(src)?.into_image()?,
+            platform: serial::Platform::from_json(src)?.into_platform()?,
         })
     }
 
@@ -123,16 +128,15 @@ impl Toolchain {
 
     pub fn save(&self) -> Fallible<()> {
         let path = user_platform_file()?;
-        let mut file = File::create(&path).unknown()?;
-        match &self.platform {
-            &Some(ref platform) => {
+        let result = match &self.platform {
+            Some(platform) => {
                 let src = platform.to_serial().to_json()?;
-                file.write_all(src.as_bytes()).unknown()?;
+                write(&path, src)
             }
-            &None => {
-                file.write_all(b"{}").unknown()?;
-            }
-        }
-        Ok(())
+            None => write(&path, "{}"),
+        };
+        result.with_context(|_| ErrorDetails::WritePlatformError {
+            file: path.to_string_lossy().to_string(),
+        })
     }
 }

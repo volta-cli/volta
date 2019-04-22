@@ -2,8 +2,8 @@
 
 use std::collections::HashMap;
 use std::ffi::OsStr;
-use std::fs::{self, rename, File};
-use std::io::{self, Read, Write};
+use std::fs::{self, rename, write, File};
+use std::io::{self, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::str;
@@ -167,12 +167,18 @@ impl Distro for PackageDistro {
                 .unwrap_or(archive.compressed_size()),
         );
 
-        let temp = tempdir_in(path::tmp_dir()?).unknown()?;
+        let tmp_root = path::tmp_dir()?;
+        let temp = tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError {
+            in_dir: tmp_root.to_string_lossy().to_string(),
+        })?;
         archive
             .unpack(temp.path(), &mut |_, read| {
                 bar.inc(read as u64);
             })
-            .unknown()?;
+            .with_context(|_| ErrorDetails::UnpackArchiveError {
+                tool: self.name.clone(),
+                version: self.version.to_string(),
+            })?;
         bar.finish();
 
         // ensure that the dir where this will be unpacked exists
@@ -181,12 +187,22 @@ impl Distro for PackageDistro {
         ensure_dir_does_not_exist(&self.image_dir)?;
 
         let unpack_dir = find_unpack_dir(temp.path())?;
-        rename(unpack_dir, &self.image_dir).unknown()?;
+        rename(&unpack_dir, &self.image_dir).with_context(|_| {
+            ErrorDetails::SetupToolImageError {
+                tool: self.name.clone(),
+                version: self.version.to_string(),
+                dir: unpack_dir.to_string_lossy().to_string(),
+            }
+        })?;
 
         // save the shasum in a file
-        let mut f = File::create(&self.shasum_file).unknown()?;
-        f.write_all(self.shasum.as_bytes()).unknown()?;
-        f.sync_all().unknown()?;
+        write(&self.shasum_file, self.shasum.as_bytes()).with_context(|_| {
+            ErrorDetails::WritePackageShasumError {
+                package: self.name.clone(),
+                version: self.version.to_string(),
+                file: self.shasum_file.to_string_lossy().to_string(),
+            }
+        })?;
 
         Ok(Fetched::Now(PackageVersion::new(
             self.name.clone(),
@@ -204,8 +220,8 @@ impl PackageDistro {
     /// Loads the package tarball from disk, or fetches from URL.
     fn load_or_fetch_archive(&self) -> Fallible<Box<Archive>> {
         // try to use existing downloaded package
-        if self.downloaded_pkg_is_ok() {
-            Tarball::load(File::open(&self.distro_file).unknown()?).unknown()
+        if let Some(archive) = self.load_cached_archive() {
+            Ok(archive)
         } else {
             // otherwise have to download
             ensure_containing_dir_exists(&self.distro_file)?;
@@ -216,26 +232,26 @@ impl PackageDistro {
         }
     }
 
-    /// Verify downloaded package, returning a PackageVersion if it is ok.
-    fn downloaded_pkg_is_ok(&self) -> bool {
+    /// Verify downloaded package, returning an Archive if it is ok.
+    fn load_cached_archive(&self) -> Option<Box<dyn Archive>> {
+        let mut distro = File::open(&self.distro_file).ok()?;
+        let stored_shasum = read_file_opt(&self.shasum_file).ok()??; // `??`: Err *or* None -> None
+
         let mut buffer = Vec::new();
+        distro.read_to_end(&mut buffer).ok()?;
 
-        if let Ok(mut distro) = File::open(&self.distro_file) {
-            if let Ok(Some(stored_shasum)) = read_file_opt(&self.shasum_file) {
-                if distro.read_to_end(&mut buffer).is_ok() {
-                    // calculate the shasum
-                    let mut hasher = Sha1::new();
-                    hasher.input(buffer);
-                    let result = hasher.result();
-                    let calculated_shasum = hex::encode(&result);
+        // calculate the shasum
+        let mut hasher = Sha1::new();
+        hasher.input(buffer);
+        let result = hasher.result();
+        let calculated_shasum = hex::encode(&result);
 
-                    return stored_shasum == calculated_shasum;
-                }
-            }
+        if stored_shasum != calculated_shasum {
+            return None;
         }
 
-        // the files don't exist, or the shasum doesn't match
-        false
+        distro.seek(SeekFrom::Start(0)).ok()?;
+        Tarball::load(distro).ok()
     }
 
     fn is_installed(&self) -> bool {
@@ -281,7 +297,9 @@ impl PackageDistro {
 // Figure out the unpacked package directory name dynamically, because
 // packages typically extract to a "package" directory, but not always
 fn find_unpack_dir(in_dir: &Path) -> Fallible<PathBuf> {
-    let dirs: Vec<_> = read_dir_eager(in_dir).unknown()?.collect();
+    let dirs: Vec<_> = read_dir_eager(in_dir)
+        .with_context(|_| ErrorDetails::PackageUnpackError)?
+        .collect();
 
     // if there is only one directory, return that
     if let [(entry, metadata)] = dirs.as_slice() {
@@ -451,6 +469,9 @@ pub fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
         };
         None
     })
+    .with_context(|_| ErrorDetails::ReadBinConfigDirError {
+        dir: bin_config_dir.to_string_lossy().to_string(),
+    })
 }
 
 impl Installer {
@@ -482,7 +503,12 @@ impl UserTool {
         let image_dir =
             path::package_image_dir(&bin_config.package, &bin_config.version.to_string())?;
         // canonicalize because path is relative, and sometimes uses '.' char
-        let bin_path = image_dir.join(bin_config.path).canonicalize().unknown()?;
+        let bin_path = image_dir
+            .join(&bin_config.path)
+            .canonicalize()
+            .with_context(|_| ErrorDetails::ExecutablePathError {
+                command: bin_config.name.clone(),
+            })?;
 
         // If the user does not have yarn set in the platform for this binary, use the default
         // This is necessary because some tools (e.g. ember-cli with the --yarn option) invoke `yarn`
