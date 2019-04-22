@@ -46,13 +46,11 @@ pub struct YarnDistro {
 // ISSUE(#134) - verify checksum
 fn load_cached_distro(file: &PathBuf) -> Option<Box<dyn Archive>> {
     if file.is_file() {
-        if let Ok(file) = File::open(file) {
-            if let Ok(tarball) = Tarball::load(file) {
-                return Some(tarball);
-            }
-        }
+        let file = File::open(file).ok()?;
+        Tarball::load(file).ok()
+    } else {
+        None
     }
-    None
 }
 
 impl YarnDistro {

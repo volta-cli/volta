@@ -238,31 +238,24 @@ impl PackageDistro {
 
     /// Verify downloaded package, returning an Archive if it is ok.
     fn load_cached_archive(&self) -> Option<Box<dyn Archive>> {
-        if let Ok(mut distro) = File::open(&self.distro_file) {
-            if let Ok(Some(stored_shasum)) = read_file_opt(&self.shasum_file) {
-                let mut buffer = Vec::new();
-                if distro.read_to_end(&mut buffer).is_ok() {
-                    // calculate the shasum
-                    let mut hasher = Sha1::new();
-                    hasher.input(buffer);
-                    let result = hasher.result();
-                    let calculated_shasum = hex::encode(&result);
+        let mut distro = File::open(&self.distro_file).ok()?;
+        let stored_shasum = read_file_opt(&self.shasum_file).ok()??; // `??`: Err *or* None -> None
 
-                    if stored_shasum != calculated_shasum {
-                        return None;
-                    }
+        let mut buffer = Vec::new();
+        distro.read_to_end(&mut buffer).ok()?;
 
-                    if distro.seek(SeekFrom::Start(0)).is_ok() {
-                        if let Ok(archive) = Tarball::load(distro) {
-                            return Some(archive);
-                        }
-                    }
-                }
-            }
+        // calculate the shasum
+        let mut hasher = Sha1::new();
+        hasher.input(buffer);
+        let result = hasher.result();
+        let calculated_shasum = hex::encode(&result);
+
+        if stored_shasum != calculated_shasum {
+            return None;
         }
 
-        // the files don't exist, the shasum doesn't match, or the archive otherwise can't be loaded
-        None
+        distro.seek(SeekFrom::Start(0)).ok()?;
+        Tarball::load(distro).ok()
     }
 }
 

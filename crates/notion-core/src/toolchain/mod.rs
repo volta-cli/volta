@@ -129,7 +129,7 @@ impl Toolchain {
     pub fn save(&self) -> Fallible<()> {
         let path = user_platform_file()?;
         let result = match &self.platform {
-            Some(ref platform) => {
+            Some(platform) => {
                 let src = platform.to_serial().to_json()?;
                 write(&path, src)
             }
