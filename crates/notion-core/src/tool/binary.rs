@@ -6,11 +6,7 @@ use crate::session::{ActivityKind, Session};
 
 use notion_fail::Fallible;
 
-pub(super) fn binary_command<A>(
-    exe: OsString,
-    args: A,
-    session: &mut Session,
-) -> Fallible<ToolCommand>
+pub(super) fn command<A>(exe: OsString, args: A, session: &mut Session) -> Fallible<ToolCommand>
 where
     A: IntoIterator<Item = OsString>,
 {
@@ -27,21 +23,15 @@ where
             // if we're in a pinned project, use the project's platform.
             if let Some(ref platform) = project.platform() {
                 let image = platform.checkout(session)?;
-                return Ok(ToolCommand::direct(
-                    &path_to_bin.as_os_str(),
-                    args,
-                    &image.path()?,
-                ));
+                let path = image.path()?;
+                return Ok(ToolCommand::direct(&path_to_bin.as_os_str(), args, &path));
             }
 
             // otherwise use the user platform.
             if let Some(ref platform) = session.user_platform()? {
                 let image = platform.checkout(session)?;
-                return Ok(ToolCommand::direct(
-                    &path_to_bin.as_os_str(),
-                    args,
-                    &image.path()?,
-                ));
+                let path = image.path()?;
+                return Ok(ToolCommand::direct(&path_to_bin.as_os_str(), args, &path));
             }
 
             // if there's no user platform selected, pass through to existing PATH.
@@ -51,10 +41,11 @@ where
 
     // try to use the user toolchain
     if let Some(user_tool) = session.get_user_tool(&exe)? {
+        let path = user_tool.image.path()?;
         return Ok(ToolCommand::direct(
             &user_tool.bin_path.as_os_str(),
             args,
-            &user_tool.image.path()?,
+            &path,
         ));
     }
 

@@ -19,12 +19,6 @@ mod npm;
 mod npx;
 mod yarn;
 
-use self::binary::binary_command;
-use self::node::node_command;
-use self::npm::npm_command;
-use self::npx::npx_command;
-use self::yarn::yarn_command;
-
 pub enum ToolSpec {
     Node(VersionSpec),
     Yarn(VersionSpec),
@@ -98,11 +92,11 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
     let exe = get_tool_name(&mut args)?;
 
     let command = match &exe.to_str() {
-        Some("node") => node_command(args, session)?,
-        Some("npm") => npm_command(args, session)?,
-        Some("npx") => npx_command(args, session)?,
-        Some("yarn") => yarn_command(args, session)?,
-        _ => binary_command(exe, args, session)?,
+        Some("node") => node::command(args, session)?,
+        Some("npm") => npm::command(args, session)?,
+        Some("npx") => npx::command(args, session)?,
+        Some("yarn") => yarn::command(args, session)?,
+        _ => binary::command(exe, args, session)?,
     };
 
     command.exec()

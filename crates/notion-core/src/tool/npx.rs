@@ -7,7 +7,7 @@ use crate::version::VersionSpec;
 
 use notion_fail::Fallible;
 
-pub(super) fn npx_command<A>(args: A, session: &mut Session) -> Fallible<ToolCommand>
+pub(super) fn command<A>(args: A, session: &mut Session) -> Fallible<ToolCommand>
 where
     A: IntoIterator<Item = OsString>,
 {

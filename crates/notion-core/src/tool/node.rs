@@ -6,7 +6,7 @@ use crate::session::{ActivityKind, Session};
 
 use notion_fail::Fallible;
 
-pub(super) fn node_command<A>(args: A, session: &mut Session) -> Fallible<ToolCommand>
+pub(super) fn command<A>(args: A, session: &mut Session) -> Fallible<ToolCommand>
 where
     A: IntoIterator<Item = OsString>,
 {
