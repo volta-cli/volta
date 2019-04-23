@@ -135,7 +135,7 @@ pub trait FetchResolve<D: Distro> {
     /// Fetch a Distro version matching the specified semantic versioning requirements.
     fn fetch(
         &mut self,
-        name: String, // unused by Node and Yarn, but package install needs this
+        name: &str, // unused by Node and Yarn, but package install needs this
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<Fetched<Self::FetchedVersion>>;
@@ -143,19 +143,15 @@ pub trait FetchResolve<D: Distro> {
     /// Resolves the specified semantic versioning requirements into a distribution
     fn resolve(
         &self,
-        name: String,
+        name: &str,
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<D> {
-        let version = match *matching {
-            VersionSpec::Latest => self.resolve_latest(name.clone(), hooks)?,
-            VersionSpec::Lts => self.resolve_lts(name.clone(), hooks)?,
-            VersionSpec::Semver(ref requirement) => {
-                self.resolve_semver(name.clone(), requirement, hooks)?
-            }
-            VersionSpec::Exact(ref version) => {
-                self.resolve_exact(name.clone(), version.clone(), hooks)?
-            }
+        let version = match matching {
+            VersionSpec::Latest => self.resolve_latest(&name, hooks)?,
+            VersionSpec::Lts => self.resolve_lts(&name, hooks)?,
+            VersionSpec::Semver(requirement) => self.resolve_semver(&name, requirement, hooks)?,
+            VersionSpec::Exact(version) => self.resolve_exact(&name, version.to_owned(), hooks)?,
         };
 
         D::new(name, version, hooks)
@@ -164,14 +160,14 @@ pub trait FetchResolve<D: Distro> {
     /// Resolves the latest version for this tool, using either the `latest` hook or the public registry
     fn resolve_latest(
         &self,
-        name: String,
+        name: &str,
         hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<D::ResolvedVersion>;
 
     /// Resolves a SemVer version for this tool, using either the `index` hook or the public registry
     fn resolve_semver(
         &self,
-        name: String,
+        name: &str,
         matching: &VersionReq,
         hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<D::ResolvedVersion>;
@@ -179,7 +175,7 @@ pub trait FetchResolve<D: Distro> {
     /// Resolves an LTS version for this tool
     fn resolve_lts(
         &self,
-        name: String,
+        name: &str,
         hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<D::ResolvedVersion> {
         return self.resolve_latest(name, hooks);
@@ -188,7 +184,7 @@ pub trait FetchResolve<D: Distro> {
     /// Resolves an exact version of this tool
     fn resolve_exact(
         &self,
-        name: String,
+        name: &str,
         version: Version,
         hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<D::ResolvedVersion>;
@@ -207,7 +203,7 @@ fn match_node_version(
     url: &str,
     predicate: impl Fn(&NodeEntry) -> bool,
 ) -> Fallible<Option<Version>> {
-    let index: NodeIndex = resolve_node_versions(url)?.into_index()?;
+    let index = resolve_node_versions(url)?.into_index()?;
     let mut entries = index.entries.into_iter();
     Ok(entries
         .find(predicate)
@@ -219,19 +215,15 @@ impl FetchResolve<NodeDistro> for NodeCollection {
 
     fn fetch(
         &mut self,
-        name: String, // not used here, we already know this is "node"
+        name: &str, // not used here, we already know this is "node"
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<NodeDistro>>,
     ) -> Fallible<Fetched<NodeVersion>> {
         let distro = self.resolve(name, matching, hooks)?;
         let fetched = distro.fetch(&self)?;
 
-        if let &Fetched::Now(NodeVersion {
-            runtime: ref version,
-            ..
-        }) = &fetched
-        {
-            self.versions.insert(version.clone());
+        if let &Fetched::Now(NodeVersion { ref runtime, .. }) = &fetched {
+            self.versions.insert(runtime.clone());
         }
 
         Ok(fetched)
@@ -239,7 +231,7 @@ impl FetchResolve<NodeDistro> for NodeCollection {
 
     fn resolve_latest(
         &self,
-        _name: String,
+        _name: &str,
         hooks: Option<&ToolHooks<NodeDistro>>,
     ) -> Fallible<Version> {
         // NOTE: This assumes the registry always produces a list in sorted order
@@ -265,7 +257,7 @@ impl FetchResolve<NodeDistro> for NodeCollection {
 
     fn resolve_semver(
         &self,
-        _name: String,
+        _name: &str,
         matching: &VersionReq,
         hooks: Option<&ToolHooks<NodeDistro>>,
     ) -> Fallible<Version> {
@@ -277,9 +269,8 @@ impl FetchResolve<NodeDistro> for NodeCollection {
             }) => hook.resolve("index.json")?,
             _ => public_node_version_index(),
         };
-        let version_opt = match_node_version(&url, |&NodeEntry { version: ref v, .. }| {
-            matching.matches(v)
-        })?;
+        let version_opt =
+            match_node_version(&url, |NodeEntry { version, .. }| matching.matches(version))?;
 
         if let Some(version) = version_opt {
             Ok(version)
@@ -290,11 +281,7 @@ impl FetchResolve<NodeDistro> for NodeCollection {
         }
     }
 
-    fn resolve_lts(
-        &self,
-        _name: String,
-        hooks: Option<&ToolHooks<NodeDistro>>,
-    ) -> Fallible<Version> {
+    fn resolve_lts(&self, _name: &str, hooks: Option<&ToolHooks<NodeDistro>>) -> Fallible<Version> {
         let url = match hooks {
             Some(&ToolHooks {
                 index: Some(ref hook),
@@ -302,7 +289,7 @@ impl FetchResolve<NodeDistro> for NodeCollection {
             }) => hook.resolve("index.json")?,
             _ => public_node_version_index(),
         };
-        let version_opt = match_node_version(&url, |&NodeEntry { lts: val, .. }| val)?;
+        let version_opt = match_node_version(&url, |&NodeEntry { lts, .. }| lts)?;
 
         if let Some(version) = version_opt {
             Ok(version)
@@ -315,7 +302,7 @@ impl FetchResolve<NodeDistro> for NodeCollection {
 
     fn resolve_exact(
         &self,
-        _name: String,
+        _name: &str,
         version: Version,
         _hooks: Option<&ToolHooks<NodeDistro>>,
     ) -> Fallible<Version> {
@@ -329,7 +316,7 @@ impl FetchResolve<YarnDistro> for YarnCollection {
     /// Fetches a Yarn version matching the specified semantic versioning requirements.
     fn fetch(
         &mut self,
-        name: String, // not used here, we already know this is "yarn"
+        name: &str, // not used here, we already know this is "yarn"
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<YarnDistro>>,
     ) -> Fallible<Fetched<Self::FetchedVersion>> {
@@ -345,7 +332,7 @@ impl FetchResolve<YarnDistro> for YarnCollection {
 
     fn resolve_latest(
         &self,
-        _name: String,
+        _name: &str,
         hooks: Option<&ToolHooks<YarnDistro>>,
     ) -> Fallible<Version> {
         let url = match hooks {
@@ -355,14 +342,15 @@ impl FetchResolve<YarnDistro> for YarnCollection {
             }) => hook.resolve("latest-version")?,
             _ => public_yarn_latest_version(),
         };
-        let mut response: reqwest::Response = reqwest::get(&url)
+        let response_text = reqwest::get(&url)
+            .and_then(|mut resp| resp.text())
             .with_context(|_| ErrorDetails::YarnLatestFetchError { from_url: url })?;
-        Version::parse(&response.text().unknown()?).unknown()
+        VersionSpec::parse_version(response_text)
     }
 
     fn resolve_semver(
         &self,
-        _name: String,
+        _name: &str,
         matching: &VersionReq,
         hooks: Option<&ToolHooks<YarnDistro>>,
     ) -> Fallible<Version> {
@@ -376,9 +364,8 @@ impl FetchResolve<YarnDistro> for YarnCollection {
 
         let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
         let releases: serial::YarnIndex = reqwest::get(&url)
-            .with_context(registry_fetch_error("Yarn", &url))?
-            .json()
-            .unknown()?;
+            .and_then(|mut resp| resp.json())
+            .with_context(registry_fetch_error("Yarn", &url))?;
         let releases = releases.into_index()?.entries;
         spinner.finish_and_clear();
         let version_opt = releases.into_iter().rev().find(|v| matching.matches(v));
@@ -394,7 +381,7 @@ impl FetchResolve<YarnDistro> for YarnCollection {
 
     fn resolve_exact(
         &self,
-        _name: String,
+        _name: &str,
         version: Version,
         _hooks: Option<&ToolHooks<YarnDistro>>,
     ) -> Fallible<Version> {
@@ -414,14 +401,18 @@ fn match_package_entry(
 // fetch metadata for the input url
 fn resolve_package_metadata(package_info_url: &str) -> Fallible<serial::PackageMetadata> {
     let spinner = progress_spinner(&format!("Fetching package metadata: {}", package_info_url));
-    let mut response: reqwest::Response = reqwest::get(package_info_url).with_context(|_| {
-        ErrorDetails::PackageMetadataFetchError {
+    let response_text = reqwest::get(package_info_url)
+        .and_then(|mut resp| resp.text())
+        .with_context(|_| ErrorDetails::PackageMetadataFetchError {
             from_url: package_info_url.to_string(),
-        }
-    })?;
-    let response_text: String = response.text().unknown()?;
+        })?;
 
-    let metadata: serial::PackageMetadata = serde_json::de::from_str(&response_text).unknown()?;
+    let metadata: serial::PackageMetadata =
+        serde_json::de::from_str(&response_text).with_context(|_| {
+            ErrorDetails::ParsePackageMetadataError {
+                from_url: package_info_url.to_string(),
+            }
+        })?;
 
     spinner.finish_and_clear();
     Ok(metadata)
@@ -433,7 +424,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
     /// Fetches a package version matching the specified semantic versioning requirements.
     fn fetch(
         &mut self,
-        name: String,
+        name: &str,
         matching: &VersionSpec,
         hooks: Option<&ToolHooks<PackageDistro>>,
     ) -> Fallible<Fetched<Self::FetchedVersion>> {
@@ -449,7 +440,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
 
     fn resolve_latest(
         &self,
-        name: String,
+        name: &str,
         hooks: Option<&ToolHooks<PackageDistro>>,
     ) -> Fallible<PackageEntry> {
         let url = match hooks {
@@ -463,10 +454,9 @@ impl FetchResolve<PackageDistro> for PackageCollection {
         let package_index = resolve_package_metadata(&url)?.into_index();
         let latest = package_index.latest.clone();
 
-        let entry_opt =
-            match_package_entry(package_index, |&PackageEntry { version: ref v, .. }| {
-                &latest == v
-            });
+        let entry_opt = match_package_entry(package_index, |PackageEntry { version, .. }| {
+            &latest == version
+        });
 
         if let Some(entry) = entry_opt {
             Ok(entry)
@@ -480,7 +470,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
 
     fn resolve_semver(
         &self,
-        name: String,
+        name: &str,
         matching: &VersionReq,
         hooks: Option<&ToolHooks<PackageDistro>>,
     ) -> Fallible<PackageEntry> {
@@ -494,10 +484,9 @@ impl FetchResolve<PackageDistro> for PackageCollection {
 
         let package_index = resolve_package_metadata(&url)?.into_index();
 
-        let entry_opt =
-            match_package_entry(package_index, |&PackageEntry { version: ref v, .. }| {
-                matching.matches(v)
-            });
+        let entry_opt = match_package_entry(package_index, |PackageEntry { version, .. }| {
+            matching.matches(&version)
+        });
 
         if let Some(entry) = entry_opt {
             Ok(entry)
@@ -511,7 +500,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
 
     fn resolve_exact(
         &self,
-        name: String,
+        name: &str,
         exact_version: Version,
         hooks: Option<&ToolHooks<PackageDistro>>,
     ) -> Fallible<PackageEntry> {
@@ -525,10 +514,9 @@ impl FetchResolve<PackageDistro> for PackageCollection {
 
         let package_index = resolve_package_metadata(&url)?.into_index();
 
-        let entry_opt =
-            match_package_entry(package_index, |&PackageEntry { version: ref v, .. }| {
-                &exact_version == v
-            });
+        let entry_opt = match_package_entry(package_index, |PackageEntry { version, .. }| {
+            &exact_version == version
+        });
 
         if let Some(entry) = entry_opt {
             Ok(entry)
@@ -567,17 +555,28 @@ pub struct NodeDistroFiles {
 
 /// Reads a public index from the Node cache, if it exists and hasn't expired.
 fn read_cached_opt() -> Fallible<Option<serial::NodeIndex>> {
-    let expiry: Option<String> = read_file_opt(&path::node_index_expiry_file()?).unknown()?;
+    let expiry_file = path::node_index_expiry_file()?;
+    let expiry =
+        read_file_opt(&expiry_file).with_context(|_| ErrorDetails::ReadNodeIndexExpiryError {
+            file: expiry_file.to_string_lossy().to_string(),
+        })?;
 
     if let Some(string) = expiry {
-        let expiry_date: HttpDate = HttpDate::from_str(&string).unknown()?;
-        let current_date: HttpDate = HttpDate::from(SystemTime::now());
+        let expiry_date = HttpDate::from_str(&string)
+            .with_context(|_| ErrorDetails::ParseNodeIndexExpiryError)?;
+        let current_date = HttpDate::from(SystemTime::now());
 
         if current_date < expiry_date {
-            let cached: Option<String> = read_file_opt(&path::node_index_file()?).unknown()?;
+            let index_file = path::node_index_file()?;
+            let cached = read_file_opt(&index_file).with_context(|_| {
+                ErrorDetails::ReadNodeIndexCacheError {
+                    file: index_file.to_string_lossy().to_string(),
+                }
+            })?;
 
             if let Some(string) = cached {
-                return Ok(serde_json::de::from_str(&string).unknown()?);
+                return serde_json::de::from_str(&string)
+                    .with_context(|_| ErrorDetails::ParseNodeIndexCacheError);
             }
         }
     }
@@ -604,45 +603,81 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
         Some(serial) => Ok(serial),
         None => {
             let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
+
             let mut response: reqwest::Response =
                 reqwest::get(url).with_context(registry_fetch_error("Node", url))?;
-            let response_text: String = response.text().unknown()?;
-            let cached: NamedTempFile = NamedTempFile::new_in(path::tmp_dir()?).unknown()?;
+            let response_text = response
+                .text()
+                .with_context(registry_fetch_error("Node", url))?;
+            let index: serial::NodeIndex =
+                serde_json::de::from_str(&response_text).with_context(|_| {
+                    ErrorDetails::ParseNodeIndexError {
+                        from_url: url.to_string(),
+                    }
+                })?;
+
+            let tmp_root = path::tmp_dir()?;
+            // Helper to lazily determine temp dir string, without moving the file into the closures below
+            let get_tmp_root = || tmp_root.to_string_lossy().to_string();
+
+            let cached = NamedTempFile::new_in(&tmp_root).with_context(|_| {
+                ErrorDetails::CreateTempFileError {
+                    in_dir: get_tmp_root(),
+                }
+            })?;
 
             // Block to borrow cached for cached_file.
             {
                 let mut cached_file: &File = cached.as_file();
-                cached_file.write(response_text.as_bytes()).unknown()?;
+                cached_file
+                    .write(response_text.as_bytes())
+                    .with_context(|_| ErrorDetails::WriteNodeIndexCacheError {
+                        file: cached.path().to_string_lossy().to_string(),
+                    })?;
             }
 
             let index_cache_file = path::node_index_file()?;
             ensure_containing_dir_exists(&index_cache_file)?;
-            cached.persist(index_cache_file).unknown()?;
+            cached.persist(&index_cache_file).with_context(|_| {
+                ErrorDetails::WriteNodeIndexCacheError {
+                    file: index_cache_file.to_string_lossy().to_string(),
+                }
+            })?;
 
-            let expiry: NamedTempFile = NamedTempFile::new_in(path::tmp_dir()?).unknown()?;
+            let expiry = NamedTempFile::new_in(&tmp_root).with_context(|_| {
+                ErrorDetails::CreateTempFileError {
+                    in_dir: get_tmp_root(),
+                }
+            })?;
 
             // Block to borrow expiry for expiry_file.
             {
                 let mut expiry_file: &File = expiry.as_file();
 
-                if let Some(expires_header) = response.headers().get_011::<Expires>() {
-                    write!(expiry_file, "{}", expires_header).unknown()?;
+                let result = if let Some(expires_header) = response.headers().get_011::<Expires>() {
+                    write!(expiry_file, "{}", expires_header)
                 } else {
                     let expiry_date =
                         SystemTime::now() + Duration::from_secs(max_age(&response).into());
 
-                    write!(expiry_file, "{}", HttpDate::from(expiry_date)).unknown()?;
-                }
+                    write!(expiry_file, "{}", HttpDate::from(expiry_date))
+                };
+
+                result.with_context(|_| ErrorDetails::WriteNodeIndexExpiryError {
+                    file: expiry.path().to_string_lossy().to_string(),
+                })?;
             }
 
             let index_expiry_file = path::node_index_expiry_file()?;
             ensure_containing_dir_exists(&index_expiry_file)?;
-            expiry.persist(index_expiry_file).unknown()?;
-
-            let serial: serial::NodeIndex = serde_json::de::from_str(&response_text).unknown()?;
+            expiry.persist(&index_expiry_file).with_context(|_| {
+                ErrorDetails::WriteNodeIndexExpiryError {
+                    file: index_expiry_file.to_string_lossy().to_string(),
+                }
+            })?;
 
             spinner.finish_and_clear();
-            Ok(serial)
+            Ok(index)
         }
     }
 }

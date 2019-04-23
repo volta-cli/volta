@@ -1,5 +1,6 @@
 use crate::platform::PlatformSpec;
 
+use crate::error::ErrorDetails;
 use crate::version::{option_version_serde, version_serde};
 use notion_fail::{Fallible, ResultExt};
 
@@ -25,7 +26,7 @@ pub struct Platform {
 }
 
 impl Platform {
-    pub fn into_image(self) -> Fallible<Option<PlatformSpec>> {
+    pub fn into_platform(self) -> Fallible<Option<PlatformSpec>> {
         let yarn = self.yarn;
         Ok(self.node.map(|node_version| PlatformSpec {
             node_runtime: node_version.runtime,
@@ -36,16 +37,18 @@ impl Platform {
 
     /// Deserialize the input JSON String into a Platform
     pub fn from_json(src: String) -> Fallible<Self> {
-        if src.is_empty() {
-            serde_json::de::from_str("{}").unknown()
+        let result = if src.is_empty() {
+            serde_json::de::from_str("{}")
         } else {
-            serde_json::de::from_str(&src).unknown()
-        }
+            serde_json::de::from_str(&src)
+        };
+
+        result.with_context(|_| ErrorDetails::ParsePlatformError)
     }
 
     /// Serialize the Platform to a JSON String
     pub fn to_json(self) -> Fallible<String> {
-        serde_json::to_string_pretty(&self).unknown()
+        serde_json::to_string_pretty(&self).with_context(|_| ErrorDetails::StringifyPlatformError)
     }
 }
 

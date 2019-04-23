@@ -13,7 +13,7 @@ use crate::fs::ensure_containing_dir_exists;
 use crate::fs::read_dir_eager;
 use crate::path;
 use crate::toolchain;
-use crate::version::{option_version_serde, version_serde};
+use crate::version::{option_version_serde, version_serde, VersionSpec};
 use notion_fail::{Fallible, ResultExt};
 
 use regex::Regex;
@@ -27,17 +27,20 @@ use serde::{Deserialize, Deserializer, Serialize};
 /// The regex should contain the `version` named capture by using the Rust regex
 /// syntax `?P<version>`.
 fn versions_matching(dir: &Path, re: &Regex) -> Fallible<BTreeSet<Version>> {
-    Ok(read_dir_eager(dir)?
+    let contents = read_dir_eager(dir).with_context(|_| ErrorDetails::ReadInventoryDirError {
+        dir: dir.to_string_lossy().to_string(),
+    })?;
+    contents
         .filter(|(_, metadata)| metadata.is_file())
         .filter_map(|(entry, _)| {
             if let Some(file_name) = entry.path().file_name() {
                 if let Some(caps) = re.captures(&file_name.to_string_lossy()) {
-                    return Some(Version::parse(&caps["version"]).unknown());
+                    return Some(VersionSpec::parse_version(&caps["version"]));
                 }
             }
             None
         })
-        .collect::<Fallible<BTreeSet<Version>>>()?)
+        .collect::<Fallible<BTreeSet<Version>>>()
 }
 
 fn lts_version_serde<'de, D>(deserializer: D) -> Result<bool, D::Error>
@@ -272,7 +275,10 @@ impl PackageMetadata {
 
 impl package::PackageConfig {
     pub fn from_file(file: &PathBuf) -> Fallible<Self> {
-        let config_src = read_to_string(file).unknown()?;
+        let config_src =
+            read_to_string(file).with_context(|_| ErrorDetails::ReadPackageConfigError {
+                file: file.to_string_lossy().to_string(),
+            })?;
         PackageConfig::from_json(config_src)?.into_config()
     }
 
@@ -288,7 +294,10 @@ impl package::PackageConfig {
 
 impl package::BinConfig {
     pub fn from_file(file: PathBuf) -> Fallible<Self> {
-        let config_src = read_to_string(file).unknown()?;
+        let config_src =
+            read_to_string(&file).with_context(|_| ErrorDetails::ReadBinConfigError {
+                file: file.to_string_lossy().to_string(),
+            })?;
         BinConfig::from_json(config_src)?.into_config()
     }
 
@@ -315,11 +324,12 @@ impl package::BinLoader {
 
 impl PackageConfig {
     pub fn to_json(&self) -> Fallible<String> {
-        serde_json::to_string_pretty(&self).unknown()
+        serde_json::to_string_pretty(&self)
+            .with_context(|_| ErrorDetails::StringifyPackageConfigError)
     }
 
     pub fn from_json(src: String) -> Fallible<Self> {
-        serde_json::de::from_str(&src).unknown()
+        serde_json::de::from_str(&src).with_context(|_| ErrorDetails::ParsePackageConfigError)
     }
 
     // write the package config info to disk
@@ -327,7 +337,9 @@ impl PackageConfig {
         let src = self.to_json()?;
         let config_file_path = path::user_package_config_file(&self.name)?;
         ensure_containing_dir_exists(&config_file_path)?;
-        write(config_file_path, src).unknown()
+        write(&config_file_path, src).with_context(|_| ErrorDetails::WritePackageConfigError {
+            file: config_file_path.to_string_lossy().to_string(),
+        })
     }
 
     pub fn into_config(self) -> Fallible<package::PackageConfig> {
@@ -336,7 +348,7 @@ impl PackageConfig {
             version: self.version,
             platform: self
                 .platform
-                .into_image()?
+                .into_platform()?
                 .ok_or(ErrorDetails::NoBinPlatform { binary: self.name })?,
             bins: self.bins,
         })
@@ -345,11 +357,11 @@ impl PackageConfig {
 
 impl BinConfig {
     pub fn to_json(&self) -> Fallible<String> {
-        serde_json::to_string_pretty(&self).unknown()
+        serde_json::to_string_pretty(&self).with_context(|_| ErrorDetails::StringifyBinConfigError)
     }
 
     pub fn from_json(src: String) -> Fallible<Self> {
-        serde_json::de::from_str(&src).unknown()
+        serde_json::de::from_str(&src).with_context(|_| ErrorDetails::ParseBinConfigError)
     }
 
     // write the binary config info to disk
@@ -357,7 +369,9 @@ impl BinConfig {
         let src = self.to_json()?;
         let bin_config_path = path::user_tool_bin_config(&self.name)?;
         ensure_containing_dir_exists(&bin_config_path)?;
-        write(bin_config_path, src).unknown()
+        write(&bin_config_path, src).with_context(|_| ErrorDetails::WriteBinConfigError {
+            file: bin_config_path.to_string_lossy().to_string(),
+        })
     }
 
     pub fn into_config(self) -> Fallible<package::BinConfig> {
@@ -368,7 +382,7 @@ impl BinConfig {
             path: self.path,
             platform: self
                 .platform
-                .into_image()?
+                .into_platform()?
                 .ok_or(ErrorDetails::NoBinPlatform { binary: self.name })?,
             loader: self.loader.map(|l| l.into_loader()),
         })

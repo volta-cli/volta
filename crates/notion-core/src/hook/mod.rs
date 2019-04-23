@@ -10,6 +10,7 @@ use crate::distro::node::NodeDistro;
 use crate::distro::package::PackageDistro;
 use crate::distro::yarn::YarnDistro;
 use crate::distro::Distro;
+use crate::error::ErrorDetails;
 use crate::fs::touch;
 use crate::path::user_hooks_file;
 use notion_fail::{Fallible, NotionError, ResultExt};
@@ -71,7 +72,11 @@ impl HookConfig {
     /// Returns the current hooks, loaded from the filesystem.
     fn current() -> Fallible<Self> {
         let path = user_hooks_file()?;
-        let src = touch(&path)?.read_into_string().unknown()?;
+        let src = touch(&path)
+            .and_then(|mut file| file.read_into_string())
+            .with_context(|_| ErrorDetails::ReadHooksError {
+                file: path.to_string_lossy().to_string(),
+            })?;
         src.parse()
     }
 }
@@ -80,8 +85,9 @@ impl FromStr for HookConfig {
     type Err = NotionError;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
-        let serial: serial::HookConfig = toml::from_str(src).unknown()?;
-        Ok(serial.into_hook_config()?)
+        let serial: serial::HookConfig =
+            toml::from_str(src).with_context(|_| ErrorDetails::ParseHooksError)?;
+        serial.into_hook_config()
     }
 }
 

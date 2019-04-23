@@ -1,7 +1,6 @@
 //! Types representing Notion Tool Hooks.
 
 use std::ffi::OsString;
-use std::io::Read;
 use std::process::Stdio;
 
 use crate::command::create_command;
@@ -76,16 +75,21 @@ fn execute_binary(bin: &str, extra_arg: Option<String>) -> Fallible<String> {
         args.push(OsString::from(arg));
     }
 
-    let child = create_command(cmd)
+    let output = create_command(cmd)
         .args(&args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .spawn()
-        .unknown()?;
+        .output()
+        .with_context(|_| ErrorDetails::ExecuteHookError {
+            command: cmd.to_string(),
+        })?;
 
-    let mut url = String::new();
-    child.stdout.unwrap().read_to_string(&mut url).unknown()?;
+    let url =
+        String::from_utf8(output.stdout).with_context(|_| ErrorDetails::InvalidHookOutput {
+            command: cmd.to_string(),
+        })?;
+
     Ok(url.trim().to_string())
 }
 
