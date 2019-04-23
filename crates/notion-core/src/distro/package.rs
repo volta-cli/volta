@@ -30,9 +30,10 @@ use crate::style::{progress_bar, tool_version};
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
 use archive::{Archive, Tarball};
+use cfg_if::cfg_if;
 use tempfile::tempdir_in;
 
-cfg_if::cfg_if! {
+cfg_if! {
     if #[cfg(windows)] {
         use cmdline_words_parser::StrExt;
         use regex::Regex;
@@ -117,10 +118,11 @@ pub struct PackageConfig {
 ///     "node": {
 ///       "runtime": "11.10.1",
 ///       "npm": "6.7.0",
-///       "yarn": null
 ///     },
+///     "yarn": null,
 ///     "loader": {
-///       "exe": "node"
+///       "exe": "node",
+///       "args": []
 ///     }
 ///   }
 /// }
@@ -415,7 +417,7 @@ impl PackageVersion {
     fn write_config_and_shims(&self, platform_spec: &PlatformSpec) -> Fallible<()> {
         self.package_config(&platform_spec).to_serial().write()?;
         for (bin_name, bin_path) in self.bins.iter() {
-            let loader = self.determine_script_loader(bin_path)?;
+            let loader = self.determine_script_loader(bin_name, bin_path)?;
             self.bin_config(
                 bin_name.to_string(),
                 bin_path.to_string(),
@@ -432,16 +434,31 @@ impl PackageVersion {
 
     /// On Unix, shebang loaders work correctly, so we don't need to bother storing loader information
     #[cfg(unix)]
-    fn determine_script_loader(&self, _bin_path: &str) -> Fallible<Option<BinLoader>> {
+    fn determine_script_loader(
+        &self,
+        _bin_name: &str,
+        _bin_path: &str,
+    ) -> Fallible<Option<BinLoader>> {
         Ok(None)
     }
 
     /// On Windows, we need to read the executable and try to find a shebang loader
     /// If it exists, we store the loader in the BinConfig so that the shim can execute it correctly
     #[cfg(windows)]
-    fn determine_script_loader(&self, bin_path: &str) -> Fallible<Option<BinLoader>> {
-        let full_path = bin_full_path(&self.name, &self.version, bin_path)?;
-        let script = File::open(full_path).unknown()?;
+    fn determine_script_loader(
+        &self,
+        bin_name: &str,
+        bin_path: &str,
+    ) -> Fallible<Option<BinLoader>> {
+        let full_path = bin_full_path(&self.name, &self.version, bin_path, |_| {
+            ErrorDetails::DetermineBinaryLoaderError {
+                bin: bin_name.to_string(),
+            }
+        })?;
+        let script =
+            File::open(full_path).with_context(|_| ErrorDetails::DetermineBinaryLoaderError {
+                bin: bin_name.to_string(),
+            })?;
         if let Some(Ok(first_line)) = BufReader::new(script).lines().next() {
             // Note: Regex adapted from @zkochan/cmd-shim package used by Yarn
             // https://github.com/pnpm/cmd-shim/blob/bac160cc554e5157e4c5f5e595af30740be3519a/index.js#L42
@@ -561,15 +578,14 @@ pub struct UserTool {
 
 impl UserTool {
     pub fn from_config(bin_config: BinConfig, session: &mut Session) -> Fallible<Self> {
-        let image_dir =
-            path::package_image_dir(&bin_config.package, &bin_config.version.to_string())?;
-        // canonicalize because path is relative, and sometimes uses '.' char
-        let bin_path = image_dir
-            .join(&bin_config.path)
-            .canonicalize()
-            .with_context(|_| ErrorDetails::ExecutablePathError {
+        let bin_path = bin_full_path(
+            &bin_config.package,
+            &bin_config.version,
+            &bin_config.path,
+            |_| ErrorDetails::ExecutablePathError {
                 command: bin_config.name.clone(),
-            })?;
+            },
+        )?;
 
         // If the user does not have yarn set in the platform for this binary, use the default
         // This is necessary because some tools (e.g. ember-cli with the --yarn option) invoke `yarn`
@@ -604,12 +620,21 @@ impl UserTool {
     }
 }
 
-fn bin_full_path(package: &str, version: &Version, bin_path: &str) -> Fallible<PathBuf> {
+fn bin_full_path<P, E>(
+    package: &str,
+    version: &Version,
+    bin_path: P,
+    error_context: E,
+) -> Fallible<PathBuf>
+where
+    P: AsRef<Path>,
+    E: FnOnce(&io::Error) -> ErrorDetails,
+{
     // canonicalize because path is relative, and sometimes uses '.' char
     path::package_image_dir(package, &version.to_string())?
         .join(bin_path)
         .canonicalize()
-        .unknown()
+        .with_context(error_context)
 }
 
 /// Build a package install command using the specified directory and path

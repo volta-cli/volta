@@ -86,6 +86,11 @@ pub enum ErrorDetails {
         advice: String,
     },
 
+    /// Thrown when determining the loader for a binary encountered an error
+    DetermineBinaryLoaderError {
+        bin: String,
+    },
+
     DownloadToolNetworkError {
         tool: ToolSpec,
         from_url: String,
@@ -465,6 +470,9 @@ Please ensure that all dependencies have been installed.")
             ErrorDetails::DeprecatedCommandError { command, advice } => {
                 write!(f, "The subcommand `{}` is deprecated.\n{}", command, advice)
             }
+            ErrorDetails::DetermineBinaryLoaderError { bin } => write!(f, "Could not determine loader for executable '{}'
+
+{}", bin, REPORT_BUG_CTA),
             ErrorDetails::DownloadToolNetworkError { tool, from_url } => write!(
                 f,
                 "Could not download {}
@@ -791,6 +799,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::DeleteFileError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DepPackageReadError => ExitCode::FileSystemError,
             ErrorDetails::DeprecatedCommandError { .. } => ExitCode::InvalidArguments,
+            ErrorDetails::DetermineBinaryLoaderError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
             ErrorDetails::ExecutablePathError { .. } => ExitCode::UnknownError,
             ErrorDetails::ExecuteHookError { .. } => ExitCode::ExecutionFailure,

@@ -6,9 +6,9 @@ use std::io;
 use std::os::windows;
 use std::path::{Path, PathBuf};
 
-use dirs;
-
 use crate::error::ErrorDetails;
+use cfg_if::cfg_if;
+use dirs;
 use notion_fail::{Fallible, ResultExt};
 use winreg::enums::HKEY_LOCAL_MACHINE;
 use winreg::RegKey;
@@ -28,7 +28,7 @@ const NOTION_REGISTRY_PATH: &'static str = r#"Software\The Notion Maintainers\No
 // This Key needs to exactly match the Name from the above element in the Windows Installer
 const NOTION_INSTALL_DIR: &'static str = "InstallDir";
 
-cfg_if::cfg_if! {
+cfg_if! {
     if #[cfg(target_arch = "x86")] {
         pub const ARCH: &'static str = "x86";
     } else if #[cfg(target_arch = "x86_64")] {
