@@ -19,18 +19,10 @@ impl Tool for Node {
 
         if let Some(ref platform) = session.current_platform()? {
             let image = platform.checkout(session)?;
-            Ok(Self::from_components(
-                OsStr::new("node"),
-                args,
-                &image.path()?,
-            ))
+            Ok(Node(command_for(OsStr::new("node"), args, &image.path()?)))
         } else {
             throw!(ErrorDetails::NoPlatform);
         }
-    }
-
-    fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
-        Node(command_for(exe, args, path_var))
     }
 
     fn command(self) -> Command {

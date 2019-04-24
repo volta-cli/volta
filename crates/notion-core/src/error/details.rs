@@ -86,6 +86,11 @@ pub enum ErrorDetails {
         advice: String,
     },
 
+    /// Thrown when determining the loader for a binary encountered an error
+    DetermineBinaryLoaderError {
+        bin: String,
+    },
+
     DownloadToolNetworkError {
         tool: ToolSpec,
         from_url: String,
@@ -129,6 +134,9 @@ pub enum ErrorDetails {
     NoGlobalInstalls,
 
     NoHomeEnvironmentVar,
+
+    /// Thrown when the install dir could not be determined
+    NoInstallDir,
 
     NoLocalDataDir,
 
@@ -462,6 +470,9 @@ Please ensure that all dependencies have been installed.")
             ErrorDetails::DeprecatedCommandError { command, advice } => {
                 write!(f, "The subcommand `{}` is deprecated.\n{}", command, advice)
             }
+            ErrorDetails::DetermineBinaryLoaderError { bin } => write!(f, "Could not determine loader for executable '{}'
+
+{}", bin, REPORT_BUG_CTA),
             ErrorDetails::DownloadToolNetworkError { tool, from_url } => write!(
                 f,
                 "Could not download {}
@@ -511,6 +522,9 @@ Use `notion install` to add a package to your toolchain (see `notion help instal
 
 Please ensure the environment variable 'HOME' is set.")
             }
+            ErrorDetails::NoInstallDir => write!(f, "Could not determine Notion install directory.
+
+Please ensure Notion was installed correctly"),
             ErrorDetails::NoLocalDataDir => write!(f, "Could not determine LocalAppData directory.
 
 Please ensure the directory is available."),
@@ -785,6 +799,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::DeleteFileError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DepPackageReadError => ExitCode::FileSystemError,
             ErrorDetails::DeprecatedCommandError { .. } => ExitCode::InvalidArguments,
+            ErrorDetails::DetermineBinaryLoaderError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
             ErrorDetails::ExecutablePathError { .. } => ExitCode::UnknownError,
             ErrorDetails::ExecuteHookError { .. } => ExitCode::ExecutionFailure,
@@ -796,6 +811,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NoGlobalInstalls => ExitCode::InvalidArguments,
             ErrorDetails::NoHomeEnvironmentVar => ExitCode::EnvironmentError,
+            ErrorDetails::NoInstallDir => ExitCode::EnvironmentError,
             ErrorDetails::NoLocalDataDir => ExitCode::EnvironmentError,
             ErrorDetails::NoPackageExecutables { .. } => ExitCode::InvalidArguments,
             ErrorDetails::NoPinnedNodeVersion => ExitCode::ConfigurationError,

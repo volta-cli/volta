@@ -12,6 +12,7 @@ use hex;
 use semver::Version;
 use sha1::{Digest, Sha1};
 
+use crate::command::create_command;
 use crate::distro::{download_tool_error, Distro, Fetched};
 use crate::error::ErrorDetails;
 use crate::fs::{
@@ -29,7 +30,16 @@ use crate::style::{progress_bar, tool_version};
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
 use archive::{Archive, Tarball};
+use cfg_if::cfg_if;
 use tempfile::tempdir_in;
+
+cfg_if! {
+    if #[cfg(windows)] {
+        use cmdline_words_parser::StrExt;
+        use regex::Regex;
+        use std::io::{BufRead, BufReader};
+    }
+}
 
 use notion_fail::{throw, Fallible, ResultExt};
 
@@ -109,7 +119,11 @@ pub struct PackageConfig {
 ///       "runtime": "11.10.1",
 ///       "npm": "6.7.0"
 ///     },
-///     "yarn": null
+///     "yarn": null,
+///     "loader": {
+///       "exe": "node",
+///       "args": []
+///     }
 ///   }
 /// }
 pub struct BinConfig {
@@ -123,6 +137,19 @@ pub struct BinConfig {
     pub path: String,
     /// The platform used to install this binary
     pub platform: PlatformSpec,
+    /// The loader information for the script, if any
+    pub loader: Option<BinLoader>,
+}
+
+/// Information about the Shebang script loader (e.g. `#!/usr/bin/env node`)
+///
+/// Only important for Windows at the moment, as Windows does not natively understand script
+/// loaders, so we need to provide that behavior when calling a script that uses one
+pub struct BinLoader {
+    /// The command used to run a script
+    pub command: String,
+    /// Any additional arguments specified for the loader
+    pub args: Vec<String>,
 }
 
 impl Distro for PackageDistro {
@@ -378,27 +405,82 @@ impl PackageVersion {
         &self,
         bin_name: String,
         bin_path: String,
-        platform_spec: &PlatformSpec,
+        platform_spec: PlatformSpec,
+        loader: Option<BinLoader>,
     ) -> BinConfig {
         BinConfig {
             name: bin_name,
             package: self.name.to_string(),
             version: self.version.clone(),
             path: bin_path,
-            platform: platform_spec.clone(),
+            platform: platform_spec,
+            loader,
         }
     }
 
     fn write_config_and_shims(&self, platform_spec: &PlatformSpec) -> Fallible<()> {
         self.package_config(&platform_spec).to_serial().write()?;
         for (bin_name, bin_path) in self.bins.iter() {
-            self.bin_config(bin_name.to_string(), bin_path.to_string(), &platform_spec)
-                .to_serial()
-                .write()?;
+            let loader = self.determine_script_loader(bin_name, bin_path)?;
+            self.bin_config(
+                bin_name.to_string(),
+                bin_path.to_string(),
+                platform_spec.clone(),
+                loader,
+            )
+            .to_serial()
+            .write()?;
             // create a link to the shim executable
             shim::create(&bin_name)?;
         }
         Ok(())
+    }
+
+    /// On Unix, shebang loaders work correctly, so we don't need to bother storing loader information
+    #[cfg(unix)]
+    fn determine_script_loader(
+        &self,
+        _bin_name: &str,
+        _bin_path: &str,
+    ) -> Fallible<Option<BinLoader>> {
+        Ok(None)
+    }
+
+    /// On Windows, we need to read the executable and try to find a shebang loader
+    /// If it exists, we store the loader in the BinConfig so that the shim can execute it correctly
+    #[cfg(windows)]
+    fn determine_script_loader(
+        &self,
+        bin_name: &str,
+        bin_path: &str,
+    ) -> Fallible<Option<BinLoader>> {
+        let full_path = bin_full_path(&self.name, &self.version, bin_path, |_| {
+            ErrorDetails::DetermineBinaryLoaderError {
+                bin: bin_name.to_string(),
+            }
+        })?;
+        let script =
+            File::open(full_path).with_context(|_| ErrorDetails::DetermineBinaryLoaderError {
+                bin: bin_name.to_string(),
+            })?;
+        if let Some(Ok(first_line)) = BufReader::new(script).lines().next() {
+            // Note: Regex adapted from @zkochan/cmd-shim package used by Yarn
+            // https://github.com/pnpm/cmd-shim/blob/bac160cc554e5157e4c5f5e595af30740be3519a/index.js#L42
+            let re = Regex::new(r#"^#!\s*(?:/usr/bin/env)?\s*(?P<exe>[^ \t]+) ?(?P<args>.*)$"#)
+                .expect("Regex is valid");
+            if let Some(caps) = re.captures(&first_line) {
+                let args = caps["args"]
+                    .to_string()
+                    .parse_cmdline_words()
+                    .map(|word| word.to_string())
+                    .collect();
+                return Ok(Some(BinLoader {
+                    command: caps["exe"].to_string(),
+                    args,
+                }));
+            }
+        }
+        Ok(None)
     }
 
     /// Uninstall the specified package.
@@ -442,8 +524,7 @@ impl PackageVersion {
     }
 
     fn remove_config_and_shims(bin_name: &str, name: &str) -> Fallible<()> {
-        let shim = path::shim_file(&bin_name)?;
-        fs::remove_file(&shim).with_context(delete_file_error(&shim))?;
+        shim::delete(bin_name)?;
         let config_file = path::user_tool_bin_config(&bin_name)?;
         fs::remove_file(&config_file).with_context(delete_file_error(&config_file))?;
         println!("Removed executable '{}' installed by '{}'", bin_name, name);
@@ -478,12 +559,12 @@ impl Installer {
     pub fn cmd(&self) -> Command {
         match self {
             Installer::Npm => {
-                let mut command = Command::new("npm");
+                let mut command = create_command("npm");
                 command.args(&["install", "--only=production"]);
                 command
             }
             Installer::Yarn => {
-                let mut command = Command::new("yarn");
+                let mut command = create_command("yarn");
                 command.args(&["install", "--production"]);
                 command
             }
@@ -496,19 +577,19 @@ impl Installer {
 pub struct UserTool {
     pub bin_path: PathBuf,
     pub image: Image,
+    pub loader: Option<BinLoader>,
 }
 
 impl UserTool {
     pub fn from_config(bin_config: BinConfig, session: &mut Session) -> Fallible<Self> {
-        let image_dir =
-            path::package_image_dir(&bin_config.package, &bin_config.version.to_string())?;
-        // canonicalize because path is relative, and sometimes uses '.' char
-        let bin_path = image_dir
-            .join(&bin_config.path)
-            .canonicalize()
-            .with_context(|_| ErrorDetails::ExecutablePathError {
+        let bin_path = bin_full_path(
+            &bin_config.package,
+            &bin_config.version,
+            &bin_config.path,
+            |_| ErrorDetails::ExecutablePathError {
                 command: bin_config.name.clone(),
-            })?;
+            },
+        )?;
 
         // If the user does not have yarn set in the platform for this binary, use the default
         // This is necessary because some tools (e.g. ember-cli with the --yarn option) invoke `yarn`
@@ -528,6 +609,7 @@ impl UserTool {
         Ok(UserTool {
             bin_path,
             image: platform.checkout(session)?,
+            loader: bin_config.loader,
         })
     }
 
@@ -540,6 +622,23 @@ impl UserTool {
             Ok(None) // no config means the tool is not installed
         }
     }
+}
+
+fn bin_full_path<P, E>(
+    package: &str,
+    version: &Version,
+    bin_path: P,
+    error_context: E,
+) -> Fallible<PathBuf>
+where
+    P: AsRef<Path>,
+    E: FnOnce(&io::Error) -> ErrorDetails,
+{
+    // canonicalize because path is relative, and sometimes uses '.' char
+    path::package_image_dir(package, &version.to_string())?
+        .join(bin_path)
+        .canonicalize()
+        .with_context(error_context)
 }
 
 /// Build a package install command using the specified directory and path

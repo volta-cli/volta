@@ -7,8 +7,10 @@ use std::marker::Sized;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 
+use crate::command::create_command;
 use crate::env::UNSAFE_GLOBAL;
 use crate::error::ErrorDetails;
+use crate::path;
 use crate::session::Session;
 use crate::version::VersionSpec;
 use notion_fail::{Fallible, ResultExt};
@@ -94,6 +96,8 @@ impl Display for ToolSpec {
 }
 
 pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
+    path::ensure_notion_dirs_exist()?;
+
     let mut args = args_os();
     let exe = get_tool_name(&mut args)?;
 
@@ -123,9 +127,6 @@ pub trait Tool: Sized {
 
     /// Constructs a new instance.
     fn new(args: Self::Arguments, session: &mut Session) -> Fallible<Self>;
-
-    /// Constructs a new instance, using the specified command-line and `PATH` variable.
-    fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self;
 
     /// Extracts the `Command` from this tool.
     fn command(self) -> Command;
@@ -159,8 +160,11 @@ fn tool_name_from_file_name(file_name: &OsStr) -> OsString {
     }
 }
 
-fn command_for(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Command {
-    let mut command = Command::new(exe);
+fn command_for<A>(exe: &OsStr, args: A, path_var: &OsStr) -> Command
+where
+    A: Iterator<Item = OsString>,
+{
+    let mut command = create_command(exe);
     command.args(args);
     command.env("PATH", path_var);
     command

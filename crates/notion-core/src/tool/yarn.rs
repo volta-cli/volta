@@ -26,15 +26,7 @@ impl Tool for Yarn {
         let platform = get_yarn_platform(session)?;
         let image = platform.checkout(session)?;
 
-        Ok(Self::from_components(
-            OsStr::new("yarn"),
-            args,
-            &image.path()?,
-        ))
-    }
-
-    fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
-        Yarn(command_for(exe, args, path_var))
+        Ok(Yarn(command_for(OsStr::new("yarn"), args, &image.path()?)))
     }
 
     fn command(self) -> Command {

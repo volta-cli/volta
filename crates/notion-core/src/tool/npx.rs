@@ -25,11 +25,7 @@ impl Tool for Npx {
             // should include a helpful error message
             let required_npm = VersionSpec::parse_version("5.2.0")?;
             if image.node.npm >= required_npm {
-                Ok(Self::from_components(
-                    OsStr::new("npx"),
-                    args,
-                    &image.path()?,
-                ))
+                Ok(Npx(command_for(OsStr::new("npx"), args, &image.path()?)))
             } else {
                 throw!(ErrorDetails::NpxNotAvailable {
                     version: image.node.npm.to_string()
@@ -38,10 +34,6 @@ impl Tool for Npx {
         } else {
             throw!(ErrorDetails::NoPlatform);
         }
-    }
-
-    fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
-        Npx(command_for(exe, args, path_var))
     }
 
     fn command(self) -> Command {

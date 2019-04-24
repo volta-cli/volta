@@ -23,18 +23,10 @@ impl Tool for Npm {
 
         if let Some(ref platform) = session.current_platform()? {
             let image = platform.checkout(session)?;
-            Ok(Self::from_components(
-                OsStr::new("npm"),
-                args,
-                &image.path()?,
-            ))
+            Ok(Npm(command_for(OsStr::new("npm"), args, &image.path()?)))
         } else {
             throw!(ErrorDetails::NoPlatform);
         }
-    }
-
-    fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
-        Npm(command_for(exe, args, path_var))
     }
 
     fn command(self) -> Command {

@@ -1,6 +1,7 @@
 use structopt::StructOpt;
 
 use crate::command::{self, Command};
+use notion_core::path;
 use notion_core::session::Session;
 use notion_fail::{ExitCode, Fallible};
 
@@ -37,6 +38,7 @@ pub(crate) struct Notion {
 
 impl Notion {
     pub(crate) fn run(self, session: &mut Session) -> Fallible<ExitCode> {
+        path::ensure_notion_dirs_exist()?;
         if self.version {
             println!("{}", env!("CARGO_PKG_VERSION"));
             Ok(ExitCode::Success)

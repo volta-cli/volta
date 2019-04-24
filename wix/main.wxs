@@ -1,0 +1,214 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<!--
+  Copyright (C) 2017 Christopher R. Field.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<!--
+  Please do not remove these pre-processor If-Else blocks. These are used with
+  the `cargo wix` subcommand to automatically determine the installation
+  destination for 32-bit versus 64-bit installers. Removal of these lines will
+  cause installation errors.
+-->
+<?if $(var.Platform) = x64 ?>
+    <?define Win64 = "yes" ?>
+    <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+<?else ?>
+  <?define Win64 = "no" ?>
+  <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+<?endif ?>
+
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+
+    <Product
+        Id='*'
+        Name='Notion'
+        UpgradeCode='42A39E14-335A-4464-AA37-17FDA38FA377'
+        Manufacturer='The Notion Maintainers'
+        Language='1033'
+        Codepage='1252'
+        Version='$(var.Version)'>
+
+        <Package Id='*'
+            Keywords='Installer'
+            Description='The Hassle-Free JavaScript Toolchain Manager'
+            Manufacturer='The Notion Maintainers'
+            InstallerVersion='450'
+            Languages='1033'
+            Compressed='yes'
+            InstallScope='perMachine'
+            SummaryCodepage='1252'
+            Platform='$(var.Platform)'/>
+
+        <MajorUpgrade
+            Schedule='afterInstallInitialize'
+            DowngradeErrorMessage='A newer version of [ProductName] is already installed. Setup will now exit.'/>
+
+        <Media Id='1' Cabinet='media1.cab' EmbedCab='yes' CompressionLevel='high'/>
+
+        <Directory Id='TARGETDIR' Name='SourceDir'>
+            <Directory Id='$(var.PlatformProgramFilesFolder)' Name='PFiles'>
+                <Directory Id='INSTALLDIR' Name='Notion'>
+                    <Component Id='shimBinary' Guid='*' Win64='$(var.Win64)'>
+                        <File
+                            Id='shimEXE'
+                            Name='shim.exe'
+                            DiskId='1'
+                            Source='target\release\shim.exe'
+                            KeyPath='yes'/>
+                    </Component>
+
+                    <Directory Id='INSTALLBINDIR' Name='bin'>
+                        <Component Id='InstallDir' Guid='*' Win64='$(var.Win64)'>
+                            <RegistryValue
+                                Root='HKLM'
+                                Key='Software\[Manufacturer]\[ProductName]'
+                                Name='InstallDir'
+                                Type='string'
+                                Value='[INSTALLDIR]'
+                                KeyPath='yes' />
+                            <Environment
+                                Id='INSTALLPATH'
+                                Name='PATH'
+                                Value='[INSTALLBINDIR]'
+                                Permanent='no'
+                                Part='first'
+                                Action='set'
+                                System='yes' />
+                        </Component>
+                    </Directory>
+                </Directory>
+            </Directory>
+            <Component Id='UserBinDir' Guid='*' Win64='$(var.Win64)'>
+                <RegistryValue
+                    Root='HKCU'
+                    Key='Software\[Manufacturer]\[ProductName]'
+                    Name='BinDir'
+                    Type='string'
+                    Value='[LocalAppDataFolder]Notion\bin'
+                    KeyPath='yes' />
+                <Environment
+                    Id='BINPATH'
+                    Name='PATH'
+                    Value='[LocalAppDataFolder]Notion\bin'
+                    Permanent='no'
+                    Part='first'
+                    Action='set'
+                    System='no' />
+            </Component>
+        </Directory>
+
+        <ComponentGroup Id='Binaries' Directory='INSTALLBINDIR'>
+            <Component Id='notionBinary' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='notionEXE'
+                    Name='notion.exe'
+                    DiskId='1'
+                    Source='target\release\notion.exe'
+                    KeyPath='yes'/>
+            </Component>
+            <Component Id='nodeBinary' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='nodeEXE'
+                    Name='node.exe'
+                    DiskId='1'
+                    Source='target\release\shim.exe'
+                    KeyPath='yes'/>
+            </Component>
+            <Component Id='npmBinary' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='npmEXE'
+                    Name='npm.exe'
+                    DiskId='1'
+                    Source='target\release\shim.exe'
+                    KeyPath='yes'/>
+            </Component>
+            <Component Id='npxBinary' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='npxEXE'
+                    Name='npx.exe'
+                    DiskId='1'
+                    Source='target\release\shim.exe'
+                    KeyPath='yes'/>
+            </Component>
+            <Component Id='yarnBinary' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='yarnEXE'
+                    Name='yarn.exe'
+                    DiskId='1'
+                    Source='target\release\shim.exe'
+                    KeyPath='yes'/>
+            </Component>
+        </ComponentGroup>
+
+        <Feature Id='MainProgram'>
+            <ComponentRef Id='InstallDir'/>
+            <ComponentRef Id='UserBinDir'/>
+            <ComponentRef Id='shimBinary'/>
+            <ComponentGroupRef Id='Binaries'/>
+        </Feature>
+
+        <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
+
+        
+        <!--
+          Uncomment the following `Icon` and `Property` tags to change the product icon.
+
+          The product icon is the graphic that appears in the Add/Remove
+          Programs control panel for the application.
+        -->
+        <Icon Id='ProductICO' SourceFile='wix\notion.ico'/>
+        <Property Id='ARPPRODUCTICON' Value='ProductICO' />
+
+        <Property Id='ARPHELPLINK' Value='https://github.com/notion-cli/notion'/>
+        <Property Id='LicenseAccepted' Value='1'/>
+
+        <UI>
+            <UIRef Id='WixUI_FeatureTree' />
+
+            <Publish Dialog='LicenseAgreementDlg' Control='Next' Event='NewDialog' Value='VerifyReadyDlg' Order='2'>1</Publish>
+            <Publish Dialog='VerifyReadyDlg' Control='Back' Event='NewDialog' Value='LicenseAgreementDlg' Order='2'>1</Publish>
+        </UI>
+
+        <!--
+          Enabling the EULA dialog in the installer requires uncommenting
+          the following `WixUILicenseRTF` tag and changing the `Value`
+          attribute.
+        -->
+        <WixVariable Id='WixUILicenseRtf' Value='wix\License.rtf'/>
+
+        <!--
+          Uncomment the next `WixVaraible` tag to customize the installer's
+          Graphical User Interface (GUI) and add a custom banner image across
+          the top of each screen. See the WiX Toolset documentation for details
+          about customization.
+
+          The banner BMP dimensions are 493 x 58 pixels.
+        -->
+        <!--<WixVariable Id='WixUIBannerBmp' Value='wix\Banner.bmp'/>-->
+
+        
+        <!--
+          Uncomment the next `WixVariable` tag to customize the installer's
+          Graphical User Interface (GUI) and add a custom image to the first
+          dialog, or screen. See the WiX Toolset documentation for details about
+          customization.
+
+          The dialog BMP dimensions are 493 x 312 pixels.
+        -->
+        <!--<WixVariable Id='WixUIDialogBmp' Value='wix\Dialog.bmp'/>-->
+
+    </Product>
+
+</Wix>

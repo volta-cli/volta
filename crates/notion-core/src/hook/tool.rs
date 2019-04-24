@@ -1,8 +1,9 @@
 //! Types representing Notion Tool Hooks.
 
 use std::ffi::OsString;
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 
+use crate::command::create_command;
 use crate::error::ErrorDetails;
 use crate::path::{ARCH, OS};
 use cmdline_words_parser::StrExt;
@@ -74,7 +75,7 @@ fn execute_binary(bin: &str, extra_arg: Option<String>) -> Fallible<String> {
         args.push(OsString::from(arg));
     }
 
-    let output = Command::new(cmd)
+    let output = create_command(cmd)
         .args(&args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())

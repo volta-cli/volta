@@ -1,5 +1,6 @@
 use std::env::ArgsOs;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
+use std::iter::once;
 use std::process::Command;
 
 use super::{command_for, Tool};
@@ -35,21 +36,21 @@ impl Tool for Binary {
                 // if we're in a pinned project, use the project's platform.
                 if let Some(ref platform) = project.platform() {
                     let image = platform.checkout(session)?;
-                    return Ok(Self::from_components(
-                        &path_to_bin.as_os_str(),
+                    return Ok(Binary(command_for(
+                        path_to_bin.as_os_str(),
                         params.args,
                         &image.path()?,
-                    ));
+                    )));
                 }
 
                 // otherwise use the user platform.
                 if let Some(ref platform) = session.user_platform()? {
                     let image = platform.checkout(session)?;
-                    return Ok(Self::from_components(
-                        &path_to_bin.as_os_str(),
+                    return Ok(Binary(command_for(
+                        path_to_bin.as_os_str(),
                         params.args,
                         &image.path()?,
-                    ));
+                    )));
                 }
 
                 // if there's no user platform selected, fail.
@@ -59,11 +60,21 @@ impl Tool for Binary {
 
         // try to use the user toolchain
         if let Some(user_tool) = session.get_user_tool(&params.executable)? {
-            return Ok(Self::from_components(
-                &user_tool.bin_path.as_os_str(),
-                params.args,
-                &user_tool.image.path()?,
-            ));
+            let tool_path = user_tool.bin_path.into_os_string();
+            let cmd = match user_tool.loader {
+                Some(loader) => command_for(
+                    loader.command.as_ref(),
+                    loader
+                        .args
+                        .iter()
+                        .map(|arg| OsString::from(arg))
+                        .chain(once(tool_path))
+                        .chain(params.args),
+                    &user_tool.image.path()?,
+                ),
+                None => command_for(&tool_path, params.args, &user_tool.image.path()?),
+            };
+            return Ok(Binary(cmd));
         }
 
         // at this point, there is no project or user toolchain
@@ -71,10 +82,6 @@ impl Tool for Binary {
         throw!(ErrorDetails::BinaryNotFound {
             name: params.executable.to_string_lossy().to_string(),
         });
-    }
-
-    fn from_components(exe: &OsStr, args: ArgsOs, path_var: &OsStr) -> Self {
-        Binary(command_for(exe, args, path_var))
     }
 
     fn command(self) -> Command {
