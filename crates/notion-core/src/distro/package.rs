@@ -117,7 +117,7 @@ pub struct PackageConfig {
 ///   "platform": {
 ///     "node": {
 ///       "runtime": "11.10.1",
-///       "npm": "6.7.0",
+///       "npm": "6.7.0"
 ///     },
 ///     "yarn": null,
 ///     "loader": {
@@ -141,9 +141,13 @@ pub struct BinConfig {
     pub loader: Option<BinLoader>,
 }
 
+/// Information about the Shebang script loader (e.g. `#!/usr/bin/env node`)
+///
+/// Only important for Windows at the moment, as Windows does not natively understand script
+/// loaders, so we need to provide that behavior when calling a script that uses one
 pub struct BinLoader {
-    /// The loader executable
-    pub exe: String,
+    /// The command used to run a script
+    pub command: String,
     /// Any additional arguments specified for the loader
     pub args: Vec<String>,
 }
@@ -401,7 +405,7 @@ impl PackageVersion {
         &self,
         bin_name: String,
         bin_path: String,
-        platform_spec: &PlatformSpec,
+        platform_spec: PlatformSpec,
         loader: Option<BinLoader>,
     ) -> BinConfig {
         BinConfig {
@@ -409,7 +413,7 @@ impl PackageVersion {
             package: self.name.to_string(),
             version: self.version.clone(),
             path: bin_path,
-            platform: platform_spec.clone(),
+            platform: platform_spec,
             loader,
         }
     }
@@ -421,7 +425,7 @@ impl PackageVersion {
             self.bin_config(
                 bin_name.to_string(),
                 bin_path.to_string(),
-                &platform_spec,
+                platform_spec.clone(),
                 loader,
             )
             .to_serial()
@@ -471,7 +475,7 @@ impl PackageVersion {
                     .map(|word| word.to_string())
                     .collect();
                 return Ok(Some(BinLoader {
-                    exe: caps["exe"].to_string(),
+                    command: caps["exe"].to_string(),
                     args,
                 }));
             }

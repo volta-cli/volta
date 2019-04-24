@@ -63,7 +63,7 @@ impl Tool for Binary {
             let tool_path = user_tool.bin_path.into_os_string();
             let cmd = match user_tool.loader {
                 Some(loader) => command_for(
-                    loader.exe.as_ref(),
+                    loader.command.as_ref(),
                     loader
                         .args
                         .iter()

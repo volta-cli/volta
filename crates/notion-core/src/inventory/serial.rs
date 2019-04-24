@@ -247,7 +247,7 @@ pub struct BinConfig {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BinLoader {
-    pub exe: String,
+    pub command: String,
     pub args: Vec<String>,
 }
 
@@ -316,7 +316,7 @@ impl package::BinConfig {
 impl package::BinLoader {
     pub fn to_serial(&self) -> BinLoader {
         BinLoader {
-            exe: self.exe.clone(),
+            command: self.command.clone(),
             args: self.args.clone(),
         }
     }
@@ -392,7 +392,7 @@ impl BinConfig {
 impl BinLoader {
     pub fn into_loader(self) -> package::BinLoader {
         package::BinLoader {
-            exe: self.exe,
+            command: self.command,
             args: self.args,
         }
     }
