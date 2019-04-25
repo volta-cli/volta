@@ -21,7 +21,7 @@ fn no_cause_shown_if_no_verbose_flag() {
         .build();
 
     assert_that!(
-        s.notion("install node 10"),
+        s.notion("install node@10"),
         execs()
             .with_status(ExitCode::NetworkError as i32)
             .with_stderr_does_not_contain("cause[..]")
@@ -33,7 +33,7 @@ fn cause_shown_if_verbose_flag() {
     let s = sandbox().node_available_versions(NODE_VERSION_INFO).build();
 
     assert_that!(
-        s.notion("install node 10 --verbose"),
+        s.notion("install node@10 --verbose"),
         execs()
             .with_status(ExitCode::NetworkError as i32)
             .with_stderr_contains("cause[..]")
@@ -57,7 +57,7 @@ fn error_log_if_underlying_cause() {
     let s = sandbox().node_available_versions(NODE_VERSION_INFO).build();
 
     assert_that!(
-        s.notion("install node 10"),
+        s.notion("install node@10"),
         execs()
             .with_status(ExitCode::NetworkError as i32)
             .with_stderr_contains("Error details written to[..]")

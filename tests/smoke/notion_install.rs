@@ -8,7 +8,7 @@ use test_support::matchers::execs;
 fn install_node() {
     let p = temp_project().build();
 
-    assert_that!(p.notion("install node 10.2.1"), execs().with_status(0));
+    assert_that!(p.notion("install node@10.2.1"), execs().with_status(0));
 
     assert_that!(
         p.node("--version"),
@@ -25,7 +25,7 @@ fn install_node() {
 fn install_node_lts() {
     let p = temp_project().build();
 
-    assert_that!(p.notion("install node lts"), execs().with_status(0));
+    assert_that!(p.notion("install node@lts"), execs().with_status(0));
 
     assert_that!(p.node("--version"), execs().with_status(0));
 }
@@ -34,8 +34,8 @@ fn install_node_lts() {
 fn install_yarn() {
     let p = temp_project().build();
 
-    assert_that!(p.notion("install node 10.2.1"), execs().with_status(0));
-    assert_that!(p.notion("install yarn 1.9.2"), execs().with_status(0));
+    assert_that!(p.notion("install node@10.2.1"), execs().with_status(0));
+    assert_that!(p.notion("install yarn@1.9.2"), execs().with_status(0));
 
     assert_that!(
         p.yarn("--version"),
@@ -54,14 +54,14 @@ fn install_npm() {
     let p = temp_project().build();
 
     // node 11.10.0 is bundled with npm 6.7.0
-    assert_that!(p.notion("install node 11.10.0"), execs().with_status(0));
+    assert_that!(p.notion("install node@11.10.0"), execs().with_status(0));
     assert_that!(
         p.npm("--version"),
         execs().with_status(0).with_stdout_contains("6.7.0")
     );
 
     // install npm 6.8.0 and verify that is installed correctly
-    assert_that!(p.notion("install npm 6.8.0"), execs().with_status(0));
+    assert_that!(p.notion("install npm@6.8.0"), execs().with_status(0));
     assert_eq!(p.npm_version_is_fetched("6.8.0"), true);
     assert_eq!(p.npm_version_is_unpacked("6.8.0"), true);
     p.assert_npm_version_is_installed("6.8.0");
@@ -85,7 +85,7 @@ const COWSAY_HELLO: &'static str = r#" _______
 fn install_package() {
     let p = temp_project().build();
 
-    assert_that!(p.notion("install cowsay 1.4.0"), execs().with_status(0));
+    assert_that!(p.notion("install cowsay@1.4.0"), execs().with_status(0));
     assert_eq!(p.shim_exists("cowsay"), true);
 
     assert_eq!(p.package_version_is_fetched("cowsay", "1.4.0"), true);
