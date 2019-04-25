@@ -2,33 +2,25 @@ use structopt::StructOpt;
 
 use notion_core::session::{ActivityKind, Session};
 use notion_core::tool::ToolSpec;
-use notion_core::version::VersionSpec;
 use notion_fail::{ExitCode, Fallible};
 
 use crate::command::Command;
 
 #[derive(StructOpt)]
 pub(crate) struct Install {
-    /// The tool to install, e.g. `node` or `npm` or `yarn`
-    tool: String,
-
-    /// The version of the tool to install, e.g. `1.2.3` or `latest`
-    version: Option<String>,
+    /// The tool to install, e.g. `node` or `npm` or `yarn`, with optional version.
+    #[structopt(multiple = true, parse(try_from_str = "ToolSpec::try_from_str"))]
+    tools: Vec<ToolSpec>,
 }
 
 impl Command for Install {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
-        session.add_event_start(ActivityKind::Install);
+        for tool in self.tools {
+            session.add_event_start(ActivityKind::Install);
+            tool.install(session)?;
+            session.add_event_end(ActivityKind::Install, ExitCode::Success);
+        }
 
-        let version = match self.version {
-            Some(version_string) => VersionSpec::parse(version_string)?,
-            None => VersionSpec::default(),
-        };
-        let tool = ToolSpec::from_str_and_version(&self.tool, version);
-
-        tool.install(session)?;
-
-        session.add_event_end(ActivityKind::Install, ExitCode::Success);
         Ok(ExitCode::Success)
     }
 }
