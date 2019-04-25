@@ -29,11 +29,11 @@ use self::npm::Npm;
 use self::npx::Npx;
 use self::yarn::Yarn;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub enum ToolSpec {
     Node(VersionSpec),
-    Yarn(VersionSpec),
     Npm(VersionSpec),
+    Yarn(VersionSpec),
     Package(String, VersionSpec),
 }
 

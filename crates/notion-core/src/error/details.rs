@@ -647,7 +647,6 @@ Please verify the requested package and version.", from_url),
 {}", REPORT_BUG_CTA),
             ErrorDetails::ParseToolSpecError { tool_spec } => write!(f, "Could not parse tool spec `{}`
 
-
 Please supply a spec in the format `<tool name>[@<version>]`.", tool_spec),
             ErrorDetails::PublishHookBothUrlAndBin => write!(f, "Publish hook configuration includes both hook types.
 
