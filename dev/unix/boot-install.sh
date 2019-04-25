@@ -43,17 +43,20 @@ notion_install_dir() {
 
 # Check for an existing installation that needs to be removed.
 notion_check_existing_installation() {
-  local INSTALL_DIR
-  INSTALL_DIR="$(notion_install_dir)"
-
-  local NOTION_BIN
-  NOTION_BIN="${INSTALL_DIR}/notion"
+  local LATEST_VERSION="$1"
+  local INSTALL_DIR="$(notion_install_dir)"
+  local NOTION_BIN="${INSTALL_DIR}/notion"
 
   if [[ -n "$INSTALL_DIR" && -x "$NOTION_BIN" ]]; then
-    local PREV_NOTION_VERSION    
+    local PREV_NOTION_VERSION
     # Some 0.1.* builds would eagerly validate package.json even for benign commands,
     # so just to be safe we'll ignore errors and consider those to be 0.1 as well.
-    PREV_NOTION_VERSION="$(($NOTION_BIN --version 2>/dev/null || echo 0.1) | sed -E 's/^.*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')"
+    PREV_NOTION_VERSION="$( ($NOTION_BIN --version 2>/dev/null || echo 0.1) | sed -E 's/^.*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')"
+    if [ "$PREV_NOTION_VERSION" == "$LATEST_VERSION" ]; then
+      notion_eprintf ""
+      notion_eprintf "Latest version $LATEST_VERSION already installed"
+      exit 0
+    fi
     if [[ "$PREV_NOTION_VERSION" == 0.1* || "$PREV_NOTION_VERSION" == 0.2* ]]; then
       notion_eprintf ""
       notion_error "Your Notion installation is out of date and can't be automatically upgraded."
@@ -91,10 +94,11 @@ notion_get_openssl_version() {
   echo "${MAJOR}.${MINOR}"
 }
 
-notion_info 'Checking' "for existing Notion installation"
-notion_check_existing_installation
-
 NOTION_LATEST_VERSION=$(notion_get_latest_release)
+
+notion_info 'Checking' "for existing Notion installation"
+notion_check_existing_installation "$NOTION_LATEST_VERSION"
+
 
 case $(uname) in
     Linux)
