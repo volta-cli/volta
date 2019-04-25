@@ -7,6 +7,8 @@ use std::marker::Sized;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 
+use regex::Regex;
+
 use crate::command::create_command;
 use crate::env::UNSAFE_GLOBAL;
 use crate::error::ErrorDetails;
@@ -27,6 +29,7 @@ use self::npm::Npm;
 use self::npx::Npx;
 use self::yarn::Yarn;
 
+#[derive(PartialEq)]
 pub enum ToolSpec {
     Node(VersionSpec),
     Yarn(VersionSpec),
@@ -68,6 +71,28 @@ impl ToolSpec {
             }
         }
         Ok(())
+    }
+
+    pub fn try_from_str(tool_spec: &str) -> Fallible<Self> {
+        let re = Regex::new("(?P<name>@?[-/_A-z]+)(@(?P<version>.+))?").expect("regex is valid");
+        let captures = re
+            .captures(tool_spec)
+            .ok_or(ErrorDetails::ParseToolSpecError {
+                tool_spec: tool_spec.into(),
+            })?;
+
+        let version = captures
+            .name("version")
+            .map(|version| VersionSpec::parse(version.as_str()))
+            .transpose()?
+            .unwrap_or_else(VersionSpec::default);
+
+        Ok(match &captures["name"] {
+            "node" => ToolSpec::Node(version),
+            "yarn" => ToolSpec::Yarn(version),
+            "npm" => ToolSpec::Npm(version),
+            package => ToolSpec::Package(package.into(), version),
+        })
     }
 }
 
@@ -173,4 +198,211 @@ where
 fn intercept_global_installs() -> bool {
     // We should only intercept global installs if the NOTION_UNSAFE_GLOBAL variable is not set
     env::var_os(UNSAFE_GLOBAL).is_none()
+}
+
+#[cfg(test)]
+mod tests {
+    mod try_from_str {
+        use std::str::FromStr as _;
+
+        use super::super::ToolSpec;
+        use crate::version::VersionSpec;
+
+        const LTS: &str = "lts";
+        const LATEST: &str = "latest";
+        const MAJOR: &str = "3";
+        const MINOR: &str = "3.0";
+        const PATCH: &str = "3.0.0";
+
+        /// Convenience macro for generating the <tool>@<version> string.
+        macro_rules! versioned_tool {
+            ($tool:expr, $version:expr) => {
+                format!("{}@{}", $tool, $version)
+            };
+        }
+
+        #[test]
+        fn parses_bare_node() {
+            assert_eq!(
+                ToolSpec::try_from_str("node").expect("succeeds"),
+                ToolSpec::Node(VersionSpec::default())
+            );
+        }
+
+        #[test]
+        fn parses_node_with_valid_versions() {
+            let tool = "node";
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(tool, MAJOR)).expect("succeeds"),
+                ToolSpec::Node(
+                    VersionSpec::from_str(MAJOR).expect("`VersionSpec` has its own tests")
+                )
+            );
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(tool, MINOR)).expect("succeeds"),
+                ToolSpec::Node(
+                    VersionSpec::from_str(MINOR).expect("`VersionSpec` has its own tests")
+                )
+            );
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(tool, PATCH)).expect("succeeds"),
+                ToolSpec::Node(
+                    VersionSpec::from_str(PATCH).expect("`VersionSpec` has its own tests")
+                )
+            );
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(tool, LATEST)).expect("succeeds"),
+                ToolSpec::Node(VersionSpec::Latest)
+            );
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(tool, LTS)).expect("succeeds"),
+                ToolSpec::Node(VersionSpec::Lts)
+            );
+        }
+
+        #[test]
+        fn parses_bare_yarn() {
+            assert_eq!(
+                ToolSpec::try_from_str("yarn").expect("succeeds"),
+                ToolSpec::Yarn(VersionSpec::default())
+            );
+        }
+
+        #[test]
+        fn parses_yarn_with_valid_versions() {
+            let tool = "yarn";
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(tool, MAJOR)).expect("succeeds"),
+                ToolSpec::Yarn(
+                    VersionSpec::from_str(MAJOR).expect("`VersionSpec` has its own tests")
+                )
+            );
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(tool, MINOR)).expect("succeeds"),
+                ToolSpec::Yarn(
+                    VersionSpec::from_str(MINOR).expect("`VersionSpec` has its own tests")
+                )
+            );
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(tool, PATCH)).expect("succeeds"),
+                ToolSpec::Yarn(
+                    VersionSpec::from_str(PATCH).expect("`VersionSpec` has its own tests")
+                )
+            );
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(tool, LATEST)).expect("succeeds"),
+                ToolSpec::Yarn(VersionSpec::Latest)
+            );
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(tool, LTS)).expect("succeeds"),
+                ToolSpec::Yarn(VersionSpec::Lts)
+            );
+        }
+
+        #[test]
+        fn parses_bare_packages() {
+            let package = "ember-cli";
+            assert_eq!(
+                ToolSpec::try_from_str(package).expect("succeeds"),
+                ToolSpec::Package(package.into(), VersionSpec::default())
+            );
+        }
+
+        #[test]
+        fn parses_namespaced_packages() {
+            let package = "@types/lodash";
+            assert_eq!(
+                ToolSpec::try_from_str(package).expect("succeeds"),
+                ToolSpec::Package(package.into(), VersionSpec::default())
+            );
+        }
+
+        #[test]
+        fn parses_bare_packages_with_valid_versions() {
+            let package = "something-awesome";
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(package, MAJOR)).expect("succeeds"),
+                ToolSpec::Package(
+                    package.into(),
+                    VersionSpec::from_str(MAJOR).expect("`VersionSpec` has its own tests")
+                )
+            );
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(package, MINOR)).expect("succeeds"),
+                ToolSpec::Package(
+                    package.into(),
+                    VersionSpec::from_str(MINOR).expect("`VersionSpec` has its own tests")
+                )
+            );
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(package, PATCH)).expect("succeeds"),
+                ToolSpec::Package(
+                    package.into(),
+                    VersionSpec::from_str(PATCH).expect("`VersionSpec` has its own tests")
+                )
+            );
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(package, LATEST)).expect("succeeds"),
+                ToolSpec::Package(package.into(), VersionSpec::Latest)
+            );
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(package, LTS)).expect("succeeds"),
+                ToolSpec::Package(package.into(), VersionSpec::Lts)
+            );
+        }
+
+        #[test]
+        fn parses_namespaced_packages_with_valid_versions() {
+            let package = "@something/awesome";
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(package, MAJOR)).expect("succeeds"),
+                ToolSpec::Package(
+                    package.into(),
+                    VersionSpec::from_str(MAJOR).expect("`VersionSpec` has its own tests")
+                )
+            );
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(package, MINOR)).expect("succeeds"),
+                ToolSpec::Package(
+                    package.into(),
+                    VersionSpec::from_str(MINOR).expect("`VersionSpec` has its own tests")
+                )
+            );
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(package, PATCH)).expect("succeeds"),
+                ToolSpec::Package(
+                    package.into(),
+                    VersionSpec::from_str(PATCH).expect("`VersionSpec` has its own tests")
+                )
+            );
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(package, LATEST)).expect("succeeds"),
+                ToolSpec::Package(package.into(), VersionSpec::Latest)
+            );
+
+            assert_eq!(
+                ToolSpec::try_from_str(&versioned_tool!(package, LTS)).expect("succeeds"),
+                ToolSpec::Package(package.into(), VersionSpec::Lts)
+            );
+        }
+    }
 }

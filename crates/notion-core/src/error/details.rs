@@ -227,6 +227,11 @@ pub enum ErrorDetails {
     /// Thrown when unable to parse the platform.json file
     ParsePlatformError,
 
+    /// Thrown when unable to parse a tool spec (`<tool>[@<version>]`)
+    ParseToolSpecError {
+        tool_spec: String,
+    },
+
     /// Thrown when a publish hook contains both the url and bin fields
     PublishHookBothUrlAndBin,
 
@@ -640,6 +645,10 @@ Please verify the requested package and version.", from_url),
             ErrorDetails::ParsePlatformError => write!(f, "Could not parse platform settings file.
 
 {}", REPORT_BUG_CTA),
+            ErrorDetails::ParseToolSpecError { tool_spec } => write!(f, "Could not parse tool spec `{}`
+
+
+Please supply a spec in the format `<tool name>[@<version>]`.", tool_spec),
             ErrorDetails::PublishHookBothUrlAndBin => write!(f, "Publish hook configuration includes both hook types.
 
 Please include only one of 'bin' or 'url'"),
@@ -830,6 +839,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::PackageWriteError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ParseBinConfigError => ExitCode::UnknownError,
             ErrorDetails::ParseHooksError => ExitCode::ConfigurationError,
+            ErrorDetails::ParseToolSpecError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::ParseNodeIndexCacheError => ExitCode::UnknownError,
             ErrorDetails::ParseNodeIndexError { .. } => ExitCode::NetworkError,
             ErrorDetails::ParseNodeIndexExpiryError => ExitCode::UnknownError,

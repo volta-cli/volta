@@ -10,7 +10,7 @@ use notion_fail::{Fallible, ResultExt};
 
 use self::serial::parse_requirements;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum VersionSpec {
     Latest,
     Lts,
