@@ -18,3 +18,8 @@ steps:
       NOTION_DEV: 1
       RUST_BACKTRACE: full
     displayName: Smoke Tests
+
+  # shell script tests for Linux & macOS
+  - script: bats dev/unix/tests/
+    displayName: Shell Script Tests (not Windows)
+    condition: not(eq(variables['Agent.OS'], 'Windows_NT'))
