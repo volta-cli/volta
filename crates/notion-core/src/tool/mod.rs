@@ -7,7 +7,11 @@ use std::marker::Sized;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 
+use lazy_static::lazy_static;
 use regex::Regex;
+
+use notion_fail::{Fallible, ResultExt};
+use validate_npm_package_name::{validate, Validity};
 
 use crate::command::create_command;
 use crate::env::UNSAFE_GLOBAL;
@@ -15,7 +19,6 @@ use crate::error::ErrorDetails;
 use crate::path;
 use crate::session::Session;
 use crate::version::VersionSpec;
-use notion_fail::{Fallible, ResultExt};
 
 mod binary;
 mod node;
@@ -28,6 +31,12 @@ use self::node::Node;
 use self::npm::Npm;
 use self::npx::Npx;
 use self::yarn::Yarn;
+
+lazy_static! {
+    static ref TOOL_SPEC_PATTERN: Regex =
+        Regex::new("^(?P<name>(?:@([^/]+?)[/])?([^/]+?))(@(?P<version>.+))?$")
+            .expect("regex is valid");
+}
 
 /// Specification for a tool and its associated version.
 ///
@@ -82,13 +91,25 @@ impl ToolSpec {
         Ok(())
     }
 
+    /// Try to parse a tool and version from a string like `<tool>[@<version>].
     pub fn try_from_str(tool_spec: &str) -> Fallible<Self> {
-        let re = Regex::new("(?P<name>@?[-/_A-z]+)(@(?P<version>.+))?").expect("regex is valid");
-        let captures = re
-            .captures(tool_spec)
-            .ok_or(ErrorDetails::ParseToolSpecError {
+        let captures =
+            TOOL_SPEC_PATTERN
+                .captures(tool_spec)
+                .ok_or(ErrorDetails::ParseToolSpecError {
+                    tool_spec: tool_spec.into(),
+                })?;
+
+        // Validate that the captured name is a valid NPM package name.
+        let name = &captures["name"];
+        if let Validity::Invalid { errors, warnings } = validate(name) {
+            dbg!(errors);
+            dbg!(warnings);
+            return Err(ErrorDetails::ParseToolSpecError {
                 tool_spec: tool_spec.into(),
-            })?;
+            }
+            .into());
+        }
 
         let version = captures
             .name("version")
@@ -96,7 +117,7 @@ impl ToolSpec {
             .transpose()?
             .unwrap_or_default();
 
-        Ok(match &captures["name"] {
+        Ok(match name {
             "node" => ToolSpec::Node(version),
             "npm" => ToolSpec::Npm(version),
             "yarn" => ToolSpec::Yarn(version),
