@@ -41,13 +41,21 @@ parse_os_info() {
 
   case "$uname_str" in
     Linux)
-      echo "linux-openssl-$(parse_openssl_version "$openssl_version")"
+      major_minor="$(parse_openssl_version "$openssl_version")"
+      # if there was an error, return
+      exit_code="$?"
+      if [ "$exit_code" != 0 ]
+      then
+        return "$exit_code"
+      fi
+
+      echo "linux-openssl-$major_minor"
       ;;
     Darwin)
       echo "macos"
       ;;
     *)
-      notion_error "Releases for '$uname_str' are not yet supported. Please modify this script and the install script to support this OS."
+      notion_error "Releases for '$uname_str' are not yet supported. You will need to modify this script and the install script to support this OS."
       return 1
   esac
   return 0
@@ -55,30 +63,37 @@ parse_os_info() {
 
 # parse the OpenSSL version from the input text
 parse_openssl_version() {
-  let version_str="$1"
+  local version_str="$1"
 
-  if [[ "$version_str" =~ ([^ ]*)\ (\d+).(\d+).(\d+) ]]
+  if [[ "$version_str" =~ ^([^\ ]*)\ ([0-9]+\.[0-9]+) ]]
   then
-    echo "matched $version_str" >&2
+    # check that lib name is 'OpenSSL'
+    libname="${BASH_REMATCH[1]}"
+    if [[ "$libname" != "OpenSSL" ]]; then
+      notion_error "Releases for '$libname' not currently supported"
+      return 1
+    fi
+    echo "${BASH_REMATCH[2]}"
     return 0
   else
-    echo "could NOT match $version_str" >&2
+    notion_error "Could not determine OpenSSL version for '$version_str'"
     return 1
   fi
 }
 
 ### END FUNCTIONS
 
+# exit on error
+set -e
+
 # read the current version from Cargo.toml
 cargo_toml_contents="$(<Cargo.toml)"
 NOTION_VERSION="$(parse_version "$cargo_toml_contents")"
-# TODO: check exit code
 
 # figure out the OS details
 os="$(uname -s)"
 openssl_version="$(openssl version)"
 NOTION_OS="$(parse_os_info "$os" "$openssl_version")"
-# TODO: check exit code
 
 release_filename="notion-$NOTION_VERSION-$NOTION_OS"
 
