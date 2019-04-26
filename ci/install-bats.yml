@@ -5,8 +5,13 @@ steps:
       set -e
       git clone https://github.com/bats-core/bats-core.git "$HOME/bats-core"
       echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/bats-core/bin"
-      bats --version
     displayName: Install Bats (not Windows)
+    condition: not(eq(variables['Agent.OS'], 'Windows_NT'))
+
+  # after modifying PATH it should be available to downstream steps
+  - script: |
+      bats --version
+    displayName: Log Bats Version (not Windows)
     condition: not(eq(variables['Agent.OS'], 'Windows_NT'))
 
   # no script for Windows because it does not use the Unix shell scripts
