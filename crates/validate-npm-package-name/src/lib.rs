@@ -10,6 +10,50 @@ lazy_static! {
         Regex::new(r"^(?:@([^/]+?)[/])?([^/]+?)$").expect("regex is valid");
     static ref SPECIAL_CHARS: Regex = Regex::new(r"[~'!()*]").expect("regex is valid");
     static ref BLACKLIST: Vec<&'static str> = vec!["node_modules", "favicon.ico"];
+
+    // Borrowed from https://github.com/juliangruber/builtins
+    static ref BUILTINS: Vec<&'static str> = vec![
+        "assert",
+        "buffer",
+        "child_process",
+        "cluster",
+        "console",
+        "constants",
+        "crypto",
+        "dgram",
+        "dns",
+        "domain",
+        "events",
+        "fs",
+        "http",
+        "https",
+        "module",
+        "net",
+        "os",
+        "path",
+        "punycode",
+        "querystring",
+        "readline",
+        "repl",
+        "stream",
+        "string_decoder",
+        "sys",
+        "timers",
+        "tls",
+        "tty",
+        "url",
+        "util",
+        "vm",
+        "zlib",
+        "freelist",
+        // excluded only in some versions
+        "freelist",
+        "v8",
+        "process",
+        "async_hooks",
+        "http2",
+        "perf_hooks",
+    ];
 }
 
 pub enum Validity {
@@ -70,12 +114,12 @@ pub fn validate(name: &str) -> Validity {
     }
 
     // Generate warnings for stuff that used to be allowed
-    // TODO: is there a way to get the list of Node built-ins programmatically?
-    // for builtin in BUILTIN {
-    //     if name.to_lowercase() == builtin {
-    //         warnings.push(format!("{} is a core module name", builtin));
-    //     }
-    // }
+
+    for builtin in BUILTINS {
+        if name.to_lowercase() == builtin {
+            warnings.push(format!("{} is a core module name", builtin));
+        }
+    }
 
     // really-long-package-names-------------------------------such--length-----many---wow
     // the thisisareallyreallylongpackagenameitshouldpublishdowenowhavealimittothelengthofpackagenames-poch.
