@@ -20,10 +20,10 @@ pub(crate) struct Fetch {
 
 impl Command for Fetch {
     fn run(mut self, session: &mut Session) -> Fallible<ExitCode> {
-        self.tools.sort();
+        session.add_event_start(ActivityKind::Fetch);
 
+        self.tools.sort();
         for tool in self.tools {
-            session.add_event_start(ActivityKind::Fetch);
             match tool {
                 ToolSpec::Node(version) => {
                     session.fetch_node(&version)?;
@@ -39,9 +39,9 @@ impl Command for Fetch {
                     session.fetch_package(&name, &version)?;
                 }
             }
-            session.add_event_end(ActivityKind::Fetch, ExitCode::Success);
         }
 
+        session.add_event_end(ActivityKind::Fetch, ExitCode::Success);
         Ok(ExitCode::Success)
     }
 }

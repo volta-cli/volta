@@ -21,10 +21,10 @@ pub(crate) struct Pin {
 
 impl Command for Pin {
     fn run(mut self, session: &mut Session) -> Fallible<ExitCode> {
-        self.tools.sort();
+        session.add_event_start(ActivityKind::Pin);
 
+        self.tools.sort();
         for tool in self.tools {
-            session.add_event_start(ActivityKind::Pin);
             match tool {
                 ToolSpec::Node(version) => session.pin_node(&version)?,
                 ToolSpec::Yarn(version) => session.pin_yarn(&version)?,
@@ -34,9 +34,9 @@ impl Command for Pin {
                     throw!(ErrorDetails::CannotPinPackage { package: name })
                 }
             }
-            session.add_event_end(ActivityKind::Pin, ExitCode::Success);
         }
 
+        session.add_event_end(ActivityKind::Pin, ExitCode::Success);
         Ok(ExitCode::Success)
     }
 }

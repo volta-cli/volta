@@ -20,14 +20,14 @@ pub(crate) struct Install {
 
 impl Command for Install {
     fn run(mut self, session: &mut Session) -> Fallible<ExitCode> {
-        self.tools.sort();
+        session.add_event_start(ActivityKind::Install);
 
+        self.tools.sort();
         for tool in self.tools {
-            session.add_event_start(ActivityKind::Install);
             tool.install(session)?;
-            session.add_event_end(ActivityKind::Install, ExitCode::Success);
         }
 
+        session.add_event_end(ActivityKind::Install, ExitCode::Success);
         Ok(ExitCode::Success)
     }
 }
