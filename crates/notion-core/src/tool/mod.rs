@@ -94,7 +94,7 @@ impl ToolSpec {
             .name("version")
             .map(|version| VersionSpec::parse(version.as_str()))
             .transpose()?
-            .unwrap_or_else(VersionSpec::default);
+            .unwrap_or_default();
 
         Ok(match &captures["name"] {
             "node" => ToolSpec::Node(version),
