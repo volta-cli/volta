@@ -29,6 +29,15 @@ use self::npm::Npm;
 use self::npx::Npx;
 use self::yarn::Yarn;
 
+/// Specification for a tool and its associated version.
+///
+/// Since [`Ord`] is implemented for `ToolSpec`, we can use `.sort` on any
+/// `Vec<ToolSpec>`, and the order of the enum variants in the declaration
+/// determines the sorting order, which lets us guarantee (for example) that
+/// Node will always be prioritized over other tools in the toolchain when
+/// dealing with multiple tools.
+///
+/// [`Ord`]: https://doc.rust-lang.org/1.34.0/core/cmp/trait.Ord.html
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub enum ToolSpec {
     Node(VersionSpec),
@@ -41,8 +50,8 @@ impl ToolSpec {
     pub fn from_str_and_version(tool_name: &str, version: VersionSpec) -> Self {
         match tool_name {
             "node" => ToolSpec::Node(version),
-            "yarn" => ToolSpec::Yarn(version),
             "npm" => ToolSpec::Npm(version),
+            "yarn" => ToolSpec::Yarn(version),
             package => ToolSpec::Package(package.to_string(), version),
         }
     }
@@ -50,9 +59,9 @@ impl ToolSpec {
     pub fn install(&self, session: &mut Session) -> Fallible<()> {
         match self {
             ToolSpec::Node(version) => session.install_node(&version)?,
-            ToolSpec::Yarn(version) => session.install_yarn(&version)?,
             // ISSUE(#292): Implement install for npm
             ToolSpec::Npm(_version) => unimplemented!("Installing npm is not supported yet"),
+            ToolSpec::Yarn(version) => session.install_yarn(&version)?,
             ToolSpec::Package(name, version) => {
                 session.install_package(name.to_string(), &version)?;
             }
@@ -63,9 +72,9 @@ impl ToolSpec {
     pub fn uninstall(&self, session: &mut Session) -> Fallible<()> {
         match self {
             ToolSpec::Node(_version) => unimplemented!("Uninstalling Node not supported yet"),
-            ToolSpec::Yarn(_version) => unimplemented!("Uninstalling Yarn not supported yet"),
             // ISSUE(#292): Implement install for npm
             ToolSpec::Npm(_version) => unimplemented!("Uninstalling Npm not supported yet"),
+            ToolSpec::Yarn(_version) => unimplemented!("Uninstalling Yarn not supported yet"),
             ToolSpec::Package(name, _version) => {
                 session.uninstall_package(name.to_string())?;
             }
@@ -89,8 +98,8 @@ impl ToolSpec {
 
         Ok(match &captures["name"] {
             "node" => ToolSpec::Node(version),
-            "yarn" => ToolSpec::Yarn(version),
             "npm" => ToolSpec::Npm(version),
+            "yarn" => ToolSpec::Yarn(version),
             package => ToolSpec::Package(package.into(), version),
         })
     }
