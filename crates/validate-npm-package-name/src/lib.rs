@@ -115,8 +115,8 @@ pub fn validate(name: &str) -> Validity {
 
     // Generate warnings for stuff that used to be allowed
 
-    for builtin in BUILTINS {
-        if name.to_lowercase() == builtin {
+    for builtin in BUILTINS.iter() {
+        if name.to_lowercase() == *builtin {
             warnings.push(format!("{} is a core module name", builtin));
         }
     }
