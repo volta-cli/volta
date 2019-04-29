@@ -55,7 +55,7 @@ parse_os_info() {
       echo "macos"
       ;;
     *)
-      notion_error "Releases for '$uname_str' are not yet supported. You will need to modify this script and the install script to support this OS."
+      notion_error "Releases for '$uname_str' are not yet supported. You will need to add another OS case to this script, and to the install script to support this OS."
       return 1
   esac
   return 0
@@ -65,18 +65,22 @@ parse_os_info() {
 parse_openssl_version() {
   local version_str="$1"
 
+  # associative array containing the SSL libraries that are supported
+  declare -A SUPPORTED_SSL_LIBS
+  SUPPORTED_SSL_LIBS['OpenSSL']='true'
+
   if [[ "$version_str" =~ ^([^\ ]*)\ ([0-9]+\.[0-9]+) ]]
   then
     # check that lib name is 'OpenSSL'
     libname="${BASH_REMATCH[1]}"
-    if [[ "$libname" != "OpenSSL" ]]; then
-      notion_error "Releases for '$libname' not currently supported"
+    if [[ "${SUPPORTED_SSL_LIBS["$libname"]}" != "true" ]]; then
+      notion_error "Releases for '$libname' not currently supported. Supported libraries are: ${!SUPPORTED_SSL_LIBS[@]}."
       return 1
     fi
     echo "${BASH_REMATCH[2]}"
     return 0
   else
-    notion_error "Could not determine OpenSSL version for '$version_str'"
+    notion_error "Could not determine OpenSSL version for '$version_str'. You probably need to update the regex to handle this output."
     return 1
   fi
 }

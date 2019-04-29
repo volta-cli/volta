@@ -61,7 +61,7 @@ END_CARGO_TOML
 
 # linux - unsupported OpenSSL
 @test "parse_os_info - linux with unsupported OpenSSL" {
-  expected_output=$(echo -e "\033[1;31mError\033[0m: Releases for 'SomeSSL' not currently supported")
+  expected_output=$(echo -e "\033[1;31mError\033[0m: Releases for 'SomeSSL' not currently supported. Supported libraries are: OpenSSL.")
 
   run parse_os_info "Linux" "SomeSSL 1.2.3a whatever else"
   [ "$status" -eq 1 ]
@@ -70,9 +70,18 @@ END_CARGO_TOML
 
 # linux - unexpected OpenSSL version format
 @test "parse_os_info - linux with unexpected OpenSSL format" {
-  expected_output=$(echo -e "\033[1;31mError\033[0m: Could not determine OpenSSL version for 'Some SSL 1.2.4'")
+  expected_output=$(echo -e "\033[1;31mError\033[0m: Could not determine OpenSSL version for 'Some SSL 1.2.4'. You probably need to update the regex to handle this output.")
 
   run parse_os_info "Linux" "Some SSL 1.2.4"
+  [ "$status" -eq 1 ]
+  diff <(echo "$output") <(echo "$expected_output")
+}
+
+# unsupported OS
+@test "parse_os_info - unsupported OS" {
+  expected_output=$(echo -e "\033[1;31mError\033[0m: Releases for 'DOS' are not yet supported. You will need to add another OS case to this script, and to the install script to support this OS.")
+
+  run parse_os_info "DOS" "doesn't matter"
   [ "$status" -eq 1 ]
   diff <(echo "$output") <(echo "$expected_output")
 }
@@ -93,7 +102,7 @@ END_CARGO_TOML
 
 # unsupported OpenSSL library
 @test "parse_openssl_version - unsupported library" {
-  expected_output=$(echo -e "\033[1;31mError\033[0m: Releases for 'LibreSSL' not currently supported")
+  expected_output=$(echo -e "\033[1;31mError\033[0m: Releases for 'LibreSSL' not currently supported. Supported libraries are: OpenSSL.")
   run parse_openssl_version "LibreSSL 2.6.5"
   [ "$status" -eq 1 ]
   diff <(echo "$output") <(echo "$expected_output")
@@ -101,7 +110,7 @@ END_CARGO_TOML
 
 # version string with unexpected format
 @test "parse_openssl_version - unexpected format" {
-  expected_output=$(echo -e "\033[1;31mError\033[0m: Could not determine OpenSSL version for 'Some Weird Version 1.2.3'")
+  expected_output=$(echo -e "\033[1;31mError\033[0m: Could not determine OpenSSL version for 'Some Weird Version 1.2.3'. You probably need to update the regex to handle this output.")
   run parse_openssl_version "Some Weird Version 1.2.3"
   [ "$status" -eq 1 ]
   diff <(echo "$output") <(echo "$expected_output")
