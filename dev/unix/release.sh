@@ -101,10 +101,13 @@ release_filename="notion-$NOTION_VERSION-$NOTION_OS"
 notion_info 'Building' "Notion release $(bold "$release_filename")"
 cargo build --release
 
-# then package up the binaries together
+# then package the binaries and shell scripts together
 target_dir="target/release"
-notion_info 'Packaging' "the compiled binaries"
+shell_script_dir="shell/unix"
+notion_info 'Packaging' "the compiled binaries and shell scripts"
+# copy the load.* shell scripts to the target dir, to include them as well
+cp "$shell_script_dir"/load.* "$target_dir/"
 cd "$target_dir"
-tar -czf "$release_filename.tar.gz" notion shim
+tar -czvf "$release_filename.tar.gz" notion shim load.*
 
 notion_info 'Completed' "release in file $(bold "$target_dir/$release_filename.tar.gz")"
