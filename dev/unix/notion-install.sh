@@ -5,6 +5,24 @@
 # case of Linux, what OpenSSL version) the system has, and then proceed to
 # fetch and install the appropriate build of Notion.
 
+usage() {
+    cat >&2 <<END_USAGE
+notion-install
+The installer for Notion
+
+USAGE:
+    notion-install [FLAGS] [OPTIONS]
+
+FLAGS:
+    -h, --help                  Prints help information
+
+OPTIONS:
+        --debug                 Compile and install Notion locally, using the debug target
+        --release               Compile and install Notion locally, using the release target
+        --version <version>     Install a specific release version of Notion
+END_USAGE
+}
+
 notion_get_latest_release() {
   # curl --silent https://www.notionjs.com/latest-version
   # TODO: change this back
@@ -136,27 +154,50 @@ notion_create_tree() {
   mkdir -p "$_install_dir/tools/user"
 }
 
-# TODO: need a main function here I think
 
-# TODO: ugh, command parsing, this should go somewhere else
-for arg in "$@"; do
+
+### END FUNCTIONS
+
+# parse command line options
+while [ $# -gt 0 ]
+do
+  arg="$1"
+
   case "$arg" in
     -h|--help)
-      usage
+      echo "--help"
+      echo "(usage)"
       exit 0
       ;;
-    --local)
+    --debug)
+      shift # shift off the argument
       # TODO: compile and install locally, going through the whole build process
-      # OR, should this be --debug and --release?
+      # (delegate the compile and packaging to the release script)
+      echo "--debug"
+      ;;
+    --release)
+      shift # shift off the argument
+      # TODO: compile and install locally, going through the whole build process
+      # (delegate the compile and packaging to the release script)
+      echo "--release"
       ;;
     --version)
-      # TODO: parse the version after this
+      shift # shift off the argument
+      version_to_install="$1"
+      shift # shift off the value
+      echo "--version $version_to_install"
       ;;
     *)
       # TODO: anything else is whatever at this point
+      echo "unknown option: '$arg'"
+      echo "(usage)"
+      exit 1
       ;;
   esac
 done
+
+# TODO: for now
+exit
 
 # TODO: this should be the latest version, or the version specified with --version
 NOTION_LATEST_VERSION=$(notion_get_latest_release)
@@ -206,7 +247,7 @@ notion_create_tree
 notion_info 'Extracting' "files"
 # TODO: check for error
 # TODO: all of these should be extracted to ~/.notion (or NOTION_HOME)
-tar -xzvf "$_download_file"
+echo "will run: 'tar -xzvf "$_download_file"'"
 
 exit
 
