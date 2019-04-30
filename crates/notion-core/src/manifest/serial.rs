@@ -1,17 +1,18 @@
-use super::super::{manifest, platform};
-use crate::version::VersionSpec;
-
-use notion_fail::Fallible;
-
-use serde;
-use serde::de::{Deserialize, Deserializer, Error, MapAccess, Visitor};
-
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
+
+use serde;
+use serde::de::{Deserialize, Deserializer, Error, MapAccess, Visitor};
+use serde_json::value::Value;
+
+use notion_fail::Fallible;
+
+use super::super::{manifest, platform};
+use crate::version::VersionSpec;
 
 // wrapper for HashMap to use with deserialization
 #[derive(Debug, PartialEq)]
@@ -59,6 +60,10 @@ pub struct Manifest {
     #[serde(default)] // handles Option
     pub bin: Option<BinMap<String, String>>,
 
+    // We have a custom deserializer here to account for badly-formed `engines`
+    // fields in the wild – e.g. if anything besides an object is supplied. See
+    // See https://github.com/notion-cli/notion/issues/388 for example.
+    #[serde(default, deserialize_with = "Engines::deserialize")]
     pub engines: Option<Engines>,
 }
 
@@ -74,6 +79,31 @@ pub struct ToolchainSpec {
 #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Engines {
     pub node: String,
+}
+
+impl Engines {
+    /// Handle deserialization where users may have supplied bad values for the
+    /// `node` key in a `package.json`.
+    ///
+    /// We are intentionally extremely permissive: we simply return `None` for
+    /// all scenarios other than finding a valid POJO like `{ node: <spec> }`
+    /// because we are happy to use that information if it is available, but if
+    /// it is either unavailable or malformed, we simply fall back to our normal
+    /// handling.
+    pub fn deserialize<'de, D>(d: D) -> Result<Option<Engines>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Deserialize::deserialize(d).map(|value: Option<Value>| match value {
+            Some(Value::Object(object)) => match object.get("node") {
+                Some(Value::String(ref node)) => Some(Engines {
+                    node: node.to_string(),
+                }),
+                _ => None,
+            },
+            _ => None,
+        })
+    }
 }
 
 impl Manifest {
@@ -391,5 +421,58 @@ pub mod tests {
         // after serializing the binary name is an empty string for this case
         expected_bin_string.insert("".to_string(), "cli.js".to_string());
         assert_eq!(manifest_bin_string.bin.unwrap(), expected_bin_string);
+    }
+
+    #[test]
+    fn invalid_engines_fields() {
+        let package_engines_string = r#"{
+            "engines": "oh, this is weird"
+        }"#;
+        let manifest_engines_string: Manifest =
+            serde_json::de::from_str(package_engines_string).expect("Could not deserialize string");
+        assert_eq!(
+            manifest_engines_string.engines, None,
+            "We intentionally treat strings as `None`."
+        );
+
+        let package_engines_array = r#"{
+            "engines": ["wat"]
+        }"#;
+        let manifest_engines_array: Manifest =
+            serde_json::de::from_str(package_engines_array).expect("Could not deserialize string");
+        assert_eq!(
+            manifest_engines_array.engines, None,
+            "We intentionally treat arrays as `None`."
+        );
+
+        let package_engines_number = r#"{
+            "engines": 42
+        }"#;
+        let manifest_engines_number: Manifest =
+            serde_json::de::from_str(package_engines_number).expect("Could not deserialize string");
+        assert_eq!(
+            manifest_engines_number.engines, None,
+            "We intentionally treat numbers as `None`."
+        );
+
+        let package_engines_number = r#"{
+            "engines": null
+        }"#;
+        let manifest_engines_number: Manifest =
+            serde_json::de::from_str(package_engines_number).expect("Could not deserialize string");
+        assert_eq!(
+            manifest_engines_number.engines, None,
+            "We deserialize `null` as `None` (i.e. normally)."
+        );
+
+        let package_engines_number = r#"{
+            "engines": false
+        }"#;
+        let manifest_engines_number: Manifest =
+            serde_json::de::from_str(package_engines_number).expect("Could not deserialize string");
+        assert_eq!(
+            manifest_engines_number.engines, None,
+            "We treat booleans as `None`"
+        );
     }
 }
