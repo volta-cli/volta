@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "configurations":[
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Cargo test notion core",
+      "cargo": {
+        "args": [
+          "test",
+          "--lib",
+          "--no-run",
+          "--package", "notion-core",
+          "--", "--test-threads", "1",
+        ],
+        "filter": {
+          "kind": "lib",
+          "name": "notion-core"
+        }
+      },
+      "program": "${cargo:program}",
+      "args": [],
+      "sourceLanguages": ["rust"]
+    }
+  ]
+}
