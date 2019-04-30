@@ -116,3 +116,20 @@ END_CARGO_TOML
   diff <(echo "$output") <(echo "$expected_output")
 }
 
+
+# test element_in helper function
+@test "element_in works correctly" {
+  run element_in "foo" "foo" "bar" "baz"
+  [ "$status" -eq 0 ]
+
+  array=( "foo" "bar" "baz" )
+  run element_in "foo" "${array[@]}"
+  [ "$status" -eq 0 ]
+  run element_in "bar" "${array[@]}"
+  [ "$status" -eq 0 ]
+  run element_in "baz" "${array[@]}"
+  [ "$status" -eq 0 ]
+
+  run element_in "fob" "${array[@]}"
+  [ "$status" -eq 1 ]
+}

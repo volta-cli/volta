@@ -61,24 +61,42 @@ parse_os_info() {
   return 0
 }
 
+# return true(0) if the element is contained in the input arguments
+# called like:
+#  if element_in "foo" "${array[@]}"; then ...
+element_in() {
+  local match="$1";
+  shift
+
+  local element;
+  # loop over the input arguments and return when a match is found
+  for element in "$@"
+  do
+    [ "$element" == "$match" ] && return 0
+  done
+  return 1
+}
+
 # parse the OpenSSL version from the input text
 parse_openssl_version() {
   local version_str="$1"
 
-  # associative array containing the SSL libraries that are supported
-  declare -A SUPPORTED_SSL_LIBS
-  SUPPORTED_SSL_LIBS['OpenSSL']='true'
+  # array containing the SSL libraries that are supported
+  # would be nice to use a bash 4.x associative array, but bash 3.x is the default on OSX
+  SUPPORTED_SSL_LIBS=( 'OpenSSL' )
 
   if [[ "$version_str" =~ ^([^\ ]*)\ ([0-9]+\.[0-9]+) ]]
   then
-    # check that lib name is 'OpenSSL'
+    # check that the lib is supported
     libname="${BASH_REMATCH[1]}"
-    if [[ "${SUPPORTED_SSL_LIBS["$libname"]}" != "true" ]]; then
-      notion_error "Releases for '$libname' not currently supported. Supported libraries are: ${!SUPPORTED_SSL_LIBS[@]}."
-      return 1
+    if element_in "$libname" "${SUPPORTED_SSL_LIBS[@]}"
+    then
+      # lib is supported, return the version
+      echo "${BASH_REMATCH[2]}"
+      return 0
     fi
-    echo "${BASH_REMATCH[2]}"
-    return 0
+    notion_error "Releases for '$libname' not currently supported. Supported libraries are: ${SUPPORTED_SSL_LIBS[@]}."
+    return 1
   else
     notion_error "Could not determine OpenSSL version for '$version_str'. You probably need to update the regex to handle this output."
     return 1
