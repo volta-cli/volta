@@ -85,7 +85,9 @@ parse_openssl_version() {
   # would be nice to use a bash 4.x associative array, but bash 3.x is the default on OSX
   SUPPORTED_SSL_LIBS=( 'OpenSSL' )
 
-  if [[ "$version_str" =~ ^([^\ ]*)\ ([0-9]+\.[0-9]+) ]]
+  # use regex to get the library name and version
+  # typical version string looks like 'OpenSSL 1.0.1e-fips 11 Feb 2013'
+  if [[ "$version_str" =~ ^([^\ ]*)\ ([0-9]+\.[0-9]+\.[0-9]+) ]]
   then
     # check that the lib is supported
     libname="${BASH_REMATCH[1]}"
