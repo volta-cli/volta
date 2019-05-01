@@ -560,7 +560,13 @@ impl Installer {
         match self {
             Installer::Npm => {
                 let mut command = create_command("npm");
-                command.args(&["install", "--only=production"]);
+                command.args(&[
+                    "install",
+                    "--only=production",
+                    "--loglevel=warn",
+                    "--no-update-notifier",
+                    "--no-audit",
+                ]);
                 command
             }
             Installer::Yarn => {
