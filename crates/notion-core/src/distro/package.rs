@@ -38,6 +38,8 @@ cfg_if! {
         use cmdline_words_parser::StrExt;
         use regex::Regex;
         use std::io::{BufRead, BufReader};
+    } else if #[cfg(unix)] {
+        use std::os::unix::fs::PermissionsExt;
     }
 }
 
@@ -421,7 +423,8 @@ impl PackageVersion {
     fn write_config_and_shims(&self, platform_spec: &PlatformSpec) -> Fallible<()> {
         self.package_config(&platform_spec).to_serial().write()?;
         for (bin_name, bin_path) in self.bins.iter() {
-            let loader = self.determine_script_loader(bin_name, bin_path)?;
+            let full_path = bin_full_path(&self.name, &self.version, bin_name, bin_path)?;
+            let loader = self.determine_script_loader(&full_path)?;
             self.bin_config(
                 bin_name.to_string(),
                 bin_path.to_string(),
@@ -432,35 +435,30 @@ impl PackageVersion {
             .write()?;
             // create a link to the shim executable
             shim::create(&bin_name)?;
+
+            // On Unix, ensure the executable file has correct permissions
+            #[cfg(unix)]
+            set_executable_permissions(&full_path).with_context(|_| {
+                ErrorDetails::ExecutablePermissionsError {
+                    bin: bin_name.clone(),
+                }
+            })?;
         }
         Ok(())
     }
 
     /// On Unix, shebang loaders work correctly, so we don't need to bother storing loader information
     #[cfg(unix)]
-    fn determine_script_loader(
-        &self,
-        _bin_name: &str,
-        _bin_path: &str,
-    ) -> Fallible<Option<BinLoader>> {
+    fn determine_script_loader(&self, _bin_path: &Path) -> Fallible<Option<BinLoader>> {
         Ok(None)
     }
 
     /// On Windows, we need to read the executable and try to find a shebang loader
     /// If it exists, we store the loader in the BinConfig so that the shim can execute it correctly
     #[cfg(windows)]
-    fn determine_script_loader(
-        &self,
-        bin_name: &str,
-        bin_path: &str,
-    ) -> Fallible<Option<BinLoader>> {
-        let full_path = bin_full_path(&self.name, &self.version, bin_path, |_| {
-            ErrorDetails::DetermineBinaryLoaderError {
-                bin: bin_name.to_string(),
-            }
-        })?;
+    fn determine_script_loader(&self, bin_path: &Path) -> Fallible<Option<BinLoader>> {
         let script =
-            File::open(full_path).with_context(|_| ErrorDetails::DetermineBinaryLoaderError {
+            File::open(bin_path).with_context(|_| ErrorDetails::DetermineBinaryLoaderError {
                 bin: bin_name.to_string(),
             })?;
         if let Some(Ok(first_line)) = BufReader::new(script).lines().next() {
@@ -585,10 +583,8 @@ impl UserTool {
         let bin_path = bin_full_path(
             &bin_config.package,
             &bin_config.version,
+            &bin_config.name,
             &bin_config.path,
-            |_| ErrorDetails::ExecutablePathError {
-                command: bin_config.name.clone(),
-            },
         )?;
 
         // If the user does not have yarn set in the platform for this binary, use the default
@@ -624,21 +620,37 @@ impl UserTool {
     }
 }
 
-fn bin_full_path<P, E>(
+fn bin_full_path<P>(
     package: &str,
     version: &Version,
+    bin_name: &str,
     bin_path: P,
-    error_context: E,
 ) -> Fallible<PathBuf>
 where
     P: AsRef<Path>,
-    E: FnOnce(&io::Error) -> ErrorDetails,
 {
     // canonicalize because path is relative, and sometimes uses '.' char
     path::package_image_dir(package, &version.to_string())?
         .join(bin_path)
         .canonicalize()
-        .with_context(error_context)
+        .with_context(|_| ErrorDetails::ExecutablePathError {
+            command: bin_name.to_string(),
+        })
+}
+
+/// Ensure that a given binary has 'executable' permissions on Unix, otherwise we won't be able to call it
+/// On Windows, this isn't a concern as there is no concept of 'executable' permissions
+#[cfg(unix)]
+fn set_executable_permissions(bin: &Path) -> io::Result<()> {
+    let mut permissions = fs::metadata(bin)?.permissions();
+    let mode = permissions.mode();
+
+    if mode & 0o111 != 0o111 {
+        permissions.set_mode(mode | 0o111);
+        fs::set_permissions(bin, permissions)
+    } else {
+        Ok(())
+    }
 }
 
 /// Build a package install command using the specified directory and path
