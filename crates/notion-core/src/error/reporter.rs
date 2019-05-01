@@ -2,6 +2,7 @@ use std::env::{self, args_os};
 use std::fmt::Write as FmtWrite;
 use std::fs::File;
 use std::io::Write as IoWrite;
+use std::path::PathBuf;
 
 use crate::fs::ensure_containing_dir_exists;
 use crate::path::log_dir;
@@ -65,7 +66,7 @@ impl ErrorReporter {
 
             match self.write_error_log(message, details) {
                 Ok(log_file) => {
-                    eprintln!("Error details written to: {}", log_file);
+                    eprintln!("Error details written to: {}", log_file.to_string_lossy());
                 }
                 Err(_) => {
                     eprintln!("Unable to write error log!");
@@ -75,14 +76,14 @@ impl ErrorReporter {
     }
 
     /// Write an error log with additional details about the error
-    fn write_error_log(&self, message: String, details: String) -> Result<String, Error> {
+    fn write_error_log(&self, message: String, details: String) -> Result<PathBuf, Error> {
         let file_name = Local::now()
             .format("notion-error-%Y-%m-%d_%H_%M_%S%.3f.log")
             .to_string();
         let log_file_path = log_dir()?.join(&file_name);
 
         ensure_containing_dir_exists(&log_file_path)?;
-        let mut log_file = File::create(log_file_path)?;
+        let mut log_file = File::create(&log_file_path)?;
 
         writeln!(log_file, "{}", collect_arguments())?;
         writeln!(log_file, "Notion v{}", self.version)?;
@@ -91,7 +92,7 @@ impl ErrorReporter {
         writeln!(log_file)?;
         writeln!(log_file, "{}", details)?;
 
-        Ok(file_name)
+        Ok(log_file_path)
     }
 }
 
