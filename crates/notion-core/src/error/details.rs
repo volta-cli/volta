@@ -494,7 +494,7 @@ Please verify your internet connection and ensure the correct version is specifi
 {}", bin, PERMISSIONS_CTA),
             ErrorDetails::ExecuteHookError { command } => write!(f, "Could not execute hook command: '{}'
 
-Please ensure that the corrent command is specified.", command),
+Please ensure that the correct command is specified.", command),
             ErrorDetails::HookMultipleFieldsSpecified => write!(f, "Hook configuration includes multiple hook types.
 
 Please include only one of 'bin', 'prefix', or 'template'"),
