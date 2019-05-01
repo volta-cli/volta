@@ -102,9 +102,10 @@ impl ToolSpec {
 
         // Validate that the captured name is a valid NPM package name.
         let name = &captures["name"];
-        if let Validity::Invalid { errors, warnings } = validate(name) {
-            return Err(ErrorDetails::ParseToolSpecError {
-                tool_spec: tool_spec.into(),
+        if let Validity::Invalid { errors, .. } = validate(name) {
+            return Err(ErrorDetails::InvalidToolName {
+                name: name.into(),
+                errors,
             }
             .into());
         }

@@ -1,8 +1,11 @@
 use std::fmt;
 
 use failure::Fail;
+use textwrap::{fill, indent};
+
 use notion_fail::{ExitCode, NotionFail};
 
+use crate::style::display_width;
 use crate::tool::ToolSpec;
 
 const REPORT_BUG_CTA: &'static str =
@@ -119,6 +122,12 @@ pub enum ErrorDetails {
     /// Thrown when output from a hook command could not be read
     InvalidHookOutput {
         command: String,
+    },
+
+    /// Thrown when a tool name is invalid per npm's rules.
+    InvalidToolName {
+        name: String,
+        errors: Vec<String>,
     },
 
     /// Thrown when BinConfig (read from file) does not contain Platform info.
@@ -504,6 +513,22 @@ Please ensure that the correct command is specified.", command),
             ErrorDetails::InvalidHookOutput { command } => write!(f, "Could not read output from hook command: '{}'
 
 Please ensure that the command output is valid UTF-8 text.", command),
+            ErrorDetails::InvalidToolName { name, errors } => {
+                let indentation = "    ";
+                let wrapped = &fill(&errors.join("\n"), display_width() - indentation.len());
+                let formatted_errs = indent(&wrapped, indentation);
+
+                let call_to_action = if errors.len() > 1 {
+                    "Please fix the following errors:"
+                } else {
+                    "Please fix the following error:"
+                };
+
+                write!(f, "Invalid tool name `{}`
+
+{}
+{}", name, call_to_action, formatted_errs)
+            },
             ErrorDetails::NoBinPlatform { binary } => {
                 write!(f, "Platform info for executable `{}` is missing
 
@@ -815,6 +840,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::HookNoFieldsSpecified => ExitCode::ConfigurationError,
             ErrorDetails::InvalidHookCommand { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::InvalidHookOutput { .. } => ExitCode::ExecutionFailure,
+            ErrorDetails::InvalidToolName { .. } => ExitCode::InvalidArguments,
             ErrorDetails::NoBinPlatform { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NoGlobalInstalls => ExitCode::InvalidArguments,
