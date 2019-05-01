@@ -563,7 +563,7 @@ impl Installer {
                 command.args(&[
                     "install",
                     "--only=production",
-                    "-q",
+                    "--loglevel=warn",
                     "--no-update-notifier",
                     "--no-audit",
                 ]);
