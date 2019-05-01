@@ -172,3 +172,154 @@ pub fn validate(name: &str) -> Validity {
         (_, _) => Validity::Invalid { warnings, errors },
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn traditional() {
+        assert_eq!(validate("some-package"), Validity::Valid);
+        assert_eq!(validate("example.com"), Validity::Valid);
+        assert_eq!(validate("under_score"), Validity::Valid);
+        assert_eq!(validate("period.js"), Validity::Valid);
+        assert_eq!(validate("123numeric"), Validity::Valid);
+        assert_eq!(
+            validate("crazy!"),
+            Validity::ValidForOldPackages {
+                warnings: vec![
+                    r#"name can no longer contain special characters ("~\'!()*")"#.into()
+                ]
+            }
+        );
+    }
+
+    #[test]
+    fn scoped() {
+        assert_eq!(validate("@npm/thingy"), Validity::Valid);
+        assert_eq!(
+            validate("@npm-zors/money!time.js"),
+            Validity::ValidForOldPackages {
+                warnings: vec![
+                    r#"name can no longer contain special characters ("~\'!()*")"#.into()
+                ]
+            }
+        );
+    }
+
+    #[test]
+    fn invalid() {
+        assert_eq!(
+            validate(""),
+            Validity::Invalid {
+                errors: vec!["name length must be greater than zero".into()],
+                warnings: vec![]
+            }
+        );
+
+        assert_eq!(
+            validate(".start-with-period"),
+            Validity::Invalid {
+                errors: vec!["name cannot start with a period".into()],
+                warnings: vec![]
+            }
+        );
+
+        assert_eq!(
+            validate("_start-with-underscore"),
+            Validity::Invalid {
+                errors: vec!["name cannot start with an underscore".into()],
+                warnings: vec![]
+            }
+        );
+
+        assert_eq!(
+            validate("contain:colons"),
+            Validity::Invalid {
+                errors: vec!["name can only contain URL-friendly characters".into()],
+                warnings: vec![]
+            }
+        );
+
+        assert_eq!(
+            validate(" leading-space"),
+            Validity::Invalid {
+                errors: vec![
+                    "name cannot contain leading or trailing spaces".into(),
+                    "name can only contain URL-friendly characters".into()
+                ],
+                warnings: vec![]
+            }
+        );
+
+        assert_eq!(
+            validate("trailing-space "),
+            Validity::Invalid {
+                errors: vec![
+                    "name cannot contain leading or trailing spaces".into(),
+                    "name can only contain URL-friendly characters".into()
+                ],
+                warnings: vec![]
+            }
+        );
+
+        assert_eq!(
+            validate("s/l/a/s/h/e/s"),
+            Validity::Invalid {
+                errors: vec!["name can only contain URL-friendly characters".into()],
+                warnings: vec![]
+            }
+        );
+
+        assert_eq!(
+            validate("node_modules"),
+            Validity::Invalid {
+                errors: vec!["node_modules is a blacklisted name".into()],
+                warnings: vec![]
+            }
+        );
+
+        assert_eq!(
+            validate("favicon.ico"),
+            Validity::Invalid {
+                errors: vec!["favicon.ico is a blacklisted name".into()],
+                warnings: vec![]
+            }
+        );
+    }
+
+    #[test]
+    fn node_io_core() {
+        assert_eq!(
+            validate("http"),
+            Validity::ValidForOldPackages {
+                warnings: vec!["http is a core module name".into()]
+            }
+        );
+    }
+
+    #[test]
+    fn long_package_names() {
+        let one_too_long = "ifyouwanttogetthesumoftwonumberswherethosetwonumbersarechosenbyfindingthelargestoftwooutofthreenumbersandsquaringthemwhichismultiplyingthembyitselfthenyoushouldinputthreenumbersintothisfunctionanditwilldothatforyou-";
+        let short_enough = "ifyouwanttogetthesumoftwonumberswherethosetwonumbersarechosenbyfindingthelargestoftwooutofthreenumbersandsquaringthemwhichismultiplyingthembyitselfthenyoushouldinputthreenumbersintothisfunctionanditwilldothatforyou";
+
+        assert_eq!(
+            validate(one_too_long),
+            Validity::ValidForOldPackages {
+                warnings: vec!["name can no longer contain more than 214 characters".into()]
+            }
+        );
+
+        assert_eq!(validate(short_enough), Validity::Valid);
+    }
+
+    #[test]
+    fn legacy_mixed_case() {
+        assert_eq!(
+            validate("CAPITAL-LETTERS"),
+            Validity::ValidForOldPackages {
+                warnings: vec!["name can no longer contain capital letters".into()]
+            }
+        );
+    }
+}
