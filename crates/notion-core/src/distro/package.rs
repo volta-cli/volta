@@ -424,7 +424,7 @@ impl PackageVersion {
         self.package_config(&platform_spec).to_serial().write()?;
         for (bin_name, bin_path) in self.bins.iter() {
             let full_path = bin_full_path(&self.name, &self.version, bin_name, bin_path)?;
-            let loader = self.determine_script_loader(&full_path)?;
+            let loader = determine_script_loader(bin_name, &full_path)?;
             self.bin_config(
                 bin_name.to_string(),
                 bin_path.to_string(),
@@ -445,40 +445,6 @@ impl PackageVersion {
             })?;
         }
         Ok(())
-    }
-
-    /// On Unix, shebang loaders work correctly, so we don't need to bother storing loader information
-    #[cfg(unix)]
-    fn determine_script_loader(&self, _bin_path: &Path) -> Fallible<Option<BinLoader>> {
-        Ok(None)
-    }
-
-    /// On Windows, we need to read the executable and try to find a shebang loader
-    /// If it exists, we store the loader in the BinConfig so that the shim can execute it correctly
-    #[cfg(windows)]
-    fn determine_script_loader(&self, bin_path: &Path) -> Fallible<Option<BinLoader>> {
-        let script =
-            File::open(bin_path).with_context(|_| ErrorDetails::DetermineBinaryLoaderError {
-                bin: bin_name.to_string(),
-            })?;
-        if let Some(Ok(first_line)) = BufReader::new(script).lines().next() {
-            // Note: Regex adapted from @zkochan/cmd-shim package used by Yarn
-            // https://github.com/pnpm/cmd-shim/blob/bac160cc554e5157e4c5f5e595af30740be3519a/index.js#L42
-            let re = Regex::new(r#"^#!\s*(?:/usr/bin/env)?\s*(?P<exe>[^ \t]+) ?(?P<args>.*)$"#)
-                .expect("Regex is valid");
-            if let Some(caps) = re.captures(&first_line) {
-                let args = caps["args"]
-                    .to_string()
-                    .parse_cmdline_words()
-                    .map(|word| word.to_string())
-                    .collect();
-                return Ok(Some(BinLoader {
-                    command: caps["exe"].to_string(),
-                    args,
-                }));
-            }
-        }
-        Ok(None)
     }
 
     /// Uninstall the specified package.
@@ -651,6 +617,40 @@ fn set_executable_permissions(bin: &Path) -> io::Result<()> {
     } else {
         Ok(())
     }
+}
+
+/// On Unix, shebang loaders work correctly, so we don't need to bother storing loader information
+#[cfg(unix)]
+fn determine_script_loader(_bin_name: &str, _full_path: &Path) -> Fallible<Option<BinLoader>> {
+    Ok(None)
+}
+
+/// On Windows, we need to read the executable and try to find a shebang loader
+/// If it exists, we store the loader in the BinConfig so that the shim can execute it correctly
+#[cfg(windows)]
+fn determine_script_loader(bin_name: &str, full_path: &Path) -> Fallible<Option<BinLoader>> {
+    let script =
+        File::open(full_path).with_context(|_| ErrorDetails::DetermineBinaryLoaderError {
+            bin: bin_name.to_string(),
+        })?;
+    if let Some(Ok(first_line)) = BufReader::new(script).lines().next() {
+        // Note: Regex adapted from @zkochan/cmd-shim package used by Yarn
+        // https://github.com/pnpm/cmd-shim/blob/bac160cc554e5157e4c5f5e595af30740be3519a/index.js#L42
+        let re = Regex::new(r#"^#!\s*(?:/usr/bin/env)?\s*(?P<exe>[^ \t]+) ?(?P<args>.*)$"#)
+            .expect("Regex is valid");
+        if let Some(caps) = re.captures(&first_line) {
+            let args = caps["args"]
+                .to_string()
+                .parse_cmdline_words()
+                .map(|word| word.to_string())
+                .collect();
+            return Ok(Some(BinLoader {
+                command: caps["exe"].to_string(),
+                args,
+            }));
+        }
+    }
+    Ok(None)
 }
 
 /// Build a package install command using the specified directory and path
