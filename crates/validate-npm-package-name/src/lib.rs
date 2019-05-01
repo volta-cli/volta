@@ -2,7 +2,7 @@
 //! [`validate-npm-package-name`](https://github.com/npm/validate-npm-package-name/).
 
 use lazy_static::lazy_static;
-use percent_encoding::{percent_encode, DEFAULT_ENCODE_SET};
+use percent_encoding::{percent_encode, USERINFO_ENCODE_SET};
 use regex::Regex;
 
 lazy_static! {
@@ -56,6 +56,7 @@ lazy_static! {
     ];
 }
 
+#[derive(Debug, PartialEq)]
 pub enum Validity {
     /// Valid for new and old packages
     Valid,
@@ -141,14 +142,14 @@ pub fn validate(name: &str) -> Validity {
         warnings.push(r#"name can no longer contain special characters ("~\'!()*")"#.into());
     }
 
-    if percent_encode(name.as_bytes(), DEFAULT_ENCODE_SET).to_string() != name {
+    if percent_encode(name.as_bytes(), USERINFO_ENCODE_SET).to_string() != name {
         // Maybe it's a scoped package name, like @user/package
         if let Some(captures) = SCOPED_PACKAGE.captures(name) {
             let valid_scope_name = captures
                 .get(1)
                 .map(|scope| scope.as_str())
                 .map(|scope| {
-                    percent_encode(scope.as_bytes(), DEFAULT_ENCODE_SET).to_string() == scope
+                    percent_encode(scope.as_bytes(), USERINFO_ENCODE_SET).to_string() == scope
                 })
                 .unwrap_or(true);
 
@@ -156,16 +157,22 @@ pub fn validate(name: &str) -> Validity {
                 .get(2)
                 .map(|package| package.as_str())
                 .map(|package| {
-                    percent_encode(package.as_bytes(), DEFAULT_ENCODE_SET).to_string() == package
+                    percent_encode(package.as_bytes(), USERINFO_ENCODE_SET).to_string() == package
                 })
                 .unwrap_or(true);
 
-            if !valid_scope_name || !valid_package_name {
-                errors.push("name can only contain URL-friendly characters".into())
+            if valid_scope_name && valid_package_name {
+                return done(warnings, errors);
             }
         }
+
+        errors.push("name can only contain URL-friendly characters".into());
     }
 
+    done(warnings, errors)
+}
+
+fn done(warnings: Vec<String>, errors: Vec<String>) -> Validity {
     match (warnings.len(), errors.len()) {
         (0, 0) => Validity::Valid,
         (_, 0) => Validity::ValidForOldPackages { warnings },
