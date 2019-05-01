@@ -4,14 +4,16 @@
 use std::io;
 #[cfg(windows)]
 use std::os::windows;
-use std::path::PathBuf;
-
-use dirs;
+use std::path::{Path, PathBuf};
 
 use crate::error::ErrorDetails;
-use notion_fail::Fallible;
+use cfg_if::cfg_if;
+use dirs;
+use notion_fail::{Fallible, ResultExt};
+use winreg::enums::HKEY_LOCAL_MACHINE;
+use winreg::RegKey;
 
-use super::{node_image_dir, notion_home, shim_dir};
+use super::{node_archive_root_dir_name, node_image_dir, shim_dir};
 
 // These are taken from: https://nodejs.org/dist/index.json and are used
 // by `path::archive_root_dir` to determine the root directory of the
@@ -19,7 +21,14 @@ use super::{node_image_dir, notion_home, shim_dir};
 
 pub const OS: &'static str = "win";
 
-cfg_if::cfg_if! {
+// This path needs to exactly match the Registry Key in the Windows Installer
+// wix/main.wxs -
+const NOTION_REGISTRY_PATH: &'static str = r#"Software\The Notion Maintainers\Notion"#;
+
+// This Key needs to exactly match the Name from the above element in the Windows Installer
+const NOTION_INSTALL_DIR: &'static str = "InstallDir";
+
+cfg_if! {
     if #[cfg(target_arch = "x86")] {
         pub const ARCH: &'static str = "x86";
     } else if #[cfg(target_arch = "x86_64")] {
@@ -40,6 +49,7 @@ cfg_if::cfg_if! {
 //             npm.exe
 //             npx.exe
 //             ...
+//         log\                                            log_dir
 //         tools\                                          tools_dir
 //             inventory\                                  inventory_dir
 //                 node\                                   node_inventory_dir
@@ -66,9 +76,17 @@ cfg_if::cfg_if! {
 //                 packages\                               user_package_dir
 //                     ember-cli.json                      user_package_config_file("ember-cli")
 //                 platform.json                           user_platform_file
-//         notion.exe                                      notion_file
-//         shim.exe                                        shim_executable
 //         hooks.toml                                      user_hooks_file
+//
+// C:\Program Files\
+//     Notion\                                             (Path stored in Windows Registry by installer)
+//         bin\
+//             notion.exe                                  notion_file
+//             node.exe                                    copy of shim_executable
+//             npm.exe                                     copy of shim_executable
+//             npx.exe                                     copy of shim_executable
+//             yarn.exe                                    copy of shim_executable
+//         shim.exe                                        shim_executable
 
 pub fn default_notion_home() -> Fallible<PathBuf> {
     let home = dirs::data_local_dir().ok_or(ErrorDetails::NoLocalDataDir)?;
@@ -83,16 +101,54 @@ pub fn node_image_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
     node_image_dir(node, npm)
 }
 
+pub fn node_archive_npm_package_json_path(version: &str) -> PathBuf {
+    Path::new(&node_archive_root_dir_name(version))
+        .join("node_modules")
+        .join("npm")
+        .join("package.json")
+}
+
+cfg_if::cfg_if! {
+    // We don't want to be reading from the Registry when testing, so use a fixture PathBuf
+    if #[cfg(test)] {
+        fn install_dir() -> Fallible<PathBuf> {
+            Ok(PathBuf::from(r#"Z:\"#))
+        }
+    } else {
+        fn install_dir() -> Fallible<PathBuf> {
+            let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+            let notion_key = hklm.open_subkey(NOTION_REGISTRY_PATH).with_context(install_dir_error)?;
+            let install_path: String = notion_key.get_value(NOTION_INSTALL_DIR).with_context(install_dir_error)?;
+            Ok(PathBuf::from(install_path))
+        }
+        fn install_dir_error(_err: &io::Error) -> ErrorDetails {
+            ErrorDetails::NoInstallDir
+        }
+    }
+}
+
+pub fn install_bin_dir() -> Fallible<PathBuf> {
+    Ok(install_dir()?.join("bin"))
+}
+
 pub fn shim_executable() -> Fallible<PathBuf> {
-    Ok(notion_home()?.join("shim.exe"))
+    Ok(install_dir()?.join("shim.exe"))
 }
 
 pub fn notion_file() -> Fallible<PathBuf> {
-    Ok(notion_home()?.join("notion.exe"))
+    Ok(install_bin_dir()?.join("notion.exe"))
 }
 
 pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
     Ok(shim_dir()?.join(&format!("{}.exe", toolname)))
+}
+
+pub fn shim_git_bash_script_file(toolname: &str) -> Fallible<PathBuf> {
+    Ok(shim_dir()?.join(toolname))
+}
+
+pub fn env_paths() -> Fallible<Vec<PathBuf>> {
+    Ok(vec![shim_dir()?, install_bin_dir()?])
 }
 
 /// Create a symlink. The `dst` path will be a symbolic link pointing to the `src` path.

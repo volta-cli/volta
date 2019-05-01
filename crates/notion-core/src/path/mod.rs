@@ -2,9 +2,11 @@
 //! in a standard Notion layout.
 
 use std::env;
+use std::fs;
 use std::path::{Path, PathBuf};
 
-use notion_fail::Fallible;
+use crate::error::ErrorDetails;
+use notion_fail::{Fallible, ResultExt};
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "universal-docs")] {
@@ -22,6 +24,30 @@ cfg_if::cfg_if! {
         mod windows;
         pub use self::windows::*;
     }
+}
+
+pub fn ensure_notion_dirs_exist() -> Fallible<()> {
+    // Assume that if notion_home() exists, then the directory structure has been initialized
+    if !notion_home()?.exists() {
+        ensure_dir_exists(node_cache_dir()?)?;
+        ensure_dir_exists(shim_dir()?)?;
+        ensure_dir_exists(node_inventory_dir()?)?;
+        ensure_dir_exists(package_inventory_dir()?)?;
+        ensure_dir_exists(yarn_inventory_dir()?)?;
+        ensure_dir_exists(node_image_root_dir()?)?;
+        ensure_dir_exists(yarn_image_root_dir()?)?;
+        ensure_dir_exists(user_toolchain_dir()?)?;
+        ensure_dir_exists(tmp_dir()?)?;
+        ensure_dir_exists(log_dir()?)?;
+    }
+
+    Ok(())
+}
+
+fn ensure_dir_exists(path: PathBuf) -> Fallible<()> {
+    fs::create_dir_all(&path).with_context(|_| ErrorDetails::CreateDirError {
+        dir: path.to_string_lossy().to_string(),
+    })
 }
 
 pub fn notion_home() -> Fallible<PathBuf> {
@@ -163,14 +189,6 @@ pub fn node_npm_version_file(version: &str) -> Fallible<PathBuf> {
 
 pub fn node_archive_root_dir_name(version: &str) -> String {
     format!("node-v{}-{}-{}", version, OS, ARCH)
-}
-
-pub fn node_archive_npm_package_json_path(version: &str) -> PathBuf {
-    Path::new(&node_archive_root_dir_name(version))
-        .join("lib")
-        .join("node_modules")
-        .join("npm")
-        .join("package.json")
 }
 
 pub fn yarn_distro_file_name(version: &str) -> String {

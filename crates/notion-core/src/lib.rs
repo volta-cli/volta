@@ -2,6 +2,7 @@
 
 #![cfg_attr(feature = "universal-docs", feature(doc_cfg))]
 
+mod command;
 mod distro;
 pub mod env;
 pub mod error;

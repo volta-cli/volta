@@ -3,14 +3,14 @@
 
 use std::io;
 use std::os::unix;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use dirs;
 
 use crate::error::ErrorDetails;
 use notion_fail::Fallible;
 
-use super::{node_image_dir, notion_home, shim_dir};
+use super::{node_archive_root_dir_name, node_image_dir, notion_home, shim_dir};
 
 // These are taken from: https://nodejs.org/dist/index.json and are used
 // by `path::archive_root_dir` to determine the root directory of the
@@ -53,6 +53,7 @@ cfg_if::cfg_if! {
 //             npx
 //             ...
 //             ember
+//         log/                                            log_dir
 //         tools/                                          tools_dir
 //             inventory/                                  inventory_dir
 //                 node/                                   node_inventory_dir
@@ -96,6 +97,14 @@ pub fn node_image_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
     Ok(node_image_dir(node, npm)?.join("bin"))
 }
 
+pub fn node_archive_npm_package_json_path(version: &str) -> PathBuf {
+    Path::new(&node_archive_root_dir_name(version))
+        .join("lib")
+        .join("node_modules")
+        .join("npm")
+        .join("package.json")
+}
+
 pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
     Ok(shim_dir()?.join(toolname))
 }
@@ -106,6 +115,10 @@ pub fn notion_file() -> Fallible<PathBuf> {
 
 pub fn shim_executable() -> Fallible<PathBuf> {
     Ok(notion_home()?.join("shim"))
+}
+
+pub fn env_paths() -> Fallible<Vec<PathBuf>> {
+    Ok(vec![shim_dir()?])
 }
 
 /// Create a symlink. The `dst` path will be a symbolic link pointing to the `src` path.

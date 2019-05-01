@@ -38,3 +38,6 @@ dirs = "1.0.4"
 sha-1 = "0.8.1"
 hex = "0.3.2"
 chrono = "0.4.6"
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.6.0"

@@ -1,9 +1,10 @@
 use std::io::Write;
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Stdio};
 use std::vec::Vec;
 
 use serde_json;
 
+use crate::command::create_command;
 use crate::event::Event;
 
 pub struct Monitor {
@@ -42,7 +43,7 @@ impl Monitor {
 
 fn spawn_process(command: &str) -> Option<Child> {
     command.split(" ").take(1).next().and_then(|executable| {
-        let child = Command::new(executable)
+        let child = create_command(executable)
             .args(command.split(" ").skip(1))
             .stdin(Stdio::piped()) // JSON data is sent over stdin
             // .stdout(Stdio::piped()) // let the plugin write to stdout for now

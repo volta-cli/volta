@@ -35,7 +35,7 @@ impl Command for Fetch {
                 unimplemented!("Fetching npm is not supported yet");
             }
             ToolSpec::Package(name, version) => {
-                session.fetch_package(name.to_string(), &version)?;
+                session.fetch_package(&name, &version)?;
             }
         }
         session.add_event_end(ActivityKind::Fetch, ExitCode::Success);

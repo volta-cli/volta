@@ -70,10 +70,13 @@ impl Image {
     /// for the given versions instead of in the Notion shim directory.
     pub fn path(&self) -> Fallible<OsString> {
         let old_path = envoy::path().unwrap_or(envoy::Var::from(""));
+        let mut new_path = old_path.split();
 
-        old_path
-            .split()
-            .remove(path::shim_dir()?)
+        for remove_path in path::env_paths()? {
+            new_path = new_path.remove(remove_path);
+        }
+
+        new_path
             .prefix(self.bins()?)
             .join()
             .with_context(build_path_error)
@@ -90,29 +93,28 @@ impl System {
     /// executables.
     pub fn path() -> Fallible<OsString> {
         let old_path = envoy::path().unwrap_or(envoy::Var::from(""));
+        let mut new_path = old_path.split();
 
-        old_path
-            .split()
-            .remove(path::shim_dir()?)
-            .join()
-            .with_context(build_path_error)
+        for remove_path in path::env_paths()? {
+            new_path = new_path.remove(remove_path);
+        }
+
+        new_path.join().with_context(build_path_error)
     }
 
     /// Reproduces the Notion-enabled `PATH` environment variable for situations where
     /// Notion has been deactivated
     pub fn enabled_path() -> Fallible<OsString> {
         let old_path = envoy::path().unwrap_or(envoy::Var::from(""));
-        let shim_dir = path::shim_dir()?;
+        let mut new_path = old_path.split();
 
-        if !old_path.split().any(|part| part == shim_dir) {
-            old_path
-                .split()
-                .prefix_entry(shim_dir)
-                .join()
-                .with_context(build_path_error)
-        } else {
-            Ok(OsString::from(old_path))
+        for add_path in path::env_paths()? {
+            if !old_path.split().any(|part| part == add_path) {
+                new_path = new_path.prefix_entry(add_path);
+            }
         }
+
+        new_path.join().with_context(build_path_error)
     }
 }
 
@@ -124,6 +126,8 @@ fn build_path_error(_err: &JoinPathsError) -> ErrorDetails {
 mod test {
 
     use super::*;
+    #[cfg(windows)]
+    use crate::path::install_bin_dir;
     use crate::path::{notion_home, shim_dir};
     use semver::Version;
     use std;
@@ -206,6 +210,7 @@ mod test {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
         pathbufs.push(shim_dir().unwrap());
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
+        pathbufs.push(install_bin_dir().unwrap());
         pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
 
         let path_with_shims = std::env::join_paths(pathbufs.iter())
@@ -287,6 +292,7 @@ mod test {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
         pathbufs.push(shim_dir().unwrap());
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
+        pathbufs.push(install_bin_dir().unwrap());
         pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
 
         let path_with_shims = std::env::join_paths(pathbufs.iter())
@@ -334,6 +340,7 @@ mod test {
     #[cfg(windows)]
     fn test_system_enabled_path() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
+        pathbufs.push(install_bin_dir().unwrap());
         pathbufs.push(shim_dir().unwrap());
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
         pathbufs.push(PathBuf::from("D:\\\\Program Files"));

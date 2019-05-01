@@ -6,8 +6,10 @@ use std::fmt::{self, Debug, Display, Formatter};
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 
+use crate::command::create_command;
 use crate::env::UNSAFE_GLOBAL;
 use crate::error::ErrorDetails;
+use crate::path;
 use crate::platform::System;
 use crate::session::Session;
 use crate::version::VersionSpec;
@@ -88,6 +90,8 @@ impl Display for ToolSpec {
 }
 
 pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
+    path::ensure_notion_dirs_exist()?;
+
     let mut args = args_os();
     let exe = get_tool_name(&mut args)?;
 
@@ -160,12 +164,11 @@ fn tool_name_from_file_name(file_name: &OsStr) -> OsString {
     }
 }
 
-fn command_for<A: IntoIterator<Item = OsString>>(
-    exe: &OsStr,
-    args: A,
-    path_var: &OsStr,
-) -> Command {
-    let mut command = Command::new(exe);
+fn command_for<A>(exe: &OsStr, args: A, path_var: &OsStr) -> Command
+where
+    A: IntoIterator<Item = OsString>,
+{
+    let mut command = create_command(exe);
     command.args(args);
     command.env("PATH", path_var);
     command

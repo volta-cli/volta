@@ -2,8 +2,8 @@
 
 use std::collections::HashMap;
 use std::ffi::OsStr;
-use std::fs::{self, rename, File};
-use std::io::{self, Read, Write};
+use std::fs::{self, rename, write, File};
+use std::io::{self, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::str;
@@ -12,9 +12,13 @@ use hex;
 use semver::Version;
 use sha1::{Digest, Sha1};
 
+use crate::command::create_command;
 use crate::distro::{download_tool_error, Distro, Fetched};
 use crate::error::ErrorDetails;
-use crate::fs::{dir_entry_match, ensure_containing_dir_exists, read_dir_eager, read_file_opt};
+use crate::fs::{
+    delete_dir_error, dir_entry_match, ensure_containing_dir_exists, ensure_dir_does_not_exist,
+    read_dir_eager, read_file_opt,
+};
 use crate::hook::ToolHooks;
 use crate::inventory::Collection;
 use crate::manifest::Manifest;
@@ -22,11 +26,20 @@ use crate::path;
 use crate::platform::{Image, PlatformSpec};
 use crate::session::Session;
 use crate::shim;
-use crate::style::progress_bar;
+use crate::style::{progress_bar, tool_version};
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
 use archive::{Archive, Tarball};
+use cfg_if::cfg_if;
 use tempfile::tempdir_in;
+
+cfg_if! {
+    if #[cfg(windows)] {
+        use cmdline_words_parser::StrExt;
+        use regex::Regex;
+        use std::io::{BufRead, BufReader};
+    }
+}
 
 use notion_fail::{throw, Fallible, ResultExt};
 
@@ -106,7 +119,11 @@ pub struct PackageConfig {
 ///       "runtime": "11.10.1",
 ///       "npm": "6.7.0"
 ///     },
-///     "yarn": null
+///     "yarn": null,
+///     "loader": {
+///       "exe": "node",
+///       "args": []
+///     }
 ///   }
 /// }
 pub struct BinConfig {
@@ -120,6 +137,19 @@ pub struct BinConfig {
     pub path: String,
     /// The platform used to install this binary
     pub platform: PlatformSpec,
+    /// The loader information for the script, if any
+    pub loader: Option<BinLoader>,
+}
+
+/// Information about the Shebang script loader (e.g. `#!/usr/bin/env node`)
+///
+/// Only important for Windows at the moment, as Windows does not natively understand script
+/// loaders, so we need to provide that behavior when calling a script that uses one
+pub struct BinLoader {
+    /// The command used to run a script
+    pub command: String,
+    /// Any additional arguments specified for the loader
+    pub args: Vec<String>,
 }
 
 impl Distro for PackageDistro {
@@ -127,7 +157,7 @@ impl Distro for PackageDistro {
     type ResolvedVersion = PackageEntry;
 
     fn new(
-        name: String,
+        name: &str,
         entry: Self::ResolvedVersion,
         _hooks: Option<&ToolHooks<Self>>,
     ) -> Fallible<Self> {
@@ -137,65 +167,74 @@ impl Distro for PackageDistro {
             shasum: entry.shasum,
             version: version.clone(),
             tarball_url: entry.tarball,
-            image_dir: path::package_image_dir(&name, &version.to_string())?,
-            distro_file: path::package_distro_file(&name, &version.to_string())?,
-            shasum_file: path::package_distro_shasum(&name, &version.to_string())?,
+            image_dir: path::package_image_dir(name, &version.to_string())?,
+            distro_file: path::package_distro_file(name, &version.to_string())?,
+            shasum_file: path::package_distro_shasum(name, &version.to_string())?,
         })
     }
 
+    // Fetches and unpacks the PackageDistro
     fn fetch(self, _collection: &Collection<Self>) -> Fallible<Fetched<PackageVersion>> {
+        // don't need to fetch if the package is already installed
+        if self.is_installed() {
+            return Ok(Fetched::Installed(PackageVersion::new(
+                self.name.clone(),
+                self.version.clone(),
+                self.generate_bin_map()?,
+            )?));
+        }
+
         let archive = self.load_or_fetch_archive()?;
 
         let bar = progress_bar(
             archive.origin(),
-            &format!("{}-v{}", self.name, self.version),
+            &tool_version(&self.name, &self.version),
             archive
                 .uncompressed_size()
                 .unwrap_or(archive.compressed_size()),
         );
 
-        let temp = tempdir_in(path::tmp_dir()?).unknown()?;
+        let tmp_root = path::tmp_dir()?;
+        let temp = tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError {
+            in_dir: tmp_root.to_string_lossy().to_string(),
+        })?;
         archive
             .unpack(temp.path(), &mut |_, read| {
                 bar.inc(read as u64);
             })
-            .unknown()?;
+            .with_context(|_| ErrorDetails::UnpackArchiveError {
+                tool: self.name.clone(),
+                version: self.version.to_string(),
+            })?;
         bar.finish();
 
+        // ensure that the dir where this will be unpacked exists
         ensure_containing_dir_exists(&self.image_dir)?;
+        // and ensure that the target directory does not exist
+        ensure_dir_does_not_exist(&self.image_dir)?;
 
         let unpack_dir = find_unpack_dir(temp.path())?;
-        rename(unpack_dir, &self.image_dir).unknown()?;
+        rename(&unpack_dir, &self.image_dir).with_context(|_| {
+            ErrorDetails::SetupToolImageError {
+                tool: self.name.clone(),
+                version: self.version.to_string(),
+                dir: unpack_dir.to_string_lossy().to_string(),
+            }
+        })?;
 
         // save the shasum in a file
-        let mut f = File::create(&self.shasum_file).unknown()?;
-        f.write_all(self.shasum.as_bytes()).unknown()?;
-        f.sync_all().unknown()?;
-
-        let pkg_info = Manifest::for_dir(&self.image_dir)?;
-        let bin_map = pkg_info.bin;
-        if bin_map.is_empty() {
-            throw!(ErrorDetails::NoPackageExecutables);
-        }
-
-        for (bin_name, _bin_path) in bin_map.iter() {
-            // check for conflicts with installed bins
-            // some packages may install bins with the same name
-            let bin_config_file = path::user_tool_bin_config(&bin_name)?;
-            if bin_config_file.exists() {
-                let bin_config = BinConfig::from_file(bin_config_file)?;
-                throw!(ErrorDetails::BinaryAlreadyInstalled {
-                    bin_name: bin_name.to_string(),
-                    existing_package: bin_config.package,
-                    new_package: self.name,
-                });
+        write(&self.shasum_file, self.shasum.as_bytes()).with_context(|_| {
+            ErrorDetails::WritePackageShasumError {
+                package: self.name.clone(),
+                version: self.version.to_string(),
+                file: self.shasum_file.to_string_lossy().to_string(),
             }
-        }
+        })?;
 
         Ok(Fetched::Now(PackageVersion::new(
             self.name.clone(),
             self.version.clone(),
-            bin_map,
+            self.generate_bin_map()?,
         )?))
     }
 
@@ -208,8 +247,8 @@ impl PackageDistro {
     /// Loads the package tarball from disk, or fetches from URL.
     fn load_or_fetch_archive(&self) -> Fallible<Box<Archive>> {
         // try to use existing downloaded package
-        if self.downloaded_pkg_is_ok() {
-            Tarball::load(File::open(&self.distro_file).unknown()?).unknown()
+        if let Some(archive) = self.load_cached_archive() {
+            Ok(archive)
         } else {
             // otherwise have to download
             ensure_containing_dir_exists(&self.distro_file)?;
@@ -220,33 +259,74 @@ impl PackageDistro {
         }
     }
 
-    /// Verify downloaded package, returning a PackageVersion if it is ok.
-    fn downloaded_pkg_is_ok(&self) -> bool {
+    /// Verify downloaded package, returning an Archive if it is ok.
+    fn load_cached_archive(&self) -> Option<Box<dyn Archive>> {
+        let mut distro = File::open(&self.distro_file).ok()?;
+        let stored_shasum = read_file_opt(&self.shasum_file).ok()??; // `??`: Err *or* None -> None
+
         let mut buffer = Vec::new();
+        distro.read_to_end(&mut buffer).ok()?;
 
-        if let Ok(mut distro) = File::open(&self.distro_file) {
-            if let Ok(Some(stored_shasum)) = read_file_opt(&self.shasum_file) {
-                if distro.read_to_end(&mut buffer).is_ok() {
-                    // calculate the shasum
-                    let mut hasher = Sha1::new();
-                    hasher.input(buffer);
-                    let result = hasher.result();
-                    let calculated_shasum = hex::encode(&result);
+        // calculate the shasum
+        let mut hasher = Sha1::new();
+        hasher.input(buffer);
+        let result = hasher.result();
+        let calculated_shasum = hex::encode(&result);
 
-                    return stored_shasum == calculated_shasum;
+        if stored_shasum != calculated_shasum {
+            return None;
+        }
+
+        distro.seek(SeekFrom::Start(0)).ok()?;
+        Tarball::load(distro).ok()
+    }
+
+    fn is_installed(&self) -> bool {
+        // check that package config file contains the same version
+        // (that is written after a package has been installed)
+        if let Ok(pkg_config_file) = path::user_package_config_file(&self.name) {
+            if let Ok(package_config) = PackageConfig::from_file(&pkg_config_file) {
+                return package_config.version == self.version;
+            }
+        }
+        false
+    }
+
+    fn generate_bin_map(&self) -> Fallible<HashMap<String, String>> {
+        let pkg_info = Manifest::for_dir(&self.image_dir)?;
+        let bin_map = pkg_info.bin;
+        if bin_map.is_empty() {
+            throw!(ErrorDetails::NoPackageExecutables);
+        }
+
+        for (bin_name, _bin_path) in bin_map.iter() {
+            // check for conflicts with installed bins
+            // some packages may install bins with the same name
+            let bin_config_file = path::user_tool_bin_config(&bin_name)?;
+            if bin_config_file.exists() {
+                let bin_config = BinConfig::from_file(bin_config_file)?;
+                // if the bin was installed by the package that is currently being installed,
+                // that's ok - otherwise it's an error
+                if self.name != bin_config.package {
+                    throw!(ErrorDetails::BinaryAlreadyInstalled {
+                        bin_name: bin_name.to_string(),
+                        existing_package: bin_config.package,
+                        new_package: self.name.clone(),
+                    });
                 }
             }
         }
 
-        // the files don't exist, or the shasum doesn't match
-        false
+        Ok(bin_map)
     }
 }
 
 // Figure out the unpacked package directory name dynamically, because
 // packages typically extract to a "package" directory, but not always
 fn find_unpack_dir(in_dir: &Path) -> Fallible<PathBuf> {
-    let dirs: Vec<_> = read_dir_eager(in_dir).unknown()?.collect();
+    let dirs: Vec<_> = read_dir_eager(in_dir)
+        .with_context(|_| ErrorDetails::PackageUnpackError)?
+        .collect();
 
     // if there is only one directory, return that
     if let [(entry, metadata)] = dirs.as_slice() {
@@ -325,27 +405,82 @@ impl PackageVersion {
         &self,
         bin_name: String,
         bin_path: String,
-        platform_spec: &PlatformSpec,
+        platform_spec: PlatformSpec,
+        loader: Option<BinLoader>,
     ) -> BinConfig {
         BinConfig {
             name: bin_name,
             package: self.name.to_string(),
             version: self.version.clone(),
             path: bin_path,
-            platform: platform_spec.clone(),
+            platform: platform_spec,
+            loader,
         }
     }
 
     fn write_config_and_shims(&self, platform_spec: &PlatformSpec) -> Fallible<()> {
         self.package_config(&platform_spec).to_serial().write()?;
         for (bin_name, bin_path) in self.bins.iter() {
-            self.bin_config(bin_name.to_string(), bin_path.to_string(), &platform_spec)
-                .to_serial()
-                .write()?;
+            let loader = self.determine_script_loader(bin_name, bin_path)?;
+            self.bin_config(
+                bin_name.to_string(),
+                bin_path.to_string(),
+                platform_spec.clone(),
+                loader,
+            )
+            .to_serial()
+            .write()?;
             // create a link to the shim executable
             shim::create(&bin_name)?;
         }
         Ok(())
+    }
+
+    /// On Unix, shebang loaders work correctly, so we don't need to bother storing loader information
+    #[cfg(unix)]
+    fn determine_script_loader(
+        &self,
+        _bin_name: &str,
+        _bin_path: &str,
+    ) -> Fallible<Option<BinLoader>> {
+        Ok(None)
+    }
+
+    /// On Windows, we need to read the executable and try to find a shebang loader
+    /// If it exists, we store the loader in the BinConfig so that the shim can execute it correctly
+    #[cfg(windows)]
+    fn determine_script_loader(
+        &self,
+        bin_name: &str,
+        bin_path: &str,
+    ) -> Fallible<Option<BinLoader>> {
+        let full_path = bin_full_path(&self.name, &self.version, bin_path, |_| {
+            ErrorDetails::DetermineBinaryLoaderError {
+                bin: bin_name.to_string(),
+            }
+        })?;
+        let script =
+            File::open(full_path).with_context(|_| ErrorDetails::DetermineBinaryLoaderError {
+                bin: bin_name.to_string(),
+            })?;
+        if let Some(Ok(first_line)) = BufReader::new(script).lines().next() {
+            // Note: Regex adapted from @zkochan/cmd-shim package used by Yarn
+            // https://github.com/pnpm/cmd-shim/blob/bac160cc554e5157e4c5f5e595af30740be3519a/index.js#L42
+            let re = Regex::new(r#"^#!\s*(?:/usr/bin/env)?\s*(?P<exe>[^ \t]+) ?(?P<args>.*)$"#)
+                .expect("Regex is valid");
+            if let Some(caps) = re.captures(&first_line) {
+                let args = caps["args"]
+                    .to_string()
+                    .parse_cmdline_words()
+                    .map(|word| word.to_string())
+                    .collect();
+                return Ok(Some(BinLoader {
+                    command: caps["exe"].to_string(),
+                    args,
+                }));
+            }
+        }
+        Ok(None)
     }
 
     /// Uninstall the specified package.
@@ -389,8 +524,7 @@ impl PackageVersion {
     }
 
     fn remove_config_and_shims(bin_name: &str, name: &str) -> Fallible<()> {
-        let shim = path::shim_file(&bin_name)?;
-        fs::remove_file(&shim).with_context(delete_file_error(&shim))?;
+        shim::delete(bin_name)?;
         let config_file = path::user_tool_bin_config(&bin_name)?;
         fs::remove_file(&config_file).with_context(delete_file_error(&config_file))?;
         println!("Removed executable '{}' installed by '{}'", bin_name, name);
@@ -401,11 +535,6 @@ impl PackageVersion {
 fn delete_file_error(file: &PathBuf) -> impl FnOnce(&io::Error) -> ErrorDetails {
     let file = file.to_string_lossy().to_string();
     |_| ErrorDetails::DeleteFileError { file }
-}
-
-fn delete_dir_error(directory: &PathBuf) -> impl FnOnce(&io::Error) -> ErrorDetails {
-    let directory = directory.to_string_lossy().to_string();
-    |_| ErrorDetails::DeleteDirectoryError { directory }
 }
 
 /// Reads the contents of a directory and returns a Vec containing the names of
@@ -421,18 +550,21 @@ pub fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
         };
         None
     })
+    .with_context(|_| ErrorDetails::ReadBinConfigDirError {
+        dir: bin_config_dir.to_string_lossy().to_string(),
+    })
 }
 
 impl Installer {
     pub fn cmd(&self) -> Command {
         match self {
             Installer::Npm => {
-                let mut command = Command::new("npm");
+                let mut command = create_command("npm");
                 command.args(&["install", "--only=production"]);
                 command
             }
             Installer::Yarn => {
-                let mut command = Command::new("yarn");
+                let mut command = create_command("yarn");
                 command.args(&["install", "--production"]);
                 command
             }
@@ -445,14 +577,19 @@ impl Installer {
 pub struct UserTool {
     pub bin_path: PathBuf,
     pub image: Image,
+    pub loader: Option<BinLoader>,
 }
 
 impl UserTool {
     pub fn from_config(bin_config: BinConfig, session: &mut Session) -> Fallible<Self> {
-        let image_dir =
-            path::package_image_dir(&bin_config.package, &bin_config.version.to_string())?;
-        // canonicalize because path is relative, and sometimes uses '.' char
-        let bin_path = image_dir.join(bin_config.path).canonicalize().unknown()?;
+        let bin_path = bin_full_path(
+            &bin_config.package,
+            &bin_config.version,
+            &bin_config.path,
+            |_| ErrorDetails::ExecutablePathError {
+                command: bin_config.name.clone(),
+            },
+        )?;
 
         // If the user does not have yarn set in the platform for this binary, use the default
         // This is necessary because some tools (e.g. ember-cli with the --yarn option) invoke `yarn`
@@ -472,6 +609,7 @@ impl UserTool {
         Ok(UserTool {
             bin_path,
             image: platform.checkout(session)?,
+            loader: bin_config.loader,
         })
     }
 
@@ -484,6 +622,23 @@ impl UserTool {
             Ok(None) // no config means the tool is not installed
         }
     }
+}
+
+fn bin_full_path<P, E>(
+    package: &str,
+    version: &Version,
+    bin_path: P,
+    error_context: E,
+) -> Fallible<PathBuf>
+where
+    P: AsRef<Path>,
+    E: FnOnce(&io::Error) -> ErrorDetails,
+{
+    // canonicalize because path is relative, and sometimes uses '.' char
+    path::package_image_dir(package, &version.to_string())?
+        .join(bin_path)
+        .canonicalize()
+        .with_context(error_context)
 }
 
 /// Build a package install command using the specified directory and path

@@ -1,7 +1,6 @@
 //! Provides the `NodeDistro` type, which represents a provisioned Node distribution.
 
-use std::fs::{read_to_string, rename, File};
-use std::io::Write;
+use std::fs::{read_to_string, rename, write, File};
 use std::path::{Path, PathBuf};
 use std::string::ToString;
 
@@ -10,11 +9,12 @@ use serde::Deserialize;
 use tempfile::tempdir_in;
 
 use super::{download_tool_error, Distro, Fetched};
+use crate::error::ErrorDetails;
 use crate::fs::ensure_containing_dir_exists;
 use crate::hook::ToolHooks;
 use crate::inventory::NodeCollection;
 use crate::path;
-use crate::style::progress_bar;
+use crate::style::{progress_bar, tool_version};
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
 
@@ -57,35 +57,36 @@ pub struct NodeVersion {
 /// Load the local npm version file to determine the default npm version for a given version of Node
 pub fn load_default_npm_version(node: &Version) -> Fallible<Version> {
     let npm_version_file_path = path::node_npm_version_file(&node.to_string())?;
-    Ok(read_to_string(npm_version_file_path)
-        .unknown()?
-        .parse()
-        .unknown()?)
+    let npm_version = read_to_string(&npm_version_file_path).with_context(|_| {
+        ErrorDetails::ReadDefaultNpmError {
+            file: npm_version_file_path.to_string_lossy().to_string(),
+        }
+    })?;
+    VersionSpec::parse_version(npm_version)
 }
 
 /// Save the default npm version to the filesystem for a given version of Node
 fn save_default_npm_version(node: &Version, npm: &Version) -> Fallible<()> {
     let npm_version_file_path = path::node_npm_version_file(&node.to_string())?;
-    let mut npm_version_file = File::create(npm_version_file_path).unknown()?;
-    npm_version_file
-        .write_all(npm.to_string().as_bytes())
-        .unknown()?;
-    Ok(())
+    write(&npm_version_file_path, npm.to_string().as_bytes()).with_context(|_| {
+        ErrorDetails::WriteDefaultNpmError {
+            file: npm_version_file_path.to_string_lossy().to_string(),
+        }
+    })
 }
 
-/// Check if the fetched file is valid. It may have been corrupted or interrupted in the middle of
+/// Return the archive if it is valid. It may have been corrupted or interrupted in the middle of
 /// downloading.
 // ISSUE(#134) - verify checksum
-fn distro_is_valid(file: &PathBuf) -> bool {
+fn load_cached_distro(file: &PathBuf) -> Option<Box<dyn Archive>> {
     if file.is_file() {
         if let Ok(file) = File::open(file) {
-            match archive::load_native(file) {
-                Ok(_) => return true,
-                Err(_) => return false,
+            if let Ok(archive) = archive::load_native(file) {
+                return Some(archive);
             }
         }
     }
-    false
+    None
 }
 
 #[derive(Deserialize)]
@@ -95,12 +96,12 @@ pub struct Manifest {
 
 impl Manifest {
     fn read(path: &Path) -> Fallible<Manifest> {
-        let file = File::open(path).unknown()?;
-        serde_json::de::from_reader(file).unknown()
+        let file = File::open(path).with_context(|_| ErrorDetails::ReadNpmManifestError)?;
+        serde_json::de::from_reader(file).with_context(|_| ErrorDetails::ParseNpmManifestError)
     }
 
     fn version(path: &Path) -> Fallible<Version> {
-        Manifest::read(path)?.version.parse().unknown()
+        VersionSpec::parse_version(Manifest::read(path)?.version)
     }
 }
 
@@ -122,8 +123,8 @@ impl NodeDistro {
         let distro_file_name = path::node_distro_file_name(&version.to_string());
         let distro_file = path::node_inventory_dir()?.join(&distro_file_name);
 
-        if distro_is_valid(&distro_file) {
-            return NodeDistro::local(version, File::open(distro_file).unknown()?);
+        if let Some(archive) = load_cached_distro(&distro_file) {
+            return Ok(NodeDistro { archive, version });
         }
 
         ensure_containing_dir_exists(&distro_file)?;
@@ -135,14 +136,6 @@ impl NodeDistro {
             version: version,
         })
     }
-
-    /// Provision a Node distribution from the filesystem.
-    fn local(version: Version, file: File) -> Fallible<Self> {
-        Ok(NodeDistro {
-            archive: archive::load_native(file).unknown()?,
-            version: version,
-        })
-    }
 }
 
 impl Distro for NodeDistro {
@@ -151,7 +144,7 @@ impl Distro for NodeDistro {
 
     /// Provisions a new Distro based on the Version and possible Hooks
     fn new(
-        _name: String,
+        _name: &str,
         version: Self::ResolvedVersion,
         hooks: Option<&ToolHooks<Self>>,
     ) -> Fallible<Self> {
@@ -185,22 +178,28 @@ impl Distro for NodeDistro {
             }));
         }
 
-        let temp = tempdir_in(path::tmp_dir()?).unknown()?;
+        let tmp_root = path::tmp_dir()?;
+        let temp = tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError {
+            in_dir: tmp_root.to_string_lossy().to_string(),
+        })?;
         let bar = progress_bar(
             self.archive.origin(),
-            &format!("v{}", self.version),
+            &tool_version("node", &self.version),
             self.archive
                 .uncompressed_size()
                 .unwrap_or(self.archive.compressed_size()),
         );
 
+        let version_string = self.version.to_string();
+
         self.archive
             .unpack(temp.path(), &mut |_, read| {
                 bar.inc(read as u64);
             })
-            .unknown()?;
-
-        let version_string = self.version.to_string();
+            .with_context(|_| ErrorDetails::UnpackArchiveError {
+                tool: String::from("Node"),
+                version: version_string.clone(),
+            })?;
 
         let npm_package_json = temp
             .path()
@@ -218,9 +217,13 @@ impl Distro for NodeDistro {
         rename(
             temp.path()
                 .join(path::node_archive_root_dir_name(&version_string)),
-            dest,
+            &dest,
         )
-        .unknown()?;
+        .with_context(|_| ErrorDetails::SetupToolImageError {
+            tool: String::from("Node"),
+            version: version_string.clone(),
+            dir: dest.to_string_lossy().to_string(),
+        })?;
 
         bar.finish_and_clear();
         Ok(Fetched::Now(NodeVersion {
