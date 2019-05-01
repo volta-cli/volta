@@ -362,17 +362,9 @@ impl PackageVersion {
         let image = platform.checkout(session)?;
         // use yarn if it is installed, otherwise default to npm
         let mut install_cmd = if image.yarn.is_some() {
-            install_command_for(
-                Installer::Yarn,
-                &self.image_dir.clone().into_os_string(),
-                &image.path()?,
-            )
+            install_command_for(Installer::Yarn, self.image_dir.as_os_str(), &image.path()?)
         } else {
-            install_command_for(
-                Installer::Npm,
-                &self.image_dir.clone().into_os_string(),
-                &image.path()?,
-            )
+            install_command_for(Installer::Npm, self.image_dir.as_os_str(), &image.path()?)
         };
 
         let output = install_cmd
