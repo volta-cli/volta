@@ -1,8 +1,7 @@
 # test the release.sh script
 
 # load the functions from the script
-# (everything before the '### END FUNCTIONS' line)
-eval "$(cat dev/unix/release.sh | sed '/### END FUNCTIONS/q')"
+source dev/unix/release.sh
 
 # happy path test to parse the version from Cargo.toml
 @test "parse_version - normal Cargo.toml" {

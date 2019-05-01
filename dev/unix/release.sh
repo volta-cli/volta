@@ -105,7 +105,9 @@ parse_openssl_version() {
   fi
 }
 
-### END FUNCTIONS
+# if this script is being sourced (for tests) then return at this point
+(return 0 2>/dev/null) && return 0
+
 
 # exit on error
 set -e
