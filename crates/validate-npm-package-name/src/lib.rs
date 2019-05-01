@@ -2,8 +2,8 @@
 //! [`validate-npm-package-name`](https://github.com/npm/validate-npm-package-name/).
 
 use lazy_static::lazy_static;
+use percent_encoding::{percent_encode, DEFAULT_ENCODE_SET};
 use regex::Regex;
-use url::percent_encoding::{percent_encode, DEFAULT_ENCODE_SET};
 
 lazy_static! {
     static ref SCOPED_PACKAGE: Regex =
