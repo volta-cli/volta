@@ -1,6 +1,25 @@
 #!/usr/bin/env bash
+
 # Script to build the binaries and package them up for release.
 # This should be run from the top-level directory.
+
+usage() {
+  cat >&2 <<END_OF_USAGE
+release.sh
+
+Compile and package a release for Notion
+
+USAGE:
+    ./dev/unix/release.sh [FLAGS] [OPTIONS]
+
+FLAGS:
+    -h, --help          Prints this help info
+
+OPTIONS:
+        --release       Build artifacts in release mode, with optimizations (default)
+        --dev           Build artifacts in dev mode, without optimizations
+END_OF_USAGE
+}
 
 notion_info() {
   local ACTION="$1"
@@ -112,6 +131,30 @@ return 0 2>/dev/null
 # exit on error
 set -e
 
+
+# default to compiling with '--release'
+build_with_release="true"
+
+# parse input arguments
+case "$1" in
+  -h|--help)
+    usage
+    exit 0
+    ;;
+  --dev)
+    build_with_release="false"
+    ;;
+  --release)
+    # not really necessary to set this again
+    build_with_release="true"
+    ;;
+  *)
+    notion_error "Unknown argument '$1'"
+    usage
+    exit1
+    ;;
+esac
+
 # read the current version from Cargo.toml
 cargo_toml_contents="$(<Cargo.toml)"
 NOTION_VERSION="$(parse_version "$cargo_toml_contents")"
@@ -124,11 +167,17 @@ NOTION_OS="$(parse_os_info "$os" "$openssl_version")"
 release_filename="notion-$NOTION_VERSION-$NOTION_OS"
 
 # first make sure the release binaries have been built
-notion_info 'Building' "Notion release $(bold "$release_filename")"
-cargo build --release
+notion_info 'Building' "Notion for $(bold "$release_filename")"
+if [ "$build_with_release" == "true" ]
+then
+  target_dir="target/release"
+  cargo build --release
+else
+  target_dir="target/debug"
+  cargo build
+fi
 
 # then package the binaries and shell scripts together
-target_dir="target/release"
 shell_script_dir="shell/unix"
 notion_info 'Packaging' "the compiled binaries and shell scripts"
 # copy the load.* shell scripts to the target dir, to include them as well
