@@ -23,6 +23,7 @@ OPTIONS:
 END_USAGE
 }
 
+# TODO: go thru all these functions and make sure the places that call them are checking the return value
 notion_get_latest_release() {
   # curl --silent https://www.notionjs.com/latest-version
   # TODO: change this back
@@ -57,17 +58,14 @@ notion_request() {
   notion_eprintf ''
 }
 
-notion_install_dir() {
-  printf %s "${NOTION_HOME:-"$HOME/.notion"}"
-}
-
 # TODO: change description once this is finalized
 # Check for an existing installation that needs to be removed.
 notion_upgrade_is_ok() {
   local _will_install_version="$1"
+  local _install_dir="$2"
+
   # TODO: check for downgrade? will probably have to wipe and install
 
-  local _install_dir="$(notion_install_dir)"
   local _notion_bin="$_install_dir/notion"
 
   # TODO: don't exit, just return from this
@@ -83,7 +81,7 @@ notion_upgrade_is_ok() {
     if [[ "$_prev_notion_version" == 0.1* || "$_prev_notion_version" == 0.2* ]]; then
       notion_eprintf ""
       notion_error "Your Notion installation is out of date and can't be automatically upgraded."
-      notion_request "       Please delete or move $(notion_install_dir) and try again."
+      notion_request "       Please delete or move $_install_dir and try again."
       notion_eprintf ""
       notion_eprintf "(We plan to implement automatic upgrades in the future. Thanks for bearing with us!)"
       notion_eprintf ""
@@ -94,38 +92,117 @@ notion_upgrade_is_ok() {
   return 0
 }
 
-# TODO: get this from the release script (along with the other functions)
-# determines the major and minor version of OpenSSL on the system
-notion_get_openssl_version() {
-  local LIB
-  local LIBNAME
-  local FULLVERSION
-  local MAJOR
-  local MINOR
+# returns the os name to be used in the packaged release,
+# including the openssl info if necessary
+parse_os_info() {
+  local uname_str="$1"
+  local openssl_version="$2"
 
-  # By default, we'll guess OpenSSL 1.0.1.
-  LIB="$(openssl version 2>/dev/null || echo 'OpenSSL 1.0.1')"
+  # TODO: need to check for version 0.1* anymore?
+  # case $(uname) in
+  #   Linux)
+  #     if [[ "$_version" == 0.1* ]]; then
+  #       NOTION_OS=linux
+  #     else
+  #       NOTION_OS="linux-openssl-$(notion_get_openssl_version)"
+  #     fi
+  #     NOTION_PRETTY_OS=Linux
+  #     ;;
+  #   Darwin)
+  #     NOTION_OS=macos
+  #     NOTION_PRETTY_OS=macOS
+  #     ;;
+  #   *)
+  #     notion_error "The current operating system does not appear to be supported by Notion."
+  #     notion_eprintf ""
+  #     exit 1
+  # esac
 
-  LIBNAME="$(echo $LIB | awk '{print $1;}')"
+  case "$uname_str" in
+    Linux)
+      local parsed_version="$(parse_openssl_version "$openssl_version")"
+      # if there was an error, return
+      exit_code="$?"
+      if [ "$exit_code" != 0 ]
+      then
+        return "$exit_code"
+      fi
 
-  if [[ "$LIBNAME" != "OpenSSL" ]]; then
-    notion_error "Your system SSL library ($LIBNAME) is not currently supported on this OS."
-    notion_eprintf ""
-    exit 1
-  fi
-
-  FULLVERSION="$(echo $LIB | awk '{print $2;}')"
-  MAJOR="$(echo ${FULLVERSION} | cut -d. -f1)"
-  MINOR="$(echo ${FULLVERSION} | cut -d. -f2)"
-  echo "${MAJOR}.${MINOR}"
+      echo "linux-openssl-$parsed_version"
+      ;;
+    Darwin)
+      echo "macos"
+      ;;
+    *)
+      notion_error "Releases for '$uname_str' are not yet supported. You will need to add another OS case to this script, and to the install script to support this OS."
+      return 1
+  esac
+  return 0
 }
 
-notion_install_dir() {
-  printf %s "${NOTION_HOME:-"$HOME/.notion"}"
+# TODO: description
+parse_os_pretty() {
+  local uname_str="$1"
+
+  case "$uname_str" in
+    Linux)
+      echo "Linux"
+      ;;
+    Darwin)
+      echo "macOS"
+      ;;
+    *)
+      # don't know which OS specificaly, just return the uname
+      echo "$uname_str"
+  esac
+}
+
+# return true(0) if the element is contained in the input arguments
+# called like:
+#  if element_in "foo" "${array[@]}"; then ...
+element_in() {
+  local match="$1";
+  shift
+
+  local element;
+  # loop over the input arguments and return when a match is found
+  for element in "$@"
+  do
+    [ "$element" == "$match" ] && return 0
+  done
+  return 1
+}
+
+# parse the OpenSSL version from the input text
+parse_openssl_version() {
+  local version_str="$1"
+
+  # array containing the SSL libraries that are supported
+  # would be nice to use a bash 4.x associative array, but bash 3.x is the default on OSX
+  SUPPORTED_SSL_LIBS=( 'OpenSSL' )
+
+  # use regex to get the library name and version
+  # typical version string looks like 'OpenSSL 1.0.1e-fips 11 Feb 2013'
+  if [[ "$version_str" =~ ^([^\ ]*)\ ([0-9]+\.[0-9]+\.[0-9]+) ]]
+  then
+    # check that the lib is supported
+    libname="${BASH_REMATCH[1]}"
+    if element_in "$libname" "${SUPPORTED_SSL_LIBS[@]}"
+    then
+      # lib is supported, return the version
+      echo "${BASH_REMATCH[2]}"
+      return 0
+    fi
+    notion_error "Releases for '$libname' not currently supported. Supported libraries are: ${SUPPORTED_SSL_LIBS[@]}."
+    return 1
+  else
+    notion_error "Could not determine OpenSSL version for '$version_str'. You probably need to update the regex to handle this output."
+    return 1
+  fi
 }
 
 notion_create_tree() {
-  local _install_dir="$(notion_install_dir)"
+  local _install_dir="$1"
 
   # .notion/
   #     bin/
@@ -145,136 +222,120 @@ notion_create_tree() {
   #         user/
 
   mkdir -p "$_install_dir"
-  mkdir -p "$_install_dir/bin"
-  mkdir -p "$_install_dir/cache/node"
-  mkdir -p "$_install_dir/log"
-  mkdir -p "$_install_dir/tmp"
-  mkdir -p "$_install_dir/tools/image/node"
-  mkdir -p "$_install_dir/tools/image/packages"
-  mkdir -p "$_install_dir/tools/image/yarn"
-  mkdir -p "$_install_dir/tools/inventory/node"
-  mkdir -p "$_install_dir/tools/inventory/packages"
-  mkdir -p "$_install_dir/tools/inventory/yarn"
-  mkdir -p "$_install_dir/tools/user"
+  mkdir -p "$_install_dir"/bin
+  mkdir -p "$_install_dir"/cache/node
+  mkdir -p "$_install_dir"/log
+  mkdir -p "$_install_dir"/tmp
+  mkdir -p "$_install_dir"/tools/image/{node,packages,yarn}
+  mkdir -p "$_install_dir"/tools/inventory/{node,packages,yarn}
+  mkdir -p "$_install_dir"/tools/user
 }
 
 notion_install_version() {
   local version_to_install="$1"
+  local install_dir="$2"
 
   case "$version_to_install" in
     latest)
       notion_info 'Installing' "latest version of Notion"
-      notion_install_release "$(notion_get_latest_release)"
+      notion_install_release "$(notion_get_latest_release)" "$install_dir"
       ;;
     local-debug)
       notion_info 'Installing' "Notion locally after compiling with '--debug'"
-      notion_install_local "debug"
+      notion_install_local "debug" "$install_dir"
       ;;
     local-release)
       notion_info 'Installing' "Notion locally after compiling with '--release'"
-      notion_install_local "release"
+      notion_install_local "release" "$install_dir"
       ;;
     *)
       # assume anything else is a specific version
       notion_info 'Installing' "Notion version $version_to_install"
-      notion_install_release "$version_to_install"
+      notion_install_release "$version_to_install" "$install_dir"
       ;;
   esac
 }
 
 notion_install_release() {
   local version="$1"
+  local install_dir="$2"
 
   notion_info 'Checking' "for existing Notion installation"
-  if notion_upgrade_is_ok "$version"
+  if notion_upgrade_is_ok "$version" "$install_dir"
   then
-    local _download_archive="$(notion_download_release "$version")"
-    notion_install_from_file "$_download_archive"
-  fi
+    download_archive="$(notion_download_release "$version"; exit "$?")"
+    exit_status="$?"
+    if [ "$exit_status" != 0 ]
+    then
+      notion_error "Could not download Notion version '$version'\n\nSee https://github.com/notion-cli/notion/releases for a list of available releases"
+      return "$exit_status"
+    fi
 
-  exit
+    notion_install_from_file "$download_archive" "$install_dir"
+  fi
 }
 
 notion_install_local() {
   local debug_or_release="$1"
+  local install_dir="$2"
 
-  # TODO: run compile
+  # compile and package the binaries, then install from that local archive
   local _compiled_archive="$(notion_compile_and_package "$debug_or_release")"
-  notion_install_from_file "$_compiled_archive"
-
-  exit
+  notion_install_from_file "$_compiled_archive" "$install_dir"
 }
 
 notion_compile_and_package() {
   local _debug_or_release="$1"
-  # TODO: call the release script to do this, and return the filename that was written
-  exit
+  # TODO: call the release script to do this, and return the packaged archive file
 }
 
 notion_download_release() {
   local _version="$1"
-  exit
 
-  # TODO:
-  # case $(uname) in
-  #     Linux)
-  #         if [[ "$NOTION_LATEST_VERSION" == 0.1* ]]; then
-  #           NOTION_OS=linux
-  #         else
-  #           NOTION_OS="linux-openssl-$(notion_get_openssl_version)"
-  #         fi
-  #         NOTION_PRETTY_OS=Linux
-  #         ;;
-  #     Darwin)
-  #         NOTION_OS=macos
-  #         NOTION_PRETTY_OS=macOS
-  #         ;;
-  #     *)
-  #         notion_error "The current operating system does not appear to be supported by Notion."
-  #         notion_eprintf ""
-  #         exit 1
-  # esac
+  local uname_str="$(uname -s)"
+  local openssl_version="$(openssl version)"
+  local os_info="$(parse_os_info "$uname_str" "$openssl_version")"
+  local pretty_os_name="$(parse_os_pretty "$uname_str")"
 
-  # # TODO: mktemp and store the download zip file there - for now:
-  # _download_dir="$HOME/.test"
-  # _filename="notion-$NOTION_LATEST_VERSION-$NOTION_OS.tar.gz"
-  # _download_file="$_download_dir/$_filename"
+  notion_info 'Fetching' "archive for $pretty_os_name, version $_version"
 
-  # # TODO: for now, download the test files from my desktop
-  # NOTION_BINS="http://mistewar-ld2.linkedin.biz:8080/$_filename"
-  # # TODO: this will be
-  # # NOTION_BINS="https://github.com/notion-cli/notion/releases/download/v${NOTION_LATEST_VERSION}/$_filename"
+  # store the downloaded archive in a temporary directory
+  local _download_dir="$(mktemp -d)"
+  local _filename="notion-$_version-$os_info.tar.gz"
+  local _download_file="$_download_dir/$_filename"
 
+  # TODO: for now, download the test files from my desktop
+  local notion_archive="http://mistewar-ld2.linkedin.biz:8080/$_filename"
+  # this will eventually be
+  # local notion_archive="https://github.com/notion-cli/notion/releases/download/v$_version/$_filename"
 
-  # notion_info 'Fetching' "binaries/archive/?? for $NOTION_PRETTY_OS, version $NOTION_LATEST_VERSION"
-
-  # curl --progress-bar --show-error --location --fail "$NOTION_BINS" --output "$_download_file"
-
-  # TODO: echo the downloaded file name
+  curl --progress-bar --show-error --location --fail "$notion_archive" --output "$_download_file" && echo "$_download_file"
 }
 
 notion_install_from_file() {
   local _archive="$1"
-  exit
-  # # TODO: set up directory layout
-  # notion_info 'Creating' "directory layout"
-  # notion_create_tree
+  local _extract_to="$2"
 
-  # # unzip the files
-  # notion_info 'Extracting' "files"
-  # # TODO: check for error
-  # # TODO: all of these should be extracted to ~/.notion (or NOTION_HOME)
-  # echo "will run: 'tar -xzvf "$_download_file"'"
+  notion_info 'Creating' "directory layout"
+  notion_create_tree "$_extract_to"
+
+  notion_info 'Extracting' "Notion binaries and launchers"
+  # extract the files to the specified directory
+  tar -xzvf "$_archive" -C "$_extract_to"
 }
 
-# TODO: use the return hijinks from the release script here to return if sourced
-### END FUNCTIONS
+# return if sourced (for testing the functions)
+return 0 2>/dev/null
 
+# TODO: do I actually want this?
 # exit on error
-set -e
+# set -e
 
 # default to installing the latest available Notion version
 install_version="latest"
+
+# install to NOTION_HOME, defaulting to ~/.notion
+install_dir="${NOTION_HOME:-"$HOME/.notion"}"
 
 # parse command line options
 while [ $# -gt 0 ]
@@ -288,14 +349,12 @@ do
       ;;
     --debug)
       shift # shift off the argument
-      # TODO: compile and install locally, going through the whole build process
-      # (delegate the compile and packaging to the release script)
+      # compile and install locally, going through the whole build process
       install_version="local-debug"
       ;;
     --release)
       shift # shift off the argument
-      # TODO: compile and install locally, going through the whole build process
-      # (delegate the compile and packaging to the release script)
+      # compile and install locally, going through the whole build process
       install_version="local-release"
       ;;
     --version)
@@ -311,5 +370,6 @@ do
   esac
 done
 
-notion_install_version "$install_version"
+notion_install_version "$install_version" "$install_dir"
+# TODO: use stuff from install.sh.in to modify profile and whatever
 
