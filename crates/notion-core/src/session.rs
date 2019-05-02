@@ -16,6 +16,7 @@ use crate::hook::{HookConfig, LazyHookConfig, Publish};
 use crate::inventory::{FetchResolve, Inventory, LazyInventory};
 use crate::platform::PlatformSpec;
 use crate::project::{LazyProject, Project};
+use crate::style::{success_prefix, tool_version};
 use crate::toolchain::LazyToolchain;
 use crate::version::VersionSpec;
 
@@ -174,16 +175,30 @@ impl Session {
     /// Fetch and unpack a version of Node matching the input requirements.
     pub fn install_node(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
         let node_distro = self.fetch_node(version_spec)?.into_version();
+        let success_message = format!(
+            "installed and set {} as default",
+            tool_version("node", &node_distro.runtime)
+        );
         let toolchain = self.toolchain.get_mut()?;
+
         toolchain.set_active_node(node_distro)?;
+        println!("{} {}", success_prefix(), success_message);
+
         Ok(())
     }
 
     /// Fetch and unpack a version of Yarn matching the input requirements.
     pub fn install_yarn(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
         let yarn_distro = self.fetch_yarn(version_spec)?.into_version();
+        let success_message = format!(
+            "installed and set {} as default",
+            tool_version("yarn", &yarn_distro)
+        );
         let toolchain = self.toolchain.get_mut()?;
+
         toolchain.set_active_yarn(yarn_distro)?;
+        println!("{} {}", success_prefix(), success_message);
+
         Ok(())
     }
 
@@ -287,6 +302,12 @@ impl Session {
         if let Some(ref project) = self.project()? {
             let node_version = self.fetch_node(version_spec)?.into_version();
             project.pin_node(&node_version)?;
+            println!(
+                "{} pinned {} (with {}) in package.json",
+                success_prefix(),
+                tool_version("node", node_version.runtime),
+                tool_version("npm", node_version.npm),
+            );
         } else {
             throw!(ErrorDetails::NotInPackage);
         }
@@ -299,6 +320,11 @@ impl Session {
         if let Some(ref project) = self.project()? {
             let yarn_version = self.fetch_yarn(version_spec)?.into_version();
             project.pin_yarn(&yarn_version)?;
+            println!(
+                "{} pinned {} in package.json",
+                success_prefix(),
+                tool_version("yarn", yarn_version)
+            );
         } else {
             throw!(ErrorDetails::NotInPackage);
         }
@@ -316,6 +342,11 @@ impl Session {
                 .resolve("npm", version_spec, hooks.package.as_ref())?
                 .version;
             project.pin_npm(&npm_version)?;
+            println!(
+                "{} pinned {} in package.json",
+                success_prefix(),
+                tool_version("npm", npm_version)
+            );
         } else {
             throw!(ErrorDetails::NotInPackage);
         }
