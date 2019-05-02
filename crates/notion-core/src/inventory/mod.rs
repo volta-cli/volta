@@ -399,12 +399,21 @@ fn match_package_entry(
 }
 
 // fetch metadata for the input url
-fn resolve_package_metadata(package_info_url: &str) -> Fallible<serial::PackageMetadata> {
+fn resolve_package_metadata(
+    package_name: &str,
+    package_info_url: &str,
+) -> Fallible<serial::PackageMetadata> {
     let spinner = progress_spinner(&format!("Fetching package metadata: {}", package_info_url));
     let response_text = reqwest::get(package_info_url)
+        .and_then(|resp| resp.error_for_status())
         .and_then(|mut resp| resp.text())
-        .with_context(|_| ErrorDetails::PackageMetadataFetchError {
-            from_url: package_info_url.to_string(),
+        .with_context(|err| match err.status() {
+            Some(reqwest::StatusCode::NOT_FOUND) => ErrorDetails::PackageNotFound {
+                package: package_name.into(),
+            },
+            _ => ErrorDetails::PackageMetadataFetchError {
+                from_url: package_info_url.into(),
+            },
         })?;
 
     let metadata: serial::PackageMetadata =
@@ -451,7 +460,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
             _ => format!("{}/{}", public_package_registry_root(), name),
         };
 
-        let package_index = resolve_package_metadata(&url)?.into_index();
+        let package_index = resolve_package_metadata(name, &url)?.into_index();
         let latest = package_index.latest.clone();
 
         let entry_opt = match_package_entry(package_index, |PackageEntry { version, .. }| {
@@ -482,7 +491,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
             _ => format!("{}/{}", public_package_registry_root(), name),
         };
 
-        let package_index = resolve_package_metadata(&url)?.into_index();
+        let package_index = resolve_package_metadata(name, &url)?.into_index();
 
         let entry_opt = match_package_entry(package_index, |PackageEntry { version, .. }| {
             matching.matches(&version)
@@ -512,7 +521,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
             _ => format!("{}/{}", public_package_registry_root(), name),
         };
 
-        let package_index = resolve_package_metadata(&url)?.into_index();
+        let package_index = resolve_package_metadata(name, &url)?.into_index();
 
         let entry_opt = match_package_entry(package_index, |PackageEntry { version, .. }| {
             &exact_version == version

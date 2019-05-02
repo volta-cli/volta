@@ -186,6 +186,11 @@ pub enum ErrorDetails {
         from_url: String,
     },
 
+    /// Thrown when a specified package could not be found on the npm registry
+    PackageNotFound {
+        package: String,
+    },
+
     /// Thrown when parsing a package manifest fails
     PackageParseError {
         file: String,
@@ -574,7 +579,7 @@ Please ensure the directory is available."),
             ErrorDetails::NoPackageExecutables => {
                 write!(f, "Package has no executables to install.
 
-Please verify the intended package name.")
+Please verify the requested package name.")
             }
             ErrorDetails::NoPinnedNodeVersion => write!(
                 f,
@@ -625,6 +630,9 @@ from {}
 Please verify your internet connection.",
                 from_url
             ),
+            ErrorDetails::PackageNotFound { package } => write!(f, "Could not find package '{}'
+
+Please verify the requested package name.", package),
             ErrorDetails::PackageParseError { file } => {
                 write!(f, "Could not parse project manifest
 at {}
@@ -872,6 +880,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::PackageInstallFailed => ExitCode::FileSystemError,
             ErrorDetails::PackageMetadataFetchError { .. } => ExitCode::NetworkError,
+            ErrorDetails::PackageNotFound { .. } => ExitCode::InvalidArguments,
             ErrorDetails::PackageParseError { .. } => ExitCode::ConfigurationError,
             ErrorDetails::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorDetails::PackageUnpackError => ExitCode::ConfigurationError,
