@@ -192,10 +192,6 @@ impl Project {
             self.manifest().yarn_str().clone(),
         );
         Manifest::update_toolchain(toolchain, self.package_file())?;
-        println!(
-            "Pinned node version {} (with npm {}) in package.json",
-            node_version.runtime, node_version.npm
-        );
         Ok(())
     }
 
@@ -208,7 +204,6 @@ impl Project {
                 Some(yarn_version.to_string()),
             );
             Manifest::update_toolchain(toolchain, self.package_file())?;
-            println!("Pinned yarn version {} in package.json", yarn_version);
         } else {
             throw!(ErrorDetails::NoPinnedNodeVersion);
         }
@@ -224,7 +219,6 @@ impl Project {
                 self.manifest().yarn_str().clone(),
             );
             Manifest::update_toolchain(toolchain, self.package_file())?;
-            println!("Pinned npm version {} in package.json", npm_version);
         } else {
             throw!(ErrorDetails::NoPinnedNodeVersion);
         }

@@ -18,12 +18,9 @@ Please feel free to reach out to us at \x1b[36m\x1b[1m@notionjs\x1b[0m on Twitte
     \x1b[1mhttps://github.com/notion-cli/notion/issues\x1b[0m
 ";
 
-/// Format a success message for output
-pub(crate) fn format_success_message<S>(msg: S) -> String
-where
-    S: AsRef<str>,
-{
-    format!("{} {}", style("success:").green().bold(), msg.as_ref())
+/// Generate the styled prefix for a success message
+pub(crate) fn success_prefix() -> StyledObject<&'static str> {
+    style("success:").green().bold()
 }
 
 /// Format an error for output in the given context
