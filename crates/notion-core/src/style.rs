@@ -72,12 +72,16 @@ where
     format!("{:}@{:}", name, version)
 }
 
+/// Get the display width. If it is unavailable, supply a normal default.
+pub fn display_width() -> usize {
+    term_size::dimensions().map(|(w, _)| w).unwrap_or(80)
+}
+
 /// Constructs a command-line progress bar based on the specified Origin enum
 /// (e.g., `Origin::Remote`), details string (e.g., `"v1.23.4"`), and logical
 /// length (i.e., the number of logical progress steps in the process being
 /// visualized by the progress bar).
 pub fn progress_bar(origin: Origin, details: &str, len: u64) -> ProgressBar {
-    let display_width = term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
     let action = action_str(origin);
     let action_width = action.len() + 2; // plus 2 spaces to look nice
     let msg_width = action_width + 1 + details.len();
@@ -85,7 +89,7 @@ pub fn progress_bar(origin: Origin, details: &str, len: u64) -> ProgressBar {
     //   Installing v1.23.4  [====================>                   ]  50%
     // |----------| |-----|   |--------------------------------------|  |-|
     //    action    details                      bar                 percentage
-    let available_width = display_width - 2 - msg_width - 2 - 2 - 1 - 3 - 1;
+    let available_width = display_width() - 2 - msg_width - 2 - 2 - 1 - 3 - 1;
     let bar_width = ::std::cmp::min(available_width, 40);
 
     let bar = ProgressBar::new(len);
