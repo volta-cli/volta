@@ -144,7 +144,7 @@ case "$1" in
   --dev)
     build_with_release="false"
     ;;
-  --release)
+  ''|--release)
     # not really necessary to set this again
     build_with_release="true"
     ;;
