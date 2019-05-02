@@ -10,7 +10,7 @@ use std::process::{Command, ExitStatus};
 use lazy_static::lazy_static;
 use regex::Regex;
 
-use notion_fail::{Fallible, ResultExt};
+use notion_fail::{throw, Fallible, ResultExt};
 use validate_npm_package_name::{validate, Validity};
 
 use crate::command::create_command;
@@ -69,21 +69,29 @@ impl ToolSpec {
         match self {
             ToolSpec::Node(version) => session.install_node(&version)?,
             // ISSUE(#292): Implement install for npm
-            ToolSpec::Npm(_version) => unimplemented!("Installing npm is not supported yet"),
+            ToolSpec::Npm(_version) => throw!(ErrorDetails::Unimplemented {
+                feature: "Installing npm".into()
+            }),
             ToolSpec::Yarn(version) => session.install_yarn(&version)?,
             ToolSpec::Package(name, version) => {
                 session.install_package(name.to_string(), &version)?;
             }
-        }
+        };
         Ok(())
     }
 
     pub fn uninstall(&self, session: &mut Session) -> Fallible<()> {
         match self {
-            ToolSpec::Node(_version) => unimplemented!("Uninstalling Node not supported yet"),
+            ToolSpec::Node(_version) => throw!(ErrorDetails::Unimplemented {
+                feature: "Uninstalling node".into()
+            }),
             // ISSUE(#292): Implement install for npm
-            ToolSpec::Npm(_version) => unimplemented!("Uninstalling Npm not supported yet"),
-            ToolSpec::Yarn(_version) => unimplemented!("Uninstalling Yarn not supported yet"),
+            ToolSpec::Npm(_version) => throw!(ErrorDetails::Unimplemented {
+                feature: "Uninstalling npm".into()
+            }),
+            ToolSpec::Yarn(_version) => throw!(ErrorDetails::Unimplemented {
+                feature: "Uninstalling yarn".into()
+            }),
             ToolSpec::Package(name, _version) => {
                 session.uninstall_package(name.to_string())?;
             }

@@ -340,6 +340,11 @@ pub enum ErrorDetails {
     /// Thrown when serializing the toolchain to JSON fails
     StringifyToolchainError,
 
+    /// Thrown when a given feature has not yet been implemented
+    Unimplemented {
+        feature: String,
+    },
+
     /// Thrown when unpacking an archive (tarball or zip) fails
     UnpackArchiveError {
         tool: String,
@@ -758,6 +763,7 @@ at {}
             ErrorDetails::StringifyToolchainError => write!(f, "Could not serialize toolchain settings.
 
 {}", REPORT_BUG_CTA),
+            ErrorDetails::Unimplemented { feature } => write!(f, "{} is not supported yet.", feature),
             ErrorDetails::UnpackArchiveError { tool, version } => write!(f, "Could not unpack {} v{}
 
 Please ensure the correct version is specified.", tool, version),
@@ -902,6 +908,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::StringifyPackageConfigError => ExitCode::UnknownError,
             ErrorDetails::StringifyPlatformError => ExitCode::UnknownError,
             ErrorDetails::StringifyToolchainError => ExitCode::UnknownError,
+            ErrorDetails::Unimplemented { .. } => ExitCode::UnknownError,
             ErrorDetails::UnpackArchiveError { .. } => ExitCode::UnknownError,
             ErrorDetails::UnrecognizedShell { .. } => ExitCode::EnvironmentError,
             ErrorDetails::UnspecifiedPostscript => ExitCode::EnvironmentError,

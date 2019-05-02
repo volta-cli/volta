@@ -1,5 +1,6 @@
 use structopt::StructOpt;
 
+use notion_core::error::ErrorDetails;
 use notion_core::platform::System;
 use notion_core::session::{ActivityKind, Session};
 use notion_core::shell::{CurrentShell, Postscript, Shell};
@@ -15,10 +16,13 @@ impl Command for Activate {
         session.add_event_start(ActivityKind::Activate);
         let shell = CurrentShell::detect()?;
 
-        let postscript = match System::enabled_path()?.into_string() {
-            Ok(path) => Postscript::Activate(path),
-            Err(_) => unimplemented!(),
-        };
+        let path =
+            System::enabled_path()?
+                .into_string()
+                .map_err(|_| ErrorDetails::Unimplemented {
+                    feature: "notion activate".into(),
+                })?;
+        let postscript = Postscript::Activate(path);
 
         shell.save_postscript(&postscript)?;
         session.add_event_end(ActivityKind::Activate, ExitCode::Success);
