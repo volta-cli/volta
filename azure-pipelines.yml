@@ -19,6 +19,7 @@ jobs:
       vmImage: $(imageName)
     steps:
       - template: ci/install-rust.yml
+      - template: ci/install-bats.yml
       - template: ci/check-formatting.yml
       - template: ci/run-tests.yml
     displayName: Non-Windows OSes
