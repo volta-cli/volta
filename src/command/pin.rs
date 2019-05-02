@@ -29,7 +29,9 @@ impl Command for Pin {
                 ToolSpec::Node(version) => session.pin_node(&version)?,
                 ToolSpec::Yarn(version) => session.pin_yarn(&version)?,
                 // ISSUE(#292): Implement install for npm
-                ToolSpec::Npm(_version) => unimplemented!("Pinning npm is not supported yet"),
+                ToolSpec::Npm(_version) => throw!(ErrorDetails::Unimplemented {
+                    feature: "Pinning npm".into()
+                }),
                 ToolSpec::Package(name, _version) => {
                     throw!(ErrorDetails::CannotPinPackage { package: name })
                 }

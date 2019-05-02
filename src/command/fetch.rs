@@ -1,8 +1,9 @@
 use structopt::StructOpt;
 
+use notion_core::error::ErrorDetails;
 use notion_core::session::{ActivityKind, Session};
 use notion_core::tool::ToolSpec;
-use notion_fail::{ExitCode, Fallible};
+use notion_fail::{throw, ExitCode, Fallible};
 
 use crate::command::Command;
 
@@ -33,7 +34,9 @@ impl Command for Fetch {
                 }
                 ToolSpec::Npm(_version) => {
                     // ISSUE(#292): Implement install for npm
-                    unimplemented!("Fetching npm is not supported yet");
+                    throw!(ErrorDetails::Unimplemented {
+                        feature: "Fetching npm".into()
+                    });
                 }
                 ToolSpec::Package(name, version) => {
                     session.fetch_package(&name, &version)?;

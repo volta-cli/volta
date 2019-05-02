@@ -128,6 +128,7 @@ impl EventLog {
 
     pub fn publish(&mut self, plugin: Option<&Publish>) {
         match plugin {
+            // Note: This call to unimplemented is left in, as it's not a Fallible operation that can use ErrorDetails::Unimplemented
             Some(&Publish::Url(_)) => unimplemented!(),
             Some(&Publish::Bin(ref command)) => {
                 let mut monitor = Monitor::new(command);
