@@ -183,6 +183,8 @@ notion_info 'Packaging' "the compiled binaries and shell scripts"
 # copy the load.* shell scripts to the target dir, to include them as well
 cp "$shell_script_dir"/load.* "$target_dir/"
 cd "$target_dir"
-tar -czvf "$release_filename.tar.gz" notion shim load.*
+# using COPYFILE_DISABLE to avoid storing extended attribute files when run on OSX
+# (see https://superuser.com/q/61185)
+COPYFILE_DISABLE=1 tar -czvf "$release_filename.tar.gz" notion shim load.*
 
 notion_info 'Completed' "release in file $(bold "$target_dir/$release_filename.tar.gz")"
