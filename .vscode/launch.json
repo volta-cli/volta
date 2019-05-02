@@ -4,6 +4,24 @@
     {
       "type": "lldb",
       "request": "launch",
+      "name": "Cargo run notion core",
+      "cargo": {
+        "args": [
+          "run",
+          "--bin", "notion",
+        ],
+        "filter": {
+          "kind": "bin",
+          "name": "notion"
+        }
+      },
+      "program": "${cargo:program}",
+      "args": ["fetch", "2bar"],
+      "sourceLanguages": ["rust"]
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
       "name": "Cargo test notion core",
       "cargo": {
         "args": [

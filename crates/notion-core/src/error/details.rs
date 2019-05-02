@@ -1,8 +1,11 @@
 use std::fmt;
 
 use failure::Fail;
+use textwrap::{fill, indent};
+
 use notion_fail::{ExitCode, NotionFail};
 
+use crate::style::display_width;
 use crate::tool::ToolSpec;
 
 const REPORT_BUG_CTA: &'static str =
@@ -121,6 +124,12 @@ pub enum ErrorDetails {
         command: String,
     },
 
+    /// Thrown when a tool name is invalid per npm's rules.
+    InvalidToolName {
+        name: String,
+        errors: Vec<String>,
+    },
+
     /// Thrown when BinConfig (read from file) does not contain Platform info.
     NoBinPlatform {
         binary: String,
@@ -226,6 +235,11 @@ pub enum ErrorDetails {
 
     /// Thrown when unable to parse the platform.json file
     ParsePlatformError,
+
+    /// Thrown when unable to parse a tool spec (`<tool>[@<version>]`)
+    ParseToolSpecError {
+        tool_spec: String,
+    },
 
     /// Thrown when a publish hook contains both the url and bin fields
     PublishHookBothUrlAndBin,
@@ -499,6 +513,22 @@ Please ensure that the correct command is specified.", command),
             ErrorDetails::InvalidHookOutput { command } => write!(f, "Could not read output from hook command: '{}'
 
 Please ensure that the command output is valid UTF-8 text.", command),
+            ErrorDetails::InvalidToolName { name, errors } => {
+                let indentation = "    ";
+                let wrapped = &fill(&errors.join("\n"), display_width() - indentation.len());
+                let formatted_errs = indent(&wrapped, indentation);
+
+                let call_to_action = if errors.len() > 1 {
+                    "Please fix the following errors:"
+                } else {
+                    "Please fix the following error:"
+                };
+
+                write!(f, "Invalid tool name `{}`
+
+{}
+{}", name, call_to_action, formatted_errs)
+            },
             ErrorDetails::NoBinPlatform { binary } => {
                 write!(f, "Platform info for executable `{}` is missing
 
@@ -640,6 +670,9 @@ Please verify the requested package and version.", from_url),
             ErrorDetails::ParsePlatformError => write!(f, "Could not parse platform settings file.
 
 {}", REPORT_BUG_CTA),
+            ErrorDetails::ParseToolSpecError { tool_spec } => write!(f, "Could not parse tool spec `{}`
+
+Please supply a spec in the format `<tool name>[@<version>]`.", tool_spec),
             ErrorDetails::PublishHookBothUrlAndBin => write!(f, "Publish hook configuration includes both hook types.
 
 Please include only one of 'bin' or 'url'"),
@@ -807,6 +840,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::HookNoFieldsSpecified => ExitCode::ConfigurationError,
             ErrorDetails::InvalidHookCommand { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::InvalidHookOutput { .. } => ExitCode::ExecutionFailure,
+            ErrorDetails::InvalidToolName { .. } => ExitCode::InvalidArguments,
             ErrorDetails::NoBinPlatform { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NoGlobalInstalls => ExitCode::InvalidArguments,
@@ -830,6 +864,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::PackageWriteError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ParseBinConfigError => ExitCode::UnknownError,
             ErrorDetails::ParseHooksError => ExitCode::ConfigurationError,
+            ErrorDetails::ParseToolSpecError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::ParseNodeIndexCacheError => ExitCode::UnknownError,
             ErrorDetails::ParseNodeIndexError { .. } => ExitCode::NetworkError,
             ErrorDetails::ParseNodeIndexExpiryError => ExitCode::UnknownError,
