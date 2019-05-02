@@ -41,7 +41,7 @@ parse_os_info() {
 
   case "$uname_str" in
     Linux)
-      major_minor="$(parse_openssl_version "$openssl_version")"
+      parsed_version="$(parse_openssl_version "$openssl_version")"
       # if there was an error, return
       exit_code="$?"
       if [ "$exit_code" != 0 ]
@@ -49,7 +49,7 @@ parse_os_info() {
         return "$exit_code"
       fi
 
-      echo "linux-openssl-$major_minor"
+      echo "linux-openssl-$parsed_version"
       ;;
     Darwin)
       echo "macos"
@@ -105,8 +105,8 @@ parse_openssl_version() {
   fi
 }
 
-# if this script is being sourced (for tests) then return at this point
-(return 0 2>/dev/null) && return 0
+# return if sourced (for testing the functions above without running the commands below)
+return 0 2>/dev/null
 
 
 # exit on error
