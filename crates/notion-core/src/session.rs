@@ -16,6 +16,7 @@ use crate::hook::{HookConfig, LazyHookConfig, Publish};
 use crate::inventory::{FetchResolve, Inventory, LazyInventory};
 use crate::platform::PlatformSpec;
 use crate::project::{LazyProject, Project};
+use crate::style::format_success_message;
 use crate::toolchain::LazyToolchain;
 use crate::version::VersionSpec;
 
@@ -174,14 +175,11 @@ impl Session {
     /// Fetch and unpack a version of Node matching the input requirements.
     pub fn install_node(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
         let node_distro = self.fetch_node(version_spec)?.into_version();
-        let success_message = format!(
-            "Installation successful. Default node version set to {}",
-            &node_distro.runtime
-        );
+        let success_message = format!("installed and set node@{} as default", &node_distro.runtime);
         let toolchain = self.toolchain.get_mut()?;
 
         toolchain.set_active_node(node_distro)?;
-        println!("{}", success_message);
+        println!("{}", format_success_message(success_message));
 
         Ok(())
     }
@@ -189,14 +187,11 @@ impl Session {
     /// Fetch and unpack a version of Yarn matching the input requirements.
     pub fn install_yarn(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
         let yarn_distro = self.fetch_yarn(version_spec)?.into_version();
-        let success_message = format!(
-            "Installation successful. Default yarn version set to {}",
-            &yarn_distro
-        );
+        let success_message = format!("installed and set yarn@{} as default", &yarn_distro);
         let toolchain = self.toolchain.get_mut()?;
 
         toolchain.set_active_yarn(yarn_distro)?;
-        println!("{}", success_message);
+        println!("{}", format_success_message(success_message));
 
         Ok(())
     }
@@ -301,7 +296,11 @@ impl Session {
         if let Some(ref project) = self.project()? {
             let node_version = self.fetch_node(version_spec)?.into_version();
             project.pin_node(&node_version)?;
-            println!("Project pinned to use node@{}", node_version.runtime);
+            println!(
+                "{}{}",
+                format_success_message("project pinned to use node@"),
+                node_version.runtime
+            );
         } else {
             throw!(ErrorDetails::NotInPackage);
         }
@@ -314,7 +313,11 @@ impl Session {
         if let Some(ref project) = self.project()? {
             let yarn_version = self.fetch_yarn(version_spec)?.into_version();
             project.pin_yarn(&yarn_version)?;
-            println!("Project pinned to use yarn@{}", yarn_version);
+            println!(
+                "{}{}",
+                format_success_message("project pinned to use yarn@"),
+                yarn_version
+            );
         } else {
             throw!(ErrorDetails::NotInPackage);
         }

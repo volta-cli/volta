@@ -18,6 +18,14 @@ Please feel free to reach out to us at \x1b[36m\x1b[1m@notionjs\x1b[0m on Twitte
     \x1b[1mhttps://github.com/notion-cli/notion/issues\x1b[0m
 ";
 
+/// Format a success message for output
+pub(crate) fn format_success_message<S>(msg: S) -> String
+where
+    S: AsRef<str>,
+{
+    format!("{} {}", style("success:").green().bold(), msg.as_ref())
+}
+
 /// Format an error for output in the given context
 pub(crate) fn format_error_message(cx: ErrorContext, err: &NotionError) -> String {
     let prefix = error_prefix(cx);
