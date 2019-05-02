@@ -104,6 +104,11 @@ pub enum ErrorDetails {
         command: String,
     },
 
+    /// Thrown when verifying the file permissions on an executable fails
+    ExecutablePermissionsError {
+        bin: String,
+    },
+
     /// Thrown when executing a hook command fails
     ExecuteHookError {
         command: String,
@@ -495,12 +500,15 @@ from {}
 Please verify your internet connection and ensure the correct version is specified.",
                 tool, from_url
             ),
-            ErrorDetails::ExecuteHookError { command } => write!(f, "Could not execute hook command: '{}'
-
-Please ensure that the corrent command is specified.", command),
             ErrorDetails::ExecutablePathError { command } => write!(f, "Could not determine path to executable '{}'
 
 {}", command, REPORT_BUG_CTA),
+            ErrorDetails::ExecutablePermissionsError { bin } => write!(f, "Could not verify permissions for executable '{}'
+
+{}", bin, PERMISSIONS_CTA),
+            ErrorDetails::ExecuteHookError { command } => write!(f, "Could not execute hook command: '{}'
+
+Please ensure that the correct command is specified.", command),
             ErrorDetails::HookMultipleFieldsSpecified => write!(f, "Hook configuration includes multiple hook types.
 
 Please include only one of 'bin', 'prefix', or 'template'"),
@@ -835,6 +843,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::DetermineBinaryLoaderError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
             ErrorDetails::ExecutablePathError { .. } => ExitCode::UnknownError,
+            ErrorDetails::ExecutablePermissionsError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ExecuteHookError { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::HookMultipleFieldsSpecified => ExitCode::ConfigurationError,
             ErrorDetails::HookNoFieldsSpecified => ExitCode::ConfigurationError,
