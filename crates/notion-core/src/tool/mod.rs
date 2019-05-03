@@ -553,7 +553,7 @@ mod tests {
             assert!(
                 ToolSpec::from_strings(&mut ["node@lts".to_owned(), "12".to_owned()], PIN.into())
                     .is_ok(),
-                "when the there are two args but the first is a valid tool spec"
+                "when there are two args but the first is a valid tool spec"
             );
 
             assert!(
@@ -562,7 +562,7 @@ mod tests {
                     PIN.into()
                 )
                 .is_ok(),
-                "when the there are more than two args"
+                "when there are more than two args"
             );
         }
     }
