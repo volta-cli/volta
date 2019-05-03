@@ -4,7 +4,7 @@
 source dev/unix/release.sh
 
 # happy path test to parse the version from Cargo.toml
-@test "parse_version - normal Cargo.toml" {
+@test "parse_cargo_version - normal Cargo.toml" {
   input=$(cat <<'END_CARGO_TOML'
 [package]
 name = "volta"
@@ -16,13 +16,13 @@ END_CARGO_TOML
 
   expected_output="0.7.38"
 
-  run parse_version "$input"
+  run parse_cargo_version "$input"
   [ "$status" -eq 0 ]
   diff <(echo "$output") <(echo "$expected_output")
 }
 
 # it doesn't parse the version from other dependencies
-@test "parse_version - error" {
+@test "parse_cargo_version - error" {
   input=$(cat <<'END_CARGO_TOML'
 [dependencies]
 volta-core = { path = "crates/volta-core" }
@@ -34,7 +34,7 @@ END_CARGO_TOML
 
   expected_output=$(echo -e "\033[1;31mError\033[0m: Could not determine the current version")
 
-  run parse_version "$input"
+  run parse_cargo_version "$input"
   [ "$status" -eq 1 ]
   diff <(echo "$output") <(echo "$expected_output")
 }

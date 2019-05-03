@@ -23,19 +23,6 @@ OPTIONS:
 END_USAGE
 }
 
-# TODO: go thru all these functions and make sure the places that call them are checking the return value
-notion_get_latest_release() {
-  # curl --silent https://www.notionjs.com/latest-version
-  # TODO: change this back
-  # TODO: make this configurable for Artifactory?
-  # OR just have a separate internal script...
-  echo "0.3.1" # for testing
-}
-
-notion_eprintf() {
-  command printf "$1\n" 1>&2
-}
-
 notion_info() {
   local action="$1"
   local details="$2"
@@ -43,19 +30,172 @@ notion_info() {
 }
 
 notion_error() {
-  command printf '\033[1;31mError\033[0m: ' 1>&2
-  notion_eprintf "$1"
+  command printf '\033[1;31mError\033[0m: %s\n\n' "$1" 1>&2
 }
 
 notion_warning() {
-  command printf '\033[1;33mWarning\033[0m: ' 1>&2
-  notion_eprintf "$1"
-  notion_eprintf ''
+  command printf '\033[1;33mWarning\033[0m: %s\n\n' "$1" 1>&2
 }
 
 notion_request() {
-  command printf "\033[1m$1\033[0m" 1>&2
-  notion_eprintf ''
+  command printf '\033[1m%s\033[0m\n' "$1" 1>&2
+}
+
+notion_eprintf() {
+  command printf '%s\n' "$1" 1>&2
+}
+
+bold() {
+  command printf '\033[1m%s\033[0m' "$1"
+}
+
+# TODO: clean these functions up
+notion_create_binaries() {
+  local INSTALL_DIR
+
+  INSTALL_DIR="$(notion_install_dir)"
+
+  notion_unpack_notion        > "${INSTALL_DIR}"/notion
+  notion_unpack_shim          > "${INSTALL_DIR}"/shim
+  notion_unpack_bash_launcher > "${INSTALL_DIR}"/load.sh
+  notion_unpack_fish_launcher > "${INSTALL_DIR}"/load.fish
+
+  # Remove any existing binaries for tools so that the symlinks can be installed
+  # using -f so there is no error if the files don't exist
+  rm -f "${INSTALL_DIR}"/bin/node
+  rm -f "${INSTALL_DIR}"/bin/npm
+  rm -f "${INSTALL_DIR}"/bin/npx
+  rm -f "${INSTALL_DIR}"/bin/yarn
+
+  for FILE_NAME in "${INSTALL_DIR}"/bin/*; do
+    if [ -e "${FILE_NAME}" ] && ! [ -d "${FILE_NAME}" ]; then
+      rm -f "${FILE_NAME}"
+      ln -s "${INSTALL_DIR}"/shim "${FILE_NAME}"
+    fi
+  done
+
+  ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/node
+  ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/npm
+  ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/npx
+  ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/yarn
+
+  chmod 755 "${INSTALL_DIR}/"/notion "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}"/shim
+}
+
+notion_try_profile() {
+  if [ -z "${1-}" ] || [ ! -f "${1}" ]; then
+    return 1
+  fi
+  echo "${1}"
+}
+
+notion_detect_profile() {
+  if [ -n "${PROFILE}" ] && [ -f "${PROFILE}" ]; then
+    echo "${PROFILE}"
+    return
+  fi
+
+  local DETECTED_PROFILE
+  DETECTED_PROFILE=''
+  local SHELLTYPE
+  SHELLTYPE="$(basename "/$SHELL")"
+
+  if [ "$SHELLTYPE" = "bash" ]; then
+    if [ -f "$HOME/.bashrc" ]; then
+      DETECTED_PROFILE="$HOME/.bashrc"
+    elif [ -f "$HOME/.bash_profile" ]; then
+      DETECTED_PROFILE="$HOME/.bash_profile"
+    fi
+  elif [ "$SHELLTYPE" = "zsh" ]; then
+    DETECTED_PROFILE="$HOME/.zshrc"
+  elif [ "$SHELLTYPE" = "fish" ]; then
+    DETECTED_PROFILE="$HOME/.config/fish/config.fish"
+  fi
+
+  if [ -z "$DETECTED_PROFILE" ]; then
+    for EACH_PROFILE in ".profile" ".bashrc" ".bash_profile" ".zshrc" ".config/fish/config.fish"
+    do
+      if DETECTED_PROFILE="$(notion_try_profile "${HOME}/${EACH_PROFILE}")"; then
+        break
+      fi
+    done
+  fi
+
+  if [ -n "$DETECTED_PROFILE" ]; then
+    echo "$DETECTED_PROFILE"
+  fi
+}
+
+notion_build_path_str() {
+  local PROFILE
+  PROFILE="$1"
+  local PROFILE_INSTALL_DIR
+  PROFILE_INSTALL_DIR="$2"
+
+  local PATH_STR
+  if [[ $PROFILE =~ \.fish$ ]]; then
+    PATH_STR="\\nset -gx NOTION_HOME \"${PROFILE_INSTALL_DIR}\"\\ntest -s \"\$NOTION_HOME/load.fish\"; and source \"\$NOTION_HOME/load.fish\"\\n\\nstring match -r \".notion\" \"\$PATH\" > /dev/null; or set -gx PATH \"\$NOTION_HOME/bin\" \$PATH"
+  else
+    PATH_STR="\\nexport NOTION_HOME=\"${PROFILE_INSTALL_DIR}\"\\n[ -s \"\$NOTION_HOME/load.sh\" ] && \\. \"\$NOTION_HOME/load.sh\"\\n\\nexport PATH=\"\${NOTION_HOME}/bin:\$PATH\""
+  fi
+
+  echo "$PATH_STR"
+}
+
+notion_install() {
+  if [ -n "${NOTION_HOME-}" ] && [ -e "${NOTION_HOME}" ] && ! [ -d "${NOTION_HOME}" ]; then
+    notion_error "\$NOTION_HOME is set but is not a directory (${NOTION_HOME})."
+    notion_eprintf "Please check your profile scripts and environment."
+    exit 1
+  fi
+
+  notion_info 'Creating' "Notion directory tree ($(notion_install_dir))"
+  notion_create_tree
+
+  notion_info 'Unpacking' "\`notion\` executable and shims"
+  notion_create_binaries
+
+  notion_info 'Editing' "user profile"
+  local NOTION_PROFILE
+  NOTION_PROFILE="$(notion_detect_profile)"
+  local PROFILE_INSTALL_DIR
+  PROFILE_INSTALL_DIR=$(notion_install_dir | sed "s:^$HOME:\$HOME:")
+  local PATH_STR
+  PATH_STR="$(notion_build_path_str "$NOTION_PROFILE" "$PROFILE_INSTALL_DIR")"
+
+  if [ -z "${NOTION_PROFILE-}" ] ; then
+    local TRIED_PROFILE
+    if [ -n "${PROFILE}" ]; then
+      TRIED_PROFILE="${NOTION_PROFILE} (as defined in \$PROFILE), "
+    fi
+    notion_error "No user profile found."
+    notion_eprintf "Tried ${TRIED_PROFILE-}~/.bashrc, ~/.bash_profile, ~/.zshrc, ~/.profile, and ~.config/fish/config.fish."
+    notion_eprintf ''
+    notion_eprintf "You can either create one of these and try again or add this to the appropriate file:"
+    notion_eprintf "${PATH_STR}"
+    exit 1
+  else
+    if ! command grep -qc 'NOTION_HOME' "$NOTION_PROFILE"; then
+      command printf "${PATH_STR}" >> "$NOTION_PROFILE"
+    else
+      notion_eprintf ''
+      notion_warning "Your profile (${NOTION_PROFILE}) already mentions Notion and has not been changed."
+      notion_eprintf ''
+    fi
+  fi
+
+  notion_info "Finished" 'installation. Open a new terminal to start using Notion!'
+  exit 0
+}
+
+
+# TODO: go thru all these functions and make sure the places that call them are checking the return value
+notion_get_latest_release() {
+  # curl --silent https://www.notionjs.com/latest-version
+  # TODO: change this back
+  # TODO: make this configurable for Artifactory?
+  # OR just have a separate internal script...
+  echo "0.3.1" # for testing
 }
 
 # TODO: change description once this is finalized
@@ -120,7 +260,7 @@ parse_os_info() {
 
   case "$uname_str" in
     Linux)
-      local parsed_version="$(parse_openssl_version "$openssl_version")"
+      parsed_version="$(parse_openssl_version "$openssl_version")"
       # if there was an error, return
       exit_code="$?"
       if [ "$exit_code" != 0 ]
@@ -374,5 +514,5 @@ do
 done
 
 notion_install_version "$install_version" "$install_dir"
-# TODO: use stuff from install.sh.in to modify profile and whatever
+# TODO: use stuff from install.sh.in to modify profile and whatever else
 
