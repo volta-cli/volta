@@ -16,7 +16,7 @@
         }
       },
       "program": "${cargo:program}",
-      "args": ["fetch", "2bar"],
+      "args": [],
       "sourceLanguages": ["rust"]
     },
     {
