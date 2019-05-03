@@ -19,23 +19,24 @@ where
             // use the full path to the file
             let mut path_to_bin = project.local_bin_dir();
             path_to_bin.push(&exe);
+            let path_to_bin = path_to_bin.as_os_str();
 
             // if we're in a pinned project, use the project's platform.
             if let Some(ref platform) = project.platform() {
                 let image = platform.checkout(session)?;
                 let path = image.path()?;
-                return Ok(ToolCommand::direct(&path_to_bin.as_os_str(), args, &path));
+                return Ok(ToolCommand::direct(&path_to_bin, args, &path));
             }
 
             // otherwise use the user platform.
             if let Some(ref platform) = session.user_platform()? {
                 let image = platform.checkout(session)?;
                 let path = image.path()?;
-                return Ok(ToolCommand::direct(&path_to_bin.as_os_str(), args, &path));
+                return Ok(ToolCommand::direct(&path_to_bin, args, &path));
             }
 
             // if there's no user platform selected, pass through to existing PATH.
-            return ToolCommand::passthrough(&exe, args, ErrorDetails::NoPlatform);
+            return ToolCommand::passthrough(&path_to_bin, args, ErrorDetails::NoPlatform);
         }
     }
 
