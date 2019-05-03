@@ -10,22 +10,15 @@ use crate::command::Command;
 #[derive(StructOpt)]
 pub(crate) struct Pin {
     /// Tools to pin, like `node@lts` or `yarn@^1.14`.
-    #[structopt(
-        name = "tool[@version]",
-        required = true,
-        min_values = 1,
-        parse(try_from_str = "ToolSpec::try_from_str")
-    )]
-    tools: Vec<ToolSpec>,
+    #[structopt(name = "tool[@version]", required = true, min_values = 1)]
+    tools: Vec<String>,
 }
 
 impl Command for Pin {
     fn run(mut self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Pin);
-        ToolSpec::check_args(std::env::args(), "pin".into())?;
 
-        self.tools.sort();
-        for tool in self.tools {
+        for tool in ToolSpec::from_strings(&mut self.tools, "pin")? {
             match tool {
                 ToolSpec::Node(version) => session.pin_node(&version)?,
                 ToolSpec::Yarn(version) => session.pin_yarn(&version)?,

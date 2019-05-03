@@ -6,7 +6,7 @@ use std::fmt::{self, Debug, Display, Formatter};
 use std::marker::Sized;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
-use std::str::FromStr as _;
+use std::str::FromStr;
 
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -134,27 +134,57 @@ impl ToolSpec {
         })
     }
 
+    /// Get a valid, sorted `Vec<ToolSpec>` given a `Vec<String>`.
+    ///
+    /// Accounts for the following error conditions:
+    ///
+    /// - `notion install node 12`, where the user intended to install `node@12`
+    ///   but used syntax like in nodenv or nvm
+    /// - invalid version specs
+    ///
+    /// Returns a listed sorted so that if `node` is included in the list, it is
+    /// always first.
+    pub fn from_strings<T>(tool_strs: &mut [T], action: &str) -> Fallible<Vec<ToolSpec>>
+    where
+        T: AsRef<str>,
+    {
+        Self::check_args(tool_strs, action)?;
+
+        let mut tools = tool_strs
+            .iter()
+            .map(|arg| Self::try_from_str(arg.as_ref()))
+            .collect::<Fallible<Vec<ToolSpec>>>()?;
+
+        tools.sort();
+        Ok(tools)
+    }
+
     /// Check the args for the bad pattern of `notion install <tool> <number>`.
     ///
     /// Requires you to pass *all* args. Should only be called from commands
     /// like `notion install`, `notion fetch`, or `notion pin`.
-    pub fn check_args<I>(mut args: I, action: String) -> Fallible<()>
+    fn check_args<T>(args: &mut [T], action: &str) -> Fallible<()>
     where
-        I: Iterator<Item = String>,
+        T: AsRef<str>,
     {
+        let mut args = args.iter();
+
         // The case we are concerned with is where we have `<tool> <number>`.
-        // Those arguments will always follow `notion` and one of `pin`,
-        // `fetch`, or `install`. We use `nth(2)` to advance the iterator to the
-        // first item of interest, then `next` to get the other item.
-        if let (Some(name), Some(maybe_version)) = (args.nth(2), args.next()) {
-            // 1. If the name is a valid tool spec like `node@lts`, we allow it.
-            // 2. We do not error unless the second item, `maybe_version`, is
-            //    a version specifier, so we allow `ember-cli create-react-app`.
-            if !HAS_VERSION.is_match(&name) && VersionSpec::from_str(&maybe_version).is_ok() {
+        // This is only interesting if there are exactly two args. Then we care
+        // whether the two items are a bare name (with no `@version`), followed
+        // by a valid version specifier. That is:
+        //
+        // - `notion install node@lts latest` is allowed.
+        // - `notion install node latest` is an error.
+        // - `notion install node latest yarn` is allowed.
+        if let (Some(name), Some(maybe_version), None) = (args.next(), args.next(), args.next()) {
+            if !HAS_VERSION.is_match(name.as_ref())
+                && VersionSpec::from_str(maybe_version.as_ref()).is_ok()
+            {
                 return Err(ErrorDetails::InvalidInvocation {
-                    action,
-                    name,
-                    version: maybe_version,
+                    action: action.to_string(),
+                    name: name.as_ref().to_string(),
+                    version: maybe_version.as_ref().to_string(),
                 }
                 .into());
             }
@@ -474,19 +504,18 @@ mod tests {
         }
     }
 
-    mod check_args {
+    mod from_strings {
         use super::super::*;
 
-        static NOTION: &'static str = "notion";
         static PIN: &'static str = "pin";
 
         #[test]
         fn special_cases_tool_space_number() {
             let name = "potato";
             let version = "1.2.3";
-            let args: Vec<String> = vec![NOTION.into(), PIN.into(), name.into(), version.into()];
+            let mut args: Vec<String> = vec![name.into(), version.into()];
 
-            let err = ToolSpec::check_args(args.into_iter(), PIN.to_string()).unwrap_err();
+            let err = ToolSpec::from_strings(&mut args, PIN).unwrap_err();
             let inner_err = err
                 .downcast_ref::<ErrorDetails>()
                 .expect("should be an ErrorDetails");
@@ -504,37 +533,36 @@ mod tests {
 
         #[test]
         fn leaves_other_scenarios_alone() {
+            let mut empty: Vec<&str> = Vec::new();
             assert!(
-                ToolSpec::check_args(vec![NOTION.into(), PIN.into()].into_iter(), PIN.into())
-                    .is_ok(),
+                ToolSpec::from_strings(&mut empty, PIN).is_ok(),
                 "when there are no args"
             );
 
             assert!(
-                ToolSpec::check_args(
-                    vec![NOTION.into(), PIN.into(), "node".into()].into_iter(),
-                    PIN.into()
-                )
-                .is_ok(),
+                ToolSpec::from_strings(&mut ["node".to_owned()], PIN).is_ok(),
                 "when there is only one arg"
             );
 
             assert!(
-                ToolSpec::check_args(
-                    vec![NOTION.into(), PIN.into(), "12".into(), "node".into()].into_iter(),
-                    PIN.into()
-                )
-                .is_ok(),
+                ToolSpec::from_strings(&mut ["12".to_owned(), "node".to_owned()], PIN.into())
+                    .is_ok(),
                 "when there are two args but the order is not likely to be a mistake"
             );
 
             assert!(
-                ToolSpec::check_args(
-                    vec![NOTION.into(), PIN.into(), "node@lts".into(), "12".into()].into_iter(),
+                ToolSpec::from_strings(&mut ["node@lts".to_owned(), "12".to_owned()], PIN.into())
+                    .is_ok(),
+                "when the there are two args but the first is a valid tool spec"
+            );
+
+            assert!(
+                ToolSpec::from_strings(
+                    &mut ["node".to_owned(), "12".to_owned(), "yarn".to_owned(),],
                     PIN.into()
                 )
                 .is_ok(),
-                "when the there are two args but the first is a valid tool spec"
+                "when the there are more than two args"
             );
         }
     }
