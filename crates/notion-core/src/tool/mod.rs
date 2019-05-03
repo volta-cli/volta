@@ -160,9 +160,6 @@ impl ToolSpec {
     }
 
     /// Check the args for the bad pattern of `notion install <tool> <number>`.
-    ///
-    /// Requires you to pass *all* args. Should only be called from commands
-    /// like `notion install`, `notion fetch`, or `notion pin`.
     fn check_args<T>(args: &mut [T], action: &str) -> Fallible<()>
     where
         T: AsRef<str>,
