@@ -82,6 +82,10 @@ pub fn display_width() -> usize {
     term_size::dimensions().map(|(w, _)| w).unwrap_or(80)
 }
 
+pub fn text_width() -> usize {
+    display_width().min(80)
+}
+
 /// Constructs a command-line progress bar based on the specified Origin enum
 /// (e.g., `Origin::Remote`), details string (e.g., `"v1.23.4"`), and logical
 /// length (i.e., the number of logical progress steps in the process being

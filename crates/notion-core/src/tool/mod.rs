@@ -6,6 +6,7 @@ use std::fmt::{self, Debug, Display, Formatter};
 use std::marker::Sized;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
+use std::str::FromStr as _;
 
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -36,6 +37,7 @@ lazy_static! {
     static ref TOOL_SPEC_PATTERN: Regex =
         Regex::new("^(?P<name>(?:@([^/]+?)[/])?([^/]+?))(@(?P<version>.+))?$")
             .expect("regex is valid");
+    static ref HAS_VERSION: Regex = Regex::new(r"^[^\s]+@").expect("regex is valid");
 }
 
 /// Specification for a tool and its associated version.
@@ -130,6 +132,35 @@ impl ToolSpec {
             "yarn" => ToolSpec::Yarn(version),
             package => ToolSpec::Package(package.into(), version),
         })
+    }
+
+    /// Check the args for the bad pattern of `notion install <tool> <number>`.
+    ///
+    /// Requires you to pass *all* args. Should only be called from commands
+    /// like `notion install`, `notion fetch`, or `notion pin`.
+    pub fn check_args<I>(mut args: I, action: String) -> Fallible<()>
+    where
+        I: Iterator<Item = String>,
+    {
+        // The case we are concerned with is where we have `<tool> <number>`.
+        // Those arguments will always follow `notion` and one of `pin`,
+        // `fetch`, or `install`. We use `nth(2)` to advance the iterator to the
+        // first item of interest, then `next` to get the other item.
+        if let (Some(name), Some(maybe_version)) = (args.nth(2), args.next()) {
+            // 1. If the name is a valid tool spec like `node@lts`, we allow it.
+            // 2. We do not error unless the second item, `maybe_version`, is
+            //    a version specifier, so we allow `ember-cli create-react-app`.
+            if !HAS_VERSION.is_match(&name) && VersionSpec::from_str(&maybe_version).is_ok() {
+                return Err(ErrorDetails::InvalidInvocation {
+                    action,
+                    name,
+                    version: maybe_version,
+                }
+                .into());
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -439,6 +470,71 @@ mod tests {
             assert_eq!(
                 ToolSpec::try_from_str(&versioned_tool!(package, LTS)).expect("succeeds"),
                 ToolSpec::Package(package.into(), VersionSpec::Lts)
+            );
+        }
+    }
+
+    mod check_args {
+        use super::super::*;
+
+        static NOTION: &'static str = "notion";
+        static PIN: &'static str = "pin";
+
+        #[test]
+        fn special_cases_tool_space_number() {
+            let name = "potato";
+            let version = "1.2.3";
+            let args: Vec<String> = vec![NOTION.into(), PIN.into(), name.into(), version.into()];
+
+            let err = ToolSpec::check_args(args.into_iter(), PIN.to_string()).unwrap_err();
+            let inner_err = err
+                .downcast_ref::<ErrorDetails>()
+                .expect("should be an ErrorDetails");
+
+            assert_eq!(
+                inner_err,
+                &ErrorDetails::InvalidInvocation {
+                    action: PIN.into(),
+                    name: name.into(),
+                    version: version.into()
+                },
+                "`notion <action> tool number` results in the correct error"
+            );
+        }
+
+        #[test]
+        fn leaves_other_scenarios_alone() {
+            assert!(
+                ToolSpec::check_args(vec![NOTION.into(), PIN.into()].into_iter(), PIN.into())
+                    .is_ok(),
+                "when there are no args"
+            );
+
+            assert!(
+                ToolSpec::check_args(
+                    vec![NOTION.into(), PIN.into(), "node".into()].into_iter(),
+                    PIN.into()
+                )
+                .is_ok(),
+                "when there is only one arg"
+            );
+
+            assert!(
+                ToolSpec::check_args(
+                    vec![NOTION.into(), PIN.into(), "12".into(), "node".into()].into_iter(),
+                    PIN.into()
+                )
+                .is_ok(),
+                "when there are two args but the order is not likely to be a mistake"
+            );
+
+            assert!(
+                ToolSpec::check_args(
+                    vec![NOTION.into(), PIN.into(), "node@lts".into(), "12".into()].into_iter(),
+                    PIN.into()
+                )
+                .is_ok(),
+                "when the there are two args but the first is a valid tool spec"
             );
         }
     }

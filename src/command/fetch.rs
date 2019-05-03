@@ -22,6 +22,7 @@ pub(crate) struct Fetch {
 impl Command for Fetch {
     fn run(mut self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Fetch);
+        ToolSpec::check_args(std::env::args(), "fetch".into())?;
 
         self.tools.sort();
         for tool in self.tools {

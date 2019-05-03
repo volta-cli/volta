@@ -21,6 +21,7 @@ pub(crate) struct Install {
 impl Command for Install {
     fn run(mut self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Install);
+        ToolSpec::check_args(std::env::args(), "install".into())?;
 
         self.tools.sort();
         for tool in self.tools {

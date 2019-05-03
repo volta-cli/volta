@@ -22,6 +22,7 @@ pub(crate) struct Pin {
 impl Command for Pin {
     fn run(mut self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Pin);
+        ToolSpec::check_args(std::env::args(), "pin".into())?;
 
         self.tools.sort();
         for tool in self.tools {
