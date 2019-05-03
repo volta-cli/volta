@@ -240,9 +240,9 @@ notion_install_version() {
       notion_info 'Installing' "latest version of Notion"
       notion_install_release "$(notion_get_latest_release)" "$install_dir"
       ;;
-    local-debug)
-      notion_info 'Installing' "Notion locally after compiling with '--debug'"
-      notion_install_local "debug" "$install_dir"
+    local-dev)
+      notion_info 'Installing' "Notion locally after compiling"
+      notion_install_local "dev" "$install_dir"
       ;;
     local-release)
       notion_info 'Installing' "Notion locally after compiling with '--release'"
@@ -276,17 +276,21 @@ notion_install_release() {
 }
 
 notion_install_local() {
-  local debug_or_release="$1"
+  local dev_or_release="$1"
   local install_dir="$2"
 
   # compile and package the binaries, then install from that local archive
-  local _compiled_archive="$(notion_compile_and_package "$debug_or_release")"
+  local _compiled_archive="$(notion_compile_and_package "$dev_or_release")"
   notion_install_from_file "$_compiled_archive" "$install_dir"
 }
 
 notion_compile_and_package() {
-  local _debug_or_release="$1"
+  local dev_or_release="$1"
   # TODO: call the release script to do this, and return the packaged archive file
+  # TODO: parse the output to get the archive file name
+  dev/unix/release.sh "--$dev_or_release"
+  # TODO: check exit status
+  echo "target/release/notion-0.3.0-macos.tar.gz"
 }
 
 notion_download_release() {
@@ -321,6 +325,7 @@ notion_install_from_file() {
 
   notion_info 'Extracting' "Notion binaries and launchers"
   # extract the files to the specified directory
+  echo "running: 'tar -xzvf "$_archive" -C "$_extract_to"'" >&2
   tar -xzvf "$_archive" -C "$_extract_to"
 }
 
@@ -347,14 +352,12 @@ do
       usage
       exit 0
       ;;
-    --debug)
+    --dev)
       shift # shift off the argument
-      # compile and install locally, going through the whole build process
-      install_version="local-debug"
+      install_version="local-dev"
       ;;
     --release)
       shift # shift off the argument
-      # compile and install locally, going through the whole build process
       install_version="local-release"
       ;;
     --version)
