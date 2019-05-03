@@ -549,7 +549,7 @@ Please ensure that the command output is valid UTF-8 text.", command),
                 );
 
                 let call_to_action = format!(
-"To install '{name}' version '{version}', please run `notion {action} {formatted}`. \
+"To {action} '{name}' version '{version}', please run `notion {action} {formatted}`. \
 To {action} the packages '{name}' and '{version}', please {action} them in separate commands, or with explicit versions.",
                     action=action,
                     name=name,
