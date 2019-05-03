@@ -133,8 +133,9 @@ fn compose_error_details(err: &NotionError) -> Option<String> {
 
 /// Combines all the arguments into a single String
 fn collect_arguments() -> String {
+    // The Debug formatter for OsString properly quotes and escapes each value
     args_os()
-        .map(|arg| arg.into_string().unwrap_or(String::from("<UNKNOWN>")))
+        .map(|arg| format!("{:?}", arg))
         .collect::<Vec<String>>()
         .join(" ")
 }
