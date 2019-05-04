@@ -531,34 +531,47 @@ mod tests {
         #[test]
         fn leaves_other_scenarios_alone() {
             let mut empty: Vec<&str> = Vec::new();
-            assert!(
-                ToolSpec::from_strings(&mut empty, PIN).is_ok(),
+            assert_eq!(
+                ToolSpec::from_strings(&mut empty, PIN)
+                    .expect("is ok")
+                    .len(),
+                empty.len(),
                 "when there are no args"
             );
 
-            assert!(
-                ToolSpec::from_strings(&mut ["node".to_owned()], PIN).is_ok(),
+            let mut only_one = ["node".to_owned()];
+            assert_eq!(
+                ToolSpec::from_strings(&mut only_one, PIN)
+                    .expect("is ok")
+                    .len(),
+                only_one.len(),
                 "when there is only one arg"
             );
 
-            assert!(
-                ToolSpec::from_strings(&mut ["12".to_owned(), "node".to_owned()], PIN.into())
-                    .is_ok(),
+            let mut two_but_unmistakable = ["12".to_owned(), "node".to_owned()];
+            assert_eq!(
+                ToolSpec::from_strings(&mut two_but_unmistakable, PIN.into())
+                    .expect("is ok")
+                    .len(),
+                two_but_unmistakable.len(),
                 "when there are two args but the order is not likely to be a mistake"
             );
 
-            assert!(
-                ToolSpec::from_strings(&mut ["node@lts".to_owned(), "12".to_owned()], PIN.into())
-                    .is_ok(),
+            let mut two_but_valid_first = ["node@lts".to_owned(), "12".to_owned()];
+            assert_eq!(
+                ToolSpec::from_strings(&mut two_but_valid_first, PIN.into())
+                    .expect("is ok")
+                    .len(),
+                two_but_valid_first.len(),
                 "when there are two args but the first is a valid tool spec"
             );
 
-            assert!(
-                ToolSpec::from_strings(
-                    &mut ["node".to_owned(), "12".to_owned(), "yarn".to_owned(),],
-                    PIN.into()
-                )
-                .is_ok(),
+            let mut more_than_two_tools = ["node".to_owned(), "12".to_owned(), "yarn".to_owned()];
+            assert_eq!(
+                ToolSpec::from_strings(&mut more_than_two_tools, PIN.into())
+                    .expect("is ok")
+                    .len(),
+                more_than_two_tools.len(),
                 "when there are more than two args"
             );
         }
