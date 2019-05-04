@@ -15,10 +15,10 @@ pub(crate) struct Pin {
 }
 
 impl Command for Pin {
-    fn run(mut self, session: &mut Session) -> Fallible<ExitCode> {
+    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Pin);
 
-        for tool in ToolSpec::from_strings(&mut self.tools, "pin")? {
+        for tool in ToolSpec::from_strings(&self.tools, "pin")? {
             match tool {
                 ToolSpec::Node(version) => session.pin_node(&version)?,
                 ToolSpec::Yarn(version) => session.pin_yarn(&version)?,

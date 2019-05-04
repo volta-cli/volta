@@ -14,10 +14,10 @@ pub(crate) struct Install {
 }
 
 impl Command for Install {
-    fn run(mut self, session: &mut Session) -> Fallible<ExitCode> {
+    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Install);
 
-        for tool in ToolSpec::from_strings(&mut self.tools, "install")? {
+        for tool in ToolSpec::from_strings(&self.tools, "install")? {
             tool.install(session)?;
         }
 
