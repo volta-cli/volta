@@ -144,7 +144,7 @@ impl ToolSpec {
     ///
     /// Returns a listed sorted so that if `node` is included in the list, it is
     /// always first.
-    pub fn from_strings<T>(tool_strs: &mut [T], action: &str) -> Fallible<Vec<ToolSpec>>
+    pub fn from_strings<T>(tool_strs: &[T], action: &str) -> Fallible<Vec<ToolSpec>>
     where
         T: AsRef<str>,
     {
@@ -160,7 +160,7 @@ impl ToolSpec {
     }
 
     /// Check the args for the bad pattern of `notion install <tool> <number>`.
-    fn check_args<T>(args: &mut [T], action: &str) -> Fallible<()>
+    fn check_args<T>(args: &[T], action: &str) -> Fallible<()>
     where
         T: AsRef<str>,
     {

@@ -15,10 +15,10 @@ pub(crate) struct Fetch {
 }
 
 impl Command for Fetch {
-    fn run(mut self, session: &mut Session) -> Fallible<ExitCode> {
+    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Fetch);
 
-        for tool in ToolSpec::from_strings(&mut self.tools, "fetch")? {
+        for tool in ToolSpec::from_strings(&self.tools, "fetch")? {
             match tool {
                 ToolSpec::Node(version) => {
                     session.fetch_node(&version)?;
