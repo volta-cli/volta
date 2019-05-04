@@ -5,7 +5,7 @@ use textwrap::{fill, indent};
 
 use notion_fail::{ExitCode, NotionFail};
 
-use crate::style::display_width;
+use crate::style::{text_width, tool_version};
 use crate::tool::ToolSpec;
 
 const REPORT_BUG_CTA: &'static str =
@@ -16,7 +16,7 @@ an issue at https://github.com/notion-cli/notion/issues with the details!";
 const PERMISSIONS_CTA: &'static str =
     "Please ensure you have correct permissions to the Notion directory.";
 
-#[derive(Debug, Fail)]
+#[derive(Debug, Fail, PartialEq)]
 pub enum ErrorDetails {
     /// Thrown when package tries to install a binary that is already installed.
     BinaryAlreadyInstalled {
@@ -127,6 +127,14 @@ pub enum ErrorDetails {
     /// Thrown when output from a hook command could not be read
     InvalidHookOutput {
         command: String,
+    },
+
+    /// Thrown when a user does e.g. `notion install node 12` instead of
+    /// `notion install node@12`.
+    InvalidInvocation {
+        action: String,
+        name: String,
+        version: String,
     },
 
     /// Thrown when a tool name is invalid per npm's rules.
@@ -531,9 +539,30 @@ Please ensure that the correct command is specified.", command),
             ErrorDetails::InvalidHookOutput { command } => write!(f, "Could not read output from hook command: '{}'
 
 Please ensure that the command output is valid UTF-8 text.", command),
+
+            ErrorDetails::InvalidInvocation { action, name, version } => {
+                let error = format!(
+                    "`notion {action} {name} {version}` is not supported.",
+                    action=action,
+                    name=name,
+                    version=version
+                );
+
+                let call_to_action = format!(
+"To {action} '{name}' version '{version}', please run `notion {action} {formatted}`. \
+To {action} the packages '{name}' and '{version}', please {action} them in separate commands, or with explicit versions.",
+                    action=action,
+                    name=name,
+                    version=version,
+                    formatted=tool_version(name, version)
+                );
+
+                write!(f, "{}\n\n{}", error, fill(&call_to_action, text_width()))
+            },
+
             ErrorDetails::InvalidToolName { name, errors } => {
                 let indentation = "    ";
-                let wrapped = &fill(&errors.join("\n"), display_width() - indentation.len());
+                let wrapped = &fill(&errors.join("\n"), text_width() - indentation.len());
                 let formatted_errs = indent(&wrapped, indentation);
 
                 let call_to_action = if errors.len() > 1 {
@@ -542,11 +571,9 @@ Please ensure that the command output is valid UTF-8 text.", command),
                     "Please fix the following error:"
                 };
 
-                write!(f, "Invalid tool name `{}`
-
-{}
-{}", name, call_to_action, formatted_errs)
+                write!(f, "Invalid tool name `{}`\n\n{}\n{}", name, call_to_action, formatted_errs)
             },
+
             ErrorDetails::NoBinPlatform { binary } => {
                 write!(f, "Platform info for executable `{}` is missing
 
@@ -863,6 +890,7 @@ impl NotionFail for ErrorDetails {
             ErrorDetails::HookNoFieldsSpecified => ExitCode::ConfigurationError,
             ErrorDetails::InvalidHookCommand { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::InvalidHookOutput { .. } => ExitCode::ExecutionFailure,
+            ErrorDetails::InvalidInvocation { .. } => ExitCode::InvalidArguments,
             ErrorDetails::InvalidToolName { .. } => ExitCode::InvalidArguments,
             ErrorDetails::NoBinPlatform { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,

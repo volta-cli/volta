@@ -6,6 +6,7 @@ use std::fmt::{self, Debug, Display, Formatter};
 use std::marker::Sized;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
+use std::str::FromStr;
 
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -36,6 +37,7 @@ lazy_static! {
     static ref TOOL_SPEC_PATTERN: Regex =
         Regex::new("^(?P<name>(?:@([^/]+?)[/])?([^/]+?))(@(?P<version>.+))?$")
             .expect("regex is valid");
+    static ref HAS_VERSION: Regex = Regex::new(r"^[^\s]+@").expect("regex is valid");
 }
 
 /// Specification for a tool and its associated version.
@@ -130,6 +132,62 @@ impl ToolSpec {
             "yarn" => ToolSpec::Yarn(version),
             package => ToolSpec::Package(package.into(), version),
         })
+    }
+
+    /// Get a valid, sorted `Vec<ToolSpec>` given a `Vec<String>`.
+    ///
+    /// Accounts for the following error conditions:
+    ///
+    /// - `notion install node 12`, where the user intended to install `node@12`
+    ///   but used syntax like in nodenv or nvm
+    /// - invalid version specs
+    ///
+    /// Returns a listed sorted so that if `node` is included in the list, it is
+    /// always first.
+    pub fn from_strings<T>(tool_strs: &[T], action: &str) -> Fallible<Vec<ToolSpec>>
+    where
+        T: AsRef<str>,
+    {
+        Self::check_args(tool_strs, action)?;
+
+        let mut tools = tool_strs
+            .iter()
+            .map(|arg| Self::try_from_str(arg.as_ref()))
+            .collect::<Fallible<Vec<ToolSpec>>>()?;
+
+        tools.sort();
+        Ok(tools)
+    }
+
+    /// Check the args for the bad pattern of `notion install <tool> <number>`.
+    fn check_args<T>(args: &[T], action: &str) -> Fallible<()>
+    where
+        T: AsRef<str>,
+    {
+        let mut args = args.iter();
+
+        // The case we are concerned with is where we have `<tool> <number>`.
+        // This is only interesting if there are exactly two args. Then we care
+        // whether the two items are a bare name (with no `@version`), followed
+        // by a valid version specifier. That is:
+        //
+        // - `notion install node@lts latest` is allowed.
+        // - `notion install node latest` is an error.
+        // - `notion install node latest yarn` is allowed.
+        if let (Some(name), Some(maybe_version), None) = (args.next(), args.next(), args.next()) {
+            if !HAS_VERSION.is_match(name.as_ref())
+                && VersionSpec::from_str(maybe_version.as_ref()).is_ok()
+            {
+                return Err(ErrorDetails::InvalidInvocation {
+                    action: action.to_string(),
+                    name: name.as_ref().to_string(),
+                    version: maybe_version.as_ref().to_string(),
+                }
+                .into());
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -439,6 +497,82 @@ mod tests {
             assert_eq!(
                 ToolSpec::try_from_str(&versioned_tool!(package, LTS)).expect("succeeds"),
                 ToolSpec::Package(package.into(), VersionSpec::Lts)
+            );
+        }
+    }
+
+    mod from_strings {
+        use super::super::*;
+
+        static PIN: &'static str = "pin";
+
+        #[test]
+        fn special_cases_tool_space_number() {
+            let name = "potato";
+            let version = "1.2.3";
+            let mut args: Vec<String> = vec![name.into(), version.into()];
+
+            let err = ToolSpec::from_strings(&mut args, PIN).unwrap_err();
+            let inner_err = err
+                .downcast_ref::<ErrorDetails>()
+                .expect("should be an ErrorDetails");
+
+            assert_eq!(
+                inner_err,
+                &ErrorDetails::InvalidInvocation {
+                    action: PIN.into(),
+                    name: name.into(),
+                    version: version.into()
+                },
+                "`notion <action> tool number` results in the correct error"
+            );
+        }
+
+        #[test]
+        fn leaves_other_scenarios_alone() {
+            let mut empty: Vec<&str> = Vec::new();
+            assert_eq!(
+                ToolSpec::from_strings(&mut empty, PIN)
+                    .expect("is ok")
+                    .len(),
+                empty.len(),
+                "when there are no args"
+            );
+
+            let mut only_one = ["node".to_owned()];
+            assert_eq!(
+                ToolSpec::from_strings(&mut only_one, PIN)
+                    .expect("is ok")
+                    .len(),
+                only_one.len(),
+                "when there is only one arg"
+            );
+
+            let mut two_but_unmistakable = ["12".to_owned(), "node".to_owned()];
+            assert_eq!(
+                ToolSpec::from_strings(&mut two_but_unmistakable, PIN.into())
+                    .expect("is ok")
+                    .len(),
+                two_but_unmistakable.len(),
+                "when there are two args but the order is not likely to be a mistake"
+            );
+
+            let mut two_but_valid_first = ["node@lts".to_owned(), "12".to_owned()];
+            assert_eq!(
+                ToolSpec::from_strings(&mut two_but_valid_first, PIN.into())
+                    .expect("is ok")
+                    .len(),
+                two_but_valid_first.len(),
+                "when there are two args but the first is a valid tool spec"
+            );
+
+            let mut more_than_two_tools = ["node".to_owned(), "12".to_owned(), "yarn".to_owned()];
+            assert_eq!(
+                ToolSpec::from_strings(&mut more_than_two_tools, PIN.into())
+                    .expect("is ok")
+                    .len(),
+                more_than_two_tools.len(),
+                "when there are more than two args"
             );
         }
     }
