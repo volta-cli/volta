@@ -57,7 +57,7 @@ notion_check_existing_installation() {
       notion_eprintf "Latest version $LATEST_VERSION already installed"
       exit 0
     fi
-    if [[ "$PREV_NOTION_VERSION" == 0.1* || "$PREV_NOTION_VERSION" == 0.2* ]]; then
+    if [[ "$PREV_NOTION_VERSION" == 0.1* || "$PREV_NOTION_VERSION" == 0.2* || "$PREV_NOTION_VERSION" == 0.3* ]]; then
       notion_eprintf ""
       notion_error "Your Notion installation is out of date and can't be automatically upgraded."
       notion_request "       Please delete or move $(notion_install_dir) and try again."
