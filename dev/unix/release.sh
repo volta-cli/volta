@@ -7,7 +7,7 @@ usage() {
   cat >&2 <<END_OF_USAGE
 release.sh
 
-Compile and package a release for Notion
+Compile and package a release for Volta
 
 USAGE:
     ./dev/unix/release.sh [FLAGS] [OPTIONS]
@@ -21,13 +21,13 @@ OPTIONS:
 END_OF_USAGE
 }
 
-notion_info() {
+volta_info() {
   local ACTION="$1"
   local DETAILS="$2"
   command printf '\033[1;32m%12s\033[0m %s\n' "${ACTION}" "${DETAILS}" 1>&2
 }
 
-notion_error() {
+volta_error() {
   command printf '\033[1;31mError\033[0m: %s\n' "$1" 1>&2
 }
 
@@ -48,7 +48,7 @@ parse_version() {
     fi
   done <<< "$contents"
 
-  notion_error "Could not determine the current version"
+  volta_error "Could not determine the current version"
   return 1
 }
 
@@ -74,7 +74,7 @@ parse_os_info() {
       echo "macos"
       ;;
     *)
-      notion_error "Releases for '$uname_str' are not yet supported. You will need to add another OS case to this script, and to the install script to support this OS."
+      volta_error "Releases for '$uname_str' are not yet supported. You will need to add another OS case to this script, and to the install script to support this OS."
       return 1
   esac
   return 0
@@ -116,10 +116,10 @@ parse_openssl_version() {
       echo "${BASH_REMATCH[2]}"
       return 0
     fi
-    notion_error "Releases for '$libname' not currently supported. Supported libraries are: ${SUPPORTED_SSL_LIBS[@]}."
+    volta_error "Releases for '$libname' not currently supported. Supported libraries are: ${SUPPORTED_SSL_LIBS[@]}."
     return 1
   else
-    notion_error "Could not determine OpenSSL version for '$version_str'. You probably need to update the regex to handle this output."
+    volta_error "Could not determine OpenSSL version for '$version_str'. You probably need to update the regex to handle this output."
     return 1
   fi
 }
@@ -149,7 +149,7 @@ case "$1" in
     build_with_release="true"
     ;;
   *)
-    notion_error "Unknown argument '$1'"
+    volta_error "Unknown argument '$1'"
     usage
     exit1
     ;;
@@ -164,10 +164,10 @@ os="$(uname -s)"
 openssl_version="$(openssl version)"
 NOTION_OS="$(parse_os_info "$os" "$openssl_version")"
 
-release_filename="notion-$NOTION_VERSION-$NOTION_OS"
+release_filename="volta-$NOTION_VERSION-$NOTION_OS"
 
 # first make sure the release binaries have been built
-notion_info 'Building' "Notion for $(bold "$release_filename")"
+volta_info 'Building' "Volta for $(bold "$release_filename")"
 if [ "$build_with_release" == "true" ]
 then
   target_dir="target/release"
@@ -179,12 +179,12 @@ fi
 
 # then package the binaries and shell scripts together
 shell_script_dir="shell/unix"
-notion_info 'Packaging' "the compiled binaries and shell scripts"
+volta_info 'Packaging' "the compiled binaries and shell scripts"
 # copy the load.* shell scripts to the target dir, to include them as well
 cp "$shell_script_dir"/load.* "$target_dir/"
 cd "$target_dir"
 # using COPYFILE_DISABLE to avoid storing extended attribute files when run on OSX
 # (see https://superuser.com/q/61185)
-COPYFILE_DISABLE=1 tar -czvf "$release_filename.tar.gz" notion shim load.*
+COPYFILE_DISABLE=1 tar -czvf "$release_filename.tar.gz" volta shim load.*
 
-notion_info 'Completed' "release in file $(bold "$target_dir/$release_filename.tar.gz")"
+volta_info 'Completed' "release in file $(bold "$target_dir/$release_filename.tar.gz")"

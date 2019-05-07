@@ -1,28 +1,28 @@
 use structopt::StructOpt;
 
 use crate::command::Command;
-use notion_core::error::ErrorDetails;
-use notion_core::session::{ActivityKind, Session};
-use notion_fail::{ExitCode, Fallible};
+use volta_core::error::ErrorDetails;
+use volta_core::session::{ActivityKind, Session};
+use volta_fail::{ExitCode, Fallible};
 
 // NOTE: These use the same text as the `long_about` in crate::cli.
 //       It's hard to abstract since it's in an attribute string.
 
 pub(crate) const USAGE: &'static str = "The subcommand `use` is deprecated.
 
-    To install a tool in your toolchain, use `notion install`.
-    To pin your project's runtime or package manager, use `notion pin`.
+    To install a tool in your toolchain, use `volta install`.
+    To pin your project's runtime or package manager, use `volta pin`.
 ";
 
 const ADVICE: &'static str = "
-    To install a tool in your toolchain, use `notion install`.
-    To pin your project's runtime or package manager, use `notion pin`.
+    To install a tool in your toolchain, use `volta install`.
+    To pin your project's runtime or package manager, use `volta pin`.
 ";
 
 #[derive(StructOpt)]
 pub(crate) struct Use {
     #[allow(dead_code)]
-    anything: Vec<String>, // Prevent StructOpt argument errors when invoking e.g. `notion use node`
+    anything: Vec<String>, // Prevent StructOpt argument errors when invoking e.g. `volta use node`
 }
 
 impl Command for Use {

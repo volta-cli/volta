@@ -8,8 +8,8 @@ use std::str;
 
 use failure::Fail;
 
-use notion_fail::{throw, ExitCode, Fallible, NotionFail};
-use notion_fail_derive::*;
+use volta_fail::{throw, ExitCode, Fallible, VoltaFail};
+use volta_fail_derive::*;
 
 /// A builder object for an external process, similar to `std::process::Command`.
 #[derive(Clone, Debug)]
@@ -202,9 +202,9 @@ pub fn process<T: AsRef<OsStr>>(cmd: T) -> ProcessBuilder {
     }
 }
 
-#[derive(Debug, Fail, NotionFail)]
+#[derive(Debug, Fail, VoltaFail)]
 #[fail(display = "{}", desc)]
-#[notion_fail(code = "ExecutionFailure")]
+#[volta_fail(code = "ExecutionFailure")]
 pub struct ProcessError {
     pub desc: String,
     pub exit: Option<ExitStatus>,

@@ -3,8 +3,8 @@ use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
 
-use notion_core::env::UNSAFE_GLOBAL;
-use notion_fail::ExitCode;
+use volta_core::env::UNSAFE_GLOBAL;
+use volta_fail::ExitCode;
 
 const PACKAGE_JSON: &'static str = r#"{
     "name": "text-package",

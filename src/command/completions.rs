@@ -3,11 +3,11 @@ use std::str::FromStr;
 
 use structopt::{clap::Shell, StructOpt};
 
-use notion_core::{
+use volta_core::{
     error::ErrorDetails,
     session::{ActivityKind, Session},
 };
-use notion_fail::{throw, ExitCode, Fallible};
+use volta_fail::{throw, ExitCode, Fallible};
 
 use crate::command::Command;
 
@@ -51,16 +51,16 @@ impl Command for Completions {
                 })?,
         );
 
-        let mut app = crate::cli::Notion::clap();
+        let mut app = crate::cli::Volta::clap();
         match self.out_dir {
             Some(path) => {
                 if path.is_dir() {
-                    app.gen_completions("notion", shell, path);
+                    app.gen_completions("volta", shell, path);
                 } else {
                     throw!(ErrorDetails::CompletionsOutDirError)
                 }
             }
-            None => app.gen_completions_to("notion", shell, &mut std::io::stdout()),
+            None => app.gen_completions_to("volta", shell, &mut std::io::stdout()),
         }
 
         session.add_event_end(ActivityKind::Completions, ExitCode::Success);
