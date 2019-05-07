@@ -1,45 +1,40 @@
-use std::env::{args_os, ArgsOs};
-use std::ffi::OsStr;
-use std::process::Command;
+use std::env::args_os;
+use std::ffi::{OsStr, OsString};
 use std::rc::Rc;
 
-use super::{command_for, intercept_global_installs, Tool};
+use super::{intercept_global_installs, ToolCommand};
 use crate::error::ErrorDetails;
 use crate::platform::PlatformSpec;
 use crate::session::{ActivityKind, Session};
 
 use notion_fail::{throw, Fallible};
 
-/// Represents a Yarn executable.
-pub struct Yarn(Command);
+pub(super) fn command<A>(args: A, session: &mut Session) -> Fallible<ToolCommand>
+where
+    A: IntoIterator<Item = OsString>,
+{
+    session.add_event_start(ActivityKind::Yarn);
 
-impl Tool for Yarn {
-    type Arguments = ArgsOs;
+    match get_yarn_platform(session)? {
+        Some(ref platform) => {
+            if intercept_global_installs() && is_global_yarn_add() {
+                throw!(ErrorDetails::NoGlobalInstalls);
+            }
 
-    fn new(args: ArgsOs, session: &mut Session) -> Fallible<Self> {
-        session.add_event_start(ActivityKind::Yarn);
-
-        if intercept_global_installs() && is_global_yarn_add() {
-            throw!(ErrorDetails::NoGlobalInstalls);
+            let image = platform.checkout(session)?;
+            let path = image.path()?;
+            Ok(ToolCommand::direct(OsStr::new("yarn"), args, &path))
         }
-
-        let platform = get_yarn_platform(session)?;
-        let image = platform.checkout(session)?;
-
-        Ok(Yarn(command_for(OsStr::new("yarn"), args, &image.path()?)))
-    }
-
-    fn command(self) -> Command {
-        self.0
+        None => ToolCommand::passthrough(OsStr::new("yarn"), args, ErrorDetails::NoPlatform),
     }
 }
 
 /// Determine the correct platform (project or user) and check if yarn is set for that platform
-fn get_yarn_platform(session: &mut Session) -> Fallible<Rc<PlatformSpec>> {
+fn get_yarn_platform(session: &mut Session) -> Fallible<Option<Rc<PlatformSpec>>> {
     // First check if we are in a pinned project
     if let Some(platform) = session.project_platform()? {
         return match platform.yarn {
-            Some(_) => Ok(platform),
+            Some(_) => Ok(Some(platform)),
             None => Err(ErrorDetails::NoProjectYarn.into()),
         };
     }
@@ -47,12 +42,12 @@ fn get_yarn_platform(session: &mut Session) -> Fallible<Rc<PlatformSpec>> {
     // If not, fall back to the user platform
     if let Some(platform) = session.user_platform()? {
         return match platform.yarn {
-            Some(_) => Ok(platform),
+            Some(_) => Ok(Some(platform)),
             None => Err(ErrorDetails::NoUserYarn.into()),
         };
     }
 
-    throw!(ErrorDetails::NoPlatform);
+    Ok(None)
 }
 
 fn is_global_yarn_add() -> bool {

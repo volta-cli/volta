@@ -1,31 +1,23 @@
-use std::env::ArgsOs;
-use std::ffi::OsStr;
-use std::process::Command;
+use std::ffi::{OsStr, OsString};
 
-use super::{command_for, Tool};
+use super::ToolCommand;
 use crate::error::ErrorDetails;
 use crate::session::{ActivityKind, Session};
 
-use notion_fail::{throw, Fallible};
+use notion_fail::Fallible;
 
-/// Represents a Node executable.
-pub struct Node(Command);
+pub(super) fn command<A>(args: A, session: &mut Session) -> Fallible<ToolCommand>
+where
+    A: IntoIterator<Item = OsString>,
+{
+    session.add_event_start(ActivityKind::Node);
 
-impl Tool for Node {
-    type Arguments = ArgsOs;
-
-    fn new(args: ArgsOs, session: &mut Session) -> Fallible<Self> {
-        session.add_event_start(ActivityKind::Node);
-
-        if let Some(ref platform) = session.current_platform()? {
+    match session.current_platform()? {
+        Some(ref platform) => {
             let image = platform.checkout(session)?;
-            Ok(Node(command_for(OsStr::new("node"), args, &image.path()?)))
-        } else {
-            throw!(ErrorDetails::NoPlatform);
+            let path = image.path()?;
+            Ok(ToolCommand::direct(OsStr::new("node"), args, &path))
         }
-    }
-
-    fn command(self) -> Command {
-        self.0
+        None => ToolCommand::passthrough(OsStr::new("node"), args, ErrorDetails::NoPlatform),
     }
 }

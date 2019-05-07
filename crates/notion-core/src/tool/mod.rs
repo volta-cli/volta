@@ -3,7 +3,6 @@
 use std::env::{self, args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
 use std::fmt::{self, Debug, Display, Formatter};
-use std::marker::Sized;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 use std::str::FromStr;
@@ -18,6 +17,7 @@ use crate::command::create_command;
 use crate::env::UNSAFE_GLOBAL;
 use crate::error::ErrorDetails;
 use crate::path;
+use crate::platform::System;
 use crate::session::Session;
 use crate::version::VersionSpec;
 
@@ -26,12 +26,6 @@ mod node;
 mod npm;
 mod npx;
 mod yarn;
-
-use self::binary::{Binary, BinaryArgs};
-use self::node::Node;
-use self::npm::Npm;
-use self::npx::Npx;
-use self::yarn::Yarn;
 
 lazy_static! {
     static ref TOOL_SPEC_PATTERN: Regex =
@@ -221,41 +215,51 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
     let mut args = args_os();
     let exe = get_tool_name(&mut args)?;
 
-    // There is some duplication in the calls to `.exec` here.
-    // It's required because we can't create a single variable that holds
-    // all the possible `Tool` implementations and fill it dynamically,
-    // as they have different sizes and associated types.
-    match &exe.to_str() {
-        Some("node") => Node::new(args, session)?.exec(),
-        Some("npm") => Npm::new(args, session)?.exec(),
-        Some("npx") => Npx::new(args, session)?.exec(),
-        Some("yarn") => Yarn::new(args, session)?.exec(),
-        _ => Binary::new(
-            BinaryArgs {
-                executable: exe,
-                args,
-            },
-            session,
-        )?
-        .exec(),
-    }
+    let command = match &exe.to_str() {
+        Some("node") => node::command(args, session)?,
+        Some("npm") => npm::command(args, session)?,
+        Some("npx") => npx::command(args, session)?,
+        Some("yarn") => yarn::command(args, session)?,
+        _ => binary::command(exe, args, session)?,
+    };
+
+    command.exec()
 }
 
-/// Represents a command-line tool that Notion shims delegate to.
-pub trait Tool: Sized {
-    type Arguments;
+/// Represents the command to execute a tool
+enum ToolCommand {
+    Direct(Command),
+    Passthrough(Command, ErrorDetails),
+}
 
-    /// Constructs a new instance.
-    fn new(args: Self::Arguments, session: &mut Session) -> Fallible<Self>;
+impl ToolCommand {
+    fn direct<A>(exe: &OsStr, args: A, path_var: &OsStr) -> Self
+    where
+        A: IntoIterator<Item = OsString>,
+    {
+        ToolCommand::Direct(command_for(exe, args, path_var))
+    }
 
-    /// Extracts the `Command` from this tool.
-    fn command(self) -> Command;
+    fn passthrough<A>(exe: &OsStr, args: A, default_error: ErrorDetails) -> Fallible<Self>
+    where
+        A: IntoIterator<Item = OsString>,
+    {
+        let path = System::path()?;
+        Ok(ToolCommand::Passthrough(
+            command_for(exe, args, &path),
+            default_error,
+        ))
+    }
 
-    /// Delegates the current process to this tool.
     fn exec(self) -> Fallible<ExitStatus> {
-        let mut command = self.command();
-        let status = command.status();
-        status.with_context(|_| ErrorDetails::BinaryExecError)
+        match self {
+            ToolCommand::Direct(mut command) => command
+                .status()
+                .with_context(|_| ErrorDetails::BinaryExecError),
+            ToolCommand::Passthrough(mut command, error) => {
+                command.status().with_context(|_| error)
+            }
+        }
     }
 }
 
@@ -282,7 +286,7 @@ fn tool_name_from_file_name(file_name: &OsStr) -> OsString {
 
 fn command_for<A>(exe: &OsStr, args: A, path_var: &OsStr) -> Command
 where
-    A: Iterator<Item = OsString>,
+    A: IntoIterator<Item = OsString>,
 {
     let mut command = create_command(exe);
     command.args(args);
