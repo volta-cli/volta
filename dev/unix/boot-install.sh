@@ -91,7 +91,13 @@ notion_get_openssl_version() {
   FULLVERSION="$(echo $LIB | awk '{print $2;}')"
   MAJOR="$(echo ${FULLVERSION} | cut -d. -f1)"
   MINOR="$(echo ${FULLVERSION} | cut -d. -f2)"
-  echo "${MAJOR}.${MINOR}"
+
+  # If we have version 1.0.x, check for RHEL / CentOS style OpenSSL SONAME (.so.10)
+  if [[ "${MAJOR}.${MINOR}" == "1.0" && -f "/usr/lib64/libcrypto.so.10" ]]; then
+    echo "rhel"
+  else
+    echo "${MAJOR}.${MINOR}"
+  fi
 }
 
 NOTION_LATEST_VERSION=$(notion_get_latest_release)
