@@ -17,7 +17,7 @@ FLAGS:
     -h, --help                  Prints help information
 
 OPTIONS:
-        --debug                 Compile and install Notion locally, using the debug target
+        --dev                   Compile and install Notion locally, using the dev target
         --release               Compile and install Notion locally, using the release target
         --version <version>     Install a specific release version of Notion
 END_USAGE
@@ -126,20 +126,30 @@ notion_detect_profile() {
   fi
 }
 
+# generate shell code to source the loading script and modify the path for the input profile
 notion_build_path_str() {
-  local PROFILE
-  PROFILE="$1"
-  local PROFILE_INSTALL_DIR
-  PROFILE_INSTALL_DIR="$2"
+  local _profile="$1"
+  local _profile_install_dir="$2"
 
-  local PATH_STR
-  if [[ $PROFILE =~ \.fish$ ]]; then
-    PATH_STR="\\nset -gx NOTION_HOME \"${PROFILE_INSTALL_DIR}\"\\ntest -s \"\$NOTION_HOME/load.fish\"; and source \"\$NOTION_HOME/load.fish\"\\n\\nstring match -r \".notion\" \"\$PATH\" > /dev/null; or set -gx PATH \"\$NOTION_HOME/bin\" \$PATH"
+  if [[ $_profile =~ \.fish$ ]]; then
+    # fish uses a little different syntax to load the shell integration script, and modify the PATH
+    cat <<END_FISH_SCRIPT
+
+set -gx NOTION_HOME "${_profile_install_dir}"
+test -s "\$NOTION_HOME/load.fish"; and source "\$NOTION_HOME/load.fish"
+
+string match -r ".notion" "\$PATH" > /dev/null; or set -gx PATH "\$NOTION_HOME/bin" \$PATH
+END_FISH_SCRIPT
   else
-    PATH_STR="\\nexport NOTION_HOME=\"${PROFILE_INSTALL_DIR}\"\\n[ -s \"\$NOTION_HOME/load.sh\" ] && \\. \"\$NOTION_HOME/load.sh\"\\n\\nexport PATH=\"\${NOTION_HOME}/bin:\$PATH\""
-  fi
+    # bash and zsh
+    cat <<END_BASH_SCRIPT
 
-  echo "$PATH_STR"
+export NOTION_HOME="${_profile_install_dir}"
+[ -s "\$NOTION_HOME/load.sh" ] && . "\$NOTION_HOME/load.sh"
+
+export PATH="\$NOTION_HOME/bin:\$PATH"
+END_BASH_SCRIPT
+  fi
 }
 
 notion_install() {
@@ -190,12 +200,12 @@ notion_install() {
 
 
 # TODO: go thru all these functions and make sure the places that call them are checking the return value
+
+
+# NOTE: to use an internal company repo, change how this determines the latest version
+# TODO: move all of these functions that should be updated to the top of the file where they are obvious
 notion_get_latest_release() {
-  # curl --silent https://www.notionjs.com/latest-version
-  # TODO: change this back
-  # TODO: make this configurable for Artifactory?
-  # OR just have a separate internal script...
-  echo "0.3.1" # for testing
+  curl --silent "https://www.notionjs.com/latest-version"
 }
 
 # TODO: change description once this is finalized
@@ -238,7 +248,9 @@ parse_os_info() {
   local uname_str="$1"
   local openssl_version="$2"
 
-  # TODO: need to check for version 0.1* anymore?
+  # TODO: need to check for version 0.1*, because those binaries are named differently
+  # TODO: need to check for versions prior to the use of this script, because those will use the install.sh installer
+  # TODO: will ALSO need to check for versions prior to the final rename, becuase those use Notion
   # case $(uname) in
   #   Linux)
   #     if [[ "$_version" == 0.1* ]]; then
@@ -400,6 +412,10 @@ notion_install_release() {
   local version="$1"
   local install_dir="$2"
 
+  # TODO: does this check needs to be up in notion_install_version()?
+  # before doing any install?
+  # OR, does local install really care?
+  # hmm, I think it should be the same process for both flows, so yeah
   notion_info 'Checking' "for existing Notion installation"
   if notion_upgrade_is_ok "$version" "$install_dir"
   then
