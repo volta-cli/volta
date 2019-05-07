@@ -49,39 +49,40 @@ bold() {
   command printf '\033[1m%s\033[0m' "$1"
 }
 
-# TODO: clean these functions up
-notion_create_binaries() {
-  local INSTALL_DIR
+# create symlinks for shims in the bin/ dir
+notion_create_symlinks() {
+  local install_dir="$1"
 
-  INSTALL_DIR="$(notion_install_dir)"
+  local main_shims=( node npm npx yarn )
+  local shim_exec="$install_dir/shim"
+  local notion_exec="$install_dir/notion"
 
-  notion_unpack_notion        > "${INSTALL_DIR}"/notion
-  notion_unpack_shim          > "${INSTALL_DIR}"/shim
-  notion_unpack_bash_launcher > "${INSTALL_DIR}"/load.sh
-  notion_unpack_fish_launcher > "${INSTALL_DIR}"/load.fish
+  # remove these symlinks or binaries if they exist, so that the symlinks can be created later
+  # (using -f so there is no error if the files don't exist)
+  for shim in "${main_shims[@]}"; do
+    rm -f "$install_dir/bin/$shim"
+  done
 
-  # Remove any existing binaries for tools so that the symlinks can be installed
-  # using -f so there is no error if the files don't exist
-  rm -f "${INSTALL_DIR}"/bin/node
-  rm -f "${INSTALL_DIR}"/bin/npm
-  rm -f "${INSTALL_DIR}"/bin/npx
-  rm -f "${INSTALL_DIR}"/bin/yarn
-
-  for FILE_NAME in "${INSTALL_DIR}"/bin/*; do
-    if [ -e "${FILE_NAME}" ] && ! [ -d "${FILE_NAME}" ]; then
-      rm -f "${FILE_NAME}"
-      ln -s "${INSTALL_DIR}"/shim "${FILE_NAME}"
+  # update symlinks for any shims created by the user
+  for file in "$install_dir"/bin/*; do
+    if [ -e "$file" ] && ! [ -d "$file" ]; then
+      rm -f "$file"
+      ln -s "$shim_exec" "$file"
+      chmod 755 "$file"
     fi
   done
 
-  ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/node
-  ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/npm
-  ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/npx
-  ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/yarn
+  # re-link the non-user shims
+  for shim in "${main_shims[@]}"; do
+    ln -s "$shim_exec" "$install_dir/bin/$shim"
+    chmod 755 "$install_dir/bin/$shim"
+  done
 
-  chmod 755 "${INSTALL_DIR}/"/notion "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}"/shim
+  # and make sure these are executable
+  chmod 755 "$shim_exec" "$notion_exec"
 }
 
+# TODO: test this
 notion_try_profile() {
   if [ -z "${1-}" ] || [ ! -f "${1}" ]; then
     return 1
@@ -89,6 +90,7 @@ notion_try_profile() {
   echo "${1}"
 }
 
+# TODO:
 notion_detect_profile() {
   if [ -n "${PROFILE}" ] && [ -f "${PROFILE}" ]; then
     echo "${PROFILE}"
@@ -152,26 +154,23 @@ END_BASH_SCRIPT
   fi
 }
 
-notion_install() {
-  if [ -n "${NOTION_HOME-}" ] && [ -e "${NOTION_HOME}" ] && ! [ -d "${NOTION_HOME}" ]; then
-    notion_error "\$NOTION_HOME is set but is not a directory (${NOTION_HOME})."
+# check for issue with NOTION_HOME
+# if it is set, and exists, but is not a directory, the install will fail
+notion_home_is_ok() {
+  if [ -n "${NOTION_HOME-}" ] && [ -e "$NOTION_HOME" ] && ! [ -d "$NOTION_HOME" ]; then
+    notion_error "\$NOTION_HOME is set but is not a directory ($NOTION_HOME)."
     notion_eprintf "Please check your profile scripts and environment."
-    exit 1
+    return 1
   fi
+  return 0
+}
 
-  notion_info 'Creating' "Notion directory tree ($(notion_install_dir))"
-  notion_create_tree
-
-  notion_info 'Unpacking' "\`notion\` executable and shims"
-  notion_create_binaries
-
+notion_install() {
+  # TODO:
   notion_info 'Editing' "user profile"
-  local NOTION_PROFILE
-  NOTION_PROFILE="$(notion_detect_profile)"
-  local PROFILE_INSTALL_DIR
-  PROFILE_INSTALL_DIR=$(notion_install_dir | sed "s:^$HOME:\$HOME:")
-  local PATH_STR
-  PATH_STR="$(notion_build_path_str "$NOTION_PROFILE" "$PROFILE_INSTALL_DIR")"
+  local NOTION_PROFILE="$(notion_detect_profile)"
+  local PROFILE_INSTALL_DIR=$(notion_install_dir | sed "s:^$HOME:\$HOME:")
+  local PATH_STR="$(notion_build_path_str "$NOTION_PROFILE" "$PROFILE_INSTALL_DIR")"
 
   if [ -z "${NOTION_PROFILE-}" ] ; then
     local TRIED_PROFILE
@@ -197,9 +196,6 @@ notion_install() {
   notion_info "Finished" 'installation. Open a new terminal to start using Notion!'
   exit 0
 }
-
-
-# TODO: go thru all these functions and make sure the places that call them are checking the return value
 
 
 # NOTE: to use an internal company repo, change how this determines the latest version
@@ -387,6 +383,10 @@ notion_install_version() {
   local version_to_install="$1"
   local install_dir="$2"
 
+  if ! notion_home_is_ok; then
+    exit 1
+  fi
+
   case "$version_to_install" in
     latest)
       notion_info 'Installing' "latest version of Notion"
@@ -412,10 +412,6 @@ notion_install_release() {
   local version="$1"
   local install_dir="$2"
 
-  # TODO: does this check needs to be up in notion_install_version()?
-  # before doing any install?
-  # OR, does local install really care?
-  # hmm, I think it should be the same process for both flows, so yeah
   notion_info 'Checking' "for existing Notion installation"
   if notion_upgrade_is_ok "$version" "$install_dir"
   then
@@ -435,9 +431,13 @@ notion_install_local() {
   local dev_or_release="$1"
   local install_dir="$2"
 
-  # compile and package the binaries, then install from that local archive
-  local _compiled_archive="$(notion_compile_and_package "$dev_or_release")"
-  notion_install_from_file "$_compiled_archive" "$install_dir"
+  notion_info 'Checking' "for existing Notion installation"
+  if notion_upgrade_is_ok "$version" "$install_dir"
+  then
+    # compile and package the binaries, then install from that local archive
+    local _compiled_archive="$(notion_compile_and_package "$dev_or_release")"
+    notion_install_from_file "$_compiled_archive" "$install_dir"
+  fi
 }
 
 notion_compile_and_package() {
@@ -483,6 +483,8 @@ notion_install_from_file() {
   # extract the files to the specified directory
   echo "running: 'tar -xzvf "$_archive" -C "$_extract_to"'" >&2
   tar -xzvf "$_archive" -C "$_extract_to"
+
+
 }
 
 # return if sourced (for testing the functions)

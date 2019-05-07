@@ -49,3 +49,37 @@ END_BASH_STRING
   diff <(echo "$output") <(echo "$expected_output")
 }
 
+
+# test NOTION_HOME settings
+
+@test "notion_home_is_ok - true cases" {
+  # unset is fine
+  unset NOTION_HOME
+  run notion_home_is_ok
+  [ "$status" -eq 0 ]
+
+  # empty is fine
+  NOTION_HOME=""
+  run notion_home_is_ok
+  [ "$status" -eq 0 ]
+
+  # non-existing dir is fine
+  NOTION_HOME="/some/dir/that/does/not/exist/anywhere"
+  run notion_home_is_ok
+  [ "$status" -eq 0 ]
+
+  # existing dir is fine
+  NOTION_HOME="$HOME"
+  run notion_home_is_ok
+  [ "$status" -eq 0 ]
+}
+
+@test "notion_home_is_ok - not ok" {
+  # file is not ok
+  NOTION_HOME="$(mktemp)"
+  run notion_home_is_ok
+  [ "$status" -eq 1 ]
+}
+
+
+# TODO: test creating symlinks
