@@ -8,9 +8,9 @@ use volta_fail::{ExitCode, Fallible};
 #[derive(StructOpt)]
 #[structopt(
     name = "Volta",
-    about = "The hassle-free JavaScript toolchain manager",
+    about = "The JavaScript Launcher ⚡",
     author = "",
-    long_about = "The hassle-free JavaScript toolchain manager
+    long_about = "The JavaScript Launcher ⚡
 
     To install a tool in your toolchain, use `volta install`.
     To pin your project's runtime or package manager, use `volta pin`.",
