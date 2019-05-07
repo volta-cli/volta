@@ -17,8 +17,8 @@ if test $status != 0;
 end;
 "#;
 
-static SET_NOTION_HOME: &'static str = "set -x NOTION_HOME \"$HOME/.volta\"\n";
-static UNSET_NOTION_HOME: &'static str = "set -e NOTION_HOME\n";
+static SET_VOLTA_HOME: &'static str = "set -x VOLTA_HOME \"$HOME/.volta\"\n";
+static UNSET_VOLTA_HOME: &'static str = "set -e VOLTA_HOME\n";
 
 impl Shell for Fish {
     fn postscript_path(&self) -> &Path {
@@ -29,18 +29,18 @@ impl Shell for Fish {
         match postscript {
             &Postscript::Activate(ref s) => {
                 let updated_path = format!("set -x PATH \"{}\"\n", s);
-                updated_path + STATUS_HANDLING + SET_NOTION_HOME
+                updated_path + STATUS_HANDLING + SET_VOLTA_HOME
             }
             // ISSUE(#99): proper escaping
             &Postscript::Deactivate(ref s) => {
                 let updated_path = format!("set -x PATH \"{}\"\n", s);
-                updated_path + STATUS_HANDLING + UNSET_NOTION_HOME
+                updated_path + STATUS_HANDLING + UNSET_VOLTA_HOME
             }
             &Postscript::ToolVersion {
                 ref tool,
                 ref version,
             } => format!(
-                "set -x NOTION_{}_VERSION {}\n",
+                "set -x VOLTA_{}_VERSION {}\n",
                 tool.to_ascii_uppercase(),
                 version
             ),
@@ -63,7 +63,7 @@ mod tests {
             fish.compile_postscript(&Postscript::Deactivate("some:path".to_string())),
             String::from("set -x PATH \"some:path\"\n")
                 + super::STATUS_HANDLING
-                + super::UNSET_NOTION_HOME
+                + super::UNSET_VOLTA_HOME
         );
 
         // ISSUE(#99): proper escaping
@@ -73,7 +73,7 @@ mod tests {
             )),
             String::from("set -x PATH \"/path:/with:/single'quotes'\"\n")
                 + super::STATUS_HANDLING
-                + super::UNSET_NOTION_HOME
+                + super::UNSET_VOLTA_HOME
         );
 
         assert_eq!(
@@ -81,14 +81,14 @@ mod tests {
                 tool: "test".to_string(),
                 version: Version::parse("2.4.5").unwrap()
             }),
-            "set -x NOTION_TEST_VERSION 2.4.5\n"
+            "set -x VOLTA_TEST_VERSION 2.4.5\n"
         );
 
         assert_eq!(
             fish.compile_postscript(&Postscript::Activate("some:path".to_string())),
             String::from("set -x PATH \"some:path\"\n")
                 + super::STATUS_HANDLING
-                + super::SET_NOTION_HOME
+                + super::SET_VOLTA_HOME
         );
     }
 }

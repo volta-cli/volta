@@ -238,7 +238,7 @@ impl SandboxBuilder {
 
     /// Set the shell for the sandbox (chainable)
     pub fn volta_shell(self, shell_name: &str) -> Self {
-        self.env("NOTION_SHELL", shell_name)
+        self.env("VOLTA_SHELL", shell_name)
     }
 
     /// Set an environment variable for the sandbox (chainable)
@@ -541,10 +541,10 @@ impl Sandbox {
         let mut p = test_support::process::process(program);
         p.cwd(self.root())
             // sandbox the Volta environment
-            .env("NOTION_HOME", volta_home())
+            .env("VOLTA_HOME", volta_home())
             .env("PATH", &self.path)
-            .env("NOTION_POSTSCRIPT", volta_postscript())
-            .env_remove("NOTION_SHELL")
+            .env("VOLTA_POSTSCRIPT", volta_postscript())
+            .env_remove("VOLTA_SHELL")
             .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
 
         // overrides for env vars

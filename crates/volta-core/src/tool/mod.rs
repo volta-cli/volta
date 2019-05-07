@@ -295,7 +295,7 @@ where
 }
 
 fn intercept_global_installs() -> bool {
-    // We should only intercept global installs if the NOTION_UNSAFE_GLOBAL variable is not set
+    // We should only intercept global installs if the VOLTA_UNSAFE_GLOBAL variable is not set
     env::var_os(UNSAFE_GLOBAL).is_none()
 }
 

@@ -10,7 +10,7 @@ use crate::tool::ToolSpec;
 
 const REPORT_BUG_CTA: &'static str =
     "Please rerun the command that triggered this error with the environment
-variables `NOTION_DEV` set to `1` and `RUST_BACKTRACE` set to `full`, and open
+variables `VOLTA_DEV` set to `1` and `RUST_BACKTRACE` set to `full`, and open
 an issue at https://github.com/volta-cli/volta/issues with the details!";
 
 const PERMISSIONS_CTA: &'static str =

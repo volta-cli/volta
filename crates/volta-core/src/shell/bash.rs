@@ -14,18 +14,18 @@ impl Shell for Bash {
     fn compile_postscript(&self, postscript: &Postscript) -> String {
         match postscript {
             &Postscript::Activate(ref s) => format!(
-                "export PATH='{}'\nexport NOTION_HOME=\"${{HOME}}/.volta\"\n",
+                "export PATH='{}'\nexport VOLTA_HOME=\"${{HOME}}/.volta\"\n",
                 s
             ),
             &Postscript::Deactivate(ref s) => {
                 // ISSUE(#99): proper escaping
-                format!("export PATH='{}'\nunset NOTION_HOME\n", s)
+                format!("export PATH='{}'\nunset VOLTA_HOME\n", s)
             }
             &Postscript::ToolVersion {
                 ref tool,
                 ref version,
             } => format!(
-                "export NOTION_{}_VERSION={}\n",
+                "export VOLTA_{}_VERSION={}\n",
                 tool.to_ascii_uppercase(),
                 version
             ),
@@ -46,7 +46,7 @@ mod tests {
 
         assert_eq!(
             bash.compile_postscript(&Postscript::Deactivate("some:path".to_string())),
-            "export PATH='some:path'\nunset NOTION_HOME\n"
+            "export PATH='some:path'\nunset VOLTA_HOME\n"
         );
 
         // ISSUE(#99): proper escaping
@@ -54,7 +54,7 @@ mod tests {
             bash.compile_postscript(&Postscript::Deactivate(
                 "/path:/with:/single'quotes'".to_string()
             )),
-            "export PATH='/path:/with:/single'quotes''\nunset NOTION_HOME\n"
+            "export PATH='/path:/with:/single'quotes''\nunset VOLTA_HOME\n"
         );
 
         assert_eq!(
@@ -62,12 +62,12 @@ mod tests {
                 tool: "test".to_string(),
                 version: Version::parse("2.4.5").unwrap()
             }),
-            "export NOTION_TEST_VERSION=2.4.5\n"
+            "export VOLTA_TEST_VERSION=2.4.5\n"
         );
 
         assert_eq!(
             bash.compile_postscript(&Postscript::Activate("some:path".to_string())),
-            "export PATH='some:path'\nexport NOTION_HOME=\"${HOME}/.volta\"\n"
+            "export PATH='some:path'\nexport VOLTA_HOME=\"${HOME}/.volta\"\n"
         );
     }
 }

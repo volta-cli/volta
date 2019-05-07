@@ -51,7 +51,7 @@ fn ensure_dir_exists(path: PathBuf) -> Fallible<()> {
 }
 
 pub fn volta_home() -> Fallible<PathBuf> {
-    if let Some(home) = env::var_os("NOTION_HOME") {
+    if let Some(home) = env::var_os("VOLTA_HOME") {
         Ok(Path::new(&home).to_path_buf())
     } else {
         default_volta_home()

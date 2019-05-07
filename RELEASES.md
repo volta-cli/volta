@@ -40,7 +40,7 @@
 - Fix: publish latest Notion version via self-hosted endpoint (#230)
 - Fix: eliminate excessive fetching and scanning for exact versions (#227)
 - Rename `volta use` to `volta pin` (#226)
-- Base filesystem isolation on `NOTION_HOME` env var (#224)
+- Base filesystem isolation on `VOLTA_HOME` env var (#224)
 - Fix: robust progress bar logic (#221)
 - Use JSON for internal state files (#220)
 - Support for npm and npx (#205)
@@ -49,7 +49,7 @@
 # Version 0.1.5
 
 - Autoshimming! (#163)
-- `volta deactivate` also unsets `NOTION_HOME` (#195)
+- `volta deactivate` also unsets `VOLTA_HOME` (#195)
 - Implemented `volta activate` (#201)
 - Fix for Yarn over-fetching bug (#203)
 

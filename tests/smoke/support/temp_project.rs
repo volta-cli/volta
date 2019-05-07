@@ -137,7 +137,7 @@ impl TempProject {
         let mut p = test_support::process::process(program);
         p.cwd(self.root())
             // setup the Volta environment
-            .env_remove("NOTION_NODE_VERSION")
+            .env_remove("VOLTA_NODE_VERSION")
             .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
 
         p

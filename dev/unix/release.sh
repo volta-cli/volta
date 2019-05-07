@@ -157,14 +157,14 @@ esac
 
 # read the current version from Cargo.toml
 cargo_toml_contents="$(<Cargo.toml)"
-NOTION_VERSION="$(parse_version "$cargo_toml_contents")"
+VOLTA_VERSION="$(parse_version "$cargo_toml_contents")"
 
 # figure out the OS details
 os="$(uname -s)"
 openssl_version="$(openssl version)"
-NOTION_OS="$(parse_os_info "$os" "$openssl_version")"
+VOLTA_OS="$(parse_os_info "$os" "$openssl_version")"
 
-release_filename="volta-$NOTION_VERSION-$NOTION_OS"
+release_filename="volta-$VOLTA_VERSION-$VOLTA_OS"
 
 # first make sure the release binaries have been built
 volta_info 'Building' "Volta for $(bold "$release_filename")"

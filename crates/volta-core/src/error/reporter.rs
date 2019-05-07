@@ -11,7 +11,7 @@ use chrono::Local;
 use failure::Error;
 use volta_fail::VoltaError;
 
-const NOTION_DEV: &'static str = "NOTION_DEV";
+const VOLTA_DEV: &'static str = "VOLTA_DEV";
 
 /// Represents the context from which an error is being reported.
 pub enum ErrorContext {
@@ -48,7 +48,7 @@ impl ErrorReporter {
     pub fn from_env(volta_version: &str) -> Self {
         ErrorReporter {
             version: volta_version.to_string(),
-            verbose: env::var(NOTION_DEV).is_ok(),
+            verbose: env::var(VOLTA_DEV).is_ok(),
         }
     }
 

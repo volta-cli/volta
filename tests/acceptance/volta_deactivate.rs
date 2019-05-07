@@ -16,6 +16,6 @@ fn deactivate_bash() {
 
     assert_eq!(
         s.read_postscript(),
-        "export PATH='/usr/bin:/usr/local/bin'\nunset NOTION_HOME\n",
+        "export PATH='/usr/bin:/usr/local/bin'\nunset VOLTA_HOME\n",
     )
 }

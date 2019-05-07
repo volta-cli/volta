@@ -19,9 +19,9 @@ jobs:
         # run single-threaded because some tests change environment variables, which is not thread-safe
         - cargo test --package volta-core --package volta-fail --package archive --package volta-fail-derive --package progress-read -- --test-threads=1
         # the acceptance tests, using network mocks
-        - NOTION_DEV=1 RUST_BACKTRACE=full cargo test --features mock-network
+        - VOLTA_DEV=1 RUST_BACKTRACE=full cargo test --features mock-network
         # smoke tests: real data and no mocks
-        - NOTION_DEV=1 RUST_BACKTRACE=full cargo test --test smoke --features smoke-tests -- --test-threads 1
+        - VOLTA_DEV=1 RUST_BACKTRACE=full cargo test --test smoke --features smoke-tests -- --test-threads 1
     - name: "Formatting"
       # Run rustfmt across all crates to ensure consistent style.
       # (See the contributing guide in the project README for details.)

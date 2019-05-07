@@ -4,7 +4,7 @@
 
 volta_unpack_volta() {
   base64 --decode <<'END_BINARY_PAYLOAD'
-<PLACEHOLDER_NOTION_PAYLOAD>
+<PLACEHOLDER_VOLTA_PAYLOAD>
 END_BINARY_PAYLOAD
 }
 
@@ -27,7 +27,7 @@ END_TEXT_PAYLOAD
 }
 
 volta_install_dir() {
-  printf %s "${NOTION_HOME:-"$HOME/.volta"}"
+  printf %s "${VOLTA_HOME:-"$HOME/.volta"}"
 }
 
 volta_create_tree() {
@@ -148,9 +148,9 @@ volta_build_path_str() {
 
   local PATH_STR
   if [[ $PROFILE =~ \.fish$ ]]; then
-    PATH_STR="\\nset -gx NOTION_HOME \"${PROFILE_INSTALL_DIR}\"\\ntest -s \"\$NOTION_HOME/load.fish\"; and source \"\$NOTION_HOME/load.fish\"\\n\\nstring match -r \".volta\" \"\$PATH\" > /dev/null; or set -gx PATH \"\$NOTION_HOME/bin\" \$PATH"
+    PATH_STR="\\nset -gx VOLTA_HOME \"${PROFILE_INSTALL_DIR}\"\\ntest -s \"\$VOLTA_HOME/load.fish\"; and source \"\$VOLTA_HOME/load.fish\"\\n\\nstring match -r \".volta\" \"\$PATH\" > /dev/null; or set -gx PATH \"\$VOLTA_HOME/bin\" \$PATH"
   else
-    PATH_STR="\\nexport NOTION_HOME=\"${PROFILE_INSTALL_DIR}\"\\n[ -s \"\$NOTION_HOME/load.sh\" ] && \\. \"\$NOTION_HOME/load.sh\"\\n\\nexport PATH=\"\${NOTION_HOME}/bin:\$PATH\""
+    PATH_STR="\\nexport VOLTA_HOME=\"${PROFILE_INSTALL_DIR}\"\\n[ -s \"\$VOLTA_HOME/load.sh\" ] && \\. \"\$VOLTA_HOME/load.sh\"\\n\\nexport PATH=\"\${VOLTA_HOME}/bin:\$PATH\""
   fi
 
   echo "$PATH_STR"
@@ -180,8 +180,8 @@ volta_warning() {
 }
 
 volta_install() {
-  if [ -n "${NOTION_HOME-}" ] && [ -e "${NOTION_HOME}" ] && ! [ -d "${NOTION_HOME}" ]; then
-    volta_error "\$NOTION_HOME is set but is not a directory (${NOTION_HOME})."
+  if [ -n "${VOLTA_HOME-}" ] && [ -e "${VOLTA_HOME}" ] && ! [ -d "${VOLTA_HOME}" ]; then
+    volta_error "\$VOLTA_HOME is set but is not a directory (${VOLTA_HOME})."
     volta_eprintf "Please check your profile scripts and environment."
     exit 1
   fi
@@ -193,17 +193,17 @@ volta_install() {
   volta_create_binaries
 
   volta_info 'Editing' "user profile"
-  local NOTION_PROFILE
-  NOTION_PROFILE="$(volta_detect_profile)"
+  local VOLTA_PROFILE
+  VOLTA_PROFILE="$(volta_detect_profile)"
   local PROFILE_INSTALL_DIR
   PROFILE_INSTALL_DIR=$(volta_install_dir | sed "s:^$HOME:\$HOME:")
   local PATH_STR
-  PATH_STR="$(volta_build_path_str "$NOTION_PROFILE" "$PROFILE_INSTALL_DIR")"
+  PATH_STR="$(volta_build_path_str "$VOLTA_PROFILE" "$PROFILE_INSTALL_DIR")"
 
-  if [ -z "${NOTION_PROFILE-}" ] ; then
+  if [ -z "${VOLTA_PROFILE-}" ] ; then
     local TRIED_PROFILE
     if [ -n "${PROFILE}" ]; then
-      TRIED_PROFILE="${NOTION_PROFILE} (as defined in \$PROFILE), "
+      TRIED_PROFILE="${VOLTA_PROFILE} (as defined in \$PROFILE), "
     fi
     volta_error "No user profile found."
     volta_eprintf "Tried ${TRIED_PROFILE-}~/.bashrc, ~/.bash_profile, ~/.zshrc, ~/.profile, and ~.config/fish/config.fish."
@@ -212,11 +212,11 @@ volta_install() {
     volta_eprintf "${PATH_STR}"
     exit 1
   else
-    if ! command grep -qc 'NOTION_HOME' "$NOTION_PROFILE"; then
-      command printf "${PATH_STR}" >> "$NOTION_PROFILE"
+    if ! command grep -qc 'VOLTA_HOME' "$VOLTA_PROFILE"; then
+      command printf "${PATH_STR}" >> "$VOLTA_PROFILE"
     else
       volta_eprintf ''
-      volta_warning "Your profile (${NOTION_PROFILE}) already mentions Volta and has not been changed."
+      volta_warning "Your profile (${VOLTA_PROFILE}) already mentions Volta and has not been changed."
       volta_eprintf ''
     fi
   fi

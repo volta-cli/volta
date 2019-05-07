@@ -39,7 +39,7 @@ encode_expand_sed_command() {
 build_dir="$script_dir/../../target/$target_dir"
 shell_dir="$script_dir/../../shell"
 
-encode_base64_sed_command volta NOTION "$build_dir/volta"
+encode_base64_sed_command volta VOLTA "$build_dir/volta"
 encode_base64_sed_command shim SHIM "$build_dir/shim"
 encode_expand_sed_command bash_launcher BASH_LAUNCHER "$shell_dir/unix/load.sh"
 encode_expand_sed_command fish_launcher FISH_LAUNCHER "$shell_dir/unix/load.fish"

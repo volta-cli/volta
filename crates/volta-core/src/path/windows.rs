@@ -23,10 +23,10 @@ pub const OS: &'static str = "win";
 
 // This path needs to exactly match the Registry Key in the Windows Installer
 // wix/main.wxs -
-const NOTION_REGISTRY_PATH: &'static str = r#"Software\The Volta Maintainers\Volta"#;
+const VOLTA_REGISTRY_PATH: &'static str = r#"Software\The Volta Maintainers\Volta"#;
 
 // This Key needs to exactly match the Name from the above element in the Windows Installer
-const NOTION_INSTALL_DIR: &'static str = "InstallDir";
+const VOLTA_INSTALL_DIR: &'static str = "InstallDir";
 
 cfg_if! {
     if #[cfg(target_arch = "x86")] {
@@ -117,8 +117,8 @@ cfg_if::cfg_if! {
     } else {
         fn install_dir() -> Fallible<PathBuf> {
             let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-            let volta_key = hklm.open_subkey(NOTION_REGISTRY_PATH).with_context(install_dir_error)?;
-            let install_path: String = volta_key.get_value(NOTION_INSTALL_DIR).with_context(install_dir_error)?;
+            let volta_key = hklm.open_subkey(VOLTA_REGISTRY_PATH).with_context(install_dir_error)?;
+            let install_path: String = volta_key.get_value(VOLTA_INSTALL_DIR).with_context(install_dir_error)?;
             Ok(PathBuf::from(install_path))
         }
         fn install_dir_error(_err: &io::Error) -> ErrorDetails {
