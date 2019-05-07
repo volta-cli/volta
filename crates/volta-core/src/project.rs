@@ -29,7 +29,7 @@ fn is_dependency(dir: &Path) -> bool {
     dir.parent().map_or(false, |parent| is_node_modules(parent))
 }
 
-fn is_project_root(dir: &Path) -> bool {
+pub fn is_project_root(dir: &Path) -> bool {
     is_node_root(dir) && !is_dependency(dir)
 }
 

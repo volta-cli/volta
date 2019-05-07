@@ -1,0 +1,11 @@
+[node.distro]
+bin = "/some/bin/for/node/distro"
+
+[node.latest]
+bin = "/some/bin/for/node/latest"
+
+[node.index]
+bin = "/some/bin/for/node/index"
+
+[events.publish]
+bin = "/events/bin"
