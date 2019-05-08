@@ -72,17 +72,42 @@ pub struct ToolHooks<D: Distro> {
     pub phantom: PhantomData<D>,
 }
 
+impl<D: Distro> ToolHooks<D> {
+    /// Creates a merged struct, with "right" having precedence over "left".
+    fn merge(left: Self, right: Self) -> Self {
+        Self {
+            distro: if let Some(_) = right.distro {
+                right.distro
+            } else {
+                left.distro
+            },
+            latest: if let Some(_) = right.latest {
+                right.latest
+            } else {
+                left.latest
+            },
+            index: if let Some(_) = right.index {
+                right.index
+            } else {
+                left.index
+            },
+            phantom: PhantomData,
+        }
+    }
+}
+
 impl HookConfig {
     /// Returns the current hooks, which are a merge between the user hooks and
     /// the project hooks (if any).
     fn current() -> Fallible<Self> {
-        let project_config = Self::for_current_dir()?;
+        let maybe_project_config = Self::for_current_dir()?;
         let user_config = Self::for_user()?;
 
-        match project_config {
-            Some(config) => Ok(config),
-            None => Ok(user_config),
-        }
+        Ok(if let Some(project_config) = maybe_project_config {
+            Self::merge(user_config, project_config)
+        } else {
+            user_config
+        })
     }
 
     /// Returns the per-project hooks for the current directory.
@@ -128,6 +153,48 @@ impl HookConfig {
             })?;
         src.parse()
     }
+
+    /// Creates a merged struct, with "right" having precedence over "left".
+    fn merge(left: Self, right: Self) -> Self {
+        Self {
+            node: if let Some(left_node) = left.node {
+                Some(if let Some(right_node) = right.node {
+                    ToolHooks::merge(left_node, right_node)
+                } else {
+                    left_node
+                })
+            } else {
+                right.node
+            },
+            yarn: if let Some(left_yarn) = left.yarn {
+                Some(if let Some(right_yarn) = right.yarn {
+                    ToolHooks::merge(left_yarn, right_yarn)
+                } else {
+                    left_yarn
+                })
+            } else {
+                right.yarn
+            },
+            package: if let Some(left_package) = left.package {
+                Some(if let Some(right_package) = right.package {
+                    ToolHooks::merge(left_package, right_package)
+                } else {
+                    left_package
+                })
+            } else {
+                right.package
+            },
+            events: if let Some(left_events) = left.events {
+                Some(if let Some(right_events) = right.events {
+                    EventHooks::merge(left_events, right_events)
+                } else {
+                    left_events
+                })
+            } else {
+                right.events
+            },
+        }
+    }
 }
 
 impl FromStr for HookConfig {
@@ -144,6 +211,19 @@ impl FromStr for HookConfig {
 pub struct EventHooks {
     /// The hook for publishing events, if any.
     pub publish: Option<Publish>,
+}
+
+impl EventHooks {
+    /// Creates a merged struct, with "right" having precedence over "left".
+    fn merge(left: Self, right: Self) -> Self {
+        Self {
+            publish: if let Some(_) = right.publish {
+                right.publish
+            } else {
+                left.publish
+            },
+        }
+    }
 }
 
 #[cfg(test)]
@@ -387,6 +467,65 @@ pub mod tests {
         );
         assert_eq!(
             hooks.events.unwrap().publish,
+            Some(Publish::Bin("/events/bin".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_merge_works() {
+        let fixture_dir = fixture_path("hooks");
+        let user_hooks: HookConfig = fs::read_to_string(fixture_dir.join("templates.toml"))
+            .expect("Chould not read templates.toml")
+            .parse()
+            .expect("Could not parse templates.toml");
+
+        let project_dir = fixture_path("hooks/project");
+        let project_hooks = HookConfig::for_dir(&project_dir)
+            .expect("Could not read project hooks.toml")
+            .expect("Could not find project hooks.toml");
+
+        let merged_hooks = HookConfig::merge(user_hooks, project_hooks);
+        let node = merged_hooks.node.expect("No node config found");
+        let yarn = merged_hooks.yarn.expect("No yarn config found");
+
+        assert_eq!(
+            node.distro,
+            Some(tool::DistroHook::Bin(
+                "/some/bin/for/node/distro".to_string()
+            ))
+        );
+        assert_eq!(
+            node.latest,
+            Some(tool::MetadataHook::Bin(
+                "/some/bin/for/node/latest".to_string()
+            ))
+        );
+        assert_eq!(
+            node.index,
+            Some(tool::MetadataHook::Bin(
+                "/some/bin/for/node/index".to_string()
+            ))
+        );
+        assert_eq!(
+            yarn.distro,
+            Some(tool::DistroHook::Template(
+                "http://localhost/yarn/distro/{{version}}/".to_string()
+            ))
+        );
+        assert_eq!(
+            yarn.latest,
+            Some(tool::MetadataHook::Template(
+                "http://localhost/yarn/latest/{{version}}/".to_string()
+            ))
+        );
+        assert_eq!(
+            yarn.index,
+            Some(tool::MetadataHook::Template(
+                "http://localhost/yarn/index/{{version}}/".to_string()
+            ))
+        );
+        assert_eq!(
+            merged_hooks.events.expect("No events config found").publish,
             Some(Publish::Bin("/events/bin".to_string()))
         );
     }
