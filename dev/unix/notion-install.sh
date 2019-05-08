@@ -59,6 +59,7 @@ bold() {
 create_symlinks() {
   local install_dir="$1"
 
+  info 'Creating' "symlinks and shims"
   local main_shims=( node npm npx yarn )
   local shim_exec="$install_dir/shim"
   local main_exec="$install_dir/notion"
@@ -159,37 +160,29 @@ notion_home_is_ok() {
   return 0
 }
 
-# TODO:
 update_profile() {
-  info 'Editing' "user profile"
-  local DETECTED_PROFILE="$(detect_profile)"
-  local PROFILE_INSTALL_DIR=$(install_dir | sed "s:^$HOME:\$HOME:")
-  local PATH_STR="$(build_path_str "$DETECTED_PROFILE" "$PROFILE_INSTALL_DIR")"
+  local install_dir="$1"
 
-  if [ -z "${DETECTED_PROFILE-}" ] ; then
-    local TRIED_PROFILE
-    if [ -n "${PROFILE}" ]; then
-      # TODO: not sure this is right, won't $DETECTED_PROFILE be empty at this point?
-      TRIED_PROFILE="$DETECTED_PROFILE (as defined in \$PROFILE), "
-    fi
+  info 'Editing' "user profile"
+  local profile_install_dir=$(echo "$install_dir" | sed "s:^$HOME:\$HOME:")
+  local detected_profile="$(detect_profile)"
+  local path_str="$(build_path_str "$detected_profile" "$profile_install_dir")"
+
+  if [ -z "${detected_profile-}" ] ; then
     error "No user profile found."
-    eprintf "Tried ${TRIED_PROFILE-}~/.bashrc, ~/.bash_profile, ~/.zshrc, ~/.profile, and ~.config/fish/config.fish."
+    eprintf "Tried \$PROFILE ($PROFILE), ~/.bashrc, ~/.bash_profile, ~/.zshrc, ~/.profile, and ~/.config/fish/config.fish."
     eprintf ''
     eprintf "You can either create one of these and try again or add this to the appropriate file:"
-    eprintf "${PATH_STR}"
-    exit 1
+    eprintf "$path_str"
+    return 1
   else
-    if ! command grep -qc 'NOTION_HOME' "$DETECTED_PROFILE"; then
-      command printf "${PATH_STR}" >> "$DETECTED_PROFILE"
+    # TODO: without using grep? just bash?
+    if ! command grep -qc 'NOTION_HOME' "$detected_profile"; then
+      command printf "$path_str" >> "$detected_profile"
     else
-      eprintf ''
-      warning "Your profile ($DETECTED_PROFILE) already mentions Notion and has not been changed."
-      eprintf ''
+      warning "Your profile ($detected_profile) already mentions Notion and has not been changed."
     fi
   fi
-
-  info "Finished" 'installation. Open a new terminal to start using Notion!'
-  exit 0
 }
 
 
@@ -198,6 +191,8 @@ update_profile() {
 upgrade_is_ok() {
   local will_install_version="$1"
   local install_dir="$2"
+
+  # TODO: this will not be able to install things prior to the Volta rename, so check for that (probably version 0.5.0)
 
   # TODO: check for downgrade? will probably have to wipe and install
 
@@ -209,10 +204,10 @@ upgrade_is_ok() {
     # so just to be safe we'll ignore errors and consider those to be 0.1 as well.
     local prev_version="$( ($notion_bin --version 2>/dev/null || echo 0.1) | sed -E 's/^.*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')"
     if [ "$prev_version" == "$will_install_version" ]; then
-      eprintf ""
       eprintf "Version $will_install_version already installed"
       return 1
     fi
+    # TODO: have to do more version checks here
     if [[ "$prev_version" == 0.1* || "$prev_version" == 0.2* ]]; then
       eprintf ""
       error "Your Notion installation is out of date and can't be automatically upgraded."
@@ -232,6 +227,8 @@ upgrade_is_ok() {
 parse_os_info() {
   local uname_str="$1"
   local openssl_version="$2"
+
+  # TODO: this will not be able to install things prior to the Volta rename, so check for that (probably version 0.5.0)
 
   # TODO: need to check for version 0.1*, because those binaries are named differently
   # TODO: need to check for versions prior to the use of this script, because those will use the install.sh installer
@@ -303,8 +300,7 @@ element_in() {
 
   local element;
   # loop over the input arguments and return when a match is found
-  for element in "$@"
-  do
+  for element in "$@"; do
     [ "$element" == "$match" ] && return 0
   done
   return 1
@@ -396,7 +392,12 @@ install_version() {
       ;;
   esac
 
-  # TODO: modify profile and create shims
+  if [ "$?" == 0 ]
+  then
+    create_symlinks "$install_dir" &&
+      update_profile "$install_dir" &&
+      info "Finished" 'installation. Open a new terminal to start using Notion!'
+  fi
 }
 
 install_release() {
@@ -410,7 +411,7 @@ install_release() {
     exit_status="$?"
     if [ "$exit_status" != 0 ]
     then
-      error "Could not download Notion version '$version'\n\nSee https://github.com/notion-cli/notion/releases for a list of available releases"
+      error "Could not download Notion version '$version'. See https://github.com/notion-cli/notion/releases for a list of available releases"
       return "$exit_status"
     fi
 
@@ -452,16 +453,13 @@ download_release() {
   info 'Fetching' "archive for $pretty_os_name, version $version"
 
   # TODO: refactor this to pull the repo-specific code out, for internal integration
+  # using $version and $os_info, return the URL
 
   # store the downloaded archive in a temporary directory
   local download_dir="$(mktemp -d)"
-  local filename="notion-$_version-$os_info.tar.gz"
+  local filename="notion-$version-$os_info.tar.gz"
   local download_file="$download_dir/$filename"
-
-  # TODO: for now, download the test files from my desktop
-  local archive_url="http://mistewar-ld2.linkedin.biz:8080/$filename"
-  # this will eventually be
-  # local archive_url="https://github.com/notion-cli/notion/releases/download/v$version/$filename"
+  local archive_url="https://github.com/notion-cli/notion/releases/download/v$version/$filename"
 
   curl --progress-bar --show-error --location --fail "$archive_url" --output "$download_file" && echo "$download_file"
 }
