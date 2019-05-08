@@ -44,7 +44,7 @@ legacy_install_dir() {
 # Check for a legacy installation from when the tool was named Notion.
 volta_check_legacy_installation() {
   local LEGACY_INSTALL_DIR="$(legacy_install_dir)"
-  if [[ -n "$LEGACY_INSTALL_DIR" ]]; then
+  if [[ -d "$LEGACY_INSTALL_DIR" ]]; then
       volta_eprintf ""
       volta_error "You have existing Notion install, which can't be automatically upgraded to Volta."
       volta_request "       Please delete $LEGACY_INSTALL_DIR and try again."
