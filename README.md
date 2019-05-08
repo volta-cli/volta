@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://www.volta.sh/">
-    <img alt="Volta" src="https://github.com/volta-cli/volta/blob/master/volta.png?raw=true" width="480">
+    <img alt="Volta" src="./volta.png?raw=true" width="480">
   </a>
 </p>
 
@@ -13,11 +13,11 @@
   <a href="https://ci.appveyor.com/project/stefanpenner/volta/branch/master"><img alt="Build Status" src="https://ci.appveyor.com/api/projects/status/2cohtlutserh8jfb/branch/master?svg=true"></a>
 </p>
 
-**Reliable:** Ensure everyone in your project uses an identical dev environment, from the Node version to your preferred package manager.
+**Fast:** Launch your JS tools quickly and seamlessly! Volta is built in Rust and ships as a snappy static binary.
+
+**Reliable:** Ensure everyone in your project has the same tools, from the Node version to your preferred package manager.
 
 **Universal:** Enjoy the same command-line experience in every shell and every major operating system.
-
-**Fast:** Volta is implemented in Rust and deployed as a static executable for maximum performance.
 
 ## Features
 
