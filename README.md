@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  The Hassle-Free JavaScript Toolchain Manager
+  The JavaScript Launcher ⚡️
 </p>
 
 <p align="center">
