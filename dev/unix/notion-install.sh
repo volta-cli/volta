@@ -82,50 +82,38 @@ notion_create_symlinks() {
   chmod 755 "$shim_exec" "$notion_exec"
 }
 
-# TODO: test this
-notion_try_profile() {
-  if [ -z "${1-}" ] || [ ! -f "${1}" ]; then
-    return 1
-  fi
-  echo "${1}"
-}
-
-# TODO:
 notion_detect_profile() {
-  if [ -n "${PROFILE}" ] && [ -f "${PROFILE}" ]; then
-    echo "${PROFILE}"
+  if [ -f "$PROFILE" ]; then
+    echo "$PROFILE"
     return
   fi
 
-  local DETECTED_PROFILE
-  DETECTED_PROFILE=''
-  local SHELLTYPE
-  SHELLTYPE="$(basename "/$SHELL")"
-
-  if [ "$SHELLTYPE" = "bash" ]; then
-    if [ -f "$HOME/.bashrc" ]; then
-      DETECTED_PROFILE="$HOME/.bashrc"
-    elif [ -f "$HOME/.bash_profile" ]; then
-      DETECTED_PROFILE="$HOME/.bash_profile"
-    fi
-  elif [ "$SHELLTYPE" = "zsh" ]; then
-    DETECTED_PROFILE="$HOME/.zshrc"
-  elif [ "$SHELLTYPE" = "fish" ]; then
-    DETECTED_PROFILE="$HOME/.config/fish/config.fish"
-  fi
-
-  if [ -z "$DETECTED_PROFILE" ]; then
-    for EACH_PROFILE in ".profile" ".bashrc" ".bash_profile" ".zshrc" ".config/fish/config.fish"
-    do
-      if DETECTED_PROFILE="$(notion_try_profile "${HOME}/${EACH_PROFILE}")"; then
-        break
+  # try to detect the current shell
+  case "$(basename "/$SHELL")" in
+    bash)
+      if [ -f "$HOME/.bashrc" ]; then
+        echo "$HOME/.bashrc"
+      elif [ -f "$HOME/.bash_profile" ]; then
+        echo "$HOME/.bash_profile"
       fi
-    done
-  fi
-
-  if [ -n "$DETECTED_PROFILE" ]; then
-    echo "$DETECTED_PROFILE"
-  fi
+      ;;
+    zsh)
+      echo "$HOME/.zshrc"
+      ;;
+    fish)
+      echo "$HOME/.config/fish/config.fish"
+      ;;
+    *)
+      # fall back to checking for profile file existence
+      local profiles=( .profile .bashrc .bash_profile .zshrc .config/fish/config.fish )
+      for profile in "${profiles[@]}"; do
+        if [ -f "$HOME/$profile" ]; then
+          echo "$HOME/$profile"
+          break
+        fi
+      done
+      ;;
+  esac
 }
 
 # generate shell code to source the loading script and modify the path for the input profile
@@ -165,8 +153,8 @@ notion_home_is_ok() {
   return 0
 }
 
-notion_install() {
-  # TODO:
+# TODO:
+notion_update_profile() {
   notion_info 'Editing' "user profile"
   local NOTION_PROFILE="$(notion_detect_profile)"
   local PROFILE_INSTALL_DIR=$(notion_install_dir | sed "s:^$HOME:\$HOME:")
@@ -175,6 +163,7 @@ notion_install() {
   if [ -z "${NOTION_PROFILE-}" ] ; then
     local TRIED_PROFILE
     if [ -n "${PROFILE}" ]; then
+      # TODO: not sure this is right, won't $NOTION_PROFILE be empty at this point?
       TRIED_PROFILE="${NOTION_PROFILE} (as defined in \$PROFILE), "
     fi
     notion_error "No user profile found."
@@ -406,6 +395,8 @@ notion_install_version() {
       notion_install_release "$version_to_install" "$install_dir"
       ;;
   esac
+
+  # TODO: modify profile and create shims
 }
 
 notion_install_release() {
@@ -459,6 +450,8 @@ notion_download_release() {
 
   notion_info 'Fetching' "archive for $pretty_os_name, version $_version"
 
+  # TODO: refactor this to pull the repo-specific code out, for internal integration
+
   # store the downloaded archive in a temporary directory
   local _download_dir="$(mktemp -d)"
   local _filename="notion-$_version-$os_info.tar.gz"
@@ -481,10 +474,7 @@ notion_install_from_file() {
 
   notion_info 'Extracting' "Notion binaries and launchers"
   # extract the files to the specified directory
-  echo "running: 'tar -xzvf "$_archive" -C "$_extract_to"'" >&2
   tar -xzvf "$_archive" -C "$_extract_to"
-
-
 }
 
 # return if sourced (for testing the functions)
@@ -532,5 +522,3 @@ do
 done
 
 notion_install_version "$install_version" "$install_dir"
-# TODO: use stuff from install.sh.in to modify profile and whatever else
-
