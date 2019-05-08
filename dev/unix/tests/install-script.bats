@@ -6,7 +6,7 @@ source dev/unix/notion-install.sh
 
 # test building the path string
 
-@test "notion_build_path_str for fish" {
+@test "build_path_str for fish" {
   expected_output=$(cat <<END_FISH_STRING
 
 set -gx NOTION_HOME "$HOME/.whatever"
@@ -16,7 +16,7 @@ string match -r ".notion" "\$PATH" > /dev/null; or set -gx PATH "\$NOTION_HOME/b
 END_FISH_STRING
 )
 
-  run notion_build_path_str "$HOME/.config/fish/config.fish" "$HOME/.whatever"
+  run build_path_str "$HOME/.config/fish/config.fish" "$HOME/.whatever"
   [ "$status" -eq 0 ]
   diff <(echo "$output") <(echo "$expected_output")
 }
@@ -32,19 +32,19 @@ export PATH="\$NOTION_HOME/bin:\$PATH"
 END_BASH_STRING
 )
 
-  run notion_build_path_str "$HOME/.bashrc" "$HOME/.whatever"
+  run build_path_str "$HOME/.bashrc" "$HOME/.whatever"
   [ "$status" -eq 0 ]
   diff <(echo "$output") <(echo "$expected_output")
 
-  run notion_build_path_str "$HOME/.bash_profile" "$HOME/.whatever"
+  run build_path_str "$HOME/.bash_profile" "$HOME/.whatever"
   [ "$status" -eq 0 ]
   diff <(echo "$output") <(echo "$expected_output")
 
-  run notion_build_path_str "$HOME/.zshrc" "$HOME/.whatever"
+  run build_path_str "$HOME/.zshrc" "$HOME/.whatever"
   [ "$status" -eq 0 ]
   diff <(echo "$output") <(echo "$expected_output")
 
-  run notion_build_path_str "$HOME/.profile" "$HOME/.whatever"
+  run build_path_str "$HOME/.profile" "$HOME/.whatever"
   [ "$status" -eq 0 ]
   diff <(echo "$output") <(echo "$expected_output")
 }

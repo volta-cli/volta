@@ -5,10 +5,16 @@
 # case of Linux, what OpenSSL version) the system has, and then proceed to
 # fetch and install the appropriate build of Notion.
 
+# TODO: finish renaming all of this for the Volta rename
+
+# NOTE: to use an internal company repo, change how this determines the latest version
+get_latest_release() {
+  curl --silent "https://www.notionjs.com/latest-version"
+}
+
 usage() {
     cat >&2 <<END_USAGE
-notion-install
-The installer for Notion
+notion-install: The installer for Notion
 
 USAGE:
     notion-install [FLAGS] [OPTIONS]
@@ -23,25 +29,25 @@ OPTIONS:
 END_USAGE
 }
 
-notion_info() {
+info() {
   local action="$1"
   local details="$2"
   command printf '\033[1;32m%12s\033[0m %s\n' "$action" "$details" 1>&2
 }
 
-notion_error() {
+error() {
   command printf '\033[1;31mError\033[0m: %s\n\n' "$1" 1>&2
 }
 
-notion_warning() {
+warning() {
   command printf '\033[1;33mWarning\033[0m: %s\n\n' "$1" 1>&2
 }
 
-notion_request() {
+request() {
   command printf '\033[1m%s\033[0m\n' "$1" 1>&2
 }
 
-notion_eprintf() {
+eprintf() {
   command printf '%s\n' "$1" 1>&2
 }
 
@@ -50,12 +56,12 @@ bold() {
 }
 
 # create symlinks for shims in the bin/ dir
-notion_create_symlinks() {
+create_symlinks() {
   local install_dir="$1"
 
   local main_shims=( node npm npx yarn )
   local shim_exec="$install_dir/shim"
-  local notion_exec="$install_dir/notion"
+  local main_exec="$install_dir/notion"
 
   # remove these symlinks or binaries if they exist, so that the symlinks can be created later
   # (using -f so there is no error if the files don't exist)
@@ -79,10 +85,10 @@ notion_create_symlinks() {
   done
 
   # and make sure these are executable
-  chmod 755 "$shim_exec" "$notion_exec"
+  chmod 755 "$shim_exec" "$main_exec"
 }
 
-notion_detect_profile() {
+detect_profile() {
   if [ -f "$PROFILE" ]; then
     echo "$PROFILE"
     return
@@ -117,15 +123,15 @@ notion_detect_profile() {
 }
 
 # generate shell code to source the loading script and modify the path for the input profile
-notion_build_path_str() {
-  local _profile="$1"
-  local _profile_install_dir="$2"
+build_path_str() {
+  local profile="$1"
+  local profile_install_dir="$2"
 
-  if [[ $_profile =~ \.fish$ ]]; then
+  if [[ $profile =~ \.fish$ ]]; then
     # fish uses a little different syntax to load the shell integration script, and modify the PATH
     cat <<END_FISH_SCRIPT
 
-set -gx NOTION_HOME "${_profile_install_dir}"
+set -gx NOTION_HOME "$profile_install_dir"
 test -s "\$NOTION_HOME/load.fish"; and source "\$NOTION_HOME/load.fish"
 
 string match -r ".notion" "\$PATH" > /dev/null; or set -gx PATH "\$NOTION_HOME/bin" \$PATH
@@ -134,7 +140,7 @@ END_FISH_SCRIPT
     # bash and zsh
     cat <<END_BASH_SCRIPT
 
-export NOTION_HOME="${_profile_install_dir}"
+export NOTION_HOME="$profile_install_dir"
 [ -s "\$NOTION_HOME/load.sh" ] && . "\$NOTION_HOME/load.sh"
 
 export PATH="\$NOTION_HOME/bin:\$PATH"
@@ -146,80 +152,74 @@ END_BASH_SCRIPT
 # if it is set, and exists, but is not a directory, the install will fail
 notion_home_is_ok() {
   if [ -n "${NOTION_HOME-}" ] && [ -e "$NOTION_HOME" ] && ! [ -d "$NOTION_HOME" ]; then
-    notion_error "\$NOTION_HOME is set but is not a directory ($NOTION_HOME)."
-    notion_eprintf "Please check your profile scripts and environment."
+    error "\$NOTION_HOME is set but is not a directory ($NOTION_HOME)."
+    eprintf "Please check your profile scripts and environment."
     return 1
   fi
   return 0
 }
 
 # TODO:
-notion_update_profile() {
-  notion_info 'Editing' "user profile"
-  local NOTION_PROFILE="$(notion_detect_profile)"
-  local PROFILE_INSTALL_DIR=$(notion_install_dir | sed "s:^$HOME:\$HOME:")
-  local PATH_STR="$(notion_build_path_str "$NOTION_PROFILE" "$PROFILE_INSTALL_DIR")"
+update_profile() {
+  info 'Editing' "user profile"
+  local DETECTED_PROFILE="$(detect_profile)"
+  local PROFILE_INSTALL_DIR=$(install_dir | sed "s:^$HOME:\$HOME:")
+  local PATH_STR="$(build_path_str "$DETECTED_PROFILE" "$PROFILE_INSTALL_DIR")"
 
-  if [ -z "${NOTION_PROFILE-}" ] ; then
+  if [ -z "${DETECTED_PROFILE-}" ] ; then
     local TRIED_PROFILE
     if [ -n "${PROFILE}" ]; then
-      # TODO: not sure this is right, won't $NOTION_PROFILE be empty at this point?
-      TRIED_PROFILE="${NOTION_PROFILE} (as defined in \$PROFILE), "
+      # TODO: not sure this is right, won't $DETECTED_PROFILE be empty at this point?
+      TRIED_PROFILE="$DETECTED_PROFILE (as defined in \$PROFILE), "
     fi
-    notion_error "No user profile found."
-    notion_eprintf "Tried ${TRIED_PROFILE-}~/.bashrc, ~/.bash_profile, ~/.zshrc, ~/.profile, and ~.config/fish/config.fish."
-    notion_eprintf ''
-    notion_eprintf "You can either create one of these and try again or add this to the appropriate file:"
-    notion_eprintf "${PATH_STR}"
+    error "No user profile found."
+    eprintf "Tried ${TRIED_PROFILE-}~/.bashrc, ~/.bash_profile, ~/.zshrc, ~/.profile, and ~.config/fish/config.fish."
+    eprintf ''
+    eprintf "You can either create one of these and try again or add this to the appropriate file:"
+    eprintf "${PATH_STR}"
     exit 1
   else
-    if ! command grep -qc 'NOTION_HOME' "$NOTION_PROFILE"; then
-      command printf "${PATH_STR}" >> "$NOTION_PROFILE"
+    if ! command grep -qc 'NOTION_HOME' "$DETECTED_PROFILE"; then
+      command printf "${PATH_STR}" >> "$DETECTED_PROFILE"
     else
-      notion_eprintf ''
-      notion_warning "Your profile (${NOTION_PROFILE}) already mentions Notion and has not been changed."
-      notion_eprintf ''
+      eprintf ''
+      warning "Your profile ($DETECTED_PROFILE) already mentions Notion and has not been changed."
+      eprintf ''
     fi
   fi
 
-  notion_info "Finished" 'installation. Open a new terminal to start using Notion!'
+  info "Finished" 'installation. Open a new terminal to start using Notion!'
   exit 0
 }
 
 
-# NOTE: to use an internal company repo, change how this determines the latest version
-# TODO: move all of these functions that should be updated to the top of the file where they are obvious
-notion_get_latest_release() {
-  curl --silent "https://www.notionjs.com/latest-version"
-}
-
 # TODO: change description once this is finalized
 # Check for an existing installation that needs to be removed.
-notion_upgrade_is_ok() {
-  local _will_install_version="$1"
-  local _install_dir="$2"
+upgrade_is_ok() {
+  local will_install_version="$1"
+  local install_dir="$2"
 
   # TODO: check for downgrade? will probably have to wipe and install
 
-  local _notion_bin="$_install_dir/notion"
+  local notion_bin="$install_dir/notion"
 
   # TODO: don't exit, just return from this
-  if [[ -n "$_install_dir" && -x "$_notion_bin" ]]; then
+  if [[ -n "$install_dir" && -x "$notion_bin" ]]; then
     # Some 0.1.* builds would eagerly validate package.json even for benign commands,
     # so just to be safe we'll ignore errors and consider those to be 0.1 as well.
-    local _prev_notion_version="$( ($_notion_bin --version 2>/dev/null || echo 0.1) | sed -E 's/^.*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')"
-    if [ "$_prev_notion_version" == "$_will_install_version" ]; then
-      notion_eprintf ""
-      notion_eprintf "Version $_will_install_version already installed"
+    local prev_version="$( ($notion_bin --version 2>/dev/null || echo 0.1) | sed -E 's/^.*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')"
+    if [ "$prev_version" == "$will_install_version" ]; then
+      eprintf ""
+      eprintf "Version $will_install_version already installed"
       return 1
     fi
-    if [[ "$_prev_notion_version" == 0.1* || "$_prev_notion_version" == 0.2* ]]; then
-      notion_eprintf ""
-      notion_error "Your Notion installation is out of date and can't be automatically upgraded."
-      notion_request "       Please delete or move $_install_dir and try again."
-      notion_eprintf ""
-      notion_eprintf "(We plan to implement automatic upgrades in the future. Thanks for bearing with us!)"
-      notion_eprintf ""
+    if [[ "$prev_version" == 0.1* || "$prev_version" == 0.2* ]]; then
+      eprintf ""
+      error "Your Notion installation is out of date and can't be automatically upgraded."
+      request "       Please delete or move $install_dir and try again."
+      eprintf ""
+      eprintf "(We plan to implement automatic upgrades in the future. Thanks for bearing with us!)"
+      eprintf ""
       return 1
     fi
   fi
@@ -238,7 +238,7 @@ parse_os_info() {
   # TODO: will ALSO need to check for versions prior to the final rename, becuase those use Notion
   # case $(uname) in
   #   Linux)
-  #     if [[ "$_version" == 0.1* ]]; then
+  #     if [[ "$version" == 0.1* ]]; then
   #       NOTION_OS=linux
   #     else
   #       NOTION_OS="linux-openssl-$(notion_get_openssl_version)"
@@ -250,8 +250,8 @@ parse_os_info() {
   #     NOTION_PRETTY_OS=macOS
   #     ;;
   #   *)
-  #     notion_error "The current operating system does not appear to be supported by Notion."
-  #     notion_eprintf ""
+  #     error "The current operating system does not appear to be supported by Notion."
+  #     eprintf ""
   #     exit 1
   # esac
 
@@ -271,7 +271,7 @@ parse_os_info() {
       echo "macos"
       ;;
     *)
-      notion_error "Releases for '$uname_str' are not yet supported. You will need to add another OS case to this script, and to the install script to support this OS."
+      error "Releases for '$uname_str' are not yet supported. You will need to add another OS case to this script, and to the install script to support this OS."
       return 1
   esac
   return 0
@@ -330,16 +330,16 @@ parse_openssl_version() {
       echo "${BASH_REMATCH[2]}"
       return 0
     fi
-    notion_error "Releases for '$libname' not currently supported. Supported libraries are: ${SUPPORTED_SSL_LIBS[@]}."
+    error "Releases for '$libname' not currently supported. Supported libraries are: ${SUPPORTED_SSL_LIBS[@]}."
     return 1
   else
-    notion_error "Could not determine OpenSSL version for '$version_str'. You probably need to update the regex to handle this output."
+    error "Could not determine OpenSSL version for '$version_str'. You probably need to update the regex to handle this output."
     return 1
   fi
 }
 
-notion_create_tree() {
-  local _install_dir="$1"
+create_tree() {
+  local install_dir="$1"
 
   # .notion/
   #     bin/
@@ -358,17 +358,17 @@ notion_create_tree() {
   #             yarn/
   #         user/
 
-  mkdir -p "$_install_dir"
-  mkdir -p "$_install_dir"/bin
-  mkdir -p "$_install_dir"/cache/node
-  mkdir -p "$_install_dir"/log
-  mkdir -p "$_install_dir"/tmp
-  mkdir -p "$_install_dir"/tools/image/{node,packages,yarn}
-  mkdir -p "$_install_dir"/tools/inventory/{node,packages,yarn}
-  mkdir -p "$_install_dir"/tools/user
+  mkdir -p "$install_dir"
+  mkdir -p "$install_dir"/bin
+  mkdir -p "$install_dir"/cache/node
+  mkdir -p "$install_dir"/log
+  mkdir -p "$install_dir"/tmp
+  mkdir -p "$install_dir"/tools/image/{node,packages,yarn}
+  mkdir -p "$install_dir"/tools/inventory/{node,packages,yarn}
+  mkdir -p "$install_dir"/tools/user
 }
 
-notion_install_version() {
+install_version() {
   local version_to_install="$1"
   local install_dir="$2"
 
@@ -378,60 +378,61 @@ notion_install_version() {
 
   case "$version_to_install" in
     latest)
-      notion_info 'Installing' "latest version of Notion"
-      notion_install_release "$(notion_get_latest_release)" "$install_dir"
+      info 'Installing' "latest version of Notion"
+      install_release "$(get_latest_release)" "$install_dir"
       ;;
     local-dev)
-      notion_info 'Installing' "Notion locally after compiling"
-      notion_install_local "dev" "$install_dir"
+      info 'Installing' "Notion locally after compiling"
+      install_local "dev" "$install_dir"
       ;;
     local-release)
-      notion_info 'Installing' "Notion locally after compiling with '--release'"
-      notion_install_local "release" "$install_dir"
+      info 'Installing' "Notion locally after compiling with '--release'"
+      install_local "release" "$install_dir"
       ;;
     *)
       # assume anything else is a specific version
-      notion_info 'Installing' "Notion version $version_to_install"
-      notion_install_release "$version_to_install" "$install_dir"
+      info 'Installing' "Notion version $version_to_install"
+      install_release "$version_to_install" "$install_dir"
       ;;
   esac
 
   # TODO: modify profile and create shims
 }
 
-notion_install_release() {
+install_release() {
   local version="$1"
   local install_dir="$2"
 
-  notion_info 'Checking' "for existing Notion installation"
-  if notion_upgrade_is_ok "$version" "$install_dir"
+  info 'Checking' "for existing Notion installation"
+  if upgrade_is_ok "$version" "$install_dir"
   then
-    download_archive="$(notion_download_release "$version"; exit "$?")"
+    download_archive="$(download_release "$version"; exit "$?")"
     exit_status="$?"
     if [ "$exit_status" != 0 ]
     then
-      notion_error "Could not download Notion version '$version'\n\nSee https://github.com/notion-cli/notion/releases for a list of available releases"
+      error "Could not download Notion version '$version'\n\nSee https://github.com/notion-cli/notion/releases for a list of available releases"
       return "$exit_status"
     fi
 
-    notion_install_from_file "$download_archive" "$install_dir"
+    install_from_file "$download_archive" "$install_dir"
   fi
 }
 
-notion_install_local() {
+install_local() {
   local dev_or_release="$1"
   local install_dir="$2"
 
-  notion_info 'Checking' "for existing Notion installation"
-  if notion_upgrade_is_ok "$version" "$install_dir"
+  # TODO: there's no version available here?
+  info 'Checking' "for existing Notion installation"
+  if upgrade_is_ok "$version" "$install_dir"
   then
     # compile and package the binaries, then install from that local archive
-    local _compiled_archive="$(notion_compile_and_package "$dev_or_release")"
-    notion_install_from_file "$_compiled_archive" "$install_dir"
+    local compiled_archive="$(compile_and_package "$dev_or_release")"
+    install_from_file "$compiled_archive" "$install_dir"
   fi
 }
 
-notion_compile_and_package() {
+compile_and_package() {
   local dev_or_release="$1"
   # TODO: call the release script to do this, and return the packaged archive file
   # TODO: parse the output to get the archive file name
@@ -440,52 +441,49 @@ notion_compile_and_package() {
   echo "target/release/notion-0.3.0-macos.tar.gz"
 }
 
-notion_download_release() {
-  local _version="$1"
+download_release() {
+  local version="$1"
 
   local uname_str="$(uname -s)"
   local openssl_version="$(openssl version)"
   local os_info="$(parse_os_info "$uname_str" "$openssl_version")"
   local pretty_os_name="$(parse_os_pretty "$uname_str")"
 
-  notion_info 'Fetching' "archive for $pretty_os_name, version $_version"
+  info 'Fetching' "archive for $pretty_os_name, version $version"
 
   # TODO: refactor this to pull the repo-specific code out, for internal integration
 
   # store the downloaded archive in a temporary directory
-  local _download_dir="$(mktemp -d)"
-  local _filename="notion-$_version-$os_info.tar.gz"
-  local _download_file="$_download_dir/$_filename"
+  local download_dir="$(mktemp -d)"
+  local filename="notion-$_version-$os_info.tar.gz"
+  local download_file="$download_dir/$filename"
 
   # TODO: for now, download the test files from my desktop
-  local notion_archive="http://mistewar-ld2.linkedin.biz:8080/$_filename"
+  local archive_url="http://mistewar-ld2.linkedin.biz:8080/$filename"
   # this will eventually be
-  # local notion_archive="https://github.com/notion-cli/notion/releases/download/v$_version/$_filename"
+  # local archive_url="https://github.com/notion-cli/notion/releases/download/v$version/$filename"
 
-  curl --progress-bar --show-error --location --fail "$notion_archive" --output "$_download_file" && echo "$_download_file"
+  curl --progress-bar --show-error --location --fail "$archive_url" --output "$download_file" && echo "$download_file"
 }
 
-notion_install_from_file() {
-  local _archive="$1"
-  local _extract_to="$2"
+install_from_file() {
+  local archive="$1"
+  local extract_to="$2"
 
-  notion_info 'Creating' "directory layout"
-  notion_create_tree "$_extract_to"
+  info 'Creating' "directory layout"
+  create_tree "$extract_to"
 
-  notion_info 'Extracting' "Notion binaries and launchers"
+  info 'Extracting' "Notion binaries and launchers"
   # extract the files to the specified directory
-  tar -xzvf "$_archive" -C "$_extract_to"
+  tar -xzvf "$archive" -C "$extract_to"
 }
 
-# return if sourced (for testing the functions)
+
+# return if sourced (for testing the functions above)
 return 0 2>/dev/null
 
-# TODO: do I actually want this?
-# exit on error
-# set -e
-
-# default to installing the latest available Notion version
-install_version="latest"
+# default to installing the latest available version
+version_to_install="latest"
 
 # install to NOTION_HOME, defaulting to ~/.notion
 install_dir="${NOTION_HOME:-"$HOME/.notion"}"
@@ -502,23 +500,23 @@ do
       ;;
     --dev)
       shift # shift off the argument
-      install_version="local-dev"
+      version_to_install="local-dev"
       ;;
     --release)
       shift # shift off the argument
-      install_version="local-release"
+      version_to_install="local-release"
       ;;
     --version)
       shift # shift off the argument
-      install_version="$1"
+      version_to_install="$1"
       shift # shift off the value
       ;;
     *)
-      notion_error "unknown option: '$arg'"
+      error "unknown option: '$arg'"
       usage
       exit 1
       ;;
   esac
 done
 
-notion_install_version "$install_version" "$install_dir"
+install_version "$version_to_install" "$install_dir"

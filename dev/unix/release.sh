@@ -39,7 +39,7 @@ parse_cargo_version() {
     fi
   done <<< "$contents"
 
-  volta_error "Could not determine the current version"
+  error "Could not determine the current version"
   return 1
 }
 
@@ -67,7 +67,7 @@ case "$1" in
     build_with_release="true"
     ;;
   *)
-    volta_error "Unknown argument '$1'"
+    error "Unknown argument '$1'"
     usage
     exit1
     ;;
@@ -85,7 +85,7 @@ VOLTA_OS="$(parse_os_info "$os" "$openssl_version")"
 release_filename="volta-$VOLTA_VERSION-$VOLTA_OS"
 
 # first make sure the release binaries have been built
-volta_info 'Building' "Volta for $(bold "$release_filename")"
+info 'Building' "Volta for $(bold "$release_filename")"
 if [ "$build_with_release" == "true" ]
 then
   target_dir="target/release"
@@ -97,7 +97,7 @@ fi
 
 # then package the binaries and shell scripts together
 shell_script_dir="shell/unix"
-volta_info 'Packaging' "the compiled binaries and shell scripts"
+info 'Packaging' "the compiled binaries and shell scripts"
 # copy the load.* shell scripts to the target dir, to include them as well
 cp "$shell_script_dir"/load.* "$target_dir/"
 cd "$target_dir"
@@ -105,4 +105,4 @@ cd "$target_dir"
 # (see https://superuser.com/q/61185)
 COPYFILE_DISABLE=1 tar -czvf "$release_filename.tar.gz" volta shim load.*
 
-volta_info 'Completed' "release in file $(bold "$target_dir/$release_filename.tar.gz")"
+info 'Completed' "release in file $(bold "$target_dir/$release_filename.tar.gz")"
