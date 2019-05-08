@@ -296,7 +296,7 @@ impl Session {
             .fetch(name, version_spec, hooks.package.as_ref())
     }
 
-    /// Updates toolchain in package.json with the Node version matching the specified semantic
+    /// Updates 'volta' in package.json with the Node version matching the specified semantic
     /// versioning requirements.
     pub fn pin_node(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
         if let Some(ref project) = self.project()? {
@@ -314,7 +314,7 @@ impl Session {
         Ok(())
     }
 
-    /// Updates toolchain in package.json with the Yarn version matching the specified semantic
+    /// Updates 'volta' in package.json with the Yarn version matching the specified semantic
     /// versioning requirements.
     pub fn pin_yarn(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
         if let Some(ref project) = self.project()? {
@@ -331,7 +331,7 @@ impl Session {
         Ok(())
     }
 
-    /// Updates toolchain in package.json with the Npm version matching the specified semantic
+    /// Updates 'volta' in package.json with the Npm version matching the specified semantic
     /// versioning requirements.
     pub fn pin_npm(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
         if let Some(ref project) = self.project()? {

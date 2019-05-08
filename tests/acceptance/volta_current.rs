@@ -13,7 +13,7 @@ fn package_json_with_pinned_node(node: &str, npm: &str) -> String {
     format!(
         r#"{{
   "name": "test-package",
-  "toolchain": {{
+  "volta": {{
     "node": "{}",
     "npm": "{}"
   }}

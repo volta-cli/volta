@@ -9,7 +9,7 @@ fn package_json_with_pinned_node_npm(version: &str, npm_version: &str) -> String
     format!(
         r#"{{
   "name": "test-package",
-  "toolchain": {{
+  "volta": {{
     "node": "{}",
     "npm": "{}"
   }}
@@ -26,7 +26,7 @@ fn package_json_with_pinned_node_npm_yarn(
     format!(
         r#"{{
   "name": "test-package",
-  "toolchain": {{
+  "volta": {{
     "node": "{}",
     "npm": "{}",
     "yarn": "{}"

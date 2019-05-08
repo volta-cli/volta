@@ -13,7 +13,7 @@ fn package_json_with_pinned_node(node: &str) -> String {
     format!(
         r#"{{
   "name": "test-package",
-  "toolchain": {{
+  "volta": {{
     "node": "{}"
   }}
 }}"#,
@@ -25,7 +25,7 @@ fn package_json_with_pinned_node_npm(node: &str, npm: &str) -> String {
     format!(
         r#"{{
   "name": "test-package",
-  "toolchain": {{
+  "volta": {{
     "node": "{}",
     "npm": "{}"
   }}
@@ -38,7 +38,7 @@ fn package_json_with_pinned_node_yarn(node_version: &str, yarn_version: &str) ->
     format!(
         r#"{{
   "name": "test-package",
-  "toolchain": {{
+  "volta": {{
     "node": "{}",
     "yarn": "{}"
   }}
@@ -55,7 +55,7 @@ fn package_json_with_pinned_node_npm_yarn(
     format!(
         r#"{{
   "name": "test-package",
-  "toolchain": {{
+  "volta": {{
     "node": "{}",
     "npm": "{}",
     "yarn": "{}"
