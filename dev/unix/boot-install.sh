@@ -37,6 +37,24 @@ volta_request() {
   volta_eprintf ''
 }
 
+legacy_install_dir() {
+  printf "%s" "${NOTION_HOME:-"$HOME/.notion"}"
+}
+
+# Check for a legacy installation from when the tool was named Notion.
+volta_check_legacy_installation() {
+  local LEGACY_INSTALL_DIR="$(legacy_install_dir)"
+  if [[ -n "$LEGACY_INSTALL_DIR" ]]; then
+      volta_eprintf ""
+      volta_error "You have existing Notion install, which can't be automatically upgraded to Volta."
+      volta_request "       Please delete $(legacy_install_dir) and try again."
+      volta_eprintf ""
+      volta_eprintf "(We plan to implement automatic upgrades in the future. Thanks for bearing with us!)"
+      volta_eprintf ""
+      exit 1
+  fi
+}
+
 volta_install_dir() {
   printf %s "${VOLTA_HOME:-"$HOME/.volta"}"
 }
@@ -103,6 +121,7 @@ volta_get_openssl_version() {
 VOLTA_LATEST_VERSION=$(volta_get_latest_release)
 
 volta_info 'Checking' "for existing Volta installation"
+volta_check_legacy_installation
 volta_check_existing_installation "$VOLTA_LATEST_VERSION"
 
 

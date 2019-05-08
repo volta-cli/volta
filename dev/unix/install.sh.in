@@ -216,9 +216,17 @@ volta_install() {
       command printf "${PATH_STR}" >> "$VOLTA_PROFILE"
     else
       volta_eprintf ''
-      volta_warning "Your profile (${VOLTA_PROFILE}) already mentions Volta and has not been changed."
+      volta_warning "Your profile (${VOLTA_PROFILE}) already mentions"
+      volta_eprintf "         Volta and has not been changed."
       volta_eprintf ''
     fi
+  fi
+
+  if command grep -qc 'NOTION_HOME' "$VOLTA_PROFILE"; then
+      volta_eprintf ''
+      volta_warning "Your profile (${VOLTA_PROFILE}) mentions Notion."
+      volta_eprintf "         You probably want to remove that."
+      volta_eprintf ''
   fi
 
   volta_info "Finished" 'installation. Open a new terminal to start using Volta!'
