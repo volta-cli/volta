@@ -127,11 +127,7 @@ volta_check_existing_installation "$VOLTA_LATEST_VERSION"
 
 case $(uname) in
     Linux)
-        if [[ "$VOLTA_LATEST_VERSION" == 0.1* ]]; then
-          VOLTA_OS=linux
-        else
-          VOLTA_OS="linux-openssl-$(volta_get_openssl_version)"
-        fi
+        VOLTA_OS="linux-openssl-$(volta_get_openssl_version)"
         VOLTA_PRETTY_OS=Linux
         ;;
     Darwin)
