@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json;
 
-use notion_core::path;
+use volta_core::path;
 
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 
@@ -84,7 +84,7 @@ impl TempProjectBuilder {
         ok_or_panic!(path::user_toolchain_dir()).ensure_empty();
         ok_or_panic!(path::tmp_dir()).ensure_empty();
         // and these files do not exist
-        ok_or_panic!(path::notion_file()).rm();
+        ok_or_panic!(path::volta_file()).rm();
         ok_or_panic!(path::shim_executable()).rm();
         ok_or_panic!(path::user_hooks_file()).rm();
         ok_or_panic!(path::user_platform_file()).rm();
@@ -136,19 +136,19 @@ impl TempProject {
     pub fn process<T: AsRef<OsStr>>(&self, program: T) -> ProcessBuilder {
         let mut p = test_support::process::process(program);
         p.cwd(self.root())
-            // setup the Notion environment
-            .env_remove("NOTION_NODE_VERSION")
+            // setup the Volta environment
+            .env_remove("VOLTA_NODE_VERSION")
             .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
 
         p
     }
 
-    /// Create a `ProcessBuilder` to run notion.
+    /// Create a `ProcessBuilder` to run volta.
     /// Arguments can be separated by spaces.
     /// Example:
-    ///     assert_that(p.notion("use node 9.5"), execs());
-    pub fn notion(&self, cmd: &str) -> ProcessBuilder {
-        let mut p = self.process(&notion_exe());
+    ///     assert_that(p.volta("use node 9.5"), execs());
+    pub fn volta(&self, cmd: &str) -> ProcessBuilder {
+        let mut p = self.process(&volta_exe());
         split_and_add_args(&mut p, cmd);
         p
     }
@@ -310,8 +310,8 @@ pub fn cargo_dir() -> PathBuf {
         .unwrap_or_else(|| panic!("CARGO_BIN_PATH wasn't set. Cannot continue running test"))
 }
 
-fn notion_exe() -> PathBuf {
-    cargo_dir().join(format!("notion{}", env::consts::EXE_SUFFIX))
+fn volta_exe() -> PathBuf {
+    cargo_dir().join(format!("volta{}", env::consts::EXE_SUFFIX))
 }
 
 fn shim_exe() -> PathBuf {

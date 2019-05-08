@@ -7,7 +7,7 @@ source dev/unix/release.sh
 @test "parse_version - normal Cargo.toml" {
   input=$(cat <<'END_CARGO_TOML'
 [package]
-name = "notion"
+name = "volta"
 version = "0.7.38"
 authors = ["David Herman <david.herman@gmail.com>"]
 license = "BSD-2-Clause"
@@ -25,7 +25,7 @@ END_CARGO_TOML
 @test "parse_version - error" {
   input=$(cat <<'END_CARGO_TOML'
 [dependencies]
-notion-core = { path = "crates/notion-core" }
+volta-core = { path = "crates/volta-core" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.37"
 console = "0.6.1"

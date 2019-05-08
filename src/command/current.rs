@@ -2,9 +2,9 @@ use std::string::ToString;
 
 use structopt::StructOpt;
 
-use notion_core::error::ErrorDetails;
-use notion_core::session::{ActivityKind, Session};
-use notion_fail::{throw, ExitCode, Fallible};
+use volta_core::error::ErrorDetails;
+use volta_core::session::{ActivityKind, Session};
+use volta_fail::{throw, ExitCode, Fallible};
 
 use crate::command::Command;
 

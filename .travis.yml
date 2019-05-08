@@ -17,11 +17,11 @@ jobs:
       script:
         # the unit tests for all crates (without mocking the network)
         # run single-threaded because some tests change environment variables, which is not thread-safe
-        - cargo test --package notion-core --package notion-fail --package archive --package notion-fail-derive --package progress-read -- --test-threads=1
+        - cargo test --package volta-core --package volta-fail --package archive --package volta-fail-derive --package progress-read -- --test-threads=1
         # the acceptance tests, using network mocks
-        - NOTION_DEV=1 RUST_BACKTRACE=full cargo test --features mock-network
+        - VOLTA_DEV=1 RUST_BACKTRACE=full cargo test --features mock-network
         # smoke tests: real data and no mocks
-        - NOTION_DEV=1 RUST_BACKTRACE=full cargo test --test smoke --features smoke-tests -- --test-threads 1
+        - VOLTA_DEV=1 RUST_BACKTRACE=full cargo test --test smoke --features smoke-tests -- --test-threads 1
     - name: "Formatting"
       # Run rustfmt across all crates to ensure consistent style.
       # (See the contributing guide in the project README for details.)
@@ -39,13 +39,13 @@ jobs:
       # The `universal-docs` feature is used in the codebase to provide cross-platform API docs.
       script:
         - cargo doc -p progress-read --no-deps
-        - cargo doc -p notion-fail --no-deps
+        - cargo doc -p volta-fail --no-deps
         - cargo doc --features universal-docs -p archive --no-deps
-        - cargo doc --features universal-docs -p notion-core --no-deps
+        - cargo doc --features universal-docs -p volta-core --no-deps
         - cargo doc --features universal-docs --no-deps
         - mkdir -p publish
         - mv target/doc publish/master
-        - echo '<!doctype html><a href="notion">notion</a>' > publish/master/index.html
+        - echo '<!doctype html><a href="volta">volta</a>' > publish/master/index.html
         - echo '<!doctype html><a href="master">master</a>' > publish/index.html
       # GitHub deployment: https://docs.travis-ci.com/user/deployment/pages/
       deploy:

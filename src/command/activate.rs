@@ -1,10 +1,10 @@
 use structopt::StructOpt;
 
-use notion_core::error::ErrorDetails;
-use notion_core::platform::System;
-use notion_core::session::{ActivityKind, Session};
-use notion_core::shell::{CurrentShell, Postscript, Shell};
-use notion_fail::{ExitCode, Fallible};
+use volta_core::error::ErrorDetails;
+use volta_core::platform::System;
+use volta_core::session::{ActivityKind, Session};
+use volta_core::shell::{CurrentShell, Postscript, Shell};
+use volta_fail::{ExitCode, Fallible};
 
 use crate::command::Command;
 
@@ -20,7 +20,7 @@ impl Command for Activate {
             System::enabled_path()?
                 .into_string()
                 .map_err(|_| ErrorDetails::Unimplemented {
-                    feature: "notion activate".into(),
+                    feature: "volta activate".into(),
                 })?;
         let postscript = Postscript::Activate(path);
 

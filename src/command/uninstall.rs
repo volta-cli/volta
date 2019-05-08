@@ -1,9 +1,9 @@
 use structopt::StructOpt;
 
-use notion_core::session::{ActivityKind, Session};
-use notion_core::tool::ToolSpec;
-use notion_core::version::VersionSpec;
-use notion_fail::{ExitCode, Fallible};
+use volta_core::session::{ActivityKind, Session};
+use volta_core::tool::ToolSpec;
+use volta_core::version::VersionSpec;
+use volta_fail::{ExitCode, Fallible};
 
 use crate::command::Command;
 

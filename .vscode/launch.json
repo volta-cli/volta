@@ -1,39 +1,39 @@
 {
   "version": "0.2.0",
-  "configurations":[
+  "configurations": [
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Cargo run notion core",
+      "name": "Cargo run volta core",
       "cargo": {
-        "args": [
-          "run",
-          "--bin", "notion",
-        ],
+        "args": ["run", "--bin", "volta"],
         "filter": {
           "kind": "bin",
-          "name": "notion"
+          "name": "volta"
         }
       },
       "program": "${cargo:program}",
-      "args": ["fetch", "2bar"],
+      "args": [],
       "sourceLanguages": ["rust"]
     },
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Cargo test notion core",
+      "name": "Cargo test volta core",
       "cargo": {
         "args": [
           "test",
           "--lib",
           "--no-run",
-          "--package", "notion-core",
-          "--", "--test-threads", "1",
+          "--package",
+          "volta-core",
+          "--",
+          "--test-threads",
+          "1"
         ],
         "filter": {
           "kind": "lib",
-          "name": "notion-core"
+          "name": "volta-core"
         }
       },
       "program": "${cargo:program}",

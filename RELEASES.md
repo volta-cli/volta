@@ -1,3 +1,15 @@
+# Version 0.4.1
+
+- Allow tool executions to pass through to the system if no Notion platform exists (#372)
+- Improve installer support for varied Linux distros
+
+# Version 0.4.0
+
+- Update `notion install` to use `tool@version` formatting for specifying a tool (#383, #403)
+- Further error message improvements (#344, #395, #399, #400)
+- Clean up bugs around installing and running packages (#368, #390, #394, #396)
+- Include success messages when running `notion install` and `notion pin` (#397)
+
 # Version 0.3.0
 
 - Support `lts` pseudo-version for Node (#331)
