@@ -1,19 +1,19 @@
 use structopt::StructOpt;
 
 use crate::command::{self, Command};
-use notion_core::path;
-use notion_core::session::Session;
-use notion_fail::{ExitCode, Fallible};
+use volta_core::path;
+use volta_core::session::Session;
+use volta_fail::{ExitCode, Fallible};
 
 #[derive(StructOpt)]
 #[structopt(
-    name = "Notion",
-    about = "The hassle-free JavaScript toolchain manager",
+    name = "Volta",
+    about = "The JavaScript Launcher ⚡",
     author = "",
-    long_about = "The hassle-free JavaScript toolchain manager
+    long_about = "The JavaScript Launcher ⚡
 
-    To install a tool in your toolchain, use `notion install`.
-    To pin your project's runtime or package manager, use `notion pin`.",
+    To install a tool in your toolchain, use `volta install`.
+    To pin your project's runtime or package manager, use `volta pin`.",
     raw(global_setting = "structopt::clap::AppSettings::ColoredHelp"),
     raw(global_setting = "structopt::clap::AppSettings::ColorAlways"),
     raw(global_setting = "structopt::clap::AppSettings::DeriveDisplayOrder"),
@@ -21,7 +21,7 @@ use notion_fail::{ExitCode, Fallible};
     raw(global_setting = "structopt::clap::AppSettings::DontCollapseArgsInUsage"),
     raw(global_setting = "structopt::clap::AppSettings::VersionlessSubcommands")
 )]
-pub(crate) struct Notion {
+pub(crate) struct Volta {
     #[structopt(subcommand)]
     pub(crate) command: Option<Subcommand>,
 
@@ -31,21 +31,21 @@ pub(crate) struct Notion {
     #[structopt(
         short = "v",
         long = "version",
-        help = "Prints the current version of Notion"
+        help = "Prints the current version of Volta"
     )]
     pub(crate) version: bool,
 }
 
-impl Notion {
+impl Volta {
     pub(crate) fn run(self, session: &mut Session) -> Fallible<ExitCode> {
-        path::ensure_notion_dirs_exist()?;
+        path::ensure_volta_dirs_exist()?;
         if self.version {
             println!("{}", env!("CARGO_PKG_VERSION"));
             Ok(ExitCode::Success)
         } else if let Some(command) = self.command {
             command.run(session)
         } else {
-            Notion::from_iter(["notion", "help"].iter()).run(session)
+            Volta::from_iter(["volta", "help"].iter()).run(session)
         }
     }
 }
@@ -72,7 +72,7 @@ pub(crate) enum Subcommand {
     #[structopt(name = "current", author = "", version = "")]
     Current(command::Current),
 
-    /// Disables Notion in the current shell
+    /// Disables Volta in the current shell
     #[structopt(
         name = "deactivate",
         author = "",
@@ -81,7 +81,7 @@ pub(crate) enum Subcommand {
     )]
     Deactivate(command::Deactivate),
 
-    /// Re-enables Notion in the current shell
+    /// Re-enables Volta in the current shell
     #[structopt(
         name = "activate",
         author = "",
@@ -90,13 +90,13 @@ pub(crate) enum Subcommand {
     )]
     Activate(command::Activate),
 
-    /// Generates Notion completions
+    /// Generates Volta completions
     #[structopt(
         name = "completions",
         author = "",
         version = "",
         raw(setting = "structopt::clap::AppSettings::ArgRequiredElseHelp"),
-        long_about = "Generates Notion completions
+        long_about = "Generates Volta completions
 
 By default, completions will be generated for the value of your current shell,
 shell, i.e. the value of `SHELL`. If you set the `<shell>` option, completions
@@ -108,7 +108,7 @@ otherwise, they will be written to `stdout`.
     )]
     Completions(command::Completions),
 
-    /// Locates the actual binary that will be called by Notion
+    /// Locates the actual binary that will be called by Volta
     #[structopt(name = "which", author = "", version = "")]
     Which(command::Which),
 

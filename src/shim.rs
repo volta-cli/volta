@@ -1,8 +1,8 @@
-use notion_core::error::{ErrorContext, ErrorReporter};
-use notion_core::session::{ActivityKind, Session};
-use notion_core::tool::execute_tool;
+use volta_core::error::{ErrorContext, ErrorReporter};
+use volta_core::session::{ActivityKind, Session};
+use volta_core::tool::execute_tool;
 
-use notion_fail::ExitCode;
+use volta_fail::ExitCode;
 
 pub fn main() {
     let mut session = Session::new();

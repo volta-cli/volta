@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 
-# This is the bootstrap Unix installer served by `https://get.notionjs.com`.
+# This is the bootstrap Unix installer served by `https://get.volta.sh`.
 # Its responsibility is to query the system to determine what OS (and in the
 # case of Linux, what OpenSSL version) the system has, and then proceed to
-# fetch and install the appropriate build of Notion.
+# fetch and install the appropriate build of Volta.
 
-notion_get_latest_release() {
-  curl --silent https://www.notionjs.com/latest-version
+volta_get_latest_release() {
+  curl --silent https://www.volta.sh/latest-version
 }
 
-notion_eprintf() {
+volta_eprintf() {
   command printf "$1\n" 1>&2
 }
 
-notion_info() {
+volta_info() {
   local ACTION
   local DETAILS
   ACTION="$1"
@@ -21,56 +21,74 @@ notion_info() {
   command printf '\033[1;32m%12s\033[0m %s\n' "${ACTION}" "${DETAILS}" 1>&2
 }
 
-notion_error() {
+volta_error() {
   command printf '\033[1;31mError\033[0m: ' 1>&2
-  notion_eprintf "$1"
+  volta_eprintf "$1"
 }
 
-notion_warning() {
+volta_warning() {
   command printf '\033[1;33mWarning\033[0m: ' 1>&2
-  notion_eprintf "$1"
-  notion_eprintf ''
+  volta_eprintf "$1"
+  volta_eprintf ''
 }
 
-notion_request() {
+volta_request() {
   command printf "\033[1m$1\033[0m" 1>&2
-  notion_eprintf ''
+  volta_eprintf ''
 }
 
-notion_install_dir() {
-  printf %s "${NOTION_HOME:-"$HOME/.notion"}"
+legacy_install_dir() {
+  printf "%s" "${NOTION_HOME:-"$HOME/.notion"}"
+}
+
+# Check for a legacy installation from when the tool was named Notion.
+volta_check_legacy_installation() {
+  local LEGACY_INSTALL_DIR="$(legacy_install_dir)"
+  if [[ -n "$LEGACY_INSTALL_DIR" ]]; then
+      volta_eprintf ""
+      volta_error "You have existing Notion install, which can't be automatically upgraded to Volta."
+      volta_request "       Please delete $LEGACY_INSTALL_DIR and try again."
+      volta_eprintf ""
+      volta_eprintf "(We plan to implement automatic upgrades in the future. Thanks for bearing with us!)"
+      volta_eprintf ""
+      exit 1
+  fi
+}
+
+volta_install_dir() {
+  printf %s "${VOLTA_HOME:-"$HOME/.volta"}"
 }
 
 # Check for an existing installation that needs to be removed.
-notion_check_existing_installation() {
+volta_check_existing_installation() {
   local LATEST_VERSION="$1"
-  local INSTALL_DIR="$(notion_install_dir)"
-  local NOTION_BIN="${INSTALL_DIR}/notion"
+  local INSTALL_DIR="$(volta_install_dir)"
+  local VOLTA_BIN="${INSTALL_DIR}/volta"
 
-  if [[ -n "$INSTALL_DIR" && -x "$NOTION_BIN" ]]; then
-    local PREV_NOTION_VERSION
+  if [[ -n "$INSTALL_DIR" && -x "$VOLTA_BIN" ]]; then
+    local PREV_VOLTA_VERSION
     # Some 0.1.* builds would eagerly validate package.json even for benign commands,
     # so just to be safe we'll ignore errors and consider those to be 0.1 as well.
-    PREV_NOTION_VERSION="$( ($NOTION_BIN --version 2>/dev/null || echo 0.1) | sed -E 's/^.*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')"
-    if [ "$PREV_NOTION_VERSION" == "$LATEST_VERSION" ]; then
-      notion_eprintf ""
-      notion_eprintf "Latest version $LATEST_VERSION already installed"
+    PREV_VOLTA_VERSION="$( ($VOLTA_BIN --version 2>/dev/null || echo 0.1) | sed -E 's/^.*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')"
+    if [ "$PREV_VOLTA_VERSION" == "$LATEST_VERSION" ]; then
+      volta_eprintf ""
+      volta_eprintf "Latest version $LATEST_VERSION already installed"
       exit 0
     fi
-    if [[ "$PREV_NOTION_VERSION" == 0.1* || "$PREV_NOTION_VERSION" == 0.2* || "$PREV_NOTION_VERSION" == 0.3* ]]; then
-      notion_eprintf ""
-      notion_error "Your Notion installation is out of date and can't be automatically upgraded."
-      notion_request "       Please delete or move $(notion_install_dir) and try again."
-      notion_eprintf ""
-      notion_eprintf "(We plan to implement automatic upgrades in the future. Thanks for bearing with us!)"
-      notion_eprintf ""
+    if [[ "$PREV_VOLTA_VERSION" == 0.1* || "$PREV_VOLTA_VERSION" == 0.2* || "$PREV_VOLTA_VERSION" == 0.3* ]]; then
+      volta_eprintf ""
+      volta_error "Your Volta installation is out of date and can't be automatically upgraded."
+      volta_request "       Please delete or move $INSTALL_DIR and try again."
+      volta_eprintf ""
+      volta_eprintf "(We plan to implement automatic upgrades in the future. Thanks for bearing with us!)"
+      volta_eprintf ""
       exit 1
     fi
   fi
 }
 
 # determines the major and minor version of OpenSSL on the system
-notion_get_openssl_version() {
+volta_get_openssl_version() {
   local LIB
   local LIBNAME
   local FULLVERSION
@@ -83,8 +101,8 @@ notion_get_openssl_version() {
   LIBNAME="$(echo $LIB | awk '{print $1;}')"
 
   if [[ "$LIBNAME" != "OpenSSL" ]]; then
-    notion_error "Your system SSL library ($LIBNAME) is not currently supported on this OS."
-    notion_eprintf ""
+    volta_error "Your system SSL library ($LIBNAME) is not currently supported on this OS."
+    volta_eprintf ""
     exit 1
   fi
 
@@ -100,36 +118,33 @@ notion_get_openssl_version() {
   fi
 }
 
-NOTION_LATEST_VERSION=$(notion_get_latest_release)
+VOLTA_LATEST_VERSION=$(volta_get_latest_release)
 
-notion_info 'Checking' "for existing Notion installation"
-notion_check_existing_installation "$NOTION_LATEST_VERSION"
+volta_info 'Checking' "for existing Volta installation"
+volta_check_legacy_installation
+volta_check_existing_installation "$VOLTA_LATEST_VERSION"
 
 
 case $(uname) in
     Linux)
-        if [[ "$NOTION_LATEST_VERSION" == 0.1* ]]; then
-          NOTION_OS=linux
-        else
-          NOTION_OS="linux-openssl-$(notion_get_openssl_version)"
-        fi
-        NOTION_PRETTY_OS=Linux
+        VOLTA_OS="linux-openssl-$(volta_get_openssl_version)"
+        VOLTA_PRETTY_OS=Linux
         ;;
     Darwin)
-        NOTION_OS=macos
-        NOTION_PRETTY_OS=macOS
+        VOLTA_OS=macos
+        VOLTA_PRETTY_OS=macOS
         ;;
     *)
-        notion_error "The current operating system does not appear to be supported by Notion."
-        notion_eprintf ""
+        volta_error "The current operating system does not appear to be supported by Volta."
+        volta_eprintf ""
         exit 1
 esac
 
-NOTION_INSTALLER="https://github.com/notion-cli/notion/releases/download/v${NOTION_LATEST_VERSION}/notion-${NOTION_LATEST_VERSION}-${NOTION_OS}.sh"
+VOLTA_INSTALLER="https://github.com/volta-cli/volta/releases/download/v${VOLTA_LATEST_VERSION}/volta-${VOLTA_LATEST_VERSION}-${VOLTA_OS}.sh"
 
-notion_info 'Fetching' "${NOTION_PRETTY_OS} installer"
+volta_info 'Fetching' "${VOLTA_PRETTY_OS} installer"
 
-curl -#SLf ${NOTION_INSTALLER} | bash
+curl -#SLf ${VOLTA_INSTALLER} | bash
 STATUS=$?
 
 exit $STATUS

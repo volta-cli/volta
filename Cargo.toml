@@ -1,15 +1,15 @@
 [package]
-name = "notion"
+name = "volta"
 version = "0.4.1"
 authors = ["David Herman <david.herman@gmail.com>"]
 license = "BSD-2-Clause"
-repository = "https://github.com/notion-cli/notion"
+repository = "https://github.com/volta-cli/volta"
 edition = "2018"
 
 [features]
-universal-docs = ["notion-core/universal-docs"]
-mock-network = ["mockito", "notion-core/mock-network"]
-notion-dev = []
+universal-docs = ["volta-core/universal-docs"]
+mock-network = ["mockito", "volta-core/mock-network"]
+volta-dev = []
 smoke-tests = []
 
 [[bin]]
@@ -17,14 +17,14 @@ name = "shim"
 path = "src/shim.rs"
 
 [dependencies]
-notion-core = { path = "crates/notion-core" }
+volta-core = { path = "crates/volta-core" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.37"
 console = "0.6.1"
 failure_derive = "0.1.1"
 failure = "0.1.1"
-notion-fail = { path = "crates/notion-fail" }
-notion-fail-derive = { path = "crates/notion-fail-derive" }
+volta-fail = { path = "crates/volta-fail" }
+volta-fail-derive = { path = "crates/volta-fail-derive" }
 validate-npm-package-name = { path = "crates/validate-npm-package-name" }
 reqwest = { version = "0.9.9", features = ["hyper-011"] }
 semver = "0.9.0"

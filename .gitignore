@@ -1,9 +1,12 @@
 /target/
 **/*.rs.bk
 Notion.msi
+Volta.msi
 dev/windows/*.log
 dev/windows/Notion.wixobj
+dev/windows/Volta.wixobj
 dev/windows/Notion.wixpdb
+dev/windows/Volta.wixpdb
 dev/unix/install.sh
 /.idea/
 /rls/
