@@ -42,7 +42,7 @@
 
         <Package Id='*'
             Keywords='Installer'
-            Description='The Hassle-Free JavaScript Toolchain Manager'
+            Description='The JavaScript Launcher'
             Manufacturer='The Volta Maintainers'
             InstallerVersion='450'
             Languages='1033'

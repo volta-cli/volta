@@ -172,7 +172,7 @@ impl Project {
         path
     }
 
-    /// Writes the specified version of Node to the `toolchain.node` key in package.json.
+    /// Writes the specified version of Node to the `volta.node` key in package.json.
     pub fn pin_node(&self, node_version: &NodeVersion) -> Fallible<()> {
         // prevent writing the npm version if it is equal to the default version
 
@@ -195,7 +195,7 @@ impl Project {
         Ok(())
     }
 
-    /// Writes the specified version of Yarn to the `toolchain.yarn` key in package.json.
+    /// Writes the specified version of Yarn to the `volta.yarn` key in package.json.
     pub fn pin_yarn(&self, yarn_version: &Version) -> Fallible<()> {
         if let Some(platform) = self.manifest().platform() {
             let toolchain = serial::ToolchainSpec::new(
@@ -210,7 +210,7 @@ impl Project {
         Ok(())
     }
 
-    /// Writes the specified version of Npm to the `toolchain.npm` key in package.json.
+    /// Writes the specified version of Npm to the `volta.npm` key in package.json.
     pub fn pin_npm(&self, npm_version: &Version) -> Fallible<()> {
         if let Some(platform) = self.manifest().platform() {
             let toolchain = serial::ToolchainSpec::new(

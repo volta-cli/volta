@@ -53,6 +53,7 @@ pub struct Manifest {
     #[serde(rename = "devDependencies")]
     pub dev_dependencies: HashMap<String, String>,
 
+    #[serde(rename = "volta")]
     pub toolchain: Option<ToolchainSpec>,
 
     // the "bin" field can be a map or a string
@@ -255,7 +256,7 @@ pub mod tests {
             "description": "This is a description",
             "dependencies": { "something": "1.2.3" },
             "devDependencies": { "somethingElse": "1.2.3" },
-            "toolchain": {
+            "volta": {
                 "node": "0.10.5",
                 "npm": "1.2.18",
                 "yarn": "1.2.1"
@@ -330,18 +331,18 @@ pub mod tests {
     #[test]
     fn test_package_toolchain() {
         let package_empty_toolchain = r#"{
-            "toolchain": {
+            "volta": {
             }
         }"#;
         let manifest_empty_toolchain =
             serde_json::de::from_str::<Manifest>(package_empty_toolchain);
         assert!(
             manifest_empty_toolchain.is_err(),
-            "Node must be defined in the 'toolchain'"
+            "Node must be defined under the 'volta' key"
         );
 
         let package_node_only = r#"{
-            "toolchain": {
+            "volta": {
                 "node": "0.11.4"
             }
         }"#;
@@ -350,7 +351,7 @@ pub mod tests {
         assert_eq!(manifest_node_only.toolchain.unwrap().node, "0.11.4");
 
         let package_node_npm = r#"{
-            "toolchain": {
+            "volta": {
                 "node": "0.10.5",
                 "npm": "1.2.18"
             }
@@ -364,18 +365,18 @@ pub mod tests {
         assert_eq!(toolchain_node_npm.npm.unwrap(), "1.2.18");
 
         let package_yarn_only = r#"{
-            "toolchain": {
+            "volta": {
                 "yarn": "1.2.1"
             }
         }"#;
         let manifest_yarn_only = serde_json::de::from_str::<Manifest>(package_yarn_only);
         assert!(
             manifest_yarn_only.is_err(),
-            "Node must be defined in the 'toolchain'"
+            "Node must be defined under the 'volta' key"
         );
 
         let package_node_and_yarn = r#"{
-            "toolchain": {
+            "volta": {
                 "node": "0.10.5",
                 "npm": "1.2.18",
                 "yarn": "1.2.1"

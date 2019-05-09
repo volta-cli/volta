@@ -17,7 +17,7 @@ pub(crate) mod serial;
 
 /// A Node manifest file.
 pub struct Manifest {
-    /// The platform image specified by the `toolchain` section.
+    /// The platform image specified by the `volta` section.
     pub platform: Option<Rc<PlatformSpec>>,
     /// The `dependencies` section.
     pub dependencies: HashMap<String, String>,
@@ -85,7 +85,7 @@ impl Manifest {
             .and_then(|t| t.yarn.as_ref().map(|yarn| yarn.to_string()))
     }
 
-    /// Writes the input ToolchainManifest to package.json, adding the "toolchain" key if
+    /// Writes the input ToolchainManifest to package.json, adding the "volta" key if
     /// necessary.
     pub fn update_toolchain(
         toolchain: serial::ToolchainSpec,
@@ -105,10 +105,10 @@ impl Manifest {
             // detect indentation in package.json
             let indent = detect_indent::detect_indent(&contents);
 
-            // update the "toolchain" key
+            // update the "volta" key
             let toolchain_value = serde_json::to_value(toolchain)
                 .with_context(|_| ErrorDetails::StringifyToolchainError)?;
-            map.insert("toolchain".to_string(), toolchain_value);
+            map.insert("volta".to_string(), toolchain_value);
 
             // serialize the updated contents back to package.json
             let file = File::create(&package_file)

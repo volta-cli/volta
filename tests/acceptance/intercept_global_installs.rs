@@ -8,7 +8,7 @@ use volta_fail::ExitCode;
 
 const PACKAGE_JSON: &'static str = r#"{
     "name": "text-package",
-    "toolchain": {
+    "volta": {
         "node": "10.22.123",
         "yarn": "4.55.633"
     }

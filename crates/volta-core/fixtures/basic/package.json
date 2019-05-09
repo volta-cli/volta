@@ -11,7 +11,7 @@
     "@namespaced/something-else": "^6.3.7",
     "eslint": "~4.8.0"
   },
-  "toolchain": {
+  "volta": {
     "node": "6.11.1",
     "npm": "3.10.10",
     "yarn": "1.2.0"
