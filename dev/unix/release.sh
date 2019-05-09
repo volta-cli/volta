@@ -3,9 +3,9 @@
 # Script to build the binaries and package them up for release.
 # This should be run from the top-level directory.
 
-# get shared functions from the notion-install.sh file
+# get shared functions from the volta-install.sh file
 # TODO: do this as a relative path
-source dev/unix/notion-install.sh
+source dev/unix/volta-install.sh
 
 usage() {
   cat >&2 <<END_OF_USAGE
@@ -75,7 +75,7 @@ esac
 
 # read the current version from Cargo.toml
 cargo_toml_contents="$(<Cargo.toml)"
-NOTION_VERSION="$(parse_cargo_version "$cargo_toml_contents")"
+VOLTA_VERSION="$(parse_cargo_version "$cargo_toml_contents")"
 
 # figure out the OS details
 os="$(uname -s)"

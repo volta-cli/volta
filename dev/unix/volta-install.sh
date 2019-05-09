@@ -1,31 +1,35 @@
 #!/usr/bin/env bash
 
-# This is the bootstrap Unix installer served by `https://get.notionjs.com`.
+# This is the bootstrap Unix installer served by `https://get.volta.sh`.
 # Its responsibility is to query the system to determine what OS (and in the
-# case of Linux, what OpenSSL version) the system has, and then proceed to
-# fetch and install the appropriate build of Notion.
-
-# TODO: finish renaming all of this for the Volta rename
+# case of Linux, what OpenSSL version) the system has, fetch and install the
+# appropriate build of Volta, and modify the user's profile.
 
 # NOTE: to use an internal company repo, change how this determines the latest version
 get_latest_release() {
-  curl --silent "https://www.notionjs.com/latest-version"
+  echo "0.5.0"
+  # TODO:
+  # curl --silent "https://volta.sh/latest-version"
+}
+
+release_url() {
+  echo "https://github.com/volta-cli/volta/releases"
 }
 
 usage() {
     cat >&2 <<END_USAGE
-notion-install: The installer for Notion
+volta-install: The installer for Volta
 
 USAGE:
-    notion-install [FLAGS] [OPTIONS]
+    volta-install [FLAGS] [OPTIONS]
 
 FLAGS:
     -h, --help                  Prints help information
 
 OPTIONS:
-        --dev                   Compile and install Notion locally, using the dev target
-        --release               Compile and install Notion locally, using the release target
-        --version <version>     Install a specific release version of Notion
+        --dev                   Compile and install Volta locally, using the dev target
+        --release               Compile and install Volta locally, using the release target
+        --version <version>     Install a specific release version of Volta
 END_USAGE
 }
 
@@ -62,7 +66,7 @@ create_symlinks() {
   info 'Creating' "symlinks and shims"
   local main_shims=( node npm npx yarn )
   local shim_exec="$install_dir/shim"
-  local main_exec="$install_dir/notion"
+  local main_exec="$install_dir/volta"
 
   # remove these symlinks or binaries if they exist, so that the symlinks can be created later
   # (using -f so there is no error if the files don't exist)
@@ -132,28 +136,28 @@ build_path_str() {
     # fish uses a little different syntax to load the shell integration script, and modify the PATH
     cat <<END_FISH_SCRIPT
 
-set -gx NOTION_HOME "$profile_install_dir"
-test -s "\$NOTION_HOME/load.fish"; and source "\$NOTION_HOME/load.fish"
+set -gx VOLTA_HOME "$profile_install_dir"
+test -s "\$VOLTA_HOME/load.fish"; and source "\$VOLTA_HOME/load.fish"
 
-string match -r ".notion" "\$PATH" > /dev/null; or set -gx PATH "\$NOTION_HOME/bin" \$PATH
+string match -r ".volta" "\$PATH" > /dev/null; or set -gx PATH "\$VOLTA_HOME/bin" \$PATH
 END_FISH_SCRIPT
   else
     # bash and zsh
     cat <<END_BASH_SCRIPT
 
-export NOTION_HOME="$profile_install_dir"
-[ -s "\$NOTION_HOME/load.sh" ] && . "\$NOTION_HOME/load.sh"
+export VOLTA_HOME="$profile_install_dir"
+[ -s "\$VOLTA_HOME/load.sh" ] && . "\$VOLTA_HOME/load.sh"
 
-export PATH="\$NOTION_HOME/bin:\$PATH"
+export PATH="\$VOLTA_HOME/bin:\$PATH"
 END_BASH_SCRIPT
   fi
 }
 
-# check for issue with NOTION_HOME
+# check for issue with VOLTA_HOME
 # if it is set, and exists, but is not a directory, the install will fail
-notion_home_is_ok() {
-  if [ -n "${NOTION_HOME-}" ] && [ -e "$NOTION_HOME" ] && ! [ -d "$NOTION_HOME" ]; then
-    error "\$NOTION_HOME is set but is not a directory ($NOTION_HOME)."
+volta_home_is_ok() {
+  if [ -n "${VOLTA_HOME-}" ] && [ -e "$VOLTA_HOME" ] && ! [ -d "$VOLTA_HOME" ]; then
+    error "\$VOLTA_HOME is set but is not a directory ($VOLTA_HOME)."
     eprintf "Please check your profile scripts and environment."
     return 1
   fi
@@ -177,10 +181,10 @@ update_profile() {
     return 1
   else
     # TODO: without using grep? just bash?
-    if ! command grep -qc 'NOTION_HOME' "$detected_profile"; then
+    if ! command grep -qc 'VOLTA_HOME' "$detected_profile"; then
       command printf "$path_str" >> "$detected_profile"
     else
-      warning "Your profile ($detected_profile) already mentions Notion and has not been changed."
+      warning "Your profile ($detected_profile) already mentions Volta and has not been changed."
     fi
   fi
 }
@@ -196,13 +200,13 @@ upgrade_is_ok() {
 
   # TODO: check for downgrade? will probably have to wipe and install
 
-  local notion_bin="$install_dir/notion"
+  local volta_bin="$install_dir/volta"
 
   # TODO: don't exit, just return from this
-  if [[ -n "$install_dir" && -x "$notion_bin" ]]; then
+  if [[ -n "$install_dir" && -x "$volta_bin" ]]; then
     # Some 0.1.* builds would eagerly validate package.json even for benign commands,
     # so just to be safe we'll ignore errors and consider those to be 0.1 as well.
-    local prev_version="$( ($notion_bin --version 2>/dev/null || echo 0.1) | sed -E 's/^.*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')"
+    local prev_version="$( ($volta_bin --version 2>/dev/null || echo 0.1) | sed -E 's/^.*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')"
     if [ "$prev_version" == "$will_install_version" ]; then
       eprintf "Version $will_install_version already installed"
       return 1
@@ -210,7 +214,7 @@ upgrade_is_ok() {
     # TODO: have to do more version checks here
     if [[ "$prev_version" == 0.1* || "$prev_version" == 0.2* ]]; then
       eprintf ""
-      error "Your Notion installation is out of date and can't be automatically upgraded."
+      error "Your Volta installation is out of date and can't be automatically upgraded."
       request "       Please delete or move $install_dir and try again."
       eprintf ""
       eprintf "(We plan to implement automatic upgrades in the future. Thanks for bearing with us!)"
@@ -232,22 +236,22 @@ parse_os_info() {
 
   # TODO: need to check for version 0.1*, because those binaries are named differently
   # TODO: need to check for versions prior to the use of this script, because those will use the install.sh installer
-  # TODO: will ALSO need to check for versions prior to the final rename, becuase those use Notion
+  # TODO: will ALSO need to check for versions prior to the final rename, becuase those use Volta
   # case $(uname) in
   #   Linux)
   #     if [[ "$version" == 0.1* ]]; then
-  #       NOTION_OS=linux
+  #       VOLTA_OS=linux
   #     else
-  #       NOTION_OS="linux-openssl-$(notion_get_openssl_version)"
+  #       VOLTA_OS="linux-openssl-$(volta_get_openssl_version)"
   #     fi
-  #     NOTION_PRETTY_OS=Linux
+  #     VOLTA_PRETTY_OS=Linux
   #     ;;
   #   Darwin)
-  #     NOTION_OS=macos
-  #     NOTION_PRETTY_OS=macOS
+  #     VOLTA_OS=macos
+  #     VOLTA_PRETTY_OS=macOS
   #     ;;
   #   *)
-  #     error "The current operating system does not appear to be supported by Notion."
+  #     error "The current operating system does not appear to be supported by Volta."
   #     eprintf ""
   #     exit 1
   # esac
@@ -337,7 +341,7 @@ parse_openssl_version() {
 create_tree() {
   local install_dir="$1"
 
-  # .notion/
+  # .volta/
   #     bin/
   #     cache/
   #         node/
@@ -368,26 +372,26 @@ install_version() {
   local version_to_install="$1"
   local install_dir="$2"
 
-  if ! notion_home_is_ok; then
+  if ! volta_home_is_ok; then
     exit 1
   fi
 
   case "$version_to_install" in
     latest)
-      info 'Installing' "latest version of Notion"
+      info 'Installing' "latest version of Volta"
       install_release "$(get_latest_release)" "$install_dir"
       ;;
     local-dev)
-      info 'Installing' "Notion locally after compiling"
+      info 'Installing' "Volta locally after compiling"
       install_local "dev" "$install_dir"
       ;;
     local-release)
-      info 'Installing' "Notion locally after compiling with '--release'"
+      info 'Installing' "Volta locally after compiling with '--release'"
       install_local "release" "$install_dir"
       ;;
     *)
       # assume anything else is a specific version
-      info 'Installing' "Notion version $version_to_install"
+      info 'Installing' "Volta version $version_to_install"
       install_release "$version_to_install" "$install_dir"
       ;;
   esac
@@ -396,7 +400,7 @@ install_version() {
   then
     create_symlinks "$install_dir" &&
       update_profile "$install_dir" &&
-      info "Finished" 'installation. Open a new terminal to start using Notion!'
+      info "Finished" 'installation. Open a new terminal to start using Volta!'
   fi
 }
 
@@ -404,14 +408,14 @@ install_release() {
   local version="$1"
   local install_dir="$2"
 
-  info 'Checking' "for existing Notion installation"
+  info 'Checking' "for existing Volta installation"
   if upgrade_is_ok "$version" "$install_dir"
   then
     download_archive="$(download_release "$version"; exit "$?")"
     exit_status="$?"
     if [ "$exit_status" != 0 ]
     then
-      error "Could not download Notion version '$version'. See https://github.com/notion-cli/notion/releases for a list of available releases"
+      error "Could not download Volta version '$version'. See $(release_url) for a list of available releases"
       return "$exit_status"
     fi
 
@@ -424,7 +428,7 @@ install_local() {
   local install_dir="$2"
 
   # TODO: there's no version available here?
-  info 'Checking' "for existing Notion installation"
+  info 'Checking' "for existing Volta installation"
   if upgrade_is_ok "$version" "$install_dir"
   then
     # compile and package the binaries, then install from that local archive
@@ -439,7 +443,7 @@ compile_and_package() {
   # TODO: parse the output to get the archive file name
   dev/unix/release.sh "--$dev_or_release"
   # TODO: check exit status
-  echo "target/release/notion-0.3.0-macos.tar.gz"
+  echo "target/release/volta-0.4.0-macos.tar.gz"
 }
 
 download_release() {
@@ -457,9 +461,9 @@ download_release() {
 
   # store the downloaded archive in a temporary directory
   local download_dir="$(mktemp -d)"
-  local filename="notion-$version-$os_info.tar.gz"
+  local filename="volta-$version-$os_info.tar.gz"
   local download_file="$download_dir/$filename"
-  local archive_url="https://github.com/notion-cli/notion/releases/download/v$version/$filename"
+  local archive_url="$(release_url)/download/v$version/$filename"
 
   curl --progress-bar --show-error --location --fail "$archive_url" --output "$download_file" && echo "$download_file"
 }
@@ -471,7 +475,7 @@ install_from_file() {
   info 'Creating' "directory layout"
   create_tree "$extract_to"
 
-  info 'Extracting' "Notion binaries and launchers"
+  info 'Extracting' "Volta binaries and launchers"
   # extract the files to the specified directory
   tar -xzvf "$archive" -C "$extract_to"
 }
@@ -483,8 +487,8 @@ return 0 2>/dev/null
 # default to installing the latest available version
 version_to_install="latest"
 
-# install to NOTION_HOME, defaulting to ~/.notion
-install_dir="${NOTION_HOME:-"$HOME/.notion"}"
+# install to VOLTA_HOME, defaulting to ~/.volta
+install_dir="${VOLTA_HOME:-"$HOME/.volta"}"
 
 # parse command line options
 while [ $# -gt 0 ]
