@@ -103,63 +103,58 @@ volta_try_profile() {
   echo "${1}"
 }
 
+# If file exists, echo it
+echo_fexists() {
+  [ -f "$1" ] && echo "$1"
+}
+
 volta_detect_profile() {
   if [ -n "${PROFILE}" ] && [ -f "${PROFILE}" ]; then
     echo "${PROFILE}"
     return
   fi
 
-  local DETECTED_PROFILE
-  DETECTED_PROFILE=''
-  local SHELLTYPE
-  SHELLTYPE="$(basename "/$SHELL")"
-
-  case $SHELLTYPE in
+  # try to detect the current shell
+  case "$(basename "/$SHELL")" in
     bash)
+      # Shells on macOS default to opening with a login shell, while Linuxes
+      # default to a *non*-login shell, so if this is macOS we look for
+      # `.bash_profile` first; if it's Linux, we look for `.bashrc` first. The
+      # `*` fallthrough covers more than just Linux: it's everything that is not
+      # macOS (Darwin). It can be made narrower later if need be.
       case $(uname) in
-        # Shells on macOS default to opening with a login shell, while Linuxes
-        # default to a *non*-login shell, so if this is macOS we look for
-        # `.bash_profile` first; if it's Linux, we look for `.bashrc` first.
         Darwin)
-          if [ -f "$HOME/.bash_profile" ]; then
-            DETECTED_PROFILE="$HOME/.bash_profile"
-          elif [ -f "$HOME/.bashrc" ]; then
-            DETECTED_PROFILE="$HOME/.bashrc"
-          fi
+          echo_fexists "$HOME/.bash_profile" || echo_fexists "$HOME/.bashrc"
           ;;
-        # Technically, this covers more than just Linux: it's everything that is
-        # not macOS (Darwin). It can be made narrower later if need be.
         *)
-          if [ -f "$HOME/.bashrc" ]; then
-            DETECTED_PROFILE="$HOME/.bashrc"
-          elif [ -f "$HOME/.bash_profile" ]; then
-            DETECTED_PROFILE="$HOME/.bash_profile"
-          fi
+          echo_fexists "$HOME/.bashrc" || echo_fexists "$HOME/.bash_profile"
           ;;
       esac
       ;;
     zsh)
-      DETECTED_PROFILE="$HOME/.zshrc"
+      echo "$HOME/.zshrc"
       ;;
     fish)
-      DETECTED_PROFILE="$HOME/.config/fish/config.fish"
+      echo "$HOME/.config/fish/config.fish"
       ;;
     *)
+      # Fall back to checking for profile file existence. Once again, the order
+      # differs between macOS and everything else.
+      local profiles
+      case $(uname) in
+        Darwin)
+          profiles=( .profile .bash_profile .bashrc .zshrc .config/fish/config.fish )
+          ;;
+        *)
+          profiles=( .profile .bashrc .bash_profile .zshrc .config/fish/config.fish )
+          ;;
+      esac
+
+      for profile in "${profiles[@]}"; do
+        echo_fexists "$HOME/$profile" && break
+      done
       ;;
   esac
-
-  if [ -z "$DETECTED_PROFILE" ]; then
-    for EACH_PROFILE in ".profile" ".bashrc" ".bash_profile" ".zshrc" ".config/fish/config.fish"
-    do
-      if DETECTED_PROFILE="$(volta_try_profile "${HOME}/${EACH_PROFILE}")"; then
-        break
-      fi
-    done
-  fi
-
-  if [ -n "$DETECTED_PROFILE" ]; then
-    echo "$DETECTED_PROFILE"
-  fi
 }
 
 volta_build_path_str() {
