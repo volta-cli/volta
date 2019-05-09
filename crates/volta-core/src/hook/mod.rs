@@ -15,8 +15,7 @@ use crate::distro::yarn::YarnDistro;
 use crate::distro::Distro;
 use crate::error::ErrorDetails;
 use crate::fs::touch;
-use crate::path::user_hooks_file;
-use crate::project::is_project_root;
+use crate::path::{project_for_dir, user_hooks_file};
 use readext::ReadExt;
 use volta_fail::{Fallible, ResultExt, VoltaError};
 
@@ -107,28 +106,23 @@ impl HookConfig {
     /// specified directory is not itself a project, its ancestors will be
     /// searched.
     fn for_dir(base_dir: &Path) -> Fallible<Option<Self>> {
-        let mut dir = base_dir.clone();
-        while !is_project_root(dir) {
-            dir = match dir.parent() {
-                Some(parent) => parent,
-                None => {
+        match project_for_dir(base_dir) {
+            Some(dir) => {
+                let path = dir.join("hooks.toml");
+
+                if !path.is_file() {
                     return Ok(None);
                 }
+
+                let src = File::open(&path)
+                    .and_then(|mut file| file.read_into_string())
+                    .with_context(|_| ErrorDetails::ReadHooksError {
+                        file: path.to_string_lossy().to_string(),
+                    })?;
+                src.parse().map(|hooks| Some(hooks))
             }
+            None => Ok(None),
         }
-
-        let path = dir.join("hooks.toml");
-
-        if !path.is_file() {
-            return Ok(None);
-        }
-
-        let src = File::open(&path)
-            .and_then(|mut file| file.read_into_string())
-            .with_context(|_| ErrorDetails::ReadHooksError {
-                file: path.to_string_lossy().to_string(),
-            })?;
-        src.parse().map(|hooks| Some(hooks))
     }
 
     /// Returns the per-user hooks, loaded from the filesystem.
@@ -380,7 +374,7 @@ pub mod tests {
     }
 
     #[test]
-    fn test_for_dir_works() {
+    fn test_for_dir() {
         let project_dir = fixture_path("hooks/project");
         let hooks = HookConfig::for_dir(&project_dir)
             .expect("Could not read project hooks.toml")
@@ -412,39 +406,7 @@ pub mod tests {
     }
 
     #[test]
-    fn test_for_dir_ascends() {
-        let project_dir = fixture_path("hooks/project/subdir");
-        let hooks = HookConfig::for_dir(&project_dir)
-            .expect("Could not read project hooks.toml")
-            .expect("Could not find project hooks.toml");
-        let node = hooks.node.unwrap();
-
-        assert_eq!(
-            node.distro,
-            Some(tool::DistroHook::Bin(
-                "/some/bin/for/node/distro".to_string()
-            ))
-        );
-        assert_eq!(
-            node.latest,
-            Some(tool::MetadataHook::Bin(
-                "/some/bin/for/node/latest".to_string()
-            ))
-        );
-        assert_eq!(
-            node.index,
-            Some(tool::MetadataHook::Bin(
-                "/some/bin/for/node/index".to_string()
-            ))
-        );
-        assert_eq!(
-            hooks.events.unwrap().publish,
-            Some(Publish::Bin("/events/bin".to_string()))
-        );
-    }
-
-    #[test]
-    fn test_merge_works() {
+    fn test_merge() {
         let fixture_dir = fixture_path("hooks");
         let user_hooks: HookConfig = fs::read_to_string(fixture_dir.join("templates.toml"))
             .expect("Chould not read templates.toml")

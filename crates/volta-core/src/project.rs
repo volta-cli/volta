@@ -17,22 +17,6 @@ use crate::path;
 use crate::platform::PlatformSpec;
 use volta_fail::{throw, Fallible, ResultExt};
 
-fn is_node_root(dir: &Path) -> bool {
-    dir.join("package.json").is_file()
-}
-
-fn is_node_modules(dir: &Path) -> bool {
-    dir.file_name() == Some(OsStr::new("node_modules"))
-}
-
-fn is_dependency(dir: &Path) -> bool {
-    dir.parent().map_or(false, |parent| is_node_modules(parent))
-}
-
-pub fn is_project_root(dir: &Path) -> bool {
-    is_node_root(dir) && !is_dependency(dir)
-}
-
 /// A lazily loaded Project
 pub struct LazyProject {
     project: LazyCell<Option<Rc<Project>>>,
@@ -70,20 +54,13 @@ impl Project {
 
     /// Returns the Node project for the input directory, if any.
     fn for_dir(base_dir: &Path) -> Fallible<Option<Rc<Project>>> {
-        let mut dir = base_dir.clone();
-        while !is_project_root(dir) {
-            dir = match dir.parent() {
-                Some(parent) => parent,
-                None => {
-                    return Ok(None);
-                }
-            }
+        match path::project_for_dir(base_dir) {
+            Some(dir) => Ok(Some(Rc::new(Project {
+                manifest: Manifest::for_dir(&dir)?,
+                project_root: PathBuf::from(dir),
+            }))),
+            None => Ok(None),
         }
-
-        Ok(Some(Rc::new(Project {
-            manifest: Manifest::for_dir(&dir)?,
-            project_root: PathBuf::from(dir),
-        })))
     }
 
     /// Returns the pinned platform image, if any.

@@ -2,6 +2,7 @@
 //! in a standard Volta layout.
 
 use std::env;
+use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -211,10 +212,50 @@ pub fn package_archive_root_dir_name(name: &str, version: &str) -> String {
     format!("{}-{}", name, version)
 }
 
+fn is_node_root(dir: &Path) -> bool {
+    dir.join("package.json").is_file()
+}
+
+fn is_node_modules(dir: &Path) -> bool {
+    dir.file_name() == Some(OsStr::new("node_modules"))
+}
+
+fn is_dependency(dir: &Path) -> bool {
+    dir.parent().map_or(false, |parent| is_node_modules(parent))
+}
+
+fn is_project_root(dir: &Path) -> bool {
+    is_node_root(dir) && !is_dependency(dir)
+}
+
+pub fn project_for_dir(base_dir: &Path) -> Option<&Path> {
+    let mut dir = base_dir.clone();
+    while !is_project_root(dir) {
+        dir = match dir.parent() {
+            Some(parent) => parent,
+            None => {
+                return None;
+            }
+        }
+    }
+
+    Some(dir)
+}
+
 #[cfg(test)]
 pub mod tests {
-
     use super::*;
+
+    fn fixture_path(fixture_dirs: &[&str]) -> PathBuf {
+        let mut cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        cargo_manifest_dir.push("fixtures");
+
+        for fixture_dir in fixture_dirs.iter() {
+            cargo_manifest_dir.push(fixture_dir);
+        }
+
+        cargo_manifest_dir
+    }
 
     #[test]
     fn test_node_distro_file_name() {
@@ -243,5 +284,29 @@ pub mod tests {
             yarn_archive_root_dir_name("1.2.3"),
             "yarn-v1.2.3".to_string()
         );
+    }
+
+    #[test]
+    fn test_project_for_dir_direct() {
+        let base_dir = fixture_path(&["basic"]);
+        let project_dir = project_for_dir(&base_dir).expect("Failed to find project directory");
+
+        assert_eq!(project_dir, base_dir);
+    }
+
+    #[test]
+    fn test_project_for_dir_ancestor() {
+        let base_dir = fixture_path(&["basic", "subdir"]);
+        let project_dir = project_for_dir(&base_dir).expect("Failed to find project directory");
+
+        assert_eq!(project_dir, fixture_path(&["basic"]));
+    }
+
+    #[test]
+    fn test_project_for_dir_dependency() {
+        let base_dir = fixture_path(&["basic", "node_modules", "eslint"]);
+        let project_dir = project_for_dir(&base_dir).expect("Failed to find project directory");
+
+        assert_eq!(project_dir, fixture_path(&["basic"]));
     }
 }
