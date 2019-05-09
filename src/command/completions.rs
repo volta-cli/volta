@@ -1,5 +1,4 @@
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
+use std::path::PathBuf;
 
 use structopt::{clap::Shell, StructOpt};
 
@@ -7,7 +6,7 @@ use volta_core::{
     error::ErrorDetails,
     session::{ActivityKind, Session},
 };
-use volta_fail::{throw, ExitCode, Fallible};
+use volta_fail::{throw, ExitCode, Fallible, ResultExt};
 
 use crate::command::Command;
 
@@ -15,53 +14,40 @@ use crate::command::Command;
 pub(crate) struct Completions {
     /// Shell to generate completions for
     #[structopt(
-        short = "s",
-        long = "shell",
+        takes_value = true,
+        index = 1,
         raw(possible_values = "&Shell::variants()"),
         case_insensitive = true
     )]
-    shell: Option<Shell>,
+    shell: Shell,
 
-    /// Directory to write generated completions to
-    #[structopt(short = "o", long = "out-dir")]
-    out_dir: Option<PathBuf>,
+    /// File to write generated completions to
+    #[structopt(short = "o", long = "output")]
+    out_file: Option<PathBuf>,
+
+    /// Write over an existing file, if any.
+    #[structopt(short = "f", long = "force")]
+    force: bool,
 }
 
 impl Command for Completions {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Completions);
 
-        // If the user passed a shell, we'll use that; otherwise, we'll try to
-        // generate completions for their current shell. This *should* always
-        // work, but if for some reason `SHELL` is unset, we handle it nicely
-        // and they'll get a reasonably nice error.
-        let shell = self.shell.unwrap_or(
-            std::env::var_os("SHELL")
-                .ok_or(ErrorDetails::UnspecifiedShell)
-                .and_then(|s| {
-                    Path::new(&s)
-                        .components()
-                        .last()
-                        .ok_or(ErrorDetails::UnspecifiedShell)
-                        .map(|component| component.as_os_str().to_string_lossy().into_owned())
-                })
-                .and_then(|shell| {
-                    Shell::from_str(&shell)
-                        .map_err(|_| ErrorDetails::UnrecognizedShell { name: shell })
-                })?,
-        );
-
         let mut app = crate::cli::Volta::clap();
-        match self.out_dir {
+        match self.out_file {
             Some(path) => {
-                if path.is_dir() {
-                    app.gen_completions("volta", shell, path);
-                } else {
-                    throw!(ErrorDetails::CompletionsOutDirError)
+                if path.is_file() && !self.force {
+                    throw!(ErrorDetails::CompletionsOutFileError { path })
                 }
+
+                let mut file = &std::fs::File::create(&path)
+                    .with_context(|_| ErrorDetails::CompletionsOutFileError { path })?;
+
+                app.gen_completions_to("volta", self.shell, &mut file);
             }
-            None => app.gen_completions_to("volta", shell, &mut std::io::stdout()),
-        }
+            None => app.gen_completions_to("volta", self.shell, &mut std::io::stdout()),
+        };
 
         session.add_event_end(ActivityKind::Completions, ExitCode::Success);
         Ok(ExitCode::Success)

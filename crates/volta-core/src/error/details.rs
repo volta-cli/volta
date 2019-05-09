@@ -1,4 +1,5 @@
 use std::fmt;
+use std::path::PathBuf;
 
 use failure::Fail;
 use textwrap::{fill, indent};
@@ -41,7 +42,9 @@ pub enum ErrorDetails {
     },
 
     /// Thrown when the Completions out-dir is not a directory
-    CompletionsOutDirError,
+    CompletionsOutFileError {
+        path: PathBuf,
+    },
 
     /// Thrown when the containing directory could not be determined
     ContainingDirError {
@@ -467,11 +470,12 @@ Please ensure your PATH is valid."
 Use `npm install` or `yarn add` to select a version of {} for this project.",
                 package
             ),
-            ErrorDetails::CompletionsOutDirError => write!(
+            ErrorDetails::CompletionsOutFileError { path } => write!(
                 f,
-                "out-dir must be a directory.
+                "Completions file `{}` already exists.
 
-Please ensure the directory exists and that you have correct permissions."
+Please remove the file or pass `-f` or `--force` to override.",
+                path.to_string_lossy()
             ),
             ErrorDetails::ContainingDirError { path } => write!(
                 f,
@@ -1139,7 +1143,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::BinaryNotFound { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::BuildPathError => ExitCode::EnvironmentError,
             ErrorDetails::CannotPinPackage { .. } => ExitCode::InvalidArguments,
-            ErrorDetails::CompletionsOutDirError => ExitCode::InvalidArguments,
+            ErrorDetails::CompletionsOutFileError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::ContainingDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::CouldNotDetermineTool => ExitCode::UnknownError,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
