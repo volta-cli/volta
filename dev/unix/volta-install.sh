@@ -189,6 +189,23 @@ update_profile() {
   fi
 }
 
+legacy_dir() {
+  echo "${NOTION_HOME:-"$HOME/.notion"}"
+}
+
+# Check for a legacy installation from when the tool was named Notion.
+no_legacy_install() {
+  if [ -d "$(legacy_dir)" ]; then
+    eprintf ""
+    error "You have existing Notion install, which can't be automatically upgraded to Volta."
+    request "       Please delete $(legacy_dir) and try again."
+    eprintf ""
+    eprintf "(We plan to implement automatic upgrades in the future. Thanks for bearing with us!)"
+    eprintf ""
+    return 1
+  fi
+  return 0
+}
 
 # TODO: change description once this is finalized
 # Check for an existing installation that needs to be removed.
@@ -401,6 +418,13 @@ install_version() {
     create_symlinks "$install_dir" &&
       update_profile "$install_dir" &&
       info "Finished" 'installation. Open a new terminal to start using Volta!'
+
+    if command grep -qc 'NOTION_HOME' "$VOLTA_PROFILE"; then
+      eprintf ''
+      warning "Your profile ($VOLTA_PROFILE) mentions Notion."
+      eprintf "         You probably want to remove that."
+      eprintf ''
+    fi
   fi
 }
 
@@ -409,7 +433,7 @@ install_release() {
   local install_dir="$2"
 
   info 'Checking' "for existing Volta installation"
-  if upgrade_is_ok "$version" "$install_dir"
+  if no_legacy_install && upgrade_is_ok "$version" "$install_dir"
   then
     download_archive="$(download_release "$version"; exit "$?")"
     exit_status="$?"
