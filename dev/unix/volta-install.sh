@@ -93,20 +93,34 @@ create_symlinks() {
   chmod 755 "$shim_exec" "$main_exec"
 }
 
+# If file exists, echo it
+echo_fexists() {
+  [ -f "$1" ] && echo "$1"
+}
+
 detect_profile() {
   if [ -f "$PROFILE" ]; then
     echo "$PROFILE"
     return
   fi
 
+  # TODO: I think basename and uname will need to be args, so I can test this beast
   # try to detect the current shell
   case "$(basename "/$SHELL")" in
     bash)
-      if [ -f "$HOME/.bashrc" ]; then
-        echo "$HOME/.bashrc"
-      elif [ -f "$HOME/.bash_profile" ]; then
-        echo "$HOME/.bash_profile"
-      fi
+      # Shells on macOS default to opening with a login shell, while Linuxes
+      # default to a *non*-login shell, so if this is macOS we look for
+      # `.bash_profile` first; if it's Linux, we look for `.bashrc` first. The
+      # `*` fallthrough covers more than just Linux: it's everything that is not
+      # macOS (Darwin). It can be made narrower later if need be.
+      case $(uname) in
+        Darwin)
+          echo_fexists "$HOME/.bash_profile" || echo_fexists "$HOME/.bashrc"
+        ;;
+        *)
+          echo_fexists "$HOME/.bashrc" || echo_fexists "$HOME/.bash_profile"
+        ;;
+      esac
       ;;
     zsh)
       echo "$HOME/.zshrc"
@@ -115,13 +129,20 @@ detect_profile() {
       echo "$HOME/.config/fish/config.fish"
       ;;
     *)
-      # fall back to checking for profile file existence
-      local profiles=( .profile .bashrc .bash_profile .zshrc .config/fish/config.fish )
+      # Fall back to checking for profile file existence. Once again, the order
+      # differs between macOS and everything else.
+      local profiles
+      case $(uname) in
+        Darwin)
+          profiles=( .profile .bash_profile .bashrc .zshrc .config/fish/config.fish )
+          ;;
+        *)
+          profiles=( .profile .bashrc .bash_profile .zshrc .config/fish/config.fish )
+          ;;
+      esac
+
       for profile in "${profiles[@]}"; do
-        if [ -f "$HOME/$profile" ]; then
-          echo "$HOME/$profile"
-          break
-        fi
+        echo_fexists "$HOME/$profile" && break
       done
       ;;
   esac
@@ -167,10 +188,10 @@ volta_home_is_ok() {
 update_profile() {
   local install_dir="$1"
 
-  info 'Editing' "user profile"
   local profile_install_dir=$(echo "$install_dir" | sed "s:^$HOME:\$HOME:")
   local detected_profile="$(detect_profile)"
   local path_str="$(build_path_str "$detected_profile" "$profile_install_dir")"
+  info 'Editing' "user profile ($detected_profile)"
 
   if [ -z "${detected_profile-}" ] ; then
     error "No user profile found."
