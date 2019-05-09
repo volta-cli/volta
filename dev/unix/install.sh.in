@@ -114,30 +114,39 @@ volta_detect_profile() {
   local SHELLTYPE
   SHELLTYPE="$(basename "/$SHELL")"
 
-  if [ "$SHELLTYPE" = "bash" ]; then
-    local OS
-    OS="$(uname)"
-    # Shells on macOS default to opening with a login shell, while Linuxes
-    # default to a *non*-login shell, so if this is macOS we look for
-    # `.bash_profile` first; if it's Linux, we look for `.bashrc` first.
-    if [ "$OS" = "Darwin" ]; then
-      if [ -f "$HOME/.bash_profile" ]; then
-        DETECTED_PROFILE="$HOME/.bash_profile"
-      elif [ -f "$HOME/.bashrc" ]; then
-        DETECTED_PROFILE="$HOME/.bashrc"
-      fi
-    elif [ "$OS" = "Linux" ]; then
-      if [ -f "$HOME/.bashrc" ]; then
-        DETECTED_PROFILE="$HOME/.bashrc"
-      elif [ -f "$HOME/.bash_profile" ]; then
-        DETECTED_PROFILE="$HOME/.bash_profile"
-      fi
-    fi
-  elif [ "$SHELLTYPE" = "zsh" ]; then
-    DETECTED_PROFILE="$HOME/.zshrc"
-  elif [ "$SHELLTYPE" = "fish" ]; then
-    DETECTED_PROFILE="$HOME/.config/fish/config.fish"
-  fi
+  case $SHELLTYPE in
+    bash)
+      case $(uname) in
+        # Shells on macOS default to opening with a login shell, while Linuxes
+        # default to a *non*-login shell, so if this is macOS we look for
+        # `.bash_profile` first; if it's Linux, we look for `.bashrc` first.
+        Darwin)
+          if [ -f "$HOME/.bash_profile" ]; then
+            DETECTED_PROFILE="$HOME/.bash_profile"
+          elif [ -f "$HOME/.bashrc" ]; then
+            DETECTED_PROFILE="$HOME/.bashrc"
+          fi
+          ;;
+        # Technically, this covers more than just Linux: it's everything that is
+        # not macOS (Darwin). It can be made narrower later if need be.
+        *)
+          if [ -f "$HOME/.bashrc" ]; then
+            DETECTED_PROFILE="$HOME/.bashrc"
+          elif [ -f "$HOME/.bash_profile" ]; then
+            DETECTED_PROFILE="$HOME/.bash_profile"
+          fi
+          ;;
+      esac
+      ;;
+    zsh)
+      DETECTED_PROFILE="$HOME/.zshrc"
+      ;;
+    fish)
+      DETECTED_PROFILE="$HOME/.config/fish/config.fish"
+      ;;
+    *)
+      ;;
+  esac
 
   if [ -z "$DETECTED_PROFILE" ]; then
     for EACH_PROFILE in ".profile" ".bashrc" ".bash_profile" ".zshrc" ".config/fish/config.fish"
