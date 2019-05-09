@@ -115,10 +115,23 @@ volta_detect_profile() {
   SHELLTYPE="$(basename "/$SHELL")"
 
   if [ "$SHELLTYPE" = "bash" ]; then
-    if [ -f "$HOME/.bashrc" ]; then
-      DETECTED_PROFILE="$HOME/.bashrc"
-    elif [ -f "$HOME/.bash_profile" ]; then
-      DETECTED_PROFILE="$HOME/.bash_profile"
+    local OS
+    OS="$(uname)"
+    # Shells on macOS default to opening with a login shell, while Linuxes
+    # default to a *non*-login shell, so if this is macOS we look for
+    # `.bash_profile` first; if it's Linux, we look for `.bashrc` first.
+    if [ "$OS" = "Darwin" ]; then
+      if [ -f "$HOME/.bash_profile" ]; then
+        DETECTED_PROFILE="$HOME/.bash_profile"
+      elif [ -f "$HOME/.bashrc" ]; then
+        DETECTED_PROFILE="$HOME/.bashrc"
+      fi
+    elif [ "$OS" = "Linux" ]; then
+      if [ -f "$HOME/.bashrc" ]; then
+        DETECTED_PROFILE="$HOME/.bashrc"
+      elif [ -f "$HOME/.bash_profile" ]; then
+        DETECTED_PROFILE="$HOME/.bash_profile"
+      fi
     fi
   elif [ "$SHELLTYPE" = "zsh" ]; then
     DETECTED_PROFILE="$HOME/.zshrc"
