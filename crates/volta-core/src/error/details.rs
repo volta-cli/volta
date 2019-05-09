@@ -711,10 +711,9 @@ Use `volta pin node` to pin Node first, then pin a Yarn version."
             ),
             ErrorDetails::NoPlatform => write!(
                 f,
-                "Could not determine Node version.
+                "Node is not available.
 
-Use `volta pin node` to select a version for a project.
-Use `volta install node` to select a default version."
+To run any Node command, first set a default version using `volta install node`"
             ),
             ErrorDetails::NoProjectYarn => write!(
                 f,
