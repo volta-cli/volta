@@ -209,9 +209,10 @@ volta_install() {
   volta_info 'Unpacking' "\`volta\` executable and shims"
   volta_create_binaries
 
-  volta_info 'Editing' "user profile"
   local VOLTA_PROFILE
   VOLTA_PROFILE="$(volta_detect_profile)"
+  volta_info 'Editing' "user profile ($VOLTA_PROFILE)"
+
   local PROFILE_INSTALL_DIR
   PROFILE_INSTALL_DIR=$(volta_install_dir | sed "s:^$HOME:\$HOME:")
   local PATH_STR
