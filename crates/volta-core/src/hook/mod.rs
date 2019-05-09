@@ -76,21 +76,9 @@ impl<D: Distro> ToolHooks<D> {
     /// Creates a merged struct, with "right" having precedence over "left".
     fn merge(left: Self, right: Self) -> Self {
         Self {
-            distro: if let Some(_) = right.distro {
-                right.distro
-            } else {
-                left.distro
-            },
-            latest: if let Some(_) = right.latest {
-                right.latest
-            } else {
-                left.latest
-            },
-            index: if let Some(_) = right.index {
-                right.index
-            } else {
-                left.index
-            },
+            distro: right.distro.or(left.distro),
+            latest: right.latest.or(left.latest),
+            index: right.index.or(left.index),
             phantom: PhantomData,
         }
     }
@@ -157,41 +145,29 @@ impl HookConfig {
     /// Creates a merged struct, with "right" having precedence over "left".
     fn merge(left: Self, right: Self) -> Self {
         Self {
-            node: if let Some(left_node) = left.node {
-                Some(if let Some(right_node) = right.node {
-                    ToolHooks::merge(left_node, right_node)
-                } else {
-                    left_node
-                })
-            } else {
-                right.node
+            node: match (left.node, right.node) {
+                (Some(left), Some(right)) => Some(ToolHooks::merge(left, right)),
+                (Some(left), None) => Some(left),
+                (None, Some(right)) => Some(right),
+                (None, None) => None,
             },
-            yarn: if let Some(left_yarn) = left.yarn {
-                Some(if let Some(right_yarn) = right.yarn {
-                    ToolHooks::merge(left_yarn, right_yarn)
-                } else {
-                    left_yarn
-                })
-            } else {
-                right.yarn
+            yarn: match (left.yarn, right.yarn) {
+                (Some(left), Some(right)) => Some(ToolHooks::merge(left, right)),
+                (Some(left), None) => Some(left),
+                (None, Some(right)) => Some(right),
+                (None, None) => None,
             },
-            package: if let Some(left_package) = left.package {
-                Some(if let Some(right_package) = right.package {
-                    ToolHooks::merge(left_package, right_package)
-                } else {
-                    left_package
-                })
-            } else {
-                right.package
+            package: match (left.package, right.package) {
+                (Some(left), Some(right)) => Some(ToolHooks::merge(left, right)),
+                (Some(left), None) => Some(left),
+                (None, Some(right)) => Some(right),
+                (None, None) => None,
             },
-            events: if let Some(left_events) = left.events {
-                Some(if let Some(right_events) = right.events {
-                    EventHooks::merge(left_events, right_events)
-                } else {
-                    left_events
-                })
-            } else {
-                right.events
+            events: match (left.events, right.events) {
+                (Some(left), Some(right)) => Some(EventHooks::merge(left, right)),
+                (Some(left), None) => Some(left),
+                (None, Some(right)) => Some(right),
+                (None, None) => None,
             },
         }
     }
@@ -217,11 +193,7 @@ impl EventHooks {
     /// Creates a merged struct, with "right" having precedence over "left".
     fn merge(left: Self, right: Self) -> Self {
         Self {
-            publish: if let Some(_) = right.publish {
-                right.publish
-            } else {
-                left.publish
-            },
+            publish: right.publish.or(left.publish),
         }
     }
 }
