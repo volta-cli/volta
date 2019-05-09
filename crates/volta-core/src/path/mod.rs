@@ -140,7 +140,7 @@ pub fn shim_dir() -> Fallible<PathBuf> {
 }
 
 pub fn user_hooks_file() -> Fallible<PathBuf> {
-    Ok(volta_home()?.join("hooks.toml"))
+    Ok(volta_home()?.join("hooks.json"))
 }
 
 pub fn tools_dir() -> Fallible<PathBuf> {

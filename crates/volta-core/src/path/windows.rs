@@ -76,12 +76,12 @@ cfg_if! {
 //                 packages\                               user_package_dir
 //                     ember-cli.json                      user_package_config_file("ember-cli")
 //                 platform.json                           user_platform_file
-//         hooks.toml                                      user_hooks_file
+//         hooks.json                                      user_hooks_file
 //
 // C:\Program Files\
 //     Volta\                                             (Path stored in Windows Registry by installer)
 //         bin\
-//             volta.exe                                  volta_file
+//             volta.exe                                   volta_file
 //             node.exe                                    copy of shim_executable
 //             npm.exe                                     copy of shim_executable
 //             npx.exe                                     copy of shim_executable

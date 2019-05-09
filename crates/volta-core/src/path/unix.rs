@@ -80,9 +80,9 @@ cfg_if::cfg_if! {
 //                 packages/                               user_package_dir
 //                     ember-cli.json                      user_package_config_file("ember-cli")
 //                 platform.json                           user_platform_file
-//         volta                                          volta_file
+//         volta                                           volta_file
 //         shim                                            shim_executable
-//         hooks.toml                                      user_hooks_file
+//         hooks.json                                      user_hooks_file
 
 pub fn default_volta_home() -> Fallible<PathBuf> {
     let home = dirs::home_dir().ok_or(ErrorDetails::NoHomeEnvironmentVar)?;

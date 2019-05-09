@@ -232,8 +232,10 @@ pub enum ErrorDetails {
     /// Thrown when unable to parse a bin config file
     ParseBinConfigError,
 
-    /// Thrown when unable to parse the hooks.toml file
-    ParseHooksError,
+    /// Thrown when unable to parse a hooks.json file
+    ParseHooksError {
+        file: String,
+    },
 
     /// Thrown when unable to parse the node index cache
     ParseNodeIndexCacheError,
@@ -286,7 +288,7 @@ pub enum ErrorDetails {
         file: String,
     },
 
-    /// Thrown when there was an error opening the hooks.toml file
+    /// Thrown when there was an error opening a hooks.json file
     ReadHooksError {
         file: String,
     },
@@ -816,11 +818,14 @@ Please ensure you have correct permissions.",
 {}",
                 REPORT_BUG_CTA
             ),
-            ErrorDetails::ParseHooksError => write!(
+            ErrorDetails::ParseHooksError { file } => write!(
                 f,
-                "Could not parse hooks.toml configuration file.
+                "Could not parse configuration file.
 
-Please ensure the file is correctly formatted."
+{}
+
+Please ensure the file is correctly formatted.",
+                file
             ),
             ErrorDetails::ParseNodeIndexCacheError => write!(
                 f,
@@ -1195,7 +1200,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::PackageVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::PackageWriteError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ParseBinConfigError => ExitCode::UnknownError,
-            ErrorDetails::ParseHooksError => ExitCode::ConfigurationError,
+            ErrorDetails::ParseHooksError { .. } => ExitCode::ConfigurationError,
             ErrorDetails::ParseToolSpecError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::ParseNodeIndexCacheError => ExitCode::UnknownError,
             ErrorDetails::ParseNodeIndexError { .. } => ExitCode::NetworkError,

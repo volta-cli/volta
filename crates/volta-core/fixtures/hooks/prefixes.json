@@ -1,0 +1,24 @@
+{
+  "node": {
+    "distro": {
+      "prefix": "http://localhost/node/distro/"
+    },
+    "latest": {
+      "prefix": "http://localhost/node/latest/"
+    },
+    "index": {
+      "prefix": "http://localhost/node/index/"
+    }
+  },
+  "yarn": {
+    "distro": {
+      "prefix": "http://localhost/yarn/distro/"
+    },
+    "latest": {
+      "prefix": "http://localhost/yarn/latest/"
+    },
+    "index": {
+      "prefix": "http://localhost/yarn/index/"
+    }
+  }
+}
