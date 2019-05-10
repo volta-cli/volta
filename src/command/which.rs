@@ -37,7 +37,7 @@ impl Command for Which {
                 });
 
         let tool_path = match (user_tool, project_bin_path) {
-            (Some(_), Some(project_path)) => Some(project_path),
+            (Some(_), Some(project_bin_dir)) => Some(project_bin_dir.join(&bin)),
             (Some(tool), _) => Some(tool.bin_path),
             _ => None,
         };
