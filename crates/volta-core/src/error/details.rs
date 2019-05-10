@@ -27,6 +27,7 @@ pub enum ErrorDetails {
         new_package: String,
     },
 
+    /// Thrown when executing an external binary fails
     BinaryExecError,
 
     /// Thrown when a binary could not be found in the local inventory
@@ -84,9 +85,6 @@ pub enum ErrorDetails {
     DeleteFileError {
         file: String,
     },
-
-    /// Thrown when reading dependency package info fails
-    DepPackageReadError,
 
     DeprecatedCommandError {
         command: String,
@@ -263,6 +261,11 @@ pub enum ErrorDetails {
     /// Thrown when unable to parse a tool spec (`<tool>[@<version>]`)
     ParseToolSpecError {
         tool_spec: String,
+    },
+
+    /// Thrown when executing a project-local binary fails
+    ProjectLocalBinaryExecError {
+        command: String,
     },
 
     /// Thrown when a publish hook contains both the url and bin fields
@@ -547,12 +550,6 @@ at {}
 
 {}",
                 file, PERMISSIONS_CTA
-            ),
-            ErrorDetails::DepPackageReadError => write!(
-                f,
-                "Could not read package info for dependencies.
-
-Please ensure that all dependencies have been installed."
             ),
             ErrorDetails::DeprecatedCommandError { command, advice } => {
                 write!(f, "The subcommand `{}` is deprecated.\n{}", command, advice)
@@ -879,6 +876,13 @@ Please verify the requested package and version.",
 Please supply a spec in the format `<tool name>[@<version>]`.",
                 tool_spec
             ),
+            ErrorDetails::ProjectLocalBinaryExecError { command } => write!(
+                f,
+                "Could not execute command `{}`
+
+Please ensure that all project dependencies are installed.",
+                command
+            ),
             ErrorDetails::PublishHookBothUrlAndBin => write!(
                 f,
                 "Publish hook configuration includes both hook types.
@@ -1159,7 +1163,6 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::CurrentDirError => ExitCode::EnvironmentError,
             ErrorDetails::DeleteDirectoryError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DeleteFileError { .. } => ExitCode::FileSystemError,
-            ErrorDetails::DepPackageReadError => ExitCode::FileSystemError,
             ErrorDetails::DeprecatedCommandError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::DetermineBinaryLoaderError { .. } => ExitCode::FileSystemError,
             ErrorDetails::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
@@ -1204,6 +1207,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::ParsePackageConfigError => ExitCode::UnknownError,
             ErrorDetails::ParsePackageMetadataError { .. } => ExitCode::UnknownError,
             ErrorDetails::ParsePlatformError => ExitCode::ConfigurationError,
+            ErrorDetails::ProjectLocalBinaryExecError { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::PublishHookBothUrlAndBin => ExitCode::ConfigurationError,
             ErrorDetails::PublishHookNeitherUrlNorBin => ExitCode::ConfigurationError,
             ErrorDetails::ReadBinConfigDirError { .. } => ExitCode::FileSystemError,

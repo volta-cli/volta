@@ -25,14 +25,14 @@ where
             if let Some(ref platform) = project.platform() {
                 let image = platform.checkout(session)?;
                 let path = image.path()?;
-                return Ok(ToolCommand::direct(&path_to_bin, args, &path));
+                return Ok(ToolCommand::project_local(&path_to_bin, args, &path));
             }
 
             // otherwise use the user platform.
             if let Some(ref platform) = session.user_platform()? {
                 let image = platform.checkout(session)?;
                 let path = image.path()?;
-                return Ok(ToolCommand::direct(&path_to_bin, args, &path));
+                return Ok(ToolCommand::project_local(&path_to_bin, args, &path));
             }
 
             // if there's no user platform selected, pass through to existing PATH.
