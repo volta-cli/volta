@@ -3,9 +3,12 @@
 # Script to build the binaries and package them up for release.
 # This should be run from the top-level directory.
 
+# get the directory of this script
+# (from https://stackoverflow.com/a/246128)
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 # get shared functions from the volta-install.sh file
-# TODO: do this as a relative path
-source dev/unix/volta-install.sh
+source "$DIR/volta-install.sh"
 
 usage() {
   cat >&2 <<END_OF_USAGE
@@ -105,4 +108,4 @@ cd "$target_dir"
 # (see https://superuser.com/q/61185)
 COPYFILE_DISABLE=1 tar -czvf "$release_filename.tar.gz" volta shim load.*
 
-info 'Completed' "release in file $(bold "$target_dir/$release_filename.tar.gz")"
+info 'Completed' "release in file $target_dir/$release_filename.tar.gz"

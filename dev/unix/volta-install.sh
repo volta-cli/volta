@@ -217,6 +217,13 @@ update_profile() {
       warning "Your profile ($detected_profile) already mentions Volta and has not been changed."
     fi
   fi
+
+  if command grep -qc 'NOTION_HOME' "$detected_profile"; then
+    eprintf ''
+    warning "Your profile ($detected_profile) mentions Notion."
+    eprintf "         You probably want to remove that."
+    eprintf ''
+  fi
 }
 
 legacy_dir() {
@@ -422,13 +429,6 @@ install_version() {
     create_symlinks "$install_dir" &&
       update_profile "$install_dir" &&
       info "Finished" 'installation. Open a new terminal to start using Volta!'
-
-    if command grep -qc 'NOTION_HOME' "$VOLTA_PROFILE"; then
-      eprintf ''
-      warning "Your profile ($VOLTA_PROFILE) mentions Notion."
-      eprintf "         You probably want to remove that."
-      eprintf ''
-    fi
   fi
 }
 
@@ -464,8 +464,8 @@ install_local() {
   if no_legacy_install && upgrade_is_ok "$version" "$install_dir"
   then
     # compile and package the binaries, then install from that local archive
-    local compiled_archive="$(compile_and_package "$dev_or_release")"
-    install_from_file "$compiled_archive" "$install_dir"
+    compiled_archive="$(compile_and_package "$dev_or_release")" &&
+      install_from_file "$compiled_archive" "$install_dir"
   else
     # existing legacy install, or upgrade problem
     return 1
@@ -474,11 +474,25 @@ install_local() {
 
 compile_and_package() {
   local dev_or_release="$1"
-  # TODO: call the release script to do this, and return the packaged archive file
-  # TODO: parse the output to get the archive file name
-  dev/unix/release.sh "--$dev_or_release"
-  # TODO: check exit status
-  echo "target/release/volta-0.4.0-macos.tar.gz"
+
+  local release_output
+
+  # get the directory of this script
+  # (from https://stackoverflow.com/a/246128)
+  DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+  # call the release script to create the packaged archive file
+  # '2> >(tee /dev/stderr)' copies stderr to stdout, to collect it and parse the filename
+  release_output="$( "$DIR/release.sh" "--$dev_or_release" 2> >(tee /dev/stderr) )"
+  [ "$?" != 0 ] && return 1
+
+  # parse the release filename and return that
+  if [[ "$release_output" =~ release\ in\ file\ (target[^\ ]+) ]]; then
+    echo "${BASH_REMATCH[1]}"
+  else
+    error "Could not determine output filename"
+    return 1
+  fi
 }
 
 download_release() {
