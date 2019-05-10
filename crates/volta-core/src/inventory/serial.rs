@@ -166,7 +166,6 @@ impl YarnEntry {
     /// proper release tarball?
     fn is_full_release(&self) -> bool {
         let release_filename = &format!("yarn-v{}.tar.gz", self.tag_name)[..];
-        println!("checking release filename: {}", release_filename);
         self.assets
             .iter()
             .any(|&YarnAsset { ref name }| name == release_filename)
