@@ -820,9 +820,8 @@ Please ensure you have correct permissions.",
             ),
             ErrorDetails::ParseHooksError { file } => write!(
                 f,
-                "Could not parse configuration file.
-
-{}
+                "Could not parse hooks configuration file.
+from {}
 
 Please ensure the file is correctly formatted.",
                 file
