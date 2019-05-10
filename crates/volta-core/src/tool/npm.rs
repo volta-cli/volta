@@ -31,8 +31,9 @@ where
 fn check_npm_install() -> CommandArg {
     // npm global installs will have `-g` or `--global` somewhere in the
     // argument list
-    let is_global =
-        args_os().any(|arg| arg == OsString::from("-g") || arg == OsString::from("--global"));
+    if !args_os().any(|arg| arg == OsString::from("-g") || arg == OsString::from("--global")) {
+        return CommandArg::NotGlobalAdd;
+    }
 
     // Get the same set of args again to iterate over, this time with the
     // command itself skipped and all flags excluded entirely. The first item
@@ -45,12 +46,11 @@ fn check_npm_install() -> CommandArg {
 
     // They will be specified by the command `i`, `install`, `add` or `isntall`.
     // See https://github.com/npm/cli/blob/latest/lib/config/cmd-list.js
-    let is_install = command == Some(OsString::from("install"))
+    if command == Some(OsString::from("install"))
         || command == Some(OsString::from("i"))
         || command == Some(OsString::from("isntall"))
-        || command == Some(OsString::from("add"));
-
-    if is_global && is_install {
+        || command == Some(OsString::from("add"))
+    {
         // `args` here picks up from where the command lookup left off, so
         // will be the name of the package passed to the command.
         CommandArg::GlobalAdd(args.next())
