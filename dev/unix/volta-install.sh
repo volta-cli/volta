@@ -109,21 +109,23 @@ echo_fexists() {
 }
 
 detect_profile() {
+  local shellname="$1"
+  local uname="$2"
+
   if [ -f "$PROFILE" ]; then
     echo "$PROFILE"
     return
   fi
 
-  # TODO: basename and uname will need to be args, so I can test this beast
   # try to detect the current shell
-  case "$(basename "/$SHELL")" in
+  case "$shellname" in
     bash)
       # Shells on macOS default to opening with a login shell, while Linuxes
       # default to a *non*-login shell, so if this is macOS we look for
       # `.bash_profile` first; if it's Linux, we look for `.bashrc` first. The
       # `*` fallthrough covers more than just Linux: it's everything that is not
       # macOS (Darwin). It can be made narrower later if need be.
-      case $(uname) in
+      case $uname in
         Darwin)
           echo_fexists "$HOME/.bash_profile" || echo_fexists "$HOME/.bashrc"
         ;;
@@ -142,7 +144,7 @@ detect_profile() {
       # Fall back to checking for profile file existence. Once again, the order
       # differs between macOS and everything else.
       local profiles
-      case $(uname) in
+      case $uname in
         Darwin)
           profiles=( .profile .bash_profile .bashrc .zshrc .config/fish/config.fish )
           ;;
@@ -199,7 +201,7 @@ update_profile() {
   local install_dir="$1"
 
   local profile_install_dir=$(echo "$install_dir" | sed "s:^$HOME:\$HOME:")
-  local detected_profile="$(detect_profile)"
+  local detected_profile="$(detect_profile $(basename "/$SHELL") $(uname -s) )"
   local path_str="$(build_path_str "$detected_profile" "$profile_install_dir")"
   info 'Editing' "user profile ($detected_profile)"
 
@@ -257,7 +259,7 @@ upgrade_is_ok() {
     case "$major_minor" in
       0.1|0.2|0.3|0.4)
         eprintf ""
-        error "Cannot install Volta prior to version 0.5.0 (when this was named Notion)"
+        error "Cannot install Volta prior to version 0.5.0 (when it was named Notion)"
         request "    To install Notion version $will_install_version, please check out the source and build manually."
         eprintf ""
         return 1
@@ -297,15 +299,11 @@ parse_os_info() {
       echo "macos"
       ;;
     *)
-      # TODO: because this is used for release and install, the error messages will need to be slightly different in each case
-      # (user-facing vs. dev-facing)
-      error "Releases for '$uname_str' are not yet supported. You will need to add another OS case to this script, and to the install script to support this OS."
       return 1
   esac
   return 0
 }
 
-# TODO: description
 parse_os_pretty() {
   local uname_str="$1"
 
@@ -317,7 +315,6 @@ parse_os_pretty() {
       echo "macOS"
       ;;
     *)
-      # don't know which OS specificaly, just return the uname
       echo "$uname_str"
   esac
 }
@@ -432,7 +429,24 @@ install_version() {
   fi
 }
 
-# TODO: this and install_local have the same structure - refactor that...
+# parse the 'version = "X.Y.Z"' line from the input Cargo.toml contents
+# and return the version string
+parse_cargo_version() {
+  local contents="$1"
+
+  while read -r line
+  do
+    if [[ "$line" =~ ^version\ =\ \"(.*)\" ]]
+    then
+      echo "${BASH_REMATCH[1]}"
+      return 0
+    fi
+  done <<< "$contents"
+
+  error "Could not determine the current version from Cargo.toml"
+  return 1
+}
+
 install_release() {
   local version="$1"
   local install_dir="$2"
@@ -459,9 +473,9 @@ install_local() {
   local dev_or_release="$1"
   local install_dir="$2"
 
-  # TODO: there's no version available here?
   info 'Checking' "for existing Volta installation"
-  if no_legacy_install && upgrade_is_ok "$version" "$install_dir"
+  install_version="$(parse_cargo_version "$(<Cargo.toml)" )" || return 1
+  if no_legacy_install && upgrade_is_ok "$install_version" "$install_dir"
   then
     # compile and package the binaries, then install from that local archive
     compiled_archive="$(compile_and_package "$dev_or_release")" &&
@@ -500,7 +514,12 @@ download_release() {
 
   local uname_str="$(uname -s)"
   local openssl_version="$(openssl version)"
-  local os_info="$(parse_os_info "$uname_str" "$openssl_version")"
+  local os_info
+  os_info="$(parse_os_info "$uname_str" "$openssl_version")"
+  if [ "$?" != 0 ]; then
+    error "The current operating system ($uname_str) does not appear to be supported by Volta."
+    return 1
+  fi
   local pretty_os_name="$(parse_os_pretty "$uname_str")"
 
   info 'Fetching' "archive for $pretty_os_name, version $version"

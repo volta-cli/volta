@@ -28,30 +28,6 @@ OPTIONS:
 END_OF_USAGE
 }
 
-# parse the 'version = "X.Y.Z"' line from the input Cargo.toml contents
-# and return the version string
-parse_cargo_version() {
-  local contents="$1"
-
-  while read -r line
-  do
-    if [[ "$line" =~ ^version\ =\ \"(.*)\" ]]
-    then
-      echo "${BASH_REMATCH[1]}"
-      return 0
-    fi
-  done <<< "$contents"
-
-  error "Could not determine the current version"
-  return 1
-}
-
-# return if sourced (for testing the functions above without running the commands below)
-return 0 2>/dev/null
-
-
-# exit on error
-set -e
 
 # default to compiling with '--release'
 build_with_release="true"
@@ -78,12 +54,17 @@ esac
 
 # read the current version from Cargo.toml
 cargo_toml_contents="$(<Cargo.toml)"
-VOLTA_VERSION="$(parse_cargo_version "$cargo_toml_contents")"
+VOLTA_VERSION="$(parse_cargo_version "$cargo_toml_contents")" || exit 1
 
 # figure out the OS details
 os="$(uname -s)"
-openssl_version="$(openssl version)"
+openssl_version="$(openssl version)" || exit 1
 VOLTA_OS="$(parse_os_info "$os" "$openssl_version")"
+if [ "$?" != 0 ]; then
+  error "Releases for '$os' are not yet supported."
+  request "To support '$os', add another case to parse_os_info() in volta-install.sh."
+  exit 1
+fi
 
 release_filename="volta-$VOLTA_VERSION-$VOLTA_OS"
 
@@ -96,7 +77,7 @@ then
 else
   target_dir="target/debug"
   cargo build
-fi
+fi || exit 1
 
 # then package the binaries and shell scripts together
 shell_script_dir="shell/unix"
