@@ -53,7 +53,7 @@ impl Command for Which {
         // Treat any error with obtaining the current platform image as if the image doesn't exist
         // However, errors in obtaining the current working directory or the System path should
         // still be treated as errors.
-        let mut default_path = match session
+        let path = match session
             .current_platform()
             .unwrap_or(None)
             .and_then(|platform| platform.checkout(session).ok())
@@ -61,14 +61,6 @@ impl Command for Which {
         {
             Some(path) => path,
             None => System::path()?,
-        };
-
-        let path = match tool_path {
-            Some(tool_path) => {
-                default_path.push(tool_path.as_os_str());
-                default_path
-            }
-            None => default_path,
         };
 
         let cwd = env::current_dir().with_context(|_| ErrorDetails::CurrentDirError)?;
