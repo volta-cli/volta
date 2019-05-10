@@ -2,7 +2,7 @@ use std::env::args_os;
 use std::ffi::{OsStr, OsString};
 use std::rc::Rc;
 
-use super::{intercept_global_installs, ToolCommand};
+use super::{intercept_global_installs, CommandArg, ToolCommand};
 use crate::error::ErrorDetails;
 use crate::platform::PlatformSpec;
 use crate::session::{ActivityKind, Session};
@@ -17,8 +17,10 @@ where
 
     match get_yarn_platform(session)? {
         Some(ref platform) => {
-            if intercept_global_installs() && is_global_yarn_add() {
-                throw!(ErrorDetails::NoGlobalInstalls);
+            if intercept_global_installs() {
+                if let CommandArg::GlobalAdd(package) = check_yarn_add() {
+                    throw!(ErrorDetails::NoGlobalInstalls { package });
+                }
             }
 
             let image = platform.checkout(session)?;
@@ -50,15 +52,17 @@ fn get_yarn_platform(session: &mut Session) -> Fallible<Option<Rc<PlatformSpec>>
     Ok(None)
 }
 
-fn is_global_yarn_add() -> bool {
+fn check_yarn_add() -> CommandArg {
     // Yarn global installs must be of the form `yarn global add`
     // However, they may have options intermixed, e.g. yarn --verbose global add ember-cli
-    args_os()
-        .skip(1)
-        .filter(|arg| match arg.to_str() {
-            Some(arg) => !arg.starts_with("-"),
-            None => true,
-        })
-        .take(2)
-        .eq(vec!["global", "add"])
+    let mut args = args_os().skip(1).filter(|arg| match arg.to_str() {
+        Some(arg) => !arg.starts_with("-"),
+        None => true,
+    });
+
+    if (args.next(), args.next()) == (Some(OsString::from("global")), Some(OsString::from("add"))) {
+        CommandArg::GlobalAdd(args.next())
+    } else {
+        CommandArg::NotGlobalAdd
+    }
 }
