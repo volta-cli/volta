@@ -1,3 +1,4 @@
+use std::ffi::OsString;
 use std::fmt;
 use std::path::PathBuf;
 
@@ -156,7 +157,9 @@ pub enum ErrorDetails {
         matching: String,
     },
 
-    NoGlobalInstalls,
+    NoGlobalInstalls {
+        package: Option<OsString>,
+    },
 
     NoHomeEnvironmentVar,
 
@@ -673,11 +676,15 @@ Please uninstall and re-install the package that provides that executable.",
 Please verify that the version is correct."#,
                 matching
             ),
-            ErrorDetails::NoGlobalInstalls => write!(
+            ErrorDetails::NoGlobalInstalls { package } => write!(
                 f,
-                "Global package installs are not recommended.
+                "Global package installs are not supported.
 
-Use `volta install` to add a package to your toolchain (see `volta help install` for more info)."
+Use `volta install{}` to add a package to your toolchain (see `volta help install` for more info).",
+                match package {
+                    Some(original) => String::from(" ") + &original.to_string_lossy().into_owned(),
+                    None => String::from(""),
+                }
             ),
             ErrorDetails::NoHomeEnvironmentVar => write!(
                 f,
@@ -1167,7 +1174,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::InvalidToolName { .. } => ExitCode::InvalidArguments,
             ErrorDetails::NoBinPlatform { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
-            ErrorDetails::NoGlobalInstalls => ExitCode::InvalidArguments,
+            ErrorDetails::NoGlobalInstalls { .. } => ExitCode::InvalidArguments,
             ErrorDetails::NoHomeEnvironmentVar => ExitCode::EnvironmentError,
             ErrorDetails::NoInstallDir => ExitCode::EnvironmentError,
             ErrorDetails::NoLocalDataDir => ExitCode::EnvironmentError,

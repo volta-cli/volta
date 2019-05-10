@@ -34,6 +34,14 @@ lazy_static! {
     static ref HAS_VERSION: Regex = Regex::new(r"^[^\s]+@").expect("regex is valid");
 }
 
+/// Distinguish global `add` commands in npm or yarn from all others.
+enum CommandArg {
+    /// The command is a *global* add command.
+    GlobalAdd(Option<OsString>),
+    /// The command is a local, i.e. non-global, add command.
+    NotGlobalAdd,
+}
+
 /// Specification for a tool and its associated version.
 ///
 /// Since [`Ord`] is implemented for `ToolSpec`, we can use `.sort` on any

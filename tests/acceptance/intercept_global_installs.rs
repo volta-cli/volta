@@ -22,49 +22,49 @@ fn npm_prevents_global_install() {
         s.npm("install ember-cli --global"),
         execs()
             .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_contains("[..]Global package installs are not recommended.")
+            .with_stderr_contains("[..]Global package installs are not supported.")
     );
 
     assert_that!(
         s.npm("i ember-cli --global"),
         execs()
             .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_contains("[..]Global package installs are not recommended.")
+            .with_stderr_contains("[..]Global package installs are not supported.")
     );
 
     assert_that!(
         s.npm("install ember-cli -g"),
         execs()
             .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_contains("[..]Global package installs are not recommended.")
+            .with_stderr_contains("[..]Global package installs are not supported.")
     );
 
     assert_that!(
         s.npm("i -g ember-cli"),
         execs()
             .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_contains("[..]Global package installs are not recommended.")
+            .with_stderr_contains("[..]Global package installs are not supported.")
     );
 
     assert_that!(
         s.npm("-g i ember-cli"),
         execs()
             .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_contains("[..]Global package installs are not recommended.")
+            .with_stderr_contains("[..]Global package installs are not supported.")
     );
 
     assert_that!(
         s.npm("add ember-cli --global"),
         execs()
             .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_contains("[..]Global package installs are not recommended.")
+            .with_stderr_contains("[..]Global package installs are not supported.")
     );
 
     assert_that!(
         s.npm("isntall --global ember-cli"),
         execs()
             .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_contains("[..]Global package installs are not recommended.")
+            .with_stderr_contains("[..]Global package installs are not supported.")
     );
 }
 
@@ -80,7 +80,7 @@ fn npm_allows_global_install_with_env_variable() {
         s.npm("i -g ember-cli"),
         execs()
             .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_does_not_contain("[..]Global package installs are not recommended.")
+            .with_stderr_does_not_contain("[..]Global package installs are not supported.")
             .with_stderr_contains("[..]Could not download node version[..]")
     );
 }
@@ -93,21 +93,21 @@ fn yarn_prevents_global_add() {
         s.yarn("global add ember-cli"),
         execs()
             .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_contains("[..]Global package installs are not recommended.")
+            .with_stderr_contains("[..]Global package installs are not supported.")
     );
 
     assert_that!(
         s.yarn("--verbose global add ember-cli"),
         execs()
             .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_contains("[..]Global package installs are not recommended.")
+            .with_stderr_contains("[..]Global package installs are not supported.")
     );
 
     assert_that!(
         s.yarn("global --verbose add ember-cli"),
         execs()
             .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_contains("[..]Global package installs are not recommended.")
+            .with_stderr_contains("[..]Global package installs are not supported.")
     );
 }
 
@@ -123,7 +123,7 @@ fn yarn_allows_global_add_with_env_variable() {
         s.yarn("global add ember-cli"),
         execs()
             .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_does_not_contain("[..]Global package installs are not recommended.")
+            .with_stderr_does_not_contain("[..]Global package installs are not supported.")
             .with_stderr_contains("[..]Could not download node version[..]")
     );
 }
