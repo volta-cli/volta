@@ -7,13 +7,23 @@
 
 # NOTE: to use an internal company repo, change how this determines the latest version
 get_latest_release() {
-  echo "0.5.0"
-  # TODO:
-  # curl --silent "https://volta.sh/latest-version"
+  curl --silent "https://volta.sh/latest-version"
 }
 
 release_url() {
   echo "https://github.com/volta-cli/volta/releases"
+}
+
+download_release_from_repo() {
+  local version="$1"
+  local os_info="$2"
+  local tmpdir="$3"
+
+  local filename="volta-$version-$os_info.tar.gz"
+  local download_file="$download_dir/$filename"
+  local archive_url="$(release_url)/download/v$version/$filename"
+
+  curl --progress-bar --show-error --location --fail "$archive_url" --output "$download_file" && echo "$download_file"
 }
 
 usage() {
@@ -104,7 +114,7 @@ detect_profile() {
     return
   fi
 
-  # TODO: I think basename and uname will need to be args, so I can test this beast
+  # TODO: basename and uname will need to be args, so I can test this beast
   # try to detect the current shell
   case "$(basename "/$SHELL")" in
     bash)
@@ -201,7 +211,6 @@ update_profile() {
     eprintf "$path_str"
     return 1
   else
-    # TODO: without using grep? just bash?
     if ! command grep -qc 'VOLTA_HOME' "$detected_profile"; then
       command printf "$path_str" >> "$detected_profile"
     else
@@ -218,7 +227,7 @@ legacy_dir() {
 no_legacy_install() {
   if [ -d "$(legacy_dir)" ]; then
     eprintf ""
-    error "You have existing Notion install, which can't be automatically upgraded to Volta."
+    error "You have an existing Notion install, which can't be automatically upgraded to Volta."
     request "       Please delete $(legacy_dir) and try again."
     eprintf ""
     eprintf "(We plan to implement automatic upgrades in the future. Thanks for bearing with us!)"
@@ -228,39 +237,36 @@ no_legacy_install() {
   return 0
 }
 
-# TODO: change description once this is finalized
-# Check for an existing installation that needs to be removed.
+# Check if it is OK to upgrade to the new version
 upgrade_is_ok() {
   local will_install_version="$1"
   local install_dir="$2"
 
-  # TODO: this will not be able to install things prior to the Volta rename, so check for that (probably version 0.5.0)
-
-  # TODO: check for downgrade? will probably have to wipe and install
-
   local volta_bin="$install_dir/volta"
 
-  # TODO: don't exit, just return from this
+  # this is not able to install Volta prior to 0.5.0 (when it was renamed)
+  if [[ "$will_install_version" =~ ^([0-9]+\.[0-9]+) ]]; then
+    local major_minor="${BASH_REMATCH[1]}"
+    case "$major_minor" in
+      0.1|0.2|0.3|0.4)
+        eprintf ""
+        error "Cannot install Volta prior to version 0.5.0 (when this was named Notion)"
+        request "    To install Notion version $will_install_version, please check out the source and build manually."
+        eprintf ""
+        return 1
+        ;;
+    esac
+  fi
+
   if [[ -n "$install_dir" && -x "$volta_bin" ]]; then
-    # Some 0.1.* builds would eagerly validate package.json even for benign commands,
-    # so just to be safe we'll ignore errors and consider those to be 0.1 as well.
     local prev_version="$( ($volta_bin --version 2>/dev/null || echo 0.1) | sed -E 's/^.*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')"
+    # if installing the same version, this is a no-op
     if [ "$prev_version" == "$will_install_version" ]; then
       eprintf "Version $will_install_version already installed"
       return 1
     fi
-    # TODO: have to do more version checks here
-    if [[ "$prev_version" == 0.1* || "$prev_version" == 0.2* ]]; then
-      eprintf ""
-      error "Your Volta installation is out of date and can't be automatically upgraded."
-      request "       Please delete or move $install_dir and try again."
-      eprintf ""
-      eprintf "(We plan to implement automatic upgrades in the future. Thanks for bearing with us!)"
-      eprintf ""
-      return 1
-    fi
+    # in the future, check $prev_version for incompatible upgrades
   fi
-  # should be ok to install
   return 0
 }
 
@@ -270,37 +276,11 @@ parse_os_info() {
   local uname_str="$1"
   local openssl_version="$2"
 
-  # TODO: this will not be able to install things prior to the Volta rename, so check for that (probably version 0.5.0)
-
-  # TODO: need to check for version 0.1*, because those binaries are named differently
-  # TODO: need to check for versions prior to the use of this script, because those will use the install.sh installer
-  # TODO: will ALSO need to check for versions prior to the final rename, becuase those use Volta
-  # case $(uname) in
-  #   Linux)
-  #     if [[ "$version" == 0.1* ]]; then
-  #       VOLTA_OS=linux
-  #     else
-  #       VOLTA_OS="linux-openssl-$(volta_get_openssl_version)"
-  #     fi
-  #     VOLTA_PRETTY_OS=Linux
-  #     ;;
-  #   Darwin)
-  #     VOLTA_OS=macos
-  #     VOLTA_PRETTY_OS=macOS
-  #     ;;
-  #   *)
-  #     error "The current operating system does not appear to be supported by Volta."
-  #     eprintf ""
-  #     exit 1
-  # esac
-
   case "$uname_str" in
     Linux)
       parsed_version="$(parse_openssl_version "$openssl_version")"
-      # if there was an error, return
       exit_code="$?"
-      if [ "$exit_code" != 0 ]
-      then
+      if [ "$exit_code" != 0 ]; then
         return "$exit_code"
       fi
 
@@ -310,6 +290,8 @@ parse_os_info() {
       echo "macos"
       ;;
     *)
+      # TODO: because this is used for release and install, the error messages will need to be slightly different in each case
+      # (user-facing vs. dev-facing)
       error "Releases for '$uname_str' are not yet supported. You will need to add another OS case to this script, and to the install script to support this OS."
       return 1
   esac
@@ -416,8 +398,9 @@ install_version() {
 
   case "$version_to_install" in
     latest)
-      info 'Installing' "latest version of Volta"
-      install_release "$(get_latest_release)" "$install_dir"
+      local latest_version="$(get_latest_release)"
+      info 'Installing' "latest version of Volta ($latest_version)"
+      install_release "$latest_version" "$install_dir"
       ;;
     local-dev)
       info 'Installing' "Volta locally after compiling"
@@ -449,6 +432,7 @@ install_version() {
   fi
 }
 
+# TODO: this and install_local have the same structure - refactor that...
 install_release() {
   local version="$1"
   local install_dir="$2"
@@ -465,6 +449,9 @@ install_release() {
     fi
 
     install_from_file "$download_archive" "$install_dir"
+  else
+    # existing legacy install, or upgrade problem
+    return 1
   fi
 }
 
@@ -474,11 +461,14 @@ install_local() {
 
   # TODO: there's no version available here?
   info 'Checking' "for existing Volta installation"
-  if upgrade_is_ok "$version" "$install_dir"
+  if no_legacy_install && upgrade_is_ok "$version" "$install_dir"
   then
     # compile and package the binaries, then install from that local archive
     local compiled_archive="$(compile_and_package "$dev_or_release")"
     install_from_file "$compiled_archive" "$install_dir"
+  else
+    # existing legacy install, or upgrade problem
+    return 1
   fi
 }
 
@@ -500,17 +490,9 @@ download_release() {
   local pretty_os_name="$(parse_os_pretty "$uname_str")"
 
   info 'Fetching' "archive for $pretty_os_name, version $version"
-
-  # TODO: refactor this to pull the repo-specific code out, for internal integration
-  # using $version and $os_info, return the URL
-
   # store the downloaded archive in a temporary directory
   local download_dir="$(mktemp -d)"
-  local filename="volta-$version-$os_info.tar.gz"
-  local download_file="$download_dir/$filename"
-  local archive_url="$(release_url)/download/v$version/$filename"
-
-  curl --progress-bar --show-error --location --fail "$archive_url" --output "$download_file" && echo "$download_file"
+  download_release_from_repo "$version" "$os_info" "$download_dir"
 }
 
 install_from_file() {
