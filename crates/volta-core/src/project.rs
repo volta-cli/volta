@@ -124,7 +124,7 @@ impl Project {
         Ok(false)
     }
 
-    pub fn has_direct_dependency(&self, dependency: &str) -> bool {
+    fn has_direct_dependency(&self, dependency: &str) -> bool {
         self.manifest.dependencies.contains_key(dependency)
             || self.manifest.dev_dependencies.contains_key(dependency)
     }
