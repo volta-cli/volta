@@ -1,7 +1,6 @@
 //! Provides types for working with Volta hooks.
 
 use std::env;
-use std::fs::File;
 use std::marker::PhantomData;
 use std::path::Path;
 
@@ -111,20 +110,17 @@ impl HookConfig {
                     return Ok(None);
                 }
 
-                Self::from_file(&path, false).map(|hooks| Some(hooks))
+                Self::from_file(&path).map(|hooks| Some(hooks))
             }
             None => Ok(None),
         }
     }
 
-    fn from_file(file_path: &Path, create: bool) -> Fallible<Self> {
-        let file = if create {
-            touch_with_contents(&file_path, "{}")
-        } else {
-            File::open(&file_path)
-        }
-        .with_context(|_| ErrorDetails::ReadHooksError {
-            file: file_path.to_string_lossy().to_string(),
+    fn from_file(file_path: &Path) -> Fallible<Self> {
+        let file = touch_with_contents(&file_path, "{}").with_context(|_| {
+            ErrorDetails::ReadHooksError {
+                file: file_path.to_string_lossy().to_string(),
+            }
         })?;
 
         let serial: serial::HookConfig =
@@ -136,7 +132,7 @@ impl HookConfig {
 
     /// Returns the per-user hooks, loaded from the filesystem.
     fn for_user() -> Fallible<Self> {
-        Self::from_file(&user_hooks_file()?, true)
+        Self::from_file(&user_hooks_file()?)
     }
 
     /// Creates a merged struct, with "right" having precedence over "left".
@@ -202,7 +198,7 @@ pub mod tests {
     fn test_from_str_event_url() {
         let fixture_dir = fixture_path("hooks");
         let url_file = fixture_dir.join("event_url.json");
-        let hooks = HookConfig::from_file(&url_file, false).unwrap();
+        let hooks = HookConfig::from_file(&url_file).unwrap();
 
         assert_eq!(
             hooks.events.unwrap().publish,
@@ -214,7 +210,7 @@ pub mod tests {
     fn test_from_str_bins() {
         let fixture_dir = fixture_path("hooks");
         let bin_file = fixture_dir.join("bins.json");
-        let hooks = HookConfig::from_file(&bin_file, false).unwrap();
+        let hooks = HookConfig::from_file(&bin_file).unwrap();
         let node = hooks.node.unwrap();
         let yarn = hooks.yarn.unwrap();
 
@@ -258,7 +254,7 @@ pub mod tests {
     fn test_from_str_prefixes() {
         let fixture_dir = fixture_path("hooks");
         let prefix_file = fixture_dir.join("prefixes.json");
-        let hooks = HookConfig::from_file(&prefix_file, false).unwrap();
+        let hooks = HookConfig::from_file(&prefix_file).unwrap();
         let node = hooks.node.unwrap();
         let yarn = hooks.yarn.unwrap();
 
@@ -304,7 +300,7 @@ pub mod tests {
     fn test_from_str_templates() {
         let fixture_dir = fixture_path("hooks");
         let template_file = fixture_dir.join("templates.json");
-        let hooks = HookConfig::from_file(&template_file, false).unwrap();
+        let hooks = HookConfig::from_file(&template_file).unwrap();
         let node = hooks.node.unwrap();
         let yarn = hooks.yarn.unwrap();
         assert_eq!(
@@ -380,7 +376,7 @@ pub mod tests {
     #[test]
     fn test_merge() {
         let fixture_dir = fixture_path("hooks");
-        let user_hooks = HookConfig::from_file(&fixture_dir.join("templates.json"), false).unwrap();
+        let user_hooks = HookConfig::from_file(&fixture_dir.join("templates.json")).unwrap();
         let project_dir = fixture_path("hooks/project");
         let project_hooks = HookConfig::for_dir(&project_dir)
             .expect("Could not read project hooks.json")
