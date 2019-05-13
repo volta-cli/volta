@@ -1,6 +1,6 @@
 [package]
 name = "volta"
-version = "0.4.1"
+version = "0.5.0"
 authors = ["David Herman <david.herman@gmail.com>"]
 license = "BSD-2-Clause"
 repository = "https://github.com/volta-cli/volta"
