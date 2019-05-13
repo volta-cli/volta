@@ -6,7 +6,7 @@
 # fetch and install the appropriate build of Volta.
 
 volta_get_latest_release() {
-  curl --silent https://www.volta.sh/latest-version
+  curl --silent https://volta.sh/latest-version
 }
 
 volta_eprintf() {
