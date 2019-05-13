@@ -52,7 +52,7 @@ END_CARGO_TOML
 
 # linux - supported OpenSSL
 @test "parse_os_info - linux with supported OpenSSL" {
-  expected_output="linux-openssl-1.2.3"
+  expected_output="linux-openssl-1.2"
 
   run parse_os_info "Linux" "OpenSSL 1.2.3a whatever else"
   [ "$status" -eq 0 ]
@@ -70,7 +70,7 @@ END_CARGO_TOML
 
 # linux - unexpected OpenSSL version format
 @test "parse_os_info - linux with unexpected OpenSSL format" {
-  expected_output=$(echo -e "\033[1;31mError\033[0m: Could not determine OpenSSL version for 'Some SSL 1.2.4'. You probably need to update the regex to handle this output.")
+  expected_output=$(echo -e "\033[1;31mError\033[0m: Could not determine OpenSSL version for 'Some SSL 1.2.4'.")
 
   run parse_os_info "Linux" "Some SSL 1.2.4"
   [ "$status" -eq 1 ]
@@ -89,12 +89,12 @@ END_CARGO_TOML
 
 # parsing valid OpenSSL version strings
 @test "parse_openssl_version - valid versions" {
-  expected_output="0.9.5"
+  expected_output="0.9"
   run parse_openssl_version "OpenSSL 0.9.5a 1 Apr 2000"
   [ "$status" -eq 0 ]
   diff <(echo "$output") <(echo "$expected_output")
 
-  expected_output="1.0.1"
+  expected_output="1.0"
   run parse_openssl_version "OpenSSL 1.0.1e-fips 11 Feb 2013"
   [ "$status" -eq 0 ]
   diff <(echo "$output") <(echo "$expected_output")
@@ -110,7 +110,7 @@ END_CARGO_TOML
 
 # version string with unexpected format
 @test "parse_openssl_version - unexpected format" {
-  expected_output=$(echo -e "\033[1;31mError\033[0m: Could not determine OpenSSL version for 'Some Weird Version 1.2.3'. You probably need to update the regex to handle this output.")
+  expected_output=$(echo -e "\033[1;31mError\033[0m: Could not determine OpenSSL version for 'Some Weird Version 1.2.3'.")
   run parse_openssl_version "Some Weird Version 1.2.3"
   [ "$status" -eq 1 ]
   diff <(echo "$output") <(echo "$expected_output")

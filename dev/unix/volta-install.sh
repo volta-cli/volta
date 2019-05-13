@@ -335,6 +335,7 @@ element_in() {
 }
 
 # parse the OpenSSL version from the input text
+# for most distros, we only care about MAJOR.MINOR, with the exception of RHEL/CENTOS,
 parse_openssl_version() {
   local version_str="$1"
 
@@ -344,20 +345,26 @@ parse_openssl_version() {
 
   # use regex to get the library name and version
   # typical version string looks like 'OpenSSL 1.0.1e-fips 11 Feb 2013'
-  if [[ "$version_str" =~ ^([^\ ]*)\ ([0-9]+\.[0-9]+\.[0-9]+) ]]
+  if [[ "$version_str" =~ ^([^\ ]*)\ ([0-9]+\.[0-9]+) ]]
   then
     # check that the lib is supported
     libname="${BASH_REMATCH[1]}"
-    if element_in "$libname" "${SUPPORTED_SSL_LIBS[@]}"
+    major_minor="${BASH_REMATCH[2]}"
+    if ! element_in "$libname" "${SUPPORTED_SSL_LIBS[@]}"
     then
-      # lib is supported, return the version
-      echo "${BASH_REMATCH[2]}"
-      return 0
+      error "Releases for '$libname' not currently supported. Supported libraries are: ${SUPPORTED_SSL_LIBS[@]}."
+      return 1
     fi
-    error "Releases for '$libname' not currently supported. Supported libraries are: ${SUPPORTED_SSL_LIBS[@]}."
-    return 1
+
+    # for version 1.0.x, check for RHEL/CentOS style OpenSSL SONAME (.so.10)
+    if [ "$major_minor" == "1.0" ] && [ -f "/usr/lib64/libcrypto.so.10" ]; then
+      echo "rhel"
+    else
+      echo "$major_minor"
+    fi
+    return 0
   else
-    error "Could not determine OpenSSL version for '$version_str'. You probably need to update the regex to handle this output."
+    error "Could not determine OpenSSL version for '$version_str'."
     return 1
   fi
 }
