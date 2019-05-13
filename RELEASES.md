@@ -1,3 +1,12 @@
+# Version 0.5.0
+
+- Rename to Volta: The JavaScript Launcher ⚡️
+- Change `package.json` key to `volta` from `toolchain` (#413)
+- Update `volta completions` behavior to be more usable (#416)
+- Improve `volta which` to correctly find user tools (#419)
+- Remove unneeded lookups of `package.json` files (#420)
+- Cleanup of error messages and extraneous output (#421, #422)
+
 # Version 0.4.1
 
 - Allow tool executions to pass through to the system if no Notion platform exists (#372)
