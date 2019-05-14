@@ -79,6 +79,17 @@ impl<D: Distro> ToolHooks<D> {
     }
 }
 
+macro_rules! merge_hook_config_field {
+    ($left:ident, $right:ident, $field:ident, $type:ident) => {
+        match ($left.$field, $right.$field) {
+            (Some(left), Some(right)) => Some($type::merge(left, right)),
+            (Some(left), None) => Some(left),
+            (None, Some(right)) => Some(right),
+            (None, None) => None,
+        }
+    };
+}
+
 impl HookConfig {
     /// Returns the current hooks, which are a merge between the user hooks and
     /// the project hooks (if any).
@@ -143,30 +154,10 @@ impl HookConfig {
     /// Creates a merged struct, with "right" having precedence over "left".
     fn merge(left: Self, right: Self) -> Self {
         Self {
-            node: match (left.node, right.node) {
-                (Some(left), Some(right)) => Some(ToolHooks::merge(left, right)),
-                (Some(left), None) => Some(left),
-                (None, Some(right)) => Some(right),
-                (None, None) => None,
-            },
-            yarn: match (left.yarn, right.yarn) {
-                (Some(left), Some(right)) => Some(ToolHooks::merge(left, right)),
-                (Some(left), None) => Some(left),
-                (None, Some(right)) => Some(right),
-                (None, None) => None,
-            },
-            package: match (left.package, right.package) {
-                (Some(left), Some(right)) => Some(ToolHooks::merge(left, right)),
-                (Some(left), None) => Some(left),
-                (None, Some(right)) => Some(right),
-                (None, None) => None,
-            },
-            events: match (left.events, right.events) {
-                (Some(left), Some(right)) => Some(EventHooks::merge(left, right)),
-                (Some(left), None) => Some(left),
-                (None, Some(right)) => Some(right),
-                (None, None) => None,
-            },
+            node: merge_hook_config_field!(left, right, node, ToolHooks),
+            yarn: merge_hook_config_field!(left, right, yarn, ToolHooks),
+            package: merge_hook_config_field!(left, right, package, ToolHooks),
+            events: merge_hook_config_field!(left, right, events, EventHooks),
         }
     }
 }
