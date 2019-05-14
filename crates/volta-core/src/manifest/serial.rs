@@ -12,7 +12,7 @@ use serde_json::value::Value;
 use volta_fail::Fallible;
 
 use super::super::{manifest, platform};
-use crate::version::VersionSpec;
+use crate::{style::write_warning, version::VersionSpec};
 
 // wrapper for HashMap to use with deserialization
 #[derive(Debug, PartialEq)]
@@ -53,8 +53,9 @@ pub struct Manifest {
     #[serde(rename = "devDependencies")]
     pub dev_dependencies: HashMap<String, String>,
 
-    #[serde(rename = "volta")]
     pub toolchain: Option<ToolchainSpec>,
+
+    pub volta: Option<ToolchainSpec>,
 
     // the "bin" field can be a map or a string
     // (see https://docs.npmjs.com/files/package.json#bin)
@@ -122,7 +123,7 @@ impl Manifest {
             }
         }
         Ok(manifest::Manifest {
-            platform: self.into_platform()?.map(Rc::new),
+            platform: self.to_platform()?.map(Rc::new),
             dependencies: self.dependencies,
             dev_dependencies: self.dev_dependencies,
             bin: map,
@@ -130,8 +131,27 @@ impl Manifest {
         })
     }
 
-    pub fn into_platform(&self) -> Fallible<Option<platform::PlatformSpec>> {
-        if let Some(toolchain) = &self.toolchain {
+    pub fn to_platform(&self) -> Fallible<Option<platform::PlatformSpec>> {
+        // Backwards compatibility to allow users to upgrade to using the
+        // `volta` key simultaneously with the `toolchain` key, but with
+        // deprecation warnings about the use of `toolchain`. Prefer the `volta`
+        // key if it is set, and provide a deprecation warning if the user is
+        // using the `toolchain` key.
+        let (toolchain, deprecation) = match (&self.volta, &self.toolchain) {
+            (Some(volta), None) => (Some(volta), None),
+            (Some(volta), Some(_toolchain)) => (
+                Some(volta),
+                Some("this project is configured with both the deprecated `toolchain` key and the `volta` key; using the versions specified in `volta`.")
+            ),
+            (None, Some(toolchain)) => (Some(toolchain), Some("the `toolchain` key is deprecated and will be removed in a future version. Please switch to `volta` instead.")),
+            (None, None) => (None, None),
+        };
+
+        if let Some(message) = deprecation {
+            write_warning(message)?;
+        }
+
+        if let Some(toolchain) = &toolchain {
             return Ok(Some(platform::PlatformSpec {
                 node_runtime: VersionSpec::parse_version(&toolchain.node)?,
                 npm: if let Some(npm) = &toolchain.npm {
