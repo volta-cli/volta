@@ -287,25 +287,25 @@ pub mod tests {
     }
 
     #[test]
-    fn test_project_for_dir_direct() {
+    fn test_find_project_dir_direct() {
         let base_dir = fixture_path(&["basic"]);
-        let project_dir = project_for_dir(&base_dir).expect("Failed to find project directory");
+        let project_dir = find_project_dir(&base_dir).expect("Failed to find project directory");
 
         assert_eq!(project_dir, base_dir);
     }
 
     #[test]
-    fn test_project_for_dir_ancestor() {
+    fn test_find_project_dir_ancestor() {
         let base_dir = fixture_path(&["basic", "subdir"]);
-        let project_dir = project_for_dir(&base_dir).expect("Failed to find project directory");
+        let project_dir = find_project_dir(&base_dir).expect("Failed to find project directory");
 
         assert_eq!(project_dir, fixture_path(&["basic"]));
     }
 
     #[test]
-    fn test_project_for_dir_dependency() {
+    fn test_find_project_dir_dependency() {
         let base_dir = fixture_path(&["basic", "node_modules", "eslint"]);
-        let project_dir = project_for_dir(&base_dir).expect("Failed to find project directory");
+        let project_dir = find_project_dir(&base_dir).expect("Failed to find project directory");
 
         assert_eq!(project_dir, fixture_path(&["basic"]));
     }

@@ -1,6 +1,7 @@
 //! Provides types for working with Volta hooks.
 
 use std::env;
+use std::fs::File;
 use std::marker::PhantomData;
 use std::path::Path;
 
@@ -11,7 +12,6 @@ use crate::distro::package::PackageDistro;
 use crate::distro::yarn::YarnDistro;
 use crate::distro::Distro;
 use crate::error::ErrorDetails;
-use crate::fs::touch_with_contents;
 use crate::path::{find_project_dir, user_hooks_file};
 use volta_fail::{Fallible, ResultExt};
 
@@ -84,12 +84,18 @@ impl HookConfig {
     /// the project hooks (if any).
     fn current() -> Fallible<Self> {
         let maybe_project_config = Self::for_current_dir()?;
-        let user_config = Self::for_user()?;
+        let maybe_user_config = Self::for_user()?;
 
-        Ok(if let Some(project_config) = maybe_project_config {
-            Self::merge(user_config, project_config)
-        } else {
-            user_config
+        Ok(match (maybe_project_config, maybe_user_config) {
+            (Some(project_config), Some(user_config)) => Self::merge(user_config, project_config),
+            (Some(project_config), None) => project_config,
+            (None, Some(user_config)) => user_config,
+            (None, None) => Self {
+                node: None,
+                yarn: None,
+                package: None,
+                events: None,
+            },
         })
     }
 
@@ -106,32 +112,31 @@ impl HookConfig {
             Some(project_dir) => {
                 let path = project_dir.join(".volta").join("hooks.json");
 
-                if !path.is_file() {
-                    return Ok(None);
-                }
-
-                Self::from_file(&path).map(|hooks| Some(hooks))
+                Self::from_file(&path)
             }
             None => Ok(None),
         }
     }
 
-    fn from_file(file_path: &Path) -> Fallible<Self> {
-        let file = touch_with_contents(&file_path, "{}").with_context(|_| {
-            ErrorDetails::ReadHooksError {
-                file: file_path.to_string_lossy().to_string(),
-            }
+    fn from_file(file_path: &Path) -> Fallible<Option<Self>> {
+        if !file_path.is_file() {
+            return Ok(None);
+        }
+
+        let file = File::open(file_path).with_context(|_| ErrorDetails::ReadHooksError {
+            file: file_path.to_string_lossy().to_string(),
         })?;
 
         let serial: serial::HookConfig =
             serde_json::de::from_reader(file).with_context(|_| ErrorDetails::ParseHooksError {
                 file: file_path.to_string_lossy().to_string(),
             })?;
-        serial.into_hook_config()
+
+        serial.into_hook_config().map(|hooks| Some(hooks))
     }
 
     /// Returns the per-user hooks, loaded from the filesystem.
-    fn for_user() -> Fallible<Self> {
+    fn for_user() -> Fallible<Option<Self>> {
         Self::from_file(&user_hooks_file()?)
     }
 
@@ -198,7 +203,7 @@ pub mod tests {
     fn test_from_str_event_url() {
         let fixture_dir = fixture_path("hooks");
         let url_file = fixture_dir.join("event_url.json");
-        let hooks = HookConfig::from_file(&url_file).unwrap();
+        let hooks = HookConfig::from_file(&url_file).unwrap().unwrap();
 
         assert_eq!(
             hooks.events.unwrap().publish,
@@ -210,7 +215,7 @@ pub mod tests {
     fn test_from_str_bins() {
         let fixture_dir = fixture_path("hooks");
         let bin_file = fixture_dir.join("bins.json");
-        let hooks = HookConfig::from_file(&bin_file).unwrap();
+        let hooks = HookConfig::from_file(&bin_file).unwrap().unwrap();
         let node = hooks.node.unwrap();
         let yarn = hooks.yarn.unwrap();
 
@@ -254,7 +259,7 @@ pub mod tests {
     fn test_from_str_prefixes() {
         let fixture_dir = fixture_path("hooks");
         let prefix_file = fixture_dir.join("prefixes.json");
-        let hooks = HookConfig::from_file(&prefix_file).unwrap();
+        let hooks = HookConfig::from_file(&prefix_file).unwrap().unwrap();
         let node = hooks.node.unwrap();
         let yarn = hooks.yarn.unwrap();
 
@@ -300,7 +305,7 @@ pub mod tests {
     fn test_from_str_templates() {
         let fixture_dir = fixture_path("hooks");
         let template_file = fixture_dir.join("templates.json");
-        let hooks = HookConfig::from_file(&template_file).unwrap();
+        let hooks = HookConfig::from_file(&template_file).unwrap().unwrap();
         let node = hooks.node.unwrap();
         let yarn = hooks.yarn.unwrap();
         assert_eq!(
@@ -376,7 +381,9 @@ pub mod tests {
     #[test]
     fn test_merge() {
         let fixture_dir = fixture_path("hooks");
-        let user_hooks = HookConfig::from_file(&fixture_dir.join("templates.json")).unwrap();
+        let user_hooks = HookConfig::from_file(&fixture_dir.join("templates.json"))
+            .unwrap()
+            .unwrap();
         let project_dir = fixture_path("hooks/project");
         let project_hooks = HookConfig::for_dir(&project_dir)
             .expect("Could not read project hooks.json")

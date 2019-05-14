@@ -18,17 +18,6 @@ pub fn touch(path: &Path) -> io::Result<File> {
     File::open(path)
 }
 
-/// Opens a file, creating it if it doesn't exist
-pub fn touch_with_contents(path: &Path, contents: &str) -> io::Result<File> {
-    if !path.is_file() {
-        if let Some(basedir) = path.parent() {
-            create_dir_all(basedir)?;
-        }
-        fs::write(path, contents)?;
-    }
-    File::open(path)
-}
-
 /// This creates the parent directory of the input path, assuming the input path is a file.
 pub fn ensure_containing_dir_exists<P: AsRef<Path>>(path: &P) -> Fallible<()> {
     path.as_ref()
