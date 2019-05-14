@@ -54,7 +54,7 @@ impl Project {
 
     /// Returns the Node project for the input directory, if any.
     fn for_dir(base_dir: &Path) -> Fallible<Option<Rc<Project>>> {
-        match path::project_for_dir(base_dir) {
+        match path::find_project_dir(base_dir) {
             Some(dir) => Ok(Some(Rc::new(Project {
                 manifest: Manifest::for_dir(&dir)?,
                 project_root: PathBuf::from(dir),

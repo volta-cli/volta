@@ -228,7 +228,7 @@ fn is_project_root(dir: &Path) -> bool {
     is_node_root(dir) && !is_dependency(dir)
 }
 
-pub fn project_for_dir(base_dir: &Path) -> Option<&Path> {
+pub fn find_project_dir(base_dir: &Path) -> Option<&Path> {
     let mut dir = base_dir.clone();
     while !is_project_root(dir) {
         dir = match dir.parent() {

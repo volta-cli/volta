@@ -12,7 +12,7 @@ use crate::distro::yarn::YarnDistro;
 use crate::distro::Distro;
 use crate::error::ErrorDetails;
 use crate::fs::touch_with_contents;
-use crate::path::{project_for_dir, user_hooks_file};
+use crate::path::{find_project_dir, user_hooks_file};
 use volta_fail::{Fallible, ResultExt};
 
 pub(crate) mod serial;
@@ -102,7 +102,7 @@ impl HookConfig {
     /// specified directory is not itself a project, its ancestors will be
     /// searched.
     fn for_dir(base_dir: &Path) -> Fallible<Option<Self>> {
-        match project_for_dir(&base_dir) {
+        match find_project_dir(&base_dir) {
             Some(project_dir) => {
                 let path = project_dir.join(".volta").join("hooks.json");
 
