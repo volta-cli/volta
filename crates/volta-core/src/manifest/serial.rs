@@ -3,6 +3,7 @@ use std::fmt;
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
+use std::path::Path;
 use std::rc::Rc;
 
 use serde;
@@ -109,7 +110,7 @@ impl Engines {
 }
 
 impl Manifest {
-    pub fn into_manifest(self) -> Fallible<manifest::Manifest> {
+    pub fn into_manifest(self, package_path: &Path) -> Fallible<manifest::Manifest> {
         let mut map = HashMap::new();
         if let Some(ref bin) = self.bin {
             for (name, path) in bin.iter() {
@@ -123,7 +124,7 @@ impl Manifest {
             }
         }
         Ok(manifest::Manifest {
-            platform: self.to_platform()?.map(Rc::new),
+            platform: self.to_platform(package_path)?.map(Rc::new),
             dependencies: self.dependencies,
             dev_dependencies: self.dev_dependencies,
             bin: map,
@@ -131,7 +132,7 @@ impl Manifest {
         })
     }
 
-    pub fn to_platform(&self) -> Fallible<Option<platform::PlatformSpec>> {
+    pub fn to_platform(&self, package_path: &Path) -> Fallible<Option<platform::PlatformSpec>> {
         // Backwards compatibility to allow users to upgrade to using the
         // `volta` key simultaneously with the `toolchain` key, but with
         // deprecation warnings about the use of `toolchain`. Prefer the `volta`
@@ -141,14 +142,23 @@ impl Manifest {
             (Some(volta), None) => (Some(volta), None),
             (Some(volta), Some(_toolchain)) => (
                 Some(volta),
-                Some("this project is configured with both the deprecated `toolchain` key and the `volta` key; using the versions specified in `volta`.")
+                Some(format!(
+                    "this project (`{}`) is configured with both the deprecated `toolchain` key and the `volta` key; using the versions specified in `volta`.",
+                    package_path.display()
+                ))
             ),
-            (None, Some(toolchain)) => (Some(toolchain), Some("the `toolchain` key is deprecated and will be removed in a future version. Please switch to `volta` instead.")),
+            (None, Some(toolchain)) => (
+                Some(toolchain),
+                Some(format!(
+                    "this project (`{}`) is configured with the `toolchain` key, which is deprecated and will be removed in a future version. Please switch to `volta` instead.",
+                    package_path.display()
+                ))
+            ),
             (None, None) => (None, None),
         };
 
         if let Some(message) = deprecation {
-            write_warning(message)?;
+            write_warning(&message)?;
         }
 
         if let Some(toolchain) = &toolchain {
