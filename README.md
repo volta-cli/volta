@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://travis-ci.org/volta-cli/volta"><img alt="Build Status" src="https://travis-ci.org/volta-cli/volta.svg?branch=master"></a>
-  <a href="https://ci.appveyor.com/project/stefanpenner/volta/branch/master"><img alt="Build Status" src="https://ci.appveyor.com/api/projects/status/2cohtlutserh8jfb/branch/master?svg=true"></a>
+  <a href='https://dev.azure.com/volta-cli/volta/_build/latest?definitionId=2&branchName=master'><img alt="Azure Build Status" src="https://dev.azure.com/volta-cli/volta/_apis/build/status/volta-cli.volta?branchName=master" /></a>
 </p>
 
 **Fast:** Launch your JS tools quickly and seamlessly! Volta is built in Rust and ships as a snappy static binary.
