@@ -268,6 +268,11 @@ pub enum ErrorDetails {
         command: String,
     },
 
+    /// Thrown when a project-local binary could not be found
+    ProjectLocalBinaryNotFound {
+        command: String,
+    },
+
     /// Thrown when a publish hook contains both the url and bin fields
     PublishHookBothUrlAndBin,
 
@@ -878,9 +883,16 @@ Please supply a spec in the format `<tool name>[@<version>]`.",
             ),
             ErrorDetails::ProjectLocalBinaryExecError { command } => write!(
                 f,
-                "Could not execute command `{}`
+                "Could not execute `{}`
 
-Please ensure that all project dependencies are installed.",
+Please ensure you have correct permissions to access the file.",
+                command
+            ),
+            ErrorDetails::ProjectLocalBinaryNotFound { command } => write!(
+                f,
+                "Could not execute `{}`, the file does not exist.
+
+Please ensure that all project dependencies are installed with `npm install` or `yarn install`",
                 command
             ),
             ErrorDetails::PublishHookBothUrlAndBin => write!(
@@ -1208,6 +1220,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::ParsePackageMetadataError { .. } => ExitCode::UnknownError,
             ErrorDetails::ParsePlatformError => ExitCode::ConfigurationError,
             ErrorDetails::ProjectLocalBinaryExecError { .. } => ExitCode::ExecutionFailure,
+            ErrorDetails::ProjectLocalBinaryNotFound { .. } => ExitCode::FileSystemError,
             ErrorDetails::PublishHookBothUrlAndBin => ExitCode::ConfigurationError,
             ErrorDetails::PublishHookNeitherUrlNorBin => ExitCode::ConfigurationError,
             ErrorDetails::ReadBinConfigDirError { .. } => ExitCode::FileSystemError,
