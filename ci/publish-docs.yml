@@ -23,14 +23,14 @@ steps:
       echo '<!doctype html><a href="master">master</a>' > publish/index.html
     displayName: Prep docs for publication
 
-  - script: |
-      set -e
+  # - script: |
+  #     set -e
 
-      git --version
-      ls -la
-      git init
-      git config user.name 'Deployment Bot (from Azure Pipelines)'
-      git config user.email 'deploy@volta.sh'
-      git config --global credential.helper 'store --file ~/.my-credentials'
-      printf "protocol=https\nhost=github.com\nusername=volta-cli-deploy\npassword=%s\n\n" "$GITHUB_TOKEN" | git credential-store --file ~/.my-credentials store
-      npx gh-pages -d publish
+  #     git --version
+  #     ls -la
+  #     git init
+  #     git config user.name 'Deployment Bot (from Azure Pipelines)'
+  #     git config user.email 'deploy@volta.sh'
+  #     git config --global credential.helper 'store --file ~/.my-credentials'
+  #     printf "protocol=https\nhost=github.com\nusername=volta-cli-deploy\npassword=%s\n\n" "$GITHUB_TOKEN" | git credential-store --file ~/.my-credentials store
+  #     npx gh-pages -d publish
