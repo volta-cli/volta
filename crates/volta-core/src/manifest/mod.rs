@@ -42,7 +42,7 @@ impl Manifest {
                 file: package_file.to_string_lossy().to_string(),
             }
         })?;
-        serial.into_manifest()
+        serial.into_manifest(&package_file)
     }
 
     /// Returns a reference to the platform image specified by manifest, if any.

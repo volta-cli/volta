@@ -1,11 +1,14 @@
 //! The view layer of Volta, with utilities for styling command-line output.
-use crate::error::ErrorContext;
 use archive::Origin;
 use console::{style, StyledObject};
 use failure::Fail;
 use indicatif::{ProgressBar, ProgressStyle};
 use term_size;
-use volta_fail::VoltaError;
+use textwrap::Wrapper;
+
+use volta_fail::{throw, Fallible, VoltaError};
+
+use crate::error::{ErrorContext, ErrorDetails};
 
 // ISSUE #306 - When unknown error messages are removed, this can be removed as well
 const INTERNAL_ERROR_MESSAGE: &'static str = "an internal error occurred
@@ -18,9 +21,51 @@ Please feel free to reach out to us at \x1b[36m\x1b[1m@voltajs\x1b[0m on Twitter
     \x1b[1mhttps://github.com/volta-cli/volta/issues\x1b[0m
 ";
 
+const WARNING_PREFIX: &'static str = "warning:";
+const SHIM_WARNING_PREFIX: &'static str = "Volta warning:";
+
 /// Generate the styled prefix for a success message
 pub(crate) fn success_prefix() -> StyledObject<&'static str> {
     style("success:").green().bold()
+}
+
+fn styled_warning_prefix(prefix: &'static str) -> StyledObject<&'static str> {
+    style(prefix).yellow().bold()
+}
+
+pub(crate) fn write_warning(message: &str) -> Fallible<()> {
+    // Determine whether we're in a shim context or a Volta context.
+    let command = std::env::args_os()
+        .next()
+        .map(|os_str| std::path::PathBuf::from(os_str));
+
+    let command = command.and_then(|p| {
+        p.file_name()
+            .map(|os_str| os_str.to_string_lossy().into_owned())
+    });
+
+    let command = command.as_ref().map(String::as_str);
+
+    let prefix = match command {
+        Some("volta") => WARNING_PREFIX,
+        Some(_) => SHIM_WARNING_PREFIX,
+        None => throw!(ErrorDetails::CouldNotDetermineTool),
+    };
+
+    // We're creating a wrapped string with the prefix then immediately removing
+    // the prefix so that we get the appropriate width after the terminal does
+    // its fancy color substitutions: color styles are invisible characters, but
+    // counted by a `Wrapper` when filling lines.
+    let indent = format!("{:width$}", "", width = prefix.len() + 1);
+
+    let wrapped = Wrapper::new(text_width())
+        .subsequent_indent(&indent)
+        .fill(&format!("{} {}", prefix, message))
+        .replace(prefix, "");
+
+    println!("{}{}", styled_warning_prefix(prefix), wrapped);
+
+    Ok(())
 }
 
 /// Format an error for output in the given context
