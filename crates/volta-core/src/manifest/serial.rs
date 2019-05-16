@@ -378,7 +378,7 @@ pub mod tests {
         }"#;
         let manifest_node_only: Manifest =
             serde_json::de::from_str(package_node_only).expect("Could not deserialize string");
-        assert_eq!(manifest_node_only.toolchain.unwrap().node, "0.11.4");
+        assert_eq!(manifest_node_only.volta.unwrap().node, "0.11.4");
 
         let package_node_npm = r#"{
             "volta": {
@@ -389,7 +389,7 @@ pub mod tests {
         let manifest_node_npm: Manifest =
             serde_json::de::from_str(package_node_npm).expect("Could not deserialize string");
         let toolchain_node_npm = manifest_node_npm
-            .toolchain
+            .volta
             .expect("Did not parse toolchain correctly");
         assert_eq!(toolchain_node_npm.node, "0.10.5");
         assert_eq!(toolchain_node_npm.npm.unwrap(), "1.2.18");
@@ -415,7 +415,7 @@ pub mod tests {
         let manifest_node_and_yarn: Manifest =
             serde_json::de::from_str(package_node_and_yarn).expect("Could not deserialize string");
         let toolchain_node_and_yarn = manifest_node_and_yarn
-            .toolchain
+            .volta
             .expect("Did not parse toolchain correctly");
         assert_eq!(toolchain_node_and_yarn.node, "0.10.5");
         assert_eq!(toolchain_node_and_yarn.yarn.unwrap(), "1.2.1");
