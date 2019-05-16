@@ -1,5 +1,5 @@
 extern crate cfg_if;
-extern crate notion_layout_macro;
+extern crate volta_layout_macro;
 
 pub mod v1;
 

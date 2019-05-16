@@ -89,7 +89,7 @@ impl TempProjectBuilder {
         layout.user.user_toolchain_dir().ensure_empty();
         layout.user.tmp_dir().ensure_empty();
         // and these files do not exist
-        layout.install.notion_file().rm();
+        layout.install.volta_file().rm();
         layout.install.shim_executable().rm();
         layout.user.user_hooks_file().rm();
         layout.user.user_platform_file().rm();

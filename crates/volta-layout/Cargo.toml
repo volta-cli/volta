@@ -1,8 +1,8 @@
 [package]
-name = "notion-layout"
+name = "volta-layout"
 version = "0.1.0"
 authors = ["David Herman <david.herman@gmail.com>"]
 
 [dependencies]
-notion-layout-macro = { path = "../notion-layout-macro" }
+volta-layout-macro = { path = "../volta-layout-macro" }
 cfg-if = "0.1"

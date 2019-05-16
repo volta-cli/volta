@@ -1,18 +1,18 @@
 use crate::executable;
 use std::path::{Path, PathBuf};
 
-use notion_layout_macro::layout;
+use volta_layout_macro::layout;
 
-pub struct NotionLayout {
-    pub install: NotionInstall,
-    pub user: NotionHome,
+pub struct VoltaLayout {
+    pub install: VoltaInstall,
+    pub user: VoltaHome,
 }
 
-impl NotionLayout {
+impl VoltaLayout {
     pub fn new(install: PathBuf, home: PathBuf) -> Self {
-        NotionLayout {
-            install: NotionInstall::new(install),
-            user: NotionHome::new(home),
+        VoltaLayout {
+            install: VoltaInstall::new(install),
+            user: VoltaHome::new(home),
         }
     }
 
@@ -35,14 +35,14 @@ impl NotionLayout {
 }
 
 layout! {
-    /// The V1 layout for the core Notion installation directory.
-    pub struct NotionInstall {
-        "notion[.exe]": notion_file;
+    /// The V1 layout for the core Volta installation directory.
+    pub struct VoltaInstall {
+        "volta[.exe]": volta_file;
         "shim[.exe]": shim_executable;
     }
 
-    /// The V1 layout schema for the Notion user home directory.
-    pub struct NotionHome {
+    /// The V1 layout schema for the Volta user home directory.
+    pub struct VoltaHome {
         ".schema": schema_file;
         "cache": cache_dir {
             "node": node_cache_dir {
@@ -86,14 +86,14 @@ fn package_basename(name: &str, version: &str) -> String {
     format!("{}-{}", name, version)
 }
 
-impl NotionInstall {
+impl VoltaInstall {
     pub fn bin_dir(&self) -> &Path {
         // FIXME: should be <root>\bin on Windows
         self.root()
     }
 }
 
-impl NotionHome {
+impl VoltaHome {
     pub fn node_npm_version_file(&self, version: &str) -> PathBuf {
         let filename = format!("node-v{}-npm", version);
         self.node_inventory_dir().join(&filename)

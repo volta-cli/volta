@@ -3,16 +3,16 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use crate::error::ErrorDetails;
-use notion_layout::v1::NotionLayout;
+use volta_layout::v1::VoltaLayout;
 
 use ref_thread_local::{ref_thread_local, RefThreadLocal};
 
 ref_thread_local! {
-    static managed LAYOUT: Result<Rc<NotionLayout>, ErrorDetails> = {
+    static managed LAYOUT: Result<Rc<VoltaLayout>, ErrorDetails> = {
         volta_home().map(|home| {
             // ISSUE (#333): on Windows, this should be %ProgramFiles%\Notion
             let install = home.clone();
-            Rc::new(NotionLayout::new(install, home))
+            Rc::new(VoltaLayout::new(install, home))
         })
     };
 }
@@ -29,7 +29,7 @@ fn volta_home() -> Result<PathBuf, ErrorDetails> {
     }
 }
 
-pub fn layout() -> Result<Rc<NotionLayout>, ErrorDetails> {
+pub fn layout() -> Result<Rc<VoltaLayout>, ErrorDetails> {
     match *LAYOUT.borrow() {
         Ok(ref path) => Ok(path.clone()),
         Err(ref err) => Err(err.clone()),

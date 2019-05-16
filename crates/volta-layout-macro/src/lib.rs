@@ -9,7 +9,7 @@ use crate::ast::Ast;
 use proc_macro::TokenStream;
 use syn::parse_macro_input;
 
-/// A macro for defining Notion directory layout hierarchies.
+/// A macro for defining Volta directory layout hierarchies.
 ///
 /// The syntax of `layout!` takes the form:
 ///

@@ -1073,23 +1073,6 @@ version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "notion-layout"
-version = "0.1.0"
-dependencies = [
- "cfg-if 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "notion-layout-macro 0.1.0",
-]
-
-[[package]]
-name = "notion-layout-macro"
-version = "0.1.0"
-dependencies = [
- "proc-macro2 0.4.27 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 0.6.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 0.15.26 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "num"
 version = "0.1.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2276,7 +2259,6 @@ dependencies = [
  "lazycell 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mockito 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "notion-layout 0.1.0",
  "os_info 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "readext 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ref_thread_local 0.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2292,6 +2274,7 @@ dependencies = [
  "validate-npm-package-name 0.1.0",
  "volta-fail 0.1.0",
  "volta-fail-derive 0.1.0",
+ "volta-layout 0.1.0",
  "winfolder 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "winreg 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -2308,6 +2291,23 @@ dependencies = [
 
 [[package]]
 name = "volta-fail-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2 0.4.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quote 0.6.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 0.15.26 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "volta-layout"
+version = "0.1.0"
+dependencies = [
+ "cfg-if 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "volta-layout-macro 0.1.0",
+]
+
+[[package]]
+name = "volta-layout-macro"
 version = "0.1.0"
 dependencies = [
  "proc-macro2 0.4.27 (registry+https://github.com/rust-lang/crates.io-index)",
