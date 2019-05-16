@@ -1,0 +1,24 @@
+{
+  "node": {
+    "distro": {
+      "template": "http://localhost/node/distro/{{version}}/"
+    },
+    "latest": {
+      "template": "http://localhost/node/latest/{{version}}/"
+    },
+    "index": {
+      "template": "http://localhost/node/index/{{version}}/"
+    }
+  },
+  "yarn": {
+    "distro": {
+      "template": "http://localhost/yarn/distro/{{version}}/"
+    },
+    "latest": {
+      "template": "http://localhost/yarn/latest/{{version}}/"
+    },
+    "index": {
+      "template": "http://localhost/yarn/index/{{version}}/"
+    }
+  }
+}
