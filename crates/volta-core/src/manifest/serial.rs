@@ -359,7 +359,7 @@ pub mod tests {
     }
 
     #[test]
-    fn test_package_toolchain() {
+    fn test_package_toolchain_with_volta_key() {
         let package_empty_toolchain = r#"{
             "volta": {
             }
@@ -416,6 +416,69 @@ pub mod tests {
             serde_json::de::from_str(package_node_and_yarn).expect("Could not deserialize string");
         let toolchain_node_and_yarn = manifest_node_and_yarn
             .volta
+            .expect("Did not parse toolchain correctly");
+        assert_eq!(toolchain_node_and_yarn.node, "0.10.5");
+        assert_eq!(toolchain_node_and_yarn.yarn.unwrap(), "1.2.1");
+    }
+
+    #[test]
+    fn test_package_toolchain_with_toolchain_key() {
+        let package_empty_toolchain = r#"{
+            "toolchain": {
+            }
+        }"#;
+        let manifest_empty_toolchain =
+            serde_json::de::from_str::<Manifest>(package_empty_toolchain);
+        assert!(
+            manifest_empty_toolchain.is_err(),
+            "Node must be defined under the 'toolchain' key"
+        );
+
+        let package_node_only = r#"{
+            "toolchain": {
+                "node": "0.11.4"
+            }
+        }"#;
+        let manifest_node_only: Manifest =
+            serde_json::de::from_str(package_node_only).expect("Could not deserialize string");
+        assert_eq!(manifest_node_only.toolchain.unwrap().node, "0.11.4");
+
+        let package_node_npm = r#"{
+            "toolchain": {
+                "node": "0.10.5",
+                "npm": "1.2.18"
+            }
+        }"#;
+        let manifest_node_npm: Manifest =
+            serde_json::de::from_str(package_node_npm).expect("Could not deserialize string");
+        let toolchain_node_npm = manifest_node_npm
+            .toolchain
+            .expect("Did not parse toolchain correctly");
+        assert_eq!(toolchain_node_npm.node, "0.10.5");
+        assert_eq!(toolchain_node_npm.npm.unwrap(), "1.2.18");
+
+        let package_yarn_only = r#"{
+            "toolchain": {
+                "yarn": "1.2.1"
+            }
+        }"#;
+        let manifest_yarn_only = serde_json::de::from_str::<Manifest>(package_yarn_only);
+        assert!(
+            manifest_yarn_only.is_err(),
+            "Node must be defined under the 'toolchain' key"
+        );
+
+        let package_node_and_yarn = r#"{
+            "toolchain": {
+                "node": "0.10.5",
+                "npm": "1.2.18",
+                "yarn": "1.2.1"
+            }
+        }"#;
+        let manifest_node_and_yarn: Manifest =
+            serde_json::de::from_str(package_node_and_yarn).expect("Could not deserialize string");
+        let toolchain_node_and_yarn = manifest_node_and_yarn
+            .toolchain
             .expect("Did not parse toolchain correctly");
         assert_eq!(toolchain_node_and_yarn.node, "0.10.5");
         assert_eq!(toolchain_node_and_yarn.yarn.unwrap(), "1.2.1");
