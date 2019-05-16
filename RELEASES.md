@@ -1,3 +1,8 @@
+# Version 0.5.1
+
+- Add per-project hooks configuration in `<PROJECT_ROOT>/.volta/hooks.json` (#411)
+- Support backwards compatibility with `toolchain` key in `package.json` (#434)
+
 # Version 0.5.0
 
 - Rename to Volta: The JavaScript Launcher ⚡️
