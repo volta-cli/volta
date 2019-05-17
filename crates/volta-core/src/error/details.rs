@@ -18,6 +18,21 @@ an issue at https://github.com/volta-cli/volta/issues with the details!";
 const PERMISSIONS_CTA: &'static str =
     "Please ensure you have correct permissions to the Volta directory.";
 
+#[derive(Debug, PartialEq)]
+pub enum CreatePostscriptErrorPath {
+    Directory(PathBuf),
+    Unknown,
+}
+
+impl fmt::Display for CreatePostscriptErrorPath {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            CreatePostscriptErrorPath::Directory(in_dir) => write!(f, "{}", in_dir.display()),
+            CreatePostscriptErrorPath::Unknown => write!(f, "Unknown path"),
+        }
+    }
+}
+
 #[derive(Debug, Fail, PartialEq)]
 pub enum ErrorDetails {
     /// Thrown when package tries to install a binary that is already installed.
@@ -60,7 +75,7 @@ pub enum ErrorDetails {
 
     /// Thrown when unable to create the postscript file
     CreatePostscriptError {
-        in_dir: String,
+        in_dir: CreatePostscriptErrorPath,
     },
 
     /// Thrown when creating a temporary directory fails
