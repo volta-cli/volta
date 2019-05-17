@@ -480,7 +480,7 @@ Use `npm install` or `yarn add` to select a version of {} for this project.",
                 "Completions file `{}` already exists.
 
 Please remove the file or pass `-f` or `--force` to override.",
-                path.to_string_lossy()
+                path.display()
             ),
             ErrorDetails::ContainingDirError { path } => write!(
                 f,
@@ -488,7 +488,7 @@ Please remove the file or pass `-f` or `--force` to override.",
 for {}
 
 {}",
-                path.to_string_lossy(),
+                path.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::CouldNotDetermineTool => write!(
@@ -503,7 +503,7 @@ for {}
                 "Could not create directory {}
 
 Please ensure that you have the correct permissions.",
-                dir.to_string_lossy()
+                dir.display()
             ),
             ErrorDetails::CreatePostscriptError { in_dir } => write!(
                 f,
@@ -519,7 +519,7 @@ in {}
 in {}
 
 {}",
-                in_dir.to_string_lossy(),
+                in_dir.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::CreateTempFileError { in_dir } => write!(
@@ -528,7 +528,7 @@ in {}
 in {}
 
 {}",
-                in_dir.to_string_lossy(),
+                in_dir.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::CurrentDirError => write!(
@@ -543,7 +543,7 @@ Please ensure that you have the correct permissions."
 at {}
 
 {}",
-                directory.to_string_lossy(),
+                directory.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::DeleteFileError { file } => write!(
@@ -552,7 +552,7 @@ at {}
 at {}
 
 {}",
-                file.to_string_lossy(),
+                file.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::DepPackageReadError => write!(
@@ -785,7 +785,7 @@ Please verify the requested package name.",
 at {}
 
 Please ensure that the file is correctly formatted.",
-                file.to_string_lossy()
+                file.display()
             ),
             ErrorDetails::PackageReadError { file } => write!(
                 f,
@@ -793,7 +793,7 @@ Please ensure that the file is correctly formatted.",
 from {}
 
 Please ensure that the file exists.",
-                file.to_string_lossy()
+                file.display()
             ),
             ErrorDetails::PackageUnpackError => write!(
                 f,
@@ -814,7 +814,7 @@ Please verify that the version is correct."#,
 to {}
 
 Please ensure you have correct permissions.",
-                file.to_string_lossy()
+                file.display()
             ),
             ErrorDetails::ParseBinConfigError => write!(
                 f,
@@ -829,7 +829,7 @@ Please ensure you have correct permissions.",
 from {}
 
 Please ensure the file is correctly formatted.",
-                file.to_string_lossy()
+                file.display()
             ),
             ErrorDetails::ParseNodeIndexCacheError => write!(
                 f,
@@ -906,7 +906,7 @@ Please include one of 'bin' or 'url'"
 at {}
 
 {}",
-                dir.to_string_lossy(),
+                dir.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::ReadBinConfigError { file } => write!(
@@ -915,7 +915,7 @@ at {}
 from {}
 
 {}",
-                file.to_string_lossy(),
+                file.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::ReadDefaultNpmError { file } => write!(
@@ -924,7 +924,7 @@ from {}
 from {}
 
 {}",
-                file.to_string_lossy(),
+                file.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::ReadHooksError { file } => write!(
@@ -933,7 +933,7 @@ from {}
 from {}
 
 {}",
-                file.to_string_lossy(),
+                file.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::ReadInventoryDirError { dir } => write!(
@@ -942,7 +942,7 @@ from {}
 from {}
 
 {}",
-                dir.to_string_lossy(),
+                dir.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::ReadNodeIndexCacheError { file } => write!(
@@ -951,7 +951,7 @@ from {}
 from {}
 
 {}",
-                file.to_string_lossy(),
+                file.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::ReadNodeIndexExpiryError { file } => write!(
@@ -960,7 +960,7 @@ from {}
 from {}
 
 {}",
-                file.to_string_lossy(),
+                file.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::ReadNpmManifestError => write!(
@@ -975,7 +975,7 @@ Please ensure the version of Node is correct."
 from {}
 
 {}",
-                file.to_string_lossy(),
+                file.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::ReadPlatformError { file } => write!(
@@ -984,7 +984,7 @@ from {}
 from {}
 
 {}",
-                file.to_string_lossy(),
+                file.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::RegistryFetchError { tool, from_url } => write!(
@@ -1003,7 +1003,7 @@ at {}
 {}",
                 tool,
                 version,
-                dir.to_string_lossy(),
+                dir.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::ShimCreateError { name } => write!(
@@ -1089,7 +1089,7 @@ Please verify the intended version."#,
 to {}
 
 {}",
-                file.to_string_lossy(),
+                file.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::WriteDefaultNpmError { file } => write!(
@@ -1098,7 +1098,7 @@ to {}
 to {}
 
 {}",
-                file.to_string_lossy(),
+                file.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::WriteNodeIndexCacheError { file } => write!(
@@ -1107,7 +1107,7 @@ to {}
 to {}
 
 {}",
-                file.to_string_lossy(),
+                file.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::WriteNodeIndexExpiryError { file } => write!(
@@ -1116,7 +1116,7 @@ to {}
 to {}
 
 {}",
-                file.to_string_lossy(),
+                file.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::WritePackageConfigError { file } => write!(
@@ -1125,7 +1125,7 @@ to {}
 to {}
 
 {}",
-                file.to_string_lossy(),
+                file.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::WritePackageShasumError {
@@ -1140,7 +1140,7 @@ to {}
 {}",
                 package,
                 version,
-                file.to_string_lossy(),
+                file.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::WritePlatformError { file } => write!(
@@ -1149,7 +1149,7 @@ to {}
 to {}
 
 {}",
-                file.to_string_lossy(),
+                file.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::YarnLatestFetchError { from_url } => write!(
