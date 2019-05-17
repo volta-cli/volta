@@ -1,27 +1,58 @@
 steps:
-  - script: |
-      set -e
-      curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
-      echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
+  # - script: |
+  #     set -e
+  #     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
+  #     echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
 
-    displayName: Install nightly Rust for docs
+  #   displayName: Install nightly Rust for docs
 
-  - script: |
-      cargo doc -p progress-read --no-deps
-      cargo doc -p volta-fail --no-deps
-      cargo doc --features universal-docs -p archive --no-deps
-      cargo doc --features universal-docs -p volta-core --no-deps
-      cargo doc --features universal-docs --no-deps
-    env:
-      RUSTDOCFLAGS: --document-private-items
-    displayName: Generate docs
+  # - script: |
+  #     cargo doc -p progress-read --no-deps
+  #     cargo doc -p volta-fail --no-deps
+  #     cargo doc --features universal-docs -p archive --no-deps
+  #     cargo doc --features universal-docs -p volta-core --no-deps
+  #     cargo doc --features universal-docs --no-deps
+  #   env:
+  #     RUSTDOCFLAGS: --document-private-items
+  #   displayName: Generate docs
 
+  # mv target/doc publish/master
   - script: |
       mkdir -p publish
-      mv target/doc publish/master
       echo '<!doctype html><a href="volta">volta</a>' > publish/master/index.html
       echo '<!doctype html><a href="master">master</a>' > publish/index.html
     displayName: Prep docs for publication
+
+  - script: |
+      set -e
+      git init
+      git config user.name 'Deployment Bot (from Azure Pipelines)'
+      git config user.email 'david.herman@gmail.com'
+      git add .
+      git commit -m 'Publishing GitHub Pages [ci skip]'
+    displayName: Commit pages
+    workingDirectory: ./publish
+
+  - task: DownloadSecureFile@1
+    inputs:
+      secureFile: volta_deploy_key
+    displayName: Fetch deploy key
+
+  - script: |
+      echo ------------------------------------------
+      set
+      echo ------------------------------------------
+      echo "1 -- $DOWNLOADSECUREFILE_SECUREFILEPATH"
+      echo "----- ls -----"
+      (cd $AGENT_TEMPDIRECTORY && ls)
+      echo "----- -- -----"
+      mkdir ~/.ssh && mv $DOWNLOADSECUREFILE_SECUREFILEPATH ~/.ssh/id_rsa
+      chmod 700 ~/.ssh && chmod 600 ~/.ssh/id_rsa
+      ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+      git branch
+      git log
+    displayName: Push to GitHub Pages
+    workingDirectory: ./publish
 
   # - script: |
   #     set -e
