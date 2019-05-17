@@ -24,13 +24,13 @@ pub fn ensure_containing_dir_exists<P: AsRef<Path>>(path: &P) -> Fallible<()> {
         .parent()
         .ok_or(
             ErrorDetails::ContainingDirError {
-                path: path.as_ref().to_string_lossy().to_string(),
+                path: path.as_ref().to_path_buf(),
             }
             .into(),
         )
         .and_then(|dir| {
             fs::create_dir_all(dir).with_context(|_| ErrorDetails::CreateDirError {
-                dir: dir.to_string_lossy().to_string(),
+                dir: dir.to_path_buf(),
             })
         })
 }
@@ -45,7 +45,7 @@ pub fn ensure_dir_does_not_exist<P: AsRef<Path>>(path: &P) -> Fallible<()> {
 }
 
 pub fn delete_dir_error<P: AsRef<Path>>(directory: &P) -> impl FnOnce(&io::Error) -> ErrorDetails {
-    let directory = directory.as_ref().to_string_lossy().to_string();
+    let directory = directory.as_ref().to_path_buf();
     |_| ErrorDetails::DeleteDirectoryError { directory }
 }
 

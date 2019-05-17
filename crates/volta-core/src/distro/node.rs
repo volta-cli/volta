@@ -59,7 +59,7 @@ pub fn load_default_npm_version(node: &Version) -> Fallible<Version> {
     let npm_version_file_path = path::node_npm_version_file(&node.to_string())?;
     let npm_version = read_to_string(&npm_version_file_path).with_context(|_| {
         ErrorDetails::ReadDefaultNpmError {
-            file: npm_version_file_path.to_string_lossy().to_string(),
+            file: npm_version_file_path,
         }
     })?;
     VersionSpec::parse_version(npm_version)
@@ -70,7 +70,7 @@ fn save_default_npm_version(node: &Version, npm: &Version) -> Fallible<()> {
     let npm_version_file_path = path::node_npm_version_file(&node.to_string())?;
     write(&npm_version_file_path, npm.to_string().as_bytes()).with_context(|_| {
         ErrorDetails::WriteDefaultNpmError {
-            file: npm_version_file_path.to_string_lossy().to_string(),
+            file: npm_version_file_path,
         }
     })
 }
@@ -179,9 +179,8 @@ impl Distro for NodeDistro {
         }
 
         let tmp_root = path::tmp_dir()?;
-        let temp = tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError {
-            in_dir: tmp_root.to_string_lossy().to_string(),
-        })?;
+        let temp = tempdir_in(&tmp_root)
+            .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })?;
         let bar = progress_bar(
             self.archive.origin(),
             &tool_version("node", &self.version),
@@ -222,7 +221,7 @@ impl Distro for NodeDistro {
         .with_context(|_| ErrorDetails::SetupToolImageError {
             tool: String::from("Node"),
             version: version_string.clone(),
-            dir: dest.to_string_lossy().to_string(),
+            dir: dest,
         })?;
 
         bar.finish_and_clear();

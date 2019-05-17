@@ -49,13 +49,13 @@ pub enum ErrorDetails {
 
     /// Thrown when the containing directory could not be determined
     ContainingDirError {
-        path: String,
+        path: PathBuf,
     },
 
     CouldNotDetermineTool,
 
     CreateDirError {
-        dir: String,
+        dir: PathBuf,
     },
 
     /// Thrown when unable to create the postscript file
@@ -65,24 +65,24 @@ pub enum ErrorDetails {
 
     /// Thrown when creating a temporary directory fails
     CreateTempDirError {
-        in_dir: String,
+        in_dir: PathBuf,
     },
 
     /// Thrown when creating a temporary file fails
     CreateTempFileError {
-        in_dir: String,
+        in_dir: PathBuf,
     },
 
     CurrentDirError,
 
     /// Thrown when deleting a directory fails
     DeleteDirectoryError {
-        directory: String,
+        directory: PathBuf,
     },
 
     /// Thrown when deleting a file fails
     DeleteFileError {
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when reading dependency package info fails
@@ -207,12 +207,12 @@ pub enum ErrorDetails {
 
     /// Thrown when parsing a package manifest fails
     PackageParseError {
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when reading a package manifest fails
     PackageReadError {
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when a package has been unpacked but is not formed correctly.
@@ -226,7 +226,7 @@ pub enum ErrorDetails {
 
     /// Thrown when writing a package manifest fails
     PackageWriteError {
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when unable to parse a bin config file
@@ -234,7 +234,7 @@ pub enum ErrorDetails {
 
     /// Thrown when unable to parse a hooks.json file
     ParseHooksError {
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when unable to parse the node index cache
@@ -275,37 +275,37 @@ pub enum ErrorDetails {
 
     /// Thrown when there was an error reading the user bin directory
     ReadBinConfigDirError {
-        dir: String,
+        dir: PathBuf,
     },
 
     /// Thrown when there was an error reading the config for a binary
     ReadBinConfigError {
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when unable to read the default npm version file
     ReadDefaultNpmError {
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when there was an error opening a hooks.json file
     ReadHooksError {
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when there was an error reading the inventory contents
     ReadInventoryDirError {
-        dir: String,
+        dir: PathBuf,
     },
 
     /// Thrown when there was an error reading the Node Index Cache
     ReadNodeIndexCacheError {
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when there was an error reading the Node Index Cache Expiration
     ReadNodeIndexExpiryError {
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when there was an error reading the npm manifest file
@@ -313,12 +313,12 @@ pub enum ErrorDetails {
 
     /// Thrown when there was an error reading a package configuration file
     ReadPackageConfigError {
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when there was an error opening the user platform file
     ReadPlatformError {
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when the public registry for Node or Yarn could not be downloaded.
@@ -331,7 +331,7 @@ pub enum ErrorDetails {
     SetupToolImageError {
         tool: String,
         version: String,
-        dir: String,
+        dir: PathBuf,
     },
 
     /// Thrown when Volta is unable to create a shim
@@ -389,39 +389,39 @@ pub enum ErrorDetails {
 
     /// Thrown when there was an error writing a bin config file
     WriteBinConfigError {
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when there was an error writing the default npm to file
     WriteDefaultNpmError {
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when there was an error writing the node index cache
     WriteNodeIndexCacheError {
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when there was an error writing the node index expiration
     WriteNodeIndexExpiryError {
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when there was an error writing a package config
     WritePackageConfigError {
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when there was an error writing the shasum for a package
     WritePackageShasumError {
         package: String,
         version: String,
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when writing the platform.json file fails
     WritePlatformError {
-        file: String,
+        file: PathBuf,
     },
 
     /// Thrown when there is an error fetching the latest version of Yarn
@@ -488,7 +488,8 @@ Please remove the file or pass `-f` or `--force` to override.",
 for {}
 
 {}",
-                path, PERMISSIONS_CTA
+                path.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::CouldNotDetermineTool => write!(
                 f,
@@ -502,7 +503,7 @@ for {}
                 "Could not create directory {}
 
 Please ensure that you have the correct permissions.",
-                dir
+                dir.to_string_lossy()
             ),
             ErrorDetails::CreatePostscriptError { in_dir } => write!(
                 f,
@@ -518,7 +519,8 @@ in {}
 in {}
 
 {}",
-                in_dir, PERMISSIONS_CTA
+                in_dir.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::CreateTempFileError { in_dir } => write!(
                 f,
@@ -526,7 +528,8 @@ in {}
 in {}
 
 {}",
-                in_dir, PERMISSIONS_CTA
+                in_dir.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::CurrentDirError => write!(
                 f,
@@ -540,7 +543,8 @@ Please ensure that you have the correct permissions."
 at {}
 
 {}",
-                directory, PERMISSIONS_CTA
+                directory.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::DeleteFileError { file } => write!(
                 f,
@@ -548,7 +552,8 @@ at {}
 at {}
 
 {}",
-                file, PERMISSIONS_CTA
+                file.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::DepPackageReadError => write!(
                 f,
@@ -780,7 +785,7 @@ Please verify the requested package name.",
 at {}
 
 Please ensure that the file is correctly formatted.",
-                file
+                file.to_string_lossy()
             ),
             ErrorDetails::PackageReadError { file } => write!(
                 f,
@@ -788,7 +793,7 @@ Please ensure that the file is correctly formatted.",
 from {}
 
 Please ensure that the file exists.",
-                file
+                file.to_string_lossy()
             ),
             ErrorDetails::PackageUnpackError => write!(
                 f,
@@ -809,7 +814,7 @@ Please verify that the version is correct."#,
 to {}
 
 Please ensure you have correct permissions.",
-                file
+                file.to_string_lossy()
             ),
             ErrorDetails::ParseBinConfigError => write!(
                 f,
@@ -824,7 +829,7 @@ Please ensure you have correct permissions.",
 from {}
 
 Please ensure the file is correctly formatted.",
-                file
+                file.to_string_lossy()
             ),
             ErrorDetails::ParseNodeIndexCacheError => write!(
                 f,
@@ -901,7 +906,8 @@ Please include one of 'bin' or 'url'"
 at {}
 
 {}",
-                dir, PERMISSIONS_CTA
+                dir.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::ReadBinConfigError { file } => write!(
                 f,
@@ -909,7 +915,8 @@ at {}
 from {}
 
 {}",
-                file, PERMISSIONS_CTA
+                file.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::ReadDefaultNpmError { file } => write!(
                 f,
@@ -917,7 +924,8 @@ from {}
 from {}
 
 {}",
-                file, PERMISSIONS_CTA
+                file.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::ReadHooksError { file } => write!(
                 f,
@@ -925,7 +933,8 @@ from {}
 from {}
 
 {}",
-                file, PERMISSIONS_CTA
+                file.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::ReadInventoryDirError { dir } => write!(
                 f,
@@ -933,7 +942,8 @@ from {}
 from {}
 
 {}",
-                dir, PERMISSIONS_CTA
+                dir.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::ReadNodeIndexCacheError { file } => write!(
                 f,
@@ -941,7 +951,8 @@ from {}
 from {}
 
 {}",
-                file, PERMISSIONS_CTA
+                file.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::ReadNodeIndexExpiryError { file } => write!(
                 f,
@@ -949,7 +960,8 @@ from {}
 from {}
 
 {}",
-                file, PERMISSIONS_CTA
+                file.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::ReadNpmManifestError => write!(
                 f,
@@ -963,7 +975,8 @@ Please ensure the version of Node is correct."
 from {}
 
 {}",
-                file, PERMISSIONS_CTA
+                file.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::ReadPlatformError { file } => write!(
                 f,
@@ -971,7 +984,8 @@ from {}
 from {}
 
 {}",
-                file, PERMISSIONS_CTA
+                file.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::RegistryFetchError { tool, from_url } => write!(
                 f,
@@ -987,7 +1001,10 @@ Please verify your internet connection.",
 at {}
 
 {}",
-                tool, version, dir, PERMISSIONS_CTA
+                tool,
+                version,
+                dir.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::ShimCreateError { name } => write!(
                 f,
@@ -1072,7 +1089,8 @@ Please verify the intended version."#,
 to {}
 
 {}",
-                file, PERMISSIONS_CTA
+                file.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::WriteDefaultNpmError { file } => write!(
                 f,
@@ -1080,7 +1098,8 @@ to {}
 to {}
 
 {}",
-                file, PERMISSIONS_CTA
+                file.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::WriteNodeIndexCacheError { file } => write!(
                 f,
@@ -1088,7 +1107,8 @@ to {}
 to {}
 
 {}",
-                file, PERMISSIONS_CTA
+                file.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::WriteNodeIndexExpiryError { file } => write!(
                 f,
@@ -1096,7 +1116,8 @@ to {}
 to {}
 
 {}",
-                file, PERMISSIONS_CTA
+                file.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::WritePackageConfigError { file } => write!(
                 f,
@@ -1104,7 +1125,8 @@ to {}
 to {}
 
 {}",
-                file, PERMISSIONS_CTA
+                file.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::WritePackageShasumError {
                 package,
@@ -1116,7 +1138,10 @@ to {}
 to {}
 
 {}",
-                package, version, file, PERMISSIONS_CTA
+                package,
+                version,
+                file.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::WritePlatformError { file } => write!(
                 f,
@@ -1124,7 +1149,8 @@ to {}
 to {}
 
 {}",
-                file, PERMISSIONS_CTA
+                file.to_string_lossy(),
+                PERMISSIONS_CTA
             ),
             ErrorDetails::YarnLatestFetchError { from_url } => write!(
                 f,

@@ -197,9 +197,8 @@ impl Distro for PackageDistro {
         );
 
         let tmp_root = path::tmp_dir()?;
-        let temp = tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError {
-            in_dir: tmp_root.to_string_lossy().to_string(),
-        })?;
+        let temp = tempdir_in(&tmp_root)
+            .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })?;
         archive
             .unpack(temp.path(), &mut |_, read| {
                 bar.inc(read as u64);
@@ -220,7 +219,7 @@ impl Distro for PackageDistro {
             ErrorDetails::SetupToolImageError {
                 tool: self.name.clone(),
                 version: self.version.to_string(),
-                dir: unpack_dir.to_string_lossy().to_string(),
+                dir: unpack_dir,
             }
         })?;
 
@@ -229,7 +228,7 @@ impl Distro for PackageDistro {
             ErrorDetails::WritePackageShasumError {
                 package: self.name.clone(),
                 version: self.version.to_string(),
-                file: self.shasum_file.to_string_lossy().to_string(),
+                file: self.shasum_file.to_owned(),
             }
         })?;
 
@@ -489,7 +488,7 @@ impl PackageVersion {
 }
 
 fn delete_file_error(file: &PathBuf) -> impl FnOnce(&io::Error) -> ErrorDetails {
-    let file = file.to_string_lossy().to_string();
+    let file = file.to_path_buf();
     |_| ErrorDetails::DeleteFileError { file }
 }
 
@@ -507,7 +506,7 @@ pub fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
         None
     })
     .with_context(|_| ErrorDetails::ReadBinConfigDirError {
-        dir: bin_config_dir.to_string_lossy().to_string(),
+        dir: bin_config_dir,
     })
 }
 

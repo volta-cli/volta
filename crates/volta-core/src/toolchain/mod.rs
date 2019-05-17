@@ -47,9 +47,7 @@ impl Toolchain {
         let path = user_platform_file()?;
         let src = touch(&path)
             .and_then(|mut file| file.read_into_string())
-            .with_context(|_| ErrorDetails::ReadPlatformError {
-                file: path.to_string_lossy().to_string(),
-            })?;
+            .with_context(|_| ErrorDetails::ReadPlatformError { file: path })?;
 
         Ok(Toolchain {
             platform: serial::Platform::from_json(src)?.into_platform()?,
@@ -135,8 +133,6 @@ impl Toolchain {
             }
             None => write(&path, "{}"),
         };
-        result.with_context(|_| ErrorDetails::WritePlatformError {
-            file: path.to_string_lossy().to_string(),
-        })
+        result.with_context(|_| ErrorDetails::WritePlatformError { file: path })
     }
 }

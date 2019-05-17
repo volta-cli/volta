@@ -28,7 +28,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 /// syntax `?P<version>`.
 fn versions_matching(dir: &Path, re: &Regex) -> Fallible<BTreeSet<Version>> {
     let contents = read_dir_eager(dir).with_context(|_| ErrorDetails::ReadInventoryDirError {
-        dir: dir.to_string_lossy().to_string(),
+        dir: dir.to_path_buf(),
     })?;
     contents
         .filter(|(_, metadata)| metadata.is_file())
@@ -276,7 +276,7 @@ impl package::PackageConfig {
     pub fn from_file(file: &PathBuf) -> Fallible<Self> {
         let config_src =
             read_to_string(file).with_context(|_| ErrorDetails::ReadPackageConfigError {
-                file: file.to_string_lossy().to_string(),
+                file: file.to_path_buf(),
             })?;
         PackageConfig::from_json(config_src)?.into_config()
     }
@@ -294,9 +294,7 @@ impl package::PackageConfig {
 impl package::BinConfig {
     pub fn from_file(file: PathBuf) -> Fallible<Self> {
         let config_src =
-            read_to_string(&file).with_context(|_| ErrorDetails::ReadBinConfigError {
-                file: file.to_string_lossy().to_string(),
-            })?;
+            read_to_string(&file).with_context(|_| ErrorDetails::ReadBinConfigError { file })?;
         BinConfig::from_json(config_src)?.into_config()
     }
 
@@ -337,7 +335,7 @@ impl PackageConfig {
         let config_file_path = path::user_package_config_file(&self.name)?;
         ensure_containing_dir_exists(&config_file_path)?;
         write(&config_file_path, src).with_context(|_| ErrorDetails::WritePackageConfigError {
-            file: config_file_path.to_string_lossy().to_string(),
+            file: config_file_path,
         })
     }
 
@@ -369,7 +367,7 @@ impl BinConfig {
         let bin_config_path = path::user_tool_bin_config(&self.name)?;
         ensure_containing_dir_exists(&bin_config_path)?;
         write(&bin_config_path, src).with_context(|_| ErrorDetails::WriteBinConfigError {
-            file: bin_config_path.to_string_lossy().to_string(),
+            file: bin_config_path,
         })
     }
 

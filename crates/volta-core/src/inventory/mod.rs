@@ -565,10 +565,8 @@ pub struct NodeDistroFiles {
 /// Reads a public index from the Node cache, if it exists and hasn't expired.
 fn read_cached_opt() -> Fallible<Option<serial::NodeIndex>> {
     let expiry_file = path::node_index_expiry_file()?;
-    let expiry =
-        read_file_opt(&expiry_file).with_context(|_| ErrorDetails::ReadNodeIndexExpiryError {
-            file: expiry_file.to_string_lossy().to_string(),
-        })?;
+    let expiry = read_file_opt(&expiry_file)
+        .with_context(|_| ErrorDetails::ReadNodeIndexExpiryError { file: expiry_file })?;
 
     if let Some(string) = expiry {
         let expiry_date = HttpDate::from_str(&string)
@@ -577,11 +575,8 @@ fn read_cached_opt() -> Fallible<Option<serial::NodeIndex>> {
 
         if current_date < expiry_date {
             let index_file = path::node_index_file()?;
-            let cached = read_file_opt(&index_file).with_context(|_| {
-                ErrorDetails::ReadNodeIndexCacheError {
-                    file: index_file.to_string_lossy().to_string(),
-                }
-            })?;
+            let cached = read_file_opt(&index_file)
+                .with_context(|_| ErrorDetails::ReadNodeIndexCacheError { file: index_file })?;
 
             if let Some(string) = cached {
                 return serde_json::de::from_str(&string)
@@ -627,7 +622,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
 
             let tmp_root = path::tmp_dir()?;
             // Helper to lazily determine temp dir string, without moving the file into the closures below
-            let get_tmp_root = || tmp_root.to_string_lossy().to_string();
+            let get_tmp_root = || tmp_root.to_owned();
 
             let cached = NamedTempFile::new_in(&tmp_root).with_context(|_| {
                 ErrorDetails::CreateTempFileError {
@@ -641,7 +636,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
                 cached_file
                     .write(response_text.as_bytes())
                     .with_context(|_| ErrorDetails::WriteNodeIndexCacheError {
-                        file: cached.path().to_string_lossy().to_string(),
+                        file: cached.path().to_path_buf(),
                     })?;
             }
 
@@ -649,7 +644,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
             ensure_containing_dir_exists(&index_cache_file)?;
             cached.persist(&index_cache_file).with_context(|_| {
                 ErrorDetails::WriteNodeIndexCacheError {
-                    file: index_cache_file.to_string_lossy().to_string(),
+                    file: index_cache_file,
                 }
             })?;
 
@@ -673,7 +668,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
                 };
 
                 result.with_context(|_| ErrorDetails::WriteNodeIndexExpiryError {
-                    file: expiry.path().to_string_lossy().to_string(),
+                    file: expiry.path().to_path_buf(),
                 })?;
             }
 
@@ -681,7 +676,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
             ensure_containing_dir_exists(&index_expiry_file)?;
             expiry.persist(&index_expiry_file).with_context(|_| {
                 ErrorDetails::WriteNodeIndexExpiryError {
-                    file: index_expiry_file.to_string_lossy().to_string(),
+                    file: index_expiry_file,
                 }
             })?;
 
