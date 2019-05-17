@@ -123,9 +123,8 @@ impl Distro for YarnDistro {
         }
 
         let tmp_root = path::tmp_dir()?;
-        let temp = tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError {
-            in_dir: tmp_root.to_string_lossy().to_string(),
-        })?;
+        let temp = tempdir_in(&tmp_root)
+            .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })?;
         let bar = progress_bar(
             self.archive.origin(),
             &tool_version("yarn", &self.version),
@@ -156,7 +155,7 @@ impl Distro for YarnDistro {
         .with_context(|_| ErrorDetails::SetupToolImageError {
             tool: String::from("Yarn"),
             version: version_string.clone(),
-            dir: dest.to_string_lossy().to_string(),
+            dir: dest,
         })?;
 
         bar.finish_and_clear();

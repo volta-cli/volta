@@ -46,9 +46,7 @@ pub fn ensure_volta_dirs_exist() -> Fallible<()> {
 }
 
 fn ensure_dir_exists(path: PathBuf) -> Fallible<()> {
-    fs::create_dir_all(&path).with_context(|_| ErrorDetails::CreateDirError {
-        dir: path.to_string_lossy().to_string(),
-    })
+    fs::create_dir_all(&path).with_context(|_| ErrorDetails::CreateDirError { dir: path })
 }
 
 pub fn volta_home() -> Fallible<PathBuf> {

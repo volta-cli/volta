@@ -135,12 +135,12 @@ impl HookConfig {
         }
 
         let file = File::open(file_path).with_context(|_| ErrorDetails::ReadHooksError {
-            file: file_path.to_string_lossy().to_string(),
+            file: file_path.to_path_buf(),
         })?;
 
         let serial: serial::HookConfig =
             serde_json::de::from_reader(file).with_context(|_| ErrorDetails::ParseHooksError {
-                file: file_path.to_string_lossy().to_string(),
+                file: file_path.to_path_buf(),
             })?;
 
         serial.into_hook_config().map(|hooks| Some(hooks))

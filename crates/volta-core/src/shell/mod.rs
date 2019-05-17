@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use semver::Version;
 
-use crate::error::ErrorDetails;
+use crate::error::{CreatePostscriptErrorPath, ErrorDetails};
 use crate::fs::ensure_containing_dir_exists;
 use volta_fail::{Fallible, ResultExt, VoltaError};
 
@@ -31,9 +31,11 @@ pub trait Shell {
         let path = self.postscript_path();
         ensure_containing_dir_exists(&path)?;
         write(path, self.compile_postscript(postscript).as_bytes()).with_context(|_| {
-            let in_dir = path.parent().map_or(String::from("Unknown path"), |p| {
-                p.to_string_lossy().to_string()
-            });
+            let in_dir = path
+                .parent()
+                .map_or(CreatePostscriptErrorPath::Unknown, |p| {
+                    CreatePostscriptErrorPath::Directory(p.to_path_buf())
+                });
             ErrorDetails::CreatePostscriptError { in_dir }
         })
     }

@@ -34,12 +34,12 @@ impl Manifest {
     pub fn for_dir(project_root: &Path) -> Fallible<Manifest> {
         let package_file = project_root.join("package.json");
         let file = File::open(&package_file).with_context(|_| ErrorDetails::PackageReadError {
-            file: package_file.to_string_lossy().to_string(),
+            file: package_file.to_path_buf(),
         })?;
 
         let serial: serial::Manifest = serde_json::de::from_reader(file).with_context(|_| {
             ErrorDetails::PackageParseError {
-                file: package_file.to_string_lossy().to_string(),
+                file: package_file.to_path_buf(),
             }
         })?;
         serial.into_manifest(&package_file)
@@ -93,7 +93,7 @@ impl Manifest {
     ) -> Fallible<()> {
         // Helper for lazily creating the file name string without moving `package_file` into
         // one of the individual `with_context` closures below.
-        let get_file = || package_file.to_string_lossy().to_string();
+        let get_file = || package_file.to_owned();
 
         // parse the entire package.json file into a Value
         let contents = read_to_string(&package_file)
