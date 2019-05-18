@@ -1,4 +1,5 @@
 use std::ffi::OsString;
+use std::iter::once;
 
 use super::ToolCommand;
 use crate::error::ErrorDetails;
@@ -43,11 +44,21 @@ where
     // try to use the user toolchain
     if let Some(user_tool) = session.get_user_tool(&exe)? {
         let path = user_tool.image.path()?;
-        return Ok(ToolCommand::direct(
-            &user_tool.bin_path.as_os_str(),
-            args,
-            &path,
-        ));
+        let tool_path = user_tool.bin_path.into_os_string();
+        let cmd = match user_tool.loader {
+            Some(loader) => ToolCommand::direct(
+                loader.command.as_ref(),
+                loader
+                    .args
+                    .iter()
+                    .map(|arg| OsString::from(arg))
+                    .chain(once(tool_path))
+                    .chain(args),
+                &path,
+            ),
+            None => ToolCommand::direct(&tool_path, args, &path),
+        };
+        return Ok(cmd);
     }
 
     // at this point, there is no project or user toolchain
