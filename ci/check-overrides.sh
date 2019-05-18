@@ -73,6 +73,7 @@ echo
 echo "$commit_message" | sed 's/^/    > /'
 echo
 
+# FIXME: add an early check that this isn't from a fork repo, to give a better error message
 docs=$(check_override "$commit_message" '[ci docs]')
 
 set_output_variable docs $docs
