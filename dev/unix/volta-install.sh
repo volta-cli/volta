@@ -20,7 +20,7 @@ download_release_from_repo() {
   local tmpdir="$3"
 
   local filename="volta-$version-$os_info.tar.gz"
-  local download_file="$download_dir/$filename"
+  local download_file="$tmpdir/$filename"
   local archive_url="$(release_url)/download/v$version/$filename"
 
   curl --progress-bar --show-error --location --fail "$archive_url" --output "$download_file" && echo "$download_file"
