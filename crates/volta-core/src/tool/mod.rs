@@ -235,9 +235,9 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
 }
 
 /// Represents the command to execute a tool
-enum ToolCommand {
-    Direct(Command),
-    Passthrough(Command, ErrorDetails),
+struct ToolCommand {
+    command: Command,
+    error: ErrorDetails,
 }
 
 impl ToolCommand {
@@ -245,7 +245,22 @@ impl ToolCommand {
     where
         A: IntoIterator<Item = OsString>,
     {
-        ToolCommand::Direct(command_for(exe, args, path_var))
+        ToolCommand {
+            command: command_for(exe, args, path_var),
+            error: ErrorDetails::BinaryExecError,
+        }
+    }
+
+    fn project_local<A>(exe: &OsStr, args: A, path_var: &OsStr) -> Self
+    where
+        A: IntoIterator<Item = OsString>,
+    {
+        ToolCommand {
+            command: command_for(exe, args, path_var),
+            error: ErrorDetails::ProjectLocalBinaryExecError {
+                command: exe.to_string_lossy().to_string(),
+            },
+        }
     }
 
     fn passthrough<A>(exe: &OsStr, args: A, default_error: ErrorDetails) -> Fallible<Self>
@@ -253,21 +268,14 @@ impl ToolCommand {
         A: IntoIterator<Item = OsString>,
     {
         let path = System::path()?;
-        Ok(ToolCommand::Passthrough(
-            command_for(exe, args, &path),
-            default_error,
-        ))
+        Ok(ToolCommand {
+            command: command_for(exe, args, &path),
+            error: default_error,
+        })
     }
 
-    fn exec(self) -> Fallible<ExitStatus> {
-        match self {
-            ToolCommand::Direct(mut command) => command
-                .status()
-                .with_context(|_| ErrorDetails::BinaryExecError),
-            ToolCommand::Passthrough(mut command, error) => {
-                command.status().with_context(|_| error)
-            }
-        }
+    fn exec(mut self) -> Fallible<ExitStatus> {
+        self.command.status().with_context(|_| self.error)
     }
 }
 
