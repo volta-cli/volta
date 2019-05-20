@@ -1,3 +1,8 @@
+# Version 0.5.2
+
+- Improve error messages when running a project-local binary fails (#426)
+- Fix execution of user binaries on Windows (#445)
+
 # Version 0.5.1
 
 - Add per-project hooks configuration in `<PROJECT_ROOT>/.volta/hooks.json` (#411)
