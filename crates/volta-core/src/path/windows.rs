@@ -112,7 +112,7 @@ pub fn node_archive_npm_package_json_path(version: &str) -> PathBuf {
 
 cfg_if::cfg_if! {
     // We don't want to be reading from the Registry when testing, so use a fixture PathBuf
-    if #[cfg(any(test, feature = "universal-docs"))] {
+    if #[cfg(any(test, feature = "cross-platform-docs"))] {
         fn install_dir() -> Fallible<PathBuf> {
             Ok(PathBuf::from(r#"Z:\"#))
         }
@@ -158,7 +158,7 @@ pub fn create_file_symlink(src: PathBuf, dst: PathBuf) -> Result<(), io::Error> 
     #[cfg(windows)]
     return windows::fs::symlink_file(src, dst);
 
-    // "universal-docs" is built on a Unix machine, so we can't include Windows-specific libs
-    #[cfg(feature = "universal-docs")]
+    // Cross-platform docs are built on a Unix machine so we can't use Windows APIs.
+    #[cfg(feature = "cross-platform-docs")]
     unimplemented!()
 }

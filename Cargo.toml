@@ -7,7 +7,7 @@ repository = "https://github.com/volta-cli/volta"
 edition = "2018"
 
 [features]
-universal-docs = ["volta-core/universal-docs"]
+cross-platform-docs = ["volta-core/cross-platform-docs"]
 mock-network = ["mockito", "volta-core/mock-network"]
 volta-dev = []
 smoke-tests = []

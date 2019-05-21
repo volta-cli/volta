@@ -10,7 +10,7 @@ use crate::error::ErrorDetails;
 use volta_fail::{Fallible, ResultExt};
 
 cfg_if::cfg_if! {
-    if #[cfg(feature = "universal-docs")] {
+    if #[cfg(feature = "cross-platform-docs")] {
         // Mark in the API docs as Unix-only.
         // https://doc.rust-lang.org/nightly/unstable-book/language-features/doc-cfg.html
         #[doc(cfg(unix))]

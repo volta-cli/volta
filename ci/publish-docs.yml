@@ -9,8 +9,8 @@ steps:
       cargo doc -p progress-read --no-deps
       cargo doc -p volta-fail --no-deps
       cargo doc -p archive --no-deps
-      cargo doc --features universal-docs -p volta-core --no-deps
-      cargo doc --features universal-docs --no-deps
+      cargo doc --features cross-platform-docs -p volta-core --no-deps
+      cargo doc --features cross-platform-docs --no-deps
     env:
       RUSTDOCFLAGS: --document-private-items
     displayName: Generate docs

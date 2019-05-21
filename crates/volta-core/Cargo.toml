@@ -6,10 +6,11 @@ edition = "2018"
 
 [features]
 mock-network = ["mockito"]
-# The `universal-docs` feature flag is used for generating multi-platform API docs.
+# The `cross-platform-docs` feature flag is used for generating API docs for
+# multiple platforms in one build.
 # See ci/publish-docs.yml for an example of how it's enabled.
 # See volta-core::path for an example of where it's used.
-universal-docs = []
+cross-platform-docs = []
 
 [dependencies]
 term_size = "0.3.0"
