@@ -1,26 +1,13 @@
 steps:
   - script: |
-      set -e
-      curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
-      echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
-    displayName: Install nightly Rust for docs
-
-  - script: |
-      cargo doc -p progress-read --no-deps
-      cargo doc -p volta-fail --no-deps
-      cargo doc -p archive --no-deps
-      cargo doc --features cross-platform-docs -p volta-core --no-deps
-      cargo doc --features cross-platform-docs --no-deps
-    env:
-      RUSTDOCFLAGS: --document-private-items
-    displayName: Generate docs
-
-  - script: |
       mkdir -p publish
-      mv target/doc publish/master
-      echo '<!doctype html><a href="volta">volta</a>' > publish/master/index.html
-      echo '<!doctype html><a href="master">master</a>' > publish/index.html
-    displayName: Prep docs for publication
+    displayName: Create publish directory
+
+  - task: DownloadPipelineArtifact@0
+    inputs:
+      artifactName: 'api_docs'
+      targetPath: ./publish
+    displayName: Fetch generated pages
 
   - script: |
       set -e
@@ -29,7 +16,7 @@ steps:
       git config user.email 'david.herman@gmail.com'
       git add .
       git commit -m 'Publishing GitHub Pages [ci skip]'
-    displayName: Commit pages
+    displayName: Commit pages locally
     workingDirectory: ./publish
 
   - task: DownloadSecureFile@1

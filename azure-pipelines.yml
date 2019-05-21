@@ -43,22 +43,32 @@ jobs:
         name: overrides
         displayName: Extract overrides from top commit
 
-  - job: publish_docs
+  - job: api_docs
     dependsOn:
       - vars
-    #   - nix
-    #   - windows
-    displayName: Publish API Docs
+    displayName: Build API Docs
     # Using macOS for this b/c it's substantially the fastest.
     strategy:
       matrix:
         mac:
           imageName: "macos-10.13"
     steps:
-      - template: ci/publish-docs.yml
-    # FIXME: This is temporary until the publishing logic is working...
-    # condition: and(succeeded('nix'), succeeded('windows'), or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), dependencies.vars.outputs['overrides.docs']))
-    condition: dependencies.vars.outputs['overrides.docs']
+      - template: ci/build-api-docs.yml
+    condition: or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), dependencies.vars.outputs['overrides.docs'])
+
+  - job: publish_docs
+    dependsOn:
+      - nix
+      - windows
+      - api_docs
+    displayName: Publish API Docs
+    strategy:
+      matrix:
+        mac:
+          imageName: "macos-10.13"
+    steps:
+      - template: ci/publish-api-docs.yml
+    condition: and(succeeded('nix'), succeeded('windows'), succeeded('api_docs'))
 
   - job: publish_release
     displayName: Publish Release artifacts
