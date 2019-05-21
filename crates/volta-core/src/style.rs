@@ -1,5 +1,6 @@
 //! The view layer of Volta, with utilities for styling command-line output.
 use archive::Origin;
+use atty::Stream;
 use console::{style, StyledObject};
 use failure::Fail;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -34,6 +35,11 @@ fn styled_warning_prefix(prefix: &'static str) -> StyledObject<&'static str> {
 }
 
 pub(crate) fn write_warning(message: &str) -> Fallible<()> {
+    // If we're not in a tty, don't write warnings as they could mess up scripts
+    if atty::isnt(Stream::Stdout) {
+        return Ok(());
+    }
+
     // Determine whether we're in a shim context or a Volta context.
     let command = std::env::args_os()
         .next()
