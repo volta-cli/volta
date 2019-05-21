@@ -5,9 +5,9 @@ use console::{style, StyledObject};
 use failure::Fail;
 use indicatif::{ProgressBar, ProgressStyle};
 use term_size;
-use textwrap::Wrapper;
+use textwrap::{NoHyphenation, Wrapper};
 
-use volta_fail::{throw, Fallible, VoltaError};
+use volta_fail::{Fallible, VoltaError};
 
 use crate::error::{ErrorContext, ErrorDetails};
 
@@ -34,13 +34,13 @@ fn styled_warning_prefix(prefix: &'static str) -> StyledObject<&'static str> {
     style(prefix).yellow().bold()
 }
 
-pub(crate) fn write_warning(message: &str) -> Fallible<()> {
-    // If we're not in a tty, don't write warnings as they could mess up scripts
-    if atty::isnt(Stream::Stdout) {
-        return Ok(());
-    }
+enum Context {
+    Volta,
+    Shim,
+}
 
-    // Determine whether we're in a shim context or a Volta context.
+/// Determine whether we're in a shim context or a Volta context.
+fn context() -> Fallible<Context> {
     let command = std::env::args_os()
         .next()
         .map(|os_str| std::path::PathBuf::from(os_str));
@@ -52,20 +52,29 @@ pub(crate) fn write_warning(message: &str) -> Fallible<()> {
 
     let command = command.as_ref().map(String::as_str);
 
-    let prefix = match command {
-        Some("volta") => WARNING_PREFIX,
-        Some(_) => SHIM_WARNING_PREFIX,
-        None => throw!(ErrorDetails::CouldNotDetermineTool),
+    match command {
+        Some("volta") => Ok(Context::Volta),
+        Some(_) => Ok(Context::Shim),
+        None => Err(ErrorDetails::CouldNotDetermineTool.into()),
+    }
+}
+
+pub(crate) fn write_warning(message: &str) -> Fallible<()> {
+    // If we're not in a tty, don't write warnings as they could mess up scripts
+    if atty::isnt(Stream::Stdout) {
+        return Ok(());
+    }
+
+    let prefix = match context()? {
+        Context::Volta => WARNING_PREFIX,
+        Context::Shim => SHIM_WARNING_PREFIX,
     };
 
-    // We're creating a wrapped string with the prefix then immediately removing
-    // the prefix so that we get the appropriate width after the terminal does
-    // its fancy color substitutions: color styles are invisible characters, but
-    // counted by a `Wrapper` when filling lines.
-    let indent = format!("{:width$}", "", width = prefix.len() + 1);
-
-    let wrapped = Wrapper::new(text_width())
-        .subsequent_indent(&indent)
+    // We're use the `NoHyphenation` splitter mode so that paths with `-`
+    // characters don't trigger wrapping.
+    let wrapped = Wrapper::with_splitter(text_width(), NoHyphenation)
+        .subsequent_indent("    ")
+        .break_words(false)
         .fill(&format!("{} {}", prefix, message))
         .replace(prefix, "");
 
@@ -128,13 +137,16 @@ where
     format!("{:}@{:}", name, version)
 }
 
+const MAX_WIDTH: usize = 100;
+
 /// Get the display width. If it is unavailable, supply a normal default.
 pub fn display_width() -> usize {
-    term_size::dimensions().map(|(w, _)| w).unwrap_or(80)
+    term_size::dimensions().map(|(w, _)| w).unwrap_or(MAX_WIDTH)
 }
 
 pub fn text_width() -> usize {
-    display_width().min(80)
+    // We want the lesser of our preferred max and the user's term size.
+    display_width().min(MAX_WIDTH)
 }
 
 /// Constructs a command-line progress bar based on the specified Origin enum
