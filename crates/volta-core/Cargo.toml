@@ -5,8 +5,8 @@ authors = ["David Herman <david.herman@gmail.com>"]
 edition = "2018"
 
 [features]
-universal-docs = ["archive/universal-docs"]
 mock-network = ["mockito"]
+universal-docs = []
 
 [dependencies]
 term_size = "0.3.0"

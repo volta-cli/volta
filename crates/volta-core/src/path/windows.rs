@@ -10,7 +10,9 @@ use crate::error::ErrorDetails;
 use cfg_if::cfg_if;
 use dirs;
 use volta_fail::{Fallible, ResultExt};
+#[cfg(windows)]
 use winreg::enums::HKEY_LOCAL_MACHINE;
+#[cfg(windows)]
 use winreg::RegKey;
 
 use super::{node_archive_root_dir_name, node_image_dir, shim_dir};
@@ -110,7 +112,7 @@ pub fn node_archive_npm_package_json_path(version: &str) -> PathBuf {
 
 cfg_if::cfg_if! {
     // We don't want to be reading from the Registry when testing, so use a fixture PathBuf
-    if #[cfg(test)] {
+    if #[cfg(any(test, feature = "universal-docs"))] {
         fn install_dir() -> Fallible<PathBuf> {
             Ok(PathBuf::from(r#"Z:\"#))
         }

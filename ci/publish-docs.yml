@@ -8,7 +8,7 @@ steps:
   - script: |
       cargo doc -p progress-read --no-deps
       cargo doc -p volta-fail --no-deps
-      cargo doc --features universal-docs -p archive --no-deps
+      cargo doc -p archive --no-deps
       cargo doc --features universal-docs -p volta-core --no-deps
       cargo doc --features universal-docs --no-deps
     env:

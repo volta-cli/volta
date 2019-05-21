@@ -1,8 +1,6 @@
 //! This crate provides types for fetching and unpacking compressed
 //! archives in tarball or zip format.
 
-#![cfg_attr(feature = "universal-docs", feature(doc_cfg))]
-
 mod tarball;
 mod zip;
 
