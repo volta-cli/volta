@@ -9,7 +9,6 @@
 </p>
 
 <p align="center">
-  <a href="https://travis-ci.org/volta-cli/volta"><img alt="Build Status" src="https://travis-ci.org/volta-cli/volta.svg?branch=master"></a>
   <a href='https://dev.azure.com/volta-cli/volta/_build/latest?definitionId=2&branchName=master'><img alt="Azure Build Status" src="https://dev.azure.com/volta-cli/volta/_apis/build/status/volta-cli.volta?branchName=master" /></a>
 </p>
 
