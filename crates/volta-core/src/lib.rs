@@ -1,6 +1,8 @@
 //! The main implementation crate for the core of Volta.
 
-#![cfg_attr(feature = "universal-docs", feature(doc_cfg))]
+// The `doc_cfg` feature has to be enabled for platform-specific API doc generation.
+// https://doc.rust-lang.org/nightly/unstable-book/language-features/doc-cfg.html
+#![cfg_attr(feature = "cross-platform-docs", feature(doc_cfg))]
 
 mod command;
 mod distro;

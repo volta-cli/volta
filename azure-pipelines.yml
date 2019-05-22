@@ -36,16 +36,39 @@ jobs:
       - template: ci/run-tests.yml
     displayName: Build and Test Windows
 
-  # - job: publish_docs
-  #   displayName: Publish Docs
-  #   # Using macOS for this b/c it's substantially the fastest.
-  #   strategy:
-  #     matrix:
-  #       mac:
-  #         imageName: "macos-10.13"
-  #   steps:
-  #     - template: ci/publish-docs.yml
-  #   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  - job: vars
+    displayName: Check for build overrides
+    steps:
+      - bash: ./ci/check-overrides.sh
+        name: overrides
+        displayName: Extract overrides from top commit
+
+  - job: api_docs
+    dependsOn:
+      - vars
+    displayName: Build API Docs
+    # Using macOS for this b/c it's substantially the fastest.
+    strategy:
+      matrix:
+        mac:
+          imageName: "macos-10.13"
+    steps:
+      - template: ci/build-api-docs.yml
+    condition: or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), dependencies.vars.outputs['overrides.docs'])
+
+  - job: publish_docs
+    dependsOn:
+      - nix
+      - windows
+      - api_docs
+    displayName: Publish API Docs
+    strategy:
+      matrix:
+        mac:
+          imageName: "macos-10.13"
+    steps:
+      - template: ci/publish-api-docs.yml
+    condition: and(succeeded('nix'), succeeded('windows'), succeeded('api_docs'))
 
   - job: publish_release
     displayName: Publish Release artifacts

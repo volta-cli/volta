@@ -5,8 +5,12 @@ authors = ["David Herman <david.herman@gmail.com>"]
 edition = "2018"
 
 [features]
-universal-docs = ["archive/universal-docs"]
 mock-network = ["mockito"]
+# The `cross-platform-docs` feature flag is used for generating API docs for
+# multiple platforms in one build.
+# See ci/publish-docs.yml for an example of how it's enabled.
+# See volta-core::path for an example of where it's used.
+cross-platform-docs = []
 
 [dependencies]
 term_size = "0.3.0"

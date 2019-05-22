@@ -1,0 +1,35 @@
+steps:
+  - script: |
+      mkdir -p publish
+    displayName: Create publish directory
+
+  - task: DownloadPipelineArtifact@0
+    inputs:
+      artifactName: 'api_docs'
+      targetPath: ./publish
+    displayName: Fetch generated pages
+
+  - script: |
+      set -e
+      git init
+      git config user.name 'Deployment Bot (from Azure Pipelines)'
+      git config user.email 'david.herman@gmail.com'
+      git add .
+      git commit -m 'Publishing GitHub Pages [ci skip]'
+    displayName: Commit pages locally
+    workingDirectory: ./publish
+
+  - task: DownloadSecureFile@1
+    inputs:
+      secureFile: volta_automation_key
+    displayName: Fetch GitHub automation key
+
+  - script: |
+      mkdir ~/.ssh && mv $DOWNLOADSECUREFILE_SECUREFILEPATH ~/.ssh/id_rsa
+      chmod 700 ~/.ssh && chmod 600 ~/.ssh/id_rsa
+      ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+      git remote add origin git@github.com:volta-cli/volta.git
+      git remote set-url --push origin git@github.com:volta-cli/volta.git
+      git push -f origin master:gh-pages
+    displayName: Push to GitHub Pages
+    workingDirectory: ./publish

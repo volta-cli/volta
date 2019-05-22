@@ -3,15 +3,14 @@ steps:
       set -e
       curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
       echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
-
     displayName: Install nightly Rust for docs
 
   - script: |
       cargo doc -p progress-read --no-deps
       cargo doc -p volta-fail --no-deps
-      cargo doc --features universal-docs -p archive --no-deps
-      cargo doc --features universal-docs -p volta-core --no-deps
-      cargo doc --features universal-docs --no-deps
+      cargo doc -p archive --no-deps
+      cargo doc --features cross-platform-docs -p volta-core --no-deps
+      cargo doc --features cross-platform-docs --no-deps
     env:
       RUSTDOCFLAGS: --document-private-items
     displayName: Generate docs
@@ -23,14 +22,7 @@ steps:
       echo '<!doctype html><a href="master">master</a>' > publish/index.html
     displayName: Prep docs for publication
 
-  - script: |
-      set -e
-
-      git --version
-      ls -la
-      git init
-      git config user.name 'Deployment Bot (from Azure Pipelines)'
-      git config user.email 'deploy@volta.sh'
-      git config --global credential.helper 'store --file ~/.my-credentials'
-      printf "protocol=https\nhost=github.com\nusername=volta-cli-deploy\npassword=%s\n\n" "$GITHUB_TOKEN" | git credential-store --file ~/.my-credentials store
-      npx gh-pages -d publish
+  - task: PublishPipelineArtifact@0
+    inputs:
+      artifactName: 'api_docs'
+      targetPath: 'publish'
