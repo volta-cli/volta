@@ -16,6 +16,10 @@ info() {
   command printf '\033[1;33m[⚡ Volta CI ⚡]\033[0m %s\n' "$1" 1>&2
 }
 
+err() {
+  command printf '\033[1;33m[⚡ Volta CI ⚡]\033[0m \033[1;31mError\033[0m: %s\n' "$1" 1>&2
+}
+
 top_commit() {
     local merge_commit_sha
     local top_commit_sha
@@ -44,6 +48,11 @@ check_override() {
     # Echo a non-empty string, which Azure Pipelines will treat as True, if and only if the override is set.
     # https://docs.microsoft.com/en-us/azure/devops/pipelines/process/expressions?view=azure-devops#type-casting
     result=$(echo "$message" | fgrep -q "$directive" && echo True)
+
+    if [[ "$SYSTEM_PULLREQUEST_ISFORK" == "True" && "$result" == "True" ]]; then
+      err 'Forks do not have permissions to publish docs.'
+      exit 1
+    fi
 
     pretty_directive=$(cyan "$directive")
     info "Checking override $pretty_directive: ${result:-False}"
