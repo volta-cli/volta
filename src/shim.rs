@@ -1,10 +1,15 @@
-use volta_core::error::{ErrorContext, ErrorReporter};
+use volta_core::error::report_error;
 use volta_core::session::{ActivityKind, Session};
 use volta_core::tool::execute_tool;
 
 use volta_fail::ExitCode;
 
+use volta_logging::{LoggerContext, VoltaLogger};
+
 pub fn main() {
+    VoltaLogger::init_from_env(LoggerContext::Shim)
+        .expect("Only a single Logger should be initialized");
+
     let mut session = Session::new();
 
     session.add_event_start(ActivityKind::Tool);
@@ -21,7 +26,7 @@ pub fn main() {
             session.exit_tool(code);
         }
         Err(err) => {
-            ErrorReporter::from_env(env!("CARGO_PKG_VERSION")).report(ErrorContext::Shim, &err);
+            report_error(env!("CARGO_PKG_VERSION"), &err);
             session.add_event_error(ActivityKind::Tool, &err);
             session.exit(ExitCode::ExecutionFailure);
         }

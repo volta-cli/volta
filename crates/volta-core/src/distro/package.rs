@@ -31,6 +31,7 @@ use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
 use archive::{Archive, Tarball};
 use cfg_if::cfg_if;
+use log::info;
 use tempfile::tempdir_in;
 
 cfg_if! {
@@ -474,7 +475,7 @@ impl PackageVersion {
                 .with_context(delete_dir_error(&package_image_dir))?;
         }
 
-        println!("Package '{}' uninstalled", name);
+        info!("Package '{}' uninstalled", name);
         Ok(())
     }
 
@@ -482,7 +483,7 @@ impl PackageVersion {
         shim::delete(bin_name)?;
         let config_file = path::user_tool_bin_config(&bin_name)?;
         fs::remove_file(&config_file).with_context(delete_file_error(&config_file))?;
-        println!("Removed executable '{}' installed by '{}'", bin_name, name);
+        info!("Removed executable '{}' installed by '{}'", bin_name, name);
         Ok(())
     }
 }

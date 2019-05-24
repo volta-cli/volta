@@ -63,7 +63,6 @@ fn error_log_if_underlying_cause() {
             .with_stderr_contains("Error details written to[..]")
     );
 
-    println!("ROOT DIRECTORY: {:?}", s.root());
     let mut log_dir_contents = s.read_log_dir().expect("Could not read log directory");
     assert_that!(log_dir_contents.next(), some());
 }

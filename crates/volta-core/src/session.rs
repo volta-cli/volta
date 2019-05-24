@@ -20,6 +20,7 @@ use crate::style::{success_prefix, tool_version};
 use crate::toolchain::LazyToolchain;
 use crate::version::VersionSpec;
 
+use log::{debug, info};
 use semver::Version;
 use volta_fail::{throw, ExitCode, Fallible, VoltaError};
 
@@ -182,7 +183,7 @@ impl Session {
         let toolchain = self.toolchain.get_mut()?;
 
         toolchain.set_active_node(node_distro)?;
-        println!("{} {}", success_prefix(), success_message);
+        info!("{} {}", success_prefix(), success_message);
 
         Ok(())
     }
@@ -197,7 +198,7 @@ impl Session {
         let toolchain = self.toolchain.get_mut()?;
 
         toolchain.set_active_yarn(yarn_distro)?;
-        println!("{} {}", success_prefix(), success_message);
+        info!("{} {}", success_prefix(), success_message);
 
         Ok(())
     }
@@ -220,7 +221,7 @@ impl Session {
         // if the package is already installed, don't re-install it
         if let Fetched::Installed(pkg_version) = fetched_package {
             let version = pkg_version.version.clone();
-            println!(
+            info!(
                 "Package `{}` is up-to-date, version {} already installed",
                 name, version
             );
@@ -302,7 +303,7 @@ impl Session {
         if let Some(ref project) = self.project()? {
             let node_version = self.fetch_node(version_spec)?.into_version();
             project.pin_node(&node_version)?;
-            println!(
+            info!(
                 "{} pinned {} (with {}) in package.json",
                 success_prefix(),
                 tool_version("node", node_version.runtime),
@@ -320,7 +321,7 @@ impl Session {
         if let Some(ref project) = self.project()? {
             let yarn_version = self.fetch_yarn(version_spec)?.into_version();
             project.pin_yarn(&yarn_version)?;
-            println!(
+            info!(
                 "{} pinned {} in package.json",
                 success_prefix(),
                 tool_version("yarn", yarn_version)
@@ -342,7 +343,7 @@ impl Session {
                 .resolve("npm", version_spec, hooks.package.as_ref())?
                 .version;
             project.pin_npm(&npm_version)?;
-            println!(
+            info!(
                 "{} pinned {} in package.json",
                 success_prefix(),
                 tool_version("npm", npm_version)
@@ -380,7 +381,7 @@ impl Session {
                 self.event_log.publish(plugin);
             }
             Err(e) => {
-                eprintln!("Warning: invalid config file ({})", e);
+                debug!("Unable to publish event log.\n{}", e);
             }
         }
     }

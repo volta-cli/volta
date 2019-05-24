@@ -2,6 +2,7 @@ use std::io::Write;
 use std::process::{Child, Stdio};
 use std::vec::Vec;
 
+use log::error;
 use serde_json;
 
 use crate::command::create_command;
@@ -33,7 +34,7 @@ impl Monitor {
                     }
                     Err(error) => {
                         // FIXME: tighten up this error message
-                        eprintln!("There was a problem serializing the JSON data: {:?}", error);
+                        error!("There was a problem serializing the JSON data: {:?}", error);
                     }
                 };
             }
@@ -50,8 +51,7 @@ fn spawn_process(command: &str) -> Option<Child> {
             .spawn();
         match child {
             Err(err) => {
-                eprintln!("Error running plugin command: '{}'", command);
-                eprintln!("{}", err);
+                error!("Unable to run plugin command: '{}'\n{}", command, err);
                 None
             }
             Ok(c) => Some(c),

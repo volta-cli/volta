@@ -6,6 +6,7 @@ use std::ops::{Deref, DerefMut};
 use std::path::Path;
 use std::rc::Rc;
 
+use log::warn;
 use serde;
 use serde::de::{Deserialize, Deserializer, Error, MapAccess, Visitor};
 use serde_json::value::Value;
@@ -13,7 +14,7 @@ use serde_json::value::Value;
 use volta_fail::Fallible;
 
 use super::super::{manifest, platform};
-use crate::{style::write_warning, version::VersionSpec};
+use crate::version::VersionSpec;
 
 // wrapper for HashMap to use with deserialization
 #[derive(Debug, PartialEq)]
@@ -138,28 +139,24 @@ impl Manifest {
         // deprecation warnings about the use of `toolchain`. Prefer the `volta`
         // key if it is set, and provide a deprecation warning if the user is
         // using the `toolchain` key.
-        let (toolchain, deprecation) = match (&self.volta, &self.toolchain) {
-            (Some(volta), None) => (Some(volta), None),
-            (Some(volta), Some(_toolchain)) => (
-                Some(volta),
-                Some(format!(
+        let toolchain = match (&self.volta, &self.toolchain) {
+            (Some(volta), None) => Some(volta),
+            (Some(volta), Some(_toolchain)) => {
+                warn!(
                     "this project (`{}`) is configured with both the deprecated `toolchain` key and the `volta` key; using the versions specified in `volta`.",
                     package_path.display()
-                ))
-            ),
-            (None, Some(toolchain)) => (
-                Some(toolchain),
-                Some(format!(
+                );
+                Some(volta)
+            }
+            (None, Some(toolchain)) => {
+                warn!(
                     "this project (`{}`) is configured with the `toolchain` key, which is deprecated and will be removed in a future version. Please switch to `volta` instead.",
                     package_path.display()
-                ))
-            ),
-            (None, None) => (None, None),
+                );
+                Some(toolchain)
+            }
+            (None, None) => None,
         };
-
-        if let Some(message) = deprecation {
-            write_warning(&message)?;
-        }
 
         if let Some(toolchain) = &toolchain {
             return Ok(Some(platform::PlatformSpec {
