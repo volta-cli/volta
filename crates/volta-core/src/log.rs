@@ -25,6 +25,13 @@ pub enum LogContext {
     Shim,
 }
 
+/// Represents the level of verbosity that was requested by the user
+pub enum LogVerbosity {
+    Quiet,
+    Default,
+    Verbose,
+}
+
 pub struct Logger {
     context: LogContext,
     level: Level,
@@ -49,6 +56,26 @@ impl Log for Logger {
 }
 
 impl Logger {
+    /// Initialize the global logger with a Logger instance
+    /// Will use the requested level of Verbosity
+    /// If set to Default, will use the environment to determine the level of verbosity
+    pub fn init(context: LogContext, verbosity: LogVerbosity) -> Result<(), SetLoggerError> {
+        let logger = Logger::new(context, verbosity);
+        log::set_max_level(logger.level.to_level_filter());
+        log::set_boxed_logger(Box::new(logger))?;
+        Ok(())
+    }
+
+    fn new(context: LogContext, verbosity: LogVerbosity) -> Self {
+        let level = match verbosity {
+            LogVerbosity::Quiet => Level::Error,
+            LogVerbosity::Default => level_from_env(),
+            LogVerbosity::Verbose => Level::Debug,
+        };
+
+        Logger { context, level }
+    }
+
     fn log_error<D>(&self, message: &D)
     where
         D: Display,
@@ -75,31 +102,6 @@ impl Logger {
             style(prefix).yellow().bold(),
             wrap_content(prefix, message)
         );
-    }
-
-    /// Initialize the global logger with a VoltaLogger instance
-    /// If the Verbose flag is set, level is set to Debug
-    /// Otherwise will use environment information to set the log level
-    pub fn init_from_flag(context: LogContext, verbose: bool) -> Result<(), SetLoggerError> {
-        let level = if verbose {
-            Level::Debug
-        } else {
-            level_from_env()
-        };
-
-        Logger::init(context, level)
-    }
-
-    /// Initialize the global logger using the environment information
-    pub fn init_from_env(context: LogContext) -> Result<(), SetLoggerError> {
-        Logger::init(context, level_from_env())
-    }
-
-    fn init(context: LogContext, level: Level) -> Result<(), SetLoggerError> {
-        let logger = Logger { context, level };
-        log::set_boxed_logger(Box::new(logger))?;
-        log::set_max_level(level.to_level_filter());
-        Ok(())
     }
 }
 

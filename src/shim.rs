@@ -1,11 +1,12 @@
 use volta_core::error::report_error;
-use volta_core::log::{LogContext, Logger};
+use volta_core::log::{LogContext, LogVerbosity, Logger};
 use volta_core::session::{ActivityKind, Session};
 use volta_core::tool::execute_tool;
 use volta_fail::ExitCode;
 
 pub fn main() {
-    Logger::init_from_env(LogContext::Shim).expect("Only a single Logger should be initialized");
+    Logger::init(LogContext::Shim, LogVerbosity::Default)
+        .expect("Only a single Logger should be initialized");
 
     let mut session = Session::new();
 

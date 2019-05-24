@@ -29,6 +29,15 @@ pub(crate) struct Volta {
     pub(crate) verbose: bool,
 
     #[structopt(
+        long = "quiet",
+        help = "Prevents unnecessary output",
+        global = true,
+        conflicts_with = "verbose",
+        raw(aliases = r#"&["silent"]"#)
+    )]
+    pub(crate) quiet: bool,
+
+    #[structopt(
         short = "v",
         long = "version",
         help = "Prints the current version of Volta"
