@@ -11,7 +11,7 @@ function volta
     set -x VOLTA_POSTSCRIPT "$VOLTA_ROOT/tmp/volta_tmp_"(dd if=/dev/urandom count=1 2> /dev/null | cksum | cut -f1 -d" ")".fish"
 
     # Forward the arguments to the Volta executable.
-    env VOLTA_SHELL=fish command "$VOLTA_ROOT/volta" $argv
+    env VOLTA_SHELL=fish "$VOLTA_ROOT/volta" $argv
     set EXIT_CODE $status
 
     # Call the post-invocation script if it is present, then delete it.
