@@ -5,6 +5,9 @@ use failure::Fail;
 use indicatif::{ProgressBar, ProgressStyle};
 use term_size;
 
+const MAX_WIDTH: usize = 100;
+const MAX_PROGRESS_WIDTH: usize = 40;
+
 /// Generate the styled prefix for a success message
 pub(crate) fn success_prefix() -> StyledObject<&'static str> {
     style("success:").green().bold()
@@ -36,16 +39,9 @@ where
     format!("{:}@{:}", name, version)
 }
 
-const MAX_WIDTH: usize = 100;
-
-/// Get the display width. If it is unavailable, supply a normal default.
-pub fn display_width() -> usize {
-    term_size::dimensions().map(|(w, _)| w).unwrap_or(MAX_WIDTH)
-}
-
-pub fn text_width() -> usize {
-    // We want the lesser of our preferred max and the user's term size.
-    display_width().min(MAX_WIDTH)
+/// Get the width of the terminal, limited to a maximum of MAX_WIDTH
+pub fn text_width() -> Option<usize> {
+    term_size::dimensions().map(|(w, _)| w.min(MAX_WIDTH))
 }
 
 /// Constructs a command-line progress bar based on the specified Origin enum
@@ -57,11 +53,13 @@ pub fn progress_bar(origin: Origin, details: &str, len: u64) -> ProgressBar {
     let action_width = action.len() + 2; // plus 2 spaces to look nice
     let msg_width = action_width + 1 + details.len();
 
-    //   Installing v1.23.4  [====================>                   ]  50%
-    // |----------| |-----|   |--------------------------------------|  |-|
+    //   Fetching node@9.11.2  [=============>                          ]  34%
+    // |--------| |---------|   |--------------------------------------|  |-|
     //    action    details                      bar                 percentage
-    let available_width = display_width() - 2 - msg_width - 2 - 2 - 1 - 3 - 1;
-    let bar_width = ::std::cmp::min(available_width, 40);
+    let bar_width = match text_width() {
+        Some(width) => MAX_PROGRESS_WIDTH.min(width - 2 - msg_width - 2 - 2 - 1 - 3 - 1),
+        None => MAX_PROGRESS_WIDTH,
+    };
 
     let bar = ProgressBar::new(len);
 

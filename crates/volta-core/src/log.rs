@@ -112,11 +112,14 @@ fn wrap_content<D>(prefix: &str, content: &D) -> String
 where
     D: Display,
 {
-    Wrapper::with_splitter(text_width(), NoHyphenation)
-        .subsequent_indent(WRAP_INDENT)
-        .break_words(false)
-        .fill(&format!("{} {}", prefix, content))
-        .replace(prefix, "")
+    match text_width() {
+        Some(width) => Wrapper::with_splitter(width, NoHyphenation)
+            .subsequent_indent(WRAP_INDENT)
+            .break_words(false)
+            .fill(&format!("{} {}", prefix, content))
+            .replace(prefix, ""),
+        None => format!(" {}", content),
+    }
 }
 
 /// Determines the correct logging level based on the environment

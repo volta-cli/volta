@@ -665,12 +665,20 @@ To {action} the packages '{name}' and '{version}', please {action} them in separ
                     formatted=tool_version(name, version)
                 );
 
-                write!(f, "{}\n\n{}", error, fill(&call_to_action, text_width()))
+                let wrapped_cta = match text_width() {
+                    Some(width) => fill(&call_to_action, width),
+                    None => call_to_action,
+                };
+
+                write!(f, "{}\n\n{}", error, wrapped_cta)
             }
 
             ErrorDetails::InvalidToolName { name, errors } => {
                 let indentation = "    ";
-                let wrapped = &fill(&errors.join("\n"), text_width() - indentation.len());
+                let wrapped = match text_width() {
+                    Some(width) => fill(&errors.join("\n"), width - indentation.len()),
+                    None => errors.join("\n"),
+                };
                 let formatted_errs = indent(&wrapped, indentation);
 
                 let call_to_action = if errors.len() > 1 {
