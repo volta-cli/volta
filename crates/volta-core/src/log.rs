@@ -1,4 +1,4 @@
-//! This crate provides custom Logger implementations for use with the `log` crate
+//! This module provides a custom Logger implementation for use with the `log` crate
 use atty::Stream;
 use console::style;
 use log::{Level, Log, Metadata, Record, SetLoggerError};
@@ -6,22 +6,18 @@ use std::env;
 use std::fmt::Display;
 use textwrap::{NoHyphenation, Wrapper};
 
+use crate::style::text_width;
+
 const ERROR_PREFIX: &'static str = "error:";
 const WARNING_PREFIX: &'static str = "warning:";
 const SHIM_ERROR_PREFIX: &'static str = "Volta error:";
 const SHIM_WARNING_PREFIX: &'static str = "Volta warning:";
 const VOLTA_DEV: &'static str = "VOLTA_DEV";
 const ALLOWED_CRATE: &'static str = "volta_core";
-const MAX_WIDTH: usize = 100;
 const WRAP_INDENT: &'static str = "    ";
 
-/// Gets the terminal width, capped at MAX_WIDTH, or None if we aren't running in a terminal
-pub fn text_width() -> Option<usize> {
-    term_size::dimensions().map(|(w, _)| w.min(MAX_WIDTH))
-}
-
 /// Represents the context from which the logger was created
-pub enum LoggerContext {
+pub enum LogContext {
     /// Log messages from the `volta` executable
     Volta,
 
@@ -29,12 +25,12 @@ pub enum LoggerContext {
     Shim,
 }
 
-pub struct VoltaLogger {
-    context: LoggerContext,
+pub struct Logger {
+    context: LogContext,
     level: Level,
 }
 
-impl Log for VoltaLogger {
+impl Log for Logger {
     fn enabled(&self, metadata: &Metadata) -> bool {
         metadata.level() <= self.level
     }
@@ -52,14 +48,14 @@ impl Log for VoltaLogger {
     fn flush(&self) {}
 }
 
-impl VoltaLogger {
+impl Logger {
     fn log_error<D>(&self, message: &D)
     where
         D: Display,
     {
         let prefix = match &self.context {
-            LoggerContext::Volta => ERROR_PREFIX,
-            LoggerContext::Shim => SHIM_ERROR_PREFIX,
+            LogContext::Volta => ERROR_PREFIX,
+            LogContext::Shim => SHIM_ERROR_PREFIX,
         };
 
         eprintln!("{} {}", style(prefix).red().bold(), message);
@@ -70,8 +66,8 @@ impl VoltaLogger {
         D: Display,
     {
         let prefix = match &self.context {
-            LoggerContext::Volta => WARNING_PREFIX,
-            LoggerContext::Shim => SHIM_WARNING_PREFIX,
+            LogContext::Volta => WARNING_PREFIX,
+            LogContext::Shim => SHIM_WARNING_PREFIX,
         };
 
         println!(
@@ -84,23 +80,23 @@ impl VoltaLogger {
     /// Initialize the global logger with a VoltaLogger instance
     /// If the Verbose flag is set, level is set to Debug
     /// Otherwise will use environment information to set the log level
-    pub fn init_from_flag(context: LoggerContext, verbose: bool) -> Result<(), SetLoggerError> {
+    pub fn init_from_flag(context: LogContext, verbose: bool) -> Result<(), SetLoggerError> {
         let level = if verbose {
             Level::Debug
         } else {
             level_from_env()
         };
 
-        VoltaLogger::init(context, level)
+        Logger::init(context, level)
     }
 
     /// Initialize the global logger using the environment information
-    pub fn init_from_env(context: LoggerContext) -> Result<(), SetLoggerError> {
-        VoltaLogger::init(context, level_from_env())
+    pub fn init_from_env(context: LogContext) -> Result<(), SetLoggerError> {
+        Logger::init(context, level_from_env())
     }
 
-    fn init(context: LoggerContext, level: Level) -> Result<(), SetLoggerError> {
-        let logger = VoltaLogger { context, level };
+    fn init(context: LogContext, level: Level) -> Result<(), SetLoggerError> {
+        let logger = Logger { context, level };
         log::set_boxed_logger(Box::new(logger))?;
         log::set_max_level(level.to_level_filter());
         Ok(())
@@ -116,14 +112,11 @@ fn wrap_content<D>(prefix: &str, content: &D) -> String
 where
     D: Display,
 {
-    match text_width() {
-        Some(width) => Wrapper::with_splitter(width, NoHyphenation)
-            .subsequent_indent(WRAP_INDENT)
-            .break_words(false)
-            .fill(&format!("{} {}", prefix, content))
-            .replace(prefix, ""),
-        None => format!(" {}", content),
-    }
+    Wrapper::with_splitter(text_width(), NoHyphenation)
+        .subsequent_indent(WRAP_INDENT)
+        .break_words(false)
+        .fill(&format!("{} {}", prefix, content))
+        .replace(prefix, "")
 }
 
 /// Determines the correct logging level based on the environment

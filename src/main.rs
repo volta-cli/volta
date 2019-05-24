@@ -5,14 +5,14 @@ mod cli;
 use structopt::StructOpt;
 
 use volta_core::error::report_error;
+use volta_core::log::{LogContext, Logger};
 use volta_core::session::{ActivityKind, Session};
-use volta_logging::{LoggerContext, VoltaLogger};
 
 /// The entry point for the `volta` CLI.
 pub fn main() {
     let volta = cli::Volta::from_args();
     let verbose = volta.verbose;
-    VoltaLogger::init_from_flag(LoggerContext::Volta, verbose)
+    Logger::init_from_flag(LogContext::Volta, verbose)
         .expect("Only a single logger should be initialized");
 
     let mut session = Session::new();
