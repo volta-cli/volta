@@ -16,7 +16,6 @@ const NODE_VERSION_INFO: &'static str = r#"[
 #[test]
 fn no_cause_shown_if_no_verbose_flag() {
     let s = sandbox()
-        .env_remove("VOLTA_DEV")
         .node_available_versions(NODE_VERSION_INFO)
         .build();
 

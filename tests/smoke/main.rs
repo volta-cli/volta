@@ -4,7 +4,7 @@
 /// (CAUTION: this will destroy the Volta installation on the system where this is run)
 ///
 /// ```
-/// VOLTA_DEV=1 cargo test --test smoke --features smoke-tests -- --test-threads 1
+/// VOLTA_LOGLEVEL=debug cargo test --test smoke --features smoke-tests -- --test-threads 1
 /// ```
 ///
 /// Also note that each test uses a different version of node and yarn. This is to prevent

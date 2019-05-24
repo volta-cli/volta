@@ -1,7 +1,7 @@
 //! This module provides a custom Logger implementation for use with the `log` crate
 use atty::Stream;
 use console::style;
-use log::{Level, Log, Metadata, Record, SetLoggerError};
+use log::{Level, LevelFilter, Log, Metadata, Record, SetLoggerError};
 use std::env;
 use std::fmt::Display;
 use textwrap::{NoHyphenation, Wrapper};
@@ -12,7 +12,7 @@ const ERROR_PREFIX: &'static str = "error:";
 const WARNING_PREFIX: &'static str = "warning:";
 const SHIM_ERROR_PREFIX: &'static str = "Volta error:";
 const SHIM_WARNING_PREFIX: &'static str = "Volta warning:";
-const VOLTA_DEV: &'static str = "VOLTA_DEV";
+const VOLTA_LOGLEVEL: &'static str = "VOLTA_LOGLEVEL";
 const ALLOWED_CRATE: &'static str = "volta_core";
 const WRAP_INDENT: &'static str = "    ";
 
@@ -34,7 +34,7 @@ pub enum LogVerbosity {
 
 pub struct Logger {
     context: LogContext,
-    level: Level,
+    level: LevelFilter,
 }
 
 impl Log for Logger {
@@ -61,16 +61,16 @@ impl Logger {
     /// If set to Default, will use the environment to determine the level of verbosity
     pub fn init(context: LogContext, verbosity: LogVerbosity) -> Result<(), SetLoggerError> {
         let logger = Logger::new(context, verbosity);
-        log::set_max_level(logger.level.to_level_filter());
+        log::set_max_level(logger.level);
         log::set_boxed_logger(Box::new(logger))?;
         Ok(())
     }
 
     fn new(context: LogContext, verbosity: LogVerbosity) -> Self {
         let level = match verbosity {
-            LogVerbosity::Quiet => Level::Error,
+            LogVerbosity::Quiet => LevelFilter::Error,
             LogVerbosity::Default => level_from_env(),
-            LogVerbosity::Verbose => Level::Debug,
+            LogVerbosity::Verbose => LevelFilter::Debug,
         };
 
         Logger { context, level }
@@ -125,15 +125,25 @@ where
 }
 
 /// Determines the correct logging level based on the environment
-/// If VOLTA_DEV is set then we use Debug, which is the same as setting --verbose
-/// If not, we check the current stdout for whether it is a TTY
+/// If VOLTA_LOGLEVEL is set to a valid level, we use that
+/// If not, we check the current stdout to determine whether it is a TTY or not
 ///     If it is a TTY, we use Info
 ///     If it is NOT a TTY, we use Error as we don't want to show warnings when running as a script
-fn level_from_env() -> Level {
-    match (env::var(VOLTA_DEV), atty::is(Stream::Stdout)) {
-        (Ok(_), _) => Level::Debug,
-        (_, true) => Level::Info,
-        (_, false) => Level::Error,
+fn level_from_env() -> LevelFilter {
+    match env::var(VOLTA_LOGLEVEL).as_ref() {
+        Ok(l) if l == "off" => LevelFilter::Off,
+        Ok(l) if l == "error" => LevelFilter::Error,
+        Ok(l) if l == "warn" => LevelFilter::Warn,
+        Ok(l) if l == "info" => LevelFilter::Info,
+        Ok(l) if l == "debug" => LevelFilter::Debug,
+        Ok(l) if l == "trace" => LevelFilter::Trace,
+        _ => {
+            if atty::is(Stream::Stdout) {
+                LevelFilter::Info
+            } else {
+                LevelFilter::Error
+            }
+        }
     }
 }
 
