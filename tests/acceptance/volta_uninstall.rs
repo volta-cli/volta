@@ -62,7 +62,7 @@ fn uninstall_nonexistent_pkg() {
         s.volta("uninstall cowsay"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Package 'cowsay' uninstalled")
+            .with_stdout_contains("[..]package 'cowsay' uninstalled")
     );
 }
 
@@ -87,7 +87,7 @@ fn uninstall_package_basic() {
             .with_status(0)
             .with_stdout_contains("Removed executable 'cowsay' installed by 'cowsay'")
             .with_stdout_contains("Removed executable 'cowthink' installed by 'cowsay'")
-            .with_stdout_contains("Package 'cowsay' uninstalled")
+            .with_stdout_contains("[..]package 'cowsay' uninstalled")
     );
 
     // check that everything is deleted
@@ -117,7 +117,7 @@ fn uninstall_package_no_bins() {
         s.volta("uninstall cowsay"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Package 'cowsay' uninstalled")
+            .with_stdout_contains("[..]package 'cowsay' uninstalled")
     );
 
     // check that everything is deleted
@@ -152,7 +152,7 @@ fn uninstall_package_no_image() {
             .with_status(0)
             .with_stdout_contains("Removed executable 'cowsay' installed by 'cowsay'")
             .with_stdout_contains("Removed executable 'cowthink' installed by 'cowsay'")
-            .with_stdout_contains("Package 'cowsay' uninstalled")
+            .with_stdout_contains("[..]package 'cowsay' uninstalled")
     );
 
     // check that everything is deleted
@@ -185,7 +185,7 @@ fn uninstall_package_orphaned_bins() {
             .with_status(0)
             .with_stdout_contains("Removed executable 'cowsay' installed by 'cowsay'")
             .with_stdout_contains("Removed executable 'cowthink' installed by 'cowsay'")
-            .with_stdout_contains("Package 'cowsay' uninstalled")
+            .with_stdout_contains("[..]package 'cowsay' uninstalled")
     );
 
     // check that everything is deleted

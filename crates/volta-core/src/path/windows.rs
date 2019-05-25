@@ -9,11 +9,7 @@ use std::path::{Path, PathBuf};
 use crate::error::ErrorDetails;
 use cfg_if::cfg_if;
 use dirs;
-use volta_fail::{Fallible, ResultExt};
-#[cfg(windows)]
-use winreg::enums::HKEY_LOCAL_MACHINE;
-#[cfg(windows)]
-use winreg::RegKey;
+use volta_fail::Fallible;
 
 use super::{node_archive_root_dir_name, node_image_dir, shim_dir};
 
@@ -22,13 +18,6 @@ use super::{node_archive_root_dir_name, node_image_dir, shim_dir};
 // contents of a Node installer archive.
 
 pub const OS: &'static str = "win";
-
-// This path needs to exactly match the Registry Key in the Windows Installer
-// wix/main.wxs -
-const VOLTA_REGISTRY_PATH: &'static str = r#"Software\The Volta Maintainers\Volta"#;
-
-// This Key needs to exactly match the Name from the above element in the Windows Installer
-const VOLTA_INSTALL_DIR: &'static str = "InstallDir";
 
 cfg_if! {
     if #[cfg(target_arch = "x86")] {
@@ -117,6 +106,16 @@ cfg_if::cfg_if! {
             Ok(PathBuf::from(r#"Z:\"#))
         }
     } else {
+        use winreg::{RegKey, enums::HKEY_LOCAL_MACHINE};
+        use volta_fail::ResultExt;
+
+        // This path needs to exactly match the Registry Key in the Windows Installer
+        // wix/main.wxs -
+        const VOLTA_REGISTRY_PATH: &'static str = r#"Software\The Volta Maintainers\Volta"#;
+
+        // This Key needs to exactly match the Name from the above element in the Windows Installer
+        const VOLTA_INSTALL_DIR: &'static str = "InstallDir";
+
         fn install_dir() -> Fallible<PathBuf> {
             let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
             let volta_key = hklm.open_subkey(VOLTA_REGISTRY_PATH).with_context(install_dir_error)?;
