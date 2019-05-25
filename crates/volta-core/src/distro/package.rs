@@ -5,7 +5,7 @@ use std::ffi::OsStr;
 use std::fs::{self, rename, write, File};
 use std::io::{self, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::str;
 
 use hex;
@@ -26,12 +26,12 @@ use crate::path;
 use crate::platform::{Image, PlatformSpec};
 use crate::session::Session;
 use crate::shim;
-use crate::style::{progress_bar, tool_version};
+use crate::style::{progress_bar, progress_spinner, tool_version};
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
 use archive::{Archive, Tarball};
 use cfg_if::cfg_if;
-use log::info;
+use log::{debug, info};
 use tempfile::tempdir_in;
 
 cfg_if! {
@@ -208,7 +208,6 @@ impl Distro for PackageDistro {
                 tool: self.name.clone(),
                 version: self.version.to_string(),
             })?;
-        bar.finish();
 
         // ensure that the dir where this will be unpacked exists
         ensure_containing_dir_exists(&self.image_dir)?;
@@ -233,6 +232,7 @@ impl Distro for PackageDistro {
             }
         })?;
 
+        bar.finish_and_clear();
         Ok(Fetched::Now(PackageVersion::new(
             self.name.clone(),
             self.version.clone(),
@@ -369,9 +369,24 @@ impl PackageVersion {
             Installer::Npm
         };
 
+        let spinner = progress_spinner(&format!(
+            "Installing dependencies for {}",
+            tool_version(&self.name, &self.version)
+        ));
+
         let output = install_command_for(installer, self.image_dir.as_os_str(), &image.path()?)
             .output()
             .with_context(|_| ErrorDetails::PackageInstallFailed)?;
+        spinner.finish_and_clear();
+
+        debug!(
+            "[INSTALL STDERR]\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        debug!(
+            "[INSTALL STDOUT]\n{}",
+            String::from_utf8_lossy(&output.stdout)
+        );
 
         if !output.status.success() {
             throw!(ErrorDetails::PackageInstallFailed);
@@ -445,14 +460,14 @@ impl PackageVersion {
     /// * the json config files
     /// * the shims
     /// * the unpacked and initialized package
-    pub fn uninstall(name: String) -> Fallible<()> {
+    pub fn uninstall(name: &str) -> Fallible<()> {
         // if the package config file exists, use that to remove any installed bins and shims
-        let package_config_file = path::user_package_config_file(&name)?;
+        let package_config_file = path::user_package_config_file(name)?;
         if package_config_file.exists() {
             let package_config = PackageConfig::from_file(&package_config_file)?;
 
             for bin_name in package_config.bins {
-                PackageVersion::remove_config_and_shims(&bin_name, &name)?;
+                PackageVersion::remove_config_and_shims(&bin_name, name)?;
             }
 
             fs::remove_file(&package_config_file)
@@ -461,21 +476,20 @@ impl PackageVersion {
             // there is no package config - check for orphaned binaries
             let user_bin_dir = path::user_bin_dir()?;
             if user_bin_dir.exists() {
-                let orphaned_bins = binaries_from_package(&name)?;
+                let orphaned_bins = binaries_from_package(name)?;
                 for bin_name in orphaned_bins {
-                    PackageVersion::remove_config_and_shims(&bin_name, &name)?;
+                    PackageVersion::remove_config_and_shims(&bin_name, name)?;
                 }
             }
         }
 
         // if any unpacked and initialized packages exists, remove them
-        let package_image_dir = path::package_image_root_dir()?.join(&name);
+        let package_image_dir = path::package_image_root_dir()?.join(name);
         if package_image_dir.exists() {
             fs::remove_dir_all(&package_image_dir)
                 .with_context(delete_dir_error(&package_image_dir))?;
         }
 
-        info!("Package '{}' uninstalled", name);
         Ok(())
     }
 
@@ -522,12 +536,13 @@ impl Installer {
                     "--loglevel=warn",
                     "--no-update-notifier",
                     "--no-audit",
+                    "--color=always",
                 ]);
                 command
             }
             Installer::Yarn => {
                 let mut command = create_command("yarn");
-                command.args(&["install", "--production"]);
+                command.args(&["install", "--production", "--non-interactive"]);
                 command
             }
         }
@@ -652,16 +667,9 @@ fn determine_script_loader(bin_name: &str, full_path: &Path) -> Fallible<Option<
 }
 
 /// Build a package install command using the specified directory and path
-///
-/// Note: connects stdout and stderr to the current stdout and stderr for this process
-/// (so the user can see the install progress in real time)
 fn install_command_for(installer: Installer, in_dir: &OsStr, path_var: &OsStr) -> Command {
     let mut command = installer.cmd();
-    command
-        .current_dir(in_dir)
-        .env("PATH", path_var)
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit());
+    command.current_dir(in_dir).env("PATH", path_var);
     command
 }
 

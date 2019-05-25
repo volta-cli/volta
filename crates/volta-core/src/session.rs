@@ -249,12 +249,28 @@ impl Session {
 
         // finally, install the package
         package_version.install(&use_platform, self)?;
+
+        let bin_list = package_version
+            .bins
+            .keys()
+            .map(|k| k.as_ref())
+            .collect::<Vec<&str>>()
+            .join(", ");
+        info!(
+            "{} installed {} with executables: {}",
+            success_prefix(),
+            tool_version(&package_version.name, &package_version.version),
+            bin_list
+        );
         Ok(package_version.version.clone())
     }
 
     /// Uninstall the specified package.
     pub fn uninstall_package(&self, name: String) -> Fallible<()> {
-        PackageVersion::uninstall(name)
+        PackageVersion::uninstall(&name)?;
+
+        info!("{} package '{}' uninstalled", success_prefix(), name);
+        Ok(())
     }
 
     /// Fetches a Node version matching the specified semantic versioning requirements.
