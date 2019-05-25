@@ -15,9 +15,7 @@ const NODE_VERSION_INFO: &'static str = r#"[
 
 #[test]
 fn no_cause_shown_if_no_verbose_flag() {
-    let s = sandbox()
-        .node_available_versions(NODE_VERSION_INFO)
-        .build();
+    let s = sandbox().node_available_versions(NODE_VERSION_INFO).build();
 
     assert_that!(
         s.volta("install node@10"),
