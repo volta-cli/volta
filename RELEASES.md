@@ -1,3 +1,9 @@
+# Version 0.5.3
+
+- Prevent unnecessary warning output when not running interactively (#451)
+- Fix a bug in load script for fish shell on Linux (#456)
+- Improve wrapping behavior for warning messages (#453)
+
 # Version 0.5.2
 
 - Improve error messages when running a project-local binary fails (#426)
