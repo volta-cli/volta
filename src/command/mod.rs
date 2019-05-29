@@ -4,6 +4,7 @@ pub(crate) mod current;
 pub(crate) mod deactivate;
 pub(crate) mod fetch;
 pub(crate) mod install;
+pub(crate) mod list;
 pub(crate) mod pin;
 pub(crate) mod uninstall;
 #[macro_use]
@@ -17,6 +18,7 @@ pub(crate) use current::Current;
 pub(crate) use deactivate::Deactivate;
 pub(crate) use fetch::Fetch;
 pub(crate) use install::Install;
+pub(crate) use list::List;
 pub(crate) use pin::Pin;
 pub(crate) use r#use::Use;
 pub(crate) use uninstall::Uninstall;

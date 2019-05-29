@@ -77,8 +77,17 @@ pub(crate) enum Subcommand {
     #[structopt(name = "pin", author = "", version = "")]
     Pin(command::Pin),
 
+    /// Displays the current toolchain
+    #[structopt(name = "list", author = "", version = "")]
+    List(command::List),
+
     /// Displays the currently activated Node version
-    #[structopt(name = "current", author = "", version = "")]
+    #[structopt(
+        name = "current",
+        author = "",
+        version = "",
+        raw(setting = "structopt::clap::AppSettings::Hidden")
+    )]
     Current(command::Current),
 
     /// Disables Volta in the current shell
