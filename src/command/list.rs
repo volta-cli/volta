@@ -1,14 +1,86 @@
+use std::str::FromStr;
+
 use structopt::StructOpt;
 
+use volta_core::session::{ActivityKind, Session};
+use volta_fail::{ExitCode, Fallible};
+
 use crate::command::Command;
-use volta_core::session::Session;
-use volta_fail::{Fallible, ExitCode};
 
 #[derive(StructOpt)]
-pub(crate) struct List {}
+pub(crate) struct List {
+    /// Display
+    #[structopt(subcommand)]
+    subcommand: Option<Subcommand>,
+
+    /// Display in a human-friendly format. (This is the default for TTYs.)
+    #[structopt(short = "h", long = "human", conflicts_with = "plain")]
+    human: bool,
+
+    /// Display in a human-friendly format. (This is the default for non-TTYs.)
+    #[structopt(short = "p", long = "plain", conflicts_with = "human")]
+    plain: bool,
+}
+
+enum Format {
+    Human,
+    Plain,
+}
+
+#[derive(StructOpt)]
+enum Subcommand {
+    /// Show every item in the toolchain.
+    #[structopt(name = "all")]
+    All,
+
+    /// Show locally cached Node versions.
+    #[structopt(name = "node")]
+    Node,
+
+    /// Show locally cached Yarn versions.
+    #[structopt(name = "yarn")]
+    Yarn,
+
+    /// Show locally cached versions of a package or a package binary.
+    #[structopt(name = "<package or tool>")]
+    PackageOrTool { name: String },
+}
+
+impl FromStr for Subcommand {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "all" => Subcommand::All,
+            "node" => Subcommand::Node,
+            "yarn" => Subcommand::Yarn,
+            s => Subcommand::PackageOrTool { name: s.into() },
+        })
+    }
+}
 
 impl Command for List {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
-        unimplemented!()
+        session.add_event_start(ActivityKind::List);
+
+        let format = if self.human {
+            Format::Human
+        } else if self.plain {
+            Format::Plain
+        } else if atty::is(atty::Stream::Stdout) {
+            Format::Plain
+        } else {
+            Format::Human
+        };
+
+        let toolchain_to_display = match self.subcommand {
+            Some(Subcommand::All) => unimplemented!(),
+            Some(Subcommand::Node) => unimplemented!(),
+            Some(Subcommand::Yarn) => unimplemented!(),
+            Some(Subcommand::PackageOrTool { name }) => unimplemented!(),
+            None => unimplemented!(),
+        };
+
+        session.add_event_end(ActivityKind::List, ExitCode::Success);
+        Ok(ExitCode::Success)
     }
 }

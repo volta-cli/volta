@@ -150,6 +150,7 @@ impl Subcommand {
             Subcommand::Install(install) => install.run(session),
             Subcommand::Uninstall(uninstall) => uninstall.run(session),
             Subcommand::Pin(pin) => pin.run(session),
+            Subcommand::List(list) => list.run(session),
             Subcommand::Current(current) => current.run(session),
             Subcommand::Deactivate(deactivate) => deactivate.run(session),
             Subcommand::Activate(activate) => activate.run(session),

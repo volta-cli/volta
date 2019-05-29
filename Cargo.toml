@@ -17,6 +17,7 @@ name = "shim"
 path = "src/shim.rs"
 
 [dependencies]
+atty = "0.2"
 volta-core = { path = "crates/volta-core" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.37"
