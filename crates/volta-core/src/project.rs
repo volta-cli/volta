@@ -15,6 +15,7 @@ use crate::error::ErrorDetails;
 use crate::manifest::{serial, Manifest};
 use crate::path;
 use crate::platform::PlatformSpec;
+use log::debug;
 use volta_fail::{throw, Fallible, ResultExt};
 
 /// A lazily loaded Project
@@ -55,10 +56,13 @@ impl Project {
     /// Returns the Node project for the input directory, if any.
     fn for_dir(base_dir: &Path) -> Fallible<Option<Rc<Project>>> {
         match path::find_project_dir(base_dir) {
-            Some(dir) => Ok(Some(Rc::new(Project {
-                manifest: Manifest::for_dir(&dir)?,
-                project_root: PathBuf::from(dir),
-            }))),
+            Some(dir) => {
+                debug!("[PROJECT] Found project manifest at {}", dir.display());
+                Ok(Some(Rc::new(Project {
+                    manifest: Manifest::for_dir(&dir)?,
+                    project_root: PathBuf::from(dir),
+                })))
+            }
             None => Ok(None),
         }
     }
