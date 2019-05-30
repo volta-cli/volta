@@ -4,6 +4,7 @@ use std::{fs, io};
 
 use crate::error::ErrorDetails;
 use crate::path;
+use log::debug;
 use volta_fail::{throw, FailExt, Fallible};
 
 #[derive(PartialEq)]
@@ -24,6 +25,8 @@ fn is_3p_shim(name: &str) -> bool {
 pub fn create(shim_name: &str) -> Fallible<ShimResult> {
     let executable = path::shim_executable()?;
     let shim = path::shim_file(shim_name)?;
+
+    debug!("[SHIM] Creating shim at {}", shim.display());
 
     #[cfg(windows)]
     windows::create_git_bash_script(shim_name)?;
@@ -49,6 +52,8 @@ pub fn delete(shim_name: &str) -> Fallible<ShimResult> {
         });
     }
     let shim = path::shim_file(shim_name)?;
+
+    debug!("[SHIM] Deleting shim at {}", shim.display());
 
     #[cfg(windows)]
     windows::delete_git_bash_script(shim_name)?;
