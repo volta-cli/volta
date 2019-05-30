@@ -57,7 +57,7 @@ fn error_log_if_underlying_cause() {
         s.volta("install node@10"),
         execs()
             .with_status(ExitCode::NetworkError as i32)
-            .with_stderr_contains("[..]Details written to[..]")
+            .with_stderr_contains("Error details written to[..]")
     );
 
     let mut log_dir_contents = s.read_log_dir().expect("Could not read log directory");
@@ -72,7 +72,7 @@ fn no_error_log_if_no_underlying_cause() {
         s.volta("use"),
         execs()
             .with_status(ExitCode::InvalidArguments as i32)
-            .with_stderr_does_not_contain("[..]Details written to[..]")
+            .with_stderr_does_not_contain("Error details written to[..]")
     );
 
     // The log directory may not exist at all. If so, we know we didn't write to it

@@ -20,12 +20,15 @@ pub fn report_error(volta_version: &str, err: &VoltaError) {
     if let Some(details) = compose_error_details(err) {
         debug!("\n{}", details);
 
+        // Note: Writing the error log info directly to stderr as it is a message for the user
+        // Any custom logs will have all of the details already, so showing a message about writing
+        // the error log would be redundant
         match write_error_log(volta_version, message, details) {
             Ok(log_file) => {
-                error!("Details written to {}", log_file.to_string_lossy());
+                eprintln!("Error details written to {}", log_file.to_string_lossy());
             }
             Err(_) => {
-                error!("Unable to write error log!");
+                eprintln!("Unable to write error log!");
             }
         }
     }
