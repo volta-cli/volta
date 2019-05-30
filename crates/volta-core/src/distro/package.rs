@@ -189,6 +189,15 @@ impl Distro for PackageDistro {
 
         let archive = self.load_or_fetch_archive()?;
 
+        let tmp_root = path::tmp_dir()?;
+        let temp = tempdir_in(&tmp_root)
+            .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })?;
+        debug!(
+            "[DISTRO] Unpacking {} in {}",
+            tool_version(&self.name, &self.version),
+            temp.path().display()
+        );
+
         let bar = progress_bar(
             archive.origin(),
             &tool_version(&self.name, &self.version),
@@ -197,9 +206,6 @@ impl Distro for PackageDistro {
                 .unwrap_or(archive.compressed_size()),
         );
 
-        let tmp_root = path::tmp_dir()?;
-        let temp = tempdir_in(&tmp_root)
-            .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })?;
         archive
             .unpack(temp.path(), &mut |_, read| {
                 bar.inc(read as u64);
@@ -219,7 +225,7 @@ impl Distro for PackageDistro {
             ErrorDetails::SetupToolImageError {
                 tool: self.name.clone(),
                 version: self.version.to_string(),
-                dir: unpack_dir,
+                dir: unpack_dir.clone(),
             }
         })?;
 
@@ -233,6 +239,13 @@ impl Distro for PackageDistro {
         })?;
 
         bar.finish_and_clear();
+
+        // Note: We write this after the progress bar is finished to avoid display bugs with re-renders of the progress
+        debug!(
+            "[DISTRO] Installing {} in {}",
+            tool_version(&self.name, &self.version),
+            unpack_dir.display()
+        );
         Ok(Fetched::Now(PackageVersion::new(
             self.name.clone(),
             self.version.clone(),
@@ -250,10 +263,21 @@ impl PackageDistro {
     fn load_or_fetch_archive(&self) -> Fallible<Box<Archive>> {
         // try to use existing downloaded package
         if let Some(archive) = self.load_cached_archive() {
+            debug!(
+                "[DISTRO] Loading {} from cached archive at {}",
+                tool_version(&self.name, &self.version),
+                self.distro_file.display()
+            );
             Ok(archive)
         } else {
             // otherwise have to download
             ensure_containing_dir_exists(&self.distro_file)?;
+            debug!(
+                "[DISTRO] Downloading {} from {}",
+                tool_version(&self.name, &self.version),
+                &self.tarball_url
+            );
+
             Tarball::fetch(&self.tarball_url, &self.distro_file).with_context(download_tool_error(
                 ToolSpec::Package(self.name.to_string(), VersionSpec::exact(&self.version)),
                 self.tarball_url.to_string(),
@@ -355,7 +379,23 @@ impl PackageVersion {
     pub fn engines_spec(&self) -> Fallible<VersionSpec> {
         let manifest = Manifest::for_dir(&self.image_dir)?;
         // if nothing specified, can use any version of Node
-        let engines = manifest.engines().unwrap_or("*".to_string());
+        let engines = match manifest.engines() {
+            Some(engines) => {
+                debug!(
+                    "[DISTRO] Found 'engines.node' specification for {}: {}",
+                    tool_version(&self.name, &self.version),
+                    &engines
+                );
+                engines
+            }
+            None => {
+                debug!(
+                    "[DISTRO] No 'engines.node' found for {}, using latest",
+                    tool_version(&self.name, &self.version)
+                );
+                String::from("*")
+            }
+        };
         let spec = VersionSpec::parse_requirements(engines)?;
         Ok(VersionSpec::Semver(spec))
     }
@@ -369,22 +409,28 @@ impl PackageVersion {
             Installer::Npm
         };
 
+        let mut command =
+            install_command_for(installer, self.image_dir.as_os_str(), &image.path()?);
+        debug!(
+            "[DISTRO] Installing dependencies with command: {:?}",
+            &command
+        );
+
         let spinner = progress_spinner(&format!(
             "Installing dependencies for {}",
             tool_version(&self.name, &self.version)
         ));
-
-        let output = install_command_for(installer, self.image_dir.as_os_str(), &image.path()?)
+        let output = command
             .output()
             .with_context(|_| ErrorDetails::PackageInstallFailed)?;
         spinner.finish_and_clear();
 
         debug!(
-            "[Install Dependencies stderr]\n{}",
+            "[DISTRO][INSTALL STDERR]\n{}",
             String::from_utf8_lossy(&output.stderr)
         );
         debug!(
-            "[Install Dependencies stdout]\n{}",
+            "[DISTRO][INSTALL STDOUT]\n{}",
             String::from_utf8_lossy(&output.stdout)
         );
 
@@ -441,6 +487,7 @@ impl PackageVersion {
             .to_serial()
             .write()?;
             // create a link to the shim executable
+            debug!("[DISTRO] Creating proxy for executable {}", &bin_name);
             shim::create(&bin_name)?;
 
             // On Unix, ensure the executable file has correct permissions
@@ -467,7 +514,7 @@ impl PackageVersion {
             let package_config = PackageConfig::from_file(&package_config_file)?;
 
             for bin_name in package_config.bins {
-                PackageVersion::remove_config_and_shims(&bin_name, name)?;
+                PackageVersion::remove_config_and_shim(&bin_name, name)?;
             }
 
             fs::remove_file(&package_config_file)
@@ -478,7 +525,7 @@ impl PackageVersion {
             if user_bin_dir.exists() {
                 let orphaned_bins = binaries_from_package(name)?;
                 for bin_name in orphaned_bins {
-                    PackageVersion::remove_config_and_shims(&bin_name, name)?;
+                    PackageVersion::remove_config_and_shim(&bin_name, name)?;
                 }
             }
         }
@@ -493,7 +540,7 @@ impl PackageVersion {
         Ok(())
     }
 
-    fn remove_config_and_shims(bin_name: &str, name: &str) -> Fallible<()> {
+    fn remove_config_and_shim(bin_name: &str, name: &str) -> Fallible<()> {
         shim::delete(bin_name)?;
         let config_file = path::user_tool_bin_config(&bin_name)?;
         fs::remove_file(&config_file).with_context(delete_file_error(&config_file))?;
