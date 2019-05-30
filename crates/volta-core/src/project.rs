@@ -16,7 +16,7 @@ use crate::manifest::{serial, Manifest};
 use crate::path;
 use crate::platform::PlatformSpec;
 use log::debug;
-use volta_fail::{throw, Fallible, ResultExt};
+use volta_fail::{Fallible, ResultExt};
 
 /// A lazily loaded Project
 pub struct LazyProject {
@@ -118,6 +118,7 @@ impl Project {
             .ok()
             .and_then(|default| {
                 if node_version.npm == default {
+                    debug!("[PROJECT] Not writing 'npm' key since the version matches the Node default");
                     None
                 } else {
                     Some(node_version.npm.to_string())
@@ -141,11 +142,10 @@ impl Project {
                 platform.npm.as_ref().map(|npm| npm.to_string()),
                 Some(yarn_version.to_string()),
             );
-            Manifest::update_toolchain(toolchain, self.package_file())?;
+            Manifest::update_toolchain(toolchain, self.package_file())
         } else {
-            throw!(ErrorDetails::NoPinnedNodeVersion);
+            Err(ErrorDetails::NoPinnedNodeVersion.into())
         }
-        Ok(())
     }
 
     /// Writes the specified version of Npm to the `volta.npm` key in package.json.
@@ -156,11 +156,10 @@ impl Project {
                 Some(npm_version.to_string()),
                 self.manifest().yarn_str().clone(),
             );
-            Manifest::update_toolchain(toolchain, self.package_file())?;
+            Manifest::update_toolchain(toolchain, self.package_file())
         } else {
-            throw!(ErrorDetails::NoPinnedNodeVersion);
+            Err(ErrorDetails::NoPinnedNodeVersion.into())
         }
-        Ok(())
     }
 }
 
