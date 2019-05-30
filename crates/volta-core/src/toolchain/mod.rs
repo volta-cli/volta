@@ -10,6 +10,7 @@ use crate::fs::touch;
 use crate::path::user_platform_file;
 use crate::platform::PlatformSpec;
 
+use log::debug;
 use volta_fail::{Fallible, ResultExt};
 
 pub(crate) mod serial;
@@ -47,11 +48,16 @@ impl Toolchain {
         let path = user_platform_file()?;
         let src = touch(&path)
             .and_then(|mut file| file.read_into_string())
-            .with_context(|_| ErrorDetails::ReadPlatformError { file: path })?;
+            .with_context(|_| ErrorDetails::ReadPlatformError { file: path.clone() })?;
 
-        Ok(Toolchain {
-            platform: serial::Platform::from_json(src)?.into_platform()?,
-        })
+        let platform = serial::Platform::from_json(src)?.into_platform()?;
+        if platform.is_some() {
+            debug!(
+                "[PLATFORM] Found user default platform at {}",
+                path.display()
+            );
+        }
+        Ok(Toolchain { platform })
     }
 
     pub fn platform_ref(&self) -> Option<&PlatformSpec> {
