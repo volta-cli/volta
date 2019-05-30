@@ -380,11 +380,11 @@ impl PackageVersion {
         spinner.finish_and_clear();
 
         debug!(
-            "[INSTALL STDERR]\n{}",
+            "[Install Dependencies stderr]\n{}",
             String::from_utf8_lossy(&output.stderr)
         );
         debug!(
-            "[INSTALL STDOUT]\n{}",
+            "[Install Dependencies stdout]\n{}",
             String::from_utf8_lossy(&output.stdout)
         );
 
