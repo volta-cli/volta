@@ -79,6 +79,9 @@ impl List {
 impl Command for List {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::List);
+
+        let inventory = session.inventory()?;
+        let project = session.project();
         let format = self.format();
 
         let toolchain_to_display = match self.subcommand {
