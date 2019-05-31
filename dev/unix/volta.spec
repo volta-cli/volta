@@ -37,18 +37,18 @@ install -m 0755 shim %{buildroot}/%{_bindir}/%{name}/shim
 install -m 0755 volta-post-install %{buildroot}/%{_bindir}/%{name}/volta-post-install
 
 
-# TODO
+# files installed by this package
 %files
 %license LICENSE
 %{_bindir}/%{name}/%{name}
 %{_bindir}/%{name}/shim
 %{_bindir}/%{name}/volta-post-install
 
+
+# this runs after install, and sets up VOLTA_HOME and the shell integration
 %post
-# TODO: this runs after install
-echo "Volta installed successfully!!!!"
-echo "can I run a script?"
-%{_bindir}/%{name}/volta-post-install
+echo "Running Volta post-install setup..."
+%{_bindir}/%{name}/volta-redhat-postinstall
 
 
 %changelog
