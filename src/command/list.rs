@@ -58,19 +58,28 @@ impl FromStr for Subcommand {
     }
 }
 
-impl Command for List {
-    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
-        session.add_event_start(ActivityKind::List);
-
-        let format = if self.human {
+impl List {
+    fn format(&self) -> Format {
+        // We start by checking if the user has explicitly set a value: if they
+        // have, that trumps our TTY-checking. Then, if the user has *not*
+        // specified an option, we use `Human` mode for TTYs and `Plain` for
+        // non-TTY contexts.
+        if self.human {
             Format::Human
         } else if self.plain {
             Format::Plain
         } else if atty::is(atty::Stream::Stdout) {
-            Format::Plain
-        } else {
             Format::Human
-        };
+        } else {
+            Format::Plain
+        }
+    }
+}
+
+impl Command for List {
+    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
+        session.add_event_start(ActivityKind::List);
+        let format = self.format();
 
         let toolchain_to_display = match self.subcommand {
             Some(Subcommand::All) => unimplemented!(),
