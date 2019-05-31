@@ -83,7 +83,7 @@ fn execute_binary(bin: &str, extra_arg: Option<String>) -> Fallible<String> {
         .stdout(Stdio::piped())
         .stderr(Stdio::null());
 
-    debug!("[HOOKS] Running hook command: {:?}", command);
+    debug!("Running hook command: {:?}", command);
     let output = command
         .output()
         .with_context(|_| ErrorDetails::ExecuteHookError {

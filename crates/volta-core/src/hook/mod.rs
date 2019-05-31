@@ -100,13 +100,13 @@ impl HookConfig {
 
         Ok(match (maybe_project_config, maybe_user_config) {
             (Some(project_config), Some(user_config)) => {
-                debug!("[HOOKS] Merging user and project hooks");
+                debug!("Merging user and project hooks");
                 Self::merge(user_config, project_config)
             }
             (Some(project_config), None) => project_config,
             (None, Some(user_config)) => user_config,
             (None, None) => {
-                debug!("[HOOKS] No custom hooks found");
+                debug!("No custom hooks found");
                 Self {
                     node: None,
                     yarn: None,
@@ -132,7 +132,7 @@ impl HookConfig {
                 let hooks_config = Self::from_file(&path)?;
 
                 if hooks_config.is_some() {
-                    debug!("[HOOKS] Found project hooks in {}", path.display());
+                    debug!("Found project hooks in {}", path.display());
                 }
 
                 Ok(hooks_config)
@@ -164,7 +164,7 @@ impl HookConfig {
         let hooks_config = Self::from_file(&path)?;
 
         if hooks_config.is_some() {
-            debug!("[HOOKS] Found user hooks in {}", path.display());
+            debug!("Found user hooks in {}", path.display());
         }
 
         Ok(hooks_config)

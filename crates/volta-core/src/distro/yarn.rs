@@ -75,14 +75,14 @@ impl YarnDistro {
 
         if let Some(archive) = load_cached_distro(&distro_file) {
             debug!(
-                "[DISTRO] Loading yarn from cached archive at {}",
+                "Loading yarn from cached archive at {}",
                 distro_file.display()
             );
             return Ok(YarnDistro { archive, version });
         }
 
         ensure_containing_dir_exists(&distro_file)?;
-        debug!("[DISTRO] Downloading yarn from {}", url);
+        debug!("Downloading yarn from {}", url);
 
         Ok(YarnDistro {
             archive: Tarball::fetch(url, &distro_file).with_context(download_tool_error(
@@ -109,7 +109,7 @@ impl Distro for YarnDistro {
                 distro: Some(ref hook),
                 ..
             }) => {
-                debug!("[DISTRO] Using yarn.distro hook to determine download URL");
+                debug!("Using yarn.distro hook to determine download URL");
                 let url =
                     hook.resolve(&version, &path::yarn_distro_file_name(&version.to_string()))?;
                 YarnDistro::remote(version, &url)
@@ -128,7 +128,7 @@ impl Distro for YarnDistro {
     fn fetch(self, collection: &YarnCollection) -> Fallible<Fetched<Version>> {
         if collection.contains(&self.version) {
             debug!(
-                "[DISTRO] yarn@{} has already been fetched, skipping download",
+                "yarn@{} has already been fetched, skipping download",
                 &self.version
             );
             return Ok(Fetched::Already(self.version));
@@ -137,7 +137,7 @@ impl Distro for YarnDistro {
         let tmp_root = path::tmp_dir()?;
         let temp = tempdir_in(&tmp_root)
             .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })?;
-        debug!("[DISTRO] Unpacking yarn into {}", temp.path().display());
+        debug!("Unpacking yarn into {}", temp.path().display());
 
         let bar = progress_bar(
             self.archive.origin(),
@@ -175,7 +175,7 @@ impl Distro for YarnDistro {
         bar.finish_and_clear();
 
         // Note: We write this after the progress bar is finished to avoid display bugs with re-renders of the progress
-        debug!("[DISTRO] Installing yarn in {}", dest.display());
+        debug!("Installing yarn in {}", dest.display());
         Ok(Fetched::Now(self.version))
     }
 }

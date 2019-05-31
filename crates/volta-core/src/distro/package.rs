@@ -193,7 +193,7 @@ impl Distro for PackageDistro {
         let temp = tempdir_in(&tmp_root)
             .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })?;
         debug!(
-            "[DISTRO] Unpacking {} in {}",
+            "Unpacking {} in {}",
             tool_version(&self.name, &self.version),
             temp.path().display()
         );
@@ -225,7 +225,7 @@ impl Distro for PackageDistro {
             ErrorDetails::SetupToolImageError {
                 tool: self.name.clone(),
                 version: self.version.to_string(),
-                dir: unpack_dir.clone(),
+                dir: self.image_dir.clone(),
             }
         })?;
 
@@ -242,9 +242,9 @@ impl Distro for PackageDistro {
 
         // Note: We write this after the progress bar is finished to avoid display bugs with re-renders of the progress
         debug!(
-            "[DISTRO] Installing {} in {}",
+            "Installing {} in {}",
             tool_version(&self.name, &self.version),
-            unpack_dir.display()
+            self.image_dir.display()
         );
         Ok(Fetched::Now(PackageVersion::new(
             self.name.clone(),
@@ -264,7 +264,7 @@ impl PackageDistro {
         // try to use existing downloaded package
         if let Some(archive) = self.load_cached_archive() {
             debug!(
-                "[DISTRO] Loading {} from cached archive at {}",
+                "Loading {} from cached archive at {}",
                 tool_version(&self.name, &self.version),
                 self.distro_file.display()
             );
@@ -273,7 +273,7 @@ impl PackageDistro {
             // otherwise have to download
             ensure_containing_dir_exists(&self.distro_file)?;
             debug!(
-                "[DISTRO] Downloading {} from {}",
+                "Downloading {} from {}",
                 tool_version(&self.name, &self.version),
                 &self.tarball_url
             );
@@ -382,7 +382,7 @@ impl PackageVersion {
         let engines = match manifest.engines() {
             Some(engines) => {
                 debug!(
-                    "[DISTRO] Found 'engines.node' specification for {}: {}",
+                    "Found 'engines.node' specification for {}: {}",
                     tool_version(&self.name, &self.version),
                     &engines
                 );
@@ -390,7 +390,7 @@ impl PackageVersion {
             }
             None => {
                 debug!(
-                    "[DISTRO] No 'engines.node' found for {}, using latest",
+                    "No 'engines.node' found for {}, using latest",
                     tool_version(&self.name, &self.version)
                 );
                 String::from("*")
@@ -411,10 +411,7 @@ impl PackageVersion {
 
         let mut command =
             install_command_for(installer, self.image_dir.as_os_str(), &image.path()?);
-        debug!(
-            "[DISTRO] Installing dependencies with command: {:?}",
-            &command
-        );
+        debug!("Installing dependencies with command: {:?}", &command);
 
         let spinner = progress_spinner(&format!(
             "Installing dependencies for {}",
@@ -426,11 +423,11 @@ impl PackageVersion {
         spinner.finish_and_clear();
 
         debug!(
-            "[DISTRO][INSTALL STDERR]\n{}",
+            "[install stderr]\n{}",
             String::from_utf8_lossy(&output.stderr)
         );
         debug!(
-            "[DISTRO][INSTALL STDOUT]\n{}",
+            "[install stdout]\n{}",
             String::from_utf8_lossy(&output.stdout)
         );
 
@@ -487,7 +484,6 @@ impl PackageVersion {
             .to_serial()
             .write()?;
             // create a link to the shim executable
-            debug!("[DISTRO] Creating proxy for executable {}", &bin_name);
             shim::create(&bin_name)?;
 
             // On Unix, ensure the executable file has correct permissions

@@ -126,14 +126,14 @@ impl NodeDistro {
 
         if let Some(archive) = load_cached_distro(&distro_file) {
             debug!(
-                "[DISTRO] Loading node from cached archive at {}",
+                "Loading node from cached archive at {}",
                 distro_file.display()
             );
             return Ok(NodeDistro { archive, version });
         }
 
         ensure_containing_dir_exists(&distro_file)?;
-        debug!("[DISTRO] Downloading node from {}", url);
+        debug!("Downloading node from {}", url);
 
         Ok(NodeDistro {
             archive: archive::fetch_native(url, &distro_file).with_context(download_tool_error(
@@ -160,7 +160,7 @@ impl Distro for NodeDistro {
                 distro: Some(ref hook),
                 ..
             }) => {
-                debug!("[DISTRO] Using node.distro hook to determine download URL");
+                debug!("Using node.distro hook to determine download URL");
                 let url =
                     hook.resolve(&version, &path::node_distro_file_name(&version.to_string()))?;
                 NodeDistro::remote(version, &url)
@@ -181,7 +181,7 @@ impl Distro for NodeDistro {
             let npm = load_default_npm_version(&self.version)?;
 
             debug!(
-                "[DISTRO] node@{} has already been fetched, skipping install",
+                "node@{} has already been fetched, skipping install",
                 &self.version
             );
             return Ok(Fetched::Already(NodeVersion {
@@ -193,7 +193,7 @@ impl Distro for NodeDistro {
         let tmp_root = path::tmp_dir()?;
         let temp = tempdir_in(&tmp_root)
             .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })?;
-        debug!("[DISTRO] Unpacking node into {}", temp.path().display());
+        debug!("Unpacking node into {}", temp.path().display());
 
         let bar = progress_bar(
             self.archive.origin(),
@@ -241,8 +241,8 @@ impl Distro for NodeDistro {
         bar.finish_and_clear();
 
         // Note: We write these after the progress bar is finished to avoid display bugs with re-renders of the progress
-        debug!("[DISTRO] Saving bundled npm version ({})", npm);
-        debug!("[DISTRO] Installing node in {}", dest.display());
+        debug!("Saving bundled npm version ({})", npm);
+        debug!("Installing node in {}", dest.display());
         Ok(Fetched::Now(NodeVersion {
             runtime: self.version,
             npm,

@@ -52,10 +52,7 @@ impl Toolchain {
 
         let platform = serial::Platform::from_json(src)?.into_platform()?;
         if platform.is_some() {
-            debug!(
-                "[PLATFORM] Found user default platform at {}",
-                path.display()
-            );
+            debug!("Found user default platform at {}", path.display());
         }
         Ok(Toolchain { platform })
     }

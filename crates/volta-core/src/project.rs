@@ -57,7 +57,7 @@ impl Project {
     fn for_dir(base_dir: &Path) -> Fallible<Option<Rc<Project>>> {
         match path::find_project_dir(base_dir) {
             Some(dir) => {
-                debug!("[PROJECT] Found project manifest at {}", dir.display());
+                debug!("Found project manifest at {}", dir.display());
                 Ok(Some(Rc::new(Project {
                     manifest: Manifest::for_dir(&dir)?,
                     project_root: PathBuf::from(dir),
@@ -118,7 +118,7 @@ impl Project {
             .ok()
             .and_then(|default| {
                 if node_version.npm == default {
-                    debug!("[PROJECT] Not writing 'npm' key since the version matches the Node default");
+                    debug!("Not writing 'npm' key since the version matches the Node default");
                     None
                 } else {
                     Some(node_version.npm.to_string())

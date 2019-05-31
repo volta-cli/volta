@@ -18,7 +18,7 @@ pub fn report_error(volta_version: &str, err: &VoltaError) {
     error!("{}", message);
 
     if let Some(details) = compose_error_details(err) {
-        debug!("\n{}", details);
+        debug!("{}", details);
 
         // Note: Writing the error log info directly to stderr as it is a message for the user
         // Any custom logs will have all of the details already, so showing a message about writing

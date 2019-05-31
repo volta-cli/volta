@@ -47,6 +47,7 @@ impl Log for Logger {
             match record.level() {
                 Level::Error => self.log_error(record.args()),
                 Level::Warn => self.log_warning(record.args()),
+                Level::Debug => println!("[verbose] {}", record.args()),
                 _ => println!("{}", record.args()),
             }
         }
