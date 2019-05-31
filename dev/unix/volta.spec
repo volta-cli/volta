@@ -28,23 +28,27 @@ Volta’s job is to manage your JavaScript command-line tools, such as node, npm
 
 # this installs into a chroot directory resembling the user's root directory
 %install
-# clean out the directory
+# setup the /usr/bin/volta/ directory
 rm -rf %{buildroot}
-mkdir -p %{buildroot}/%{_bindir}
-# install the files from the tarball
-install -m 0755 %{name} %{buildroot}/%{_bindir}/%{name}
-install -m 0755 shim %{buildroot}/%{_bindir}/shim
+mkdir -p %{buildroot}/%{_bindir}/%{name}
+# install the files from the tarball into /usr/bin/volta/
+install -m 0755 %{name} %{buildroot}/%{_bindir}/%{name}/%{name}
+install -m 0755 shim %{buildroot}/%{_bindir}/%{name}/shim
+install -m 0755 volta-post-install %{buildroot}/%{_bindir}/%{name}/volta-post-install
 
 
 # TODO
 %files
 %license LICENSE
-%{_bindir}/%{name}
-%{_bindir}/shim
+%{_bindir}/%{name}/%{name}
+%{_bindir}/%{name}/shim
+%{_bindir}/%{name}/volta-post-install
 
 %post
 # TODO: this runs after install
 echo "Volta installed successfully!!!!"
+echo "can I run a script?"
+%{_bindir}/%{name}/volta-post-install
 
 
 %changelog
