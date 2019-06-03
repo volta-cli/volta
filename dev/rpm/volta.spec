@@ -7,6 +7,10 @@ License:        BSD 2-CLAUSE
 URL:            https://%{name}.sh
 Source0:        https://github.com/volta-cli/volta/archive/v%{version}.tar.gz
 
+# cargo is required, but installing from RPM is failing with libcrypto dep error
+# so you will have to install cargo manually
+#BuildRequires:  cargo
+
 # TODO - should require openssl?
 Requires:       bash
 
@@ -22,8 +26,10 @@ Volta’s job is to manage your JavaScript command-line tools, such as node, npm
 %setup -q
 
 
-# the binaries have already been built - they do not need to be re-built
-#%build
+%build
+# build the release binaries
+# NOTE: build expects to `cd` into a volta-<version> directory
+cargo build --release
 
 
 # this installs into a chroot directory resembling the user's root directory
@@ -31,10 +37,11 @@ Volta’s job is to manage your JavaScript command-line tools, such as node, npm
 # setup the /usr/bin/volta/ directory
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/%{_bindir}/%{name}
-# install the files from the tarball into /usr/bin/volta/
-install -m 0755 %{name} %{buildroot}/%{_bindir}/%{name}/%{name}
-install -m 0755 shim %{buildroot}/%{_bindir}/%{name}/shim
-install -m 0755 volta-post-install %{buildroot}/%{_bindir}/%{name}/volta-post-install
+# install the compiled binaries into /usr/bin/volta/
+install -m 0755 target/release/%{name} %{buildroot}/%{_bindir}/%{name}/%{name}
+install -m 0755 target/release/shim %{buildroot}/%{_bindir}/%{name}/shim
+# and put the postinstall script there too
+install -m 0755 dev/rpm/volta-postinstall.sh %{buildroot}/%{_bindir}/%{name}/volta-postinstall.sh
 
 
 # files installed by this package
@@ -42,15 +49,15 @@ install -m 0755 volta-post-install %{buildroot}/%{_bindir}/%{name}/volta-post-in
 %license LICENSE
 %{_bindir}/%{name}/%{name}
 %{_bindir}/%{name}/shim
-%{_bindir}/%{name}/volta-post-install
+%{_bindir}/%{name}/volta-postinstall.sh
 
 
 # this runs after install, and sets up VOLTA_HOME and the shell integration
 %post
 echo "Running Volta post-install setup..."
-%{_bindir}/%{name}/volta-redhat-postinstall
+%{_bindir}/%{name}/volta-postinstall.sh
 
 
 %changelog
-* Thu May 30 2019 Michael Stewart <mikrostew@gmail.com> - 0.5.3-1
+* Mon Jun 03 2019 Michael Stewart <mikrostew@gmail.com> - 0.5.3-1
 - First volta package
