@@ -372,6 +372,8 @@ parse_openssl_version() {
 create_tree() {
   local install_dir="$1"
 
+  info 'Creating' "directory layout"
+
   # .volta/
   #     bin/
   #     cache/
@@ -539,7 +541,6 @@ install_from_file() {
   local archive="$1"
   local extract_to="$2"
 
-  info 'Creating' "directory layout"
   create_tree "$extract_to"
 
   info 'Extracting' "Volta binaries and launchers"
