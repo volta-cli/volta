@@ -75,14 +75,15 @@ impl YarnDistro {
 
         if let Some(archive) = load_cached_distro(&distro_file) {
             debug!(
-                "Loading yarn from cached archive at {}",
+                "Loading yarn@{} from cached archive at {}",
+                version,
                 distro_file.display()
             );
             return Ok(YarnDistro { archive, version });
         }
 
         ensure_containing_dir_exists(&distro_file)?;
-        debug!("Downloading yarn from {}", url);
+        debug!("Downloading yarn@{} from {}", version, url);
 
         Ok(YarnDistro {
             archive: Tarball::fetch(url, &distro_file).with_context(download_tool_error(

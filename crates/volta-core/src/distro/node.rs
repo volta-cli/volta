@@ -126,14 +126,15 @@ impl NodeDistro {
 
         if let Some(archive) = load_cached_distro(&distro_file) {
             debug!(
-                "Loading node from cached archive at {}",
+                "Loading node@{} from cached archive at {}",
+                version,
                 distro_file.display()
             );
             return Ok(NodeDistro { archive, version });
         }
 
         ensure_containing_dir_exists(&distro_file)?;
-        debug!("Downloading node from {}", url);
+        debug!("Downloading node@{} from {}", version, url);
 
         Ok(NodeDistro {
             archive: archive::fetch_native(url, &distro_file).with_context(download_tool_error(
