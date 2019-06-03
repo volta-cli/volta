@@ -8,9 +8,13 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str;
 
+use atty::Stream;
+use cfg_if::cfg_if;
 use hex;
+use log::{debug, info};
 use semver::Version;
 use sha1::{Digest, Sha1};
+use tempfile::tempdir_in;
 
 use crate::command::create_command;
 use crate::distro::{download_tool_error, Distro, Fetched};
@@ -30,9 +34,6 @@ use crate::style::{progress_bar, progress_spinner, tool_version};
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
 use archive::{Archive, Tarball};
-use cfg_if::cfg_if;
-use log::{debug, info};
-use tempfile::tempdir_in;
 
 cfg_if! {
     if #[cfg(windows)] {
@@ -192,11 +193,7 @@ impl Distro for PackageDistro {
         let tmp_root = path::tmp_dir()?;
         let temp = tempdir_in(&tmp_root)
             .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })?;
-        debug!(
-            "Unpacking {} in {}",
-            tool_version(&self.name, &self.version),
-            temp.path().display()
-        );
+        self.log_unpacking(&temp.path().display());
 
         let bar = progress_bar(
             archive.origin(),
@@ -241,11 +238,7 @@ impl Distro for PackageDistro {
         bar.finish_and_clear();
 
         // Note: We write this after the progress bar is finished to avoid display bugs with re-renders of the progress
-        debug!(
-            "Installing {} in {}",
-            tool_version(&self.name, &self.version),
-            self.image_dir.display()
-        );
+        self.log_installing();
         Ok(Fetched::Now(PackageVersion::new(
             self.name.clone(),
             self.version.clone(),
@@ -345,6 +338,25 @@ impl PackageDistro {
 
         Ok(bin_map)
     }
+
+    fn log_unpacking<D>(&self, path: &D)
+    where
+        D: std::fmt::Display,
+    {
+        debug!(
+            "Unpacking {} in {}",
+            tool_version(&self.name, &self.version),
+            path
+        );
+    }
+
+    fn log_installing(&self) {
+        debug!(
+            "Installing {} in {}",
+            tool_version(&self.name, &self.version),
+            self.image_dir.display()
+        );
+    }
 }
 
 // Figure out the unpacked package directory name dynamically, because
@@ -411,7 +423,7 @@ impl PackageVersion {
 
         let mut command =
             install_command_for(installer, self.image_dir.as_os_str(), &image.path()?);
-        debug!("Installing dependencies with command: {:?}", &command);
+        self.log_installing_dependencies(&command);
 
         let spinner = progress_spinner(&format!(
             "Installing dependencies for {}",
@@ -422,14 +434,8 @@ impl PackageVersion {
             .with_context(|_| ErrorDetails::PackageInstallFailed)?;
         spinner.finish_and_clear();
 
-        debug!(
-            "[install stderr]\n{}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-        debug!(
-            "[install stdout]\n{}",
-            String::from_utf8_lossy(&output.stdout)
-        );
+        self.log_dependency_install_stderr(&output.stderr);
+        self.log_dependency_install_stdout(&output.stdout);
 
         if !output.status.success() {
             throw!(ErrorDetails::PackageInstallFailed);
@@ -543,6 +549,18 @@ impl PackageVersion {
         info!("Removed executable '{}' installed by '{}'", bin_name, name);
         Ok(())
     }
+
+    fn log_installing_dependencies(&self, command: &Command) {
+        debug!("Installing dependencies with command: {:?}", command);
+    }
+
+    fn log_dependency_install_stderr(&self, output: &Vec<u8>) {
+        debug!("[install stderr]\n{}", String::from_utf8_lossy(output));
+    }
+
+    fn log_dependency_install_stdout(&self, output: &Vec<u8>) {
+        debug!("[install stdout]\n{}", String::from_utf8_lossy(output));
+    }
 }
 
 fn delete_file_error(file: &PathBuf) -> impl FnOnce(&io::Error) -> ErrorDetails {
@@ -579,8 +597,14 @@ impl Installer {
                     "--loglevel=warn",
                     "--no-update-notifier",
                     "--no-audit",
-                    "--color=always",
                 ]);
+
+                if atty::is(Stream::Stdout) {
+                    // npm won't detect the existence of a TTY since we are piping the output
+                    // force the output to be colorized for when we send it to the user
+                    command.arg("--color=always");
+                }
+
                 command
             }
             Installer::Yarn => {
