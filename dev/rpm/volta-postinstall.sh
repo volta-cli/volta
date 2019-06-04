@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Post-install setup for Volta:
-#  * create the home directory layout,
-#  * create symlinks and shims,
+#  * create the home directory layout
+#  * create symlinks to the binaries in /usr/bin/volta/*
+#  * copy over the shell integration files (load.*)
+#  * create symlinks and shims
 #  * update the user's profile
 
 # exit on error

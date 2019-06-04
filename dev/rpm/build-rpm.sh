@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build an RPM package for Volta
 
-# using the directions from https://rpm-packaging-guide.github.io/#triggers-and-scriptlets
+# using the directions from https://rpm-packaging-guide.github.io/
 
 # exit on error
 set -e
@@ -20,15 +20,18 @@ rpmdev-setuptree
 
 # create a tarball of the repo for the specified version
 # using prefix because the rpmbuild process expects a 'volta-<version>' directory
+# (https://rpm-packaging-guide.github.io/#putting-source-code-into-tarball)
 git archive --format=tar.gz --output=$archive_filename --prefix="volta-${release_version}/" "v${release_version}"
 
 # move the archive to the SOURCES dir
+# (https://rpm-packaging-guide.github.io/#working-with-spec-files)
 mv "$archive_filename" "$HOME/rpmbuild/SOURCES/"
 
 # copy the .spec file to SPECS dir
 cp dev/rpm/volta.spec "$HOME/rpmbuild/SPECS/"
 
 # build it!
+# (https://rpm-packaging-guide.github.io/#binary-rpms)
 rpmbuild -bb "$HOME/rpmbuild/SPECS/volta.spec"
 # (there will be a lot of output)
 

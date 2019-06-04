@@ -8,14 +8,12 @@ URL:            https://%{name}.sh
 Source0:        https://github.com/volta-cli/volta/archive/v%{version}.tar.gz
 
 # cargo is required, but installing from RPM is failing with libcrypto dep error
-# so you will have to install cargo manually
+# so you will have to install cargo manually to build this
 #BuildRequires:  cargo
 
-# TODO - should require openssl?
-Requires:       bash
+# because these are built with openssl
+Requires:       openssl
 
-# TODO
-#BuildArch:
 
 %description
 Volta’s job is to manage your JavaScript command-line tools, such as node, npm, yarn, or executables shipped as part of JavaScript packages. Similar to package managers, Volta keeps track of which project (if any) you’re working on based on your current directory. The tools in your Volta toolchain automatically detect when you’re in a project that’s using a particular version of the tools, and take care of routing to the right version of the tools for you.
