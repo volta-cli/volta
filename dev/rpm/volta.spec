@@ -54,8 +54,17 @@ install -m 0755 dev/rpm/volta-postinstall.sh %{buildroot}/%{_bindir}/%{name}/vol
 
 # this runs after install, and sets up VOLTA_HOME and the shell integration
 %post
-echo "Running Volta post-install setup..."
-%{_bindir}/%{name}/volta-postinstall.sh
+printf '\033[1;32m%12s\033[0m %s\n' "Running" "Volta post-install setup..." 1>&2
+# run this as the user who invoked sudo (not as root, because we're writing to $HOME)
+/bin/su -c %{_bindir}/%{name}/volta-postinstall.sh - $SUDO_USER
+
+
+# this runs after uninstall
+%postun
+printf '\033[1;32m%12s\033[0m %s\n' "Removing" "~/.volta/ directory" 1>&2
+# run this as the user who invoked sudo (not as root, because we're using $HOME)
+# and using single quotes so $HOME doesn't expand until it's in the user's shell
+/bin/su -c 'rm -rf $HOME/.volta' - $SUDO_USER
 
 
 %changelog
