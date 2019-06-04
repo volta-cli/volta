@@ -42,6 +42,9 @@ install -m 0755 target/release/%{name} %{buildroot}/%{_bindir}/%{name}/%{name}
 install -m 0755 target/release/shim %{buildroot}/%{_bindir}/%{name}/shim
 # and put the postinstall script there too
 install -m 0755 dev/rpm/volta-postinstall.sh %{buildroot}/%{_bindir}/%{name}/volta-postinstall.sh
+# and the shell integration scripts
+install -m 0644 shell/unix/load.sh %{buildroot}/%{_bindir}/%{name}/load.sh
+install -m 0644 shell/unix/load.fish %{buildroot}/%{_bindir}/%{name}/load.fish
 
 
 # files installed by this package
@@ -50,6 +53,8 @@ install -m 0755 dev/rpm/volta-postinstall.sh %{buildroot}/%{_bindir}/%{name}/vol
 %{_bindir}/%{name}/%{name}
 %{_bindir}/%{name}/shim
 %{_bindir}/%{name}/volta-postinstall.sh
+%{_bindir}/%{name}/load.sh
+%{_bindir}/%{name}/load.fish
 
 
 # this runs after install, and sets up VOLTA_HOME and the shell integration
@@ -63,7 +68,7 @@ printf '\033[1;32m%12s\033[0m %s\n' "Running" "Volta post-install setup..." 1>&2
 %postun
 printf '\033[1;32m%12s\033[0m %s\n' "Removing" "~/.volta/ directory" 1>&2
 # run this as the user who invoked sudo (not as root, because we're using $HOME)
-# and using single quotes so $HOME doesn't expand until it's in the user's shell
+# and using single quotes so $HOME doesn't expand here (for root), but expands in the user's shell
 /bin/su -c 'rm -rf $HOME/.volta' - $SUDO_USER
 
 

@@ -29,6 +29,12 @@ create_bin_symlinks() {
   done
 }
 
+# copy over the shell integration files
+copy_shell_integration() {
+  local install_dir="$1"
+  info 'Copying' "Shell integration scripts"
+  cp "$BIN_DIR"/load.* "$install_dir/"
+}
 
 # (the rest of these functions were taken from dev/unix/volta-install.sh)
 
@@ -236,6 +242,9 @@ create_tree "$VOLTA_HOME"
 
 # create symlinks to the installed binaries in /usr/bin/volta/*
 create_bin_symlinks "$VOLTA_HOME"
+
+# copy over the shell integration files
+copy_shell_integration "$VOLTA_HOME"
 
 # create symlinks for the shims
 create_symlinks "$VOLTA_HOME"
