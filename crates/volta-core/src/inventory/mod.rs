@@ -11,10 +11,13 @@ use std::time::{Duration, SystemTime};
 
 use headers_011::Headers011;
 use lazycell::LazyCell;
+use log::debug;
 use reqwest;
 use reqwest::hyper_011::header::{CacheControl, CacheDirective, Expires, HttpDate};
+use semver::{Version, VersionReq};
 use serde_json;
 use tempfile::NamedTempFile;
+use volta_fail::{throw, Fallible, ResultExt};
 
 use crate::distro::node::{NodeDistro, NodeVersion};
 use crate::distro::package::{PackageDistro, PackageEntry, PackageIndex, PackageVersion};
@@ -26,8 +29,6 @@ use crate::hook::ToolHooks;
 use crate::path;
 use crate::style::progress_spinner;
 use crate::version::VersionSpec;
-use semver::{Version, VersionReq};
-use volta_fail::{throw, Fallible, ResultExt};
 
 pub(crate) mod serial;
 
@@ -241,12 +242,16 @@ impl FetchResolve<NodeDistro> for NodeCollection {
             Some(&ToolHooks {
                 latest: Some(ref hook),
                 ..
-            }) => hook.resolve("index.json")?,
+            }) => {
+                debug!("Using node.latest hook to determine node index URL");
+                hook.resolve("index.json")?
+            }
             _ => public_node_version_index(),
         };
         let version_opt = match_node_version(&url, |_| true)?;
 
         if let Some(version) = version_opt {
+            debug!("Found latest node version ({}) from {}", version, url);
             Ok(version)
         } else {
             throw!(ErrorDetails::NodeVersionNotFound {
@@ -266,13 +271,20 @@ impl FetchResolve<NodeDistro> for NodeCollection {
             Some(&ToolHooks {
                 index: Some(ref hook),
                 ..
-            }) => hook.resolve("index.json")?,
+            }) => {
+                debug!("Using node.index hook to determine node index URL");
+                hook.resolve("index.json")?
+            }
             _ => public_node_version_index(),
         };
         let version_opt =
             match_node_version(&url, |NodeEntry { version, .. }| matching.matches(version))?;
 
         if let Some(version) = version_opt {
+            debug!(
+                "Found node@{} matching requirement '{}' from {}",
+                version, matching, url
+            );
             Ok(version)
         } else {
             throw!(ErrorDetails::NodeVersionNotFound {
@@ -286,12 +298,16 @@ impl FetchResolve<NodeDistro> for NodeCollection {
             Some(&ToolHooks {
                 index: Some(ref hook),
                 ..
-            }) => hook.resolve("index.json")?,
+            }) => {
+                debug!("Using node.index hook to determine node index URL");
+                hook.resolve("index.json")?
+            }
             _ => public_node_version_index(),
         };
         let version_opt = match_node_version(&url, |&NodeEntry { lts, .. }| lts)?;
 
         if let Some(version) = version_opt {
+            debug!("Found newest LTS node version ({}) from {}", version, url);
             Ok(version)
         } else {
             throw!(ErrorDetails::NodeVersionNotFound {
@@ -339,12 +355,19 @@ impl FetchResolve<YarnDistro> for YarnCollection {
             Some(&ToolHooks {
                 latest: Some(ref hook),
                 ..
-            }) => hook.resolve("latest-version")?,
+            }) => {
+                debug!("Using yarn.latest hook to determine latest-version URL");
+                hook.resolve("latest-version")?
+            }
             _ => public_yarn_latest_version(),
         };
         let response_text = reqwest::get(&url)
             .and_then(|mut resp| resp.text())
-            .with_context(|_| ErrorDetails::YarnLatestFetchError { from_url: url })?;
+            .with_context(|_| ErrorDetails::YarnLatestFetchError {
+                from_url: url.clone(),
+            })?;
+
+        debug!("Found yarn latest version ({}) from {}", response_text, url);
         VersionSpec::parse_version(response_text)
     }
 
@@ -358,7 +381,10 @@ impl FetchResolve<YarnDistro> for YarnCollection {
             Some(&ToolHooks {
                 index: Some(ref hook),
                 ..
-            }) => hook.resolve("releases")?,
+            }) => {
+                debug!("Using yarn.index hook to determine yarn index URL");
+                hook.resolve("releases")?
+            }
             _ => public_yarn_version_index(),
         };
 
@@ -371,6 +397,10 @@ impl FetchResolve<YarnDistro> for YarnCollection {
         let version_opt = releases.into_iter().rev().find(|v| matching.matches(v));
 
         if let Some(version) = version_opt {
+            debug!(
+                "Found yarn@{} matching requirement '{}' from {}",
+                version, matching, url
+            );
             Ok(version)
         } else {
             throw!(ErrorDetails::YarnVersionNotFound {
@@ -456,7 +486,10 @@ impl FetchResolve<PackageDistro> for PackageCollection {
             Some(&ToolHooks {
                 latest: Some(ref hook),
                 ..
-            }) => hook.resolve(&name)?,
+            }) => {
+                debug!("Using packages.latest hook to determine package metadata URL");
+                hook.resolve(&name)?
+            }
             _ => format!("{}/{}", public_package_registry_root(), name),
         };
 
@@ -468,6 +501,10 @@ impl FetchResolve<PackageDistro> for PackageCollection {
         });
 
         if let Some(entry) = entry_opt {
+            debug!(
+                "Found {} latest version ({}) from {}",
+                name, entry.version, url
+            );
             Ok(entry)
         } else {
             throw!(ErrorDetails::PackageVersionNotFound {
@@ -487,7 +524,10 @@ impl FetchResolve<PackageDistro> for PackageCollection {
             Some(&ToolHooks {
                 index: Some(ref hook),
                 ..
-            }) => hook.resolve(&name)?,
+            }) => {
+                debug!("Using packages.index hook to determine package metadata URL");
+                hook.resolve(&name)?
+            }
             _ => format!("{}/{}", public_package_registry_root(), name),
         };
 
@@ -498,6 +538,10 @@ impl FetchResolve<PackageDistro> for PackageCollection {
         });
 
         if let Some(entry) = entry_opt {
+            debug!(
+                "Found {}@{} matching requirement '{}' from {}",
+                name, entry.version, matching, url
+            );
             Ok(entry)
         } else {
             throw!(ErrorDetails::PackageVersionNotFound {
@@ -517,7 +561,10 @@ impl FetchResolve<PackageDistro> for PackageCollection {
             Some(&ToolHooks {
                 index: Some(ref hook),
                 ..
-            }) => hook.resolve(&name)?,
+            }) => {
+                debug!("Using packages.index hook to determine package metadata URL");
+                hook.resolve(&name)?
+            }
             _ => format!("{}/{}", public_package_registry_root(), name),
         };
 
@@ -528,6 +575,7 @@ impl FetchResolve<PackageDistro> for PackageCollection {
         });
 
         if let Some(entry) = entry_opt {
+            debug!("Found {}@{} from {}", name, entry.version, url);
             Ok(entry)
         } else {
             throw!(ErrorDetails::PackageVersionNotFound {

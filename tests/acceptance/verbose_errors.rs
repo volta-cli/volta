@@ -15,16 +15,13 @@ const NODE_VERSION_INFO: &'static str = r#"[
 
 #[test]
 fn no_cause_shown_if_no_verbose_flag() {
-    let s = sandbox()
-        .env_remove("VOLTA_DEV")
-        .node_available_versions(NODE_VERSION_INFO)
-        .build();
+    let s = sandbox().node_available_versions(NODE_VERSION_INFO).build();
 
     assert_that!(
         s.volta("install node@10"),
         execs()
             .with_status(ExitCode::NetworkError as i32)
-            .with_stderr_does_not_contain("cause[..]")
+            .with_stdout_does_not_contain("[..]Error cause[..]")
     );
 }
 
@@ -36,7 +33,7 @@ fn cause_shown_if_verbose_flag() {
         s.volta("install node@10 --verbose"),
         execs()
             .with_status(ExitCode::NetworkError as i32)
-            .with_stderr_contains("cause[..]")
+            .with_stdout_contains("[..]Error cause[..]")
     );
 }
 
@@ -48,7 +45,7 @@ fn no_cause_if_no_underlying_error() {
         s.volta("use --verbose"),
         execs()
             .with_status(ExitCode::InvalidArguments as i32)
-            .with_stderr_does_not_contain("cause[..]")
+            .with_stdout_does_not_contain("[..]Error cause[..]")
     );
 }
 
@@ -63,7 +60,6 @@ fn error_log_if_underlying_cause() {
             .with_stderr_contains("Error details written to[..]")
     );
 
-    println!("ROOT DIRECTORY: {:?}", s.root());
     let mut log_dir_contents = s.read_log_dir().expect("Could not read log directory");
     assert_that!(log_dir_contents.next(), some());
 }

@@ -247,12 +247,6 @@ impl SandboxBuilder {
         self
     }
 
-    /// Unset an environment variable for the sandbox (chainable)
-    pub fn env_remove(mut self, name: &str) -> Self {
-        self.root.env_vars_remove.push(name.to_string());
-        self
-    }
-
     /// Add a directory to the PATH (chainable)
     pub fn path_dir(mut self, dir: &str) -> Self {
         self.path_dirs.push(PathBuf::from(dir));

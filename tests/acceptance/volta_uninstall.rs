@@ -51,16 +51,18 @@ fn bin_config(name: &str) -> String {
     )
 }
 
+const VOLTA_LOGLEVEL: &'static str = "VOLTA_LOGLEVEL";
+
 #[test]
 fn uninstall_nonexistent_pkg() {
     // if the package doesn't exist, it should just inform the user but not throw an error
-    let s = sandbox().build();
+    let s = sandbox().env(VOLTA_LOGLEVEL, "info").build();
 
     assert_that!(
         s.volta("uninstall cowsay"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Package 'cowsay' uninstalled")
+            .with_stdout_contains("[..]package 'cowsay' uninstalled")
     );
 }
 
@@ -76,6 +78,7 @@ fn uninstall_package_basic() {
         .shim("cowthink")
         .package_image("cowsay", "1.4.0")
         .package_inventory("cowsay", "1.4.0")
+        .env(VOLTA_LOGLEVEL, "info")
         .build();
 
     assert_that!(
@@ -84,7 +87,7 @@ fn uninstall_package_basic() {
             .with_status(0)
             .with_stdout_contains("Removed executable 'cowsay' installed by 'cowsay'")
             .with_stdout_contains("Removed executable 'cowthink' installed by 'cowsay'")
-            .with_stdout_contains("Package 'cowsay' uninstalled")
+            .with_stdout_contains("[..]package 'cowsay' uninstalled")
     );
 
     // check that everything is deleted
@@ -107,13 +110,14 @@ fn uninstall_package_no_bins() {
         .package_config("cowsay", PKG_CONFIG_NO_BINS)
         .package_image("cowsay", "1.4.0")
         .package_inventory("cowsay", "1.4.0")
+        .env(VOLTA_LOGLEVEL, "info")
         .build();
 
     assert_that!(
         s.volta("uninstall cowsay"),
         execs()
             .with_status(0)
-            .with_stdout_contains("Package 'cowsay' uninstalled")
+            .with_stdout_contains("[..]package 'cowsay' uninstalled")
     );
 
     // check that everything is deleted
@@ -139,6 +143,7 @@ fn uninstall_package_no_image() {
         .shim("cowsay")
         .shim("cowthink")
         .package_inventory("cowsay", "1.4.0")
+        .env(VOLTA_LOGLEVEL, "info")
         .build();
 
     assert_that!(
@@ -147,7 +152,7 @@ fn uninstall_package_no_image() {
             .with_status(0)
             .with_stdout_contains("Removed executable 'cowsay' installed by 'cowsay'")
             .with_stdout_contains("Removed executable 'cowthink' installed by 'cowsay'")
-            .with_stdout_contains("Package 'cowsay' uninstalled")
+            .with_stdout_contains("[..]package 'cowsay' uninstalled")
     );
 
     // check that everything is deleted
@@ -171,6 +176,7 @@ fn uninstall_package_orphaned_bins() {
         .binary_config("cowthink", &bin_config("cowthink"))
         .shim("cowsay")
         .shim("cowthink")
+        .env(VOLTA_LOGLEVEL, "info")
         .build();
 
     assert_that!(
@@ -179,7 +185,7 @@ fn uninstall_package_orphaned_bins() {
             .with_status(0)
             .with_stdout_contains("Removed executable 'cowsay' installed by 'cowsay'")
             .with_stdout_contains("Removed executable 'cowthink' installed by 'cowsay'")
-            .with_stdout_contains("Package 'cowsay' uninstalled")
+            .with_stdout_contains("[..]package 'cowsay' uninstalled")
     );
 
     // check that everything is deleted

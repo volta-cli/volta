@@ -4,6 +4,7 @@ use std::fs::{rename, File};
 use std::path::PathBuf;
 use std::string::ToString;
 
+use log::debug;
 use semver::Version;
 use tempfile::tempdir_in;
 
@@ -73,10 +74,17 @@ impl YarnDistro {
         let distro_file = path::yarn_inventory_dir()?.join(&distro_file_name);
 
         if let Some(archive) = load_cached_distro(&distro_file) {
+            debug!(
+                "Loading yarn@{} from cached archive at {}",
+                version,
+                distro_file.display()
+            );
             return Ok(YarnDistro { archive, version });
         }
 
         ensure_containing_dir_exists(&distro_file)?;
+        debug!("Downloading yarn@{} from {}", version, url);
+
         Ok(YarnDistro {
             archive: Tarball::fetch(url, &distro_file).with_context(download_tool_error(
                 ToolSpec::Yarn(VersionSpec::exact(&version)),
@@ -102,6 +110,7 @@ impl Distro for YarnDistro {
                 distro: Some(ref hook),
                 ..
             }) => {
+                debug!("Using yarn.distro hook to determine download URL");
                 let url =
                     hook.resolve(&version, &path::yarn_distro_file_name(&version.to_string()))?;
                 YarnDistro::remote(version, &url)
@@ -119,12 +128,18 @@ impl Distro for YarnDistro {
     /// to update its state after fetching succeeds.)
     fn fetch(self, collection: &YarnCollection) -> Fallible<Fetched<Version>> {
         if collection.contains(&self.version) {
+            debug!(
+                "yarn@{} has already been fetched, skipping download",
+                &self.version
+            );
             return Ok(Fetched::Already(self.version));
         }
 
         let tmp_root = path::tmp_dir()?;
         let temp = tempdir_in(&tmp_root)
             .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })?;
+        debug!("Unpacking yarn into {}", temp.path().display());
+
         let bar = progress_bar(
             self.archive.origin(),
             &tool_version("yarn", &self.version),
@@ -155,10 +170,13 @@ impl Distro for YarnDistro {
         .with_context(|_| ErrorDetails::SetupToolImageError {
             tool: String::from("Yarn"),
             version: version_string.clone(),
-            dir: dest,
+            dir: dest.clone(),
         })?;
 
         bar.finish_and_clear();
+
+        // Note: We write this after the progress bar is finished to avoid display bugs with re-renders of the progress
+        debug!("Installing yarn in {}", dest.display());
         Ok(Fetched::Now(self.version))
     }
 }

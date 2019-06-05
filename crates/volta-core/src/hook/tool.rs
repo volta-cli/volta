@@ -7,6 +7,7 @@ use crate::command::create_command;
 use crate::error::ErrorDetails;
 use crate::path::{ARCH, OS};
 use cmdline_words_parser::StrExt;
+use log::debug;
 use semver::Version;
 use volta_fail::{throw, Fallible, ResultExt};
 
@@ -75,11 +76,15 @@ fn execute_binary(bin: &str, extra_arg: Option<String>) -> Fallible<String> {
         args.push(OsString::from(arg));
     }
 
-    let output = create_command(cmd)
+    let mut command = create_command(cmd);
+    command
         .args(&args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stderr(Stdio::null());
+
+    debug!("Running hook command: {:?}", command);
+    let output = command
         .output()
         .with_context(|_| ErrorDetails::ExecuteHookError {
             command: cmd.to_string(),

@@ -13,6 +13,7 @@ use crate::distro::yarn::YarnDistro;
 use crate::distro::Distro;
 use crate::error::ErrorDetails;
 use crate::path::{find_project_dir, user_hooks_file};
+use log::debug;
 use volta_fail::{Fallible, ResultExt};
 
 pub(crate) mod serial;
@@ -98,15 +99,21 @@ impl HookConfig {
         let maybe_user_config = Self::for_user()?;
 
         Ok(match (maybe_project_config, maybe_user_config) {
-            (Some(project_config), Some(user_config)) => Self::merge(user_config, project_config),
+            (Some(project_config), Some(user_config)) => {
+                debug!("Merging user and project hooks");
+                Self::merge(user_config, project_config)
+            }
             (Some(project_config), None) => project_config,
             (None, Some(user_config)) => user_config,
-            (None, None) => Self {
-                node: None,
-                yarn: None,
-                package: None,
-                events: None,
-            },
+            (None, None) => {
+                debug!("No custom hooks found");
+                Self {
+                    node: None,
+                    yarn: None,
+                    package: None,
+                    events: None,
+                }
+            }
         })
     }
 
@@ -122,8 +129,13 @@ impl HookConfig {
         match find_project_dir(&base_dir) {
             Some(project_dir) => {
                 let path = project_dir.join(".volta").join("hooks.json");
+                let hooks_config = Self::from_file(&path)?;
 
-                Self::from_file(&path)
+                if hooks_config.is_some() {
+                    debug!("Found project hooks in {}", path.display());
+                }
+
+                Ok(hooks_config)
             }
             None => Ok(None),
         }
@@ -148,7 +160,14 @@ impl HookConfig {
 
     /// Returns the per-user hooks, loaded from the filesystem.
     fn for_user() -> Fallible<Option<Self>> {
-        Self::from_file(&user_hooks_file()?)
+        let path = user_hooks_file()?;
+        let hooks_config = Self::from_file(&path)?;
+
+        if hooks_config.is_some() {
+            debug!("Found user hooks in {}", path.display());
+        }
+
+        Ok(hooks_config)
     }
 
     /// Creates a merged struct, with "right" having precedence over "left".

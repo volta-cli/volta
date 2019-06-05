@@ -18,6 +18,7 @@ use crate::style::{progress_bar, tool_version};
 use crate::tool::ToolSpec;
 use crate::version::VersionSpec;
 
+use log::debug;
 use semver::Version;
 use volta_fail::{Fallible, ResultExt};
 
@@ -124,10 +125,17 @@ impl NodeDistro {
         let distro_file = path::node_inventory_dir()?.join(&distro_file_name);
 
         if let Some(archive) = load_cached_distro(&distro_file) {
+            debug!(
+                "Loading node@{} from cached archive at {}",
+                version,
+                distro_file.display()
+            );
             return Ok(NodeDistro { archive, version });
         }
 
         ensure_containing_dir_exists(&distro_file)?;
+        debug!("Downloading node@{} from {}", version, url);
+
         Ok(NodeDistro {
             archive: archive::fetch_native(url, &distro_file).with_context(download_tool_error(
                 ToolSpec::Node(VersionSpec::exact(&version)),
@@ -153,6 +161,7 @@ impl Distro for NodeDistro {
                 distro: Some(ref hook),
                 ..
             }) => {
+                debug!("Using node.distro hook to determine download URL");
                 let url =
                     hook.resolve(&version, &path::node_distro_file_name(&version.to_string()))?;
                 NodeDistro::remote(version, &url)
@@ -172,6 +181,10 @@ impl Distro for NodeDistro {
         if collection.contains(&self.version) {
             let npm = load_default_npm_version(&self.version)?;
 
+            debug!(
+                "node@{} has already been fetched, skipping install",
+                &self.version
+            );
             return Ok(Fetched::Already(NodeVersion {
                 runtime: self.version,
                 npm,
@@ -181,6 +194,8 @@ impl Distro for NodeDistro {
         let tmp_root = path::tmp_dir()?;
         let temp = tempdir_in(&tmp_root)
             .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })?;
+        debug!("Unpacking node into {}", temp.path().display());
+
         let bar = progress_bar(
             self.archive.origin(),
             &tool_version("node", &self.version),
@@ -221,10 +236,14 @@ impl Distro for NodeDistro {
         .with_context(|_| ErrorDetails::SetupToolImageError {
             tool: String::from("Node"),
             version: version_string.clone(),
-            dir: dest,
+            dir: dest.clone(),
         })?;
 
         bar.finish_and_clear();
+
+        // Note: We write these after the progress bar is finished to avoid display bugs with re-renders of the progress
+        debug!("Saving bundled npm version ({})", npm);
+        debug!("Installing node in {}", dest.display());
         Ok(Fetched::Now(NodeVersion {
             runtime: self.version,
             npm,

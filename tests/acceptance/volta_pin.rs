@@ -193,6 +193,8 @@ const NPM_VERSION_INFO: &'static str = r#"
 }
 "#;
 
+const VOLTA_LOGLEVEL: &'static str = "VOLTA_LOGLEVEL";
+
 #[test]
 fn pin_node() {
     let s = sandbox()
@@ -203,15 +205,30 @@ fn pin_node() {
 
     assert_that!(
         s.volta("pin node@6"),
-        execs()
-            .with_status(ExitCode::Success as i32)
-            .with_stdout_contains("[..]pinned node@6.19.62 (with npm@3.10.1066) in package.json")
+        execs().with_status(ExitCode::Success as i32)
     );
 
     assert_eq!(
         s.read_package_json(),
         package_json_with_pinned_node("6.19.62"),
     )
+}
+
+#[test]
+fn pin_node_reports_info() {
+    let s = sandbox()
+        .package_json(BASIC_PACKAGE_JSON)
+        .node_available_versions(NODE_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .env(VOLTA_LOGLEVEL, "info")
+        .build();
+
+    assert_that!(
+        s.volta("pin node@6"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stdout_contains("[..]pinned node@6.19.62 (with npm@3.10.1066) in package.json")
+    );
 }
 
 #[test]
@@ -224,9 +241,7 @@ fn pin_node_latest() {
 
     assert_that!(
         s.volta("pin node@latest"),
-        execs()
-            .with_status(ExitCode::Success as i32)
-            .with_stdout_contains("[..]pinned node@10.99.1040 (with npm@6.2.26) in package.json")
+        execs().with_status(ExitCode::Success as i32)
     );
 
     assert_eq!(
@@ -245,9 +260,7 @@ fn pin_node_no_version() {
 
     assert_that!(
         s.volta("pin node"),
-        execs()
-            .with_status(ExitCode::Success as i32)
-            .with_stdout_contains("[..]pinned node@10.99.1040 (with npm@6.2.26) in package.json")
+        execs().with_status(ExitCode::Success as i32)
     );
 
     assert_eq!(
@@ -267,9 +280,7 @@ fn pin_node_removes_npm() {
 
     assert_that!(
         s.volta("pin node@8"),
-        execs()
-            .with_status(ExitCode::Success as i32)
-            .with_stdout_contains("[..]pinned node@8.9.10 (with npm@5.6.7) in package.json")
+        execs().with_status(ExitCode::Success as i32)
     );
 
     assert_eq!(
@@ -308,15 +319,30 @@ fn pin_yarn() {
 
     assert_that!(
         s.volta("pin yarn@1.4"),
-        execs()
-            .with_status(ExitCode::Success as i32)
-            .with_stdout_contains("[..]pinned yarn@1.4.159 in package.json")
+        execs().with_status(ExitCode::Success as i32)
     );
 
     assert_eq!(
         s.read_package_json(),
         package_json_with_pinned_node_yarn("1.2.3", "1.4.159"),
     )
+}
+
+#[test]
+fn pin_yarn_reports_info() {
+    let s = sandbox()
+        .package_json(&package_json_with_pinned_node("1.2.3"))
+        .yarn_available_versions(YARN_VERSION_INFO)
+        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .env(VOLTA_LOGLEVEL, "info")
+        .build();
+
+    assert_that!(
+        s.volta("pin yarn@1.4"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stdout_contains("[..]pinned yarn@1.4.159 in package.json")
+    );
 }
 
 #[test]
@@ -329,9 +355,7 @@ fn pin_yarn_latest() {
 
     assert_that!(
         s.volta("pin yarn@latest"),
-        execs()
-            .with_status(ExitCode::Success as i32)
-            .with_stdout_contains("[..]pinned yarn@1.2.42 in package.json")
+        execs().with_status(ExitCode::Success as i32)
     );
 
     assert_eq!(
@@ -350,9 +374,7 @@ fn pin_yarn_no_version() {
 
     assert_that!(
         s.volta("pin yarn"),
-        execs()
-            .with_status(ExitCode::Success as i32)
-            .with_stdout_contains("[..]pinned yarn@1.2.42 in package.json")
+        execs().with_status(ExitCode::Success as i32)
     );
 
     assert_eq!(
@@ -391,9 +413,7 @@ fn pin_yarn_leaves_npm() {
 
     assert_that!(
         s.volta("pin yarn@1.4"),
-        execs()
-            .with_status(ExitCode::Success as i32)
-            .with_stdout_contains("[..]pinned yarn@1.4.159 in package.json")
+        execs().with_status(ExitCode::Success as i32)
     );
 
     assert_eq!(
@@ -413,9 +433,7 @@ fn pin_npm() {
 
     assert_that!(
         s.volta("pin npm@5.10"),
-        execs()
-            .with_status(ExitCode::Success as i32)
-            .with_stdout_contains("pinned npm@5.10.12 in package.json")
+        execs().with_status(ExitCode::Success as i32)
     );
 
     assert_eq!(

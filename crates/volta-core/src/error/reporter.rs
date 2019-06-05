@@ -6,94 +6,56 @@ use std::path::PathBuf;
 
 use crate::fs::ensure_containing_dir_exists;
 use crate::path::log_dir;
-use crate::style::{format_error_cause, format_error_message};
+use crate::style::format_error_cause;
 use chrono::Local;
 use failure::Error;
+use log::{debug, error};
 use volta_fail::VoltaError;
 
-const VOLTA_DEV: &'static str = "VOLTA_DEV";
+/// Report an error, both to the console and to error logs
+pub fn report_error(volta_version: &str, err: &VoltaError) {
+    let message = err.to_string();
+    error!("{}", message);
 
-/// Represents the context from which an error is being reported.
-pub enum ErrorContext {
-    /// An error reported from the `volta` executable.
-    Volta,
+    if let Some(details) = compose_error_details(err) {
+        debug!("{}", details);
 
-    /// An error reported from a shim.
-    Shim,
+        // Note: Writing the error log info directly to stderr as it is a message for the user
+        // Any custom logs will have all of the details already, so showing a message about writing
+        // the error log would be redundant
+        match write_error_log(volta_version, message, details) {
+            Ok(log_file) => {
+                eprintln!("Error details written to {}", log_file.to_string_lossy());
+            }
+            Err(_) => {
+                eprintln!("Unable to write error log!");
+            }
+        }
+    }
 }
 
-/// Reporter for showing errors to the terminal and error logs
-pub struct ErrorReporter {
-    /// Volta version to display in error logs
-    version: String,
+/// Write an error log with all details about the error
+fn write_error_log(
+    volta_version: &str,
+    message: String,
+    details: String,
+) -> Result<PathBuf, Error> {
+    let file_name = Local::now()
+        .format("volta-error-%Y-%m-%d_%H_%M_%S%.3f.log")
+        .to_string();
+    let log_file_path = log_dir()?.join(&file_name);
 
-    /// Flag indicating whether to report additional details to the terminal
-    verbose: bool,
-}
+    ensure_containing_dir_exists(&log_file_path)?;
+    let mut log_file = File::create(&log_file_path)?;
 
-impl ErrorReporter {
-    /// Create a new ErrorReporter from a verbose flag
-    pub fn from_flag(volta_version: &str, verbose: bool) -> Self {
-        if verbose {
-            ErrorReporter {
-                version: volta_version.to_string(),
-                verbose,
-            }
-        } else {
-            ErrorReporter::from_env(volta_version)
-        }
-    }
+    writeln!(log_file, "{}", collect_arguments())?;
+    writeln!(log_file, "Volta v{}", volta_version)?;
+    writeln!(log_file)?;
+    writeln!(log_file, "{}", message)?;
+    writeln!(log_file)?;
+    writeln!(log_file, "{}", details)?;
 
-    /// Create a new ErrorReporter from the environment variables
-    pub fn from_env(volta_version: &str) -> Self {
-        ErrorReporter {
-            version: volta_version.to_string(),
-            verbose: env::var(VOLTA_DEV).is_ok(),
-        }
-    }
-
-    /// Report an error, both to the terminal and the error log
-    pub fn report(&self, cx: ErrorContext, err: &VoltaError) {
-        let message = format_error_message(cx, err);
-
-        eprintln!("{}", message);
-
-        if let Some(details) = compose_error_details(err) {
-            if self.verbose {
-                eprintln!();
-                eprintln!("{}", details);
-            }
-
-            match self.write_error_log(message, details) {
-                Ok(log_file) => {
-                    eprintln!("Error details written to: {}", log_file.to_string_lossy());
-                }
-                Err(_) => {
-                    eprintln!("Unable to write error log!");
-                }
-            }
-        }
-    }
-
-    /// Write an error log with additional details about the error
-    fn write_error_log(&self, message: String, details: String) -> Result<PathBuf, Error> {
-        let file_name = Local::now()
-            .format("volta-error-%Y-%m-%d_%H_%M_%S%.3f.log")
-            .to_string();
-        let log_file_path = log_dir()?.join(&file_name);
-
-        ensure_containing_dir_exists(&log_file_path)?;
-        let mut log_file = File::create(&log_file_path)?;
-
-        writeln!(log_file, "{}", collect_arguments())?;
-        writeln!(log_file, "Volta v{}", self.version)?;
-        writeln!(log_file)?;
-        writeln!(log_file, "{}", message)?;
-        writeln!(log_file)?;
-        writeln!(log_file, "{}", details)?;
-
-        Ok(log_file_path)
-    }
+    Ok(log_file_path)
 }
 
 fn compose_error_details(err: &VoltaError) -> Option<String> {

@@ -4,20 +4,27 @@ mod cli;
 
 use structopt::StructOpt;
 
-use volta_core::error::{ErrorContext, ErrorReporter};
+use volta_core::error::report_error;
+use volta_core::log::{LogContext, LogVerbosity, Logger};
 use volta_core::session::{ActivityKind, Session};
 
 /// The entry point for the `volta` CLI.
 pub fn main() {
-    let mut session = Session::new();
-
-    session.add_event_start(ActivityKind::Volta);
-
     let volta = cli::Volta::from_args();
-    let verbose = volta.verbose;
+    let verbosity = match (&volta.verbose, &volta.quiet) {
+        (false, false) => LogVerbosity::Default,
+        (true, false) => LogVerbosity::Verbose,
+        (false, true) => LogVerbosity::Quiet,
+        (true, true) => unreachable!(
+            "StructOpt should prevent the user from providing both --verbose and --quiet"
+        ),
+    };
+    Logger::init(LogContext::Volta, verbosity).expect("Only a single logger should be initialized");
+
+    let mut session = Session::new();
+    session.add_event_start(ActivityKind::Volta);
     let exit_code = volta.run(&mut session).unwrap_or_else(|err| {
-        ErrorReporter::from_flag(env!("CARGO_PKG_VERSION"), verbose)
-            .report(ErrorContext::Volta, &err);
+        report_error(env!("CARGO_PKG_VERSION"), &err);
         session.add_event_error(ActivityKind::Volta, &err);
         err.exit_code()
     });
