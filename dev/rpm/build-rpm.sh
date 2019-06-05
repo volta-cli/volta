@@ -23,8 +23,9 @@ rpmdev-setuptree
 # (https://rpm-packaging-guide.github.io/#putting-source-code-into-tarball)
 git archive --format=tar.gz --output=$archive_filename --prefix="volta-${release_version}/" "v${release_version}"
 
-# move the archive to the SOURCES dir
+# move the archive to the SOURCES dir, after cleaning it up
 # (https://rpm-packaging-guide.github.io/#working-with-spec-files)
+rm -rf "$HOME/rmpbuild/SOURCES/"*
 mv "$archive_filename" "$HOME/rpmbuild/SOURCES/"
 
 # copy the .spec file to SPECS dir
