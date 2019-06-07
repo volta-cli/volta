@@ -13,7 +13,7 @@ where
     session.add_event_start(ActivityKind::Node);
 
     match session.current_platform()? {
-        Some(ref platform) => {
+        Some(platform) => {
             let image = platform.checkout(session)?;
             let path = image.path()?;
             Ok(ToolCommand::direct(OsStr::new("node"), args, &path))

@@ -47,7 +47,7 @@ pub struct NodeDistro {
 /// A full Node version including not just the version of Node itself
 /// but also the specific version of npm installed globally with that
 /// Node installation.
-#[derive(Eq, PartialEq, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct NodeVersion {
     /// The version of Node itself.
     pub runtime: Version,

@@ -14,7 +14,7 @@ use crate::error::ErrorDetails;
 use crate::event::EventLog;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
 use crate::inventory::{FetchResolve, Inventory, LazyInventory};
-use crate::platform::PlatformSpec;
+use crate::platform::{PlatformSpec, SourcedPlatformSpec};
 use crate::project::{LazyProject, Project};
 use crate::style::{success_prefix, tool_version};
 use crate::toolchain::LazyToolchain;
@@ -108,10 +108,13 @@ impl Session {
         self.project.get()
     }
 
-    pub fn current_platform(&self) -> Fallible<Option<Rc<PlatformSpec>>> {
+    pub fn current_platform(&self) -> Fallible<Option<SourcedPlatformSpec>> {
         match self.project_platform()? {
-            Some(platform) => Ok(Some(platform)),
-            None => self.user_platform(),
+            Some(platform) => Ok(Some(SourcedPlatformSpec::project(platform))),
+            None => {
+                let user = self.user_platform()?;
+                Ok(user.map(|platform| SourcedPlatformSpec::user(platform)))
+            }
         }
     }
 

@@ -14,7 +14,7 @@ where
     session.add_event_start(ActivityKind::Npm);
 
     match session.current_platform()? {
-        Some(ref platform) => {
+        Some(platform) => {
             if intercept_global_installs() {
                 if let CommandArg::GlobalAdd(package) = check_npm_install() {
                     throw!(ErrorDetails::NoGlobalInstalls { package });

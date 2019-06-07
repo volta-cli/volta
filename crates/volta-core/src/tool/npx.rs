@@ -14,18 +14,18 @@ where
     session.add_event_start(ActivityKind::Npx);
 
     match session.current_platform()? {
-        Some(ref platform) => {
+        Some(platform) => {
             let image = platform.checkout(session)?;
 
             // npx was only included with npm 5.2.0 and higher. If the npm version is less than that, we
             // should include a helpful error message
             let required_npm = VersionSpec::parse_version("5.2.0")?;
-            if image.node.npm >= required_npm {
+            if image.node().npm >= required_npm {
                 let path = image.path()?;
                 Ok(ToolCommand::direct(OsStr::new("npx"), args, &path))
             } else {
                 Err(ErrorDetails::NpxNotAvailable {
-                    version: image.node.npm.to_string(),
+                    version: image.node().npm.to_string(),
                 }
                 .into())
             }

@@ -11,8 +11,11 @@ use crate::path;
 use crate::session::Session;
 use volta_fail::{Fallible, ResultExt};
 
+pub mod sourced;
+pub use self::sourced::{SourcedImage, SourcedPlatformSpec};
+
 /// A specification of tool versions needed for a platform
-#[derive(Eq, PartialEq, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct PlatformSpec {
     /// The pinned version of Node.
     pub node_runtime: Version,
@@ -44,7 +47,7 @@ impl PlatformSpec {
 }
 
 /// A platform image.
-#[derive(Eq, PartialEq, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct Image {
     /// The pinned version of Node.
     pub node: NodeVersion,
@@ -53,7 +56,7 @@ pub struct Image {
 }
 
 impl Image {
-    pub fn bins(&self) -> Fallible<Vec<PathBuf>> {
+    fn bins(&self) -> Fallible<Vec<PathBuf>> {
         let node_str = self.node.runtime.to_string();
         let npm_str = self.node.npm.to_string();
         // ISSUE(#292): Install npm, and handle using that
