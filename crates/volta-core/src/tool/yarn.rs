@@ -27,11 +27,11 @@ where
             // Note: If we've gotten this far, we know there is a yarn version set
             match platform.source() {
                 Source::Project => debug!(
-                    "Using yarn@{} from project platform",
+                    "Using yarn@{} from project configuration",
                     platform.yarn().unwrap()
                 ),
                 Source::User => debug!(
-                    "Using yarn@{} from user default platform",
+                    "Using yarn@{} from default configuration",
                     platform.yarn().unwrap()
                 ),
             };
@@ -41,7 +41,7 @@ where
             Ok(ToolCommand::direct(OsStr::new("yarn"), args, &path))
         }
         None => {
-            debug!("Could not find platform, delegating to system");
+            debug!("Could not find Volta-managed yarn, delegating to system");
             ToolCommand::passthrough(OsStr::new("yarn"), args, ErrorDetails::NoPlatform)
         }
     }

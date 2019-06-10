@@ -17,8 +17,10 @@ where
     match session.current_platform()? {
         Some(platform) => {
             match platform.source() {
-                Source::Project => debug!("Using node@{} from project platform", platform.node()),
-                Source::User => debug!("Using node@{} from user default platform", platform.node()),
+                Source::Project => {
+                    debug!("Using node@{} from project configuration", platform.node())
+                }
+                Source::User => debug!("Using node@{} from default configuration", platform.node()),
             };
 
             let image = platform.checkout(session)?;
@@ -26,7 +28,7 @@ where
             Ok(ToolCommand::direct(OsStr::new("node"), args, &path))
         }
         None => {
-            debug!("Could not find platform, delegating to system");
+            debug!("Could not find Volta-managed node, delegating to system");
             ToolCommand::passthrough(OsStr::new("node"), args, ErrorDetails::NoPlatform)
         }
     }

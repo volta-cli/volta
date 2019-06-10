@@ -29,16 +29,20 @@ where
                 });
             }
 
-            debug!("Found bin in project at {}", path_to_bin.display());
+            debug!(
+                "Found {} in project at '{}'",
+                exe.to_string_lossy(),
+                path_to_bin.display()
+            );
             let path_to_bin = path_to_bin.as_os_str();
 
             if let Some(platform) = session.current_platform()? {
                 match platform.source() {
                     Source::Project => {
-                        debug!("Using node@{} from project platform", platform.node())
+                        debug!("Using node@{} from project configuration", platform.node())
                     }
                     Source::User => {
-                        debug!("Using node@{} from user default platform", platform.node())
+                        debug!("Using node@{} from default configuration", platform.node())
                     }
                 };
 
@@ -48,16 +52,20 @@ where
             }
 
             // if there's no platform available, pass through to existing PATH.
-            debug!("Could not find platform, delegating to system");
+            debug!("Could not find Volta configuration, delegating to system");
             return ToolCommand::passthrough(&path_to_bin, args, ErrorDetails::NoPlatform);
         }
     }
 
     // try to use the user toolchain
     if let Some(user_tool) = session.get_user_tool(&exe)? {
-        debug!("Found user default bin in {}", user_tool.bin_path.display());
         debug!(
-            "Using node@{} from bin platform",
+            "Found default {} in '{}'",
+            exe.to_string_lossy(),
+            user_tool.bin_path.display()
+        );
+        debug!(
+            "Using node@{} from binary configuration",
             user_tool.image.node.runtime
         );
 

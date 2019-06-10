@@ -25,10 +25,10 @@ where
             if image.node().npm >= required_npm {
                 match image.source() {
                     Source::Project => {
-                        debug!("Using npx@{} from project platform", image.node().npm)
+                        debug!("Using npx@{} from project configuration", image.node().npm)
                     }
                     Source::User => {
-                        debug!("Using npx@{} from user default platform", image.node().npm)
+                        debug!("Using npx@{} from default configuration", image.node().npm)
                     }
                 };
 
@@ -42,7 +42,7 @@ where
             }
         }
         None => {
-            debug!("Could not find platform, delegating to system");
+            debug!("Could not find Volta-managed npx, delegating to system");
             ToolCommand::passthrough(OsStr::new("npx"), args, ErrorDetails::NoPlatform)
         }
     }

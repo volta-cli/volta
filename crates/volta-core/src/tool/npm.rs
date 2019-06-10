@@ -26,14 +26,16 @@ where
             let path = image.path()?;
 
             match image.source() {
-                Source::Project => debug!("Using npm@{} from project platform", image.node().npm),
-                Source::User => debug!("Using npm@{} from user default platform", image.node().npm),
+                Source::Project => {
+                    debug!("Using npm@{} from project configuration", image.node().npm)
+                }
+                Source::User => debug!("Using npm@{} from default configuration", image.node().npm),
             };
 
             Ok(ToolCommand::direct(OsStr::new("npm"), args, &path))
         }
         None => {
-            debug!("Could not find platform, delegating to system");
+            debug!("Could not find Volta-managed npm, delegating to system");
             ToolCommand::passthrough(OsStr::new("npm"), args, ErrorDetails::NoPlatform)
         }
     }
