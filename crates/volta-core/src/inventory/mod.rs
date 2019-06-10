@@ -26,6 +26,8 @@ use crate::distro::{Distro, Fetched};
 use crate::error::ErrorDetails;
 use crate::fs::{ensure_containing_dir_exists, read_file_opt};
 use crate::hook::ToolHooks;
+use crate::inventory::serial::DistInfo;
+use crate::inventory::serial::NpmViewData;
 use crate::path;
 use crate::style::progress_spinner;
 use crate::version::VersionSpec;
@@ -47,6 +49,7 @@ cfg_if::cfg_if! {
         fn public_yarn_latest_version() -> String {
             format!("{}/yarn-latest", mockito::SERVER_URL)
         }
+        // TODO: remove this
         fn public_package_registry_root() -> String {
             format!("{}/registry", mockito::SERVER_URL)
         }
@@ -63,6 +66,7 @@ cfg_if::cfg_if! {
         fn public_yarn_latest_version() -> String {
             "https://yarnpkg.com/latest-version".to_string()
         }
+        // TODO: remove this
         /// URL of the Npm registry containing an index of availble public packages.
         fn public_package_registry_root() -> String {
             "https://registry.npmjs.org".to_string()
@@ -428,6 +432,19 @@ fn match_package_entry(
     entries.find(predicate)
 }
 
+// TODO: use `npm view` to get the info for the package
+// TODO: run `npm view --json <name>@latest` (show a spinner...)
+fn npm_view_query(name: &str, version: &str) -> Fallible<Option<NpmViewData>> {
+    Ok(Some(NpmViewData {
+        name: "ok".to_string(),
+        version: Version::parse("1.2.3").unwrap(),
+        dist: DistInfo {
+            shasum: "1234".to_string(),
+            tarball: "TODO".to_string(),
+        },
+    }))
+}
+
 // fetch metadata for the input url
 fn resolve_package_metadata(
     package_name: &str,
@@ -482,28 +499,30 @@ impl FetchResolve<PackageDistro> for PackageCollection {
         name: &str,
         hooks: Option<&ToolHooks<PackageDistro>>,
     ) -> Fallible<PackageEntry> {
-        let url = match hooks {
+        let entry_opt = match hooks {
             Some(&ToolHooks {
                 latest: Some(ref hook),
                 ..
             }) => {
                 debug!("Using packages.latest hook to determine package metadata URL");
-                hook.resolve(&name)?
+                let url = hook.resolve(&name)?;
+                let package_index = resolve_package_metadata(name, &url)?.into_index();
+                let latest = package_index.latest.clone();
+
+                match_package_entry(package_index, |PackageEntry { version, .. }| {
+                    &latest == version
+                })
             }
-            _ => format!("{}/{}", public_package_registry_root(), name),
+            _ => npm_view_query(name, "latest")?.map(|data| data.into_index()),
         };
 
-        let package_index = resolve_package_metadata(name, &url)?.into_index();
-        let latest = package_index.latest.clone();
-
-        let entry_opt = match_package_entry(package_index, |PackageEntry { version, .. }| {
-            &latest == version
-        });
-
         if let Some(entry) = entry_opt {
+            // TODO: still need URL of the registry?
             debug!(
-                "Found {} latest version ({}) from {}",
-                name, entry.version, url
+                // "Found {} latest version ({}) from {}",
+                // name, entry.version, url
+                "Found {} latest version ({}) from",
+                name, entry.version
             );
             Ok(entry)
         } else {

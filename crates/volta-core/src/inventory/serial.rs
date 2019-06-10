@@ -200,6 +200,9 @@ pub struct PackageMetadata {
     pub versions: HashMap<String, PackageVersionInfo>,
     #[serde(rename = "dist-tags")]
     pub dist_tags: PackageDistTags,
+    // and now we can get engines in here, don't have to wait to parse the package.json is we don't
+    // want to...
+    // pub engines: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -391,6 +394,44 @@ impl BinLoader {
         package::BinLoader {
             command: self.command,
             args: self.args,
+        }
+    }
+}
+
+// TODO: data structures for `npm view` data
+//
+// $ npm view --json gulp@latest
+// {
+//   "name": "gulp",
+//   "description": "The streaming build system.",
+//   "dist-tags": {
+//     "latest": "4.0.2"
+//   },
+//   "version": "4.0.2",
+//   "engines": {
+//     "node": ">= 0.10"
+//   },
+//   "dist": {
+//     "shasum": "543651070fd0f6ab0a0650c6a3e6ff5a7cb09caa",
+//     "tarball": "https://registry.npmjs.org/gulp/-/gulp-4.0.2.tgz",
+//   },
+//   (...and lots of other stuff we don't use...)
+// }
+//
+#[derive(Serialize, Deserialize, Debug)]
+pub struct NpmViewData {
+    pub name: String,
+    #[serde(with = "version_serde")]
+    pub version: Version,
+    pub dist: DistInfo,
+}
+
+impl NpmViewData {
+    pub fn into_index(self) -> package::PackageEntry {
+        package::PackageEntry {
+            version: self.version,
+            tarball: self.dist.tarball,
+            shasum: self.dist.shasum,
         }
     }
 }
