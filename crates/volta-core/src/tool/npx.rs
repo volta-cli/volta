@@ -3,8 +3,10 @@ use std::ffi::{OsStr, OsString};
 use super::ToolCommand;
 use crate::error::ErrorDetails;
 use crate::session::{ActivityKind, Session};
+use crate::source::Source;
 use crate::version::VersionSpec;
 
+use log::debug;
 use volta_fail::Fallible;
 
 pub(super) fn command<A>(args: A, session: &mut Session) -> Fallible<ToolCommand>
@@ -21,6 +23,15 @@ where
             // should include a helpful error message
             let required_npm = VersionSpec::parse_version("5.2.0")?;
             if image.node().npm >= required_npm {
+                match image.source() {
+                    Source::Project => {
+                        debug!("Using npx@{} from project platform", image.node().npm)
+                    }
+                    Source::User => {
+                        debug!("Using npx@{} from user default platform", image.node().npm)
+                    }
+                };
+
                 let path = image.path()?;
                 Ok(ToolCommand::direct(OsStr::new("npx"), args, &path))
             } else {
@@ -30,6 +41,9 @@ where
                 .into())
             }
         }
-        None => ToolCommand::passthrough(OsStr::new("npx"), args, ErrorDetails::NoPlatform),
+        None => {
+            debug!("Could not find platform, delegating to system");
+            ToolCommand::passthrough(OsStr::new("npx"), args, ErrorDetails::NoPlatform)
+        }
     }
 }

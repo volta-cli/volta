@@ -4,7 +4,9 @@ use std::ffi::{OsStr, OsString};
 use super::{intercept_global_installs, CommandArg, ToolCommand};
 use crate::error::ErrorDetails;
 use crate::session::{ActivityKind, Session};
+use crate::source::Source;
 
+use log::debug;
 use volta_fail::{throw, Fallible};
 
 pub(super) fn command<A>(args: A, session: &mut Session) -> Fallible<ToolCommand>
@@ -22,9 +24,18 @@ where
             }
             let image = platform.checkout(session)?;
             let path = image.path()?;
+
+            match image.source() {
+                Source::Project => debug!("Using npm@{} from project platform", image.node().npm),
+                Source::User => debug!("Using npm@{} from user default platform", image.node().npm),
+            };
+
             Ok(ToolCommand::direct(OsStr::new("npm"), args, &path))
         }
-        None => ToolCommand::passthrough(OsStr::new("npm"), args, ErrorDetails::NoPlatform),
+        None => {
+            debug!("Could not find platform, delegating to system");
+            ToolCommand::passthrough(OsStr::new("npm"), args, ErrorDetails::NoPlatform)
+        }
     }
 }
 
