@@ -1,3 +1,7 @@
+# Version 0.5.4
+
+- Show additional diagnostic messages when run with `--verbose` (#455)
+
 # Version 0.5.3
 
 - Prevent unnecessary warning output when not running interactively (#451)
