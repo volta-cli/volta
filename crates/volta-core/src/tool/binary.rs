@@ -90,7 +90,7 @@ where
     // at this point, there is no project or user toolchain
     // Pass through to the existing PATH
     debug!(
-        "Could not find '{}', delegating to system",
+        "Could not find {}, delegating to system",
         exe.to_string_lossy()
     );
     ToolCommand::passthrough(

@@ -57,7 +57,7 @@ impl Project {
     fn for_dir(base_dir: &Path) -> Fallible<Option<Rc<Project>>> {
         match path::find_project_dir(base_dir) {
             Some(dir) => {
-                debug!("Found project manifest in {}", dir.display());
+                debug!("Found project manifest in '{}'", dir.display());
                 Ok(Some(Rc::new(Project {
                     manifest: Manifest::for_dir(&dir)?,
                     project_root: PathBuf::from(dir),

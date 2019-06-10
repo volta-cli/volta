@@ -257,7 +257,7 @@ impl PackageDistro {
         // try to use existing downloaded package
         if let Some(archive) = self.load_cached_archive() {
             debug!(
-                "Loading {} from cached archive at {}",
+                "Loading {} from cached archive at '{}'",
                 tool_version(&self.name, &self.version),
                 self.distro_file.display()
             );
@@ -344,7 +344,7 @@ impl PackageDistro {
         D: std::fmt::Display,
     {
         debug!(
-            "Unpacking {} in {}",
+            "Unpacking {} in '{}'",
             tool_version(&self.name, &self.version),
             path
         );
@@ -352,7 +352,7 @@ impl PackageDistro {
 
     fn log_installing(&self) {
         debug!(
-            "Installing {} in {}",
+            "Installing {} in '{}'",
             tool_version(&self.name, &self.version),
             self.image_dir.display()
         );
