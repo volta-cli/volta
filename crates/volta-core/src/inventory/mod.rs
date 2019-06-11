@@ -5,6 +5,7 @@ use std::collections::{BTreeSet, HashSet};
 use std::fs::File;
 use std::io::Write;
 use std::marker::PhantomData;
+use std::process::Command;
 use std::str::FromStr;
 use std::string::ToString;
 use std::time::{Duration, SystemTime};
@@ -19,6 +20,7 @@ use serde_json;
 use tempfile::NamedTempFile;
 use volta_fail::{throw, Fallible, ResultExt};
 
+use crate::command::create_command;
 use crate::distro::node::{NodeDistro, NodeVersion};
 use crate::distro::package::{PackageDistro, PackageEntry, PackageIndex, PackageVersion};
 use crate::distro::yarn::YarnDistro;
@@ -26,10 +28,9 @@ use crate::distro::{Distro, Fetched};
 use crate::error::ErrorDetails;
 use crate::fs::{ensure_containing_dir_exists, read_file_opt};
 use crate::hook::ToolHooks;
-use crate::inventory::serial::DistInfo;
-use crate::inventory::serial::NpmViewData;
 use crate::path;
 use crate::style::progress_spinner;
+use crate::style::tool_version;
 use crate::version::VersionSpec;
 
 pub(crate) mod serial;
@@ -432,17 +433,54 @@ fn match_package_entry(
     entries.find(predicate)
 }
 
-// TODO: use `npm view` to get the info for the package
-// TODO: run `npm view --json <name>@latest` (show a spinner...)
-fn npm_view_query(name: &str, version: &str) -> Fallible<Option<NpmViewData>> {
-    Ok(Some(NpmViewData {
-        name: "ok".to_string(),
-        version: Version::parse("1.2.3").unwrap(),
-        dist: DistInfo {
-            shasum: "1234".to_string(),
-            tarball: "TODO".to_string(),
-        },
-    }))
+// use `npm view` to get the info for the package
+fn npm_view_query(name: &str, version: &str) -> Fallible<serial::NpmViewData> {
+    let mut command = npm_view_command_for(name, version);
+
+    let spinner = progress_spinner(&format!(
+        "Querying metadata for {}",
+        tool_version(name, version)
+    ));
+    // TODO: different error for this - PackageMetadataFetchError?
+    let output = command
+        .output()
+        .with_context(|_| ErrorDetails::PackageInstallFailed)?;
+    spinner.finish_and_clear();
+
+    debug!(
+        "[package metadata stderr]\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    debug!(
+        "[package metadata stdout]\n{}",
+        String::from_utf8_lossy(&output.stdout)
+    );
+
+    // TODO: different error for this - PackageMetadataFetchError?
+    if !output.status.success() {
+        throw!(ErrorDetails::PackageInstallFailed);
+    }
+
+    let response_json = String::from_utf8_lossy(&output.stdout);
+
+    let metadata: serial::NpmViewData =
+        serde_json::de::from_str(&response_json).with_context(|_| {
+            // TODO: this error needs to change
+            ErrorDetails::ParsePackageMetadataError {
+                from_url: "TODO".to_string(),
+            }
+        })?;
+
+    debug!("[parsed package metadata]\n{:?}", metadata);
+
+    Ok(metadata)
+}
+
+// TODO:
+fn npm_view_command_for(name: &str, version: &str) -> Command {
+    let mut command = create_command("npm");
+    command.args(&["view", "--json", &format!("{}@{}", name, version)]);
+    command
 }
 
 // fetch metadata for the input url
@@ -513,16 +551,13 @@ impl FetchResolve<PackageDistro> for PackageCollection {
                     &latest == version
                 })
             }
-            _ => npm_view_query(name, "latest")?.map(|data| data.into_index()),
+            _ => Some(npm_view_query(name, "latest")?.into_index()),
         };
 
         if let Some(entry) = entry_opt {
-            // TODO: still need URL of the registry?
             debug!(
-                // "Found {} latest version ({}) from {}",
-                // name, entry.version, url
-                "Found {} latest version ({}) from",
-                name, entry.version
+                "Found {} latest version ({}) from {}",
+                name, entry.version, entry.tarball
             );
             Ok(entry)
         } else {
