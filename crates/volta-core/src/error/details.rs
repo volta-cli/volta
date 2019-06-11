@@ -126,8 +126,13 @@ pub enum ErrorDetails {
         bin: String,
     },
 
-    /// Thrown when executing a hook command fails
+    /// Thrown when unable to execute a hook command
     ExecuteHookError {
+        command: String,
+    },
+
+    /// Thrown when a hook command returns a non-zero exit code
+    HookCommandFailed {
         command: String,
     },
 
@@ -136,6 +141,11 @@ pub enum ErrorDetails {
 
     /// Thrown when a hook doesn't contain any of the known fields (prefix, template, or bin)
     HookNoFieldsSpecified,
+
+    /// Thrown when determining the path to a hook fails
+    HookPathError {
+        command: String,
+    },
 
     InvalidHookCommand {
         command: String,
@@ -617,6 +627,13 @@ Please verify your internet connection and ensure the correct version is specifi
 Please ensure that the correct command is specified.",
                 command
             ),
+            ErrorDetails::HookCommandFailed { command } => write!(
+                f,
+                "Hook command '{}' indicated a failure.
+
+Please verify the requested tool and version.",
+                command
+            ),
             ErrorDetails::HookMultipleFieldsSpecified => write!(
                 f,
                 "Hook configuration includes multiple hook types.
@@ -628,6 +645,13 @@ Please include only one of 'bin', 'prefix', or 'template'"
                 "Hook configuration includes no hook types.
 
 Please include one of 'bin', 'prefix', or 'template'"
+            ),
+            ErrorDetails::HookPathError { command } => write!(
+                f,
+                "Could not determine path to hook command: '{}'
+
+Please ensure that the correct command is specified.",
+                command
             ),
             ErrorDetails::InvalidHookCommand { command } => write!(
                 f,
@@ -1234,8 +1258,10 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::ExecutablePathError { .. } => ExitCode::UnknownError,
             ErrorDetails::ExecutablePermissionsError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ExecuteHookError { .. } => ExitCode::ExecutionFailure,
+            ErrorDetails::HookCommandFailed { .. } => ExitCode::ConfigurationError,
             ErrorDetails::HookMultipleFieldsSpecified => ExitCode::ConfigurationError,
             ErrorDetails::HookNoFieldsSpecified => ExitCode::ConfigurationError,
+            ErrorDetails::HookPathError { .. } => ExitCode::ConfigurationError,
             ErrorDetails::InvalidHookCommand { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::InvalidHookOutput { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::InvalidInvocation { .. } => ExitCode::InvalidArguments,

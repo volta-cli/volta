@@ -1,6 +1,7 @@
-use super::tool;
 use std::marker::PhantomData;
+use std::path::Path;
 
+use super::tool;
 use crate::distro::node::NodeDistro;
 use crate::distro::package::PackageDistro;
 use crate::distro::yarn::YarnDistro;
@@ -54,19 +55,25 @@ impl ResolveHook {
         }
     }
 
-    pub fn into_distro_hook(self) -> Fallible<tool::DistroHook> {
+    pub fn into_distro_hook(self, base_dir: &Path) -> Fallible<tool::DistroHook> {
         self.into_hook(
             tool::DistroHook::Prefix,
             tool::DistroHook::Template,
-            tool::DistroHook::Bin,
+            |bin| tool::DistroHook::Bin {
+                bin,
+                base_path: base_dir.to_owned(),
+            },
         )
     }
 
-    pub fn into_metadata_hook(self) -> Fallible<tool::MetadataHook> {
+    pub fn into_metadata_hook(self, base_dir: &Path) -> Fallible<tool::MetadataHook> {
         self.into_hook(
             tool::MetadataHook::Prefix,
             tool::MetadataHook::Template,
-            tool::MetadataHook::Bin,
+            |bin| tool::MetadataHook::Bin {
+                bin,
+                base_path: base_dir.to_owned(),
+            },
         )
     }
 }
@@ -129,10 +136,13 @@ pub struct ToolHooks<I> {
 }
 
 impl HookConfig {
-    pub fn into_hook_config(self) -> Fallible<super::HookConfig> {
-        let node = self.node.map(|n| n.into_tool_hooks()).transpose()?;
-        let yarn = self.yarn.map(|y| y.into_tool_hooks()).transpose()?;
-        let package = self.packages.map(|p| p.into_tool_hooks()).transpose()?;
+    pub fn into_hook_config(self, base_dir: &Path) -> Fallible<super::HookConfig> {
+        let node = self.node.map(|n| n.into_tool_hooks(base_dir)).transpose()?;
+        let yarn = self.yarn.map(|y| y.into_tool_hooks(base_dir)).transpose()?;
+        let package = self
+            .packages
+            .map(|p| p.into_tool_hooks(base_dir))
+            .transpose()?;
         let events = self.events.map(|e| e.into_event_hooks()).transpose()?;
         Ok(super::HookConfig {
             node,
@@ -144,10 +154,19 @@ impl HookConfig {
 }
 
 impl<D: Distro> ToolHooks<D> {
-    pub fn into_tool_hooks(self) -> Fallible<super::ToolHooks<D>> {
-        let distro = self.distro.map(|d| d.into_distro_hook()).transpose()?;
-        let latest = self.latest.map(|d| d.into_metadata_hook()).transpose()?;
-        let index = self.index.map(|d| d.into_metadata_hook()).transpose()?;
+    pub fn into_tool_hooks(self, base_dir: &Path) -> Fallible<super::ToolHooks<D>> {
+        let distro = self
+            .distro
+            .map(|d| d.into_distro_hook(base_dir))
+            .transpose()?;
+        let latest = self
+            .latest
+            .map(|d| d.into_metadata_hook(base_dir))
+            .transpose()?;
+        let index = self
+            .index
+            .map(|d| d.into_metadata_hook(base_dir))
+            .transpose()?;
 
         Ok(super::ToolHooks {
             distro,
