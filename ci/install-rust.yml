@@ -19,6 +19,7 @@ steps:
 
   # All platforms.
   - script: |
+      rustup default stable
       rustc -Vv
       cargo -V
     displayName: Log Rust and Cargo versions
