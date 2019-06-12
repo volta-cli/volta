@@ -196,8 +196,9 @@ impl Distro for PackageDistro {
         let layout = layout()?;
 
         let tmp_root = layout.user.tmp_dir();
-        let temp = tempdir_in(&tmp_root)
-            .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root.to_path_buf() })?;
+        let temp = tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError {
+            in_dir: tmp_root.to_path_buf(),
+        })?;
         self.log_unpacking(&temp.path().display());
 
         let bar = progress_bar(
@@ -690,7 +691,9 @@ where
     P: AsRef<Path>,
 {
     // canonicalize because path is relative, and sometimes uses '.' char
-    layout()?.user.package_image_dir(package, &version.to_string())
+    layout()?
+        .user
+        .package_image_dir(package, &version.to_string())
         .join(bin_path)
         .canonicalize()
         .with_context(|_| ErrorDetails::ExecutablePathError {

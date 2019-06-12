@@ -224,8 +224,7 @@ impl Distro for NodeDistro {
                 ..
             }) => {
                 debug!("Using node.distro hook to determine download URL");
-                let url =
-                    hook.resolve(&version, &NodeDistro::filename(&version.to_string()))?;
+                let url = hook.resolve(&version, &NodeDistro::filename(&version.to_string()))?;
                 NodeDistro::remote(version, &url)
             }
             _ => NodeDistro::public(version),
@@ -256,8 +255,9 @@ impl Distro for NodeDistro {
         let layout = layout()?;
 
         let tmp_root = layout.user.tmp_dir();
-        let temp = tempdir_in(&tmp_root)
-            .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root.to_path_buf() })?;
+        let temp = tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError {
+            in_dir: tmp_root.to_path_buf(),
+        })?;
         debug!("Unpacking node into {}", temp.path().display());
 
         let bar = progress_bar(
@@ -297,11 +297,12 @@ impl Distro for NodeDistro {
 
         ensure_containing_dir_exists(&dest)?;
 
-        rename(temp.path().join(root_dir_name), &dest)
-        .with_context(|_| ErrorDetails::SetupToolImageError {
-            tool: String::from("Node"),
-            version: version_string.clone(),
-            dir: dest.clone(),
+        rename(temp.path().join(root_dir_name), &dest).with_context(|_| {
+            ErrorDetails::SetupToolImageError {
+                tool: String::from("Node"),
+                version: version_string.clone(),
+                dir: dest.clone(),
+            }
         })?;
 
         bar.finish_and_clear();

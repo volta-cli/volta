@@ -120,8 +120,7 @@ impl Distro for YarnDistro {
                 ..
             }) => {
                 debug!("Using yarn.distro hook to determine download URL");
-                let url =
-                    hook.resolve(&version, &YarnDistro::filename(&version.to_string()))?;
+                let url = hook.resolve(&version, &YarnDistro::filename(&version.to_string()))?;
                 YarnDistro::remote(version, &url)
             }
             _ => YarnDistro::public(version),
@@ -146,8 +145,9 @@ impl Distro for YarnDistro {
 
         let layout = layout()?;
         let tmp_root = layout.user.tmp_dir();
-        let temp = tempdir_in(&tmp_root)
-            .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root.to_path_buf() })?;
+        let temp = tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError {
+            in_dir: tmp_root.to_path_buf(),
+        })?;
         debug!("Unpacking yarn into {}", temp.path().display());
 
         let bar = progress_bar(
@@ -172,7 +172,10 @@ impl Distro for YarnDistro {
 
         ensure_containing_dir_exists(&dest)?;
 
-        rename(temp.path().join(YarnDistro::basename(&version_string)), &dest)
+        rename(
+            temp.path().join(YarnDistro::basename(&version_string)),
+            &dest,
+        )
         .with_context(|_| ErrorDetails::SetupToolImageError {
             tool: String::from("Yarn"),
             version: version_string.clone(),

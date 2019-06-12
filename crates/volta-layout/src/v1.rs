@@ -26,7 +26,7 @@ impl VoltaLayout {
         if cfg!(windows) {
             vec![
                 self.user.shim_dir().to_path_buf(),
-                self.install.bin_dir().to_path_buf()
+                self.install.bin_dir().to_path_buf(),
             ]
         } else {
             vec![self.user.shim_dir().to_path_buf()]
