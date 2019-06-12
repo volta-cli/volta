@@ -25,7 +25,7 @@ where
             let required_npm = VersionSpec::parse_version("5.2.0")?;
             if image.node().npm >= required_npm {
                 let source = match image.source() {
-                    Source::Project => "project",
+                    Source::Project | Source::ProjectNodeUserYarn => "project",
                     Source::User => "default",
                 };
                 let version = tool_version("npx", &image.node().npm);

@@ -8,8 +8,14 @@ use semver::Version;
 use volta_fail::Fallible;
 
 pub enum Source {
+    /// Represents a Platform that came from the user default
     User,
+
+    /// Represents a Platform that came from a project manifest
     Project,
+
+    /// Represents a Platform that is the result of merging the User and Project platforms
+    ProjectNodeUserYarn,
 }
 
 pub struct SourcedPlatformSpec {
@@ -34,6 +40,13 @@ impl SourcedPlatformSpec {
         SourcedPlatformSpec {
             platform,
             source: Source::User,
+        }
+    }
+
+    pub fn merged(platform: Rc<PlatformSpec>) -> Self {
+        SourcedPlatformSpec {
+            platform,
+            source: Source::ProjectNodeUserYarn,
         }
     }
 

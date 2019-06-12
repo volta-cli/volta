@@ -110,7 +110,17 @@ impl Session {
 
     pub fn current_platform(&self) -> Fallible<Option<SourcedPlatformSpec>> {
         if let Some(platform) = self.project_platform()? {
-            Ok(Some(SourcedPlatformSpec::project(platform)))
+            if platform.yarn.is_some() {
+                Ok(Some(SourcedPlatformSpec::project(platform)))
+            } else {
+                let user_yarn = self.user_platform()?.and_then(|p| p.yarn.clone());
+                let merged = Rc::new(PlatformSpec {
+                    node_runtime: platform.node_runtime.clone(),
+                    npm: platform.npm.clone(),
+                    yarn: user_yarn,
+                });
+                Ok(Some(SourcedPlatformSpec::merged(merged)))
+            }
         } else if let Some(platform) = self.user_platform()? {
             Ok(Some(SourcedPlatformSpec::user(platform)))
         } else {

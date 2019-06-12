@@ -38,7 +38,7 @@ where
 
             if let Some(platform) = session.current_platform()? {
                 match platform.source() {
-                    Source::Project => {
+                    Source::Project | Source::ProjectNodeUserYarn => {
                         debug!("Using node@{} from project configuration", platform.node())
                     }
                     Source::User => {

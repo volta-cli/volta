@@ -27,7 +27,7 @@ where
             let path = image.path()?;
 
             let source = match image.source() {
-                Source::Project => "project",
+                Source::Project | Source::ProjectNodeUserYarn => "project",
                 Source::User => "default",
             };
             let version = tool_version("npm", &image.node().npm);
