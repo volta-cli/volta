@@ -4,17 +4,19 @@ use std::rc::Rc;
 use super::{Image, PlatformSpec};
 use crate::distro::node::NodeVersion;
 use crate::session::Session;
-use crate::source::Source;
 use semver::Version;
 use volta_fail::Fallible;
 
-#[derive(Debug)]
+pub enum Source {
+    User,
+    Project,
+}
+
 pub struct SourcedPlatformSpec {
     platform: Rc<PlatformSpec>,
     source: Source,
 }
 
-#[derive(Debug)]
 pub struct SourcedImage {
     image: Image,
     source: Source,

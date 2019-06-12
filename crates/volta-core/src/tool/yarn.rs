@@ -3,9 +3,8 @@ use std::ffi::{OsStr, OsString};
 
 use super::{intercept_global_installs, CommandArg, ToolCommand};
 use crate::error::ErrorDetails;
-use crate::platform::SourcedPlatformSpec;
+use crate::platform::{Source, SourcedPlatformSpec};
 use crate::session::{ActivityKind, Session};
-use crate::source::Source;
 
 use log::debug;
 use volta_fail::{throw, Fallible};

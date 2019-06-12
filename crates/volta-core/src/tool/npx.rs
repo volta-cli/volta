@@ -2,8 +2,8 @@ use std::ffi::{OsStr, OsString};
 
 use super::ToolCommand;
 use crate::error::ErrorDetails;
+use crate::platform::Source;
 use crate::session::{ActivityKind, Session};
-use crate::source::Source;
 use crate::version::VersionSpec;
 
 use log::debug;

@@ -12,7 +12,7 @@ use crate::session::Session;
 use volta_fail::{Fallible, ResultExt};
 
 pub mod sourced;
-pub use self::sourced::{SourcedImage, SourcedPlatformSpec};
+pub use self::sourced::{Source, SourcedImage, SourcedPlatformSpec};
 
 /// A specification of tool versions needed for a platform
 #[derive(Clone, Debug)]
