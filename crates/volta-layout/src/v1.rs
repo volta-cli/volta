@@ -123,7 +123,7 @@ impl VoltaHome {
         self.shim_dir().join(&executable(toolname))
     }
 
-    pub fn shim_git_bash_file(&self, toolname: &Ustr) -> PathBuf {
+    pub fn shim_git_bash_file(&self, toolname: &str) -> PathBuf {
         self.shim_dir().join(toolname)
     }
 

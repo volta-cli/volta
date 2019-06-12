@@ -147,7 +147,7 @@ impl Distro for YarnDistro {
         let layout = layout()?;
         let tmp_root = layout.user.tmp_dir();
         let temp = tempdir_in(&tmp_root)
-            .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })?;
+            .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root.to_path_buf() })?;
         debug!("Unpacking yarn into {}", temp.path().display());
 
         let bar = progress_bar(

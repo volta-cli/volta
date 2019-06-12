@@ -616,7 +616,7 @@ fn read_cached_opt() -> Fallible<Option<serial::NodeIndex>> {
     let layout = layout()?;
     let expiry_file = layout.user.node_index_expiry_file();
     let expiry = read_file_opt(&expiry_file)
-        .with_context(|_| ErrorDetails::ReadNodeIndexExpiryError { file: expiry_file })?;
+        .with_context(|_| ErrorDetails::ReadNodeIndexExpiryError { file: expiry_file.to_path_buf() })?;
 
     if let Some(string) = expiry {
         let expiry_date = HttpDate::from_str(&string)
@@ -626,7 +626,7 @@ fn read_cached_opt() -> Fallible<Option<serial::NodeIndex>> {
         if current_date < expiry_date {
             let index_file = layout.user.node_index_file();
             let cached = read_file_opt(&index_file)
-                .with_context(|_| ErrorDetails::ReadNodeIndexCacheError { file: index_file })?;
+                .with_context(|_| ErrorDetails::ReadNodeIndexCacheError { file: index_file.to_path_buf() })?;
 
             if let Some(string) = cached {
                 return serde_json::de::from_str(&string)
@@ -695,7 +695,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
             ensure_containing_dir_exists(&index_cache_file)?;
             cached.persist(&index_cache_file).with_context(|_| {
                 ErrorDetails::WriteNodeIndexCacheError {
-                    file: index_cache_file,
+                    file: index_cache_file.to_path_buf(),
                 }
             })?;
 
@@ -727,7 +727,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::NodeIndex> {
             ensure_containing_dir_exists(&index_expiry_file)?;
             expiry.persist(&index_expiry_file).with_context(|_| {
                 ErrorDetails::WriteNodeIndexExpiryError {
-                    file: index_expiry_file,
+                    file: index_expiry_file.to_path_buf(),
                 }
             })?;
 

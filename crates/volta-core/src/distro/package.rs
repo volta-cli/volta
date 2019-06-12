@@ -193,9 +193,11 @@ impl Distro for PackageDistro {
 
         let archive = self.load_or_fetch_archive()?;
 
-        let tmp_root = path::tmp_dir()?;
+        let layout = layout()?;
+
+        let tmp_root = layout.user.tmp_dir();
         let temp = tempdir_in(&tmp_root)
-            .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })?;
+            .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root.to_path_buf() })?;
         self.log_unpacking(&temp.path().display());
 
         let bar = progress_bar(
@@ -206,14 +208,10 @@ impl Distro for PackageDistro {
                 .unwrap_or(archive.compressed_size()),
         );
 
-<<<<<<< HEAD
-=======
-        let layout = layout()?;
         let tmp_root = layout.user.tmp_dir();
         let temp = tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError {
-            in_dir: tmp_root.to_string_lossy().to_string(),
+            in_dir: tmp_root.to_path_buf(),
         })?;
->>>>>>> Replace `notion_core::path` with the layout module!
         archive
             .unpack(temp.path(), &mut |_, read| {
                 bar.inc(read as u64);
@@ -598,7 +596,7 @@ pub fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
         None
     })
     .with_context(|_| ErrorDetails::ReadBinConfigDirError {
-        dir: bin_config_dir,
+        dir: bin_config_dir.to_path_buf(),
     })
 }
 

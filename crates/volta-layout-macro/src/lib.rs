@@ -13,7 +13,7 @@ use syn::parse_macro_input;
 ///
 /// The syntax of `layout!` takes the form:
 ///
-/// ```
+/// ```text,no_run
 /// layout! {
 ///     LayoutStruct*
 /// }
@@ -21,13 +21,13 @@ use syn::parse_macro_input;
 ///
 /// The syntax of a `LayoutStruct` takes the form:
 ///
-/// ```
+/// ```text,no_run
 /// Attribute* Visibility "struct" Ident Directory
 /// ```
 ///
 /// The syntax of a `Directory` takes the form:
 ///
-/// ```
+/// ```text,no_run
 /// {
 ///     (FieldPrefix)FieldContents*
 /// }
@@ -35,19 +35,19 @@ use syn::parse_macro_input;
 ///
 /// The syntax of a `FieldPrefix` takes the form:
 ///
-/// ```
+/// ```text,no_run
 /// LitStr ":" Ident
 /// ```
 ///
 /// The syntax of a `FieldContents` is either:
 ///
-/// ```
+/// ```text,no_run
 /// ";"
 /// ```
 ///
 /// or:
 ///
-/// ```
+/// ```text,no_run
 /// Directory
 /// ```
 #[proc_macro]

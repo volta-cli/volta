@@ -49,7 +49,7 @@ impl Toolchain {
         let path = layout.user.user_platform_file();
         let src = touch(&path)
             .and_then(|mut file| file.read_into_string())
-            .with_context(|_| ErrorDetails::ReadPlatformError { file: path.clone() })?;
+            .with_context(|_| ErrorDetails::ReadPlatformError { file: path.to_path_buf() })?;
 
         let platform = serial::Platform::from_json(src)?.into_platform()?;
         if platform.is_some() {
@@ -138,6 +138,6 @@ impl Toolchain {
             }
             None => write(&path, "{}"),
         };
-        result.with_context(|_| ErrorDetails::WritePlatformError { file: path })
+        result.with_context(|_| ErrorDetails::WritePlatformError { file: path.to_path_buf() })
     }
 }

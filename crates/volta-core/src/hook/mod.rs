@@ -12,11 +12,10 @@ use crate::distro::package::PackageDistro;
 use crate::distro::yarn::YarnDistro;
 use crate::distro::Distro;
 use crate::error::ErrorDetails;
-use crate::fs::touch;
 use crate::layout::layout;
+use crate::project::Project;
 use log::debug;
-use readext::ReadExt;
-use volta_fail::{Fallible, ResultExt, VoltaError};
+use volta_fail::{Fallible, ResultExt};
 
 pub(crate) mod serial;
 pub mod tool;
@@ -162,7 +161,8 @@ impl HookConfig {
 
     /// Returns the per-user hooks, loaded from the filesystem.
     fn for_user() -> Fallible<Option<Self>> {
-        let path = layout()?.user.user_hooks_file();
+        let layout = layout()?;
+        let path = layout.user.user_hooks_file();
         let hooks_config = Self::from_file(&path)?;
 
         if hooks_config.is_some() {

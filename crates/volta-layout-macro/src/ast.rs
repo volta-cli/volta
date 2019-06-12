@@ -12,7 +12,7 @@ pub(crate) type Result<T> = ::std::result::Result<T, TokenStream>;
 ///
 /// The surface syntax of the `layout!` macro takes the form:
 ///
-/// ```
+/// ```text,no_run
 /// Attribute* Visibility "struct" Ident Directory
 /// ```
 ///
@@ -48,7 +48,7 @@ impl Ast {
 
 /// Represents a single type LayoutStruct in the AST, which takes the form:
 ///
-/// ```
+/// ```text,no_run
 /// Attribute* Visibility "struct" Ident Directory
 /// ```
 ///
@@ -100,7 +100,7 @@ impl LayoutStruct {
 ///
 /// The surface syntax of a directory takes the form:
 ///
-/// ```
+/// ```text,no_run
 /// {
 ///     (FieldPrefix)FieldContents*
 /// }
@@ -222,7 +222,7 @@ impl Directory {
 /// AST for the common prefix of a single field in a `layout!` struct declaration,
 /// which is of the form:
 ///
-/// ```
+/// ```text,no_run
 /// LitStr ":" Ident
 /// ```
 ///

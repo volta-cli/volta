@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use crate::fs::ensure_containing_dir_exists;
 use crate::layout::layout;
-use crate::style::{format_error_cause, format_error_message};
+use crate::style::format_error_cause;
 use chrono::Local;
 use failure::Error;
 use log::{debug, error};
