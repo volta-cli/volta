@@ -219,7 +219,7 @@ mod test {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
         pathbufs.push(shim_dir());
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
-        pathbufs.push(install_bin_dir().unwrap());
+        pathbufs.push(install_bin_dir());
         pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
 
         let path_with_shims = std::env::join_paths(pathbufs.iter())
@@ -299,7 +299,7 @@ mod test {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
         pathbufs.push(shim_dir());
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
-        pathbufs.push(install_bin_dir().unwrap());
+        pathbufs.push(install_bin_dir());
         pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
 
         let path_with_shims = std::env::join_paths(pathbufs.iter())
