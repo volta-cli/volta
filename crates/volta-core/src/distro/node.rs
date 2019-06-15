@@ -166,8 +166,9 @@ impl NodeDistro {
     }
 
     fn npm_manifest_entry(version: &str) -> PathBuf {
-        let root = Path::new(&NodeDistro::basename(version));
-        let lib = if cfg!("windows") { root } else { root.join("lib") };
+        let basename = &NodeDistro::basename(version);
+        let root = Path::new(basename);
+        let lib = if cfg!(windows) { root.to_path_buf() } else { root.join("lib") };
 
         lib.join("node_modules")
             .join("npm")
