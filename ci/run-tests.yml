@@ -8,12 +8,14 @@ steps:
   # the acceptance tests, using network mocks
   - script: cargo test --features mock-network
     env:
+      VOLTA_LOGLEVEL: debug
       RUST_BACKTRACE: full
     displayName: Acceptance Tests
 
   # smoke tests: real data and no mocks
   - script: cargo test --test smoke --features smoke-tests -- --test-threads 1
     env:
+      VOLTA_LOGLEVEL: debug
       RUST_BACKTRACE: full
     displayName: Smoke Tests
 
