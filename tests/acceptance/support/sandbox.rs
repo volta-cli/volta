@@ -5,6 +5,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
+use log::debug;
 use reqwest::hyper_011::header::HttpDate;
 
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
@@ -311,6 +312,12 @@ impl SandboxBuilder {
 
         let server_path = fx.server_path();
         let fixture_path = fx.fixture_path();
+
+        debug!(
+            "Mocking route {} from {}",
+            server_path,
+            fixture_path
+        );
 
         let metadata = fx.metadata();
 
