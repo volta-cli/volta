@@ -139,10 +139,7 @@ pub struct Manifest {
 
 impl Manifest {
     fn read(path: &Path) -> Fallible<Manifest> {
-        debug!(
-            "Loading package.json from {}",
-            path.to_string_lossy()
-        );
+        debug!("Loading package.json from {}", path.to_string_lossy());
         let file = File::open(path).with_context(|_| ErrorDetails::ReadNpmManifestError)?;
         serde_json::de::from_reader(file).with_context(|_| ErrorDetails::ParseNpmManifestError)
     }
@@ -168,11 +165,13 @@ impl NodeDistro {
     fn npm_manifest_entry(version: &str) -> PathBuf {
         let basename = &NodeDistro::basename(version);
         let root = Path::new(basename);
-        let lib = if cfg!(windows) { root.to_path_buf() } else { root.join("lib") };
+        let lib = if cfg!(windows) {
+            root.to_path_buf()
+        } else {
+            root.join("lib")
+        };
 
-        lib.join("node_modules")
-            .join("npm")
-            .join("package.json")
+        lib.join("node_modules").join("npm").join("package.json")
     }
 
     /// Provision a Node distribution from the public Node distributor (`https://nodejs.org`).

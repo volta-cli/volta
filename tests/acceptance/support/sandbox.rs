@@ -313,11 +313,7 @@ impl SandboxBuilder {
         let server_path = fx.server_path();
         let fixture_path = fx.fixture_path();
 
-        debug!(
-            "Mocking route {} from {}",
-            server_path,
-            fixture_path
-        );
+        debug!("Mocking route {} from {}", server_path, fixture_path);
 
         let metadata = fx.metadata();
 
