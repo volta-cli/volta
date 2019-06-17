@@ -250,6 +250,7 @@ no_legacy_install() {
 upgrade_is_ok() {
   local will_install_version="$1"
   local install_dir="$2"
+  local is_dev_install="$3"
 
   local volta_bin="$install_dir/volta"
 
@@ -269,8 +270,9 @@ upgrade_is_ok() {
 
   if [[ -n "$install_dir" && -x "$volta_bin" ]]; then
     local prev_version="$( ($volta_bin --version 2>/dev/null || echo 0.1) | sed -E 's/^.*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')"
+    # if this is a local dev install, skip the equality check
     # if installing the same version, this is a no-op
-    if [ "$prev_version" == "$will_install_version" ]; then
+    if [ "$is_dev_install" != "true" ] && [ "$prev_version" == "$will_install_version" ]; then
       eprintf "Version $will_install_version already installed"
       return 1
     fi
@@ -459,9 +461,10 @@ parse_cargo_version() {
 install_release() {
   local version="$1"
   local install_dir="$2"
+  local is_dev_install="false"
 
   info 'Checking' "for existing Volta installation"
-  if no_legacy_install && upgrade_is_ok "$version" "$install_dir"
+  if no_legacy_install && upgrade_is_ok "$version" "$install_dir" "$is_dev_install"
   then
     download_archive="$(download_release "$version"; exit "$?")"
     exit_status="$?"
@@ -481,10 +484,12 @@ install_release() {
 install_local() {
   local dev_or_release="$1"
   local install_dir="$2"
+  # this is a local install, so skip the version equality check
+  local is_dev_install="true"
 
   info 'Checking' "for existing Volta installation"
   install_version="$(parse_cargo_version "$(<Cargo.toml)" )" || return 1
-  if no_legacy_install && upgrade_is_ok "$install_version" "$install_dir"
+  if no_legacy_install && upgrade_is_ok "$install_version" "$install_dir" "$is_dev_install"
   then
     # compile and package the binaries, then install from that local archive
     compiled_archive="$(compile_and_package "$dev_or_release")" &&
