@@ -476,7 +476,7 @@ fn npm_view_query(name: &str, version: &str) -> Fallible<serial::NpmViewData> {
     Ok(metadata)
 }
 
-// TODO:
+// TODO: description
 fn npm_view_command_for(name: &str, version: &str) -> Command {
     let mut command = create_command("npm");
     command.args(&["view", "--json", &format!("{}@{}", name, version)]);
@@ -611,25 +611,24 @@ impl FetchResolve<PackageDistro> for PackageCollection {
         exact_version: Version,
         hooks: Option<&ToolHooks<PackageDistro>>,
     ) -> Fallible<PackageEntry> {
-        let url = match hooks {
+        let entry_opt = match hooks {
             Some(&ToolHooks {
                 index: Some(ref hook),
                 ..
             }) => {
                 debug!("Using packages.index hook to determine package metadata URL");
-                hook.resolve(&name)?
+                let url = hook.resolve(&name)?;
+                let package_index = resolve_package_metadata(name, &url)?.into_index();
+
+                match_package_entry(package_index, |PackageEntry { version, .. }| {
+                    &exact_version == version
+                })
             }
-            _ => format!("{}/{}", public_package_registry_root(), name),
+            _ => Some(npm_view_query(name, &exact_version.to_string())?.into_index()),
         };
 
-        let package_index = resolve_package_metadata(name, &url)?.into_index();
-
-        let entry_opt = match_package_entry(package_index, |PackageEntry { version, .. }| {
-            &exact_version == version
-        });
-
         if let Some(entry) = entry_opt {
-            debug!("Found {}@{} from {}", name, entry.version, url);
+            debug!("Found {}@{} from {}", name, entry.version, entry.tarball);
             Ok(entry)
         } else {
             throw!(ErrorDetails::PackageVersionNotFound {
