@@ -8,6 +8,7 @@ use crate::command::create_command;
 use crate::error::ErrorDetails;
 use crate::path::{ARCH, OS};
 use cmdline_words_parser::StrExt;
+use lazy_static::lazy_static;
 use log::debug;
 use semver::Version;
 use volta_fail::{throw, Fallible, ResultExt};
@@ -15,6 +16,11 @@ use volta_fail::{throw, Fallible, ResultExt};
 const ARCH_TEMPLATE: &'static str = "{{arch}}";
 const OS_TEMPLATE: &'static str = "{{os}}";
 const VERSION_TEMPLATE: &'static str = "{{version}}";
+
+lazy_static! {
+    static ref REL_PATH: String = format!(".{}", std::path::MAIN_SEPARATOR);
+    static ref REL_PATH_PARENT: String = format!("..{}", std::path::MAIN_SEPARATOR);
+}
 
 /// A hook for resolving the distro URL for a given tool version
 #[derive(PartialEq, Debug)]
@@ -68,8 +74,8 @@ fn execute_binary(bin: &str, base_path: &Path, extra_arg: Option<String>) -> Fal
     let mut words = trimmed.parse_cmdline_words();
     let cmd = match words.next() {
         Some(word) => {
-            // Treat any path that starts with a '.' as a relative path
-            if word.starts_with('.') {
+            // Treat any path that starts with a './' or '../' as a relative path (using OS separator)
+            if word.starts_with(REL_PATH.as_str()) || word.starts_with(REL_PATH_PARENT.as_str()) {
                 base_path.join(word).canonicalize().with_context(|_| {
                     ErrorDetails::HookPathError {
                         command: String::from(word),
