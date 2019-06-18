@@ -1,12 +1,14 @@
 //! Types representing Volta Tool Hooks.
 
 use std::ffi::OsString;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
 use crate::command::create_command;
 use crate::error::ErrorDetails;
 use crate::path::{ARCH, OS};
 use cmdline_words_parser::StrExt;
+use lazy_static::lazy_static;
 use log::debug;
 use semver::Version;
 use volta_fail::{throw, Fallible, ResultExt};
@@ -15,25 +17,32 @@ const ARCH_TEMPLATE: &'static str = "{{arch}}";
 const OS_TEMPLATE: &'static str = "{{os}}";
 const VERSION_TEMPLATE: &'static str = "{{version}}";
 
+lazy_static! {
+    static ref REL_PATH: String = format!(".{}", std::path::MAIN_SEPARATOR);
+    static ref REL_PATH_PARENT: String = format!("..{}", std::path::MAIN_SEPARATOR);
+}
+
 /// A hook for resolving the distro URL for a given tool version
 #[derive(PartialEq, Debug)]
 pub enum DistroHook {
     Prefix(String),
     Template(String),
-    Bin(String),
+    Bin { bin: String, base_path: PathBuf },
 }
 
 impl DistroHook {
     /// Performs resolution of the distro URL based on the given
     /// version and file name
     pub fn resolve(&self, version: &Version, filename: &str) -> Fallible<String> {
-        match self {
-            &DistroHook::Prefix(ref prefix) => Ok(format!("{}{}", prefix, filename)),
-            &DistroHook::Template(ref template) => Ok(template
+        match &self {
+            DistroHook::Prefix(prefix) => Ok(format!("{}{}", prefix, filename)),
+            DistroHook::Template(template) => Ok(template
                 .replace(ARCH_TEMPLATE, ARCH)
                 .replace(OS_TEMPLATE, OS)
                 .replace(VERSION_TEMPLATE, &version.to_string())),
-            &DistroHook::Bin(ref bin) => execute_binary(bin, Some(version.to_string())),
+            DistroHook::Bin { bin, base_path } => {
+                execute_binary(bin, base_path, Some(version.to_string()))
+            }
         }
     }
 }
@@ -43,35 +52,45 @@ impl DistroHook {
 pub enum MetadataHook {
     Prefix(String),
     Template(String),
-    Bin(String),
+    Bin { bin: String, base_path: PathBuf },
 }
 
 impl MetadataHook {
     /// Performs resolution of the metadata URL based on the given default file name
     pub fn resolve(&self, filename: &str) -> Fallible<String> {
-        match self {
-            &MetadataHook::Prefix(ref prefix) => Ok(format!("{}{}", prefix, filename)),
-            &MetadataHook::Template(ref template) => Ok(template
+        match &self {
+            MetadataHook::Prefix(prefix) => Ok(format!("{}{}", prefix, filename)),
+            MetadataHook::Template(template) => Ok(template
                 .replace(ARCH_TEMPLATE, ARCH)
                 .replace(OS_TEMPLATE, OS)),
-            &MetadataHook::Bin(ref bin) => execute_binary(bin, None),
+            MetadataHook::Bin { bin, base_path } => execute_binary(bin, base_path, None),
         }
     }
 }
 
 /// Execute a shell command and return the trimmed stdout from that command
-fn execute_binary(bin: &str, extra_arg: Option<String>) -> Fallible<String> {
+fn execute_binary(bin: &str, base_path: &Path, extra_arg: Option<String>) -> Fallible<String> {
     let mut trimmed = bin.trim().to_string();
     let mut words = trimmed.parse_cmdline_words();
-    let cmd = if let Some(word) = words.next() {
-        word
-    } else {
-        throw!(ErrorDetails::InvalidHookCommand {
-            command: String::from(bin.trim()),
-        })
+    let cmd = match words.next() {
+        Some(word) => {
+            // Treat any path that starts with a './' or '../' as a relative path (using OS separator)
+            if word.starts_with(REL_PATH.as_str()) || word.starts_with(REL_PATH_PARENT.as_str()) {
+                base_path.join(word).canonicalize().with_context(|_| {
+                    ErrorDetails::HookPathError {
+                        command: String::from(word),
+                    }
+                })?
+            } else {
+                PathBuf::from(word)
+            }
+        }
+        None => throw!(ErrorDetails::InvalidHookCommand {
+            command: String::from(bin.trim())
+        }),
     };
-    let mut args: Vec<OsString> = words.map(OsString::from).collect();
 
+    let mut args: Vec<OsString> = words.map(OsString::from).collect();
     if let Some(arg) = extra_arg {
         args.push(OsString::from(arg));
     }
@@ -79,20 +98,27 @@ fn execute_binary(bin: &str, extra_arg: Option<String>) -> Fallible<String> {
     let mut command = create_command(cmd);
     command
         .args(&args)
+        .current_dir(base_path)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::null());
+        .stderr(Stdio::inherit());
 
     debug!("Running hook command: {:?}", command);
     let output = command
         .output()
         .with_context(|_| ErrorDetails::ExecuteHookError {
-            command: cmd.to_string(),
+            command: String::from(bin.trim()),
         })?;
+
+    if !output.status.success() {
+        throw!(ErrorDetails::HookCommandFailed {
+            command: String::from(bin.trim()),
+        });
+    }
 
     let url =
         String::from_utf8(output.stdout).with_context(|_| ErrorDetails::InvalidHookOutput {
-            command: cmd.to_string(),
+            command: String::from(bin.trim()),
         })?;
 
     Ok(url.trim().to_string())

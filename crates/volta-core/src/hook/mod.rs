@@ -155,7 +155,9 @@ impl HookConfig {
                 file: file_path.to_path_buf(),
             })?;
 
-        serial.into_hook_config().map(|hooks| Some(hooks))
+        let hooks_path = file_path.parent().unwrap_or(Path::new("/"));
+
+        serial.into_hook_config(hooks_path).map(|hooks| Some(hooks))
     }
 
     /// Returns the per-user hooks, loaded from the filesystem.
@@ -231,33 +233,45 @@ pub mod tests {
 
         assert_eq!(
             node.distro,
-            Some(tool::DistroHook::Bin(
-                "/some/bin/for/node/distro".to_string()
-            ))
+            Some(tool::DistroHook::Bin {
+                bin: "/some/bin/for/node/distro".to_string(),
+                base_path: fixture_dir.clone(),
+            })
         );
         assert_eq!(
             node.latest,
-            Some(tool::MetadataHook::Bin(
-                "/some/bin/for/node/latest".to_string()
-            ))
+            Some(tool::MetadataHook::Bin {
+                bin: "/some/bin/for/node/latest".to_string(),
+                base_path: fixture_dir.clone(),
+            })
         );
         assert_eq!(
             node.index,
-            Some(tool::MetadataHook::Bin(
-                "/some/bin/for/node/index".to_string()
-            ))
+            Some(tool::MetadataHook::Bin {
+                bin: "/some/bin/for/node/index".to_string(),
+                base_path: fixture_dir.clone(),
+            })
         );
         assert_eq!(
             yarn.distro,
-            Some(tool::DistroHook::Bin("/bin/to/yarn/distro".to_string()))
+            Some(tool::DistroHook::Bin {
+                bin: "/bin/to/yarn/distro".to_string(),
+                base_path: fixture_dir.clone(),
+            })
         );
         assert_eq!(
             yarn.latest,
-            Some(tool::MetadataHook::Bin("/bin/to/yarn/latest".to_string()))
+            Some(tool::MetadataHook::Bin {
+                bin: "/bin/to/yarn/latest".to_string(),
+                base_path: fixture_dir.clone(),
+            })
         );
         assert_eq!(
             yarn.index,
-            Some(tool::MetadataHook::Bin("/bin/to/yarn/index".to_string()))
+            Some(tool::MetadataHook::Bin {
+                bin: "/bin/to/yarn/index".to_string(),
+                base_path: fixture_dir.clone(),
+            })
         );
         assert_eq!(
             hooks.events.unwrap().publish,
@@ -359,6 +373,7 @@ pub mod tests {
     #[test]
     fn test_for_dir() {
         let project_dir = fixture_path("hooks/project");
+        let hooks_dir = project_dir.join(".volta");
         let hooks = HookConfig::for_dir(&project_dir)
             .expect("Could not read project hooks.json")
             .expect("Could not find project hooks.json");
@@ -366,21 +381,24 @@ pub mod tests {
 
         assert_eq!(
             node.distro,
-            Some(tool::DistroHook::Bin(
-                "/some/bin/for/node/distro".to_string()
-            ))
+            Some(tool::DistroHook::Bin {
+                bin: "/some/bin/for/node/distro".to_string(),
+                base_path: hooks_dir.clone(),
+            })
         );
         assert_eq!(
             node.latest,
-            Some(tool::MetadataHook::Bin(
-                "/some/bin/for/node/latest".to_string()
-            ))
+            Some(tool::MetadataHook::Bin {
+                bin: "/some/bin/for/node/latest".to_string(),
+                base_path: hooks_dir.clone(),
+            })
         );
         assert_eq!(
             node.index,
-            Some(tool::MetadataHook::Bin(
-                "/some/bin/for/node/index".to_string()
-            ))
+            Some(tool::MetadataHook::Bin {
+                bin: "/some/bin/for/node/index".to_string(),
+                base_path: hooks_dir.clone(),
+            })
         );
         assert_eq!(
             hooks.events.unwrap().publish,
@@ -395,6 +413,7 @@ pub mod tests {
             .unwrap()
             .unwrap();
         let project_dir = fixture_path("hooks/project");
+        let project_hooks_dir = project_dir.join(".volta");
         let project_hooks = HookConfig::for_dir(&project_dir)
             .expect("Could not read project hooks.json")
             .expect("Could not find project hooks.json");
@@ -404,21 +423,24 @@ pub mod tests {
 
         assert_eq!(
             node.distro,
-            Some(tool::DistroHook::Bin(
-                "/some/bin/for/node/distro".to_string()
-            ))
+            Some(tool::DistroHook::Bin {
+                bin: "/some/bin/for/node/distro".to_string(),
+                base_path: project_hooks_dir.clone(),
+            })
         );
         assert_eq!(
             node.latest,
-            Some(tool::MetadataHook::Bin(
-                "/some/bin/for/node/latest".to_string()
-            ))
+            Some(tool::MetadataHook::Bin {
+                bin: "/some/bin/for/node/latest".to_string(),
+                base_path: project_hooks_dir.clone(),
+            })
         );
         assert_eq!(
             node.index,
-            Some(tool::MetadataHook::Bin(
-                "/some/bin/for/node/index".to_string()
-            ))
+            Some(tool::MetadataHook::Bin {
+                bin: "/some/bin/for/node/index".to_string(),
+                base_path: project_hooks_dir.clone(),
+            })
         );
         assert_eq!(
             yarn.distro,
