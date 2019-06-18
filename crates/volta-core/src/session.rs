@@ -113,7 +113,7 @@ impl Session {
             Some(platform) => Ok(Some(SourcedPlatformSpec::project(platform))),
             None => {
                 let user = self.user_platform()?;
-                Ok(user.map(|platform| SourcedPlatformSpec::user(platform)))
+                Ok(user.map(SourcedPlatformSpec::user))
             }
         }
     }

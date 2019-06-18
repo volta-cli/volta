@@ -5,6 +5,7 @@ use super::{intercept_global_installs, CommandArg, ToolCommand};
 use crate::error::ErrorDetails;
 use crate::platform::Source;
 use crate::session::{ActivityKind, Session};
+use crate::style::tool_version;
 
 use log::debug;
 use volta_fail::{throw, Fallible};
@@ -25,12 +26,12 @@ where
             let image = platform.checkout(session)?;
             let path = image.path()?;
 
-            match image.source() {
-                Source::Project => {
-                    debug!("Using npm@{} from project configuration", image.node().npm)
-                }
-                Source::User => debug!("Using npm@{} from default configuration", image.node().npm),
+            let source = match image.source() {
+                Source::Project => "project",
+                Source::User => "default",
             };
+            let version = tool_version("npm", &image.node().npm);
+            debug!("Using {} from {} configuration", version, source);
 
             Ok(ToolCommand::direct(OsStr::new("npm"), args, &path))
         }

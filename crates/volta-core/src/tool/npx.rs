@@ -4,6 +4,7 @@ use super::ToolCommand;
 use crate::error::ErrorDetails;
 use crate::platform::Source;
 use crate::session::{ActivityKind, Session};
+use crate::style::tool_version;
 use crate::version::VersionSpec;
 
 use log::debug;
@@ -23,14 +24,12 @@ where
             // should include a helpful error message
             let required_npm = VersionSpec::parse_version("5.2.0")?;
             if image.node().npm >= required_npm {
-                match image.source() {
-                    Source::Project => {
-                        debug!("Using npx@{} from project configuration", image.node().npm)
-                    }
-                    Source::User => {
-                        debug!("Using npx@{} from default configuration", image.node().npm)
-                    }
+                let source = match image.source() {
+                    Source::Project => "project",
+                    Source::User => "default",
                 };
+                let version = tool_version("npx", &image.node().npm);
+                debug!("Using {} from {} configuration", version, source);
 
                 let path = image.path()?;
                 Ok(ToolCommand::direct(OsStr::new("npx"), args, &path))

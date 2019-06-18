@@ -5,6 +5,7 @@ use super::{intercept_global_installs, CommandArg, ToolCommand};
 use crate::error::ErrorDetails;
 use crate::platform::{Source, SourcedPlatformSpec};
 use crate::session::{ActivityKind, Session};
+use crate::style::tool_version;
 
 use log::debug;
 use volta_fail::{throw, Fallible};
@@ -24,16 +25,12 @@ where
             }
 
             // Note: If we've gotten this far, we know there is a yarn version set
-            match platform.source() {
-                Source::Project => debug!(
-                    "Using yarn@{} from project configuration",
-                    platform.yarn().unwrap()
-                ),
-                Source::User => debug!(
-                    "Using yarn@{} from default configuration",
-                    platform.yarn().unwrap()
-                ),
+            let source = match platform.source() {
+                Source::Project => "project",
+                Source::User => "default",
             };
+            let version = tool_version("yarn", platform.yarn().unwrap());
+            debug!("Using {} from {} configuration", version, source);
 
             let image = platform.checkout(session)?;
             let path = image.path()?;
