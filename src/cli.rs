@@ -78,7 +78,7 @@ pub(crate) enum Subcommand {
     Pin(command::Pin),
 
     /// Displays the current toolchain
-    #[structopt(name = "list", author = "", version = "")]
+    #[structopt(name = "list", alias = "ls", author = "", version = "")]
     List(command::List),
 
     /// Displays the currently activated Node version
