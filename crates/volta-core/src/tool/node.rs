@@ -2,8 +2,11 @@ use std::ffi::{OsStr, OsString};
 
 use super::ToolCommand;
 use crate::error::ErrorDetails;
+use crate::platform::Source;
 use crate::session::{ActivityKind, Session};
+use crate::style::tool_version;
 
+use log::debug;
 use volta_fail::Fallible;
 
 pub(super) fn command<A>(args: A, session: &mut Session) -> Fallible<ToolCommand>
@@ -13,11 +16,21 @@ where
     session.add_event_start(ActivityKind::Node);
 
     match session.current_platform()? {
-        Some(ref platform) => {
+        Some(platform) => {
+            let source = match platform.source() {
+                Source::Project => "project",
+                Source::User => "default",
+            };
+            let version = tool_version("node", platform.node());
+            debug!("Using {} from {} configuration", version, source);
+
             let image = platform.checkout(session)?;
             let path = image.path()?;
             Ok(ToolCommand::direct(OsStr::new("node"), args, &path))
         }
-        None => ToolCommand::passthrough(OsStr::new("node"), args, ErrorDetails::NoPlatform),
+        None => {
+            debug!("Could not find Volta-managed node, delegating to system");
+            ToolCommand::passthrough(OsStr::new("node"), args, ErrorDetails::NoPlatform)
+        }
     }
 }

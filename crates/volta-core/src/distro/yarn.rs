@@ -75,7 +75,7 @@ impl YarnDistro {
 
         if let Some(archive) = load_cached_distro(&distro_file) {
             debug!(
-                "Loading yarn@{} from cached archive at {}",
+                "Loading yarn@{} from cached archive at '{}'",
                 version,
                 distro_file.display()
             );
@@ -138,7 +138,7 @@ impl Distro for YarnDistro {
         let tmp_root = path::tmp_dir()?;
         let temp = tempdir_in(&tmp_root)
             .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })?;
-        debug!("Unpacking yarn into {}", temp.path().display());
+        debug!("Unpacking yarn into '{}'", temp.path().display());
 
         let bar = progress_bar(
             self.archive.origin(),
@@ -176,7 +176,7 @@ impl Distro for YarnDistro {
         bar.finish_and_clear();
 
         // Note: We write this after the progress bar is finished to avoid display bugs with re-renders of the progress
-        debug!("Installing yarn in {}", dest.display());
+        debug!("Installing yarn in '{}'", dest.display());
         Ok(Fetched::Now(self.version))
     }
 }

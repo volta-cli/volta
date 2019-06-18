@@ -1,12 +1,13 @@
 use std::env::args_os;
 use std::ffi::{OsStr, OsString};
-use std::rc::Rc;
 
 use super::{intercept_global_installs, CommandArg, ToolCommand};
 use crate::error::ErrorDetails;
-use crate::platform::PlatformSpec;
+use crate::platform::{Source, SourcedPlatformSpec};
 use crate::session::{ActivityKind, Session};
+use crate::style::tool_version;
 
+use log::debug;
 use volta_fail::{throw, Fallible};
 
 pub(super) fn command<A>(args: A, session: &mut Session) -> Fallible<ToolCommand>
@@ -16,40 +17,44 @@ where
     session.add_event_start(ActivityKind::Yarn);
 
     match get_yarn_platform(session)? {
-        Some(ref platform) => {
+        Some(platform) => {
             if intercept_global_installs() {
                 if let CommandArg::GlobalAdd(package) = check_yarn_add() {
                     throw!(ErrorDetails::NoGlobalInstalls { package });
                 }
             }
 
+            // Note: If we've gotten this far, we know there is a yarn version set
+            let source = match platform.source() {
+                Source::Project => "project",
+                Source::User => "default",
+            };
+            let version = tool_version("yarn", platform.yarn().unwrap());
+            debug!("Using {} from {} configuration", version, source);
+
             let image = platform.checkout(session)?;
             let path = image.path()?;
             Ok(ToolCommand::direct(OsStr::new("yarn"), args, &path))
         }
-        None => ToolCommand::passthrough(OsStr::new("yarn"), args, ErrorDetails::NoPlatform),
+        None => {
+            debug!("Could not find Volta-managed yarn, delegating to system");
+            ToolCommand::passthrough(OsStr::new("yarn"), args, ErrorDetails::NoPlatform)
+        }
     }
 }
 
 /// Determine the correct platform (project or user) and check if yarn is set for that platform
-fn get_yarn_platform(session: &mut Session) -> Fallible<Option<Rc<PlatformSpec>>> {
-    // First check if we are in a pinned project
-    if let Some(platform) = session.project_platform()? {
-        return match platform.yarn {
+fn get_yarn_platform(session: &mut Session) -> Fallible<Option<SourcedPlatformSpec>> {
+    match session.current_platform()? {
+        Some(platform) => match platform.yarn() {
             Some(_) => Ok(Some(platform)),
-            None => Err(ErrorDetails::NoProjectYarn.into()),
-        };
+            None => match platform.source() {
+                Source::Project => Err(ErrorDetails::NoProjectYarn.into()),
+                Source::User => Err(ErrorDetails::NoUserYarn.into()),
+            },
+        },
+        None => Ok(None),
     }
-
-    // If not, fall back to the user platform
-    if let Some(platform) = session.user_platform()? {
-        return match platform.yarn {
-            Some(_) => Ok(Some(platform)),
-            None => Err(ErrorDetails::NoUserYarn.into()),
-        };
-    }
-
-    Ok(None)
 }
 
 fn check_yarn_add() -> CommandArg {

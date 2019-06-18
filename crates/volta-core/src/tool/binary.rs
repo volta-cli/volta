@@ -3,8 +3,10 @@ use std::iter::once;
 
 use super::ToolCommand;
 use crate::error::ErrorDetails;
+use crate::platform::Source;
 use crate::session::{ActivityKind, Session};
 
+use log::debug;
 use volta_fail::{throw, Fallible};
 
 pub(super) fn command<A>(exe: OsString, args: A, session: &mut Session) -> Fallible<ToolCommand>
@@ -27,29 +29,46 @@ where
                 });
             }
 
+            debug!(
+                "Found {} in project at '{}'",
+                exe.to_string_lossy(),
+                path_to_bin.display()
+            );
             let path_to_bin = path_to_bin.as_os_str();
 
-            // if we're in a pinned project, use the project's platform.
-            if let Some(ref platform) = project.platform() {
+            if let Some(platform) = session.current_platform()? {
+                match platform.source() {
+                    Source::Project => {
+                        debug!("Using node@{} from project configuration", platform.node())
+                    }
+                    Source::User => {
+                        debug!("Using node@{} from default configuration", platform.node())
+                    }
+                };
+
                 let image = platform.checkout(session)?;
                 let path = image.path()?;
                 return Ok(ToolCommand::project_local(&path_to_bin, args, &path));
             }
 
-            // otherwise use the user platform.
-            if let Some(ref platform) = session.user_platform()? {
-                let image = platform.checkout(session)?;
-                let path = image.path()?;
-                return Ok(ToolCommand::project_local(&path_to_bin, args, &path));
-            }
-
-            // if there's no user platform selected, pass through to existing PATH.
+            // if there's no platform available, pass through to existing PATH.
+            debug!("Could not find Volta configuration, delegating to system");
             return ToolCommand::passthrough(&path_to_bin, args, ErrorDetails::NoPlatform);
         }
     }
 
     // try to use the user toolchain
     if let Some(user_tool) = session.get_user_tool(&exe)? {
+        debug!(
+            "Found default {} in '{}'",
+            exe.to_string_lossy(),
+            user_tool.bin_path.display()
+        );
+        debug!(
+            "Using node@{} from binary configuration",
+            user_tool.image.node.runtime
+        );
+
         let path = user_tool.image.path()?;
         let tool_path = user_tool.bin_path.into_os_string();
         let cmd = match user_tool.loader {
@@ -70,6 +89,10 @@ where
 
     // at this point, there is no project or user toolchain
     // Pass through to the existing PATH
+    debug!(
+        "Could not find {}, delegating to system",
+        exe.to_string_lossy()
+    );
     ToolCommand::passthrough(
         &exe,
         args,

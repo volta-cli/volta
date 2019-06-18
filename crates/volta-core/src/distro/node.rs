@@ -47,7 +47,7 @@ pub struct NodeDistro {
 /// A full Node version including not just the version of Node itself
 /// but also the specific version of npm installed globally with that
 /// Node installation.
-#[derive(Eq, PartialEq, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct NodeVersion {
     /// The version of Node itself.
     pub runtime: Version,
@@ -126,7 +126,7 @@ impl NodeDistro {
 
         if let Some(archive) = load_cached_distro(&distro_file) {
             debug!(
-                "Loading node@{} from cached archive at {}",
+                "Loading node@{} from cached archive at '{}'",
                 version,
                 distro_file.display()
             );
@@ -194,7 +194,7 @@ impl Distro for NodeDistro {
         let tmp_root = path::tmp_dir()?;
         let temp = tempdir_in(&tmp_root)
             .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })?;
-        debug!("Unpacking node into {}", temp.path().display());
+        debug!("Unpacking node into '{}'", temp.path().display());
 
         let bar = progress_bar(
             self.archive.origin(),
@@ -243,7 +243,7 @@ impl Distro for NodeDistro {
 
         // Note: We write these after the progress bar is finished to avoid display bugs with re-renders of the progress
         debug!("Saving bundled npm version ({})", npm);
-        debug!("Installing node in {}", dest.display());
+        debug!("Installing node in '{}'", dest.display());
         Ok(Fetched::Now(NodeVersion {
             runtime: self.version,
             npm,

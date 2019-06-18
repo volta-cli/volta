@@ -132,7 +132,7 @@ impl HookConfig {
                 let hooks_config = Self::from_file(&path)?;
 
                 if hooks_config.is_some() {
-                    debug!("Found project hooks in {}", path.display());
+                    debug!("Found project hooks in '{}'", path.display());
                 }
 
                 Ok(hooks_config)
@@ -166,7 +166,7 @@ impl HookConfig {
         let hooks_config = Self::from_file(&path)?;
 
         if hooks_config.is_some() {
-            debug!("Found user hooks in {}", path.display());
+            debug!("Found user hooks in '{}'", path.display());
         }
 
         Ok(hooks_config)
