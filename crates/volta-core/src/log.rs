@@ -13,7 +13,7 @@ const WARNING_PREFIX: &'static str = "warning:";
 const SHIM_ERROR_PREFIX: &'static str = "Volta error:";
 const SHIM_WARNING_PREFIX: &'static str = "Volta warning:";
 const VOLTA_LOGLEVEL: &'static str = "VOLTA_LOGLEVEL";
-const ALLOWED_CRATE: &'static str = "volta_core";
+const ALLOWED_PREFIX: &'static str = "volta";
 const WRAP_INDENT: &'static str = "    ";
 
 /// Represents the context from which the logger was created
@@ -43,7 +43,7 @@ impl Log for Logger {
     }
 
     fn log(&self, record: &Record) {
-        if self.enabled(record.metadata()) && record.target().starts_with(ALLOWED_CRATE) {
+        if self.enabled(record.metadata()) && record.target().starts_with(ALLOWED_PREFIX) {
             match record.level() {
                 Level::Error => self.log_error(record.args()),
                 Level::Warn => self.log_warning(record.args()),
