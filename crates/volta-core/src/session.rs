@@ -109,12 +109,12 @@ impl Session {
     }
 
     pub fn current_platform(&self) -> Fallible<Option<SourcedPlatformSpec>> {
-        match self.project_platform()? {
-            Some(platform) => Ok(Some(SourcedPlatformSpec::project(platform))),
-            None => {
-                let user = self.user_platform()?;
-                Ok(user.map(SourcedPlatformSpec::user))
-            }
+        if let Some(platform) = self.project_platform()? {
+            Ok(Some(SourcedPlatformSpec::project(platform)))
+        } else if let Some(platform) = self.user_platform()? {
+            Ok(Some(SourcedPlatformSpec::user(platform)))
+        } else {
+            Ok(None)
         }
     }
 
