@@ -66,6 +66,12 @@ impl Command for Current {
             },
         };
 
+        log::warn!(
+            "\n`volta current` is deprecated and will be removed in a future version. \
+             You can run `volta list --current <tool>` instead. \
+             See `volta help list` for details.",
+        );
+
         session.add_event_end(ActivityKind::Current, ExitCode::Success);
 
         if !result {

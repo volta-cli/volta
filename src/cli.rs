@@ -81,11 +81,17 @@ pub(crate) enum Subcommand {
     #[structopt(name = "list", alias = "ls", author = "", version = "")]
     List(command::List),
 
-    /// Displays the currently activated Node version
+    /// [DEPRECATED] Displays the currently activated Node version
+    ///
+    /// For the info provided by `volta current`, you can run `volta list --current node`.
+    /// See `volta help list` for more options.
     #[structopt(
         name = "current",
         author = "",
         version = "",
+        help = "[DEPRECATED] Displays the currently activated Node version\n\n\
+        For the info provided by `volta current`, you can run `volta list --current node`.\n\
+        See `volta help list` for more options.",
         raw(setting = "structopt::clap::AppSettings::Hidden")
     )]
     Current(command::Current),

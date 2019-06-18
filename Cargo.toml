@@ -24,6 +24,7 @@ serde_json = "1.0.37"
 console = "0.6.1"
 failure_derive = "0.1.1"
 failure = "0.1.1"
+log = { version = "0.4", features = ["std"] }
 volta-fail = { path = "crates/volta-fail" }
 volta-fail-derive = { path = "crates/volta-fail-derive" }
 validate-npm-package-name = { path = "crates/validate-npm-package-name" }
