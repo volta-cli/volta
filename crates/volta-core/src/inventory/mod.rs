@@ -51,9 +51,10 @@ cfg_if::cfg_if! {
             format!("{}/yarn-latest", mockito::SERVER_URL)
         }
         // TODO: remove this
-        fn public_package_registry_root() -> String {
-            format!("{}/registry", mockito::SERVER_URL)
-        }
+        // TODO: and what happens in the tests?
+        // fn public_package_registry_root() -> String {
+        //     format!("{}/registry", mockito::SERVER_URL)
+        // }
     } else {
         /// Returns the URL of the index of available Node versions on the public Node server.
         fn public_node_version_index() -> String {
@@ -68,10 +69,10 @@ cfg_if::cfg_if! {
             "https://yarnpkg.com/latest-version".to_string()
         }
         // TODO: remove this
-        /// URL of the Npm registry containing an index of availble public packages.
-        fn public_package_registry_root() -> String {
-            "https://registry.npmjs.org".to_string()
-        }
+        // /// URL of the Npm registry containing an index of availble public packages.
+        // fn public_package_registry_root() -> String {
+        //     "https://registry.npmjs.org".to_string()
+        // }
     }
 }
 
@@ -433,15 +434,19 @@ fn match_package_entry(
     entries.find(predicate)
 }
 
+// TODO: this should return a PackageIndex? that would be easier overall...
 // use `npm view` to get the info for the package
-fn npm_view_query(name: &str, version: &str) -> Fallible<serial::NpmViewData> {
+// fn npm_view_query(name: &str, version: &str) -> Fallible<Vec<serial::NpmViewData>> {
+fn npm_view_query(name: &str, version: &str) -> Fallible<PackageIndex> {
     let mut command = npm_view_command_for(name, version);
+    debug!("Running command: `{:?}`", command);
 
     let spinner = progress_spinner(&format!(
         "Querying metadata for {}",
         tool_version(name, version)
     ));
     // TODO: different error for this - PackageMetadataFetchError?
+    // TODO: don't have the verbose stuff in here, and don't write the verbose stuff to stdout????
     let output = command
         .output()
         .with_context(|_| ErrorDetails::PackageInstallFailed)?;
@@ -451,10 +456,10 @@ fn npm_view_query(name: &str, version: &str) -> Fallible<serial::NpmViewData> {
         "[package metadata stderr]\n{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    debug!(
-        "[package metadata stdout]\n{}",
-        String::from_utf8_lossy(&output.stdout)
-    );
+    // debug!(
+    //     "[package metadata stdout]\n{}",
+    //     String::from_utf8_lossy(&output.stdout)
+    // );
 
     // TODO: different error for this - PackageMetadataFetchError?
     if !output.status.success() {
@@ -463,17 +468,43 @@ fn npm_view_query(name: &str, version: &str) -> Fallible<serial::NpmViewData> {
 
     let response_json = String::from_utf8_lossy(&output.stdout);
 
-    let metadata: serial::NpmViewData =
-        serde_json::de::from_str(&response_json).with_context(|_| {
-            // TODO: this error needs to change
-            ErrorDetails::ParsePackageMetadataError {
-                from_url: "TODO".to_string(),
-            }
-        })?;
+    debug!("[first bit of response json]\n{:?}", &response_json[..80]);
 
-    debug!("[parsed package metadata]\n{:?}", metadata);
+    // TODO: instead of from_str here, sometimes this will return an array (semver case)
+    // so, check if the first char is '[' ?!
+    if response_json.chars().next() == Some('[') {
+        // deserialize to array
+        let metadatas = serde_json::de::from_str::<Vec<serial::NpmViewData>>(&response_json)
+            .with_context(|_| {
+                // TODO: this error needs to change
+                ErrorDetails::ParsePackageMetadataError {
+                    from_url: "TODO".to_string(),
+                }
+            })?;
+        debug!("[parsed package metadata (from array)]\n{:?}", metadatas);
 
-    Ok(metadata)
+        // TODO: does this always work?
+        let latest = metadatas[0].dist_tags.latest.clone();
+        Ok(PackageIndex {
+            latest,
+            entries: metadatas.iter().map(|e| e.clone().into_index()).collect(),
+        })
+    } else {
+        let metadata = serde_json::de::from_str::<serial::NpmViewData>(&response_json)
+            .with_context(|_| {
+                // TODO: this error needs to change
+                ErrorDetails::ParsePackageMetadataError {
+                    from_url: "TODO".to_string(),
+                }
+            })?;
+        debug!("[parsed package metadata (single)]\n{:?}", metadata);
+
+        let latest = metadata.dist_tags.latest.clone();
+        Ok(PackageIndex {
+            latest,
+            entries: vec![metadata.into_index()],
+        })
+    }
 }
 
 // TODO: description
@@ -551,7 +582,27 @@ impl FetchResolve<PackageDistro> for PackageCollection {
                     &latest == version
                 })
             }
-            _ => Some(npm_view_query(name, "latest")?.into_index()),
+            _ => {
+                // TODO: do the same matching thing here
+                // (into_index will have to be changed)
+                // OR....convert to the same PackageIndex format, to pull out the matching stuff?
+                // let entries = npm_view_query(name, "latest")?
+                //     .iter()
+                //     .map(|e| e.into_index())
+                //     .collect();
+                // let package_index = PackageIndex {
+                //     latest: Version::new(0, 0, 0),
+                //     entries,
+                // };
+
+                let package_index = npm_view_query(name, "latest")?;
+
+                // TODO:
+                match_package_entry(package_index, |PackageEntry { version, .. }| {
+                    // &latest == version
+                    true
+                })
+            }
         };
 
         if let Some(entry) = entry_opt {
@@ -574,27 +625,51 @@ impl FetchResolve<PackageDistro> for PackageCollection {
         matching: &VersionReq,
         hooks: Option<&ToolHooks<PackageDistro>>,
     ) -> Fallible<PackageEntry> {
-        let url = match hooks {
+        let entry_opt = match hooks {
             Some(&ToolHooks {
                 index: Some(ref hook),
                 ..
             }) => {
                 debug!("Using packages.index hook to determine package metadata URL");
-                hook.resolve(&name)?
+                let url = hook.resolve(&name)?;
+                let package_index = resolve_package_metadata(name, &url)?.into_index();
+
+                match_package_entry(package_index, |PackageEntry { version, .. }| {
+                    matching.matches(&version)
+                })
             }
-            _ => format!("{}/{}", public_package_registry_root(), name),
+            _ => {
+                // // TODO: do the same thing as above: get info for all versions, then iterate and
+                // // find the one that matches
+                // Some(npm_view_query(name, &matching.to_string())?.into_index())
+
+                // TODO: do the same matching thing here
+                // (into_index will have to be changed)
+                // OR....convert to the same PackageIndex format, to pull out the matching stuff?
+                // let entries = npm_view_query(name, &matching.to_string())?
+                //     .iter()
+                //     .map(|e| e.into_index())
+                //     .collect();
+                // // TODO:
+                // let package_index = PackageIndex {
+                //     latest: Version::new(0, 0, 0),
+                //     entries,
+                // };
+
+                let package_index = npm_view_query(name, &matching.to_string())?;
+
+                // TODO:
+                match_package_entry(package_index, |PackageEntry { version, .. }| {
+                    // &latest == version
+                    true
+                })
+            }
         };
-
-        let package_index = resolve_package_metadata(name, &url)?.into_index();
-
-        let entry_opt = match_package_entry(package_index, |PackageEntry { version, .. }| {
-            matching.matches(&version)
-        });
 
         if let Some(entry) = entry_opt {
             debug!(
                 "Found {}@{} matching requirement '{}' from {}",
-                name, entry.version, matching, url
+                name, entry.version, matching, entry.tarball
             );
             Ok(entry)
         } else {
@@ -624,7 +699,28 @@ impl FetchResolve<PackageDistro> for PackageCollection {
                     &exact_version == version
                 })
             }
-            _ => Some(npm_view_query(name, &exact_version.to_string())?.into_index()),
+            _ => {
+                // Some(npm_view_query(name, &exact_version.to_string())?.into_index()),
+                // TODO: do the same matching thing here
+                // (into_index will have to be changed)
+                // OR....convert to the same PackageIndex format, to pull out the matching stuff?
+                // let entries = npm_view_query(name, &exact_version.to_string())?
+                //     .iter()
+                //     .map(|e| e.into_index())
+                //     .collect();
+                // let package_index = PackageIndex {
+                //     latest: Version::new(0, 0, 0),
+                //     entries,
+                // };
+
+                let package_index = npm_view_query(name, &exact_version.to_string())?;
+
+                // TODO:
+                match_package_entry(package_index, |PackageEntry { version, .. }| {
+                    // &latest == version
+                    true
+                })
+            }
         };
 
         if let Some(entry) = entry_opt {

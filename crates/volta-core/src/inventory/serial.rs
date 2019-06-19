@@ -213,14 +213,14 @@ pub struct PackageVersionInfo {
     pub dist: DistInfo,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PackageDistTags {
     #[serde(with = "version_serde")]
     pub latest: Version,
     pub beta: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DistInfo {
     pub shasum: String,
     pub tarball: String,
@@ -398,7 +398,7 @@ impl BinLoader {
     }
 }
 
-// TODO: data structures for `npm view` data
+// Data structures for `npm view` data
 //
 // $ npm view --json gulp@latest
 // {
@@ -418,14 +418,17 @@ impl BinLoader {
 //   (...and lots of other stuff we don't use...)
 // }
 //
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NpmViewData {
     pub name: String,
     #[serde(with = "version_serde")]
     pub version: Version,
     pub dist: DistInfo,
+    #[serde(rename = "dist-tags")]
+    pub dist_tags: PackageDistTags,
 }
 
+// TODO: change into_index based on the comments in the mod.rs file...
 impl NpmViewData {
     pub fn into_index(self) -> package::PackageEntry {
         package::PackageEntry {

@@ -47,8 +47,8 @@ impl Log for Logger {
             match record.level() {
                 Level::Error => self.log_error(record.args()),
                 Level::Warn => self.log_warning(record.args()),
-                Level::Debug => println!("[verbose] {}", record.args()),
-                _ => println!("{}", record.args()),
+                Level::Debug => eprintln!("[verbose] {}", record.args()),
+                _ => eprintln!("{}", record.args()),
             }
         }
     }
@@ -98,7 +98,7 @@ impl Logger {
             LogContext::Shim => SHIM_WARNING_PREFIX,
         };
 
-        println!(
+        eprintln!(
             "{}{}",
             style(prefix).yellow().bold(),
             wrap_content(prefix, message)
