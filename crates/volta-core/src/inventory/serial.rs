@@ -428,7 +428,6 @@ pub struct NpmViewData {
     pub dist_tags: PackageDistTags,
 }
 
-// TODO: change into_index based on the comments in the mod.rs file...
 impl NpmViewData {
     pub fn into_index(self) -> package::PackageEntry {
         package::PackageEntry {
