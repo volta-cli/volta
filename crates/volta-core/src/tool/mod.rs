@@ -158,7 +158,7 @@ impl ToolSpec {
             .map(|arg| Self::try_from_str(arg.as_ref()))
             .collect::<Fallible<Vec<ToolSpec>>>()?;
 
-        tools.sort_by(tool_spec_sort_comparator);
+        tools.sort_by(Self::sort_comparator);
         Ok(tools)
     }
 
@@ -192,23 +192,25 @@ impl ToolSpec {
 
         Ok(())
     }
-}
 
-/// Function for comparing toolspecs for use in sorting.
-/// We want to preserve the original order as much as possible, so we treat same tool categories as equal
-/// We still need to pull Node up first, followed by Npm / Yarn, and then Packages last
-fn tool_spec_sort_comparator(left: &ToolSpec, right: &ToolSpec) -> Ordering {
-    match (left, right) {
-        (ToolSpec::Node(_), ToolSpec::Node(_)) => Ordering::Equal,
-        (ToolSpec::Node(_), _) => Ordering::Less,
-        (_, ToolSpec::Node(_)) => Ordering::Greater,
-        (ToolSpec::Npm(_), ToolSpec::Npm(_)) => Ordering::Equal,
-        (ToolSpec::Npm(_), _) => Ordering::Less,
-        (_, ToolSpec::Npm(_)) => Ordering::Greater,
-        (ToolSpec::Yarn(_), ToolSpec::Yarn(_)) => Ordering::Equal,
-        (ToolSpec::Yarn(_), _) => Ordering::Less,
-        (_, ToolSpec::Yarn(_)) => Ordering::Greater,
-        (ToolSpec::Package(_, _), ToolSpec::Package(_, _)) => Ordering::Equal,
+    /// Compare `ToolSpec`s for sorting when converting from strings
+    ///
+    /// We want to preserve the original order as much as possible, so we treat tools in
+    /// the same tool category as equal. We still need to pull Node to the front of the
+    /// list, followed by Npm / Yarn, and then Packages last.
+    fn sort_comparator(left: &ToolSpec, right: &ToolSpec) -> Ordering {
+        match (left, right) {
+            (ToolSpec::Node(_), ToolSpec::Node(_)) => Ordering::Equal,
+            (ToolSpec::Node(_), _) => Ordering::Less,
+            (_, ToolSpec::Node(_)) => Ordering::Greater,
+            (ToolSpec::Npm(_), ToolSpec::Npm(_)) => Ordering::Equal,
+            (ToolSpec::Npm(_), _) => Ordering::Less,
+            (_, ToolSpec::Npm(_)) => Ordering::Greater,
+            (ToolSpec::Yarn(_), ToolSpec::Yarn(_)) => Ordering::Equal,
+            (ToolSpec::Yarn(_), _) => Ordering::Less,
+            (_, ToolSpec::Yarn(_)) => Ordering::Greater,
+            (ToolSpec::Package(_, _), ToolSpec::Package(_, _)) => Ordering::Equal,
+        }
     }
 }
 
