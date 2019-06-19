@@ -1,9 +1,10 @@
 mod human;
 mod plain;
 
-
+use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
+
 
 use semver::Version;
 use structopt::StructOpt;
@@ -36,29 +37,54 @@ enum Source {
     None,
 }
 
+impl fmt::Display for Source {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Source::Project(path) => format!(" (current @ {})", path.display()),
+                Source::User => String::from(" (default)"),
+                Source::None => String::from(""),
+            }
+        )
+    }
+}
+
 struct Package {
+    /// The name of the package.
     pub name: String,
+    /// Where the package is specified.
+    pub source: Source,
+    /// The package's own version.
     pub version: Version,
-}
-
-struct ToolHost {
-    pub package: Package,
+    /// The version of Node the package is installed against.
     pub node: Version,
-}
-
-struct Tool {
-    name: String,
-    host: ToolHost,
+    /// The names of the tools associated with the package.
+    pub tools: Vec<String>,
 }
 
 struct Node {
-    source: Source,
-    version: Version,
+    pub source: Source,
+    pub version: Version,
 }
 
 enum PackagerType {
     Yarn,
     Npm,
+}
+
+impl fmt::Display for PackagerType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                PackagerType::Npm => "npm",
+                PackagerType::Yarn => "yarn",
+            }
+        )
+    }
 }
 
 struct Packager {
@@ -72,7 +98,6 @@ struct Toolchain {
     node_runtimes: Vec<Node>,
     packagers: Vec<Packager>,
     packages: Vec<Package>,
-    tools: Vec<Tool>,
 }
 
 #[derive(StructOpt)]
