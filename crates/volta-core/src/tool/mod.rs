@@ -1,5 +1,6 @@
 //! Traits and types for executing command-line tools.
 
+use std::cmp::Ordering;
 use std::env::{self, args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
 use std::fmt::{self, Debug, Display, Formatter};
@@ -51,7 +52,7 @@ enum CommandArg {
 /// dealing with multiple tools.
 ///
 /// [`Ord`]: https://doc.rust-lang.org/1.34.0/core/cmp/trait.Ord.html
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
+#[derive(PartialEq)]
 pub enum ToolSpec {
     Node(VersionSpec),
     Npm(VersionSpec),
@@ -157,7 +158,7 @@ impl ToolSpec {
             .map(|arg| Self::try_from_str(arg.as_ref()))
             .collect::<Fallible<Vec<ToolSpec>>>()?;
 
-        tools.sort();
+        tools.sort_by(tool_spec_sort_comparator);
         Ok(tools)
     }
 
@@ -190,6 +191,24 @@ impl ToolSpec {
         }
 
         Ok(())
+    }
+}
+
+/// Function for comparing toolspecs for use in sorting.
+/// We want to preserve the original order as much as possible, so we treat same tool categories as equal
+/// We still need to pull Node up first, followed by Npm / Yarn, and then Packages last
+fn tool_spec_sort_comparator(left: &ToolSpec, right: &ToolSpec) -> Ordering {
+    match (left, right) {
+        (ToolSpec::Node(_), ToolSpec::Node(_)) => Ordering::Equal,
+        (ToolSpec::Node(_), _) => Ordering::Less,
+        (_, ToolSpec::Node(_)) => Ordering::Greater,
+        (ToolSpec::Npm(_), ToolSpec::Npm(_)) => Ordering::Equal,
+        (ToolSpec::Npm(_), _) => Ordering::Less,
+        (_, ToolSpec::Npm(_)) => Ordering::Greater,
+        (ToolSpec::Yarn(_), ToolSpec::Yarn(_)) => Ordering::Equal,
+        (ToolSpec::Yarn(_), _) => Ordering::Less,
+        (_, ToolSpec::Yarn(_)) => Ordering::Greater,
+        (ToolSpec::Package(_, _), ToolSpec::Package(_, _)) => Ordering::Equal,
     }
 }
 
@@ -530,9 +549,9 @@ mod tests {
         fn special_cases_tool_space_number() {
             let name = "potato";
             let version = "1.2.3";
-            let mut args: Vec<String> = vec![name.into(), version.into()];
+            let args: Vec<String> = vec![name.into(), version.into()];
 
-            let err = ToolSpec::from_strings(&mut args, PIN).unwrap_err();
+            let err = ToolSpec::from_strings(&args, PIN).unwrap_err();
             let inner_err = err
                 .downcast_ref::<ErrorDetails>()
                 .expect("should be an ErrorDetails");
@@ -550,49 +569,87 @@ mod tests {
 
         #[test]
         fn leaves_other_scenarios_alone() {
-            let mut empty: Vec<&str> = Vec::new();
+            let empty: Vec<&str> = Vec::new();
             assert_eq!(
-                ToolSpec::from_strings(&mut empty, PIN)
-                    .expect("is ok")
-                    .len(),
+                ToolSpec::from_strings(&empty, PIN).expect("is ok").len(),
                 empty.len(),
                 "when there are no args"
             );
 
-            let mut only_one = ["node".to_owned()];
+            let only_one = ["node".to_owned()];
             assert_eq!(
-                ToolSpec::from_strings(&mut only_one, PIN)
-                    .expect("is ok")
-                    .len(),
+                ToolSpec::from_strings(&only_one, PIN).expect("is ok").len(),
                 only_one.len(),
                 "when there is only one arg"
             );
 
-            let mut two_but_unmistakable = ["12".to_owned(), "node".to_owned()];
+            let two_but_unmistakable = ["12".to_owned(), "node".to_owned()];
             assert_eq!(
-                ToolSpec::from_strings(&mut two_but_unmistakable, PIN.into())
+                ToolSpec::from_strings(&two_but_unmistakable, PIN.into())
                     .expect("is ok")
                     .len(),
                 two_but_unmistakable.len(),
                 "when there are two args but the order is not likely to be a mistake"
             );
 
-            let mut two_but_valid_first = ["node@lts".to_owned(), "12".to_owned()];
+            let two_but_valid_first = ["node@lts".to_owned(), "12".to_owned()];
             assert_eq!(
-                ToolSpec::from_strings(&mut two_but_valid_first, PIN.into())
+                ToolSpec::from_strings(&two_but_valid_first, PIN.into())
                     .expect("is ok")
                     .len(),
                 two_but_valid_first.len(),
                 "when there are two args but the first is a valid tool spec"
             );
 
-            let mut more_than_two_tools = ["node".to_owned(), "12".to_owned(), "yarn".to_owned()];
+            let more_than_two_tools = ["node".to_owned(), "12".to_owned(), "yarn".to_owned()];
             assert_eq!(
-                ToolSpec::from_strings(&mut more_than_two_tools, PIN.into())
+                ToolSpec::from_strings(&more_than_two_tools, PIN.into())
                     .expect("is ok")
                     .len(),
                 more_than_two_tools.len(),
                 "when there are more than two args"
+            );
+        }
+
+        #[test]
+        fn sorts_node_npm_yarn_to_front() {
+            let multiple = [
+                "ember-cli@3".to_owned(),
+                "yarn".to_owned(),
+                "npm@5".to_owned(),
+                "node@latest".to_owned(),
+            ];
+            let expected = [
+                ToolSpec::Node(VersionSpec::Latest),
+                ToolSpec::Npm(VersionSpec::from_str("5").expect("requirement is valid")),
+                ToolSpec::Yarn(VersionSpec::default()),
+                ToolSpec::Package(
+                    "ember-cli".to_owned(),
+                    VersionSpec::from_str("3").expect("requirement is valid"),
+                ),
+            ];
+            assert_eq!(
+                ToolSpec::from_strings(&multiple, PIN.into()).expect("is ok"),
+                expected
+            );
+        }
+
+        #[test]
+        fn keeps_package_order_unchanged() {
+            let packages_with_node = ["typescript@latest", "ember-cli@3", "node@lts", "mocha"];
+            let expected = [
+                ToolSpec::Node(VersionSpec::Lts),
+                ToolSpec::Package("typescript".to_owned(), VersionSpec::Latest),
+                ToolSpec::Package(
+                    "ember-cli".to_owned(),
+                    VersionSpec::from_str("3").expect("requirement is valid"),
+                ),
+                ToolSpec::Package("mocha".to_owned(), VersionSpec::default()),
+            ];
+
+            assert_eq!(
+                ToolSpec::from_strings(&packages_with_node, PIN.into()).expect("is ok"),
+                expected
             );
         }
     }
