@@ -435,20 +435,15 @@ fn npm_view_query(name: &str, version: &str) -> Fallible<PackageIndex> {
         "Querying metadata for {}",
         tool_version(name, version)
     ));
-    // TODO: different error for this - PackageMetadataFetchError?
     let output = command
         .output()
-        .with_context(|_| ErrorDetails::PackageInstallFailed)?;
+        .with_context(|_| ErrorDetails::NpmViewError)?;
     spinner.finish_and_clear();
 
-    debug!(
-        "[package metadata stderr]\n{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    // TODO: different error for this - PackageMetadataFetchError?
     if !output.status.success() {
-        throw!(ErrorDetails::PackageInstallFailed);
+        throw!(ErrorDetails::NpmViewMetadataFetchError {
+            stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+        });
     }
 
     let response_json = String::from_utf8_lossy(&output.stdout);
@@ -457,16 +452,16 @@ fn npm_view_query(name: &str, version: &str) -> Fallible<PackageIndex> {
     // Check if the first char is '[' and parse as an array if so
     if response_json.chars().next() == Some('[') {
         let metadatas = serde_json::de::from_str::<Vec<serial::NpmViewData>>(&response_json)
-            .with_context(|_| {
-                // TODO: this error needs to change
-                ErrorDetails::ParsePackageMetadataError {
-                    from_url: "TODO".to_string(),
-                }
-            })?;
-        debug!("[parsed package metadata (from array)]\n{:?}", metadatas);
+            .with_context(|_| ErrorDetails::NpmViewMetadataParseError)?;
+        debug!("[parsed package metadata (array)]\n{:?}", metadatas);
 
-        // TODO: does this always work?
-        let latest = metadatas[0].dist_tags.latest.clone();
+        // get latest version, making sure the array is not empty
+        let latest = match metadatas.iter().next() {
+            Some(m) => m.dist_tags.latest.clone(),
+            None => throw!(ErrorDetails::PackageNotFound {
+                package: name.to_string()
+            }),
+        };
 
         let mut entries: Vec<PackageEntry> =
             metadatas.into_iter().map(|e| e.into_index()).collect();
@@ -478,12 +473,7 @@ fn npm_view_query(name: &str, version: &str) -> Fallible<PackageIndex> {
         Ok(PackageIndex { latest, entries })
     } else {
         let metadata = serde_json::de::from_str::<serial::NpmViewData>(&response_json)
-            .with_context(|_| {
-                // TODO: this error needs to change
-                ErrorDetails::ParsePackageMetadataError {
-                    from_url: "TODO".to_string(),
-                }
-            })?;
+            .with_context(|_| ErrorDetails::NpmViewMetadataParseError)?;
         debug!("[parsed package metadata (single)]\n{:?}", metadata);
 
         let latest = metadata.dist_tags.latest.clone();
