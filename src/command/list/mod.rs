@@ -113,6 +113,34 @@ enum Toolchain {
     },
 }
 
+impl Toolchain {
+    fn active(filter: &Filter) -> Fallible<Toolchain> {
+        unimplemented!()
+    }
+
+    fn all() -> Fallible<Toolchain> {
+        unimplemented!()
+    }
+
+    fn node(filter: &Filter) -> Fallible<Toolchain> {
+        unimplemented!()
+    }
+
+    fn yarn(filter: &Filter) -> Fallible<Toolchain> {
+        unimplemented!()
+    }
+
+    fn package_or_tool(name: &str, filter: &Filter) -> Fallible<Toolchain> {
+        unimplemented!()
+    }
+}
+
+enum Filter {
+    Current,
+    Default,
+    None,
+}
+
 #[derive(StructOpt)]
 pub(crate) struct List {
     /// Display
@@ -187,20 +215,98 @@ impl Command for List {
 
         let inventory = session.inventory()?;
         let project = session.project();
-        let formatter = match self.output_format() {
+        let format = match self.output_format() {
             Format::Human => human::format,
             Format::Plain => plain::format,
         };
 
-        let toolchain_to_display = match self.subcommand {
-            Some(Subcommand::All) => (),
-            Some(Subcommand::Node) => (),
-            Some(Subcommand::Yarn) => (),
-            Some(Subcommand::PackageOrTool { name }) => (),
-            None => (),
+        let filter = match (self.current, self.default) {
+            (true, false) => Filter::Current,
+            (false, true) => Filter::Default,
+            (true, true) => unreachable!("simultaneous `current` and `default` forbidden by clap"),
+            _ => Filter::None,
+        };
+
+        let toolchain_to_display: Toolchain = match self.subcommand {
+            // For no subcommand, show the user's current toolchain
+            None => Toolchain::current(&filter)?,
+            Some(Subcommand::All) => Toolchain::all()?,
+            Some(Subcommand::Node) => Toolchain::node(&filter)?,
+            Some(Subcommand::Yarn) => Toolchain::yarn(&filter)?,
+            Some(Subcommand::PackageOrTool { name }) => Toolchain::package_or_tool(&name, &filter)?,
+        };
+
+        if let Some(string) = format(&toolchain_to_display) {
+            println!("{}", string);
         };
 
         session.add_event_end(ActivityKind::List, ExitCode::Success);
         Ok(ExitCode::Success)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use lazy_static::lazy_static;
+    use semver::Version;
+
+    lazy_static! {
+        static ref NODE_PROJECT_VERSION: Version = Version::from((12, 2, 0));
+        static ref NODE_DEFAULT_VERSION: Version = Version::from((10, 15, 3));
+        static ref NODE_VERSION_11: Version = Version::from((11, 9, 0));
+        static ref NODE_VERSION_8: Version = Version::from((8, 16, 0));
+
+        static ref YARN_DEFAULT: Version = Version::from((1, 16, 0));
+        static ref YARN_PROJECT: Version = Version::from((1, 12, 3));
+
+        static ref PROJECT_PATH: PathBuf = PathBuf::from("~/node-and-yarn/project.json");
+
+        static ref CREATE_REACT_APP: Version = Version::from((3, 0, 1));
+
+        static ref EMBER_DEFAULT: Version = Version::from((3, 10, 0));
+        static ref EMBER_LTS: Version = Version::from((3, 8, 2));
+
+        static ref TS_RECENT_VERSION: Version = Version::from((3, 4, 3));
+        static ref TS_DEFAULT_VERSION: Version = Version::from((3, 4, 1));
+
+        static ref YARN_DEDUPLICATE: Version = Version::from((1, 1, 1));
+    }
+
+    mod bare {
+        #[test]
+        fn human() {
+            unimplemented!();
+        }
+
+        #[test]
+        fn plain() {
+            unimplemented!();
+        }
+    }
+
+    mod all {
+        #[test]
+        fn human() {
+            unimplemented!();
+        }
+
+        #[test]
+        fn plain() {
+            unimplemented!();
+        }
+    }
+
+    mod package {
+        #[test]
+        fn human() {
+            unimplemented!();
+        }
+
+        #[test]
+        fn plain() {
+            unimplemented!();
+        }
     }
 }

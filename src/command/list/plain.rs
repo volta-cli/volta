@@ -6,7 +6,7 @@ use volta_core::style::tool_version;
 
 use super::{Node, Package, Packager, Source, Toolchain};
 
-pub(super) fn format(toolchain: &Toolchain) -> String {
+pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
     let (runtimes, packagers, packages) = match toolchain {
         Toolchain::Node(runtimes) => (describe_runtimes(&runtimes), None, None),
         Toolchain::Packagers(packagers) => (None, describe_packagers(&packagers), None),
@@ -37,15 +37,15 @@ pub(super) fn format(toolchain: &Toolchain) -> String {
 
     match (runtimes, packagers, packages) {
         (Some(runtimes), Some(packagers), Some(packages)) => {
-            format!("{}\n{}\n{}", runtimes, packagers, packages)
+            Some(format!("{}\n{}\n{}", runtimes, packagers, packages))
         }
-        (Some(runtimes), Some(packagers), None) => format!("{}\n{}", runtimes, packagers),
-        (Some(runtimes), None, Some(packages)) => format!("{}\n{}", runtimes, packages),
-        (Some(runtimes), None, None) => format!("{}", runtimes),
-        (None, Some(packagers), Some(packages)) => format!("{}\n{}", packagers, packages),
-        (None, Some(packagers), None) => format!("{}", packagers),
-        (None, None, Some(packages)) => format!("{}", packages),
-        (None, None, None) => String::from(""),
+        (Some(runtimes), Some(packagers), None) => Some(format!("{}\n{}", runtimes, packagers)),
+        (Some(runtimes), None, Some(packages)) => Some(format!("{}\n{}", runtimes, packages)),
+        (Some(runtimes), None, None) => Some(format!("{}", runtimes)),
+        (None, Some(packagers), Some(packages)) => Some(format!("{}\n{}", packagers, packages)),
+        (None, Some(packagers), None) => Some(format!("{}", packagers)),
+        (None, None, Some(packages)) => Some(format!("{}", packages)),
+        (None, None, None) => None,
     }
 }
 
@@ -124,6 +124,8 @@ fn display_tool(name: &str, host: &Package) -> String {
     )
 }
 
+// These tests are organized by way of the *item* being printed, unlike in the
+// `human` module, because the formatting is consistent across command formats.
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
@@ -329,6 +331,7 @@ mod tests {
                         }
                     ]
                 })
+                .expect("`format` with a non-empty toolchain returns `Some`")
                 .as_str(),
                 "runtime node@12.4.0 (default)\n\
                  runtime node@8.2.4\n\
