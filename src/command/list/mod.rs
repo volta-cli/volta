@@ -31,6 +31,7 @@ impl std::str::FromStr for Format {
     }
 }
 
+#[derive(Clone)]
 enum Source {
     Project(PathBuf),
     User,
@@ -64,11 +65,13 @@ struct Package {
     pub tools: Vec<String>,
 }
 
+#[derive(Clone)]
 struct Node {
     pub source: Source,
     pub version: Version,
 }
 
+#[derive(Clone)]
 enum PackagerType {
     Yarn,
     Npm,
@@ -87,17 +90,27 @@ impl fmt::Display for PackagerType {
     }
 }
 
+#[derive(Clone)]
 struct Packager {
     type_: PackagerType,
     source: Source,
     version: Version,
 }
 
-#[derive(Default)]
-struct Toolchain {
-    node_runtimes: Vec<Node>,
-    packagers: Vec<Packager>,
-    packages: Vec<Package>,
+enum Toolchain {
+    Node(Vec<Node>),
+    Packagers(Vec<Packager>),
+    Packages(Vec<Package>),
+    Current {
+        runtime: Option<Node>,
+        packager: Option<Packager>,
+        packages: Vec<Package>,
+    },
+    All {
+        runtimes: Vec<Node>,
+        packagers: Vec<Packager>,
+        packages: Vec<Package>,
+    },
 }
 
 #[derive(StructOpt)]

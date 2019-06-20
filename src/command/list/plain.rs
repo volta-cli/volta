@@ -1,51 +1,94 @@
 //! Define the "plain" format style for list commands.
 
-use std::fmt;
-
 use semver::Version;
 
 use volta_core::style::tool_version;
 
-use super::{Package, Packager, Source, Toolchain};
+use super::{Node, Package, Packager, Source, Toolchain};
 
-impl fmt::Display for Source {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Source::Project(path) => format!(" (current @ {})", path.display()),
-                Source::User => String::from(" (default)"),
-                Source::None => String::from(""),
-            }
+pub(super) fn format(toolchain: &Toolchain) -> String {
+    let (runtimes, packagers, packages) = match toolchain {
+        Toolchain::Node(runtimes) => (describe_runtimes(&runtimes), None, None),
+        Toolchain::Packagers(packagers) => (None, describe_packagers(&packagers), None),
+        Toolchain::Packages(packages) => (None, None, describe_packages(&packages)),
+        Toolchain::Current {
+            runtime,
+            packager,
+            packages,
+        } => (
+            runtime
+                .as_ref()
+                .and_then(|r| describe_runtimes(&[r.clone()])),
+            packager
+                .as_ref()
+                .and_then(|p| describe_packagers(&[p.clone()])),
+            describe_packages(&packages),
+        ),
+        Toolchain::All {
+            runtimes,
+            packagers,
+            packages,
+        } => (
+            describe_runtimes(&runtimes),
+            describe_packagers(&packagers),
+            describe_packages(&packages),
+        ),
+    };
+
+    match (runtimes, packagers, packages) {
+        (Some(runtimes), Some(packagers), Some(packages)) => {
+            format!("{}\n{}\n{}", runtimes, packagers, packages)
+        }
+        (Some(runtimes), Some(packagers), None) => format!("{}\n{}", runtimes, packagers),
+        (Some(runtimes), None, Some(packages)) => format!("{}\n{}", runtimes, packages),
+        (Some(runtimes), None, None) => format!("{}", runtimes),
+        (None, Some(packagers), Some(packages)) => format!("{}\n{}", packagers, packages),
+        (None, Some(packagers), None) => format!("{}", packagers),
+        (None, None, Some(packages)) => format!("{}", packages),
+        (None, None, None) => String::from(""),
+    }
+}
+
+fn describe_runtimes(runtimes: &[Node]) -> Option<String> {
+    if runtimes.is_empty() {
+        None
+    } else {
+        Some(
+            runtimes
+                .iter()
+                .map(|runtime| display_node(&runtime.source, &runtime.version))
+                .collect::<Vec<String>>()
+                .join("\n"),
         )
     }
 }
 
-pub(super) fn format(toolchain: &Toolchain) -> String {
-    let runtimes = toolchain
-        .node_runtimes
-        .iter()
-        .map(|runtime| display_node(&runtime.source, &runtime.version))
-        .collect::<Vec<String>>()
-        .join("\n");
+fn describe_packagers(packagers: &[Packager]) -> Option<String> {
+    if packagers.is_empty() {
+        None
+    } else {
+        Some(
+            packagers
+                .iter()
+                .map(|packager| display_packager(&packager))
+                .collect::<Vec<String>>()
+                .join("\n"),
+        )
+    }
+}
 
-    let packagers = toolchain
-        .packagers
-        .iter()
-        .map(|packager| display_packager(&packager))
-        .collect::<Vec<String>>()
-        .join("\n");
-
-
-    let packages = toolchain
-        .packages
-        .iter()
-        .flat_map(display_package)
-        .collect::<Vec<String>>()
-        .join("\n");
-
-    format!("{}\n{}\n{}", runtimes, packagers, packages)
+fn describe_packages(packages: &[Package]) -> Option<String> {
+    if packages.is_empty() {
+        None
+    } else {
+        Some(
+            packages
+                .iter()
+                .flat_map(display_package)
+                .collect::<Vec<String>>()
+                .join("\n"),
+        )
+    }
 }
 
 fn display_node(source: &Source, version: &Version) -> String {
@@ -239,8 +282,8 @@ mod tests {
         #[test]
         fn full() {
             assert_eq!(
-                format(&Toolchain {
-                    node_runtimes: vec![
+                format(&Toolchain::All {
+                    runtimes: vec![
                         Node {
                             source: Source::User,
                             version: NODE_VERSION.clone()
