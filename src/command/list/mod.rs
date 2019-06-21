@@ -72,43 +72,47 @@ struct Node {
 }
 
 #[derive(Clone)]
-enum PackagerType {
+enum PackageManagerType {
     Yarn,
     Npm,
 }
 
-impl fmt::Display for PackagerType {
+impl fmt::Display for PackageManagerType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
             "{}",
             match self {
-                PackagerType::Npm => "npm",
-                PackagerType::Yarn => "yarn",
+                PackageManagerType::Npm => "npm",
+                PackageManagerType::Yarn => "yarn",
             }
         )
     }
 }
 
 #[derive(Clone)]
-struct Packager {
-    type_: PackagerType,
+struct PackageManager {
+    type_: PackageManagerType,
     source: Source,
     version: Version,
 }
 
 enum Toolchain {
     Node(Vec<Node>),
-    Packagers(Vec<Packager>),
+    PackageManagers(Vec<PackageManager>),
     Packages(Vec<Package>),
+    Tool {
+        name: String,
+        host_packages: Vec<Package>,
+    },
     Active {
         runtime: Option<Node>,
-        packager: Option<Packager>,
+        package_manager: Option<PackageManager>,
         packages: Vec<Package>,
     },
     All {
         runtimes: Vec<Node>,
-        packagers: Vec<Packager>,
+        package_managers: Vec<PackageManager>,
         packages: Vec<Package>,
     },
 }

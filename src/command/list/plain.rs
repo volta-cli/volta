@@ -4,46 +4,56 @@ use semver::Version;
 
 use volta_core::style::tool_version;
 
-use super::{Node, Package, Packager, Source, Toolchain};
+use super::{Node, Package, PackageManager, Source, Toolchain};
 
 pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
-    let (runtimes, packagers, packages) = match toolchain {
+    let (runtimes, package_managers, packages) = match toolchain {
         Toolchain::Node(runtimes) => (describe_runtimes(&runtimes), None, None),
-        Toolchain::Packagers(packagers) => (None, describe_packagers(&packagers), None),
+        Toolchain::PackageManagers(package_managers) => {
+            (None, describe_package_managers(&package_managers), None)
+        }
         Toolchain::Packages(packages) => (None, None, describe_packages(&packages)),
-        Toolchain::Current {
+        Toolchain::Tool {
+            name,
+            host_packages,
+        } => (None, None, Some(describe_tool_set(name, host_packages))),
+        Toolchain::Active {
             runtime,
-            packager,
+            package_manager,
             packages,
         } => (
             runtime
                 .as_ref()
                 .and_then(|r| describe_runtimes(&[r.clone()])),
-            packager
+            package_manager
                 .as_ref()
-                .and_then(|p| describe_packagers(&[p.clone()])),
+                .and_then(|p| describe_package_managers(&[p.clone()])),
             describe_packages(&packages),
         ),
         Toolchain::All {
             runtimes,
-            packagers,
+            package_managers,
             packages,
         } => (
             describe_runtimes(&runtimes),
-            describe_packagers(&packagers),
+            describe_package_managers(&package_managers),
             describe_packages(&packages),
         ),
     };
 
-    match (runtimes, packagers, packages) {
-        (Some(runtimes), Some(packagers), Some(packages)) => {
-            Some(format!("{}\n{}\n{}", runtimes, packagers, packages))
+    match (runtimes, package_managers, packages) {
+        (Some(runtimes), Some(package_managers), Some(packages)) => {
+            Some(format!("{}\n{}\n{}", runtimes, package_managers, packages))
         }
-        (Some(runtimes), Some(packagers), None) => Some(format!("{}\n{}", runtimes, packagers)),
+        (Some(runtimes), Some(package_managers), None) => {
+            Some(format!("{}\n{}", runtimes, package_managers))
+        }
         (Some(runtimes), None, Some(packages)) => Some(format!("{}\n{}", runtimes, packages)),
         (Some(runtimes), None, None) => Some(format!("{}", runtimes)),
-        (None, Some(packagers), Some(packages)) => Some(format!("{}\n{}", packagers, packages)),
-        (None, Some(packagers), None) => Some(format!("{}", packagers)),
+        (None, Some(package_managers), Some(packages)) => {
+            Some(format!("{}\n{}", package_managers, packages))
+        }
+        (None, Some(package_managers), None) => Some(format!("{}", package_managers)),
         (None, None, Some(packages)) => Some(format!("{}", packages)),
         (None, None, None) => None,
     }
@@ -63,14 +73,14 @@ fn describe_runtimes(runtimes: &[Node]) -> Option<String> {
     }
 }
 
-fn describe_packagers(packagers: &[Packager]) -> Option<String> {
-    if packagers.is_empty() {
+fn describe_package_managers(package_managers: &[PackageManager]) -> Option<String> {
+    if package_managers.is_empty() {
         None
     } else {
         Some(
-            packagers
+            package_managers
                 .iter()
-                .map(|packager| display_packager(&packager))
+                .map(|package_manager| display_package_manager(&package_manager))
                 .collect::<Vec<String>>()
                 .join("\n"),
         )
@@ -91,15 +101,23 @@ fn describe_packages(packages: &[Package]) -> Option<String> {
     }
 }
 
+fn describe_tool_set(name: &str, hosts: &[Package]) -> String {
+    hosts
+        .iter()
+        .map(|package| display_tool(name, package))
+        .collect::<Vec<String>>()
+        .join("\n")
+}
+
 fn display_node(source: &Source, version: &Version) -> String {
     format!("runtime {}{}", tool_version("node", version), source)
 }
 
-fn display_packager(packager: &Packager) -> String {
+fn display_package_manager(package_manager: &PackageManager) -> String {
     format!(
-        "packager {}{}",
-        tool_version(&packager.type_, &packager.version),
-        packager.source
+        "package-manager {}{}",
+        tool_version(&package_manager.type_, &package_manager.version),
+        package_manager.source
     )
 }
 
@@ -117,7 +135,7 @@ fn display_tool(name: &str, host: &Package) -> String {
         name,
         tool_version(&host.name, &host.version),
         tool_version("node", &host.node),
-        // Should be updated when we support installing with custom packagers,
+        // Should be updated when we support installing with custom package_managers,
         // whether Yarn or non-built-in versions of npm
         "npm@built-in",
         host.source
@@ -180,39 +198,39 @@ mod tests {
         #[test]
         fn default() {
             assert_eq!(
-                display_packager(&Packager {
-                    type_: PackagerType::Yarn,
+                display_package_manager(&PackageManager {
+                    type_: PackageManagerType::Yarn,
                     source: Source::User,
                     version: YARN_VERSION.clone(),
                 })
                 .as_str(),
-                "packager yarn@1.16.0 (default)"
+                "package-manager yarn@1.16.0 (default)"
             );
         }
 
         #[test]
         fn project() {
             assert_eq!(
-                display_packager(&Packager {
-                    type_: PackagerType::Yarn,
+                display_package_manager(&PackageManager {
+                    type_: PackageManagerType::Yarn,
                     source: Source::Project(PROJECT_PATH.clone()),
                     version: YARN_VERSION.clone()
                 })
                 .as_str(),
-                "packager yarn@1.16.0 (current @ /a/b/c)"
+                "package-manager yarn@1.16.0 (current @ /a/b/c)"
             );
         }
 
         #[test]
         fn installed_not_set() {
             assert_eq!(
-                display_packager(&Packager {
-                    type_: PackagerType::Yarn,
+                display_package_manager(&PackageManager {
+                    type_: PackageManagerType::Yarn,
                     source: Source::None,
                     version: YARN_VERSION.clone()
                 })
                 .as_str(),
-                "packager yarn@1.16.0"
+                "package-manager yarn@1.16.0"
             );
         }
     }
@@ -279,7 +297,7 @@ mod tests {
     mod toolchain {
         use super::super::*;
         use super::*;
-        use crate::command::list::{Node, Packager, PackagerType, Toolchain};
+        use crate::command::list::{Node, PackageManager, PackageManagerType, Toolchain};
 
         #[test]
         fn full() {
@@ -295,14 +313,14 @@ mod tests {
                             version: Version::from((8, 2, 4))
                         }
                     ],
-                    packagers: vec![
-                        Packager {
-                            type_: PackagerType::Yarn,
+                    package_managers: vec![
+                        PackageManager {
+                            type_: PackageManagerType::Yarn,
                             source: Source::Project(PROJECT_PATH.clone()),
                             version: YARN_VERSION.clone()
                         },
-                        Packager {
-                            type_: PackagerType::Yarn,
+                        PackageManager {
+                            type_: PackageManagerType::Yarn,
                             source: Source::User,
                             version: Version::from((1, 17, 0))
                         }
@@ -335,8 +353,8 @@ mod tests {
                 .as_str(),
                 "runtime node@12.4.0 (default)\n\
                  runtime node@8.2.4\n\
-                 packager yarn@1.16.0 (current @ /a/b/c)\n\
-                 packager yarn@1.17.0 (default)\n\
+                 package-manager yarn@1.16.0 (current @ /a/b/c)\n\
+                 package-manager yarn@1.17.0 (default)\n\
                  tool ember / ember-cli@3.10.2 node@12.4.0 npm@built-in (default)\n\
                  tool ember / ember-cli@3.8.1 node@12.4.0 npm@built-in (current @ /a/b/c)\n\
                  tool tsc / typescript@3.4.1 node@12.4.0 npm@built-in (default)\n\
