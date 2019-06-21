@@ -101,7 +101,7 @@ enum Toolchain {
     Node(Vec<Node>),
     Packagers(Vec<Packager>),
     Packages(Vec<Package>),
-    Current {
+    Active {
         runtime: Option<Node>,
         packager: Option<Packager>,
         packages: Vec<Package>,
@@ -156,11 +156,11 @@ pub(crate) struct List {
     /// Show the currently-active tool(s).
     ///
     /// Equivalent to `volta list` when not specifying a specific tool.
-    #[structopt(long = "current")]
+    #[structopt(long = "current", conflicts_with = "default")]
     current: bool,
 
     /// Show your default tool(s).
-    #[structopt(long = "default")]
+    #[structopt(long = "default", conflicts_with = "current")]
     default: bool,
 }
 
@@ -183,13 +183,13 @@ enum Subcommand {
     PackageOrTool { name: String },
 }
 
-impl From<&str> for SubCommand {
+impl From<&str> for Subcommand {
     fn from(s: &str) -> Self {
         match s {
-            "all" => SubCommand::All,
-            "node" => SubCommand::Node,
-            "yarn" => SubCommand::Yarn,
-            s => SubCommand::PackageOrTool { name: s.into() },
+            "all" => Subcommand::All,
+            "node" => Subcommand::Node,
+            "yarn" => Subcommand::Yarn,
+            s => Subcommand::PackageOrTool { name: s.into() },
         }
     }
 }
@@ -228,7 +228,7 @@ impl Command for List {
 
         let toolchain_to_display: Toolchain = match self.subcommand {
             // For no subcommand, show the user's current toolchain
-            None => Toolchain::current(&filter)?,
+            None => Toolchain::active(&filter)?,
             Some(Subcommand::All) => Toolchain::all()?,
             Some(Subcommand::Node) => Toolchain::node(&filter)?,
             Some(Subcommand::Yarn) => Toolchain::yarn(&filter)?,
