@@ -183,15 +183,14 @@ enum Subcommand {
     PackageOrTool { name: String },
 }
 
-impl FromStr for Subcommand {
-    type Err = (); // Use Never/`!` when it stabilizes
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "all" => Subcommand::All,
-            "node" => Subcommand::Node,
-            "yarn" => Subcommand::Yarn,
-            s => Subcommand::PackageOrTool { name: s.into() },
-        })
+impl From<&str> for SubCommand {
+    fn from(s: &str) -> Self {
+        match s {
+            "all" => SubCommand::All,
+            "node" => SubCommand::Node,
+            "yarn" => SubCommand::Yarn,
+            s => SubCommand::PackageOrTool { name: s.into() },
+        }
     }
 }
 
