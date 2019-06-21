@@ -5,7 +5,6 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-
 use semver::Version;
 use structopt::StructOpt;
 use volta_core::session::{ActivityKind, Session};
@@ -260,20 +259,14 @@ mod tests {
         static ref NODE_DEFAULT_VERSION: Version = Version::from((10, 15, 3));
         static ref NODE_VERSION_11: Version = Version::from((11, 9, 0));
         static ref NODE_VERSION_8: Version = Version::from((8, 16, 0));
-
         static ref YARN_DEFAULT: Version = Version::from((1, 16, 0));
         static ref YARN_PROJECT: Version = Version::from((1, 12, 3));
-
         static ref PROJECT_PATH: PathBuf = PathBuf::from("~/node-and-yarn/project.json");
-
         static ref CREATE_REACT_APP: Version = Version::from((3, 0, 1));
-
         static ref EMBER_DEFAULT: Version = Version::from((3, 10, 0));
         static ref EMBER_LTS: Version = Version::from((3, 8, 2));
-
         static ref TS_RECENT_VERSION: Version = Version::from((3, 4, 3));
         static ref TS_DEFAULT_VERSION: Version = Version::from((3, 4, 1));
-
         static ref YARN_DEDUPLICATE: Version = Version::from((1, 1, 1));
     }
 
