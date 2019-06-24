@@ -1,3 +1,9 @@
+# Version 0.5.5
+
+- Proper support for relative paths in Bin hooks (#468)
+- Diagnostic messages for shims with `VOLTA_LOGLEVEL=debug` (#466)
+- Preserve user order for multiple tool installs (#479)
+
 # Version 0.5.4
 
 - Show additional diagnostic messages when run with `--verbose` (#455)
