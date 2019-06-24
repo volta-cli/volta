@@ -58,6 +58,11 @@ pub struct Manifest {
     pub toolchain: Option<ToolchainSpec>,
 
     pub volta: Option<ToolchainSpec>,
+}
+
+#[derive(serde::Deserialize)]
+pub struct RawBinManifest {
+    pub name: Option<String>,
 
     // the "bin" field can be a map or a string
     // (see https://docs.npmjs.com/files/package.json#bin)
@@ -112,24 +117,10 @@ impl Engines {
 
 impl Manifest {
     pub fn into_manifest(self, package_path: &Path) -> Fallible<manifest::Manifest> {
-        let mut map = HashMap::new();
-        if let Some(ref bin) = self.bin {
-            for (name, path) in bin.iter() {
-                // handle case where only the path was given and binary name was unknown
-                if name == "" {
-                    // npm uses the package name for the binary in this case
-                    map.insert(self.name.clone().unwrap(), path.clone());
-                } else {
-                    map.insert(name.clone(), path.clone());
-                }
-            }
-        }
         Ok(manifest::Manifest {
             platform: self.to_platform(package_path)?.map(Rc::new),
             dependencies: self.dependencies,
             dev_dependencies: self.dev_dependencies,
-            bin: map,
-            engines: self.engines.map(|e| e.node),
         })
     }
 
@@ -174,6 +165,28 @@ impl Manifest {
             }));
         }
         Ok(None)
+    }
+}
+
+impl RawBinManifest {
+    pub fn into_bin_manifest(self) -> super::BinManifest {
+        let mut map = HashMap::new();
+        if let Some(ref bin) = self.bin {
+            for (name, path) in bin.iter() {
+                // handle case where only the path was given and binary name was unknown
+                if name == "" {
+                    // npm uses the package name for the binary in this case
+                    map.insert(self.name.clone().unwrap(), path.clone());
+                } else {
+                    map.insert(name.clone(), path.clone());
+                }
+            }
+        }
+
+        super::BinManifest {
+            bin: map,
+            engine: self.engines.map(|e| e.node),
+        }
     }
 }
 
@@ -262,7 +275,7 @@ where
 #[cfg(test)]
 pub mod tests {
 
-    use super::{BinMap, Engines, Manifest};
+    use super::{BinMap, Engines, Manifest, RawBinManifest};
     use serde_json;
     use std::collections::HashMap;
 
@@ -287,12 +300,6 @@ pub mod tests {
                 "node": "0.10.5",
                 "npm": "1.2.18",
                 "yarn": "1.2.1"
-            },
-            "bin": {
-                "somebin": "cli.js"
-            },
-            "engines": {
-                "node": "8.* || >= 10.*"
             }
         }"#;
         let manifest_all: Manifest =
@@ -303,12 +310,6 @@ pub mod tests {
         assert_eq!(
             manifest_all.description,
             Some("This is a description".to_string())
-        );
-        assert_eq!(
-            manifest_all.engines,
-            Some(Engines {
-                node: "8.* || >= 10.*".to_string()
-            })
         );
         // (checking the rest of the fields in other tests)
     }
@@ -487,7 +488,7 @@ pub mod tests {
             "bin": {
             }
         }"#;
-        let manifest_no_bin: Manifest =
+        let manifest_no_bin: RawBinManifest =
             serde_json::de::from_str(package_no_bin).expect("Could not deserialize string");
         assert_eq!(manifest_no_bin.bin.unwrap(), BinMap(HashMap::new()));
 
@@ -496,7 +497,7 @@ pub mod tests {
                 "somebin": "cli.js"
             }
         }"#;
-        let manifest_bin_map: Manifest =
+        let manifest_bin_map: RawBinManifest =
             serde_json::de::from_str(package_bin_map).expect("Could not deserialize string");
         let mut expected_bin_map = BinMap(HashMap::new());
         expected_bin_map.insert("somebin".to_string(), "cli.js".to_string());
@@ -506,7 +507,7 @@ pub mod tests {
             "name": "package_name",
             "bin": "cli.js"
         }"#;
-        let manifest_bin_string: Manifest =
+        let manifest_bin_string: RawBinManifest =
             serde_json::de::from_str(package_bin_string).expect("Could not deserialize string");
         let mut expected_bin_string = BinMap(HashMap::new());
         // after serializing the binary name is an empty string for this case
@@ -515,11 +516,29 @@ pub mod tests {
     }
 
     #[test]
+    fn test_package_engines() {
+        let package_with_engines = r#"{
+            "engines": {
+                "node": "8.* || >= 10.*"
+            }
+        }"#;
+
+        let manifest_engines: RawBinManifest =
+            serde_json::de::from_str(package_with_engines).expect("Could not deserialize string");
+        assert_eq!(
+            manifest_engines.engines,
+            Some(Engines {
+                node: "8.* || >= 10.*".to_string()
+            })
+        );
+    }
+
+    #[test]
     fn invalid_engines_fields() {
         let package_engines_string = r#"{
             "engines": "oh, this is weird"
         }"#;
-        let manifest_engines_string: Manifest =
+        let manifest_engines_string: RawBinManifest =
             serde_json::de::from_str(package_engines_string).expect("Could not deserialize string");
         assert_eq!(
             manifest_engines_string.engines, None,
@@ -529,7 +548,7 @@ pub mod tests {
         let package_engines_array = r#"{
             "engines": ["wat"]
         }"#;
-        let manifest_engines_array: Manifest =
+        let manifest_engines_array: RawBinManifest =
             serde_json::de::from_str(package_engines_array).expect("Could not deserialize string");
         assert_eq!(
             manifest_engines_array.engines, None,
@@ -539,7 +558,7 @@ pub mod tests {
         let package_engines_number = r#"{
             "engines": 42
         }"#;
-        let manifest_engines_number: Manifest =
+        let manifest_engines_number: RawBinManifest =
             serde_json::de::from_str(package_engines_number).expect("Could not deserialize string");
         assert_eq!(
             manifest_engines_number.engines, None,
@@ -549,7 +568,7 @@ pub mod tests {
         let package_engines_number = r#"{
             "engines": null
         }"#;
-        let manifest_engines_number: Manifest =
+        let manifest_engines_number: RawBinManifest =
             serde_json::de::from_str(package_engines_number).expect("Could not deserialize string");
         assert_eq!(
             manifest_engines_number.engines, None,
@@ -559,7 +578,7 @@ pub mod tests {
         let package_engines_number = r#"{
             "engines": false
         }"#;
-        let manifest_engines_number: Manifest =
+        let manifest_engines_number: RawBinManifest =
             serde_json::de::from_str(package_engines_number).expect("Could not deserialize string");
         assert_eq!(
             manifest_engines_number.engines, None,

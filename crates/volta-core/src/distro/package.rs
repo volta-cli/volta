@@ -25,7 +25,7 @@ use crate::fs::{
 };
 use crate::hook::ToolHooks;
 use crate::inventory::Collection;
-use crate::manifest::Manifest;
+use crate::manifest::BinManifest;
 use crate::path;
 use crate::platform::{Image, PlatformSpec};
 use crate::session::Session;
@@ -312,7 +312,7 @@ impl PackageDistro {
     }
 
     fn generate_bin_map(&self) -> Fallible<HashMap<String, String>> {
-        let pkg_info = Manifest::for_dir(&self.image_dir)?;
+        let pkg_info = BinManifest::for_dir(&self.image_dir)?;
         let bin_map = pkg_info.bin;
         if bin_map.is_empty() {
             throw!(ErrorDetails::NoPackageExecutables);
@@ -389,16 +389,16 @@ impl PackageVersion {
 
     // parse the "engines" string to a VersionSpec, for matching against available Node versions
     pub fn engines_spec(&self) -> Fallible<VersionSpec> {
-        let manifest = Manifest::for_dir(&self.image_dir)?;
+        let manifest = BinManifest::for_dir(&self.image_dir)?;
         // if nothing specified, can use any version of Node
-        let engines = match manifest.engines() {
-            Some(engines) => {
+        let engine = match manifest.engine {
+            Some(ref engine) => {
                 debug!(
                     "Found 'engines.node' specification for {}: {}",
                     tool_version(&self.name, &self.version),
-                    &engines
+                    engine
                 );
-                engines
+                engine.clone()
             }
             None => {
                 debug!(
@@ -408,7 +408,7 @@ impl PackageVersion {
                 String::from("*")
             }
         };
-        let spec = VersionSpec::parse_requirements(engines)?;
+        let spec = VersionSpec::parse_requirements(engine)?;
         Ok(VersionSpec::Semver(spec))
     }
 
