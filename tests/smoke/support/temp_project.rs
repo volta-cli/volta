@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use envoy;
 use serde_json;
 
-use volta_core::path;
+use volta_core::path::{create_file_symlink, ARCH, OS};
 
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 
@@ -77,29 +77,31 @@ impl TempProjectBuilder {
         self.root.root().mkdir_p();
 
         // make sure these directories exist and are empty
-        ok_or_panic!(path::node_cache_dir()).ensure_empty();
-        volta_bin_dir(self.root.root()).ensure_empty();
-        ok_or_panic!(path::node_inventory_dir()).ensure_empty();
-        ok_or_panic!(path::yarn_inventory_dir()).ensure_empty();
-        ok_or_panic!(path::package_inventory_dir()).ensure_empty();
-        ok_or_panic!(path::node_image_root_dir()).ensure_empty();
-        ok_or_panic!(path::yarn_image_root_dir()).ensure_empty();
-        ok_or_panic!(path::package_image_root_dir()).ensure_empty();
-        ok_or_panic!(path::user_toolchain_dir()).ensure_empty();
-        ok_or_panic!(path::tmp_dir()).ensure_empty();
-        // and these files do not exist
-        ok_or_panic!(path::volta_file()).rm();
-        ok_or_panic!(path::shim_executable()).rm();
-        ok_or_panic!(path::user_hooks_file()).rm();
-        ok_or_panic!(path::user_platform_file()).rm();
-        // create symlinks to shim executable for node, yarn, npm, and packages
-        ok_or_panic!(path::create_file_symlink(shim_exe(), self.root.node_exe()));
-        ok_or_panic!(path::create_file_symlink(shim_exe(), self.root.yarn_exe()));
-        ok_or_panic!(path::create_file_symlink(shim_exe(), self.root.npm_exe()));
+        node_cache_dir(self.root()).ensure_empty();
+        volta_bin_dir(self.root()).ensure_empty();
+        node_inventory_dir(self.root()).ensure_empty();
+        yarn_inventory_dir(self.root()).ensure_empty();
+        package_inventory_dir(self.root()).ensure_empty();
+        node_image_root_dir(self.root()).ensure_empty();
+        yarn_image_root_dir(self.root()).ensure_empty();
+        package_image_root_dir(self.root()).ensure_empty();
+        user_toolchain_dir(self.root()).ensure_empty();
+        volta_tmp_dir(self.root()).ensure_empty();
 
-        ok_or_panic!(path::create_file_symlink(
+        // and these files do not exist
+        volta_file(self.root()).rm();
+        shim_executable(self.root()).rm();
+        user_hooks_file(self.root()).rm();
+        user_platform_file(self.root()).rm();
+
+        // create symlinks to shim executable for node, yarn, npm, and packages
+        ok_or_panic!(create_file_symlink(shim_exe(), self.root.node_exe()));
+        ok_or_panic!(create_file_symlink(shim_exe(), self.root.yarn_exe()));
+        ok_or_panic!(create_file_symlink(shim_exe(), self.root.npm_exe()));
+
+        ok_or_panic!(create_file_symlink(
             shim_exe(),
-            ok_or_panic!(path::shim_executable())
+            shim_executable(self.root())
         ));
 
         // write files
@@ -126,19 +128,105 @@ impl TempProjectBuilder {
 
 // files and dirs in the temporary project
 
-fn package_json_file(mut root: PathBuf) -> PathBuf {
-    root.push("package.json");
-    root
-}
-
 fn home_dir(root: PathBuf) -> PathBuf {
     root.join("home")
 }
 fn volta_home(root: PathBuf) -> PathBuf {
     home_dir(root).join(".volta")
 }
+fn volta_file(root: PathBuf) -> PathBuf {
+    volta_home(root).join("volta")
+}
+fn shim_executable(root: PathBuf) -> PathBuf {
+    volta_home(root).join("shim")
+}
+fn user_hooks_file(root: PathBuf) -> PathBuf {
+    volta_home(root).join("hooks.json")
+}
+fn volta_tmp_dir(root: PathBuf) -> PathBuf {
+    volta_home(root).join("tmp")
+}
 fn volta_bin_dir(root: PathBuf) -> PathBuf {
     volta_home(root).join("bin")
+}
+fn volta_tools_dir(root: PathBuf) -> PathBuf {
+    volta_home(root).join("tools")
+}
+fn inventory_dir(root: PathBuf) -> PathBuf {
+    volta_tools_dir(root).join("inventory")
+}
+fn user_toolchain_dir(root: PathBuf) -> PathBuf {
+    volta_tools_dir(root).join("user")
+}
+fn user_dir(root: PathBuf) -> PathBuf {
+    volta_tools_dir(root).join("user")
+}
+fn image_dir(root: PathBuf) -> PathBuf {
+    volta_tools_dir(root).join("image")
+}
+fn node_image_root_dir(root: PathBuf) -> PathBuf {
+    image_dir(root).join("node")
+}
+fn node_image_dir(node: &str, npm: &str, root: PathBuf) -> PathBuf {
+    node_image_root_dir(root).join(node).join(npm)
+}
+fn node_image_bin_dir(node: &str, npm: &str, root: PathBuf) -> PathBuf {
+    node_image_dir(node, npm, root).join("bin")
+}
+fn yarn_image_root_dir(root: PathBuf) -> PathBuf {
+    image_dir(root).join("yarn")
+}
+fn yarn_image_dir(version: &str, root: PathBuf) -> PathBuf {
+    yarn_image_root_dir(root).join(version)
+}
+fn package_image_root_dir(root: PathBuf) -> PathBuf {
+    image_dir(root).join("packages")
+}
+fn node_inventory_dir(root: PathBuf) -> PathBuf {
+    inventory_dir(root).join("node")
+}
+fn yarn_inventory_dir(root: PathBuf) -> PathBuf {
+    inventory_dir(root).join("yarn")
+}
+fn package_inventory_dir(root: PathBuf) -> PathBuf {
+    inventory_dir(root).join("packages")
+}
+fn package_distro_file(name: &str, version: &str, root: PathBuf) -> PathBuf {
+    package_inventory_dir(root).join(package_distro_file_name(name, version))
+}
+fn package_distro_shasum(name: &str, version: &str, root: PathBuf) -> PathBuf {
+    package_inventory_dir(root).join(package_shasum_file_name(name, version))
+}
+fn cache_dir(root: PathBuf) -> PathBuf {
+    volta_home(root).join("cache")
+}
+fn node_cache_dir(root: PathBuf) -> PathBuf {
+    cache_dir(root).join("node")
+}
+fn package_json_file(mut root: PathBuf) -> PathBuf {
+    root.push("package.json");
+    root
+}
+fn shim_file(name: &str, root: PathBuf) -> PathBuf {
+    volta_bin_dir(root).join(format!("{}{}", name, env::consts::EXE_SUFFIX))
+}
+fn package_image_dir(name: &str, version: &str, root: PathBuf) -> PathBuf {
+    image_dir(root).join("packages").join(name).join(version)
+}
+fn user_platform_file(root: PathBuf) -> PathBuf {
+    user_dir(root).join("platform.json")
+}
+pub fn node_distro_file_name(version: &str) -> String {
+    format!("node-v{}-{}-{}.tar.gz", version, OS, ARCH)
+}
+fn yarn_distro_file_name(version: &str) -> String {
+    format!("yarn-v{}.tar.gz", version)
+}
+fn package_distro_file_name(name: &str, version: &str) -> String {
+    format!("{}-{}.tgz", name, version)
+}
+fn package_shasum_file_name(name: &str, version: &str) -> String {
+    format!("{}-{}.shasum", name, version)
 }
 
 pub struct TempProject {
@@ -163,6 +251,8 @@ impl TempProject {
         p.cwd(self.root())
             // setup the Volta environment
             .env("PATH", &self.path)
+            .env("HOME", home_dir(self.root()))
+            .env("VOLTA_HOME", volta_home(self.root()))
             .env_remove("VOLTA_NODE_VERSION")
             .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
 
@@ -214,7 +304,7 @@ impl TempProject {
 
     /// Create a `ProcessBuilder` to run a package executable.
     pub fn exec_shim(&self, exe: &str, cmd: &str) -> ProcessBuilder {
-        let shim_file = ok_or_panic! { path::shim_file(exe) };
+        let shim_file = shim_file(exe, self.root());
         let mut p = self.process(shim_file);
         split_and_add_args(&mut p, cmd);
         p
@@ -222,20 +312,20 @@ impl TempProject {
 
     /// Verify that the input Node version has been fetched.
     pub fn node_version_is_fetched(&self, version: &str) -> bool {
-        let distro_file_name = path::node_distro_file_name(version);
-        let inventory_dir = ok_or_panic! { path::node_inventory_dir() };
+        let distro_file_name = node_distro_file_name(version);
+        let inventory_dir = node_inventory_dir(self.root());
         inventory_dir.join(distro_file_name).exists()
     }
 
     /// Verify that the input Node version has been unpacked.
     pub fn node_version_is_unpacked(&self, version: &str, npm_version: &str) -> bool {
-        let unpack_dir = ok_or_panic! { path::node_image_bin_dir(version, npm_version) };
+        let unpack_dir = node_image_bin_dir(version, npm_version, self.root());
         unpack_dir.exists()
     }
 
     /// Verify that the input Node version has been installed.
     pub fn assert_node_version_is_installed(&self, version: &str, npm_version: &str) -> () {
-        let user_platform = ok_or_panic! { path::user_platform_file() };
+        let user_platform = user_platform_file(self.root());
         let platform_contents = read_file_to_string(user_platform);
         let json_contents: serde_json::Value =
             serde_json::from_str(&platform_contents).expect("could not parse platform.json");
@@ -245,20 +335,20 @@ impl TempProject {
 
     /// Verify that the input Yarn version has been fetched.
     pub fn yarn_version_is_fetched(&self, version: &str) -> bool {
-        let distro_file_name = path::yarn_distro_file_name(version);
-        let inventory_dir = ok_or_panic! { path::yarn_inventory_dir() };
+        let distro_file_name = yarn_distro_file_name(version);
+        let inventory_dir = yarn_inventory_dir(self.root());
         inventory_dir.join(distro_file_name).exists()
     }
 
     /// Verify that the input Yarn version has been unpacked.
     pub fn yarn_version_is_unpacked(&self, version: &str) -> bool {
-        let unpack_dir = ok_or_panic! { path::yarn_image_dir(version) };
+        let unpack_dir = yarn_image_dir(version, self.root());
         unpack_dir.exists()
     }
 
     /// Verify that the input Yarn version has been installed.
     pub fn assert_yarn_version_is_installed(&self, version: &str) -> () {
-        let user_platform = ok_or_panic! { path::user_platform_file() };
+        let user_platform = user_platform_file(self.root());
         let platform_contents = read_file_to_string(user_platform);
         let json_contents: serde_json::Value =
             serde_json::from_str(&platform_contents).expect("could not parse platform.json");
@@ -268,21 +358,21 @@ impl TempProject {
     /// Verify that the input Npm version has been fetched.
     pub fn npm_version_is_fetched(&self, version: &str) -> bool {
         // ISSUE(#292): This is maybe the wrong place to put npm?
-        let package_file = ok_or_panic! { path::package_distro_file("npm", version) };
-        let shasum_file = ok_or_panic! { path::package_distro_shasum("npm", version) };
+        let package_file = package_distro_file("npm", version, self.root());
+        let shasum_file = package_distro_shasum("npm", version, self.root());
         package_file.exists() && shasum_file.exists()
     }
 
     /// Verify that the input Npm version has been unpacked.
     pub fn npm_version_is_unpacked(&self, version: &str) -> bool {
         // ISSUE(#292): This is maybe the wrong place to unpack npm?
-        let unpack_dir = ok_or_panic! { path::package_image_dir("npm", version) };
+        let unpack_dir = package_image_dir("npm", version, self.root());
         unpack_dir.exists()
     }
 
     /// Verify that the input Npm version has been installed.
     pub fn assert_npm_version_is_installed(&self, version: &str) -> () {
-        let user_platform = ok_or_panic! { path::user_platform_file() };
+        let user_platform = user_platform_file(self.root());
         let platform_contents = read_file_to_string(user_platform);
         let json_contents: serde_json::Value =
             serde_json::from_str(&platform_contents).expect("could not parse platform.json");
@@ -291,21 +381,20 @@ impl TempProject {
 
     /// Verify that the input package version has been fetched.
     pub fn package_version_is_fetched(&self, name: &str, version: &str) -> bool {
-        let package_file = ok_or_panic! { path::package_distro_file(name, version) };
-        let shasum_file = ok_or_panic! { path::package_distro_shasum(name, version) };
+        let package_file = package_distro_file(name, version, self.root());
+        let shasum_file = package_distro_shasum(name, version, self.root());
         package_file.exists() && shasum_file.exists()
     }
 
     /// Verify that the input package version has been unpacked.
     pub fn package_version_is_unpacked(&self, name: &str, version: &str) -> bool {
-        let unpack_dir = ok_or_panic! { path::package_image_dir(name, version) };
+        let unpack_dir = package_image_dir(name, version, self.root());
         unpack_dir.exists()
     }
 
     /// Verify that the input package version has been fetched.
     pub fn shim_exists(&self, name: &str) -> bool {
-        let shim_file = ok_or_panic! { path::shim_file(name) };
-        shim_file.exists()
+        shim_file(name, self.root()).exists()
     }
 }
 
