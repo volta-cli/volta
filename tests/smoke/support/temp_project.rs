@@ -1,9 +1,10 @@
 use std::env;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
+use envoy;
 use serde_json;
 
 use volta_core::path;
@@ -52,7 +53,10 @@ impl TempProjectBuilder {
 
     pub fn new(root: PathBuf) -> TempProjectBuilder {
         TempProjectBuilder {
-            root: TempProject { root },
+            root: TempProject {
+                root: root.clone(),
+                path: OsString::new(),
+            },
             files: vec![],
         }
     }
@@ -65,7 +69,7 @@ impl TempProjectBuilder {
     }
 
     /// Create the project
-    pub fn build(self) -> TempProject {
+    pub fn build(mut self) -> TempProject {
         // First, clean the temporary project directory if it already exists
         self.rm_root();
 
@@ -74,7 +78,7 @@ impl TempProjectBuilder {
 
         // make sure these directories exist and are empty
         ok_or_panic!(path::node_cache_dir()).ensure_empty();
-        ok_or_panic!(path::shim_dir()).ensure_empty();
+        volta_bin_dir(self.root.root()).ensure_empty();
         ok_or_panic!(path::node_inventory_dir()).ensure_empty();
         ok_or_panic!(path::yarn_inventory_dir()).ensure_empty();
         ok_or_panic!(path::package_inventory_dir()).ensure_empty();
@@ -88,9 +92,11 @@ impl TempProjectBuilder {
         ok_or_panic!(path::shim_executable()).rm();
         ok_or_panic!(path::user_hooks_file()).rm();
         ok_or_panic!(path::user_platform_file()).rm();
-        // create symlinks to shim executable for node, yarn, and packages
+        // create symlinks to shim executable for node, yarn, npm, and packages
         ok_or_panic!(path::create_file_symlink(shim_exe(), self.root.node_exe()));
         ok_or_panic!(path::create_file_symlink(shim_exe(), self.root.yarn_exe()));
+        ok_or_panic!(path::create_file_symlink(shim_exe(), self.root.npm_exe()));
+
         ok_or_panic!(path::create_file_symlink(
             shim_exe(),
             ok_or_panic!(path::shim_executable())
@@ -100,6 +106,14 @@ impl TempProjectBuilder {
         for file_builder in self.files {
             file_builder.build();
         }
+
+        // prepend Volta bin dir to the PATH
+        let current_path = envoy::path().expect("Could not get current PATH");
+        let new_path = current_path.split();
+        self.root.path = new_path
+            .prefix_entry(volta_bin_dir(self.root.root()))
+            .join()
+            .expect("Failed to join paths");
 
         let TempProjectBuilder { root, .. } = self;
         root
@@ -117,8 +131,19 @@ fn package_json_file(mut root: PathBuf) -> PathBuf {
     root
 }
 
+fn home_dir(root: PathBuf) -> PathBuf {
+    root.join("home")
+}
+fn volta_home(root: PathBuf) -> PathBuf {
+    home_dir(root).join(".volta")
+}
+fn volta_bin_dir(root: PathBuf) -> PathBuf {
+    volta_home(root).join("bin")
+}
+
 pub struct TempProject {
     root: PathBuf,
+    path: OsString,
 }
 
 impl TempProject {
@@ -137,6 +162,7 @@ impl TempProject {
         let mut p = test_support::process::process(program);
         p.cwd(self.root())
             // setup the Volta environment
+            .env("PATH", &self.path)
             .env_remove("VOLTA_NODE_VERSION")
             .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
 
@@ -161,7 +187,7 @@ impl TempProject {
     }
 
     pub fn node_exe(&self) -> PathBuf {
-        self.root().join(format!("node{}", env::consts::EXE_SUFFIX))
+        volta_bin_dir(self.root()).join(format!("node{}", env::consts::EXE_SUFFIX))
     }
 
     /// Create a `ProcessBuilder` to run Yarn.
@@ -172,7 +198,7 @@ impl TempProject {
     }
 
     pub fn yarn_exe(&self) -> PathBuf {
-        self.root().join(format!("yarn{}", env::consts::EXE_SUFFIX))
+        volta_bin_dir(self.root()).join(format!("yarn{}", env::consts::EXE_SUFFIX))
     }
 
     /// Create a `ProcessBuilder` to run Npm.
@@ -183,7 +209,7 @@ impl TempProject {
     }
 
     pub fn npm_exe(&self) -> PathBuf {
-        self.root().join(format!("npm{}", env::consts::EXE_SUFFIX))
+        volta_bin_dir(self.root()).join(format!("npm{}", env::consts::EXE_SUFFIX))
     }
 
     /// Create a `ProcessBuilder` to run a package executable.
