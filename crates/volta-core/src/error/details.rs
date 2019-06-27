@@ -792,7 +792,7 @@ Use `volta install` to select a default version of a tool."
             ),
             ErrorDetails::NoUserYarn => write!(
                 f,
-                "Could not determine Yarn version.
+                "Yarn is not available.
 
 Use `volta install yarn` to select a default version (see `volta help install for more info)."
             ),

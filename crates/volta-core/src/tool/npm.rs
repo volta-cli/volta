@@ -27,8 +27,8 @@ where
             let path = image.path()?;
 
             let source = match image.source() {
-                Source::Project => "project",
-                Source::User => "default",
+                Source::Project | Source::ProjectNodeDefaultYarn => "project",
+                Source::Default => "default",
             };
             let version = tool_version("npm", &image.node().npm);
             debug!("Using {} from {} configuration", version, source);

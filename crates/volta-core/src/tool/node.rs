@@ -18,8 +18,8 @@ where
     match session.current_platform()? {
         Some(platform) => {
             let source = match platform.source() {
-                Source::Project => "project",
-                Source::User => "default",
+                Source::Project | Source::ProjectNodeDefaultYarn => "project",
+                Source::Default => "default",
             };
             let version = tool_version("node", platform.node());
             debug!("Using {} from {} configuration", version, source);
