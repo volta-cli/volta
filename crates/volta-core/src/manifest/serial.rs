@@ -168,15 +168,15 @@ impl Manifest {
     }
 }
 
-impl RawBinManifest {
-    pub fn into_bin_manifest(self) -> super::BinManifest {
+impl From<RawBinManifest> for super::BinManifest {
+    fn from(raw: RawBinManifest) -> Self {
         let mut map = HashMap::new();
-        if let Some(ref bin) = self.bin {
+        if let Some(ref bin) = raw.bin {
             for (name, path) in bin.iter() {
                 // handle case where only the path was given and binary name was unknown
                 if name == "" {
                     // npm uses the package name for the binary in this case
-                    map.insert(self.name.clone().unwrap(), path.clone());
+                    map.insert(raw.name.clone().unwrap(), path.clone());
                 } else {
                     map.insert(name.clone(), path.clone());
                 }
@@ -185,7 +185,7 @@ impl RawBinManifest {
 
         super::BinManifest {
             bin: map,
-            engine: self.engines.map(|e| e.node),
+            engine: raw.engines.map(|e| e.node),
         }
     }
 }

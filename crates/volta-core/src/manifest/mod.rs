@@ -128,12 +128,10 @@ impl BinManifest {
             file: package_file.to_path_buf(),
         })?;
 
-        let serial: serial::RawBinManifest =
-            serde_json::de::from_reader(file).with_context(|_| {
-                ErrorDetails::PackageParseError {
-                    file: package_file.to_path_buf(),
-                }
-            })?;
-        Ok(serial.into_bin_manifest())
+        serde_json::de::from_reader::<File, serial::RawBinManifest>(file)
+            .with_context(|_| ErrorDetails::PackageParseError {
+                file: package_file.to_path_buf(),
+            })
+            .map(BinManifest::from)
     }
 }
