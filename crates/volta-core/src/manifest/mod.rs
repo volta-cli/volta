@@ -23,10 +23,6 @@ pub struct Manifest {
     pub dependencies: HashMap<String, String>,
     /// The `devDependencies` section.
     pub dev_dependencies: HashMap<String, String>,
-    /// The `bin` section, containing a map of binary names to locations.
-    pub bin: HashMap<String, String>,
-    /// The `engines` section, containing a spec of the Node versions that the package works on.
-    pub engines: Option<String>,
 }
 
 impl Manifest {
@@ -48,11 +44,6 @@ impl Manifest {
     /// Returns a reference to the platform image specified by manifest, if any.
     pub fn platform(&self) -> Option<Rc<PlatformSpec>> {
         self.platform.as_ref().map(|p| p.clone())
-    }
-
-    /// Returns a copy of the "engines" specification from the manifest, if any.
-    pub fn engines(&self) -> Option<String> {
-        self.engines.as_ref().map(|e| e.clone())
     }
 
     /// Gets the names of all the direct dependencies in the manifest.
@@ -123,7 +114,24 @@ impl Manifest {
     }
 }
 
-// unit tests
+pub struct BinManifest {
+    /// The `bin` section, containing a map of binary names to locations.
+    pub bin: HashMap<String, String>,
+    /// The `engines` section, containing a spec of the Node versions that the package works on.
+    pub engine: Option<String>,
+}
 
-#[cfg(test)]
-pub mod tests;
+impl BinManifest {
+    pub fn for_dir(project_root: &Path) -> Fallible<Self> {
+        let package_file = project_root.join("package.json");
+        let file = File::open(&package_file).with_context(|_| ErrorDetails::PackageReadError {
+            file: package_file.to_path_buf(),
+        })?;
+
+        serde_json::de::from_reader::<File, serial::RawBinManifest>(file)
+            .with_context(|_| ErrorDetails::PackageParseError {
+                file: package_file.to_path_buf(),
+            })
+            .map(BinManifest::from)
+    }
+}
