@@ -27,7 +27,7 @@ where
             // Note: If we've gotten this far, we know there is a yarn version set
             let source = match platform.source() {
                 Source::Project => "project",
-                Source::User | Source::ProjectNodeUserYarn => "default",
+                Source::Default | Source::ProjectNodeDefaultYarn => "default",
             };
             let version = tool_version("yarn", platform.yarn().unwrap());
             debug!("Using {} from {} configuration", version, source);
@@ -49,10 +49,10 @@ fn get_yarn_platform(session: &mut Session) -> Fallible<Option<SourcedPlatformSp
         Some(platform) => match platform.yarn() {
             Some(_) => Ok(Some(platform)),
             None => match platform.source() {
-                Source::Project | Source::ProjectNodeUserYarn => {
+                Source::Project | Source::ProjectNodeDefaultYarn => {
                     Err(ErrorDetails::NoProjectYarn.into())
                 }
-                Source::User => Err(ErrorDetails::NoUserYarn.into()),
+                Source::Default => Err(ErrorDetails::NoUserYarn.into()),
             },
         },
         None => Ok(None),

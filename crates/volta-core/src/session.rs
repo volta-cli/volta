@@ -122,7 +122,7 @@ impl Session {
                 Ok(Some(SourcedPlatformSpec::merged(merged)))
             }
         } else if let Some(platform) = self.user_platform()? {
-            Ok(Some(SourcedPlatformSpec::user(platform)))
+            Ok(Some(SourcedPlatformSpec::default(platform)))
         } else {
             Ok(None)
         }
