@@ -219,14 +219,11 @@ impl Session {
     /// Fetch, unpack, and install a version of Npm matching the input requirements.
     // ISSUE(#292): Install npm as part of the platform
     pub fn install_npm(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
-        let npm_version = self.install_package("npm".to_string(), version_spec)?;
-        let toolchain = self.toolchain.get_mut()?;
-        toolchain.set_active_npm(npm_version)?;
-        Ok(())
+        unimplemented!("Installing NPM");
     }
 
     /// Fetch, unpack, and install a package matching the input requirements.
-    pub fn install_package(&mut self, name: String, version: &VersionSpec) -> Fallible<Version> {
+    pub fn install_package(&mut self, name: String, version: &VersionSpec) -> Fallible<()> {
         // fetches and unpacks package
         let fetched_package = self.fetch_package(&name, version)?;
         let package_version = fetched_package.version();
@@ -238,7 +235,7 @@ impl Session {
                 "Package `{}` is up-to-date, version {} already installed",
                 name, version
             );
-            return Ok(version);
+            return Ok(());
         }
 
         // This uses the "engines" field from package.json to determine the node version to use
@@ -275,7 +272,7 @@ impl Session {
             tool_version(&package_version.name, &package_version.version),
             bin_list
         );
-        Ok(package_version.version.clone())
+        Ok(())
     }
 
     /// Uninstall the specified package.
