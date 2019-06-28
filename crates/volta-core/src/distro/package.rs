@@ -31,7 +31,7 @@ use crate::platform::{Image, PlatformSpec};
 use crate::session::Session;
 use crate::shim;
 use crate::style::{progress_bar, progress_spinner, tool_version};
-use crate::tool::ToolSpec;
+use crate::tool;
 use crate::version::VersionSpec;
 use archive::{Archive, Tarball};
 
@@ -272,7 +272,7 @@ impl PackageDistro {
             );
 
             Tarball::fetch(&self.tarball_url, &self.distro_file).with_context(download_tool_error(
-                ToolSpec::Package(self.name.to_string(), VersionSpec::exact(&self.version)),
+                tool::Spec::Package(self.name.to_string(), VersionSpec::exact(&self.version)),
                 self.tarball_url.to_string(),
             ))
         }

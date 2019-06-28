@@ -7,7 +7,7 @@ pub mod yarn;
 use crate::error::ErrorDetails;
 use crate::hook::ToolHooks;
 use crate::inventory::Collection;
-use crate::tool::ToolSpec;
+use crate::tool;
 use semver::Version;
 use volta_fail::Fallible;
 
@@ -62,7 +62,7 @@ pub trait Distro: Sized {
 }
 
 fn download_tool_error(
-    tool: ToolSpec,
+    tool: tool::Spec,
     from_url: impl AsRef<str>,
 ) -> impl FnOnce(&failure::Error) -> ErrorDetails {
     let from_url = from_url.as_ref().to_string();

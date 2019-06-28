@@ -11,7 +11,7 @@ use crate::hook::ToolHooks;
 use crate::inventory::NodeCollection;
 use crate::path;
 use crate::style::{progress_bar, tool_version};
-use crate::tool::ToolSpec;
+use crate::tool;
 use crate::version::VersionSpec;
 
 use archive::{self, Archive};
@@ -148,10 +148,10 @@ impl NodeDistro {
             .with_context(|_| ErrorDetails::CreateTempFileError { in_dir: tmpdir })?;
 
         Ok(NodeDistro {
-            archive: archive::fetch_native(url, staging.path()).with_context(
-                download_tool_error(ToolSpec::Node(VersionSpec::exact(&version)), url),
-            )?,
-            staging_file: Some(staging),
+            archive: archive::fetch_native(url, staging.path()).with_context(download_tool_error(
+                tool::Spec::Node(VersionSpec::exact(&version)),
+                url,
+            ))?,
             version: version,
         })
     }

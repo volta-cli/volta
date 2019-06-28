@@ -2,7 +2,7 @@ use structopt::StructOpt;
 
 use volta_core::error::ErrorDetails;
 use volta_core::session::{ActivityKind, Session};
-use volta_core::tool::ToolSpec;
+use volta_core::tool;
 use volta_fail::{throw, ExitCode, Fallible};
 
 use crate::command::Command;
@@ -18,21 +18,21 @@ impl Command for Fetch {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Fetch);
 
-        for tool in ToolSpec::from_strings(&self.tools, "fetch")? {
+        for tool in tool::Spec::from_strings(&self.tools, "fetch")? {
             match tool {
-                ToolSpec::Node(version) => {
+                tool::Spec::Node(version) => {
                     session.fetch_node(&version)?;
                 }
-                ToolSpec::Yarn(version) => {
+                tool::Spec::Yarn(version) => {
                     session.fetch_yarn(&version)?;
                 }
-                ToolSpec::Npm(_version) => {
+                tool::Spec::Npm(_version) => {
                     // ISSUE(#292): Implement install for npm
                     throw!(ErrorDetails::Unimplemented {
                         feature: "Fetching npm".into()
                     });
                 }
-                ToolSpec::Package(name, version) => {
+                tool::Spec::Package(name, version) => {
                     session.fetch_package(&name, &version)?;
                 }
             }

@@ -1,7 +1,7 @@
 use structopt::StructOpt;
 
 use volta_core::session::{ActivityKind, Session};
-use volta_core::tool::ToolSpec;
+use volta_core::tool::Spec;
 use volta_fail::{ExitCode, Fallible};
 
 use crate::command::Command;
@@ -17,7 +17,7 @@ impl Command for Install {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Install);
 
-        for tool in ToolSpec::from_strings(&self.tools, "install")? {
+        for tool in Spec::from_strings(&self.tools, "install")? {
             tool.install(session)?;
         }
 

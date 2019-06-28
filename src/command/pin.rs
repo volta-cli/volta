@@ -2,7 +2,7 @@ use structopt::StructOpt;
 
 use volta_core::error::ErrorDetails;
 use volta_core::session::{ActivityKind, Session};
-use volta_core::tool::ToolSpec;
+use volta_core::tool::Spec;
 use volta_fail::{throw, ExitCode, Fallible};
 
 use crate::command::Command;
@@ -18,15 +18,15 @@ impl Command for Pin {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Pin);
 
-        for tool in ToolSpec::from_strings(&self.tools, "pin")? {
+        for tool in Spec::from_strings(&self.tools, "pin")? {
             match tool {
-                ToolSpec::Node(version) => session.pin_node(&version)?,
-                ToolSpec::Yarn(version) => session.pin_yarn(&version)?,
+                Spec::Node(version) => session.pin_node(&version)?,
+                Spec::Yarn(version) => session.pin_yarn(&version)?,
                 // ISSUE(#292): Implement install for npm
-                ToolSpec::Npm(_version) => throw!(ErrorDetails::Unimplemented {
+                Spec::Npm(_version) => throw!(ErrorDetails::Unimplemented {
                     feature: "Pinning npm".into()
                 }),
-                ToolSpec::Package(name, _version) => {
+                Spec::Package(name, _version) => {
                     throw!(ErrorDetails::CannotPinPackage { package: name })
                 }
             }

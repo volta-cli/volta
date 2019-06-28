@@ -17,7 +17,7 @@ use crate::hook::ToolHooks;
 use crate::inventory::YarnCollection;
 use crate::path;
 use crate::style::{progress_bar, tool_version};
-use crate::tool::ToolSpec;
+use crate::tool;
 use crate::version::VersionSpec;
 
 #[cfg(feature = "mock-network")]
@@ -98,7 +98,7 @@ impl YarnDistro {
 
         Ok(YarnDistro {
             archive: Tarball::fetch(url, staging.path()).with_context(download_tool_error(
-                ToolSpec::Yarn(VersionSpec::exact(&version)),
+                tool::Spec::Yarn(VersionSpec::exact(&version)),
                 url,
             ))?,
             staging_file: Some(staging),
