@@ -20,7 +20,7 @@ impl Command for Uninstall {
         let version = VersionSpec::default();
         let tool = Spec::from_str_and_version(&self.tool, version);
 
-        tool.uninstall(session)?;
+        tool.resolve(session)?.uninstall(session)?;
 
         session.add_event_end(ActivityKind::Uninstall, ExitCode::Success);
         Ok(ExitCode::Success)
