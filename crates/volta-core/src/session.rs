@@ -7,7 +7,6 @@ use std::fmt::{self, Display, Formatter};
 use std::process::exit;
 use std::rc::Rc;
 
-use crate::distro::node::NodeVersion;
 use crate::distro::package::{PackageVersion, UserTool};
 use crate::distro::Fetched;
 use crate::error::ErrorDetails;
@@ -17,6 +16,7 @@ use crate::inventory::{FetchResolve, Inventory, LazyInventory};
 use crate::platform::{PlatformSpec, SourcedPlatformSpec};
 use crate::project::{LazyProject, Project};
 use crate::style::{success_prefix, tool_version};
+use crate::tool;
 use crate::toolchain::LazyToolchain;
 use crate::version::VersionSpec;
 
@@ -163,10 +163,7 @@ impl Session {
         let inventory = self.inventory.get_mut()?;
 
         if !inventory.node.contains(version) {
-            let hooks = self.hooks.get()?;
-            inventory
-                .node
-                .fetch("node", &VersionSpec::exact(version), hooks.node.as_ref())?;
+            tool::Resolved::Node(version.clone()).fetch(self)?;
         }
 
         Ok(())
@@ -187,19 +184,19 @@ impl Session {
     }
 
     /// Fetch and unpack a version of Node matching the input requirements.
-    pub fn install_node(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
-        let node_distro = self.fetch_node(version_spec)?.into_version();
-        let success_message = format!(
-            "installed and set {} as default",
-            tool_version("node", &node_distro.runtime)
-        );
-        let toolchain = self.toolchain.get_mut()?;
+    // pub fn install_node(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
+    //     let node_distro = self.fetch_node(version_spec)?.into_version();
+    //     let success_message = format!(
+    //         "installed and set {} as default",
+    //         tool_version("node", &node_distro.runtime)
+    //     );
+    //     let toolchain = self.toolchain.get_mut()?;
 
-        toolchain.set_active_node(node_distro)?;
-        info!("{} {}", success_prefix(), success_message);
+    //     toolchain.set_active_node(node_distro)?;
+    //     info!("{} {}", success_prefix(), success_message);
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
     /// Fetch and unpack a version of Yarn matching the input requirements.
     pub fn install_yarn(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
@@ -252,11 +249,11 @@ impl Session {
         //
         // If you specify an "engines" field, then npm will require that "node" be somewhere on that list. If "engines" is omitted, then npm will just assume that it works on node.
         let req_node_version = package_version.engines_spec()?;
-        let node_version = self.fetch_node(&req_node_version)?.into_version();
+        let node_version = tool::Spec::Node(req_node_version).resolve(self)?.into();
 
         let use_platform = Rc::new(PlatformSpec {
-            node_runtime: node_version.runtime,
-            npm: Some(node_version.npm),
+            node_runtime: node_version,
+            npm: None,
             yarn: None,
         });
 
@@ -284,15 +281,6 @@ impl Session {
 
         info!("{} package '{}' uninstalled", success_prefix(), name);
         Ok(())
-    }
-
-    /// Fetches a Node version matching the specified semantic versioning requirements.
-    pub fn fetch_node(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<NodeVersion>> {
-        let inventory = self.inventory.get_mut()?;
-        let hooks = self.hooks.get()?;
-        inventory
-            .node
-            .fetch("node", &version_spec, hooks.node.as_ref())
     }
 
     /// Fetches a Yarn version matching the specified semantic versioning requirements.
@@ -328,21 +316,21 @@ impl Session {
 
     /// Updates 'volta' in package.json with the Node version matching the specified semantic
     /// versioning requirements.
-    pub fn pin_node(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
-        if let Some(ref project) = self.project()? {
-            let node_version = self.fetch_node(version_spec)?.into_version();
-            project.pin_node(&node_version)?;
-            info!(
-                "{} pinned {} (with {}) in package.json",
-                success_prefix(),
-                tool_version("node", node_version.runtime),
-                tool_version("npm", node_version.npm),
-            );
-        } else {
-            throw!(ErrorDetails::NotInPackage);
-        }
-        Ok(())
-    }
+    // pub fn pin_node(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
+    //     if let Some(ref project) = self.project()? {
+    //         let node_version = self.fetch_node(version_spec)?.into_version();
+    //         project.pin_node(&node_version)?;
+    //         info!(
+    //             "{} pinned {} (with {}) in package.json",
+    //             success_prefix(),
+    //             tool_version("node", node_version.runtime),
+    //             tool_version("npm", node_version.npm),
+    //         );
+    //     } else {
+    //         throw!(ErrorDetails::NotInPackage);
+    //     }
+    //     Ok(())
+    // }
 
     /// Updates 'volta' in package.json with the Yarn version matching the specified semantic
     /// versioning requirements.

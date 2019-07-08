@@ -1,6 +1,7 @@
 use std::fmt::{self, Debug, Display};
 
 use crate::error::ErrorDetails;
+use crate::resolve;
 use crate::session::Session;
 use crate::version::VersionSpec;
 use semver::Version;
@@ -25,12 +26,16 @@ pub enum Resolved {
 }
 
 impl Spec {
-    pub fn resolve(self, _session: &mut Session) -> Fallible<Resolved> {
+    pub fn resolve(self, session: &mut Session) -> Fallible<Resolved> {
         // TODO - CPIERCE: Implement Resolvers
-        Err(ErrorDetails::Unimplemented {
-            feature: "resolve".into(),
-        }
-        .into())
+        let version = match self {
+            Spec::Node(version) => resolve::node(version, session.hooks()?.node.as_ref()),
+            _ => Err(ErrorDetails::Unimplemented {
+                feature: "resolve".into(),
+            }
+            .into()),
+        }?;
+        Ok(Resolved::Node(version))
     }
 }
 
@@ -55,6 +60,7 @@ impl Display for Spec {
 impl Resolved {
     pub fn fetch(self, _session: &mut Session) -> Fallible<()> {
         // TODO - CPIERCE: Implement Fetchers
+        // Note: Needs to update the inventory on a successful fetch
         Err(ErrorDetails::Unimplemented {
             feature: "fetch".into(),
         }
@@ -83,5 +89,16 @@ impl Resolved {
             feature: "uninstall".into(),
         }
         .into())
+    }
+}
+
+impl From<Resolved> for Version {
+    fn from(tool: Resolved) -> Self {
+        match tool {
+            Resolved::Node(version)
+            | Resolved::Npm(version)
+            | Resolved::Yarn(version)
+            | Resolved::Package(_, version) => version,
+        }
     }
 }

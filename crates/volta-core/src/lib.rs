@@ -18,6 +18,7 @@ pub mod monitor;
 pub mod path;
 pub mod platform;
 pub mod project;
+pub(crate) mod resolve;
 pub mod session;
 pub mod shell;
 pub mod shim;

@@ -1,8 +1,7 @@
+use std::collections::BTreeSet;
 use std::collections::HashMap;
-use std::collections::{BTreeSet, HashSet};
 use std::convert::From;
 use std::fs::{read_to_string, write};
-use std::iter::FromIterator;
 use std::marker::PhantomData;
 use std::path::Path;
 use std::path::PathBuf;
@@ -14,12 +13,12 @@ use crate::fs::ensure_containing_dir_exists;
 use crate::fs::read_dir_eager;
 use crate::path;
 use crate::toolchain;
-use crate::version::{option_version_serde, version_serde, VersionSpec};
+use crate::version::{version_serde, VersionSpec};
 use volta_fail::{Fallible, ResultExt};
 
 use regex::Regex;
 use semver::Version;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 
 /// Reads the contents of a directory and returns the set of all versions found
 /// in the directory's listing by matching filenames against the specified regex
@@ -42,16 +41,6 @@ fn versions_matching(dir: &Path, re: &Regex) -> Fallible<BTreeSet<Version>> {
             None
         })
         .collect::<Fallible<BTreeSet<Version>>>()
-}
-
-fn lts_version_serde<'de, D>(deserializer: D) -> Result<bool, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    match String::deserialize(deserializer) {
-        Ok(_t) => Ok(true),
-        Err(_e) => Ok(false),
-    }
 }
 
 impl NodeCollection {
@@ -108,41 +97,6 @@ impl PackageCollection {
             versions: BTreeSet::new(),
             phantom: PhantomData,
         })
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct NodeIndex(Vec<NodeEntry>);
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct NodeEntry {
-    #[serde(with = "version_serde")]
-    pub version: Version,
-    #[serde(default)] // handles Option
-    #[serde(with = "option_version_serde")]
-    pub npm: Option<Version>,
-    pub files: Vec<String>,
-    #[serde(deserialize_with = "lts_version_serde")]
-    pub lts: bool,
-}
-
-impl NodeIndex {
-    pub fn into_index(self) -> Fallible<super::NodeIndex> {
-        let mut entries = Vec::new();
-        for entry in self.0 {
-            if let Some(npm) = entry.npm {
-                let data = super::NodeDistroFiles {
-                    files: HashSet::from_iter(entry.files.into_iter()),
-                };
-                entries.push(super::NodeEntry {
-                    version: entry.version,
-                    npm,
-                    files: data,
-                    lts: entry.lts,
-                });
-            }
-        }
-        Ok(super::NodeIndex { entries })
     }
 }
 
