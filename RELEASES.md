@@ -1,3 +1,8 @@
+# Version 0.5.6
+
+- Improve expected behavior with Yarn in projects (#470)
+- Suppress an erroneous "toolchain" key warning message (#486)
+
 # Version 0.5.5
 
 - Proper support for relative paths in Bin hooks (#468)
