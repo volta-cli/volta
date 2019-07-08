@@ -19,7 +19,7 @@ use reqwest;
 use reqwest::hyper_011::header::{CacheControl, CacheDirective, Expires, HttpDate};
 use semver::{Version, VersionReq};
 use tempfile::NamedTempFile;
-use volta_fail::{throw, Fallible, ResultExt};
+use volta_fail::{Fallible, ResultExt};
 
 // ISSUE (#86): Move public repository URLs to config file
 cfg_if! {
@@ -64,21 +64,67 @@ fn resolve_latest(hooks: Option<&ToolHooks<NodeDistro>>) -> Fallible<Version> {
         debug!("Found latest node version ({}) from {}", version, url);
         Ok(version)
     } else {
-        throw!(ErrorDetails::NodeVersionNotFound {
-            matching: "latest".to_string()
-        })
+        Err(ErrorDetails::NodeVersionNotFound {
+            matching: "latest".to_string(),
+        }
+        .into())
     }
 }
 
-fn resolve_lts(_hooks: Option<&ToolHooks<NodeDistro>>) -> Fallible<Version> {
-    VersionSpec::parse_version("1.0.0")
+fn resolve_lts(hooks: Option<&ToolHooks<NodeDistro>>) -> Fallible<Version> {
+    let url = match hooks {
+        Some(&ToolHooks {
+            index: Some(ref hook),
+            ..
+        }) => {
+            debug!("Using node.index hook to determine node index URL");
+            hook.resolve("index.json")?
+        }
+        _ => public_node_version_index(),
+    };
+    let version_opt = match_node_version(&url, |&NodeEntry { lts, .. }| lts)?;
+
+    if let Some(version) = version_opt {
+        debug!("Found newest LTS node version ({}) from {}", version, url);
+        Ok(version)
+    } else {
+        Err(ErrorDetails::NodeVersionNotFound {
+            matching: "lts".to_string(),
+        }
+        .into())
+    }
 }
 
 fn resolve_semver(
-    _requirement: VersionReq,
-    _hooks: Option<&ToolHooks<NodeDistro>>,
+    matching: VersionReq,
+    hooks: Option<&ToolHooks<NodeDistro>>,
 ) -> Fallible<Version> {
-    VersionSpec::parse_version("1.0.0")
+    // ISSUE #34: also make sure this OS is available for this version
+    let url = match hooks {
+        Some(&ToolHooks {
+            index: Some(ref hook),
+            ..
+        }) => {
+            debug!("Using node.index hook to determine node index URL");
+            hook.resolve("index.json")?
+        }
+        _ => public_node_version_index(),
+    };
+    let version_opt =
+        match_node_version(&url, |NodeEntry { version, .. }| matching.matches(version))?;
+
+    if let Some(version) = version_opt {
+        debug!(
+            "Found node@{} matching requirement '{}' from {}",
+            version, matching, url
+        );
+        Ok(version)
+    } else {
+        Err(ErrorDetails::NodeVersionNotFound {
+            matching: matching.to_string(),
+        }
+        .into())
+    }
 }
 
 fn match_node_version(

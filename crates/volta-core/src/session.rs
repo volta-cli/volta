@@ -174,16 +174,13 @@ impl Session {
         let inventory = self.inventory.get_mut()?;
 
         if !inventory.yarn.contains(version) {
-            let hooks = self.hooks.get()?;
-            inventory
-                .yarn
-                .fetch("yarn", &VersionSpec::exact(version), hooks.yarn.as_ref())?;
+            tool::Resolved::Yarn(version.clone()).fetch(self)?;
         }
 
         Ok(())
     }
 
-    /// Fetch and unpack a version of Node matching the input requirements.
+    // /// Fetch and unpack a version of Node matching the input requirements.
     // pub fn install_node(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
     //     let node_distro = self.fetch_node(version_spec)?.into_version();
     //     let success_message = format!(
@@ -198,20 +195,20 @@ impl Session {
     //     Ok(())
     // }
 
-    /// Fetch and unpack a version of Yarn matching the input requirements.
-    pub fn install_yarn(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
-        let yarn_distro = self.fetch_yarn(version_spec)?.into_version();
-        let success_message = format!(
-            "installed and set {} as default",
-            tool_version("yarn", &yarn_distro)
-        );
-        let toolchain = self.toolchain.get_mut()?;
+    // /// Fetch and unpack a version of Yarn matching the input requirements.
+    // pub fn install_yarn(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
+    //     let yarn_distro = self.fetch_yarn(version_spec)?.into_version();
+    //     let success_message = format!(
+    //         "installed and set {} as default",
+    //         tool_version("yarn", &yarn_distro)
+    //     );
+    //     let toolchain = self.toolchain.get_mut()?;
 
-        toolchain.set_active_yarn(yarn_distro)?;
-        info!("{} {}", success_prefix(), success_message);
+    //     toolchain.set_active_yarn(yarn_distro)?;
+    //     info!("{} {}", success_prefix(), success_message);
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
     /// Fetch, unpack, and install a version of Npm matching the input requirements.
     // ISSUE(#292): Install npm as part of the platform
@@ -283,15 +280,6 @@ impl Session {
         Ok(())
     }
 
-    /// Fetches a Yarn version matching the specified semantic versioning requirements.
-    pub fn fetch_yarn(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<Version>> {
-        let inventory = self.inventory.get_mut()?;
-        let hooks = self.hooks.get()?;
-        inventory
-            .yarn
-            .fetch("yarn", &version_spec, hooks.yarn.as_ref())
-    }
-
     /// Fetches a Npm version matching the specified semantic versioning requirements.
     pub fn fetch_npm(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<PackageVersion>> {
         let inventory = self.inventory.get_mut()?;
@@ -314,8 +302,8 @@ impl Session {
             .fetch(name, version_spec, hooks.package.as_ref())
     }
 
-    /// Updates 'volta' in package.json with the Node version matching the specified semantic
-    /// versioning requirements.
+    // /// Updates 'volta' in package.json with the Node version matching the specified semantic
+    // /// versioning requirements.
     // pub fn pin_node(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
     //     if let Some(ref project) = self.project()? {
     //         let node_version = self.fetch_node(version_spec)?.into_version();
@@ -332,22 +320,22 @@ impl Session {
     //     Ok(())
     // }
 
-    /// Updates 'volta' in package.json with the Yarn version matching the specified semantic
-    /// versioning requirements.
-    pub fn pin_yarn(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
-        if let Some(ref project) = self.project()? {
-            let yarn_version = self.fetch_yarn(version_spec)?.into_version();
-            project.pin_yarn(&yarn_version)?;
-            info!(
-                "{} pinned {} in package.json",
-                success_prefix(),
-                tool_version("yarn", yarn_version)
-            );
-        } else {
-            throw!(ErrorDetails::NotInPackage);
-        }
-        Ok(())
-    }
+    // /// Updates 'volta' in package.json with the Yarn version matching the specified semantic
+    // /// versioning requirements.
+    // pub fn pin_yarn(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
+    //     if let Some(ref project) = self.project()? {
+    //         let yarn_version = self.fetch_yarn(version_spec)?.into_version();
+    //         project.pin_yarn(&yarn_version)?;
+    //         info!(
+    //             "{} pinned {} in package.json",
+    //             success_prefix(),
+    //             tool_version("yarn", yarn_version)
+    //         );
+    //     } else {
+    //         throw!(ErrorDetails::NotInPackage);
+    //     }
+    //     Ok(())
+    // }
 
     /// Updates 'volta' in package.json with the Npm version matching the specified semantic
     /// versioning requirements.

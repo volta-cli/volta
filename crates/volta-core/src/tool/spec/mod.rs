@@ -29,7 +29,8 @@ impl Spec {
     pub fn resolve(self, session: &mut Session) -> Fallible<Resolved> {
         // TODO - CPIERCE: Implement Resolvers
         let version = match self {
-            Spec::Node(version) => resolve::node(version, session.hooks()?.node.as_ref()),
+            Spec::Node(version) => resolve::node(version, session.hooks()?.node()),
+            Spec::Yarn(version) => resolve::yarn(version, session.hooks()?.yarn()),
             _ => Err(ErrorDetails::Unimplemented {
                 feature: "resolve".into(),
             }

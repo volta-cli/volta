@@ -92,6 +92,22 @@ macro_rules! merge_hook_config_field {
 }
 
 impl HookConfig {
+    pub fn node(&self) -> Option<&ToolHooks<NodeDistro>> {
+        self.node.as_ref()
+    }
+
+    pub fn yarn(&self) -> Option<&ToolHooks<YarnDistro>> {
+        self.yarn.as_ref()
+    }
+
+    pub fn package(&self) -> Option<&ToolHooks<PackageDistro>> {
+        self.package.as_ref()
+    }
+
+    pub fn events(&self) -> Option<&EventHooks> {
+        self.events.as_ref()
+    }
+
     /// Returns the current hooks, which are a merge between the user hooks and
     /// the project hooks (if any).
     fn current() -> Fallible<Self> {

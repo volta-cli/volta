@@ -29,27 +29,6 @@ pub(crate) mod serial;
 #[cfg(feature = "mock-network")]
 use mockito;
 
-// ISSUE (#86): Move public repository URLs to config file
-cfg_if::cfg_if! {
-    if #[cfg(feature = "mock-network")] {
-        fn public_yarn_version_index() -> String {
-            format!("{}/yarn-releases/index.json", mockito::SERVER_URL)
-        }
-        fn public_yarn_latest_version() -> String {
-            format!("{}/yarn-latest", mockito::SERVER_URL)
-        }
-    } else {
-        /// Return the URL of the index of available Yarn versions on the public git repository.
-        fn public_yarn_version_index() -> String {
-            "https://api.github.com/repos/yarnpkg/yarn/releases".to_string()
-        }
-        /// URL of the latest Yarn version on the public yarnpkg.com
-        fn public_yarn_latest_version() -> String {
-            "https://yarnpkg.com/latest-version".to_string()
-        }
-    }
-}
-
 /// Lazily loaded inventory.
 pub struct LazyInventory {
     inventory: LazyCell<Inventory>,
@@ -169,108 +148,6 @@ pub trait FetchResolve<D: Distro> {
         version: Version,
         hooks: Option<&ToolHooks<D>>,
     ) -> Fallible<D::ResolvedVersion>;
-}
-
-fn registry_fetch_error(
-    tool: impl AsRef<str>,
-    from_url: impl AsRef<str>,
-) -> impl FnOnce(&reqwest::Error) -> ErrorDetails {
-    let tool = tool.as_ref().to_string();
-    let from_url = from_url.as_ref().to_string();
-    |_| ErrorDetails::RegistryFetchError { tool, from_url }
-}
-
-impl FetchResolve<YarnDistro> for YarnCollection {
-    type FetchedVersion = Version;
-
-    /// Fetches a Yarn version matching the specified semantic versioning requirements.
-    fn fetch(
-        &mut self,
-        name: &str, // not used here, we already know this is "yarn"
-        matching: &VersionSpec,
-        hooks: Option<&ToolHooks<YarnDistro>>,
-    ) -> Fallible<Fetched<Self::FetchedVersion>> {
-        let distro = self.resolve(name, &matching, hooks)?;
-        let fetched = distro.fetch(&self)?;
-
-        if let &Fetched::Now(ref version) = &fetched {
-            self.versions.insert(version.clone());
-        }
-
-        Ok(fetched)
-    }
-
-    fn resolve_latest(
-        &self,
-        _name: &str,
-        hooks: Option<&ToolHooks<YarnDistro>>,
-    ) -> Fallible<Version> {
-        let url = match hooks {
-            Some(&ToolHooks {
-                latest: Some(ref hook),
-                ..
-            }) => {
-                debug!("Using yarn.latest hook to determine latest-version URL");
-                hook.resolve("latest-version")?
-            }
-            _ => public_yarn_latest_version(),
-        };
-        let response_text = reqwest::get(&url)
-            .and_then(|mut resp| resp.text())
-            .with_context(|_| ErrorDetails::YarnLatestFetchError {
-                from_url: url.clone(),
-            })?;
-
-        debug!("Found yarn latest version ({}) from {}", response_text, url);
-        VersionSpec::parse_version(response_text)
-    }
-
-    fn resolve_semver(
-        &self,
-        _name: &str,
-        matching: &VersionReq,
-        hooks: Option<&ToolHooks<YarnDistro>>,
-    ) -> Fallible<Version> {
-        let url = match hooks {
-            Some(&ToolHooks {
-                index: Some(ref hook),
-                ..
-            }) => {
-                debug!("Using yarn.index hook to determine yarn index URL");
-                hook.resolve("releases")?
-            }
-            _ => public_yarn_version_index(),
-        };
-
-        let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
-        let releases: serial::YarnIndex = reqwest::get(&url)
-            .and_then(|mut resp| resp.json())
-            .with_context(registry_fetch_error("Yarn", &url))?;
-        let releases = releases.into_index()?.entries;
-        spinner.finish_and_clear();
-        let version_opt = releases.into_iter().rev().find(|v| matching.matches(v));
-
-        if let Some(version) = version_opt {
-            debug!(
-                "Found yarn@{} matching requirement '{}' from {}",
-                version, matching, url
-            );
-            Ok(version)
-        } else {
-            throw!(ErrorDetails::YarnVersionNotFound {
-                matching: matching.to_string()
-            })
-        }
-    }
-
-    fn resolve_exact(
-        &self,
-        _name: &str,
-        version: Version,
-        _hooks: Option<&ToolHooks<YarnDistro>>,
-    ) -> Fallible<Version> {
-        Ok(version)
-    }
 }
 
 // use the input predicate to match a package in the index
@@ -504,9 +381,4 @@ impl FetchResolve<PackageDistro> for PackageCollection {
             })
         }
     }
-}
-
-/// The public Yarn index.
-pub struct YarnIndex {
-    entries: BTreeSet<Version>,
 }
