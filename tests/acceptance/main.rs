@@ -2,6 +2,7 @@ mod support;
 
 // test files
 
+mod corrupted_download;
 mod intercept_global_installs;
 mod merged_platform;
 mod verbose_errors;
