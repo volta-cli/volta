@@ -4,11 +4,10 @@ use std::fs::{rename, File};
 use std::path::PathBuf;
 use std::string::ToString;
 
+use archive::{Archive, Tarball};
 use log::debug;
 use semver::Version;
-use tempfile::tempdir_in;
-
-use archive::{Archive, Tarball};
+use tempfile::{tempdir_in, NamedTempFile};
 use volta_fail::{Fallible, ResultExt};
 
 use super::{download_tool_error, Distro, Fetched};
@@ -39,6 +38,7 @@ cfg_if::cfg_if! {
 /// A provisioned Yarn distribution.
 pub struct YarnDistro {
     archive: Box<dyn Archive>,
+    staging_file: Option<NamedTempFile>,
     version: Version,
 }
 
@@ -52,6 +52,11 @@ fn load_cached_distro(file: &PathBuf) -> Option<Box<dyn Archive>> {
     } else {
         None
     }
+}
+
+fn get_distro_file(version: &Version) -> Fallible<PathBuf> {
+    path::yarn_inventory_dir()
+        .map(|inventory| inventory.join(path::yarn_distro_file_name(&version.to_string())))
 }
 
 impl YarnDistro {
@@ -70,8 +75,7 @@ impl YarnDistro {
 
     /// Provision a Yarn distribution from a remote distributor.
     fn remote(version: Version, url: &str) -> Fallible<Self> {
-        let distro_file_name = path::yarn_distro_file_name(&version.to_string());
-        let distro_file = path::yarn_inventory_dir()?.join(&distro_file_name);
+        let distro_file = get_distro_file(&version)?;
 
         if let Some(archive) = load_cached_distro(&distro_file) {
             debug!(
@@ -79,17 +83,25 @@ impl YarnDistro {
                 version,
                 distro_file.display()
             );
-            return Ok(YarnDistro { archive, version });
+            return Ok(YarnDistro {
+                archive,
+                version,
+                staging_file: None,
+            });
         }
 
-        ensure_containing_dir_exists(&distro_file)?;
         debug!("Downloading yarn@{} from {}", version, url);
 
+        let tmpdir = path::tmp_dir()?;
+        let staging = NamedTempFile::new_in(&tmpdir)
+            .with_context(|_| ErrorDetails::CreateTempFileError { in_dir: tmpdir })?;
+
         Ok(YarnDistro {
-            archive: Tarball::fetch(url, &distro_file).with_context(download_tool_error(
+            archive: Tarball::fetch(url, staging.path()).with_context(download_tool_error(
                 ToolSpec::Yarn(VersionSpec::exact(&version)),
                 url,
             ))?,
+            staging_file: Some(staging),
             version: version,
         })
     }
@@ -172,6 +184,17 @@ impl Distro for YarnDistro {
             version: version_string.clone(),
             dir: dest.clone(),
         })?;
+
+        if let Some(staging) = self.staging_file {
+            let distro_file = get_distro_file(&self.version)?;
+            ensure_containing_dir_exists(&distro_file)?;
+
+            staging
+                .persist(distro_file)
+                .with_context(|_| ErrorDetails::PersistInventoryError {
+                    tool: "Yarn".into(),
+                })?;
+        }
 
         bar.finish_and_clear();
 

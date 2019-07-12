@@ -290,6 +290,11 @@ pub enum ErrorDetails {
         tool_spec: String,
     },
 
+    /// Thrown when persisting an archive to the inventory fails
+    PersistInventoryError {
+        tool: String,
+    },
+
     /// Thrown when executing a project-local binary fails
     ProjectLocalBinaryExecError {
         command: String,
@@ -937,6 +942,13 @@ Please verify the requested package and version.",
 Please supply a spec in the format `<tool name>[@<version>]`.",
                 tool_spec
             ),
+            ErrorDetails::PersistInventoryError { tool } => write!(
+                f,
+                "Could not store {} archive in inventory cache
+
+{}",
+                tool, PERMISSIONS_CTA
+            ),
             ErrorDetails::ProjectLocalBinaryExecError { command } => write!(
                 f,
                 "Could not execute `{}`
@@ -1298,6 +1310,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::ParsePackageConfigError => ExitCode::UnknownError,
             ErrorDetails::ParsePackageMetadataError { .. } => ExitCode::UnknownError,
             ErrorDetails::ParsePlatformError => ExitCode::ConfigurationError,
+            ErrorDetails::PersistInventoryError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ProjectLocalBinaryExecError { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::ProjectLocalBinaryNotFound { .. } => ExitCode::FileSystemError,
             ErrorDetails::PublishHookBothUrlAndBin => ExitCode::ConfigurationError,

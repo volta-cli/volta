@@ -9,7 +9,9 @@ use reqwest::hyper_011::header::HttpDate;
 
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 
-use volta_core::path::{archive_extension, create_file_symlink, ARCH, OS};
+use volta_core::path::{
+    archive_extension, create_file_symlink, node_distro_file_name, yarn_distro_file_name, ARCH, OS,
+};
 
 #[cfg(feature = "mock-network")]
 use mockito::{self, mock, Matcher};
@@ -606,6 +608,18 @@ impl Sandbox {
     }
 
     // check that files in the sandbox exist
+
+    pub fn node_inventory_archive_exists(&self, version: &str) -> bool {
+        node_inventory_dir()
+            .join(node_distro_file_name(version))
+            .exists()
+    }
+
+    pub fn yarn_inventory_archive_exists(&self, version: &str) -> bool {
+        yarn_inventory_dir()
+            .join(yarn_distro_file_name(version))
+            .exists()
+    }
 
     pub fn package_config_exists(name: &str) -> bool {
         package_config_file(name).exists()
