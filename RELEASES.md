@@ -1,3 +1,7 @@
+# Version 0.5.7
+
+- Prevent corrupting local cache by downloading tools to temp directory (#498)
+
 # Version 0.5.6
 
 - Improve expected behavior with Yarn in projects (#470)
