@@ -1,5 +1,5 @@
 Name:           volta
-Version:        0.5.6
+Version:        0.5.7
 Release:        1%{?dist}
 Summary:        The JavaScript Launcher ⚡
 
