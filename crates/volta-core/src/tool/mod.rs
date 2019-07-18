@@ -2,4 +2,4 @@ mod command;
 mod spec;
 
 pub use command::execute_tool;
-pub use spec::{Resolved, Spec};
+pub use spec::{PackageDetails, Resolved, Spec};

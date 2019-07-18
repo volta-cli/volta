@@ -10,6 +10,7 @@ use crate::error::ErrorDetails;
 use crate::fs::{ensure_containing_dir_exists, read_file_opt};
 use crate::hook::ToolHooks;
 use crate::path;
+use crate::session::Session;
 use crate::style::progress_spinner;
 use crate::version::VersionSpec;
 use cfg_if::cfg_if;
@@ -35,7 +36,8 @@ cfg_if! {
     }
 }
 
-pub fn resolve(matching: VersionSpec, hooks: Option<&ToolHooks<NodeDistro>>) -> Fallible<Version> {
+pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Version> {
+    let hooks = session.hooks()?.node();
     match matching {
         VersionSpec::Latest => resolve_latest(hooks),
         VersionSpec::Lts => resolve_lts(hooks),
@@ -60,14 +62,15 @@ fn resolve_latest(hooks: Option<&ToolHooks<NodeDistro>>) -> Fallible<Version> {
     };
     let version_opt = match_node_version(&url, |_| true)?;
 
-    if let Some(version) = version_opt {
-        debug!("Found latest node version ({}) from {}", version, url);
-        Ok(version)
-    } else {
-        Err(ErrorDetails::NodeVersionNotFound {
-            matching: "latest".to_string(),
+    match version_opt {
+        Some(version) => {
+            debug!("Found latest node version ({}) from {}", version, url);
+            Ok(version)
         }
-        .into())
+        None => Err(ErrorDetails::NodeVersionNotFound {
+            matching: "latest".into(),
+        }
+        .into()),
     }
 }
 
@@ -84,14 +87,15 @@ fn resolve_lts(hooks: Option<&ToolHooks<NodeDistro>>) -> Fallible<Version> {
     };
     let version_opt = match_node_version(&url, |&NodeEntry { lts, .. }| lts)?;
 
-    if let Some(version) = version_opt {
-        debug!("Found newest LTS node version ({}) from {}", version, url);
-        Ok(version)
-    } else {
-        Err(ErrorDetails::NodeVersionNotFound {
-            matching: "lts".to_string(),
+    match version_opt {
+        Some(version) => {
+            debug!("Found newest LTS node version ({}) from {}", version, url);
+            Ok(version)
         }
-        .into())
+        None => Err(ErrorDetails::NodeVersionNotFound {
+            matching: "lts".into(),
+        }
+        .into()),
     }
 }
 
@@ -113,17 +117,18 @@ fn resolve_semver(
     let version_opt =
         match_node_version(&url, |NodeEntry { version, .. }| matching.matches(version))?;
 
-    if let Some(version) = version_opt {
-        debug!(
-            "Found node@{} matching requirement '{}' from {}",
-            version, matching, url
-        );
-        Ok(version)
-    } else {
-        Err(ErrorDetails::NodeVersionNotFound {
+    match version_opt {
+        Some(version) => {
+            debug!(
+                "Found node@{} matching requirement '{}' from {}",
+                version, matching, url
+            );
+            Ok(version)
+        }
+        None => Err(ErrorDetails::NodeVersionNotFound {
             matching: matching.to_string(),
         }
-        .into())
+        .into()),
     }
 }
 

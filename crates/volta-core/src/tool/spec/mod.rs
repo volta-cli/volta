@@ -18,25 +18,33 @@ pub enum Spec {
     Package(String, VersionSpec),
 }
 
+/// A fully resolved Tool, with all information necessary for fetching
 pub enum Resolved {
     Node(Version),
     Npm(Version),
     Yarn(Version),
-    Package(String, Version),
+    Package(String, PackageDetails),
+}
+
+#[derive(Debug)]
+pub struct PackageDetails {
+    pub(crate) version: Version,
+    pub(crate) tarball_url: String,
+    pub(crate) shasum: String,
 }
 
 impl Spec {
     pub fn resolve(self, session: &mut Session) -> Fallible<Resolved> {
-        // TODO - CPIERCE: Implement Resolvers
-        let version = match self {
-            Spec::Node(version) => resolve::node(version, session.hooks()?.node()),
-            Spec::Yarn(version) => resolve::yarn(version, session.hooks()?.yarn()),
-            _ => Err(ErrorDetails::Unimplemented {
-                feature: "resolve".into(),
-            }
-            .into()),
-        }?;
-        Ok(Resolved::Node(version))
+        match self {
+            Spec::Node(version) => resolve::node(version, session).map(Resolved::Node),
+            Spec::Yarn(version) => resolve::yarn(version, session).map(Resolved::Yarn),
+            Spec::Package(name, version) => resolve::package(&name, version, session)
+                .map(|details| Resolved::Package(name, details)),
+            // Note: To preserve error message context, we always resolve Npm to Version 0.0.0
+            // This will allow us to show the correct error message based on the user's command
+            // e.g. `volta install npm` vs `volta pin npm`
+            Spec::Npm(_) => VersionSpec::parse_version("0.0.0").map(Resolved::Npm),
+        }
     }
 }
 
@@ -96,10 +104,8 @@ impl Resolved {
 impl From<Resolved> for Version {
     fn from(tool: Resolved) -> Self {
         match tool {
-            Resolved::Node(version)
-            | Resolved::Npm(version)
-            | Resolved::Yarn(version)
-            | Resolved::Package(_, version) => version,
+            Resolved::Node(version) | Resolved::Npm(version) | Resolved::Yarn(version) => version,
+            Resolved::Package(_, details) => details.version,
         }
     }
 }

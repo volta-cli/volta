@@ -148,10 +148,10 @@ impl NodeDistro {
             .with_context(|_| ErrorDetails::CreateTempFileError { in_dir: tmpdir })?;
 
         Ok(NodeDistro {
-            archive: archive::fetch_native(url, staging.path()).with_context(download_tool_error(
-                tool::Spec::Node(VersionSpec::exact(&version)),
-                url,
-            ))?,
+            archive: archive::fetch_native(url, staging.path()).with_context(
+                download_tool_error(tool::Spec::Node(VersionSpec::exact(&version)), url),
+            )?,
+            staging_file: Some(staging),
             version: version,
         })
     }

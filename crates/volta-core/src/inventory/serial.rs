@@ -1,6 +1,4 @@
 use std::collections::BTreeSet;
-use std::collections::HashMap;
-use std::convert::From;
 use std::fs::{read_to_string, write};
 use std::marker::PhantomData;
 use std::path::Path;
@@ -100,39 +98,6 @@ impl PackageCollection {
     }
 }
 
-// see npm registry API doc:
-// https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct PackageMetadata {
-    pub name: String,
-    pub description: Option<String>,
-    pub versions: HashMap<String, PackageVersionInfo>,
-    #[serde(rename = "dist-tags")]
-    pub dist_tags: PackageDistTags,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct PackageVersionInfo {
-    // there's a lot more in there, but right now just care about the version
-    #[serde(with = "version_serde")]
-    pub version: Version,
-    pub dist: DistInfo,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct PackageDistTags {
-    #[serde(with = "version_serde")]
-    pub latest: Version,
-    pub beta: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct DistInfo {
-    pub shasum: String,
-    pub tarball: String,
-}
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PackageConfig {
     pub name: String,
@@ -158,28 +123,6 @@ pub struct BinConfig {
 pub struct BinLoader {
     pub command: String,
     pub args: Vec<String>,
-}
-
-impl PackageMetadata {
-    pub fn into_index(self) -> package::PackageIndex {
-        let mut entries = Vec::new();
-        for (_, version_info) in self.versions {
-            let entry = package::PackageEntry {
-                version: version_info.version,
-                tarball: version_info.dist.tarball,
-                shasum: version_info.dist.shasum,
-            };
-            entries.push(entry);
-        }
-
-        // sort entries by version, largest to smallest
-        entries.sort_by(|a, b| b.version.cmp(&a.version));
-
-        package::PackageIndex {
-            latest: self.dist_tags.latest,
-            entries: entries,
-        }
-    }
 }
 
 impl package::PackageConfig {
@@ -301,46 +244,6 @@ impl BinLoader {
         package::BinLoader {
             command: self.command,
             args: self.args,
-        }
-    }
-}
-
-// Data structures for `npm view` data
-//
-// $ npm view --json gulp@latest
-// {
-//   "name": "gulp",
-//   "description": "The streaming build system.",
-//   "dist-tags": {
-//     "latest": "4.0.2"
-//   },
-//   "version": "4.0.2",
-//   "engines": {
-//     "node": ">= 0.10"
-//   },
-//   "dist": {
-//     "shasum": "543651070fd0f6ab0a0650c6a3e6ff5a7cb09caa",
-//     "tarball": "https://registry.npmjs.org/gulp/-/gulp-4.0.2.tgz",
-//   },
-//   (...and lots of other stuff we don't use...)
-// }
-//
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct NpmViewData {
-    pub name: String,
-    #[serde(with = "version_serde")]
-    pub version: Version,
-    pub dist: DistInfo,
-    #[serde(rename = "dist-tags")]
-    pub dist_tags: PackageDistTags,
-}
-
-impl From<NpmViewData> for package::PackageEntry {
-    fn from(view_data: NpmViewData) -> package::PackageEntry {
-        package::PackageEntry {
-            version: view_data.version,
-            tarball: view_data.dist.tarball,
-            shasum: view_data.dist.shasum,
         }
     }
 }

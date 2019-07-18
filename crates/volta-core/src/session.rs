@@ -8,21 +8,18 @@ use std::process::exit;
 use std::rc::Rc;
 
 use crate::distro::package::{PackageVersion, UserTool};
-use crate::distro::Fetched;
-use crate::error::ErrorDetails;
 use crate::event::EventLog;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
-use crate::inventory::{FetchResolve, Inventory, LazyInventory};
+use crate::inventory::{Inventory, LazyInventory};
 use crate::platform::{PlatformSpec, SourcedPlatformSpec};
 use crate::project::{LazyProject, Project};
-use crate::style::{success_prefix, tool_version};
+use crate::style::success_prefix;
 use crate::tool;
 use crate::toolchain::LazyToolchain;
-use crate::version::VersionSpec;
 
 use log::{debug, info};
 use semver::Version;
-use volta_fail::{throw, ExitCode, Fallible, VoltaError};
+use volta_fail::{ExitCode, Fallible, VoltaError};
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
 pub enum ActivityKind {
@@ -210,67 +207,67 @@ impl Session {
     //     Ok(())
     // }
 
-    /// Fetch, unpack, and install a version of Npm matching the input requirements.
-    // ISSUE(#292): Install npm as part of the platform
-    pub fn install_npm(&mut self, _version_spec: &VersionSpec) -> Fallible<()> {
-        Err(ErrorDetails::Unimplemented {
-            feature: "installing npm".into(),
-        }
-        .into())
-    }
+    // /// Fetch, unpack, and install a version of Npm matching the input requirements.
+    // // ISSUE(#292): Install npm as part of the platform
+    // pub fn install_npm(&mut self, _version_spec: &VersionSpec) -> Fallible<()> {
+    //     Err(ErrorDetails::Unimplemented {
+    //         feature: "installing npm".into(),
+    //     }
+    //     .into())
+    // }
 
-    /// Fetch, unpack, and install a package matching the input requirements.
-    pub fn install_package(&mut self, name: String, version: &VersionSpec) -> Fallible<()> {
-        // fetches and unpacks package
-        let fetched_package = self.fetch_package(&name, version)?;
-        let package_version = fetched_package.version();
+    // /// Fetch, unpack, and install a package matching the input requirements.
+    // pub fn install_package(&mut self, name: String, version: &VersionSpec) -> Fallible<()> {
+    //     // fetches and unpacks package
+    //     let fetched_package = self.fetch_package(&name, version)?;
+    //     let package_version = fetched_package.version();
 
-        // if the package is already installed, don't re-install it
-        if let Fetched::Installed(pkg_version) = fetched_package {
-            let version = pkg_version.version.clone();
-            info!(
-                "Package `{}` is up-to-date, version {} already installed",
-                name, version
-            );
-            return Ok(());
-        }
+    //     // if the package is already installed, don't re-install it
+    //     if let Fetched::Installed(pkg_version) = fetched_package {
+    //         let version = pkg_version.version.clone();
+    //         info!(
+    //             "Package `{}` is up-to-date, version {} already installed",
+    //             name, version
+    //         );
+    //         return Ok(());
+    //     }
 
-        // This uses the "engines" field from package.json to determine the node version to use
-        // From https://docs.npmjs.com/files/package.json#engines:
-        //
-        // You can specify the version of node that your stuff works on:
-        //
-        // { "engines" : { "node" : ">=0.10.3 <0.12" } }
-        //
-        // And, like with dependencies, if you don’t specify the version (or if you specify “*” as the version), then any version of node will do.
-        //
-        // If you specify an "engines" field, then npm will require that "node" be somewhere on that list. If "engines" is omitted, then npm will just assume that it works on node.
-        let req_node_version = package_version.engines_spec()?;
-        let node_version = tool::Spec::Node(req_node_version).resolve(self)?.into();
+    //     // This uses the "engines" field from package.json to determine the node version to use
+    //     // From https://docs.npmjs.com/files/package.json#engines:
+    //     //
+    //     // You can specify the version of node that your stuff works on:
+    //     //
+    //     // { "engines" : { "node" : ">=0.10.3 <0.12" } }
+    //     //
+    //     // And, like with dependencies, if you don’t specify the version (or if you specify “*” as the version), then any version of node will do.
+    //     //
+    //     // If you specify an "engines" field, then npm will require that "node" be somewhere on that list. If "engines" is omitted, then npm will just assume that it works on node.
+    //     let req_node_version = package_version.engines_spec()?;
+    //     let node_version = tool::Spec::Node(req_node_version).resolve(self)?.into();
 
-        let use_platform = Rc::new(PlatformSpec {
-            node_runtime: node_version,
-            npm: None,
-            yarn: None,
-        });
+    //     let use_platform = Rc::new(PlatformSpec {
+    //         node_runtime: node_version,
+    //         npm: None,
+    //         yarn: None,
+    //     });
 
-        // finally, install the package
-        package_version.install(&use_platform, self)?;
+    //     // finally, install the package
+    //     package_version.install(&use_platform, self)?;
 
-        let bin_list = package_version
-            .bins
-            .keys()
-            .map(|k| k.as_ref())
-            .collect::<Vec<&str>>()
-            .join(", ");
-        info!(
-            "{} installed {} with executables: {}",
-            success_prefix(),
-            tool_version(&package_version.name, &package_version.version),
-            bin_list
-        );
-        Ok(())
-    }
+    //     let bin_list = package_version
+    //         .bins
+    //         .keys()
+    //         .map(|k| k.as_ref())
+    //         .collect::<Vec<&str>>()
+    //         .join(", ");
+    //     info!(
+    //         "{} installed {} with executables: {}",
+    //         success_prefix(),
+    //         tool_version(&package_version.name, &package_version.version),
+    //         bin_list
+    //     );
+    //     Ok(())
+    // }
 
     /// Uninstall the specified package.
     pub fn uninstall_package(&self, name: String) -> Fallible<()> {
@@ -280,27 +277,27 @@ impl Session {
         Ok(())
     }
 
-    /// Fetches a Npm version matching the specified semantic versioning requirements.
-    pub fn fetch_npm(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<PackageVersion>> {
-        let inventory = self.inventory.get_mut()?;
-        let hooks = self.hooks.get()?;
-        inventory
-            .packages
-            .fetch("npm", version_spec, hooks.package.as_ref())
-    }
+    // /// Fetches a Npm version matching the specified semantic versioning requirements.
+    // pub fn fetch_npm(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<PackageVersion>> {
+    //     let inventory = self.inventory.get_mut()?;
+    //     let hooks = self.hooks.get()?;
+    //     inventory
+    //         .packages
+    //         .fetch("npm", version_spec, hooks.package.as_ref())
+    // }
 
-    /// Fetches a Package version matching the specified semantic versioning requirements.
-    pub fn fetch_package(
-        &mut self,
-        name: &str,
-        version_spec: &VersionSpec,
-    ) -> Fallible<Fetched<PackageVersion>> {
-        let inventory = self.inventory.get_mut()?;
-        let hooks = self.hooks.get()?;
-        inventory
-            .packages
-            .fetch(name, version_spec, hooks.package.as_ref())
-    }
+    // /// Fetches a Package version matching the specified semantic versioning requirements.
+    // pub fn fetch_package(
+    //     &mut self,
+    //     name: &str,
+    //     version_spec: &VersionSpec,
+    // ) -> Fallible<Fetched<PackageVersion>> {
+    //     let inventory = self.inventory.get_mut()?;
+    //     let hooks = self.hooks.get()?;
+    //     inventory
+    //         .packages
+    //         .fetch(name, version_spec, hooks.package.as_ref())
+    // }
 
     // /// Updates 'volta' in package.json with the Node version matching the specified semantic
     // /// versioning requirements.
@@ -337,27 +334,27 @@ impl Session {
     //     Ok(())
     // }
 
-    /// Updates 'volta' in package.json with the Npm version matching the specified semantic
-    /// versioning requirements.
-    pub fn pin_npm(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
-        if let Some(ref project) = self.project()? {
-            let inventory = self.inventory.get_mut()?;
-            let hooks = self.hooks.get()?;
-            let npm_version = inventory
-                .packages
-                .resolve("npm", version_spec, hooks.package.as_ref())?
-                .version;
-            project.pin_npm(&npm_version)?;
-            info!(
-                "{} pinned {} in package.json",
-                success_prefix(),
-                tool_version("npm", npm_version)
-            );
-        } else {
-            throw!(ErrorDetails::NotInPackage);
-        }
-        Ok(())
-    }
+    // /// Updates 'volta' in package.json with the Npm version matching the specified semantic
+    // /// versioning requirements.
+    // pub fn pin_npm(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
+    //     if let Some(ref project) = self.project()? {
+    //         let inventory = self.inventory.get_mut()?;
+    //         let hooks = self.hooks.get()?;
+    //         let npm_version = inventory
+    //             .packages
+    //             .resolve("npm", version_spec, hooks.package.as_ref())?
+    //             .version;
+    //         project.pin_npm(&npm_version)?;
+    //         info!(
+    //             "{} pinned {} in package.json",
+    //             success_prefix(),
+    //             tool_version("npm", npm_version)
+    //         );
+    //     } else {
+    //         throw!(ErrorDetails::NotInPackage);
+    //     }
+    //     Ok(())
+    // }
 
     /// Gets the installed UserTool with the input name, if any.
     pub fn get_user_tool(&mut self, tool_name: &OsStr) -> Fallible<Option<UserTool>> {

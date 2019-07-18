@@ -740,12 +740,6 @@ fn install_command_for(installer: Installer, in_dir: &OsStr, path_var: &OsStr) -
     command
 }
 
-/// Index of versions of a specific package.
-pub struct PackageIndex {
-    pub latest: Version,
-    pub entries: Vec<PackageEntry>,
-}
-
 #[derive(Debug)]
 pub struct PackageEntry {
     pub version: Version,

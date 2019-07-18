@@ -1,15 +1,16 @@
-use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::iter::FromIterator;
 
+use crate::tool::PackageDetails;
 use crate::version::{option_version_serde, version_serde};
 use semver::Version;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer};
 use volta_fail::Fallible;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct RawNodeIndex(Vec<RawNodeEntry>);
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct RawNodeEntry {
     #[serde(with = "version_serde")]
     pub version: Version,
@@ -51,10 +52,10 @@ where
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct RawYarnIndex(Vec<RawYarnEntry>);
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct RawYarnEntry {
     /// Yarn releases are given a tag name of the form "v$version" where $version
     /// is the release's version string.
@@ -78,7 +79,7 @@ impl RawYarnEntry {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct RawYarnAsset {
     /// The filename of an asset included in a Yarn GitHub release.
     pub name: String,
@@ -93,5 +94,100 @@ impl RawYarnIndex {
             }
         }
         Ok(super::yarn::YarnIndex { entries })
+    }
+}
+
+/// Package Metadata Response
+///
+/// See npm registry API doc:
+/// https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md
+#[derive(Deserialize, Debug)]
+pub struct RawPackageMetadata {
+    pub name: String,
+    pub description: Option<String>,
+    pub versions: HashMap<String, RawPackageVersionInfo>,
+    #[serde(rename = "dist-tags")]
+    pub dist_tags: RawPackageDistTags,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct RawPackageVersionInfo {
+    // there's a lot more in there, but right now just care about the version
+    #[serde(with = "version_serde")]
+    pub version: Version,
+    pub dist: RawDistInfo,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct RawPackageDistTags {
+    #[serde(with = "version_serde")]
+    pub latest: Version,
+    pub beta: Option<String>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct RawDistInfo {
+    pub shasum: String,
+    pub tarball: String,
+}
+
+impl From<RawPackageMetadata> for super::package::PackageIndex {
+    fn from(serial: RawPackageMetadata) -> super::package::PackageIndex {
+        let mut entries: Vec<PackageDetails> = serial
+            .versions
+            .into_iter()
+            .map(|(_, version_info)| PackageDetails {
+                version: version_info.version,
+                tarball_url: version_info.dist.tarball,
+                shasum: version_info.dist.shasum,
+            })
+            .collect();
+
+        entries.sort_by(|a, b| b.version.cmp(&a.version));
+
+        super::package::PackageIndex {
+            latest: serial.dist_tags.latest,
+            entries,
+        }
+    }
+}
+
+// Data structures for `npm view` data
+//
+// $ npm view --json gulp@latest
+// {
+//   "name": "gulp",
+//   "description": "The streaming build system.",
+//   "dist-tags": {
+//     "latest": "4.0.2"
+//   },
+//   "version": "4.0.2",
+//   "engines": {
+//     "node": ">= 0.10"
+//   },
+//   "dist": {
+//     "shasum": "543651070fd0f6ab0a0650c6a3e6ff5a7cb09caa",
+//     "tarball": "https://registry.npmjs.org/gulp/-/gulp-4.0.2.tgz",
+//   },
+//   (...and lots of other stuff we don't use...)
+// }
+//
+#[derive(Deserialize, Clone, Debug)]
+pub struct NpmViewData {
+    pub name: String,
+    #[serde(with = "version_serde")]
+    pub version: Version,
+    pub dist: RawDistInfo,
+    #[serde(rename = "dist-tags")]
+    pub dist_tags: RawPackageDistTags,
+}
+
+impl From<NpmViewData> for PackageDetails {
+    fn from(view_data: NpmViewData) -> PackageDetails {
+        PackageDetails {
+            version: view_data.version,
+            tarball_url: view_data.dist.tarball,
+            shasum: view_data.dist.shasum,
+        }
     }
 }

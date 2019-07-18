@@ -6,6 +6,7 @@ mod serial;
 mod yarn;
 
 pub use node::resolve as node;
+pub use package::resolve as package;
 pub use yarn::resolve as yarn;
 
 fn registry_fetch_error(

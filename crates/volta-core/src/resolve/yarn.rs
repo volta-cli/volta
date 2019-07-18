@@ -4,6 +4,7 @@ use super::{registry_fetch_error, serial};
 use crate::distro::yarn::YarnDistro;
 use crate::error::ErrorDetails;
 use crate::hook::ToolHooks;
+use crate::session::Session;
 use crate::style::progress_spinner;
 use crate::version::VersionSpec;
 use cfg_if::cfg_if;
@@ -32,7 +33,8 @@ cfg_if! {
     }
 }
 
-pub fn resolve(matching: VersionSpec, hooks: Option<&ToolHooks<YarnDistro>>) -> Fallible<Version> {
+pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Version> {
+    let hooks = session.hooks()?.yarn();
     match matching {
         VersionSpec::Latest | VersionSpec::Lts => resolve_latest(hooks),
         VersionSpec::Semver(requirement) => resolve_semver(requirement, hooks),
@@ -84,17 +86,18 @@ fn resolve_semver(
     spinner.finish_and_clear();
     let version_opt = releases.into_iter().rev().find(|v| matching.matches(v));
 
-    if let Some(version) = version_opt {
-        debug!(
-            "Found yarn@{} matching requirement '{}' from {}",
-            version, matching, url
-        );
-        Ok(version)
-    } else {
-        Err(ErrorDetails::YarnVersionNotFound {
+    match version_opt {
+        Some(version) => {
+            debug!(
+                "Found yarn@{} matching requirement '{}' from {}",
+                version, matching, url
+            );
+            Ok(version)
+        }
+        None => Err(ErrorDetails::YarnVersionNotFound {
             matching: matching.to_string(),
         }
-        .into())
+        .into()),
     }
 }
 
