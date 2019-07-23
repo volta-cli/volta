@@ -21,6 +21,10 @@ use super::Origin;
 /// A Node installation tarball.
 pub struct Tarball {
     compressed_size: u64,
+    // Some servers don't return the right data for byte range queries, so
+    // getting the uncompressed archive size for tarballs is an Option.
+    // If the uncompressed size is not available, the compressed size will be
+    // used for the download/unpack progress indicator, so that will be slightly off.
     uncompressed_size: Option<u64>,
     data: Box<Read>,
     origin: Origin,

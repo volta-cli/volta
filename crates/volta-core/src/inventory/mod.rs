@@ -424,9 +424,10 @@ fn match_package_entry(
     entries.find(predicate)
 }
 
-// Use `npm view` to get the info for the package. This supports:
-// * normal package installation from the public npm repo
-// * installing packages from alternate registries, configured via .npmrc
+/// Use `npm view` to get the info for the package. This supports:
+///
+/// * normal package installation from the public npm repo
+/// * installing packages from alternate registries, configured via .npmrc
 fn npm_view_query(name: &str, version: &str) -> Fallible<PackageIndex> {
     let mut command = npm_view_command_for(name, version);
     debug!("Running command: `{:?}`", command);
@@ -451,7 +452,7 @@ fn npm_view_query(name: &str, version: &str) -> Fallible<PackageIndex> {
     // Sometimes the returned JSON is an array (semver case), otherwise it's a single object.
     // Check if the first char is '[' and parse as an array if so
     if response_json.chars().next() == Some('[') {
-        let metadatas = serde_json::de::from_str::<Vec<serial::NpmViewData>>(&response_json)
+        let metadatas: Vec<serial::NpmViewData> = serde_json::de::from_str(&response_json)
             .with_context(|_| ErrorDetails::NpmViewMetadataParseError)?;
         debug!("[parsed package metadata (array)]\n{:?}", metadatas);
 
@@ -476,9 +477,8 @@ fn npm_view_query(name: &str, version: &str) -> Fallible<PackageIndex> {
             .with_context(|_| ErrorDetails::NpmViewMetadataParseError)?;
         debug!("[parsed package metadata (single)]\n{:?}", metadata);
 
-        let latest = metadata.dist_tags.latest.clone();
         Ok(PackageIndex {
-            latest,
+            latest: metadata.dist_tags.latest.clone(),
             entries: vec![metadata.into_index()],
         })
     }

@@ -815,14 +815,14 @@ Use `volta install yarn` to select a default version (see `volta help install fo
             // No CTA as this error is purely informational
             ErrorDetails::NoVersionsFound => write!(f, "No tool versions found"),
             ErrorDetails::NpmViewError => {
-                write!(f, "Error running `npm view` to query package metadata")
+                write!(f, "Error running `npm view` to query package metadata.")
             }
             ErrorDetails::NpmViewMetadataFetchError { stderr } => {
-                write!(f, "Could not download package metadata\n{}", stderr)
+                write!(f, "Could not download package metadata.\n{}", stderr)
             }
             ErrorDetails::NpmViewMetadataParseError => write!(
                 f,
-                "Could not parse package metadata returned from `npm view`"
+                "Could not parse package metadata returned from `npm view`."
             ),
             ErrorDetails::NpxNotAvailable { version } => write!(
                 f,
@@ -856,7 +856,7 @@ Please verify the requested package name.",
             ),
             ErrorDetails::PackageParseError { file } => write!(
                 f,
-                "Could not parse project manifes
+                "Could not parse project manifest
 at {}
 
 Please ensure that the file is correctly formatted.",
