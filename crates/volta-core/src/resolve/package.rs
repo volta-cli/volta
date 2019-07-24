@@ -1,7 +1,6 @@
 use std::process::Command;
 
 use crate::command::create_command;
-use crate::distro::package::PackageDistro;
 use crate::error::ErrorDetails;
 use crate::hook::ToolHooks;
 use crate::session::Session;
@@ -27,7 +26,7 @@ pub fn resolve(
 
 fn resolve_latest(
     name: &str,
-    hooks: Option<&ToolHooks<PackageDistro>>,
+    hooks: Option<&ToolHooks>,
 ) -> Fallible<PackageDetails> {
     let package_index = match hooks {
         Some(&ToolHooks {
@@ -66,7 +65,7 @@ fn resolve_latest(
 fn resolve_semver(
     name: &str,
     matching: VersionReq,
-    hooks: Option<&ToolHooks<PackageDistro>>,
+    hooks: Option<&ToolHooks>,
 ) -> Fallible<PackageDetails> {
     let package_index = match hooks {
         Some(&ToolHooks {

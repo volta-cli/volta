@@ -5,9 +5,8 @@ use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 
 use super::{registry_fetch_error, serial};
-use crate::distro::node::NodeDistro;
 use crate::error::ErrorDetails;
-use crate::fs::{ensure_containing_dir_exists, read_file_opt};
+use crate::fs::{create_staging_file, ensure_containing_dir_exists, read_file_opt};
 use crate::hook::ToolHooks;
 use crate::path;
 use crate::session::Session;
@@ -19,7 +18,6 @@ use log::debug;
 use reqwest;
 use reqwest::hyper_011::header::{CacheControl, CacheDirective, Expires, HttpDate};
 use semver::{Version, VersionReq};
-use tempfile::NamedTempFile;
 use volta_fail::{Fallible, ResultExt};
 
 // ISSUE (#86): Move public repository URLs to config file
@@ -46,7 +44,7 @@ pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Version
     }
 }
 
-fn resolve_latest(hooks: Option<&ToolHooks<NodeDistro>>) -> Fallible<Version> {
+fn resolve_latest(hooks: Option<&ToolHooks>) -> Fallible<Version> {
     // NOTE: This assumes the registry always produces a list in sorted order
     //       from newest to oldest. This should be specified as a requirement
     //       when we document the plugin API.
@@ -74,7 +72,7 @@ fn resolve_latest(hooks: Option<&ToolHooks<NodeDistro>>) -> Fallible<Version> {
     }
 }
 
-fn resolve_lts(hooks: Option<&ToolHooks<NodeDistro>>) -> Fallible<Version> {
+fn resolve_lts(hooks: Option<&ToolHooks>) -> Fallible<Version> {
     let url = match hooks {
         Some(&ToolHooks {
             index: Some(ref hook),
@@ -101,7 +99,7 @@ fn resolve_lts(hooks: Option<&ToolHooks<NodeDistro>>) -> Fallible<Version> {
 
 fn resolve_semver(
     matching: VersionReq,
-    hooks: Option<&ToolHooks<NodeDistro>>,
+    hooks: Option<&ToolHooks>,
 ) -> Fallible<Version> {
     // ISSUE #34: also make sure this OS is available for this version
     let url = match hooks {
@@ -218,15 +216,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::RawNodeIndex> {
                     from_url: url.to_string(),
                 })?;
 
-            let tmp_root = path::tmp_dir()?;
-            // Helper to lazily determine temp dir string, without moving the file into the closures below
-            let get_tmp_root = || tmp_root.to_owned();
-
-            let cached = NamedTempFile::new_in(&tmp_root).with_context(|_| {
-                ErrorDetails::CreateTempFileError {
-                    in_dir: get_tmp_root(),
-                }
-            })?;
+            let cached = create_staging_file()?;
 
             // Block to borrow cached for cached_file.
             {
@@ -246,11 +236,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::RawNodeIndex> {
                 }
             })?;
 
-            let expiry = NamedTempFile::new_in(&tmp_root).with_context(|_| {
-                ErrorDetails::CreateTempFileError {
-                    in_dir: get_tmp_root(),
-                }
-            })?;
+            let expiry = create_staging_file()?;
 
             // Block to borrow expiry for expiry_file.
             {

@@ -50,7 +50,7 @@ pub trait Distro: Sized {
     fn new(
         name: &str,
         version: Self::ResolvedVersion,
-        hooks: Option<&ToolHooks<Self>>,
+        hooks: Option<&ToolHooks>,
     ) -> Fallible<Self>;
 
     /// Produces a reference to this distro's Tool version.

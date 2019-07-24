@@ -165,7 +165,7 @@ impl Distro for NodeDistro {
     fn new(
         _name: &str,
         version: Self::ResolvedVersion,
-        hooks: Option<&ToolHooks<Self>>,
+        hooks: Option<&ToolHooks>,
     ) -> Fallible<Self> {
         match hooks {
             Some(&ToolHooks {

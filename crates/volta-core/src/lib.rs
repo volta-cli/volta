@@ -9,6 +9,7 @@ mod distro;
 pub mod env;
 pub mod error;
 mod event;
+pub(crate) mod fetch;
 pub(crate) mod fs;
 mod hook;
 pub mod inventory;

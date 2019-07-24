@@ -163,7 +163,7 @@ impl Distro for PackageDistro {
     fn new(
         name: &str,
         entry: Self::ResolvedVersion,
-        _hooks: Option<&ToolHooks<Self>>,
+        _hooks: Option<&ToolHooks>,
     ) -> Fallible<Self> {
         let version = entry.version;
         Ok(PackageDistro {

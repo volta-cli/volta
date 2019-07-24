@@ -115,7 +115,7 @@ impl Distro for YarnDistro {
     fn new(
         _name: &str,
         version: Self::ResolvedVersion,
-        hooks: Option<&ToolHooks<Self>>,
+        hooks: Option<&ToolHooks>,
     ) -> Fallible<Self> {
         match hooks {
             Some(&ToolHooks {

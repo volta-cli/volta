@@ -1,7 +1,6 @@
 use std::collections::BTreeSet;
 
 use super::{registry_fetch_error, serial};
-use crate::distro::yarn::YarnDistro;
 use crate::error::ErrorDetails;
 use crate::hook::ToolHooks;
 use crate::session::Session;
@@ -42,7 +41,7 @@ pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Version
     }
 }
 
-fn resolve_latest(hooks: Option<&ToolHooks<YarnDistro>>) -> Fallible<Version> {
+fn resolve_latest(hooks: Option<&ToolHooks>) -> Fallible<Version> {
     let url = match hooks {
         Some(&ToolHooks {
             latest: Some(ref hook),
@@ -65,7 +64,7 @@ fn resolve_latest(hooks: Option<&ToolHooks<YarnDistro>>) -> Fallible<Version> {
 
 fn resolve_semver(
     matching: VersionReq,
-    hooks: Option<&ToolHooks<YarnDistro>>,
+    hooks: Option<&ToolHooks>,
 ) -> Fallible<Version> {
     let url = match hooks {
         Some(&ToolHooks {
