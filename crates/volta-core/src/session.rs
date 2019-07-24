@@ -14,8 +14,8 @@ use crate::inventory::{Inventory, LazyInventory};
 use crate::platform::{PlatformSpec, SourcedPlatformSpec};
 use crate::project::{LazyProject, Project};
 use crate::style::success_prefix;
-use crate::tool;
-use crate::toolchain::LazyToolchain;
+use crate::tool::{Node, Tool, Yarn};
+use crate::toolchain::{LazyToolchain, Toolchain};
 
 use log::{debug, info};
 use semver::Version;
@@ -150,6 +150,14 @@ impl Session {
         self.inventory.get_mut()
     }
 
+    pub fn toolchain(&self) -> Fallible<&Toolchain> {
+        self.toolchain.get()
+    }
+
+    pub fn toolchain_mut(&mut self) -> Fallible<&mut Toolchain> {
+        self.toolchain.get_mut()
+    }
+
     /// Produces a reference to the hook configuration
     pub fn hooks(&self) -> Fallible<&HookConfig> {
         self.hooks.get()
@@ -160,7 +168,7 @@ impl Session {
         let inventory = self.inventory.get_mut()?;
 
         if !inventory.node.contains(version) {
-            tool::Resolved::Node(version.clone()).fetch(self)?;
+            Node::new(version.clone()).fetch(self)?;
         }
 
         Ok(())
@@ -171,7 +179,7 @@ impl Session {
         let inventory = self.inventory.get_mut()?;
 
         if !inventory.yarn.contains(version) {
-            tool::Resolved::Yarn(version.clone()).fetch(self)?;
+            Yarn::new(version.clone()).fetch(self)?;
         }
 
         Ok(())

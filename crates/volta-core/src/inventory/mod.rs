@@ -15,9 +15,6 @@ use crate::distro::Distro;
 
 pub(crate) mod serial;
 
-#[cfg(feature = "mock-network")]
-use mockito;
-
 /// Lazily loaded inventory.
 pub struct LazyInventory {
     inventory: LazyCell<Inventory>,
