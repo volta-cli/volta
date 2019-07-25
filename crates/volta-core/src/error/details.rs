@@ -215,9 +215,7 @@ pub enum ErrorDetails {
     NpmViewError,
 
     /// Thrown when there is an error running `npm view`
-    NpmViewMetadataFetchError {
-        stderr: String,
-    },
+    NpmViewMetadataFetchError,
 
     /// Thrown when there is an parsing the metadata from `npm view`
     NpmViewMetadataParseError,
@@ -814,15 +812,24 @@ Use `volta install yarn` to select a default version (see `volta help install fo
             ),
             // No CTA as this error is purely informational
             ErrorDetails::NoVersionsFound => write!(f, "No tool versions found"),
-            ErrorDetails::NpmViewError => {
-                write!(f, "Error running `npm view` to query package metadata.")
-            }
-            ErrorDetails::NpmViewMetadataFetchError { stderr } => {
-                write!(f, "Could not download package metadata.\n{}", stderr)
-            }
+            ErrorDetails::NpmViewError => write!(
+                f,
+                "Could not query package metadata.
+
+{}",
+                PERMISSIONS_CTA
+            ),
+            ErrorDetails::NpmViewMetadataFetchError => write!(
+                f,
+                "Could not download package metadata.
+
+Please verify your internet connection and confirm that the requested package name is correct."
+            ),
             ErrorDetails::NpmViewMetadataParseError => write!(
                 f,
-                "Could not parse package metadata returned from `npm view`."
+                "Could not parse package metadata.
+
+Please ensure the requested package name is correct."
             ),
             ErrorDetails::NpxNotAvailable { version } => write!(
                 f,
@@ -1313,7 +1320,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::NoUserYarn => ExitCode::ConfigurationError,
             ErrorDetails::NoVersionsFound => ExitCode::NoVersionMatch,
             ErrorDetails::NpmViewError => ExitCode::NetworkError,
-            ErrorDetails::NpmViewMetadataFetchError { .. } => ExitCode::NetworkError,
+            ErrorDetails::NpmViewMetadataFetchError => ExitCode::NetworkError,
             ErrorDetails::NpmViewMetadataParseError { .. } => ExitCode::UnknownError,
             ErrorDetails::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::PackageInstallFailed => ExitCode::FileSystemError,

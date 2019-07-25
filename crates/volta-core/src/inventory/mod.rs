@@ -442,9 +442,13 @@ fn npm_view_query(name: &str, version: &str) -> Fallible<PackageIndex> {
     spinner.finish_and_clear();
 
     if !output.status.success() {
-        throw!(ErrorDetails::NpmViewMetadataFetchError {
-            stderr: String::from_utf8_lossy(&output.stderr).to_string(),
-        });
+        debug!(
+            "Command failed, stderr is:\n{}",
+            String::from_utf8_lossy(&output.stderr).to_string()
+        );
+        // TODO: check for specific exit code, and throw the right error here
+
+        throw!(ErrorDetails::NpmViewMetadataFetchError);
     }
 
     let response_json = String::from_utf8_lossy(&output.stdout);
