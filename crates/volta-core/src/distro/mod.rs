@@ -2,7 +2,6 @@
 
 pub mod node;
 pub mod package;
-pub mod yarn;
 
 use crate::error::ErrorDetails;
 use crate::hook::ToolHooks;
