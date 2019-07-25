@@ -446,8 +446,7 @@ fn npm_view_query(name: &str, version: &str) -> Fallible<PackageIndex> {
             "Command failed, stderr is:\n{}",
             String::from_utf8_lossy(&output.stderr).to_string()
         );
-        // TODO: check for specific exit code, and throw the right error here
-
+        debug!("Exit code is {:?}", output.status.code());
         throw!(ErrorDetails::NpmViewMetadataFetchError);
     }
 

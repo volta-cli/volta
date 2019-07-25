@@ -823,7 +823,7 @@ Use `volta install yarn` to select a default version (see `volta help install fo
                 f,
                 "Could not download package metadata.
 
-Please verify your internet connection and confirm that the requested package name is correct."
+Please verify that the package name is correct, and you have Node installed (using `volta install node`)."
             ),
             ErrorDetails::NpmViewMetadataParseError => write!(
                 f,
