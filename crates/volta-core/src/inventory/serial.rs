@@ -201,9 +201,6 @@ pub struct PackageMetadata {
     pub versions: HashMap<String, PackageVersionInfo>,
     #[serde(rename = "dist-tags")]
     pub dist_tags: PackageDistTags,
-    // TODO: we can get engines in here, don't have to wait to parse the package.json is we don't
-    // want to...
-    // pub engines: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
