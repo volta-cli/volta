@@ -22,26 +22,6 @@ pub enum Fetched<V> {
     Installed(V),
 }
 
-impl<V> Fetched<V> {
-    /// Consumes this value and produces the installed version.
-    pub fn into_version(self) -> V {
-        match self {
-            Fetched::Already(version) | Fetched::Now(version) | Fetched::Installed(version) => {
-                version
-            }
-        }
-    }
-
-    /// Produces a reference to the installed version.
-    pub fn version(&self) -> &V {
-        match self {
-            &Fetched::Already(ref version)
-            | &Fetched::Now(ref version)
-            | &Fetched::Installed(ref version) => version,
-        }
-    }
-}
-
 pub trait Distro: Sized {
     type VersionDetails;
     type ResolvedVersion;
@@ -59,7 +39,10 @@ pub trait Distro: Sized {
 
     /// Fetches this version of the Tool. (It is left to the responsibility of the `Collection`
     /// to update its state after fetching succeeds.)
-    fn fetch(self, collection: &Collection<Self>) -> Fallible<Fetched<Self::VersionDetails>>;
+    fn fetch(
+        self,
+        collection: &Collection<Self::ToolKind>,
+    ) -> Fallible<Fetched<Self::VersionDetails>>;
 }
 
 fn download_tool_error(

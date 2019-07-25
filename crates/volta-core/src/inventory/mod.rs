@@ -4,14 +4,10 @@
 use std::collections::BTreeSet;
 use std::marker::PhantomData;
 
+use crate::tool::{Node, Package, Tool, Yarn};
 use lazycell::LazyCell;
 use semver::Version;
 use volta_fail::Fallible;
-
-use crate::distro::node::NodeDistro;
-use crate::distro::package::PackageDistro;
-use crate::distro::yarn::YarnDistro;
-use crate::distro::Distro;
 
 pub(crate) mod serial;
 
@@ -39,16 +35,16 @@ impl LazyInventory {
     }
 }
 
-pub struct Collection<D: Distro> {
+pub struct Collection<T: Tool> {
     // A sorted collection of the available versions in the inventory.
     pub versions: BTreeSet<Version>,
 
-    pub phantom: PhantomData<D>,
+    pub phantom: PhantomData<T>,
 }
 
-pub type NodeCollection = Collection<NodeDistro>;
-pub type YarnCollection = Collection<YarnDistro>;
-pub type PackageCollection = Collection<PackageDistro>;
+pub type NodeCollection = Collection<Node>;
+pub type YarnCollection = Collection<Yarn>;
+pub type PackageCollection = Collection<Package>;
 
 /// The inventory of locally available tool versions.
 pub struct Inventory {
@@ -68,7 +64,7 @@ impl Inventory {
     }
 }
 
-impl<D: Distro> Collection<D> {
+impl<T: Tool> Collection<T> {
     /// Tests whether this Collection contains the specified Tool version.
     pub fn contains(&self, version: &Version) -> bool {
         self.versions.contains(version)

@@ -24,7 +24,7 @@ use crate::fs::{
     read_dir_eager, read_file_opt,
 };
 use crate::hook::ToolHooks;
-use crate::inventory::Collection;
+use crate::inventory::PackageCollection;
 use crate::manifest::BinManifest;
 use crate::path;
 use crate::platform::{Image, PlatformSpec};
@@ -179,7 +179,7 @@ impl Distro for PackageDistro {
     }
 
     // Fetches and unpacks the PackageDistro
-    fn fetch(self, _collection: &Collection<Self>) -> Fallible<Fetched<PackageVersion>> {
+    fn fetch(self, _collection: &PackageCollection) -> Fallible<Fetched<PackageVersion>> {
         // don't need to fetch if the package is already installed
         if self.is_installed() {
             return Ok(Fetched::Installed(PackageVersion::new(
