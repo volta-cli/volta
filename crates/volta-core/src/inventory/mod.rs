@@ -464,8 +464,7 @@ fn npm_view_query(name: &str, version: &str) -> Fallible<PackageIndex> {
             }),
         };
 
-        let mut entries: Vec<PackageEntry> =
-            metadatas.into_iter().map(|e| e.into_index()).collect();
+        let mut entries: Vec<PackageEntry> = metadatas.into_iter().map(|e| e.into()).collect();
         // sort so that the versions are ordered highest-to-lowest
         entries.sort_by(|a, b| b.version.cmp(&a.version));
 
@@ -473,13 +472,13 @@ fn npm_view_query(name: &str, version: &str) -> Fallible<PackageIndex> {
 
         Ok(PackageIndex { latest, entries })
     } else {
-        let metadata = serde_json::de::from_str::<serial::NpmViewData>(&response_json)
+        let metadata: serial::NpmViewData = serde_json::de::from_str(&response_json)
             .with_context(|_| ErrorDetails::NpmViewMetadataParseError)?;
         debug!("[parsed package metadata (single)]\n{:?}", metadata);
 
         Ok(PackageIndex {
             latest: metadata.dist_tags.latest.clone(),
-            entries: vec![metadata.into_index()],
+            entries: vec![metadata.into()],
         })
     }
 }

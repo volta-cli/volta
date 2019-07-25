@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::{BTreeSet, HashSet};
+use std::convert::From;
 use std::fs::{read_to_string, write};
 use std::iter::FromIterator;
 use std::marker::PhantomData;
@@ -428,12 +429,12 @@ pub struct NpmViewData {
     pub dist_tags: PackageDistTags,
 }
 
-impl NpmViewData {
-    pub fn into_index(self) -> package::PackageEntry {
+impl From<NpmViewData> for package::PackageEntry {
+    fn from(view_data: NpmViewData) -> package::PackageEntry {
         package::PackageEntry {
-            version: self.version,
-            tarball: self.dist.tarball,
-            shasum: self.dist.shasum,
+            version: view_data.version,
+            tarball: view_data.dist.tarball,
+            shasum: view_data.dist.shasum,
         }
     }
 }
