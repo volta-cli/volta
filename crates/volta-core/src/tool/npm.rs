@@ -1,6 +1,7 @@
 use std::fmt::{self, Display};
 
 use super::Tool;
+use crate::error::ErrorDetails;
 use crate::session::Session;
 use crate::style::tool_version;
 use semver::Version;
@@ -19,17 +20,30 @@ impl Npm {
 }
 
 impl Tool for Npm {
+    // ISSUE(#292) Implement actions for npm
     fn fetch(self, _session: &mut Session) -> Fallible<()> {
-        unimplemented!()
+        Err(ErrorDetails::Unimplemented {
+            feature: "Fetching npm".into(),
+        }
+        .into())
     }
     fn install(self, _session: &mut Session) -> Fallible<()> {
-        unimplemented!()
+        Err(ErrorDetails::Unimplemented {
+            feature: "Installing npm".into(),
+        }
+        .into())
     }
     fn pin(self, _session: &mut Session) -> Fallible<()> {
-        unimplemented!()
+        Err(ErrorDetails::Unimplemented {
+            feature: "Pinning npm".into(),
+        }
+        .into())
     }
     fn uninstall(self, _session: &mut Session) -> Fallible<()> {
-        unimplemented!()
+        Err(ErrorDetails::Unimplemented {
+            feature: "Uninstalling npm".into(),
+        }
+        .into())
     }
 }
 

@@ -81,7 +81,7 @@ impl Spec {
             }
             Spec::Package(name, version) => resolve::package(&name, version, session)
                 .map(|details| Resolved::Package(Package::new(name, details))),
-            // Note: To preserve error message context, we always resolve Npm to Version 0.0.0
+            // ISSUE (#292): To preserve error message context, we always resolve Npm to Version 0.0.0
             // This will allow us to show the correct error message based on the user's command
             // e.g. `volta install npm` vs `volta pin npm`
             Spec::Npm(_) => {
