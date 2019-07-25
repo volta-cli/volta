@@ -227,7 +227,7 @@ fn pin_node_reports_info() {
         s.volta("pin node@6"),
         execs()
             .with_status(ExitCode::Success as i32)
-            .with_stderr_contains("[..]pinned node@6.19.62 (with npm@3.10.1066) in package.json")
+            .with_stdout_contains("[..]pinned node@6.19.62 (with npm@3.10.1066) in package.json")
     );
 }
 
@@ -341,7 +341,7 @@ fn pin_yarn_reports_info() {
         s.volta("pin yarn@1.4"),
         execs()
             .with_status(ExitCode::Success as i32)
-            .with_stderr_contains("[..]pinned yarn@1.4.159 in package.json")
+            .with_stdout_contains("[..]pinned yarn@1.4.159 in package.json")
     );
 }
 

@@ -48,7 +48,8 @@ impl Log for Logger {
                 Level::Error => self.log_error(record.args()),
                 Level::Warn => self.log_warning(record.args()),
                 Level::Debug => eprintln!("[verbose] {}", record.args()),
-                _ => eprintln!("{}", record.args()),
+                // all info-level messages go to stdout
+                _ => println!("{}", record.args()),
             }
         }
     }

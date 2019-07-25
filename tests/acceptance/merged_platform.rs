@@ -49,7 +49,7 @@ fn uses_project_yarn_if_available() {
             .with_status(ExitCode::ExecutionFailure as i32)
             .with_stderr_does_not_contain("[..]Yarn is not available.")
             .with_stderr_does_not_contain("[..]No Yarn version found in this project.")
-            .with_stdout_contains("[..]Using yarn@4.55.633 from project configuration")
+            .with_stderr_contains("[..]Using yarn@4.55.633 from project configuration")
     );
 }
 
@@ -67,7 +67,7 @@ fn uses_default_yarn_in_project_without_yarn() {
             .with_status(ExitCode::ExecutionFailure as i32)
             .with_stderr_does_not_contain("[..]Yarn is not available.")
             .with_stderr_does_not_contain("[..]No Yarn version found in this project.")
-            .with_stdout_contains("[..]Using yarn@1.22.300 from default configuration")
+            .with_stderr_contains("[..]Using yarn@1.22.300 from default configuration")
     );
 }
 
@@ -84,7 +84,7 @@ fn uses_default_yarn_outside_project() {
             .with_status(ExitCode::ExecutionFailure as i32)
             .with_stderr_does_not_contain("[..]Yarn is not available.")
             .with_stderr_does_not_contain("[..]No Yarn version found in this project.")
-            .with_stdout_contains("[..]Using yarn@1.22.300 from default configuration")
+            .with_stderr_contains("[..]Using yarn@1.22.300 from default configuration")
     );
 }
 
