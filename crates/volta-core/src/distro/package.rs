@@ -159,11 +159,12 @@ pub struct BinLoader {
 impl Distro for PackageDistro {
     type VersionDetails = PackageVersion;
     type ResolvedVersion = PackageEntry;
+    type ToolKind = tool::Package;
 
     fn new(
         name: &str,
         entry: Self::ResolvedVersion,
-        _hooks: Option<&ToolHooks>,
+        _hooks: Option<&ToolHooks<tool::Package>>,
     ) -> Fallible<Self> {
         let version = entry.version;
         Ok(PackageDistro {

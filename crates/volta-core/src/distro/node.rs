@@ -160,12 +160,13 @@ impl NodeDistro {
 impl Distro for NodeDistro {
     type VersionDetails = NodeVersion;
     type ResolvedVersion = Version;
+    type ToolKind = tool::Node;
 
     /// Provisions a new Distro based on the Version and possible Hooks
     fn new(
         _name: &str,
         version: Self::ResolvedVersion,
-        hooks: Option<&ToolHooks>,
+        hooks: Option<&ToolHooks<tool::Node>>,
     ) -> Fallible<Self> {
         match hooks {
             Some(&ToolHooks {

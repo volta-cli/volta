@@ -1,7 +1,7 @@
 use volta_core::error::report_error;
 use volta_core::log::{LogContext, LogVerbosity, Logger};
-use volta_core::session::{ActivityKind, Session};
 use volta_core::run::execute_tool;
+use volta_core::session::{ActivityKind, Session};
 use volta_fail::ExitCode;
 
 pub fn main() {

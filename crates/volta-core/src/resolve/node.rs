@@ -11,6 +11,7 @@ use crate::hook::ToolHooks;
 use crate::path;
 use crate::session::Session;
 use crate::style::progress_spinner;
+use crate::tool::Node;
 use crate::version::VersionSpec;
 use cfg_if::cfg_if;
 use headers_011::Headers011;
@@ -44,7 +45,7 @@ pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Version
     }
 }
 
-fn resolve_latest(hooks: Option<&ToolHooks>) -> Fallible<Version> {
+fn resolve_latest(hooks: Option<&ToolHooks<Node>>) -> Fallible<Version> {
     // NOTE: This assumes the registry always produces a list in sorted order
     //       from newest to oldest. This should be specified as a requirement
     //       when we document the plugin API.
@@ -72,7 +73,7 @@ fn resolve_latest(hooks: Option<&ToolHooks>) -> Fallible<Version> {
     }
 }
 
-fn resolve_lts(hooks: Option<&ToolHooks>) -> Fallible<Version> {
+fn resolve_lts(hooks: Option<&ToolHooks<Node>>) -> Fallible<Version> {
     let url = match hooks {
         Some(&ToolHooks {
             index: Some(ref hook),
@@ -97,10 +98,7 @@ fn resolve_lts(hooks: Option<&ToolHooks>) -> Fallible<Version> {
     }
 }
 
-fn resolve_semver(
-    matching: VersionReq,
-    hooks: Option<&ToolHooks>,
-) -> Fallible<Version> {
+fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Node>>) -> Fallible<Version> {
     // ISSUE #34: also make sure this OS is available for this version
     let url = match hooks {
         Some(&ToolHooks {

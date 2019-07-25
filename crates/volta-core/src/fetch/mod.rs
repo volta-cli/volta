@@ -1,5 +1,5 @@
-use crate::tool;
 use crate::error::ErrorDetails;
+use crate::tool;
 
 mod node;
 mod package;

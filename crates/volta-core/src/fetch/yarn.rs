@@ -7,7 +7,7 @@ use crate::fs::{create_staging_dir, create_staging_file, ensure_containing_dir_e
 use crate::hook::ToolHooks;
 use crate::path;
 use crate::style::{progress_bar, tool_version};
-use crate::tool;
+use crate::tool::{self, Yarn};
 use crate::version::VersionSpec;
 use archive::{Archive, Tarball};
 use cfg_if::cfg_if;
@@ -27,7 +27,7 @@ cfg_if! {
     }
 }
 
-pub fn fetch(version: &Version, hooks: Option<&ToolHooks>) -> Fallible<()> {
+pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<()> {
     let yarn_dir = path::yarn_inventory_dir()?;
     let cache_file = yarn_dir.join(path::yarn_distro_file_name(&version.to_string()));
 
@@ -113,10 +113,7 @@ fn load_cached_distro(file: &PathBuf) -> Option<Box<Archive>> {
 }
 
 /// Determine the remote URL to download from, using the hooks if available
-fn determine_remote_url(
-    version: &Version,
-    hooks: Option<&ToolHooks>,
-) -> Fallible<String> {
+fn determine_remote_url(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<String> {
     let version_str = version.to_string();
     let distro_file_name = path::yarn_distro_file_name(&version_str);
     match hooks {

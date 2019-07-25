@@ -45,12 +45,13 @@ impl<V> Fetched<V> {
 pub trait Distro: Sized {
     type VersionDetails;
     type ResolvedVersion;
+    type ToolKind: tool::Tool;
 
     /// Provisions a new Distro based on the name, Version and Possible Hooks
     fn new(
         name: &str,
         version: Self::ResolvedVersion,
-        hooks: Option<&ToolHooks>,
+        hooks: Option<&ToolHooks<Self::ToolKind>>,
     ) -> Fallible<Self>;
 
     /// Produces a reference to this distro's Tool version.

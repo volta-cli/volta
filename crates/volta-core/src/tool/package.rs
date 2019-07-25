@@ -47,4 +47,3 @@ impl Display for Package {
         f.write_str(&tool_version(&self.name, &self.details.version))
     }
 }
-

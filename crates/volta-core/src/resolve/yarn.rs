@@ -5,6 +5,7 @@ use crate::error::ErrorDetails;
 use crate::hook::ToolHooks;
 use crate::session::Session;
 use crate::style::progress_spinner;
+use crate::tool::Yarn;
 use crate::version::VersionSpec;
 use cfg_if::cfg_if;
 use log::debug;
@@ -41,7 +42,7 @@ pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Version
     }
 }
 
-fn resolve_latest(hooks: Option<&ToolHooks>) -> Fallible<Version> {
+fn resolve_latest(hooks: Option<&ToolHooks<Yarn>>) -> Fallible<Version> {
     let url = match hooks {
         Some(&ToolHooks {
             latest: Some(ref hook),
@@ -62,10 +63,7 @@ fn resolve_latest(hooks: Option<&ToolHooks>) -> Fallible<Version> {
     VersionSpec::parse_version(response_text)
 }
 
-fn resolve_semver(
-    matching: VersionReq,
-    hooks: Option<&ToolHooks>,
-) -> Fallible<Version> {
+fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<Version> {
     let url = match hooks {
         Some(&ToolHooks {
             index: Some(ref hook),

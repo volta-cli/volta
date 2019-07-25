@@ -1,8 +1,10 @@
-use std::path::Path;
 use std::convert::{TryFrom, TryInto};
+use std::marker::PhantomData;
+use std::path::Path;
 
 use super::tool;
 use crate::error::ErrorDetails;
+use crate::tool::{Node, Package, Tool, Yarn};
 use serde::{Deserialize, Serialize};
 use volta_fail::{Fallible, VoltaError};
 
@@ -98,9 +100,9 @@ impl TryFrom<RawPublishHook> for super::Publish {
 
 #[derive(Serialize, Deserialize)]
 pub struct RawHookConfig {
-    pub node: Option<RawToolHooks>,
-    pub yarn: Option<RawToolHooks>,
-    pub packages: Option<RawToolHooks>,
+    pub node: Option<RawToolHooks<Node>>,
+    pub yarn: Option<RawToolHooks<Yarn>>,
+    pub packages: Option<RawToolHooks<Package>>,
     pub events: Option<RawEventHooks>,
 }
 
@@ -116,18 +118,19 @@ impl TryFrom<RawEventHooks> for super::EventHooks {
     fn try_from(raw: RawEventHooks) -> Fallible<super::EventHooks> {
         let publish = raw.publish.map(|p| p.try_into()).transpose()?;
 
-        Ok(super::EventHooks {
-            publish
-        })
+        Ok(super::EventHooks { publish })
     }
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename = "tool")]
-pub struct RawToolHooks {
+pub struct RawToolHooks<T: Tool> {
     pub distro: Option<RawResolveHook>,
     pub latest: Option<RawResolveHook>,
     pub index: Option<RawResolveHook>,
+
+    #[serde(skip)]
+    pub phantom: PhantomData<T>,
 }
 
 impl RawHookConfig {
@@ -148,8 +151,8 @@ impl RawHookConfig {
     }
 }
 
-impl RawToolHooks {
-    pub fn into_tool_hooks(self, base_dir: &Path) -> Fallible<super::ToolHooks> {
+impl<T: Tool> RawToolHooks<T> {
+    pub fn into_tool_hooks(self, base_dir: &Path) -> Fallible<super::ToolHooks<T>> {
         let distro = self
             .distro
             .map(|d| d.into_distro_hook(base_dir))
@@ -167,6 +170,7 @@ impl RawToolHooks {
             distro,
             latest,
             index,
+            phantom: PhantomData,
         })
     }
 }

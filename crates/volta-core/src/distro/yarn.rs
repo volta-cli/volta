@@ -110,12 +110,13 @@ impl YarnDistro {
 impl Distro for YarnDistro {
     type VersionDetails = Version;
     type ResolvedVersion = Version;
+    type ToolKind = tool::Yarn;
 
     /// Provisions a new Distro based on the Version and possible Hooks
     fn new(
         _name: &str,
         version: Self::ResolvedVersion,
-        hooks: Option<&ToolHooks>,
+        hooks: Option<&ToolHooks<tool::Yarn>>,
     ) -> Fallible<Self> {
         match hooks {
             Some(&ToolHooks {

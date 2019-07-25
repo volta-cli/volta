@@ -110,6 +110,5 @@ pub fn create_staging_file() -> Fallible<NamedTempFile> {
 /// Creates a staging directory in the Volta tmp directory
 pub fn create_staging_dir() -> Fallible<TempDir> {
     let tmp_root = path::tmp_dir()?;
-    tempdir_in(&tmp_root)
-        .with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })
+    tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })
 }

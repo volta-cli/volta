@@ -2,10 +2,12 @@
 
 use std::env;
 use std::fs::File;
+use std::marker::PhantomData;
 use std::path::Path;
 
 use crate::error::ErrorDetails;
 use crate::path::{find_project_dir, user_hooks_file};
+use crate::tool::{Node, Package, Tool, Yarn};
 use lazycell::LazyCell;
 use log::debug;
 use volta_fail::{Fallible, ResultExt};
@@ -44,29 +46,32 @@ impl LazyHookConfig {
 
 /// Volta hook configuration
 pub struct HookConfig {
-    pub node: Option<ToolHooks>,
-    pub yarn: Option<ToolHooks>,
-    pub package: Option<ToolHooks>,
+    pub node: Option<ToolHooks<Node>>,
+    pub yarn: Option<ToolHooks<Yarn>>,
+    pub package: Option<ToolHooks<Package>>,
     pub events: Option<EventHooks>,
 }
 
 /// Volta hooks for an individual tool
-pub struct ToolHooks {
+pub struct ToolHooks<T: Tool> {
     /// The hook for resolving the URL for a distro version
     pub distro: Option<tool::DistroHook>,
     /// The hook for resolving the URL for the latest version
     pub latest: Option<tool::MetadataHook>,
     /// The hook for resolving the Tool Index URL
     pub index: Option<tool::MetadataHook>,
+
+    pub phantom: PhantomData<T>,
 }
 
-impl ToolHooks {
+impl<T: Tool> ToolHooks<T> {
     /// Creates a merged struct, with "right" having precedence over "left".
     fn merge(left: Self, right: Self) -> Self {
         Self {
             distro: right.distro.or(left.distro),
             latest: right.latest.or(left.latest),
             index: right.index.or(left.index),
+            phantom: PhantomData,
         }
     }
 }
@@ -83,15 +88,15 @@ macro_rules! merge_hook_config_field {
 }
 
 impl HookConfig {
-    pub fn node(&self) -> Option<&ToolHooks> {
+    pub fn node(&self) -> Option<&ToolHooks<Node>> {
         self.node.as_ref()
     }
 
-    pub fn yarn(&self) -> Option<&ToolHooks> {
+    pub fn yarn(&self) -> Option<&ToolHooks<Yarn>> {
         self.yarn.as_ref()
     }
 
-    pub fn package(&self) -> Option<&ToolHooks> {
+    pub fn package(&self) -> Option<&ToolHooks<Package>> {
         self.package.as_ref()
     }
 

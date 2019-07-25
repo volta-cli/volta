@@ -5,7 +5,7 @@ use crate::error::ErrorDetails;
 use crate::hook::ToolHooks;
 use crate::session::Session;
 use crate::style::{progress_spinner, tool_version};
-use crate::tool::PackageDetails;
+use crate::tool::{Package, PackageDetails};
 use crate::version::VersionSpec;
 use log::debug;
 use semver::{Version, VersionReq};
@@ -24,10 +24,7 @@ pub fn resolve(
     }
 }
 
-fn resolve_latest(
-    name: &str,
-    hooks: Option<&ToolHooks>,
-) -> Fallible<PackageDetails> {
+fn resolve_latest(name: &str, hooks: Option<&ToolHooks<Package>>) -> Fallible<PackageDetails> {
     let package_index = match hooks {
         Some(&ToolHooks {
             latest: Some(ref hook),
@@ -65,7 +62,7 @@ fn resolve_latest(
 fn resolve_semver(
     name: &str,
     matching: VersionReq,
-    hooks: Option<&ToolHooks>,
+    hooks: Option<&ToolHooks<Package>>,
 ) -> Fallible<PackageDetails> {
     let package_index = match hooks {
         Some(&ToolHooks {
