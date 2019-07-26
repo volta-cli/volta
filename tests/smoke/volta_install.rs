@@ -85,6 +85,9 @@ const COWSAY_HELLO: &'static str = r#" _______
 fn install_package() {
     let p = temp_project().build();
 
+    // have to install node first, because we need npm
+    assert_that!(p.volta("install node@10.4.1"), execs().with_status(0));
+
     assert_that!(p.volta("install cowsay@1.4.0"), execs().with_status(0));
     assert_eq!(p.shim_exists("cowsay"), true);
 

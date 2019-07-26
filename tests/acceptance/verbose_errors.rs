@@ -21,7 +21,7 @@ fn no_cause_shown_if_no_verbose_flag() {
         s.volta("install node@10"),
         execs()
             .with_status(ExitCode::NetworkError as i32)
-            .with_stdout_does_not_contain("[..]Error cause[..]")
+            .with_stderr_does_not_contain("[..]Error cause[..]")
     );
 }
 
@@ -33,7 +33,7 @@ fn cause_shown_if_verbose_flag() {
         s.volta("install node@10 --verbose"),
         execs()
             .with_status(ExitCode::NetworkError as i32)
-            .with_stdout_contains("[..]Error cause[..]")
+            .with_stderr_contains("[..]Error cause[..]")
     );
 }
 
@@ -45,7 +45,7 @@ fn no_cause_if_no_underlying_error() {
         s.volta("use --verbose"),
         execs()
             .with_status(ExitCode::InvalidArguments as i32)
-            .with_stdout_does_not_contain("[..]Error cause[..]")
+            .with_stderr_does_not_contain("[..]Error cause[..]")
     );
 }
 

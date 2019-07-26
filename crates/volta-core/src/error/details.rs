@@ -211,6 +211,15 @@ pub enum ErrorDetails {
 
     NoVersionsFound,
 
+    /// Thrown when there is an error running `npm view`
+    NpmViewError,
+
+    /// Thrown when there is an error running `npm view`
+    NpmViewMetadataFetchError,
+
+    /// Thrown when there is an parsing the metadata from `npm view`
+    NpmViewMetadataParseError,
+
     NpxNotAvailable {
         version: String,
     },
@@ -803,6 +812,25 @@ Use `volta install yarn` to select a default version (see `volta help install fo
             ),
             // No CTA as this error is purely informational
             ErrorDetails::NoVersionsFound => write!(f, "No tool versions found"),
+            ErrorDetails::NpmViewError => write!(
+                f,
+                "Could not query package metadata.
+
+{}",
+                PERMISSIONS_CTA
+            ),
+            ErrorDetails::NpmViewMetadataFetchError => write!(
+                f,
+                "Could not download package metadata.
+
+Please verify that the package name is correct, and you have Node installed (using `volta install node`)."
+            ),
+            ErrorDetails::NpmViewMetadataParseError => write!(
+                f,
+                "Could not parse package metadata.
+
+Please ensure the requested package name is correct."
+            ),
             ErrorDetails::NpxNotAvailable { version } => write!(
                 f,
                 "'npx' is only available with npm >= 5.2.0
@@ -1291,6 +1319,9 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::NotInPackage => ExitCode::ConfigurationError,
             ErrorDetails::NoUserYarn => ExitCode::ConfigurationError,
             ErrorDetails::NoVersionsFound => ExitCode::NoVersionMatch,
+            ErrorDetails::NpmViewError => ExitCode::NetworkError,
+            ErrorDetails::NpmViewMetadataFetchError => ExitCode::NetworkError,
+            ErrorDetails::NpmViewMetadataParseError { .. } => ExitCode::UnknownError,
             ErrorDetails::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::PackageInstallFailed => ExitCode::FileSystemError,
             ErrorDetails::PackageMetadataFetchError { .. } => ExitCode::NetworkError,

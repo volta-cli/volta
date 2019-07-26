@@ -21,7 +21,11 @@ use super::Origin;
 /// A Node installation tarball.
 pub struct Tarball {
     compressed_size: u64,
-    uncompressed_size: u64,
+    // Some servers don't return the right data for byte range queries, so
+    // getting the uncompressed archive size for tarballs is an Option.
+    // If the uncompressed size is not available, the compressed size will be
+    // used for the download/unpack progress indicator, so that will be slightly off.
+    uncompressed_size: Option<u64>,
     data: Box<Read>,
     origin: Origin,
 }
@@ -50,7 +54,7 @@ fn content_length(response: &Response) -> Result<u64, failure::Error> {
 impl Tarball {
     /// Loads a tarball from the specified file.
     pub fn load(mut source: File) -> Result<Box<Archive>, failure::Error> {
-        let uncompressed_size = load_uncompressed_size(&mut source)?;
+        let uncompressed_size = load_uncompressed_size(&mut source);
         let compressed_size = source.metadata()?.len();
         Ok(Box::new(Tarball {
             uncompressed_size,
@@ -73,10 +77,10 @@ impl Tarball {
         }
 
         let compressed_size = content_length(&response)?;
-
-        ensure_accepts_byte_ranges(&response)?;
-
-        let uncompressed_size = fetch_uncompressed_size(url, compressed_size)?;
+        let uncompressed_size = match accepts_byte_ranges(&response) {
+            true => fetch_uncompressed_size(url, compressed_size),
+            false => None,
+        };
 
         let file = File::create(cache_file)?;
         let data = Box::new(TeeReader::new(response, file));
@@ -95,7 +99,7 @@ impl Archive for Tarball {
         self.compressed_size
     }
     fn uncompressed_size(&self) -> Option<u64> {
-        Some(self.uncompressed_size)
+        self.uncompressed_size
     }
     fn unpack(
         self: Box<Self>,
@@ -178,20 +182,12 @@ fn load_isize(file: &mut File) -> Result<[u8; 4], failure::Error> {
     Ok(buf)
 }
 
-#[derive(Fail, Debug)]
-#[fail(display = "HTTP server does not accept byte range requests")]
-struct ByteRangesNotAcceptedError;
-
-fn ensure_accepts_byte_ranges(response: &Response) -> Result<(), failure::Error> {
-    if !response
+fn accepts_byte_ranges(response: &Response) -> bool {
+    response
         .headers()
         .get_011::<AcceptRanges>()
         .map(|v| v.iter().any(|unit| *unit == RangeUnit::Bytes))
         .unwrap_or(false)
-    {
-        Err(ByteRangesNotAcceptedError)?;
-    }
-    Ok(())
 }
 
 /// Determines the uncompressed size of a gzip file hosted at the specified
@@ -199,15 +195,17 @@ fn ensure_accepts_byte_ranges(response: &Response) -> Result<(), failure::Error>
 /// an extra round-trip to the server, so it's only more efficient than just
 /// downloading the file if the file is large enough that downloading it is
 /// slower than the extra round trips.
-fn fetch_uncompressed_size(url: &str, len: u64) -> Result<u64, failure::Error> {
-    let packed = fetch_isize(url, len)?;
-    Ok(unpack_isize(packed))
+fn fetch_uncompressed_size(url: &str, len: u64) -> Option<u64> {
+    // if there is an error, we ignore it and return None, instead of failing
+    fetch_isize(url, len)
+        .ok()
+        .map(|packed| unpack_isize(packed))
 }
 
 /// Determines the uncompressed size of the specified gzip file on disk.
-fn load_uncompressed_size(file: &mut File) -> Result<u64, failure::Error> {
-    let packed = load_isize(file)?;
-    Ok(unpack_isize(packed))
+fn load_uncompressed_size(file: &mut File) -> Option<u64> {
+    // if there is an error, we ignore it and return None, instead of failing
+    load_isize(file).ok().map(|packed| unpack_isize(packed))
 }
 
 #[cfg(test)]

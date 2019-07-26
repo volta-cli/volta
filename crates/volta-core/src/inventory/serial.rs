@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::{BTreeSet, HashSet};
+use std::convert::From;
 use std::fs::{read_to_string, write};
 use std::iter::FromIterator;
 use std::marker::PhantomData;
@@ -210,14 +211,14 @@ pub struct PackageVersionInfo {
     pub dist: DistInfo,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PackageDistTags {
     #[serde(with = "version_serde")]
     pub latest: Version,
     pub beta: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DistInfo {
     pub shasum: String,
     pub tarball: String,
@@ -391,6 +392,46 @@ impl BinLoader {
         package::BinLoader {
             command: self.command,
             args: self.args,
+        }
+    }
+}
+
+// Data structures for `npm view` data
+//
+// $ npm view --json gulp@latest
+// {
+//   "name": "gulp",
+//   "description": "The streaming build system.",
+//   "dist-tags": {
+//     "latest": "4.0.2"
+//   },
+//   "version": "4.0.2",
+//   "engines": {
+//     "node": ">= 0.10"
+//   },
+//   "dist": {
+//     "shasum": "543651070fd0f6ab0a0650c6a3e6ff5a7cb09caa",
+//     "tarball": "https://registry.npmjs.org/gulp/-/gulp-4.0.2.tgz",
+//   },
+//   (...and lots of other stuff we don't use...)
+// }
+//
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct NpmViewData {
+    pub name: String,
+    #[serde(with = "version_serde")]
+    pub version: Version,
+    pub dist: DistInfo,
+    #[serde(rename = "dist-tags")]
+    pub dist_tags: PackageDistTags,
+}
+
+impl From<NpmViewData> for package::PackageEntry {
+    fn from(view_data: NpmViewData) -> package::PackageEntry {
+        package::PackageEntry {
+            version: view_data.version,
+            tarball: view_data.dist.tarball,
+            shasum: view_data.dist.shasum,
         }
     }
 }
