@@ -1,3 +1,5 @@
+//! Provides resolution of Node requirements into specific versions, using the NodeJS index
+
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::Write;

@@ -1,3 +1,5 @@
+//! Provides resolution of Yarn requirements into specific versions
+
 use std::collections::BTreeSet;
 
 use super::{registry_fetch_error, serial};

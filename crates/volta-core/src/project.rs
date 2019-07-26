@@ -9,12 +9,13 @@ use std::rc::Rc;
 use lazycell::LazyCell;
 use semver::Version;
 
-use crate::distro::node::{load_default_npm_version, NodeVersion};
 use crate::distro::package::BinConfig;
 use crate::error::ErrorDetails;
+use crate::fetch::load_default_npm_version;
 use crate::manifest::{serial, Manifest};
 use crate::path;
 use crate::platform::PlatformSpec;
+use crate::tool::NodeVersion;
 use log::debug;
 use volta_fail::{Fallible, ResultExt};
 

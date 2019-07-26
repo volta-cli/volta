@@ -1,3 +1,5 @@
+//! Provides methods for resolving a user-provided tool version requirement into a concrete version
+
 use crate::error::ErrorDetails;
 
 mod node;

@@ -1,3 +1,5 @@
+//! Provides fetcher for Yarn distributions
+
 use std::fs::{rename, File};
 use std::path::{Path, PathBuf};
 
@@ -56,6 +58,7 @@ pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<()>
     }
 }
 
+/// Unpack the yarn archive into the image directory so that it is ready for use
 fn unpack_archive(archive: Box<Archive>, version: &Version) -> Fallible<()> {
     let temp = create_staging_dir()?;
     debug!("Unpacking yarn into '{}'", temp.path().display());

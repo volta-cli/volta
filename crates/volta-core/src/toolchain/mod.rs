@@ -4,11 +4,11 @@ use lazycell::LazyCell;
 use readext::ReadExt;
 use semver::Version;
 
-use crate::distro::node::NodeVersion;
 use crate::error::ErrorDetails;
 use crate::fs::touch;
 use crate::path::user_platform_file;
 use crate::platform::PlatformSpec;
+use crate::tool::NodeVersion;
 
 use log::debug;
 use volta_fail::{Fallible, ResultExt};

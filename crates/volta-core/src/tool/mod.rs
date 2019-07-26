@@ -14,7 +14,7 @@ mod package;
 mod parse;
 mod yarn;
 
-pub use node::Node;
+pub use node::{Node, NodeVersion};
 pub use npm::Npm;
 pub use package::{Package, PackageDetails};
 pub use yarn::Yarn;

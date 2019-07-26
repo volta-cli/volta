@@ -18,9 +18,7 @@ impl Yarn {
     pub fn new(version: Version) -> Self {
         Yarn { version }
     }
-}
 
-impl Yarn {
     fn fetch_internal(&self, session: &mut Session) -> Fallible<()> {
         let inventory = session.inventory()?;
         if inventory.yarn.contains(&self.version) {
@@ -44,7 +42,6 @@ impl Tool for Yarn {
         self.fetch_internal(session)?;
 
         info_fetched(self);
-
         Ok(())
     }
     fn install(self, session: &mut Session) -> Fallible<()> {
@@ -53,15 +50,14 @@ impl Tool for Yarn {
         session.toolchain_mut()?.set_active_yarn(&self.version)?;
 
         info_installed(self);
-
         Ok(())
     }
     fn pin(self, session: &mut Session) -> Fallible<()> {
         if let Some(ref project) = session.project()? {
             self.fetch_internal(session)?;
             project.pin_yarn(&self.version)?;
-            info_pinned(self);
 
+            info_pinned(self);
             Ok(())
         } else {
             Err(ErrorDetails::NotInPackage.into())

@@ -1,3 +1,5 @@
+//! Provides methods for fetching tool distributions into the local inventory.
+
 use crate::error::ErrorDetails;
 use crate::tool;
 
@@ -5,6 +7,8 @@ mod node;
 mod package;
 mod yarn;
 
+pub use node::fetch as node;
+pub use node::load_default_npm_version;
 pub use yarn::fetch as yarn;
 
 fn download_tool_error(

@@ -1,3 +1,5 @@
+//! Provides resolution of 3rd-party packages into specific versions, using the npm repository
+
 use std::process::Command;
 
 use crate::command::create_command;
