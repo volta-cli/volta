@@ -91,12 +91,6 @@ impl Tool for Node {
             Err(ErrorDetails::NotInPackage.into())
         }
     }
-    fn uninstall(self, _session: &mut Session) -> Fallible<()> {
-        Err(ErrorDetails::Unimplemented {
-            feature: "Uninstalling node".into(),
-        }
-        .into())
-    }
 }
 
 impl Display for Node {

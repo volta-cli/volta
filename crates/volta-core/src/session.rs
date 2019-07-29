@@ -7,17 +7,16 @@ use std::fmt::{self, Display, Formatter};
 use std::process::exit;
 use std::rc::Rc;
 
-use crate::distro::package::{PackageVersion, UserTool};
+use crate::distro::package::UserTool;
 use crate::event::EventLog;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
 use crate::inventory::{Inventory, LazyInventory};
 use crate::platform::{PlatformSpec, SourcedPlatformSpec};
 use crate::project::{LazyProject, Project};
-use crate::style::success_prefix;
 use crate::tool::{Node, Tool, Yarn};
 use crate::toolchain::{LazyToolchain, Toolchain};
 
-use log::{debug, info};
+use log::debug;
 use semver::Version;
 use volta_fail::{ExitCode, Fallible, VoltaError};
 
@@ -105,6 +104,13 @@ impl Session {
         self.project.get()
     }
 
+    /// Returns the user's currently active platform, if any
+    ///
+    /// Active platform is determined by first looking at the Project Platform
+    /// - If it exists and has a Yarn version, then we use the project platform
+    /// - If it exists but doesn't have a Yarn version, then we merge the two,
+    ///   pulling Yarn from the user default platform, if available
+    /// - If there is no Project platform, then we use the user Default Platform
     pub fn current_platform(&self) -> Fallible<Option<SourcedPlatformSpec>> {
         if let Some(platform) = self.project_platform()? {
             if platform.yarn.is_some() {
@@ -125,6 +131,7 @@ impl Session {
         }
     }
 
+    /// Returns the user's default platform, if any
     pub fn user_platform(&self) -> Fallible<Option<Rc<PlatformSpec>>> {
         let toolchain = self.toolchain.get()?;
         Ok(toolchain
@@ -150,10 +157,12 @@ impl Session {
         self.inventory.get_mut()
     }
 
+    /// Produces a reference to the current toolchain (default platform specification)
     pub fn toolchain(&self) -> Fallible<&Toolchain> {
         self.toolchain.get()
     }
 
+    /// Produces a mutable reference to the current toolchain
     pub fn toolchain_mut(&mut self) -> Fallible<&mut Toolchain> {
         self.toolchain.get_mut()
     }
@@ -184,30 +193,6 @@ impl Session {
 
         Ok(())
     }
-
-    // /// Fetch and unpack a version of Node matching the input requirements.
-    // pub fn install_node(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
-    //     let node_distro = self.fetch_node(version_spec)?.into_version();
-    //     let success_message = format!(
-    //         "installed and set {} as default",
-    //         tool_version("node", &node_distro.runtime)
-    //     );
-    //     let toolchain = self.toolchain.get_mut()?;
-
-    //     toolchain.set_active_node(node_distro)?;
-    //     info!("{} {}", success_prefix(), success_message);
-
-    //     Ok(())
-    // }
-
-    // /// Fetch, unpack, and install a version of Npm matching the input requirements.
-    // // ISSUE(#292): Install npm as part of the platform
-    // pub fn install_npm(&mut self, _version_spec: &VersionSpec) -> Fallible<()> {
-    //     Err(ErrorDetails::Unimplemented {
-    //         feature: "installing npm".into(),
-    //     }
-    //     .into())
-    // }
 
     // /// Fetch, unpack, and install a package matching the input requirements.
     // pub fn install_package(&mut self, name: String, version: &VersionSpec) -> Fallible<()> {
@@ -262,23 +247,6 @@ impl Session {
     //     Ok(())
     // }
 
-    /// Uninstall the specified package.
-    pub fn uninstall_package(&self, name: String) -> Fallible<()> {
-        PackageVersion::uninstall(&name)?;
-
-        info!("{} package '{}' uninstalled", success_prefix(), name);
-        Ok(())
-    }
-
-    // /// Fetches a Npm version matching the specified semantic versioning requirements.
-    // pub fn fetch_npm(&mut self, version_spec: &VersionSpec) -> Fallible<Fetched<PackageVersion>> {
-    //     let inventory = self.inventory.get_mut()?;
-    //     let hooks = self.hooks.get()?;
-    //     inventory
-    //         .packages
-    //         .fetch("npm", version_spec, hooks.package.as_ref())
-    // }
-
     // /// Fetches a Package version matching the specified semantic versioning requirements.
     // pub fn fetch_package(
     //     &mut self,
@@ -290,46 +258,6 @@ impl Session {
     //     inventory
     //         .packages
     //         .fetch(name, version_spec, hooks.package.as_ref())
-    // }
-
-    // /// Updates 'volta' in package.json with the Node version matching the specified semantic
-    // /// versioning requirements.
-    // pub fn pin_node(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
-    //     if let Some(ref project) = self.project()? {
-    //         let node_version = self.fetch_node(version_spec)?.into_version();
-    //         project.pin_node(&node_version)?;
-    //         info!(
-    //             "{} pinned {} (with {}) in package.json",
-    //             success_prefix(),
-    //             tool_version("node", node_version.runtime),
-    //             tool_version("npm", node_version.npm),
-    //         );
-    //     } else {
-    //         throw!(ErrorDetails::NotInPackage);
-    //     }
-    //     Ok(())
-    // }
-
-    // /// Updates 'volta' in package.json with the Npm version matching the specified semantic
-    // /// versioning requirements.
-    // pub fn pin_npm(&mut self, version_spec: &VersionSpec) -> Fallible<()> {
-    //     if let Some(ref project) = self.project()? {
-    //         let inventory = self.inventory.get_mut()?;
-    //         let hooks = self.hooks.get()?;
-    //         let npm_version = inventory
-    //             .packages
-    //             .resolve("npm", version_spec, hooks.package.as_ref())?
-    //             .version;
-    //         project.pin_npm(&npm_version)?;
-    //         info!(
-    //             "{} pinned {} in package.json",
-    //             success_prefix(),
-    //             tool_version("npm", npm_version)
-    //         );
-    //     } else {
-    //         throw!(ErrorDetails::NotInPackage);
-    //     }
-    //     Ok(())
     // }
 
     /// Gets the installed UserTool with the input name, if any.

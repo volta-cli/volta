@@ -1,5 +1,6 @@
 use std::fmt::{self, Display};
 
+use crate::error::ErrorDetails;
 use crate::resolve;
 use crate::session::Session;
 use crate::style::{success_prefix, tool_version};
@@ -47,8 +48,6 @@ pub trait Tool: Display {
     fn install(self, session: &mut Session) -> Fallible<()>;
     /// Pin a tool in the local project so that it is usable within the project
     fn pin(self, session: &mut Session) -> Fallible<()>;
-    /// Uninstall a tool, removing it from the local inventory
-    fn uninstall(self, session: &mut Session) -> Fallible<()>;
 }
 
 /// Specification for a tool and its associated version.
@@ -89,6 +88,32 @@ impl Spec {
             }
         }
     }
+
+    /// Uninstall a tool, removing it from the local inventory
+    ///
+    /// This is implemented on Spec, instead of Resolved, because there is currently no need to
+    /// resolve the specific version before uninstalling a tool.
+    pub fn uninstall(self) -> Fallible<()> {
+        match self {
+            Spec::Node(_) => Err(ErrorDetails::Unimplemented {
+                feature: "Uninstalling node".into(),
+            }
+            .into()),
+            Spec::Npm(_) => Err(ErrorDetails::Unimplemented {
+                feature: "Uninstalling npm".into(),
+            }
+            .into()),
+            Spec::Yarn(_) => Err(ErrorDetails::Unimplemented {
+                feature: "Uninstalling yarn".into(),
+            }
+            .into()),
+            Spec::Package(name, _) => {
+                package::uninstall(&name)?;
+                info!("{} package '{}' uninstalled", success_prefix(), name);
+                Ok(())
+            }
+        }
+    }
 }
 
 impl Resolved {
@@ -119,16 +144,6 @@ impl Resolved {
             Resolved::Npm(npm) => npm.pin(session),
             Resolved::Yarn(yarn) => yarn.pin(session),
             Resolved::Package(package) => package.pin(session),
-        }
-    }
-
-    /// Uninstall a tool, removing it from the local inventory
-    pub fn uninstall(self, session: &mut Session) -> Fallible<()> {
-        match self {
-            Resolved::Node(node) => node.uninstall(session),
-            Resolved::Npm(npm) => npm.uninstall(session),
-            Resolved::Yarn(yarn) => yarn.uninstall(session),
-            Resolved::Package(package) => package.uninstall(session),
         }
     }
 }

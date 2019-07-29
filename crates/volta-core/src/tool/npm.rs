@@ -39,12 +39,6 @@ impl Tool for Npm {
         }
         .into())
     }
-    fn uninstall(self, _session: &mut Session) -> Fallible<()> {
-        Err(ErrorDetails::Unimplemented {
-            feature: "Uninstalling npm".into(),
-        }
-        .into())
-    }
 }
 
 impl Display for Npm {

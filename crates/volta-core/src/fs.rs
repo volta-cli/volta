@@ -51,6 +51,11 @@ pub fn delete_dir_error<P: AsRef<Path>>(directory: &P) -> impl FnOnce(&io::Error
     |_| ErrorDetails::DeleteDirectoryError { directory }
 }
 
+pub fn delete_file_error<P: AsRef<Path>>(file: &P) -> impl FnOnce(&io::Error) -> ErrorDetails {
+    let file = file.as_ref().to_path_buf();
+    |_| ErrorDetails::DeleteFileError { file }
+}
+
 /// Reads a file, if it exists.
 pub fn read_file_opt(path: &PathBuf) -> io::Result<Option<String>> {
     let result: io::Result<String> = fs::read_to_string(path);

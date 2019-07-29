@@ -63,12 +63,6 @@ impl Tool for Yarn {
             Err(ErrorDetails::NotInPackage.into())
         }
     }
-    fn uninstall(self, _session: &mut Session) -> Fallible<()> {
-        Err(ErrorDetails::Unimplemented {
-            feature: "Uninstalling yarn".into(),
-        }
-        .into())
-    }
 }
 
 impl Display for Yarn {
