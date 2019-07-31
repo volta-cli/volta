@@ -2,7 +2,8 @@
 
 use std::collections::BTreeSet;
 
-use super::{registry_fetch_error, serial};
+use super::serial;
+use super::super::registry_fetch_error;
 use crate::error::ErrorDetails;
 use crate::hook::ToolHooks;
 use crate::session::Session;
@@ -81,7 +82,8 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Yarn>>) -> Fall
     let releases: serial::RawYarnIndex = reqwest::get(&url)
         .and_then(|mut resp| resp.json())
         .with_context(registry_fetch_error("Yarn", &url))?;
-    let releases = releases.into_index()?.entries;
+    let index: YarnIndex = releases.into();
+    let releases = index.entries;
     spinner.finish_and_clear();
     let version_opt = releases.into_iter().rev().find(|v| matching.matches(v));
 

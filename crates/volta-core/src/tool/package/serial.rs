@@ -1,8 +1,10 @@
+use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use std::fs::{read_to_string, write};
 use std::path::PathBuf;
 
-use super::{BinConfig, BinLoader};
+use super::resolve::PackageIndex;
+use super::{BinConfig, BinLoader, PackageDetails};
 use crate::error::ErrorDetails;
 use crate::fs::ensure_containing_dir_exists;
 use crate::path;
@@ -11,6 +13,101 @@ use crate::version::version_serde;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use volta_fail::{Fallible, ResultExt, VoltaError};
+
+/// Package Metadata Response
+///
+/// See npm registry API doc:
+/// https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md
+#[derive(Deserialize, Debug)]
+pub struct RawPackageMetadata {
+    pub name: String,
+    pub description: Option<String>,
+    pub versions: HashMap<String, RawPackageVersionInfo>,
+    #[serde(rename = "dist-tags")]
+    pub dist_tags: RawPackageDistTags,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct RawPackageVersionInfo {
+    // there's a lot more in there, but right now just care about the version
+    #[serde(with = "version_serde")]
+    pub version: Version,
+    pub dist: RawDistInfo,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct RawPackageDistTags {
+    #[serde(with = "version_serde")]
+    pub latest: Version,
+    pub beta: Option<String>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct RawDistInfo {
+    pub shasum: String,
+    pub tarball: String,
+}
+
+impl From<RawPackageMetadata> for PackageIndex {
+    fn from(serial: RawPackageMetadata) -> PackageIndex {
+        let mut entries: Vec<PackageDetails> = serial
+            .versions
+            .into_iter()
+            .map(|(_, version_info)| PackageDetails {
+                version: version_info.version,
+                tarball_url: version_info.dist.tarball,
+                shasum: version_info.dist.shasum,
+            })
+            .collect();
+
+        entries.sort_by(|a, b| b.version.cmp(&a.version));
+
+        PackageIndex {
+            latest: serial.dist_tags.latest,
+            entries,
+        }
+    }
+}
+
+// Data structures for `npm view` data
+//
+// $ npm view --json gulp@latest
+// {
+//   "name": "gulp",
+//   "description": "The streaming build system.",
+//   "dist-tags": {
+//     "latest": "4.0.2"
+//   },
+//   "version": "4.0.2",
+//   "engines": {
+//     "node": ">= 0.10"
+//   },
+//   "dist": {
+//     "shasum": "543651070fd0f6ab0a0650c6a3e6ff5a7cb09caa",
+//     "tarball": "https://registry.npmjs.org/gulp/-/gulp-4.0.2.tgz",
+//   },
+//   (...and lots of other stuff we don't use...)
+// }
+//
+#[derive(Deserialize, Clone, Debug)]
+pub struct NpmViewData {
+    pub name: String,
+    #[serde(with = "version_serde")]
+    pub version: Version,
+    pub dist: RawDistInfo,
+    #[serde(rename = "dist-tags")]
+    pub dist_tags: RawPackageDistTags,
+}
+
+impl From<NpmViewData> for PackageDetails {
+    fn from(view_data: NpmViewData) -> PackageDetails {
+        PackageDetails {
+            version: view_data.version,
+            tarball_url: view_data.dist.tarball,
+            shasum: view_data.dist.shasum,
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct RawBinConfig {

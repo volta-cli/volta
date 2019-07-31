@@ -6,7 +6,8 @@ use std::io::Write;
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 
-use super::{registry_fetch_error, serial};
+use super::serial;
+use super::super::registry_fetch_error;
 use crate::error::ErrorDetails;
 use crate::fs::{create_staging_file, ensure_containing_dir_exists, read_file_opt};
 use crate::hook::ToolHooks;
@@ -134,7 +135,7 @@ fn match_node_version(
     url: &str,
     predicate: impl Fn(&NodeEntry) -> bool,
 ) -> Fallible<Option<Version>> {
-    let index = resolve_node_versions(url)?.into_index()?;
+    let index: NodeIndex = resolve_node_versions(url)?.into();
     let mut entries = index.entries.into_iter();
     Ok(entries
         .find(predicate)

@@ -16,7 +16,9 @@ use volta_fail::{Fallible, ResultExt};
 
 mod fetch;
 mod serial;
+mod resolve;
 
+pub use resolve::resolve;
 pub use fetch::{BinConfig, BinLoader};
 
 /// Configuration information about an installed package.

@@ -8,6 +8,10 @@ use semver::Version;
 use volta_fail::Fallible;
 
 mod fetch;
+mod resolve;
+mod serial;
+
+pub use resolve::resolve;
 
 /// The Tool implementation for fetching and installing Yarn
 #[derive(Debug)]

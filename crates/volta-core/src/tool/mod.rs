@@ -1,7 +1,6 @@
 use std::fmt::{self, Display};
 
 use crate::error::ErrorDetails;
-use crate::resolve;
 use crate::session::Session;
 use crate::style::{success_prefix, tool_version};
 use crate::version::VersionSpec;
@@ -40,14 +39,6 @@ fn info_pinned<T: Display + Sized>(tool: T) {
     info!("{} pinned {} in package.json", success_prefix(), tool);
 }
 
-fn download_tool_error(
-    tool: Spec,
-    from_url: impl AsRef<str>,
-) -> impl FnOnce(&failure::Error) -> ErrorDetails {
-    let from_url = from_url.as_ref().to_string();
-    |_| ErrorDetails::DownloadToolNetworkError { tool, from_url }
-}
-
 /// Trait representing all of the actions that can be taken with a tool
 pub trait Tool: Display {
     /// Fetch a Tool into the local inventory
@@ -81,12 +72,12 @@ impl Spec {
     pub fn resolve(self, session: &mut Session) -> Fallible<Resolved> {
         match self {
             Spec::Node(version) => {
-                resolve::node(version, session).map(|version| Resolved::Node(Node::new(version)))
+                node::resolve(version, session).map(|version| Resolved::Node(Node::new(version)))
             }
             Spec::Yarn(version) => {
-                resolve::yarn(version, session).map(|version| Resolved::Yarn(Yarn::new(version)))
+                yarn::resolve(version, session).map(|version| Resolved::Yarn(Yarn::new(version)))
             }
-            Spec::Package(name, version) => resolve::package(&name, version, session)
+            Spec::Package(name, version) => package::resolve(&name, version, session)
                 .map(|details| Resolved::Package(Package::new(name, details))),
             // ISSUE (#292): To preserve error message context, we always resolve Npm to Version 0.0.0
             // This will allow us to show the correct error message based on the user's command
@@ -177,4 +168,21 @@ impl From<Resolved> for Version {
             Resolved::Package(Package { details, .. }) => details.version,
         }
     }
+}
+
+fn download_tool_error(
+    tool: Spec,
+    from_url: impl AsRef<str>,
+) -> impl FnOnce(&failure::Error) -> ErrorDetails {
+    let from_url = from_url.as_ref().to_string();
+    |_| ErrorDetails::DownloadToolNetworkError { tool, from_url }
+}
+
+fn registry_fetch_error(
+    tool: impl AsRef<str>,
+    from_url: impl AsRef<str>,
+) -> impl FnOnce(&reqwest::Error) -> ErrorDetails {
+    let tool = tool.as_ref().to_string();
+    let from_url = from_url.as_ref().to_string();
+    |_| ErrorDetails::RegistryFetchError { tool, from_url }
 }

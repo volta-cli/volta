@@ -8,7 +8,10 @@ use semver::Version;
 use volta_fail::Fallible;
 
 mod fetch;
+mod resolve;
+mod serial;
 
+pub use resolve::resolve;
 pub use fetch::load_default_npm_version;
 
 /// A full Node version including not just the version of Node itself
