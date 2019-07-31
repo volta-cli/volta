@@ -19,6 +19,8 @@ mod npm;
 mod npx;
 mod yarn;
 
+pub use binary::DefaultBinary;
+
 /// Distinguish global `add` commands in npm or yarn from all others.
 enum CommandArg {
     /// The command is a *global* add command.

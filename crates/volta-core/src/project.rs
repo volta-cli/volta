@@ -9,9 +9,8 @@ use std::rc::Rc;
 use lazycell::LazyCell;
 use semver::Version;
 
-use crate::distro::package::BinConfig;
 use crate::error::ErrorDetails;
-use crate::fetch::load_default_npm_version;
+use crate::fetch::{load_default_npm_version, BinConfig};
 use crate::manifest::{serial, Manifest};
 use crate::path;
 use crate::platform::PlatformSpec;

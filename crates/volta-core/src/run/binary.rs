@@ -1,10 +1,15 @@
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::iter::once;
+use std::path::PathBuf;
 
 use super::ToolCommand;
 use crate::error::ErrorDetails;
+use crate::fetch::{BinConfig, BinLoader};
+use crate::path;
+use crate::platform::PlatformSpec;
 use crate::platform::Source;
 use crate::session::{ActivityKind, Session};
+use crate::tool::bin_full_path;
 
 use log::debug;
 use volta_fail::{throw, Fallible};
@@ -58,7 +63,8 @@ where
     }
 
     // try to use the user toolchain
-    if let Some(user_tool) = session.get_user_tool(&exe)? {
+    if let Some(user_tool) = DefaultBinary::from_name(&exe, session)? {
+        let image = user_tool.platform.checkout(session)?;
         debug!(
             "Found default {} in '{}'",
             exe.to_string_lossy(),
@@ -66,10 +72,10 @@ where
         );
         debug!(
             "Using node@{} from binary configuration",
-            user_tool.image.node.runtime
+            image.node.runtime
         );
 
-        let path = user_tool.image.path()?;
+        let path = image.path()?;
         let tool_path = user_tool.bin_path.into_os_string();
         let cmd = match user_tool.loader {
             Some(loader) => ToolCommand::direct(
@@ -100,4 +106,56 @@ where
             name: exe.to_string_lossy().to_string(),
         },
     )
+}
+
+pub struct DefaultBinary {
+    pub bin_path: PathBuf,
+    pub platform: PlatformSpec,
+    pub loader: Option<BinLoader>,
+}
+
+impl DefaultBinary {
+    pub fn from_config(bin_config: BinConfig, session: &mut Session) -> Fallible<Self> {
+        let bin_path = bin_full_path(
+            &bin_config.package,
+            &bin_config.version,
+            &bin_config.name,
+            &bin_config.path,
+        )?;
+
+        // If the user does not have yarn set in the platform for this binary, use the default
+        // This is necessary because some tools (e.g. ember-cli with the --yarn option) invoke `yarn`
+        let platform = match bin_config.platform.yarn {
+            Some(_) => bin_config.platform,
+            None => {
+                let yarn = session
+                    .user_platform()?
+                    .and_then(|ref plat| plat.yarn.clone());
+                PlatformSpec {
+                    yarn,
+                    ..bin_config.platform
+                }
+            }
+        };
+
+        Ok(DefaultBinary {
+            bin_path,
+            platform,
+            loader: bin_config.loader,
+        })
+    }
+
+    pub fn from_name(tool_name: &OsStr, session: &mut Session) -> Fallible<Option<Self>> {
+        let bin_config_file = match tool_name.to_str() {
+            Some(name) => path::user_tool_bin_config(name)?,
+            None => return Ok(None),
+        };
+
+        if bin_config_file.exists() {
+            let bin_config = BinConfig::from_file(bin_config_file)?;
+            DefaultBinary::from_config(bin_config, session).map(Some)
+        } else {
+            Ok(None) // no config means the tool is not installed
+        }
+    }
 }

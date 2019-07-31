@@ -5,10 +5,13 @@ use crate::tool;
 
 mod node;
 mod package;
+mod serial;
 mod yarn;
 
 pub use node::fetch as node;
 pub use node::load_default_npm_version;
+pub use package::fetch as package;
+pub use package::{BinConfig, BinLoader};
 pub use yarn::fetch as yarn;
 
 fn download_tool_error(

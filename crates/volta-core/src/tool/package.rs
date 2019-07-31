@@ -1,17 +1,69 @@
 use std::fmt::{self, Display};
 use std::fs;
+use std::path::{Path, PathBuf};
 
-use super::Tool;
-use crate::distro::package::{BinConfig, PackageConfig};
+use super::{info_fetched, info_installed, Tool};
 use crate::error::ErrorDetails;
+use crate::fetch::{self, BinConfig};
 use crate::fs::{delete_dir_error, delete_file_error, dir_entry_match};
 use crate::path;
+use crate::platform::PlatformSpec;
 use crate::session::Session;
 use crate::shim;
 use crate::style::tool_version;
 use log::info;
 use semver::Version;
 use volta_fail::{Fallible, ResultExt};
+
+/// Configuration information about an installed package.
+///
+/// This information will be stored in ~/.volta/tools/user/packages/<package>.json.
+///
+/// For an example, this looks like:
+///
+/// {
+///   "name": "cowsay",
+///   "version": "1.4.0",
+///   "platform": {
+///     "node": {
+///       "runtime": "11.10.1",
+///       "npm": "6.7.0"
+///     },
+///     "yarn": null
+///   },
+///   "bins": [
+///     "cowsay",
+///     "cowthink"
+///   ]
+/// }
+pub struct PackageConfig {
+    /// The package name
+    pub name: String,
+    /// The package version
+    pub version: Version,
+    /// The platform used to install this package
+    pub platform: PlatformSpec,
+    /// The binaries installed by this package
+    pub bins: Vec<String>,
+}
+
+pub fn bin_full_path<P>(
+    package: &str,
+    version: &Version,
+    bin_name: &str,
+    bin_path: P,
+) -> Fallible<PathBuf>
+where
+    P: AsRef<Path>,
+{
+    // canonicalize because path is relative, and sometimes uses '.' char
+    path::package_image_dir(package, &version.to_string())?
+        .join(bin_path)
+        .canonicalize()
+        .with_context(|_| ErrorDetails::ExecutablePathError {
+            command: bin_name.to_string(),
+        })
+}
 
 /// Details required for fetching a 3rd-party Package
 #[derive(Debug)]
@@ -32,17 +84,34 @@ impl Package {
     pub fn new(name: String, details: PackageDetails) -> Self {
         Package { name, details }
     }
+
+    fn fetch_internal(&self) -> Fallible<()> {
+        // Check if it's already available? Not sure how exactly
+        //debug_already_fetched(self);
+        fetch::package(&self.name, &self.details)?;
+
+        Ok(())
+    }
 }
 
 impl Tool for Package {
     fn fetch(self, _session: &mut Session) -> Fallible<()> {
-        unimplemented!()
+        self.fetch_internal()?;
+
+        // TODO - CPIERCE: Determine how we want to display the information to the user
+        info_fetched(self);
+        Ok(())
     }
     fn install(self, _session: &mut Session) -> Fallible<()> {
-        unimplemented!()
+        self.fetch_internal()?;
+
+        // TODO - CPIERCE: Determine how to show the info to the user
+        //                 Also do whatever extra steps are needed (npm install, etc)
+        info_installed(self);
+        Ok(())
     }
     fn pin(self, _session: &mut Session) -> Fallible<()> {
-        unimplemented!()
+        Err(ErrorDetails::CannotPinPackage { package: self.name }.into())
     }
 }
 

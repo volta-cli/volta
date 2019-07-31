@@ -2,12 +2,10 @@
 //! execution of a Volta tool, including their current directory, Volta
 //! hook configuration, and the state of the local inventory.
 
-use std::ffi::OsStr;
 use std::fmt::{self, Display, Formatter};
 use std::process::exit;
 use std::rc::Rc;
 
-use crate::distro::package::UserTool;
 use crate::event::EventLog;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
 use crate::inventory::{Inventory, LazyInventory};
@@ -246,27 +244,6 @@ impl Session {
     //     );
     //     Ok(())
     // }
-
-    // /// Fetches a Package version matching the specified semantic versioning requirements.
-    // pub fn fetch_package(
-    //     &mut self,
-    //     name: &str,
-    //     version_spec: &VersionSpec,
-    // ) -> Fallible<Fetched<PackageVersion>> {
-    //     let inventory = self.inventory.get_mut()?;
-    //     let hooks = self.hooks.get()?;
-    //     inventory
-    //         .packages
-    //         .fetch(name, version_spec, hooks.package.as_ref())
-    // }
-
-    /// Gets the installed UserTool with the input name, if any.
-    pub fn get_user_tool(&mut self, tool_name: &OsStr) -> Fallible<Option<UserTool>> {
-        match tool_name.to_str() {
-            Some(tool_name_str) => UserTool::from_name(&tool_name_str, self),
-            _ => Ok(None),
-        }
-    }
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
         self.event_log.add_event_start(activity_kind)

@@ -12,12 +12,12 @@ use volta_fail::Fallible;
 mod node;
 mod npm;
 mod package;
-mod parse;
+mod serial;
 mod yarn;
 
 pub use node::{Node, NodeVersion};
 pub use npm::Npm;
-pub use package::{Package, PackageDetails};
+pub use package::{bin_full_path, Package, PackageDetails};
 pub use yarn::Yarn;
 
 #[inline]

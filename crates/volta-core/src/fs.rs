@@ -2,7 +2,7 @@
 
 use std::fs::{self, create_dir_all, read_dir, DirEntry, File, Metadata};
 use std::io::{self, ErrorKind};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::error::ErrorDetails;
 use crate::path;
@@ -57,7 +57,7 @@ pub fn delete_file_error<P: AsRef<Path>>(file: &P) -> impl FnOnce(&io::Error) ->
 }
 
 /// Reads a file, if it exists.
-pub fn read_file_opt(path: &PathBuf) -> io::Result<Option<String>> {
+pub fn read_file_opt<P: AsRef<Path>>(path: P) -> io::Result<Option<String>> {
     let result: io::Result<String> = fs::read_to_string(path);
 
     match result {

@@ -6,6 +6,7 @@ use which::which_in;
 
 use volta_core::error::ErrorDetails;
 use volta_core::platform::System;
+use volta_core::run::DefaultBinary;
 use volta_core::session::{ActivityKind, Session};
 use volta_fail::{ExitCode, Fallible, ResultExt};
 
@@ -27,7 +28,7 @@ impl Command for Which {
 
         let bin = OsString::from(self.binary.as_str());
 
-        let user_tool = session.get_user_tool(&bin)?;
+        let user_tool = DefaultBinary::from_name(&bin, session)?;
         let project_bin_path =
             session
                 .project()?
