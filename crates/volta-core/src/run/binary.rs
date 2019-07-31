@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use super::ToolCommand;
 use crate::error::ErrorDetails;
-use crate::fetch::{BinConfig, BinLoader};
+use crate::tool::{BinConfig, BinLoader};
 use crate::path;
 use crate::platform::PlatformSpec;
 use crate::platform::Source;

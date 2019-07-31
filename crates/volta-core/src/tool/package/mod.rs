@@ -4,7 +4,6 @@ use std::path::{Path, PathBuf};
 
 use super::{info_fetched, info_installed, Tool};
 use crate::error::ErrorDetails;
-use crate::fetch::{self, BinConfig};
 use crate::fs::{delete_dir_error, delete_file_error, dir_entry_match};
 use crate::path;
 use crate::platform::PlatformSpec;
@@ -14,6 +13,11 @@ use crate::style::tool_version;
 use log::info;
 use semver::Version;
 use volta_fail::{Fallible, ResultExt};
+
+mod fetch;
+mod serial;
+
+pub use fetch::{BinConfig, BinLoader};
 
 /// Configuration information about an installed package.
 ///
@@ -88,7 +92,7 @@ impl Package {
     fn fetch_internal(&self) -> Fallible<()> {
         // Check if it's already available? Not sure how exactly
         //debug_already_fetched(self);
-        fetch::package(&self.name, &self.details)?;
+        fetch::fetch(&self.name, &self.details)?;
 
         Ok(())
     }

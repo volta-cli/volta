@@ -10,11 +10,10 @@ use lazycell::LazyCell;
 use semver::Version;
 
 use crate::error::ErrorDetails;
-use crate::fetch::{load_default_npm_version, BinConfig};
 use crate::manifest::{serial, Manifest};
 use crate::path;
 use crate::platform::PlatformSpec;
-use crate::tool::NodeVersion;
+use crate::tool::{load_default_npm_version, BinConfig, NodeVersion};
 use log::debug;
 use volta_fail::{Fallible, ResultExt};
 

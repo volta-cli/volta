@@ -2,7 +2,7 @@ use std::convert::{TryFrom, TryInto};
 use std::fs::{read_to_string, write};
 use std::path::PathBuf;
 
-use super::package::{BinConfig, BinLoader};
+use super::{BinConfig, BinLoader};
 use crate::error::ErrorDetails;
 use crate::fs::ensure_containing_dir_exists;
 use crate::path;

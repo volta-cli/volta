@@ -15,9 +15,9 @@ mod package;
 mod serial;
 mod yarn;
 
-pub use node::{Node, NodeVersion};
+pub use node::{load_default_npm_version, Node, NodeVersion};
 pub use npm::Npm;
-pub use package::{bin_full_path, Package, PackageDetails};
+pub use package::{bin_full_path, BinConfig, BinLoader, Package, PackageDetails};
 pub use yarn::Yarn;
 
 #[inline]
@@ -38,6 +38,14 @@ fn info_fetched<T: Display + Sized>(tool: T) {
 #[inline]
 fn info_pinned<T: Display + Sized>(tool: T) {
     info!("{} pinned {} in package.json", success_prefix(), tool);
+}
+
+fn download_tool_error(
+    tool: Spec,
+    from_url: impl AsRef<str>,
+) -> impl FnOnce(&failure::Error) -> ErrorDetails {
+    let from_url = from_url.as_ref().to_string();
+    |_| ErrorDetails::DownloadToolNetworkError { tool, from_url }
 }
 
 /// Trait representing all of the actions that can be taken with a tool

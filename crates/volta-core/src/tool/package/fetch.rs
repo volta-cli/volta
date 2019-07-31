@@ -3,7 +3,7 @@ use std::fs::{rename, write, File};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
-use super::download_tool_error;
+use super::super::download_tool_error;
 use crate::error::ErrorDetails;
 use crate::fs::{
     create_staging_dir, ensure_containing_dir_exists, ensure_dir_does_not_exist, read_dir_eager,

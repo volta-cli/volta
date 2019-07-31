@@ -3,7 +3,7 @@
 use std::fs::{read_to_string, rename, write, File};
 use std::path::Path;
 
-use super::download_tool_error;
+use super::super::download_tool_error;
 use crate::error::ErrorDetails;
 use crate::fs::{create_staging_dir, create_staging_file, ensure_containing_dir_exists};
 use crate::hook::ToolHooks;

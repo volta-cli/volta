@@ -2,11 +2,12 @@ use std::fmt::{self, Display};
 
 use super::{debug_already_fetched, info_fetched, info_installed, info_pinned, Tool};
 use crate::error::ErrorDetails;
-use crate::fetch;
 use crate::session::Session;
 use crate::style::tool_version;
 use semver::Version;
 use volta_fail::Fallible;
+
+mod fetch;
 
 /// The Tool implementation for fetching and installing Yarn
 #[derive(Debug)]
@@ -26,7 +27,7 @@ impl Yarn {
             return Ok(());
         }
 
-        fetch::yarn(&self.version, session.hooks()?.yarn())?;
+        fetch::fetch(&self.version, session.hooks()?.yarn())?;
         session
             .inventory_mut()?
             .yarn

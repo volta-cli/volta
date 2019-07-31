@@ -6,7 +6,7 @@ use envoy;
 use semver::Version;
 
 use crate::error::ErrorDetails;
-use crate::fetch::load_default_npm_version;
+use crate::tool::load_default_npm_version;
 use crate::path;
 use crate::session::Session;
 use crate::tool::NodeVersion;

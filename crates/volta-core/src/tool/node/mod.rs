@@ -2,11 +2,14 @@ use std::fmt::{self, Display};
 
 use super::{debug_already_fetched, info_fetched, info_installed, info_pinned, Tool};
 use crate::error::ErrorDetails;
-use crate::fetch;
 use crate::session::Session;
 use crate::style::tool_version;
 use semver::Version;
 use volta_fail::Fallible;
+
+mod fetch;
+
+pub use fetch::load_default_npm_version;
 
 /// A full Node version including not just the version of Node itself
 /// but also the specific version of npm installed globally with that
@@ -53,7 +56,7 @@ impl Node {
             });
         }
 
-        let node_version = fetch::node(&self.version, session.hooks()?.node())?;
+        let node_version = fetch::fetch(&self.version, session.hooks()?.node())?;
         session
             .inventory_mut()?
             .node
