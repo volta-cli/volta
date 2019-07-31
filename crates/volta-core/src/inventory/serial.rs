@@ -21,17 +21,18 @@ fn versions_matching(dir: &Path, re: &Regex) -> Fallible<BTreeSet<Version>> {
     let contents = read_dir_eager(dir).with_context(|_| ErrorDetails::ReadInventoryDirError {
         dir: dir.to_path_buf(),
     })?;
-    contents
+
+    let versions = contents
         .filter(|(_, metadata)| metadata.is_file())
         .filter_map(|(entry, _)| {
-            if let Some(file_name) = entry.path().file_name() {
-                if let Some(caps) = re.captures(&file_name.to_string_lossy()) {
-                    return Some(VersionSpec::parse_version(&caps["version"]));
-                }
-            }
-            None
+            let path = entry.path();
+            let file_name = path.file_name()?.to_string_lossy();
+            let captures = re.captures(&file_name)?;
+            VersionSpec::parse_version(&captures["version"]).ok()
         })
-        .collect::<Fallible<BTreeSet<Version>>>()
+        .collect();
+
+    Ok(versions)
 }
 
 impl NodeCollection {
