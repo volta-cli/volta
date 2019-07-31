@@ -6,9 +6,9 @@ use envoy;
 use semver::Version;
 
 use crate::error::ErrorDetails;
-use crate::tool::load_default_npm_version;
 use crate::path;
 use crate::session::Session;
+use crate::tool::load_default_npm_version;
 use crate::tool::NodeVersion;
 use volta_fail::{Fallible, ResultExt};
 

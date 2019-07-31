@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::iter::FromIterator;
 
-use super::resolve::{NodeIndex, NodeDistroFiles, NodeEntry};
+use super::resolve::{NodeDistroFiles, NodeEntry, NodeIndex};
 use crate::version::{option_version_serde, version_serde};
 use semver::Version;
 use serde::{Deserialize, Deserializer};

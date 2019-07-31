@@ -15,11 +15,11 @@ use semver::Version;
 use volta_fail::{Fallible, ResultExt};
 
 mod fetch;
-mod serial;
 mod resolve;
+mod serial;
 
-pub use resolve::resolve;
 pub use fetch::{BinConfig, BinLoader};
+pub use resolve::resolve;
 
 /// Configuration information about an installed package.
 ///

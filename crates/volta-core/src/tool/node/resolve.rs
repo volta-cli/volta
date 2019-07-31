@@ -6,8 +6,8 @@ use std::io::Write;
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 
-use super::serial;
 use super::super::registry_fetch_error;
+use super::serial;
 use crate::error::ErrorDetails;
 use crate::fs::{create_staging_file, ensure_containing_dir_exists, read_file_opt};
 use crate::hook::ToolHooks;

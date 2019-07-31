@@ -2,8 +2,8 @@
 
 use std::collections::BTreeSet;
 
-use super::serial;
 use super::super::registry_fetch_error;
+use super::serial;
 use crate::error::ErrorDetails;
 use crate::hook::ToolHooks;
 use crate::session::Session;

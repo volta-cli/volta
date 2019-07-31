@@ -4,12 +4,12 @@ use std::path::PathBuf;
 
 use super::ToolCommand;
 use crate::error::ErrorDetails;
-use crate::tool::{BinConfig, BinLoader};
 use crate::path;
 use crate::platform::PlatformSpec;
 use crate::platform::Source;
 use crate::session::{ActivityKind, Session};
 use crate::tool::bin_full_path;
+use crate::tool::{BinConfig, BinLoader};
 
 use log::debug;
 use volta_fail::{throw, Fallible};

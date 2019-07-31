@@ -11,8 +11,8 @@ mod fetch;
 mod resolve;
 mod serial;
 
-pub use resolve::resolve;
 pub use fetch::load_default_npm_version;
+pub use resolve::resolve;
 
 /// A full Node version including not just the version of Node itself
 /// but also the specific version of npm installed globally with that
