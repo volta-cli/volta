@@ -11,6 +11,7 @@ mod fetch;
 mod resolve;
 mod serial;
 
+use crate::inventory::Collection;
 pub use fetch::load_default_npm_version;
 pub use resolve::resolve;
 
@@ -49,7 +50,7 @@ impl Node {
 
     pub(crate) fn fetch_internal(&self, session: &mut Session) -> Fallible<NodeVersion> {
         let inventory = session.inventory()?;
-        if inventory.node.contains(&self.version) {
+        if inventory.node.versions.contains(&self.version) {
             debug_already_fetched(self);
             let npm = fetch::load_default_npm_version(&self.version)?;
 

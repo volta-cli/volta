@@ -1,10 +1,10 @@
 //! Provides types for working with Volta's _inventory_, the local repository
 //! of available tool versions.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::marker::PhantomData;
 
-use crate::tool::{Node, Package, Tool, Yarn};
+use crate::tool::{Node, Package, PackageConfig, Tool, Yarn};
 use lazycell::LazyCell;
 use semver::Version;
 use volta_fail::Fallible;
@@ -35,16 +35,65 @@ impl LazyInventory {
     }
 }
 
-pub struct Collection<T: Tool> {
-    // A sorted collection of the available versions in the inventory.
-    pub versions: BTreeSet<Version>,
+/// The common operations to perform on a collection managed by Volta.
+pub trait Collection {
+    /// The kind of tool represented by the collection.
+    type Tool: Tool;
 
-    pub phantom: PhantomData<T>,
+    /// Add a new version to the collection.
+    fn add(&mut self, version: &Version) -> Fallible<()>;
+
+    /// Remove a version from the collection.
+    fn remove(&mut self, version: &Version) -> Fallible<()>;
 }
 
-pub type NodeCollection = Collection<Node>;
-pub type YarnCollection = Collection<Yarn>;
-pub type PackageCollection = Collection<Package>;
+pub struct NodeCollection {
+    pub versions: BTreeSet<Version>,
+}
+
+pub struct YarnCollection {
+    pub versions: BTreeSet<Version>,
+}
+
+pub struct PackageCollection {
+    pub packages: BTreeSet<PackageConfig>,
+}
+
+impl Collection for NodeCollection {
+    type Tool = Node;
+
+    fn add(&mut self, version: &Version) -> Fallible<()> {
+        unimplemented!()
+    }
+
+    fn remove(&mut self, version: &Version) -> Fallible<()> {
+        unimplemented!()
+    }
+}
+
+impl Collection for YarnCollection {
+    type Tool = Yarn;
+
+    fn add(&mut self, version: &Version) -> Fallible<()> {
+        unimplemented!()
+    }
+
+    fn remove(&mut self, version: &Version) -> Fallible<()> {
+        unimplemented!()
+    }
+}
+
+impl Collection for PackageCollection {
+    type Tool = Package;
+
+    fn add(&mut self, version: &Version) -> Fallible<()> {
+        unimplemented!()
+    }
+
+    fn remove(&mut self, version: &Version) -> Fallible<()> {
+        unimplemented!()
+    }
+}
 
 /// The inventory of locally available tool versions.
 pub struct Inventory {
@@ -61,12 +110,5 @@ impl Inventory {
             yarn: YarnCollection::load()?,
             packages: PackageCollection::load()?,
         })
-    }
-}
-
-impl<T: Tool> Collection<T> {
-    /// Tests whether this Collection contains the specified Tool version.
-    pub fn contains(&self, version: &Version) -> bool {
-        self.versions.contains(version)
     }
 }

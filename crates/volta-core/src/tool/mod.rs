@@ -16,7 +16,7 @@ mod yarn;
 
 pub use node::{load_default_npm_version, Node, NodeVersion};
 pub use npm::Npm;
-pub use package::{bin_full_path, BinConfig, BinLoader, Package, PackageDetails};
+pub use package::{bin_full_path, BinConfig, BinLoader, Package, PackageConfig, PackageDetails};
 pub use yarn::Yarn;
 
 #[inline]

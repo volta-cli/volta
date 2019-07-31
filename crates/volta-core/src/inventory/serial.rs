@@ -1,5 +1,4 @@
-use std::collections::BTreeSet;
-use std::marker::PhantomData;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use super::{NodeCollection, PackageCollection, YarnCollection};
@@ -53,10 +52,7 @@ impl NodeCollection {
 
         let versions = versions_matching(&path::node_inventory_dir()?, &re)?;
 
-        Ok(NodeCollection {
-            versions: versions,
-            phantom: PhantomData,
-        })
+        Ok(NodeCollection { versions })
     }
 }
 
@@ -74,10 +70,7 @@ impl YarnCollection {
 
         let versions = versions_matching(&path::yarn_inventory_dir()?, &re)?;
 
-        Ok(YarnCollection {
-            versions: versions,
-            phantom: PhantomData,
-        })
+        Ok(YarnCollection { versions })
     }
 }
 
@@ -86,8 +79,14 @@ impl PackageCollection {
     // ISSUE(#288) Collection only supports versions - for packages we also need names
     pub(crate) fn load() -> Fallible<Self> {
         Ok(PackageCollection {
-            versions: BTreeSet::new(),
-            phantom: PhantomData,
+            packages: BTreeSet::new(),
         })
+    }
+
+    pub(crate) fn contains(&self, name: &str, version: &Version) -> bool {
+        self.packages
+            .iter()
+            .find(|config| config.name == name && &config.version == version)
+            .is_some()
     }
 }
