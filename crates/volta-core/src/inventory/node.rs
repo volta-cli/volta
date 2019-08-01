@@ -2,8 +2,10 @@ use std::collections::BTreeSet;
 
 use regex::Regex;
 use semver::Version;
+
 use volta_fail::Fallible;
 
+use super::versions_matching;
 use crate::{path, tool::Node};
 
 pub struct NodeCollection {
@@ -32,14 +34,5 @@ impl NodeCollection {
     }
 }
 
-impl super::Collection for NodeCollection {
-    type Tool = Node;
-
-    fn add(&mut self, version: &Version) -> Fallible<()> {
-        unimplemented!()
-    }
-
-    fn remove(&mut self, version: &Version) -> Fallible<()> {
-        unimplemented!()
-    }
-}
+// Convenience for access as `node::Collection`
+pub use NodeCollection as Collection;

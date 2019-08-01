@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use semver::Version;
+
 use volta_fail::Fallible;
 
 use crate::tool::{Package, PackageConfig};
@@ -26,14 +27,5 @@ impl PackageCollection {
     }
 }
 
-impl super::Collection for PackageCollection {
-    type Tool = Package;
-
-    fn add(&mut self, version: &Version) -> Fallible<()> {
-        unimplemented!()
-    }
-
-    fn remove(&mut self, version: &Version) -> Fallible<()> {
-        unimplemented!()
-    }
-}
+// Convenience for access as `package::Collection`
+pub use PackageCollection as Collection;

@@ -5,7 +5,7 @@ mod node;
 mod package;
 mod yarn;
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::marker::PhantomData;
 use std::path::Path;
 
@@ -21,10 +21,6 @@ use crate::{
     tool::{Node, Package, PackageConfig, Tool, Yarn},
     version::VersionSpec,
 };
-
-use node::NodeCollection;
-use package::PackageCollection;
-use yarn::YarnCollection;
 
 /// Lazily loaded inventory.
 pub struct LazyInventory {
@@ -50,32 +46,20 @@ impl LazyInventory {
     }
 }
 
-/// The common operations to perform on a collection managed by Volta.
-pub trait Collection {
-    /// The kind of tool represented by the collection.
-    type Tool: Tool;
-
-    /// Add a new version to the collection.
-    fn add(&mut self, version: &Version) -> Fallible<()>;
-
-    /// Remove a version from the collection.
-    fn remove(&mut self, version: &Version) -> Fallible<()>;
-}
-
 /// The inventory of locally available tool versions.
 pub struct Inventory {
-    pub node: NodeCollection,
-    pub yarn: YarnCollection,
-    pub packages: PackageCollection,
+    pub node: node::Collection,
+    pub yarn: yarn::Collection,
+    pub packages: package::Collection,
 }
 
 impl Inventory {
     /// Returns the current inventory.
     fn current() -> Fallible<Inventory> {
         Ok(Inventory {
-            node: NodeCollection::load()?,
-            yarn: YarnCollection::load()?,
-            packages: PackageCollection::load()?,
+            node: node::Collection::load()?,
+            yarn: yarn::Collection::load()?,
+            packages: package::Collection::load()?,
         })
     }
 }

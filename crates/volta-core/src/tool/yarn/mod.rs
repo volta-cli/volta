@@ -11,7 +11,6 @@ mod fetch;
 mod resolve;
 mod serial;
 
-use crate::inventory::Collection;
 pub use resolve::resolve;
 
 /// The Tool implementation for fetching and installing Yarn

@@ -1,11 +1,12 @@
 use std::collections::BTreeSet;
 
+use regex::Regex;
 use semver::Version;
+
 use volta_fail::Fallible;
 
-use super::{versions_matching, Collection};
+use super::versions_matching;
 use crate::{path, tool::Yarn};
-use regex::Regex;
 
 pub struct YarnCollection {
     pub versions: BTreeSet<Version>,
@@ -29,17 +30,5 @@ impl YarnCollection {
     }
 }
 
-impl super::Collection for YarnCollection {
-    type Tool = Yarn;
-
-    fn add(&mut self, version: &Version) -> Fallible<()> {
-        unimplemented!()
-    }
-
-    fn remove(&mut self, version: &Version) -> Fallible<()> {
-        unimplemented!()
-    }
-}
-
-// So users can do `yarn::Collection`.
+// Convenience for access as `yarn::Collection`
 pub use YarnCollection as Collection;

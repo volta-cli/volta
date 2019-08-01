@@ -11,7 +11,6 @@ mod fetch;
 mod resolve;
 mod serial;
 
-use crate::inventory::Collection;
 pub use fetch::load_default_npm_version;
 pub use resolve::resolve;
 
