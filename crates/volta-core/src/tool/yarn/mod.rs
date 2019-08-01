@@ -24,7 +24,7 @@ impl Yarn {
         Yarn { version }
     }
 
-    fn fetch_internal(&self, session: &mut Session) -> Fallible<()> {
+    pub(crate) fn fetch_internal(&self, session: &mut Session) -> Fallible<()> {
         let inventory = session.inventory()?;
         if inventory.yarn.contains(&self.version) {
             debug_already_fetched(self);

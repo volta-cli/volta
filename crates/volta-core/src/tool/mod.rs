@@ -31,7 +31,7 @@ fn info_installed<T: Display + Sized>(tool: T) {
 
 #[inline]
 fn info_fetched<T: Display + Sized>(tool: T) {
-    info!("{} fetched {} to the local system", success_prefix(), tool);
+    info!("{} fetched {}", success_prefix(), tool);
 }
 
 #[inline]

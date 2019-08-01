@@ -11,7 +11,7 @@ use crate::hook::{HookConfig, LazyHookConfig, Publish};
 use crate::inventory::{Inventory, LazyInventory};
 use crate::platform::{PlatformSpec, SourcedPlatformSpec};
 use crate::project::{LazyProject, Project};
-use crate::tool::{Node, Tool, Yarn};
+use crate::tool::{Node, Yarn};
 use crate::toolchain::{LazyToolchain, Toolchain};
 
 use log::debug;
@@ -175,7 +175,7 @@ impl Session {
         let inventory = self.inventory.get_mut()?;
 
         if !inventory.node.contains(version) {
-            Node::new(version.clone()).fetch(self)?;
+            Node::new(version.clone()).fetch_internal(self)?;
         }
 
         Ok(())
@@ -186,7 +186,7 @@ impl Session {
         let inventory = self.inventory.get_mut()?;
 
         if !inventory.yarn.contains(version) {
-            Yarn::new(version.clone()).fetch(self)?;
+            Yarn::new(version.clone()).fetch_internal(self)?;
         }
 
         Ok(())

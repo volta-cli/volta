@@ -71,11 +71,9 @@ impl Toolchain {
                 dirty = true;
             }
 
-            if let Some(ref npm) = &platform.npm {
-                if npm != &node_version.npm {
-                    platform.npm = Some(node_version.npm.clone());
-                    dirty = true;
-                }
+            if platform.npm.as_ref() != Some(&node_version.npm) {
+                platform.npm = Some(node_version.npm.clone());
+                dirty = true;
             }
         } else {
             self.platform = Some(PlatformSpec {
@@ -98,11 +96,9 @@ impl Toolchain {
         let mut dirty = false;
 
         if let &mut Some(ref mut platform) = &mut self.platform {
-            if let Some(ref yarn) = &platform.yarn {
-                if yarn != yarn_version {
-                    platform.yarn = Some(yarn_version.clone());
-                    dirty = true;
-                }
+            if platform.yarn.as_ref() != Some(yarn_version) {
+                platform.yarn = Some(yarn_version.clone());
+                dirty = true;
             }
         }
 

@@ -47,7 +47,7 @@ impl Node {
         Node { version }
     }
 
-    fn fetch_internal(&self, session: &mut Session) -> Fallible<NodeVersion> {
+    pub(crate) fn fetch_internal(&self, session: &mut Session) -> Fallible<NodeVersion> {
         let inventory = session.inventory()?;
         if inventory.node.contains(&self.version) {
             debug_already_fetched(self);
