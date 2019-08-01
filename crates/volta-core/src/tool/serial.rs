@@ -1,22 +1,13 @@
 use std::cmp::Ordering;
-use std::convert::{TryFrom, TryInto};
-use std::fs::{read_to_string, write};
-use std::path::Path;
 use std::str::FromStr;
 
-use super::package::PackageConfig;
 use super::Spec;
 use crate::error::ErrorDetails;
-use crate::fs::ensure_containing_dir_exists;
-use crate::path;
-use crate::toolchain;
-use crate::version::{version_serde, VersionSpec};
+use crate::version::VersionSpec;
 use lazy_static::lazy_static;
 use regex::Regex;
-use semver::Version;
-use serde::{Deserialize, Serialize};
 use validate_npm_package_name::{validate, Validity};
-use volta_fail::{Fallible, ResultExt, VoltaError};
+use volta_fail::Fallible;
 
 lazy_static! {
     static ref TOOL_SPEC_PATTERN: Regex =
@@ -142,76 +133,6 @@ impl Spec {
             (Spec::Yarn(_), _) => Ordering::Less,
             (_, Spec::Yarn(_)) => Ordering::Greater,
             (Spec::Package(_, _), Spec::Package(_, _)) => Ordering::Equal,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct RawPackageConfig {
-    pub name: String,
-    #[serde(with = "version_serde")]
-    pub version: Version,
-    pub platform: toolchain::serial::Platform,
-    pub bins: Vec<String>,
-}
-
-impl RawPackageConfig {
-    pub fn to_json(self) -> Fallible<String> {
-        serde_json::to_string_pretty(&self)
-            .with_context(|_| ErrorDetails::StringifyPackageConfigError)
-    }
-
-    pub fn from_json(src: String) -> Fallible<Self> {
-        serde_json::de::from_str(&src).with_context(|_| ErrorDetails::ParsePackageConfigError)
-    }
-
-    // Write the package config info to disk
-    pub fn write(self) -> Fallible<()> {
-        let config_file_path = path::user_package_config_file(&self.name)?;
-        let src = self.to_json()?;
-        ensure_containing_dir_exists(&config_file_path)?;
-        write(&config_file_path, src).with_context(|_| ErrorDetails::WritePackageConfigError {
-            file: config_file_path,
-        })
-    }
-}
-
-impl TryFrom<RawPackageConfig> for PackageConfig {
-    type Error = VoltaError;
-
-    fn try_from(raw: RawPackageConfig) -> Fallible<PackageConfig> {
-        let platform = raw
-            .platform
-            .into_platform()?
-            .ok_or(ErrorDetails::NoBinPlatform {
-                binary: raw.name.clone(),
-            })?;
-        Ok(PackageConfig {
-            name: raw.name,
-            version: raw.version,
-            platform,
-            bins: raw.bins,
-        })
-    }
-}
-
-impl PackageConfig {
-    pub fn from_file(file: &Path) -> Fallible<Self> {
-        let config_src =
-            read_to_string(file).with_context(|_| ErrorDetails::ReadPackageConfigError {
-                file: file.to_path_buf(),
-            })?;
-        RawPackageConfig::from_json(config_src)?.try_into()
-    }
-}
-
-impl From<PackageConfig> for RawPackageConfig {
-    fn from(full: PackageConfig) -> RawPackageConfig {
-        RawPackageConfig {
-            name: full.name,
-            version: full.version,
-            platform: full.platform.to_serial(),
-            bins: full.bins,
         }
     }
 }

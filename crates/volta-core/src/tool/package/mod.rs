@@ -2,56 +2,24 @@ use std::fmt::{self, Display};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::{info_fetched, info_installed, Tool};
+use super::{debug_already_fetched, info_fetched, Tool};
 use crate::error::ErrorDetails;
 use crate::fs::{delete_dir_error, delete_file_error, dir_entry_match};
 use crate::path;
-use crate::platform::PlatformSpec;
 use crate::session::Session;
 use crate::shim;
-use crate::style::tool_version;
+use crate::style::{success_prefix, tool_version};
 use log::info;
 use semver::Version;
 use volta_fail::{Fallible, ResultExt};
 
 mod fetch;
+mod install;
 mod resolve;
 mod serial;
 
-pub use fetch::{BinConfig, BinLoader};
+pub use install::{BinConfig, BinLoader, PackageConfig};
 pub use resolve::resolve;
-
-/// Configuration information about an installed package.
-///
-/// This information will be stored in ~/.volta/tools/user/packages/<package>.json.
-///
-/// For an example, this looks like:
-///
-/// {
-///   "name": "cowsay",
-///   "version": "1.4.0",
-///   "platform": {
-///     "node": {
-///       "runtime": "11.10.1",
-///       "npm": "6.7.0"
-///     },
-///     "yarn": null
-///   },
-///   "bins": [
-///     "cowsay",
-///     "cowthink"
-///   ]
-/// }
-pub struct PackageConfig {
-    /// The package name
-    pub name: String,
-    /// The package version
-    pub version: Version,
-    /// The platform used to install this package
-    pub platform: PlatformSpec,
-    /// The binaries installed by this package
-    pub bins: Vec<String>,
-}
 
 pub fn bin_full_path<P>(
     package: &str,
@@ -92,11 +60,26 @@ impl Package {
     }
 
     fn fetch_internal(&self) -> Fallible<()> {
-        // Check if it's already available? Not sure how exactly
-        //debug_already_fetched(self);
-        fetch::fetch(&self.name, &self.details)?;
+        // ISSUE(#288) - Once we have a valid Collection, we can check that in the same way as node/yarn
+        // Until then, we use the existence of the image directory as the indicator that the package is
+        // already fetched
+        if path::package_image_dir(&self.name, &self.details.version.to_string())?.exists() {
+            debug_already_fetched(self);
+            Ok(())
+        } else {
+            fetch::fetch(&self.name, &self.details)
+        }
+    }
 
-        Ok(())
+    fn is_installed(&self) -> bool {
+        // Check if the package config exists and contains the same version
+        // (The PackageConfig is written after the installation is complete)
+        if let Ok(pkg_config_file) = path::user_package_config_file(&self.name) {
+            if let Ok(package_config) = PackageConfig::from_file(&pkg_config_file) {
+                return package_config.version == self.details.version;
+            }
+        }
+        false
     }
 }
 
@@ -104,17 +87,31 @@ impl Tool for Package {
     fn fetch(self, _session: &mut Session) -> Fallible<()> {
         self.fetch_internal()?;
 
-        // TODO - CPIERCE: Determine how we want to display the information to the user
         info_fetched(self);
         Ok(())
     }
-    fn install(self, _session: &mut Session) -> Fallible<()> {
-        self.fetch_internal()?;
+    fn install(self, session: &mut Session) -> Fallible<()> {
+        if self.is_installed() {
+            info!("Package {} is already installed", self);
+            Ok(())
+        } else {
+            self.fetch_internal()?;
 
-        // TODO - CPIERCE: Determine how to show the info to the user
-        //                 Also do whatever extra steps are needed (npm install, etc)
-        info_installed(self);
-        Ok(())
+            let bin_map = install::install(&self.name, &self.details.version, session)?;
+
+            let bins = bin_map
+                .keys()
+                .map(AsRef::as_ref)
+                .collect::<Vec<&str>>()
+                .join(", ");
+            info!(
+                "{} installed {} with executables: {}",
+                success_prefix(),
+                self,
+                bins
+            );
+            Ok(())
+        }
     }
     fn pin(self, _session: &mut Session) -> Fallible<()> {
         Err(ErrorDetails::CannotPinPackage { package: self.name }.into())

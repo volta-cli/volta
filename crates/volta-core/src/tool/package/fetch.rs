@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+//! Provides fetcher for 3rd-party packages
+
 use std::fs::{rename, write, File};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
@@ -9,9 +10,7 @@ use crate::fs::{
     create_staging_dir, ensure_containing_dir_exists, ensure_dir_does_not_exist, read_dir_eager,
     read_file_opt,
 };
-use crate::manifest::BinManifest;
 use crate::path;
-use crate::platform::PlatformSpec;
 use crate::style::{progress_bar, tool_version};
 use crate::tool::{self, PackageDetails};
 use crate::version::VersionSpec;
@@ -19,56 +18,7 @@ use archive::{Archive, Tarball};
 use log::debug;
 use semver::Version;
 use sha1::{Digest, Sha1};
-use volta_fail::{throw, Fallible, ResultExt};
-
-/// Configuration information about an installed binary from a package.
-///
-/// This information will be stored in ~/.volta/tools/user/bins/<bin-name>.json.
-///
-/// For an example, this looks like:
-///
-/// {
-///   "name": "cowsay",
-///   "package": "cowsay",
-///   "version": "1.4.0",
-///   "path": "./cli.js",
-///   "platform": {
-///     "node": {
-///       "runtime": "11.10.1",
-///       "npm": "6.7.0"
-///     },
-///     "yarn": null,
-///     "loader": {
-///       "exe": "node",
-///       "args": []
-///     }
-///   }
-/// }
-pub struct BinConfig {
-    /// The binary name
-    pub name: String,
-    /// The package that installed this binary
-    pub package: String,
-    /// The package version
-    pub version: Version,
-    /// The relative path of the binary in the installed package
-    pub path: String,
-    /// The platform used to install this binary
-    pub platform: PlatformSpec,
-    /// The loader information for the script, if any
-    pub loader: Option<BinLoader>,
-}
-
-/// Information about the Shebang script loader (e.g. `#!/usr/bin/env node`)
-///
-/// Only important for Windows at the moment, as Windows does not natively understand script
-/// loaders, so we need to provide that behavior when calling a script that uses one
-pub struct BinLoader {
-    /// The command used to run a script
-    pub command: String,
-    /// Any additional arguments specified for the loader
-    pub args: Vec<String>,
-}
+use volta_fail::{Fallible, ResultExt};
 
 pub fn fetch(name: &str, details: &PackageDetails) -> Fallible<()> {
     let version_string = details.version.to_string();
@@ -104,35 +54,6 @@ pub fn fetch(name: &str, details: &PackageDetails) -> Fallible<()> {
     // Otherwise, download from remote source into the cache file
     // (unpack_archive)
     // Once complete, write the shasum file
-}
-
-pub fn generate_bin_map(name: &str, version: &Version) -> Fallible<HashMap<String, String>> {
-    let image_dir = path::package_image_dir(&name, &version.to_string())?;
-    let pkg_info = BinManifest::for_dir(&image_dir)?;
-    let bin_map = pkg_info.bin;
-    if bin_map.is_empty() {
-        throw!(ErrorDetails::NoPackageExecutables);
-    }
-
-    for (bin_name, _bin_path) in bin_map.iter() {
-        // check for conflicts with installed bins
-        // some packages may install bins with the same name
-        let bin_config_file = path::user_tool_bin_config(&bin_name)?;
-        if bin_config_file.exists() {
-            let bin_config = BinConfig::from_file(bin_config_file)?;
-            // if the bin was installed by the package that is currently being installed,
-            // that's ok - otherwise it's an error
-            if name != bin_config.package {
-                throw!(ErrorDetails::BinaryAlreadyInstalled {
-                    bin_name: bin_name.into(),
-                    existing_package: bin_config.package,
-                    new_package: name.into(),
-                });
-            }
-        }
-    }
-
-    Ok(bin_map)
 }
 
 fn load_cached_distro(file: &Path, shasum_file: &Path) -> Option<Box<dyn Archive>> {

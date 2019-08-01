@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use std::fs::{read_to_string, write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
+use super::install::{BinConfig, BinLoader, PackageConfig};
 use super::resolve::PackageIndex;
-use super::{BinConfig, BinLoader, PackageDetails};
+use super::PackageDetails;
 use crate::error::ErrorDetails;
 use crate::fs::ensure_containing_dir_exists;
 use crate::path;
@@ -105,6 +106,76 @@ impl From<NpmViewData> for PackageDetails {
             version: view_data.version,
             tarball_url: view_data.dist.tarball,
             shasum: view_data.dist.shasum,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RawPackageConfig {
+    pub name: String,
+    #[serde(with = "version_serde")]
+    pub version: Version,
+    pub platform: toolchain::serial::Platform,
+    pub bins: Vec<String>,
+}
+
+impl RawPackageConfig {
+    pub fn to_json(self) -> Fallible<String> {
+        serde_json::to_string_pretty(&self)
+            .with_context(|_| ErrorDetails::StringifyPackageConfigError)
+    }
+
+    pub fn from_json(src: String) -> Fallible<Self> {
+        serde_json::de::from_str(&src).with_context(|_| ErrorDetails::ParsePackageConfigError)
+    }
+
+    // Write the package config info to disk
+    pub fn write(self) -> Fallible<()> {
+        let config_file_path = path::user_package_config_file(&self.name)?;
+        let src = self.to_json()?;
+        ensure_containing_dir_exists(&config_file_path)?;
+        write(&config_file_path, src).with_context(|_| ErrorDetails::WritePackageConfigError {
+            file: config_file_path,
+        })
+    }
+}
+
+impl TryFrom<RawPackageConfig> for PackageConfig {
+    type Error = VoltaError;
+
+    fn try_from(raw: RawPackageConfig) -> Fallible<PackageConfig> {
+        let platform = raw
+            .platform
+            .into_platform()?
+            .ok_or(ErrorDetails::NoBinPlatform {
+                binary: raw.name.clone(),
+            })?;
+        Ok(PackageConfig {
+            name: raw.name,
+            version: raw.version,
+            platform,
+            bins: raw.bins,
+        })
+    }
+}
+
+impl PackageConfig {
+    pub fn from_file(file: &Path) -> Fallible<Self> {
+        let config_src =
+            read_to_string(file).with_context(|_| ErrorDetails::ReadPackageConfigError {
+                file: file.to_path_buf(),
+            })?;
+        RawPackageConfig::from_json(config_src)?.try_into()
+    }
+}
+
+impl From<PackageConfig> for RawPackageConfig {
+    fn from(full: PackageConfig) -> RawPackageConfig {
+        RawPackageConfig {
+            name: full.name,
+            version: full.version,
+            platform: full.platform.to_serial(),
+            bins: full.bins,
         }
     }
 }

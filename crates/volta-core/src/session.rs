@@ -192,59 +192,6 @@ impl Session {
         Ok(())
     }
 
-    // /// Fetch, unpack, and install a package matching the input requirements.
-    // pub fn install_package(&mut self, name: String, version: &VersionSpec) -> Fallible<()> {
-    //     // fetches and unpacks package
-    //     let fetched_package = self.fetch_package(&name, version)?;
-    //     let package_version = fetched_package.version();
-
-    //     // if the package is already installed, don't re-install it
-    //     if let Fetched::Installed(pkg_version) = fetched_package {
-    //         let version = pkg_version.version.clone();
-    //         info!(
-    //             "Package `{}` is up-to-date, version {} already installed",
-    //             name, version
-    //         );
-    //         return Ok(());
-    //     }
-
-    //     // This uses the "engines" field from package.json to determine the node version to use
-    //     // From https://docs.npmjs.com/files/package.json#engines:
-    //     //
-    //     // You can specify the version of node that your stuff works on:
-    //     //
-    //     // { "engines" : { "node" : ">=0.10.3 <0.12" } }
-    //     //
-    //     // And, like with dependencies, if you don’t specify the version (or if you specify “*” as the version), then any version of node will do.
-    //     //
-    //     // If you specify an "engines" field, then npm will require that "node" be somewhere on that list. If "engines" is omitted, then npm will just assume that it works on node.
-    //     let req_node_version = package_version.engines_spec()?;
-    //     let node_version = tool::Spec::Node(req_node_version).resolve(self)?.into();
-
-    //     let use_platform = Rc::new(PlatformSpec {
-    //         node_runtime: node_version,
-    //         npm: None,
-    //         yarn: None,
-    //     });
-
-    //     // finally, install the package
-    //     package_version.install(&use_platform, self)?;
-
-    //     let bin_list = package_version
-    //         .bins
-    //         .keys()
-    //         .map(|k| k.as_ref())
-    //         .collect::<Vec<&str>>()
-    //         .join(", ");
-    //     info!(
-    //         "{} installed {} with executables: {}",
-    //         success_prefix(),
-    //         tool_version(&package_version.name, &package_version.version),
-    //         bin_list
-    //     );
-    //     Ok(())
-    // }
-
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
         self.event_log.add_event_start(activity_kind)
     }
