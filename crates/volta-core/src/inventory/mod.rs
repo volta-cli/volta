@@ -1,15 +1,30 @@
 //! Provides types for working with Volta's _inventory_, the local repository
 //! of available tool versions.
 
+mod node;
+mod package;
+mod yarn;
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::marker::PhantomData;
+use std::path::Path;
 
-use crate::tool::{Node, Package, PackageConfig, Tool, Yarn};
+use failure::ResultExt;
 use lazycell::LazyCell;
+use regex::Regex;
 use semver::Version;
 use volta_fail::Fallible;
 
-pub(crate) mod serial;
+use crate::{
+    error::ErrorDetails,
+    fs::read_dir_eager,
+    tool::{Node, Package, PackageConfig, Tool, Yarn},
+    version::VersionSpec,
+};
+
+use node::NodeCollection;
+use package::PackageCollection;
+use yarn::YarnCollection;
 
 /// Lazily loaded inventory.
 pub struct LazyInventory {
@@ -47,54 +62,6 @@ pub trait Collection {
     fn remove(&mut self, version: &Version) -> Fallible<()>;
 }
 
-pub struct NodeCollection {
-    pub versions: BTreeSet<Version>,
-}
-
-pub struct YarnCollection {
-    pub versions: BTreeSet<Version>,
-}
-
-pub struct PackageCollection {
-    pub packages: BTreeSet<PackageConfig>,
-}
-
-impl Collection for NodeCollection {
-    type Tool = Node;
-
-    fn add(&mut self, version: &Version) -> Fallible<()> {
-        unimplemented!()
-    }
-
-    fn remove(&mut self, version: &Version) -> Fallible<()> {
-        unimplemented!()
-    }
-}
-
-impl Collection for YarnCollection {
-    type Tool = Yarn;
-
-    fn add(&mut self, version: &Version) -> Fallible<()> {
-        unimplemented!()
-    }
-
-    fn remove(&mut self, version: &Version) -> Fallible<()> {
-        unimplemented!()
-    }
-}
-
-impl Collection for PackageCollection {
-    type Tool = Package;
-
-    fn add(&mut self, version: &Version) -> Fallible<()> {
-        unimplemented!()
-    }
-
-    fn remove(&mut self, version: &Version) -> Fallible<()> {
-        unimplemented!()
-    }
-}
-
 /// The inventory of locally available tool versions.
 pub struct Inventory {
     pub node: NodeCollection,
@@ -111,4 +78,28 @@ impl Inventory {
             packages: PackageCollection::load()?,
         })
     }
+}
+
+/// Reads the contents of a directory and returns the set of all versions found
+/// in the directory's listing by matching filenames against the specified regex
+/// and parsing the `version` named capture as a semantic version.
+///
+/// The regex should contain the `version` named capture by using the Rust regex
+/// syntax `?P<version>`.
+fn versions_matching(dir: &Path, re: &Regex) -> Fallible<BTreeSet<Version>> {
+    let contents = read_dir_eager(dir).with_context(|_| ErrorDetails::ReadInventoryDirError {
+        dir: dir.to_path_buf(),
+    })?;
+
+    let versions = contents
+        .filter(|(_, metadata)| metadata.is_file())
+        .filter_map(|(entry, _)| {
+            let path = entry.path();
+            let file_name = path.file_name()?.to_string_lossy();
+            let captures = re.captures(&file_name)?;
+            VersionSpec::parse_version(&captures["version"]).ok()
+        })
+        .collect();
+
+    Ok(versions)
 }

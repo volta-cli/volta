@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 use crate::event::EventLog;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
-use crate::inventory::{Collection, Inventory, LazyInventory};
+use crate::inventory::{Inventory, LazyInventory};
 use crate::platform::{PlatformSpec, SourcedPlatformSpec};
 use crate::project::{LazyProject, Project};
 use crate::tool::{Node, Yarn};
