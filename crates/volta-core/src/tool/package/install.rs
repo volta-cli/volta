@@ -154,7 +154,7 @@ fn write_configs(
         name: name.to_string(),
         version: version.clone(),
         platform: platform.clone(),
-        bins: bins.keys().map(String::from).collect(),
+        bins: bins.keys().map(String::clone).collect(),
     })
     .write()?;
 
@@ -250,9 +250,9 @@ fn read_bins(name: &str, version: &Version) -> Fallible<HashMap<String, String>>
             // that's ok - otherwise it's an error
             if name != bin_config.package {
                 throw!(ErrorDetails::BinaryAlreadyInstalled {
-                    bin_name: bin_name.into(),
+                    bin_name: bin_name.clone(),
                     existing_package: bin_config.package,
-                    new_package: name.into(),
+                    new_package: name.to_string(),
                 });
             }
         }
