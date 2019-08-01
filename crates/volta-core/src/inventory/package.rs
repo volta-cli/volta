@@ -6,6 +6,9 @@ use volta_fail::Fallible;
 
 use crate::tool::{Package, PackageConfig};
 
+// Convenience for access as `package::Collection`
+pub use PackageCollection as Collection;
+
 pub struct PackageCollection {
     pub packages: BTreeSet<PackageConfig>,
 }
@@ -26,6 +29,3 @@ impl PackageCollection {
             .is_some()
     }
 }
-
-// Convenience for access as `package::Collection`
-pub use PackageCollection as Collection;

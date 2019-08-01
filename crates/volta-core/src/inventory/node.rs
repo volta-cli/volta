@@ -6,7 +6,10 @@ use semver::Version;
 use volta_fail::Fallible;
 
 use super::versions_matching;
-use crate::{path, tool::Node};
+use crate::path;
+
+// Convenience for access as `node::Collection`
+pub use NodeCollection as Collection;
 
 pub struct NodeCollection {
     pub versions: BTreeSet<Version>,
@@ -33,6 +36,3 @@ impl NodeCollection {
         Ok(NodeCollection { versions })
     }
 }
-
-// Convenience for access as `node::Collection`
-pub use NodeCollection as Collection;

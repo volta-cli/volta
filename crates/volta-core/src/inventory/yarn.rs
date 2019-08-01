@@ -6,7 +6,10 @@ use semver::Version;
 use volta_fail::Fallible;
 
 use super::versions_matching;
-use crate::{path, tool::Yarn};
+use crate::path;
+
+// Convenience for access as `yarn::Collection`
+pub use YarnCollection as Collection;
 
 pub struct YarnCollection {
     pub versions: BTreeSet<Version>,
@@ -29,6 +32,3 @@ impl YarnCollection {
         Ok(Collection { versions })
     }
 }
-
-// Convenience for access as `yarn::Collection`
-pub use YarnCollection as Collection;

@@ -6,7 +6,6 @@ mod package;
 mod yarn;
 
 use std::collections::BTreeSet;
-use std::marker::PhantomData;
 use std::path::Path;
 
 use failure::ResultExt;
@@ -15,12 +14,7 @@ use regex::Regex;
 use semver::Version;
 use volta_fail::Fallible;
 
-use crate::{
-    error::ErrorDetails,
-    fs::read_dir_eager,
-    tool::{Node, Package, PackageConfig, Tool, Yarn},
-    version::VersionSpec,
-};
+use crate::{error::ErrorDetails, fs::read_dir_eager, version::VersionSpec};
 
 /// Lazily loaded inventory.
 pub struct LazyInventory {
