@@ -20,6 +20,7 @@ use crate::error::ErrorDetails;
 use crate::path;
 use crate::platform::System;
 use crate::session::Session;
+use crate::signal::pass_control_to_shim;
 use crate::version::VersionSpec;
 
 mod binary;
@@ -296,6 +297,7 @@ impl ToolCommand {
     }
 
     fn exec(mut self) -> Fallible<ExitStatus> {
+        pass_control_to_shim();
         self.command.status().with_context(|_| self.error)
     }
 }
