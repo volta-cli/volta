@@ -1,5 +1,6 @@
 //! The view layer of Volta, with utilities for styling command-line output.
 use archive::Origin;
+use cfg_if::cfg_if;
 use console::{style, StyledObject};
 use failure::Fail;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -81,15 +82,33 @@ pub fn progress_bar(origin: Origin, details: &str, len: u64) -> ProgressBar {
     bar
 }
 
-/// Constructs a command-line progress spinner with the specified "message"
-/// string. The spinner is ticked by default every 50ms.
-pub fn progress_spinner(message: &str) -> ProgressBar {
-    // ⠋ Fetching public registry: https://nodejs.org/dist/index.json
-    let spinner = ProgressBar::new_spinner();
+cfg_if! {
+    if #[cfg(windows)] {
+        /// Constructs a command-line progress spinner with the specified "message"
+        /// string. The spinner is ticked by default every 100ms.
+        pub fn progress_spinner(message: &str) -> ProgressBar {
+            let spinner = ProgressBar::new_spinner();
+            // Windows CMD prompt doesn't support Unicode characters, so use a simplified spinner
+            let style = ProgressStyle::default_spinner().tick_chars(r#"-\|/-"#);
 
-    spinner.set_message(message);
-    spinner.set_style(ProgressStyle::default_spinner());
-    spinner.enable_steady_tick(50); // tick the spinner every 50ms
+            spinner.set_message(message);
+            spinner.set_style(style);
+            spinner.enable_steady_tick(100);
 
-    spinner
+            spinner
+        }
+    } else {
+        /// Constructs a command-line progress spinner with the specified "message"
+        /// string. The spinner is ticked by default every 50ms.
+        pub fn progress_spinner(message: &str) -> ProgressBar {
+            // ⠋ Fetching public registry: https://nodejs.org/dist/index.json
+            let spinner = ProgressBar::new_spinner();
+
+            spinner.set_message(message);
+            spinner.set_style(ProgressStyle::default_spinner());
+            spinner.enable_steady_tick(50);
+
+            spinner
+        }
+    }
 }

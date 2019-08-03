@@ -21,6 +21,7 @@ pub mod run;
 pub mod session;
 pub mod shell;
 pub mod shim;
+pub mod signal;
 pub mod style;
 pub mod tool;
 pub mod toolchain;
