@@ -130,7 +130,7 @@ pub struct RawToolHooks<T: Tool> {
     pub index: Option<RawResolveHook>,
 
     #[serde(skip)]
-    pub phantom: PhantomData<T>,
+    phantom: PhantomData<T>,
 }
 
 impl RawHookConfig {

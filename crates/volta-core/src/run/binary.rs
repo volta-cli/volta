@@ -108,6 +108,10 @@ where
     )
 }
 
+/// Information about the location and execution context of user-default binaries
+///
+/// Fetched from the config files in the Volta directory, represents the binary that is executed
+/// when the user is outside of a project that has the given bin as a dependency.
 pub struct DefaultBinary {
     pub bin_path: PathBuf,
     pub platform: PlatformSpec,
@@ -124,7 +128,7 @@ impl DefaultBinary {
         )?;
 
         // If the user does not have yarn set in the platform for this binary, use the default
-        // This is necessary because some tools (e.g. ember-cli with the --yarn option) invoke `yarn`
+        // This is necessary because some tools (e.g. ember-cli with the `--yarn` option) invoke `yarn`
         let platform = match bin_config.platform.yarn {
             Some(_) => bin_config.platform,
             None => {

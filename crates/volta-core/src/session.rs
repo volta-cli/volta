@@ -229,10 +229,7 @@ impl Session {
 
 fn publish_plugin(hooks: &LazyHookConfig) -> Fallible<Option<&Publish>> {
     let hooks = hooks.get()?;
-    Ok(hooks
-        .events
-        .as_ref()
-        .and_then(|events| events.publish.as_ref()))
+    Ok(hooks.events().and_then(|events| events.publish.as_ref()))
 }
 
 #[cfg(test)]

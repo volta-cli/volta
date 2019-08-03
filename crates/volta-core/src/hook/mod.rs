@@ -46,10 +46,10 @@ impl LazyHookConfig {
 
 /// Volta hook configuration
 pub struct HookConfig {
-    pub node: Option<ToolHooks<Node>>,
-    pub yarn: Option<ToolHooks<Yarn>>,
-    pub package: Option<ToolHooks<Package>>,
-    pub events: Option<EventHooks>,
+    node: Option<ToolHooks<Node>>,
+    yarn: Option<ToolHooks<Yarn>>,
+    package: Option<ToolHooks<Package>>,
+    events: Option<EventHooks>,
 }
 
 /// Volta hooks for an individual tool
@@ -61,7 +61,7 @@ pub struct ToolHooks<T: Tool> {
     /// The hook for resolving the Tool Index URL
     pub index: Option<tool::MetadataHook>,
 
-    pub phantom: PhantomData<T>,
+    phantom: PhantomData<T>,
 }
 
 impl<T: Tool> ToolHooks<T> {
