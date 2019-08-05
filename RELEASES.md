@@ -1,3 +1,8 @@
+# Version 0.6.1
+
+- Windows users will see a spinner instead of a � when Volta is loading data (#511)
+- Interrupting a tool with Ctrl+C will correctly wait for the tool to exit (#513)
+
 # Version 0.6.0
 
 - Allow installing 3rd-party binaries from private registries (#469)
