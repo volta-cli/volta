@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use failure::ResultExt;
 use log::debug;
 use semver::Version;
+use walkdir::WalkDir;
 
 use volta_fail::{Fallible, VoltaError};
 
@@ -27,10 +28,9 @@ impl PackageCollection {
     pub(crate) fn load() -> Fallible<Self> {
         let package_dir = path::user_package_dir()?;
 
-        let dir_contents = read_dir(&package_dir)
-            .with_context(|_| ErrorDetails::ReadInventoryDirError { dir: package_dir })?;
-
-        let file_paths = dir_contents
+        let file_paths = WalkDir::new(&package_dir)
+            .max_depth(1)
+            .into_iter()
             // Ignore any items which didn't resolve as `DirEntry` correctly.
             // There is no point trying to do anything with those, and no error
             // we can report to the user in any case. Log the failure in the
@@ -43,15 +43,8 @@ impl PackageCollection {
                 }
             })
             // Ignore directory entries.
-            // TODO: *recurse* through directories before we get to this point,
-            //       so that we correctly handle namespaced packages.
             .filter_map(|dir_entry| {
-                let is_file = dir_entry
-                    .file_type()
-                    .map(|file_type| file_type.is_dir())
-                    .unwrap_or(false);
-
-                if is_file {
+                if dir_entry.file_type().is_dir() {
                     Some(PathBuf::from(dir_entry.file_name()))
                 } else {
                     None
