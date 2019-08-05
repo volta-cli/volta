@@ -23,8 +23,6 @@ pub struct PackageCollection {
 }
 
 impl PackageCollection {
-    // loads an empty PackageCollection
-    // ISSUE(#288) Collection only supports versions - for packages we also need names
     pub(crate) fn load() -> Fallible<Self> {
         let package_dir = path::user_package_dir()?;
 
