@@ -26,7 +26,7 @@ use crate::distro::package::{PackageDistro, PackageEntry, PackageIndex, PackageV
 use crate::distro::yarn::YarnDistro;
 use crate::distro::{Distro, Fetched};
 use crate::error::ErrorDetails;
-use crate::fs::{ensure_containing_dir_exists, read_file_opt};
+use crate::fs::{ensure_containing_dir_exists, read_file};
 use crate::hook::ToolHooks;
 use crate::path;
 use crate::style::progress_spinner;
@@ -675,7 +675,7 @@ pub struct NodeDistroFiles {
 /// Reads a public index from the Node cache, if it exists and hasn't expired.
 fn read_cached_opt() -> Fallible<Option<serial::NodeIndex>> {
     let expiry_file = path::node_index_expiry_file()?;
-    let expiry = read_file_opt(&expiry_file)
+    let expiry = read_file(&expiry_file)
         .with_context(|_| ErrorDetails::ReadNodeIndexExpiryError { file: expiry_file })?;
 
     if let Some(string) = expiry {
@@ -685,7 +685,7 @@ fn read_cached_opt() -> Fallible<Option<serial::NodeIndex>> {
 
         if current_date < expiry_date {
             let index_file = path::node_index_file()?;
-            let cached = read_file_opt(&index_file)
+            let cached = read_file(&index_file)
                 .with_context(|_| ErrorDetails::ReadNodeIndexCacheError { file: index_file })?;
 
             if let Some(string) = cached {
