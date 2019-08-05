@@ -50,7 +50,7 @@ pub fn delete_dir_error<P: AsRef<Path>>(directory: &P) -> impl FnOnce(&io::Error
 }
 
 /// Reads a file, if it exists.
-pub fn read_file_opt(path: &PathBuf) -> io::Result<Option<String>> {
+pub fn read_file(path: &PathBuf) -> io::Result<Option<String>> {
     let result: io::Result<String> = fs::read_to_string(path);
 
     match result {

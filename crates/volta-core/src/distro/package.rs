@@ -21,7 +21,7 @@ use crate::distro::{download_tool_error, Distro, Fetched};
 use crate::error::ErrorDetails;
 use crate::fs::{
     delete_dir_error, dir_entry_match, ensure_containing_dir_exists, ensure_dir_does_not_exist,
-    read_dir_eager, read_file_opt,
+    read_dir_eager, read_file,
 };
 use crate::hook::ToolHooks;
 use crate::inventory::Collection;
@@ -281,7 +281,7 @@ impl PackageDistro {
     /// Verify downloaded package, returning an Archive if it is ok.
     fn load_cached_archive(&self) -> Option<Box<dyn Archive>> {
         let mut distro = File::open(&self.distro_file).ok()?;
-        let stored_shasum = read_file_opt(&self.shasum_file).ok()??; // `??`: Err *or* None -> None
+        let stored_shasum = read_file(&self.shasum_file).ok()??; // `??`: Err *or* None -> None
 
         let mut buffer = Vec::new();
         distro.read_to_end(&mut buffer).ok()?;
