@@ -46,7 +46,7 @@ where
     D: Deserializer<'de>,
 {
     match String::deserialize(deserializer) {
-        Ok(_t) => Ok(true),
-        Err(_e) => Ok(false),
+        Ok(_) => Ok(true),
+        Err(_) => Ok(false),
     }
 }

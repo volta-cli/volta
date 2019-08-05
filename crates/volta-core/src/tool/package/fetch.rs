@@ -25,22 +25,30 @@ pub fn fetch(name: &str, details: &PackageDetails) -> Fallible<()> {
     let cache_file = path::package_distro_file(&name, &version_string)?;
     let shasum_file = path::package_distro_shasum(&name, &version_string)?;
 
-    if let Some(archive) = load_cached_distro(&cache_file, &shasum_file) {
-        debug!(
-            "Loading {} from cached archive at '{}'",
-            tool_version(&name, &version_string),
-            cache_file.display(),
-        );
-        unpack_archive(archive, name, &details.version)
+    let (archive, cached) = match load_cached_distro(&cache_file, &shasum_file) {
+        Some(archive) => {
+            debug!(
+                "Loading {} from cached archive at '{}'",
+                tool_version(&name, &version_string),
+                cache_file.display(),
+            );
+            (archive, true)
+        }
+        None => {
+            let archive = fetch_remote_distro(
+                tool::Spec::Package(name.into(), VersionSpec::exact(&details.version)),
+                &details.tarball_url,
+                &cache_file,
+            )?;
+            (archive, false)
+        }
+    };
+
+    unpack_archive(archive, name, &details.version)?;
+
+    if cached {
+        Ok(())
     } else {
-        let archive = fetch_remote_distro(
-            tool::Spec::Package(name.into(), VersionSpec::exact(&details.version)),
-            &details.tarball_url,
-            &cache_file,
-        )?;
-
-        unpack_archive(archive, &name, &details.version)?;
-
         // Save the shasum in a file
         write(&shasum_file, details.shasum.as_bytes()).with_context(|_| {
             ErrorDetails::WritePackageShasumError {
@@ -50,10 +58,6 @@ pub fn fetch(name: &str, details: &PackageDetails) -> Fallible<()> {
             }
         })
     }
-    // Check for cache, if available then use that (unpack_archive)
-    // Otherwise, download from remote source into the cache file
-    // (unpack_archive)
-    // Once complete, write the shasum file
 }
 
 fn load_cached_distro(file: &Path, shasum_file: &Path) -> Option<Box<dyn Archive>> {
