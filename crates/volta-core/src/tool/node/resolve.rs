@@ -9,7 +9,7 @@ use std::time::{Duration, SystemTime};
 use super::super::registry_fetch_error;
 use super::serial;
 use crate::error::ErrorDetails;
-use crate::fs::{create_staging_file, ensure_containing_dir_exists, read_file_opt};
+use crate::fs::{create_staging_file, ensure_containing_dir_exists, read_file};
 use crate::hook::ToolHooks;
 use crate::path;
 use crate::session::Session;
@@ -164,7 +164,7 @@ pub struct NodeDistroFiles {
 /// Reads a public index from the Node cache, if it exists and hasn't expired.
 fn read_cached_opt() -> Fallible<Option<serial::RawNodeIndex>> {
     let expiry_file = path::node_index_expiry_file()?;
-    let expiry = read_file_opt(&expiry_file)
+    let expiry = read_file(&expiry_file)
         .with_context(|_| ErrorDetails::ReadNodeIndexExpiryError { file: expiry_file })?;
 
     if let Some(string) = expiry {
@@ -174,7 +174,7 @@ fn read_cached_opt() -> Fallible<Option<serial::RawNodeIndex>> {
 
         if current_date < expiry_date {
             let index_file = path::node_index_file()?;
-            let cached = read_file_opt(&index_file)
+            let cached = read_file(&index_file)
                 .with_context(|_| ErrorDetails::ReadNodeIndexCacheError { file: index_file })?;
 
             if let Some(string) = cached {

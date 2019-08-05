@@ -8,7 +8,7 @@ use super::super::download_tool_error;
 use crate::error::ErrorDetails;
 use crate::fs::{
     create_staging_dir, ensure_containing_dir_exists, ensure_dir_does_not_exist, read_dir_eager,
-    read_file_opt,
+    read_file,
 };
 use crate::path;
 use crate::style::{progress_bar, tool_version};
@@ -58,7 +58,7 @@ pub fn fetch(name: &str, details: &PackageDetails) -> Fallible<()> {
 
 fn load_cached_distro(file: &Path, shasum_file: &Path) -> Option<Box<dyn Archive>> {
     let mut distro = File::open(file).ok()?;
-    let stored_shasum = read_file_opt(shasum_file).ok()??; // `??`: Err(_) *or* Ok(None) -> None
+    let stored_shasum = read_file(shasum_file).ok()??; // `??`: Err(_) *or* Ok(None) -> None
 
     let mut buffer = Vec::new();
     distro.read_to_end(&mut buffer).ok()?;
