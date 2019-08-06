@@ -34,28 +34,35 @@ pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Node>>) -> Fallible<Nod
     let node_dir = path::node_inventory_dir()?;
     let cache_file = node_dir.join(path::node_distro_file_name(&version.to_string()));
 
-    if let Some(archive) = load_cached_distro(&cache_file) {
-        debug!(
-            "Loading {} from cached archive at '{}'",
-            tool_version("node", &version),
-            cache_file.display()
-        );
-        unpack_archive(archive, version)
-    } else {
-        let staging = create_staging_file()?;
-        let remote_url = determine_remote_url(&version, hooks)?;
-        let archive = fetch_remote_distro(&version, &remote_url, staging.path())?;
+    let (archive, staging) = match load_cached_distro(&cache_file) {
+        Some(archive) => {
+            debug!(
+                "Loading {} from cached archive at '{}'",
+                tool_version("node", &version),
+                cache_file.display()
+            );
+            (archive, None)
+        }
+        None => {
+            let staging = create_staging_file()?;
+            let remote_url = determine_remote_url(&version, hooks)?;
+            let archive = fetch_remote_distro(&version, &remote_url, staging.path())?;
+            (archive, Some(staging))
+        }
+    };
 
-        let node_version = unpack_archive(archive, version)?;
+    let node_version = unpack_archive(archive, version)?;
 
+    if let Some(staging_file) = staging {
         ensure_containing_dir_exists(&cache_file)?;
-        staging
+        staging_file
             .persist(cache_file)
             .with_context(|_| ErrorDetails::PersistInventoryError {
                 tool: "Node".into(),
             })?;
-        Ok(node_version)
     }
+
+    Ok(node_version)
 }
 
 /// Unpack the node archive into the image directory so that it is ready for use
