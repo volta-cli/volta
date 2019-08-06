@@ -4,11 +4,11 @@ use lazycell::LazyCell;
 use readext::ReadExt;
 use semver::Version;
 
-use crate::distro::node::NodeVersion;
 use crate::error::ErrorDetails;
 use crate::fs::touch;
 use crate::path::user_platform_file;
 use crate::platform::PlatformSpec;
+use crate::tool::NodeVersion;
 
 use log::debug;
 use volta_fail::{Fallible, ResultExt};
@@ -62,23 +62,23 @@ impl Toolchain {
     }
 
     /// Set the active Node version in the user platform file.
-    pub fn set_active_node(&mut self, node_version: NodeVersion) -> Fallible<()> {
+    pub fn set_active_node(&mut self, node_version: &NodeVersion) -> Fallible<()> {
         let mut dirty = false;
 
         if let Some(ref mut platform) = self.platform {
             if platform.node_runtime != node_version.runtime {
-                platform.node_runtime = node_version.runtime;
+                platform.node_runtime = node_version.runtime.clone();
                 dirty = true;
             }
 
-            if platform.npm != Some(node_version.npm.clone()) {
-                platform.npm = Some(node_version.npm);
+            if platform.npm.as_ref() != Some(&node_version.npm) {
+                platform.npm = Some(node_version.npm.clone());
                 dirty = true;
             }
         } else {
             self.platform = Some(PlatformSpec {
-                node_runtime: node_version.runtime,
-                npm: Some(node_version.npm),
+                node_runtime: node_version.runtime.clone(),
+                npm: Some(node_version.npm.clone()),
                 yarn: None,
             });
             dirty = true;
@@ -92,12 +92,12 @@ impl Toolchain {
     }
 
     /// Set the active Yarn version in the user platform file.
-    pub fn set_active_yarn(&mut self, yarn_version: Version) -> Fallible<()> {
+    pub fn set_active_yarn(&mut self, yarn_version: &Version) -> Fallible<()> {
         let mut dirty = false;
 
         if let &mut Some(ref mut platform) = &mut self.platform {
-            if platform.yarn != Some(yarn_version.clone()) {
-                platform.yarn = Some(yarn_version);
+            if platform.yarn.as_ref() != Some(yarn_version) {
+                platform.yarn = Some(yarn_version.clone());
                 dirty = true;
             }
         }
@@ -110,13 +110,15 @@ impl Toolchain {
     }
 
     /// Set the active Npm version in the user platform file.
-    pub fn set_active_npm(&mut self, npm_version: Version) -> Fallible<()> {
+    pub fn set_active_npm(&mut self, npm_version: &Version) -> Fallible<()> {
         let mut dirty = false;
 
         if let &mut Some(ref mut platform) = &mut self.platform {
-            if platform.npm != Some(npm_version.clone()) {
-                platform.npm = Some(npm_version);
-                dirty = true;
+            if let Some(ref npm) = &platform.npm {
+                if npm != npm_version {
+                    platform.npm = Some(npm_version.clone());
+                    dirty = true;
+                }
             }
         }
 

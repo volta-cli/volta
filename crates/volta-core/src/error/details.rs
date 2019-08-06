@@ -8,7 +8,7 @@ use textwrap::{fill, indent};
 use volta_fail::{ExitCode, VoltaFail};
 
 use crate::style::{text_width, tool_version};
-use crate::tool::ToolSpec;
+use crate::tool;
 
 const REPORT_BUG_CTA: &'static str =
     "Please rerun the command that triggered this error with the environment
@@ -112,7 +112,7 @@ pub enum ErrorDetails {
     },
 
     DownloadToolNetworkError {
-        tool: ToolSpec,
+        tool: tool::Spec,
         from_url: String,
     },
 

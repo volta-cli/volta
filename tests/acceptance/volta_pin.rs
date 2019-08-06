@@ -394,7 +394,7 @@ fn pin_yarn_missing_release() {
         s.volta("pin yarn@1.3.1"),
         execs()
             .with_status(ExitCode::NetworkError as i32)
-            .with_stderr_contains("[..]Could not download yarn version 1.3.1")
+            .with_stderr_contains("[..]Could not download yarn@1.3.1")
     );
 
     assert_eq!(

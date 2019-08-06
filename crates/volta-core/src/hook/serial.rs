@@ -1,29 +1,27 @@
+use std::convert::{TryFrom, TryInto};
 use std::marker::PhantomData;
 use std::path::Path;
 
 use super::tool;
-use crate::distro::node::NodeDistro;
-use crate::distro::package::PackageDistro;
-use crate::distro::yarn::YarnDistro;
-use crate::distro::Distro;
 use crate::error::ErrorDetails;
+use crate::tool::{Node, Package, Tool, Yarn};
 use serde::{Deserialize, Serialize};
-use volta_fail::Fallible;
+use volta_fail::{Fallible, VoltaError};
 
 #[derive(Serialize, Deserialize)]
-pub struct ResolveHook {
+pub struct RawResolveHook {
     prefix: Option<String>,
     template: Option<String>,
     bin: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct PublishHook {
+pub struct RawPublishHook {
     url: Option<String>,
     bin: Option<String>,
 }
 
-impl ResolveHook {
+impl RawResolveHook {
     fn into_hook<H, P, T, B>(self, to_prefix: P, to_template: T, to_bin: B) -> Fallible<H>
     where
         P: FnOnce(String) -> H,
@@ -31,22 +29,22 @@ impl ResolveHook {
         B: FnOnce(String) -> H,
     {
         match self {
-            ResolveHook {
+            RawResolveHook {
                 prefix: Some(prefix),
                 template: None,
                 bin: None,
             } => Ok(to_prefix(prefix)),
-            ResolveHook {
+            RawResolveHook {
                 prefix: None,
                 template: Some(template),
                 bin: None,
             } => Ok(to_template(template)),
-            ResolveHook {
+            RawResolveHook {
                 prefix: None,
                 template: None,
                 bin: Some(bin),
             } => Ok(to_bin(bin)),
-            ResolveHook {
+            RawResolveHook {
                 prefix: None,
                 template: None,
                 bin: None,
@@ -78,18 +76,20 @@ impl ResolveHook {
     }
 }
 
-impl PublishHook {
-    pub fn into_publish(self) -> Fallible<super::Publish> {
-        match self {
-            PublishHook {
+impl TryFrom<RawPublishHook> for super::Publish {
+    type Error = VoltaError;
+
+    fn try_from(raw: RawPublishHook) -> Fallible<super::Publish> {
+        match raw {
+            RawPublishHook {
                 url: Some(url),
                 bin: None,
             } => Ok(super::Publish::Url(url)),
-            PublishHook {
+            RawPublishHook {
                 url: None,
                 bin: Some(bin),
             } => Ok(super::Publish::Bin(bin)),
-            PublishHook {
+            RawPublishHook {
                 url: None,
                 bin: None,
             } => Err(ErrorDetails::PublishHookNeitherUrlNorBin.into()),
@@ -99,43 +99,41 @@ impl PublishHook {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct HookConfig {
-    pub node: Option<ToolHooks<NodeDistro>>,
-    pub yarn: Option<ToolHooks<YarnDistro>>,
-    pub packages: Option<ToolHooks<PackageDistro>>,
-    pub events: Option<EventHooks>,
+pub struct RawHookConfig {
+    pub node: Option<RawToolHooks<Node>>,
+    pub yarn: Option<RawToolHooks<Yarn>>,
+    pub packages: Option<RawToolHooks<Package>>,
+    pub events: Option<RawEventHooks>,
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename = "events")]
-pub struct EventHooks {
-    pub publish: Option<PublishHook>,
+pub struct RawEventHooks {
+    pub publish: Option<RawPublishHook>,
 }
 
-impl EventHooks {
-    pub fn into_event_hooks(self) -> Fallible<super::EventHooks> {
-        Ok(super::EventHooks {
-            publish: if let Some(p) = self.publish {
-                Some(p.into_publish()?)
-            } else {
-                None
-            },
-        })
+impl TryFrom<RawEventHooks> for super::EventHooks {
+    type Error = VoltaError;
+
+    fn try_from(raw: RawEventHooks) -> Fallible<super::EventHooks> {
+        let publish = raw.publish.map(|p| p.try_into()).transpose()?;
+
+        Ok(super::EventHooks { publish })
     }
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename = "tool")]
-pub struct ToolHooks<I> {
-    pub distro: Option<ResolveHook>,
-    pub latest: Option<ResolveHook>,
-    pub index: Option<ResolveHook>,
+pub struct RawToolHooks<T: Tool> {
+    pub distro: Option<RawResolveHook>,
+    pub latest: Option<RawResolveHook>,
+    pub index: Option<RawResolveHook>,
 
     #[serde(skip)]
-    phantom: PhantomData<I>,
+    phantom: PhantomData<T>,
 }
 
-impl HookConfig {
+impl RawHookConfig {
     pub fn into_hook_config(self, base_dir: &Path) -> Fallible<super::HookConfig> {
         let node = self.node.map(|n| n.into_tool_hooks(base_dir)).transpose()?;
         let yarn = self.yarn.map(|y| y.into_tool_hooks(base_dir)).transpose()?;
@@ -143,7 +141,7 @@ impl HookConfig {
             .packages
             .map(|p| p.into_tool_hooks(base_dir))
             .transpose()?;
-        let events = self.events.map(|e| e.into_event_hooks()).transpose()?;
+        let events = self.events.map(|e| e.try_into()).transpose()?;
         Ok(super::HookConfig {
             node,
             yarn,
@@ -153,8 +151,8 @@ impl HookConfig {
     }
 }
 
-impl<D: Distro> ToolHooks<D> {
-    pub fn into_tool_hooks(self, base_dir: &Path) -> Fallible<super::ToolHooks<D>> {
+impl<T: Tool> RawToolHooks<T> {
+    pub fn into_tool_hooks(self, base_dir: &Path) -> Fallible<super::ToolHooks<T>> {
         let distro = self
             .distro
             .map(|d| d.into_distro_hook(base_dir))

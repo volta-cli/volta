@@ -1,7 +1,7 @@
 use structopt::StructOpt;
 
 use volta_core::session::{ActivityKind, Session};
-use volta_core::tool::ToolSpec;
+use volta_core::tool;
 use volta_core::version::VersionSpec;
 use volta_fail::{ExitCode, Fallible};
 
@@ -18,9 +18,9 @@ impl Command for Uninstall {
         session.add_event_start(ActivityKind::Uninstall);
 
         let version = VersionSpec::default();
-        let tool = ToolSpec::from_str_and_version(&self.tool, version);
+        let tool = tool::Spec::from_str_and_version(&self.tool, version);
 
-        tool.uninstall(session)?;
+        tool.uninstall()?;
 
         session.add_event_end(ActivityKind::Uninstall, ExitCode::Success);
         Ok(ExitCode::Success)

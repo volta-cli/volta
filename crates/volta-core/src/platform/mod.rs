@@ -5,10 +5,11 @@ use std::path::PathBuf;
 use envoy;
 use semver::Version;
 
-use crate::distro::node::{load_default_npm_version, NodeVersion};
 use crate::error::ErrorDetails;
 use crate::path;
 use crate::session::Session;
+use crate::tool::load_default_npm_version;
+use crate::tool::NodeVersion;
 use volta_fail::{Fallible, ResultExt};
 
 pub mod sourced;

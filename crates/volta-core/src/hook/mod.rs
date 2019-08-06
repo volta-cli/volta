@@ -5,14 +5,10 @@ use std::fs::File;
 use std::marker::PhantomData;
 use std::path::Path;
 
-use lazycell::LazyCell;
-
-use crate::distro::node::NodeDistro;
-use crate::distro::package::PackageDistro;
-use crate::distro::yarn::YarnDistro;
-use crate::distro::Distro;
 use crate::error::ErrorDetails;
 use crate::path::{find_project_dir, user_hooks_file};
+use crate::tool::{Node, Package, Tool, Yarn};
+use lazycell::LazyCell;
 use log::debug;
 use volta_fail::{Fallible, ResultExt};
 
@@ -50,14 +46,14 @@ impl LazyHookConfig {
 
 /// Volta hook configuration
 pub struct HookConfig {
-    pub node: Option<ToolHooks<NodeDistro>>,
-    pub yarn: Option<ToolHooks<YarnDistro>>,
-    pub package: Option<ToolHooks<PackageDistro>>,
-    pub events: Option<EventHooks>,
+    node: Option<ToolHooks<Node>>,
+    yarn: Option<ToolHooks<Yarn>>,
+    package: Option<ToolHooks<Package>>,
+    events: Option<EventHooks>,
 }
 
 /// Volta hooks for an individual tool
-pub struct ToolHooks<D: Distro> {
+pub struct ToolHooks<T: Tool> {
     /// The hook for resolving the URL for a distro version
     pub distro: Option<tool::DistroHook>,
     /// The hook for resolving the URL for the latest version
@@ -65,10 +61,10 @@ pub struct ToolHooks<D: Distro> {
     /// The hook for resolving the Tool Index URL
     pub index: Option<tool::MetadataHook>,
 
-    pub phantom: PhantomData<D>,
+    phantom: PhantomData<T>,
 }
 
-impl<D: Distro> ToolHooks<D> {
+impl<T: Tool> ToolHooks<T> {
     /// Creates a merged struct, with "right" having precedence over "left".
     fn merge(left: Self, right: Self) -> Self {
         Self {
@@ -92,6 +88,22 @@ macro_rules! merge_hook_config_field {
 }
 
 impl HookConfig {
+    pub fn node(&self) -> Option<&ToolHooks<Node>> {
+        self.node.as_ref()
+    }
+
+    pub fn yarn(&self) -> Option<&ToolHooks<Yarn>> {
+        self.yarn.as_ref()
+    }
+
+    pub fn package(&self) -> Option<&ToolHooks<Package>> {
+        self.package.as_ref()
+    }
+
+    pub fn events(&self) -> Option<&EventHooks> {
+        self.events.as_ref()
+    }
+
     /// Returns the current hooks, which are a merge between the user hooks and
     /// the project hooks (if any).
     fn current() -> Fallible<Self> {
@@ -150,14 +162,14 @@ impl HookConfig {
             file: file_path.to_path_buf(),
         })?;
 
-        let serial: serial::HookConfig =
+        let raw: serial::RawHookConfig =
             serde_json::de::from_reader(file).with_context(|_| ErrorDetails::ParseHooksError {
                 file: file_path.to_path_buf(),
             })?;
 
         let hooks_path = file_path.parent().unwrap_or(Path::new("/"));
 
-        serial.into_hook_config(hooks_path).map(|hooks| Some(hooks))
+        raw.into_hook_config(hooks_path).map(|hooks| Some(hooks))
     }
 
     /// Returns the per-user hooks, loaded from the filesystem.

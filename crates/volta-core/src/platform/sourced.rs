@@ -2,8 +2,8 @@ use std::ffi::OsString;
 use std::rc::Rc;
 
 use super::{Image, PlatformSpec};
-use crate::distro::node::NodeVersion;
 use crate::session::Session;
+use crate::tool::NodeVersion;
 use semver::Version;
 use volta_fail::Fallible;
 

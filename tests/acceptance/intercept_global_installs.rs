@@ -81,7 +81,7 @@ fn npm_allows_global_install_with_env_variable() {
         execs()
             .with_status(ExitCode::ExecutionFailure as i32)
             .with_stderr_does_not_contain("[..]Global package installs are not supported.")
-            .with_stderr_contains("[..]Could not download node version[..]")
+            .with_stderr_contains("[..]Could not download node@[..]")
     );
 }
 
@@ -124,6 +124,6 @@ fn yarn_allows_global_add_with_env_variable() {
         execs()
             .with_status(ExitCode::ExecutionFailure as i32)
             .with_stderr_does_not_contain("[..]Global package installs are not supported.")
-            .with_stderr_contains("[..]Could not download node version[..]")
+            .with_stderr_contains("[..]Could not download node@[..]")
     );
 }

@@ -2,9 +2,11 @@
 
 use std::fs::{self, create_dir_all, read_dir, DirEntry, File, Metadata};
 use std::io::{self, ErrorKind};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::error::ErrorDetails;
+use crate::path;
+use tempfile::{tempdir_in, NamedTempFile, TempDir};
 use volta_fail::{Fallible, ResultExt};
 
 /// Opens a file, creating it if it doesn't exist
@@ -49,8 +51,13 @@ pub fn delete_dir_error<P: AsRef<Path>>(directory: &P) -> impl FnOnce(&io::Error
     |_| ErrorDetails::DeleteDirectoryError { directory }
 }
 
+pub fn delete_file_error<P: AsRef<Path>>(file: &P) -> impl FnOnce(&io::Error) -> ErrorDetails {
+    let file = file.as_ref().to_path_buf();
+    |_| ErrorDetails::DeleteFileError { file }
+}
+
 /// Reads a file, if it exists.
-pub fn read_file(path: &PathBuf) -> io::Result<Option<String>> {
+pub fn read_file<P: AsRef<Path>>(path: P) -> io::Result<Option<String>> {
     let result: io::Result<String> = fs::read_to_string(path);
 
     match result {
@@ -96,4 +103,17 @@ where
         .filter(|(_, metadata)| metadata.is_file())
         .filter_map(|(entry, _)| f(&entry))
         .collect::<Vec<T>>())
+}
+
+/// Creates a NamedTempFile in the Volta tmp directory
+pub fn create_staging_file() -> Fallible<NamedTempFile> {
+    let tmp_dir = path::tmp_dir()?;
+    NamedTempFile::new_in(&tmp_dir)
+        .with_context(|_| ErrorDetails::CreateTempFileError { in_dir: tmp_dir })
+}
+
+/// Creates a staging directory in the Volta tmp directory
+pub fn create_staging_dir() -> Fallible<TempDir> {
+    let tmp_root = path::tmp_dir()?;
+    tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })
 }
