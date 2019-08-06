@@ -82,7 +82,7 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Yarn>>) -> Fall
     let releases: serial::RawYarnIndex = reqwest::get(&url)
         .and_then(|mut resp| resp.json())
         .with_context(registry_fetch_error("Yarn", &url))?;
-    let index: YarnIndex = releases.into();
+    let index = YarnIndex::from(releases);
     let releases = index.entries;
     spinner.finish_and_clear();
     let version_opt = releases.into_iter().rev().find(|v| matching.matches(v));
