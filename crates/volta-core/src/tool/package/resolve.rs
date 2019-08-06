@@ -41,9 +41,10 @@ fn resolve_latest(name: &str, hooks: Option<&ToolHooks<Package>>) -> Fallible<Pa
 
     let latest = package_index.latest.clone();
 
-    let details_opt = match_package_details(package_index, |PackageDetails { version, .. }| {
-        &latest == version
-    });
+    let details_opt = package_index
+        .entries
+        .into_iter()
+        .find(|PackageDetails { version, .. }| &latest == version);
 
     match details_opt {
         Some(details) => {
@@ -78,9 +79,10 @@ fn resolve_semver(
         _ => npm_view_query(name, &matching.to_string())?,
     };
 
-    let details_opt = match_package_details(package_index, |PackageDetails { version, .. }| {
-        matching.matches(&version)
-    });
+    let details_opt = package_index
+        .entries
+        .into_iter()
+        .find(|PackageDetails { version, .. }| matching.matches(&version));
 
     match details_opt {
         Some(details) => {
@@ -102,15 +104,6 @@ fn resolve_semver(
 pub struct PackageIndex {
     pub latest: Version,
     pub entries: Vec<PackageDetails>,
-}
-
-// use the input predicate to match a package in the index
-fn match_package_details(
-    index: PackageIndex,
-    predicate: impl Fn(&PackageDetails) -> bool,
-) -> Option<PackageDetails> {
-    let mut entries = index.entries.into_iter();
-    entries.find(predicate)
 }
 
 /// Use `npm view` to get the info for the package. This supports:

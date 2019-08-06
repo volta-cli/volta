@@ -219,15 +219,12 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::RawNodeIndex> {
 
             let cached = create_staging_file()?;
 
-            // Block to borrow cached for cached_file.
-            {
-                let mut cached_file: &File = cached.as_file();
-                cached_file
-                    .write(response_text.as_bytes())
-                    .with_context(|_| ErrorDetails::WriteNodeIndexCacheError {
-                        file: cached.path().to_path_buf(),
-                    })?;
-            }
+            let mut cached_file: &File = cached.as_file();
+            cached_file
+                .write(response_text.as_bytes())
+                .with_context(|_| ErrorDetails::WriteNodeIndexCacheError {
+                    file: cached.path().to_path_buf(),
+                })?;
 
             let index_cache_file = path::node_index_file()?;
             ensure_containing_dir_exists(&index_cache_file)?;
@@ -238,24 +235,20 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::RawNodeIndex> {
             })?;
 
             let expiry = create_staging_file()?;
+            let mut expiry_file: &File = expiry.as_file();
 
-            // Block to borrow expiry for expiry_file.
-            {
-                let mut expiry_file: &File = expiry.as_file();
+            let result = if let Some(expires_header) = response.headers().get_011::<Expires>() {
+                write!(expiry_file, "{}", expires_header)
+            } else {
+                let expiry_date =
+                    SystemTime::now() + Duration::from_secs(max_age(&response).into());
 
-                let result = if let Some(expires_header) = response.headers().get_011::<Expires>() {
-                    write!(expiry_file, "{}", expires_header)
-                } else {
-                    let expiry_date =
-                        SystemTime::now() + Duration::from_secs(max_age(&response).into());
+                write!(expiry_file, "{}", HttpDate::from(expiry_date))
+            };
 
-                    write!(expiry_file, "{}", HttpDate::from(expiry_date))
-                };
-
-                result.with_context(|_| ErrorDetails::WriteNodeIndexExpiryError {
-                    file: expiry.path().to_path_buf(),
-                })?;
-            }
+            result.with_context(|_| ErrorDetails::WriteNodeIndexExpiryError {
+                file: expiry.path().to_path_buf(),
+            })?;
 
             let index_expiry_file = path::node_index_expiry_file()?;
             ensure_containing_dir_exists(&index_expiry_file)?;
