@@ -553,6 +553,18 @@ install_from_file() {
   tar -xzvf "$archive" -C "$extract_to"
 }
 
+check_architecture() {
+  local version="$1"
+  local arch="$2"
+
+  if [[ "$version" != "local"* ]]; then
+    if [ "$arch" != "x86_64" ]; then
+      error "Sorry! Volta currently only provides pre-built binaries for x86_64 architectures."
+      return 1
+    fi
+  fi
+}
+
 
 # return if sourced (for testing the functions above)
 return 0 2>/dev/null
@@ -593,5 +605,7 @@ do
       ;;
   esac
 done
+
+check_architecture "$version_to_install" "$(uname -m)" || exit 1
 
 install_version "$version_to_install" "$install_dir"
