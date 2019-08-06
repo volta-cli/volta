@@ -53,7 +53,7 @@ struct ToolCommand {
     command: Command,
 
     /// The Volta error with which to wrap any failure.
-    /// 
+    ///
     /// This allows us to call out to the system for the pass-through behavior, but still
     /// show a friendly error message for cases where the user needs to select a Node version
     on_failure: ErrorDetails,
@@ -85,7 +85,7 @@ impl ToolCommand {
     }
 
     /// Build a ToolCommand that is calling a command that Volta couldn't find
-    /// 
+    ///
     /// This will allow the existing system to resolve the tool, if possible. If that still fails,
     /// then we show `default_error` as the friendly error to the user, directing them how to
     /// resolve the issue (e.g. run `volta install node` to enable `node`)
