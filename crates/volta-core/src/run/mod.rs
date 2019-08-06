@@ -49,33 +49,46 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
 
 /// Represents the command to execute a tool
 struct ToolCommand {
+    /// The command that will execute a tool with the right PATH context
     command: Command,
-    error: ErrorDetails,
+
+    /// The Volta error with which to wrap any failure.
+    /// 
+    /// This allows us to call out to the system for the pass-through behavior, but still
+    /// show a friendly error message for cases where the user needs to select a Node version
+    on_failure: ErrorDetails,
 }
 
 impl ToolCommand {
+    /// Build a ToolCommand that is directly calling a tool in the Volta directory
     fn direct<A>(exe: &OsStr, args: A, path_var: &OsStr) -> Self
     where
         A: IntoIterator<Item = OsString>,
     {
         ToolCommand {
             command: command_for(exe, args, path_var),
-            error: ErrorDetails::BinaryExecError,
+            on_failure: ErrorDetails::BinaryExecError,
         }
     }
 
+    /// Build a ToolCommand that is calling a binary in the current project's `node_modules/bin`
     fn project_local<A>(exe: &OsStr, args: A, path_var: &OsStr) -> Self
     where
         A: IntoIterator<Item = OsString>,
     {
         ToolCommand {
             command: command_for(exe, args, path_var),
-            error: ErrorDetails::ProjectLocalBinaryExecError {
+            on_failure: ErrorDetails::ProjectLocalBinaryExecError {
                 command: exe.to_string_lossy().to_string(),
             },
         }
     }
 
+    /// Build a ToolCommand that is calling a command that Volta couldn't find
+    /// 
+    /// This will allow the existing system to resolve the tool, if possible. If that still fails,
+    /// then we show `default_error` as the friendly error to the user, directing them how to
+    /// resolve the issue (e.g. run `volta install node` to enable `node`)
     fn passthrough<A>(exe: &OsStr, args: A, default_error: ErrorDetails) -> Fallible<Self>
     where
         A: IntoIterator<Item = OsString>,
@@ -83,13 +96,13 @@ impl ToolCommand {
         let path = System::path()?;
         Ok(ToolCommand {
             command: command_for(exe, args, &path),
-            error: default_error,
+            on_failure: default_error,
         })
     }
 
     fn exec(mut self) -> Fallible<ExitStatus> {
         pass_control_to_shim();
-        self.command.status().with_context(|_| self.error)
+        self.command.status().with_context(|_| self.on_failure)
     }
 }
 

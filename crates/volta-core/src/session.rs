@@ -73,10 +73,11 @@ impl Display for ActivityKind {
 /// Represents the user's state during an execution of a Volta tool. The session
 /// encapsulates a number of aspects of the environment in which the tool was
 /// invoked, including:
-///     - the current directory
-///     - the Node project tree that contains the current directory (if any)
-///     - the Volta hook configuration
-///     - the inventory of locally-fetched Volta tools
+///
+/// - the current directory
+/// - the Node project tree that contains the current directory (if any)
+/// - the Volta hook configuration
+/// - the inventory of locally-fetched Volta tools
 pub struct Session {
     hooks: LazyHookConfig,
     inventory: LazyInventory,
@@ -105,6 +106,7 @@ impl Session {
     /// Returns the user's currently active platform, if any
     ///
     /// Active platform is determined by first looking at the Project Platform
+    ///
     /// - If it exists and has a Yarn version, then we use the project platform
     /// - If it exists but doesn't have a Yarn version, then we merge the two,
     ///   pulling Yarn from the user default platform, if available
@@ -229,7 +231,8 @@ impl Session {
 
 fn publish_plugin(hooks: &LazyHookConfig) -> Fallible<Option<&Publish>> {
     let hooks = hooks.get()?;
-    Ok(hooks.events().and_then(|events| events.publish.as_ref()))
+    let publish = hooks.events().and_then(|events| events.publish.as_ref());
+    Ok(publish)
 }
 
 #[cfg(test)]

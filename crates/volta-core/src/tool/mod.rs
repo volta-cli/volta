@@ -71,20 +71,21 @@ impl Spec {
     /// Resolve a tool spec into a fully realized Tool that can be fetched
     pub fn resolve(self, session: &mut Session) -> Fallible<Resolved> {
         match self {
-            Spec::Node(version) => {
-                node::resolve(version, session).map(|version| Resolved::Node(Node::new(version)))
-            }
-            Spec::Yarn(version) => {
-                yarn::resolve(version, session).map(|version| Resolved::Yarn(Yarn::new(version)))
-            }
+            Spec::Node(version) => node::resolve(version, session)
+                .map(Node::new)
+                .map(Resolved::Node),
+            Spec::Yarn(version) => yarn::resolve(version, session)
+                .map(Yarn::new)
+                .map(Resolved::Yarn),
             Spec::Package(name, version) => package::resolve(&name, version, session)
-                .map(|details| Resolved::Package(Package::new(name, details))),
+                .map(|details| Package::new(name, details))
+                .map(Resolved::Package),
             // ISSUE (#292): To preserve error message context, we always resolve Npm to Version 0.0.0
             // This will allow us to show the correct error message based on the user's command
             // e.g. `volta install npm` vs `volta pin npm`
-            Spec::Npm(_) => {
-                VersionSpec::parse_version("0.0.0").map(|version| Resolved::Npm(Npm::new(version)))
-            }
+            Spec::Npm(_) => VersionSpec::parse_version("0.0.0")
+                .map(Npm::new)
+                .map(Resolved::Npm),
         }
     }
 
