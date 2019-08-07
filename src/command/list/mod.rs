@@ -1,5 +1,6 @@
 mod human;
 mod plain;
+mod toolchain;
 
 use std::fmt;
 use std::path::PathBuf;
@@ -7,12 +8,16 @@ use std::str::FromStr;
 
 use semver::Version;
 use structopt::StructOpt;
-use volta_core::session::{ActivityKind, Session};
+
+use volta_core::{
+    inventory::{Inventory, LazyInventory},
+    session::{ActivityKind, Session},
+};
 use volta_fail::{ExitCode, Fallible};
 
 use crate::command::list::Toolchain::Tool;
 use crate::command::Command;
-use volta_core::inventory::{Inventory, LazyInventory};
+use toolchain::Toolchain;
 
 #[derive(Copy, Clone)]
 enum Format {
@@ -96,48 +101,6 @@ struct PackageManager {
     kind: PackageManagerKind,
     source: Source,
     version: Version,
-}
-
-enum Toolchain {
-    Node(Vec<Node>),
-    PackageManagers(Vec<PackageManager>),
-    Packages(Vec<Package>),
-    Tool {
-        name: String,
-        host_packages: Vec<Package>,
-    },
-    Active {
-        runtime: Option<Node>,
-        package_manager: Option<PackageManager>,
-        packages: Vec<Package>,
-    },
-    All {
-        runtimes: Vec<Node>,
-        package_managers: Vec<PackageManager>,
-        packages: Vec<Package>,
-    },
-}
-
-impl Toolchain {
-    fn active(inventory: &Inventory, filter: &Filter) -> Fallible<Toolchain> {
-        unimplemented!()
-    }
-
-    fn all(inventory: &Inventory) -> Fallible<Toolchain> {
-        unimplemented!()
-    }
-
-    fn node(inventory: &Inventory, filter: &Filter) -> Fallible<Toolchain> {
-        unimplemented!()
-    }
-
-    fn yarn(inventory: &Inventory, filter: &Filter) -> Fallible<Toolchain> {
-        unimplemented!()
-    }
-
-    fn package_or_tool(name: &str, inventory: &Inventory, filter: &Filter) -> Fallible<Toolchain> {
-        unimplemented!()
-    }
 }
 
 enum Filter {
