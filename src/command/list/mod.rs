@@ -73,19 +73,19 @@ struct Node {
 }
 
 #[derive(Clone)]
-enum PackageManagerType {
+enum PackageManagerKind {
     Yarn,
     Npm,
 }
 
-impl fmt::Display for PackageManagerType {
+impl fmt::Display for PackageManagerKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
             "{}",
             match self {
-                PackageManagerType::Npm => "npm",
-                PackageManagerType::Yarn => "yarn",
+                PackageManagerKind::Npm => "npm",
+                PackageManagerKind::Yarn => "yarn",
             }
         )
     }
@@ -93,7 +93,7 @@ impl fmt::Display for PackageManagerType {
 
 #[derive(Clone)]
 struct PackageManager {
-    type_: PackageManagerType,
+    kind: PackageManagerKind,
     source: Source,
     version: Version,
 }

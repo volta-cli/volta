@@ -116,7 +116,7 @@ fn display_node(source: &Source, version: &Version) -> String {
 fn display_package_manager(package_manager: &PackageManager) -> String {
     format!(
         "package-manager {}{}",
-        tool_version(&package_manager.type_, &package_manager.version),
+        tool_version(&package_manager.kind, &package_manager.version),
         package_manager.source
     )
 }
@@ -199,8 +199,8 @@ mod tests {
         fn default() {
             assert_eq!(
                 display_package_manager(&PackageManager {
-                    type_: PackageManagerType::Yarn,
                     source: Source::User,
+                    kind: PackageManagerKind::Yarn,
                     version: YARN_VERSION.clone(),
                 })
                 .as_str(),
@@ -212,7 +212,7 @@ mod tests {
         fn project() {
             assert_eq!(
                 display_package_manager(&PackageManager {
-                    type_: PackageManagerType::Yarn,
+                    kind: PackageManagerKind::Yarn,
                     source: Source::Project(PROJECT_PATH.clone()),
                     version: YARN_VERSION.clone()
                 })
@@ -225,7 +225,7 @@ mod tests {
         fn installed_not_set() {
             assert_eq!(
                 display_package_manager(&PackageManager {
-                    type_: PackageManagerType::Yarn,
+                    kind: PackageManagerKind::Yarn,
                     source: Source::None,
                     version: YARN_VERSION.clone()
                 })
@@ -297,7 +297,7 @@ mod tests {
     mod toolchain {
         use super::super::*;
         use super::*;
-        use crate::command::list::{Node, PackageManager, PackageManagerType, Toolchain};
+        use crate::command::list::{Node, PackageManager, PackageManagerKind, Toolchain};
 
         #[test]
         fn full() {
@@ -315,12 +315,12 @@ mod tests {
                     ],
                     package_managers: vec![
                         PackageManager {
-                            type_: PackageManagerType::Yarn,
+                            kind: PackageManagerKind::Yarn,
                             source: Source::Project(PROJECT_PATH.clone()),
                             version: YARN_VERSION.clone()
                         },
                         PackageManager {
-                            type_: PackageManagerType::Yarn,
+                            kind: PackageManagerKind::Yarn,
                             source: Source::User,
                             version: Version::from((1, 17, 0))
                         }

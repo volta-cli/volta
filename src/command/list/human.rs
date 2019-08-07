@@ -123,7 +123,7 @@ mod tests {
     mod active {
         use super::*;
         use crate::command::list::{
-            human::display_active, Node, PackageManager, PackageManagerType, Source,
+            human::display_active, Node, PackageManager, PackageManagerKind, Source,
         };
 
         #[test]
@@ -196,7 +196,7 @@ See options for more detailed reports by running `volta list --help`.";
                 version: NODE_12.clone(),
             });
             let package_manager = Some(PackageManager {
-                type_: PackageManagerType::Yarn,
+                kind: PackageManagerKind::Yarn,
                 source: Source::User,
                 version: YARN_VERSION.clone(),
             });
@@ -223,7 +223,7 @@ See options for more detailed reports by running `volta list --help`.";
                 version: NODE_12.clone(),
             });
             let package_manager = Some(PackageManager {
-                type_: PackageManagerType::Yarn,
+                kind: PackageManagerKind::Yarn,
                 source: Source::Project(PROJECT_PATH.clone()),
                 version: YARN_VERSION.clone(),
             });
@@ -250,7 +250,7 @@ See options for more detailed reports by running `volta list --help`.";
                 version: NODE_12.clone(),
             });
             let package_manager = Some(PackageManager {
-                type_: PackageManagerType::Yarn,
+                kind: PackageManagerKind::Yarn,
                 source: Source::Project(PROJECT_PATH.clone()),
                 version: YARN_VERSION.clone(),
             });
@@ -278,7 +278,7 @@ See options for more detailed reports by running `volta list --help`.";
                 version: NODE_12.clone(),
             });
             let package_manager = Some(PackageManager {
-                type_: PackageManagerType::Yarn,
+                kind: PackageManagerKind::Yarn,
                 source: Source::Project(PROJECT_PATH.clone()),
                 version: YARN_VERSION.clone(),
             });
@@ -322,7 +322,7 @@ See options for more detailed reports by running `volta list --help`.";
                 version: NODE_12.clone(),
             });
             let package_manager = Some(PackageManager {
-                type_: PackageManagerType::Yarn,
+                kind: PackageManagerKind::Yarn,
                 source: Source::Project(PROJECT_PATH.clone()),
                 version: YARN_VERSION.clone(),
             });
@@ -436,8 +436,8 @@ See options for more detailed reports by running `volta list --help`.";
 
     mod package_managers {
         use super::*;
-        use crate::command::list::{PackageManager, PackageManagerType, Source};
         use crate::command::list::Subcommand;
+        use crate::command::list::{PackageManager, PackageManagerKind, Source};
 
         #[test]
         fn none_installed() {
@@ -456,7 +456,7 @@ See `volta help install` for details and more options.";
     v1.16.0 (default)";
 
             let package_managers = [PackageManager {
-                type_: PackageManagerType::Yarn,
+                kind: PackageManagerKind::Yarn,
                 source: Source::User,
                 version: YARN_VERSION.clone(),
             }];
@@ -471,7 +471,7 @@ See `volta help install` for details and more options.";
     v1.16.0 (current @ ~/path/to/project.json)";
 
             let package_managers = [PackageManager {
-                type_: PackageManagerType::Yarn,
+                kind: PackageManagerKind::Yarn,
                 source: Source::Project(PROJECT_PATH.clone()),
                 version: YARN_VERSION.clone(),
             }];
@@ -486,7 +486,7 @@ See `volta help install` for details and more options.";
     v1.16.0";
 
             let yarns = [PackageManager {
-                type_: PackageManagerType::Yarn,
+                kind: PackageManagerKind::Yarn,
                 source: Source::None,
                 version: YARN_VERSION.clone(),
             }];
@@ -504,17 +504,17 @@ See `volta help install` for details and more options.";
 
             let yarns = [
                 PackageManager {
-                    type_: PackageManagerType::Yarn,
+                    kind: PackageManagerKind::Yarn,
                     source: Source::None,
                     version: Version::from((1, 3, 0)),
                 },
                 PackageManager {
-                    type_: PackageManagerType::Yarn,
+                    kind: PackageManagerKind::Yarn,
                     source: Source::User,
                     version: YARN_VERSION.clone(),
                 },
                 PackageManager {
-                    type_: PackageManagerType::Yarn,
+                    kind: PackageManagerKind::Yarn,
                     source: Source::Project(PROJECT_PATH.clone()),
                     version: Version::from((1, 17, 0)),
                 },
@@ -870,7 +870,7 @@ See `volta help install` for details and more options.";
 
     mod all {
         use super::*;
-        use crate::command::list::PackageManagerType;
+        use crate::command::list::PackageManagerKind;
         use semver::Identifier;
 
         #[test]
@@ -952,17 +952,17 @@ See `volta help install` for details and more options.";
 
             let package_managers = [
                 PackageManager {
-                    type_: PackageManagerType::Yarn,
+                    kind: PackageManagerKind::Yarn,
                     source: Source::User,
                     version: YARN_VERSION.clone(),
                 },
                 PackageManager {
-                    type_: PackageManagerType::Yarn,
+                    kind: PackageManagerKind::Yarn,
                     source: Source::Project(PROJECT_PATH.clone()),
                     version: Version::from((1, 17, 0)),
                 },
                 PackageManager {
-                    type_: PackageManagerType::Npm,
+                    kind: PackageManagerKind::Npm,
                     source: Source::None,
                     version: Version::from((1, 4, 0)),
                 },
