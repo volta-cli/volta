@@ -146,7 +146,7 @@ mod tests {
 See options for more detailed reports by running `volta list --help`.";
 
             let runtime = Some(Node {
-                source: Source::User,
+                source: Source::Default,
                 version: NODE_12.clone(),
             });
             let package_manager = None;
@@ -192,12 +192,12 @@ See options for more detailed reports by running `volta list --help`.";
 See options for more detailed reports by running `volta list --help`.";
 
             let runtime = Some(Node {
-                source: Source::User,
+                source: Source::Default,
                 version: NODE_12.clone(),
             });
             let package_manager = Some(PackageManager {
                 kind: PackageManagerKind::Yarn,
-                source: Source::User,
+                source: Source::Default,
                 version: YARN_VERSION.clone(),
             });
             let packages = vec![];
@@ -219,7 +219,7 @@ See options for more detailed reports by running `volta list --help`.";
 See options for more detailed reports by running `volta list --help`.";
 
             let runtime = Some(Node {
-                source: Source::User,
+                source: Source::Default,
                 version: NODE_12.clone(),
             });
             let package_manager = Some(PackageManager {
@@ -285,14 +285,14 @@ See options for more detailed reports by running `volta list --help`.";
             let packages = vec![
                 Package {
                     name: "create-react-app".to_string(),
-                    source: Source::User,
+                    source: Source::Default,
                     version: Version::from((3, 0, 1)),
                     node: NODE_12.clone(),
                     tools: vec!["create-react-app".to_string()],
                 },
                 Package {
                     name: "typescript".to_string(),
-                    source: Source::User,
+                    source: Source::Default,
                     version: Version::from((3, 4, 3)),
                     node: NODE_12.clone(),
                     tools: vec!["tsc".to_string(), "tsserver".to_string()],
@@ -336,7 +336,7 @@ See options for more detailed reports by running `volta list --help`.";
                 },
                 Package {
                     name: "typescript".to_string(),
-                    source: Source::User,
+                    source: Source::Default,
                     version: Version::from((3, 4, 3)),
                     node: NODE_12.clone(),
                     tools: vec!["tsc".to_string(), "tsserver".to_string()],
@@ -372,7 +372,7 @@ See options for more detailed reports by running `volta list --help`.";
 
     v10.15.3 (default)";
             let runtimes = [Node {
-                source: Source::User,
+                source: Source::Default,
                 version: NODE_10.clone(),
             }];
 
@@ -425,7 +425,7 @@ See options for more detailed reports by running `volta list --help`.";
                     version: NODE_11.clone(),
                 },
                 Node {
-                    source: Source::User,
+                    source: Source::Default,
                     version: NODE_10.clone(),
                 },
             ];
@@ -457,7 +457,7 @@ See `volta help install` for details and more options.";
 
             let package_managers = [PackageManager {
                 kind: PackageManagerKind::Yarn,
-                source: Source::User,
+                source: Source::Default,
                 version: YARN_VERSION.clone(),
             }];
 
@@ -510,7 +510,7 @@ See `volta help install` for details and more options.";
                 },
                 PackageManager {
                     kind: PackageManagerKind::Yarn,
-                    source: Source::User,
+                    source: Source::Default,
                     version: YARN_VERSION.clone(),
                 },
                 PackageManager {
@@ -552,7 +552,7 @@ See `volta help install` for details and more options.";
             let packages = [Package {
                 name: "ember-cli".to_string(),
                 version: Version::from((3, 10, 1)),
-                source: Source::User,
+                source: Source::Default,
                 node: NODE_12.clone(),
                 tools: vec!["ember".to_string()],
             }];
@@ -677,7 +677,7 @@ See `volta help install` for details and more options.";
                 Package {
                     name: "ember-cli".to_string(),
                     version: Version::from((3, 8, 2)),
-                    source: Source::User,
+                    source: Source::Default,
                     node: NODE_12.clone(),
                     tools: vec!["ember".to_string()],
                 },
@@ -727,7 +727,7 @@ See `volta help install` for details and more options.";
             let packages = [Package {
                 name: "ember-cli".to_string(),
                 version: Version::from((3, 10, 1)),
-                source: Source::User,
+                source: Source::Default,
                 node: NODE_12.clone(),
                 tools: vec!["ember".to_string()],
             }];
@@ -845,7 +845,7 @@ See `volta help install` for details and more options.";
                 Package {
                     name: "ember-cli".to_string(),
                     version: Version::from((3, 8, 2)),
-                    source: Source::User,
+                    source: Source::Default,
                     node: NODE_12.clone(),
                     tools: vec!["ember".to_string()],
                 },
@@ -945,7 +945,7 @@ See `volta help install` for details and more options.";
                     version: NODE_11.clone(),
                 },
                 Node {
-                    source: Source::User,
+                    source: Source::Default,
                     version: NODE_10.clone(),
                 },
             ];
@@ -953,7 +953,7 @@ See `volta help install` for details and more options.";
             let package_managers = [
                 PackageManager {
                     kind: PackageManagerKind::Yarn,
-                    source: Source::User,
+                    source: Source::Default,
                     version: YARN_VERSION.clone(),
                 },
                 PackageManager {
@@ -971,7 +971,7 @@ See `volta help install` for details and more options.";
             let packages = [
                 Package {
                     name: "typescript".to_string(),
-                    source: Source::User,
+                    source: Source::Default,
                     version: Version::from((3, 4, 3)),
                     node: NODE_12.clone(),
                     tools: vec!["tsc".to_string(), "tsserver".to_string()],
@@ -1005,7 +1005,7 @@ See `volta help install` for details and more options.";
                 },
                 Package {
                     name: "ember".to_string(),
-                    source: Source::User,
+                    source: Source::Default,
                     version: Version::from((3, 8, 2)),
                     node: NODE_12.clone(),
                     tools: vec!["tsc".to_string(), "tsserver".to_string()],

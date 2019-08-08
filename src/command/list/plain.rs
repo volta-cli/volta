@@ -164,7 +164,7 @@ mod tests {
 
         #[test]
         fn default() {
-            let source = Source::User;
+            let source = Source::Default;
             assert_eq!(
                 display_node(&source, &NODE_VERSION).as_str(),
                 "runtime node@12.4.0 (default)"
@@ -199,8 +199,8 @@ mod tests {
         fn default() {
             assert_eq!(
                 display_package_manager(&PackageManager {
-                    source: Source::User,
                     kind: PackageManagerKind::Yarn,
+                    source: Source::Default,
                     version: YARN_VERSION.clone(),
                 })
                 .as_str(),
@@ -246,7 +246,7 @@ mod tests {
                     "tsc",
                     &Package {
                         name: "typescript".into(),
-                        source: Source::User,
+                        source: Source::Default,
                         version: TYPESCRIPT_VERSION.clone(),
                         node: NODE_VERSION.clone(),
                         tools: vec![],
@@ -305,7 +305,7 @@ mod tests {
                 format(&Toolchain::All {
                     runtimes: vec![
                         Node {
-                            source: Source::User,
+                            source: Source::Default,
                             version: NODE_VERSION.clone()
                         },
                         Node {
@@ -321,14 +321,14 @@ mod tests {
                         },
                         PackageManager {
                             kind: PackageManagerKind::Yarn,
-                            source: Source::User,
+                            source: Source::Default,
                             version: Version::from((1, 17, 0))
                         }
                     ],
                     packages: vec![
                         Package {
                             name: "ember-cli".into(),
-                            source: Source::User,
+                            source: Source::Default,
                             version: Version::from((3, 10, 2)),
                             node: NODE_VERSION.clone(),
                             tools: vec!["ember".into()]
@@ -342,7 +342,7 @@ mod tests {
                         },
                         Package {
                             name: "typescript".into(),
-                            source: Source::User,
+                            source: Source::Default,
                             version: TYPESCRIPT_VERSION.clone(),
                             node: NODE_VERSION.clone(),
                             tools: vec!["tsc".into(), "tsserver".into()]

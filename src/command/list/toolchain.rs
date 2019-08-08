@@ -58,7 +58,7 @@ fn source(
     if let Some(project) = project {
         lookup_version(lookup, project).map(|version| (Source::Project(cwd.clone()), version))
     } else if let Some(user) = user {
-        lookup_version(lookup, user).map(|version| (Source::User, version))
+        lookup_version(lookup, user).map(|version| (Source::Default, version))
     } else {
         None
     }
@@ -69,7 +69,7 @@ fn package_source(name: &str, version: &Version, project: &Option<Rc<Project>>) 
         Some(project) if project.has_dependency(name, version) => {
             Source::Project(project.package_file())
         }
-        _ => Source::User,
+        _ => Source::Default,
     }
 }
 

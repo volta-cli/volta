@@ -31,10 +31,21 @@ impl std::str::FromStr for Format {
     }
 }
 
+/// The source of a given item, from the perspective of a user.
+///
+/// Note: this is distinct from `volta_core::platform::sourced::Source`, which
+/// represents the source only of a `Platform`, which is a composite structure.
+/// By contrast, this `Source` is concerned *only* with a single item.
 #[derive(Clone)]
 enum Source {
+    /// The item is from a project. The wrapped `PathBuf` is the path to the
+    /// project's `package.json`.
     Project(PathBuf),
-    User,
+
+    /// The item is the user's default.
+    Default,
+
+    /// The item is one that has been *fetched* but is not *installed* anywhere.
     None,
 }
 
@@ -45,7 +56,7 @@ impl fmt::Display for Source {
             "{}",
             match self {
                 Source::Project(path) => format!(" (current @ {})", path.display()),
-                Source::User => String::from(" (default)"),
+                Source::Default => String::from(" (default)"),
                 Source::None => String::from(""),
             }
         )
