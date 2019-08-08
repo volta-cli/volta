@@ -10,7 +10,9 @@ use structopt::StructOpt;
 use volta_core::session::{ActivityKind, Session};
 use volta_fail::{ExitCode, Fallible};
 
+use crate::command::list::Toolchain::Tool;
 use crate::command::Command;
+use volta_core::inventory::{Inventory, LazyInventory};
 
 #[derive(Copy, Clone)]
 enum Format {
@@ -117,23 +119,23 @@ enum Toolchain {
 }
 
 impl Toolchain {
-    fn active(filter: &Filter) -> Fallible<Toolchain> {
+    fn active(inventory: &Inventory, filter: &Filter) -> Fallible<Toolchain> {
         unimplemented!()
     }
 
-    fn all() -> Fallible<Toolchain> {
+    fn all(inventory: &Inventory) -> Fallible<Toolchain> {
         unimplemented!()
     }
 
-    fn node(filter: &Filter) -> Fallible<Toolchain> {
+    fn node(inventory: &Inventory, filter: &Filter) -> Fallible<Toolchain> {
         unimplemented!()
     }
 
-    fn yarn(filter: &Filter) -> Fallible<Toolchain> {
+    fn yarn(inventory: &Inventory, filter: &Filter) -> Fallible<Toolchain> {
         unimplemented!()
     }
 
-    fn package_or_tool(name: &str, filter: &Filter) -> Fallible<Toolchain> {
+    fn package_or_tool(name: &str, inventory: &Inventory, filter: &Filter) -> Fallible<Toolchain> {
         unimplemented!()
     }
 }
@@ -231,11 +233,13 @@ impl Command for List {
 
         let toolchain_to_display: Toolchain = match self.subcommand {
             // For no subcommand, show the user's current toolchain
-            None => Toolchain::active(&filter)?,
-            Some(Subcommand::All) => Toolchain::all()?,
-            Some(Subcommand::Node) => Toolchain::node(&filter)?,
-            Some(Subcommand::Yarn) => Toolchain::yarn(&filter)?,
-            Some(Subcommand::PackageOrTool { name }) => Toolchain::package_or_tool(&name, &filter)?,
+            None => Toolchain::active(&inventory, &filter)?,
+            Some(Subcommand::All) => Toolchain::all(&inventory)?,
+            Some(Subcommand::Node) => Toolchain::node(&inventory, &filter)?,
+            Some(Subcommand::Yarn) => Toolchain::yarn(&inventory, &filter)?,
+            Some(Subcommand::PackageOrTool { name }) => {
+                Toolchain::package_or_tool(&name, inventory, &filter)?
+            }
         };
 
         if let Some(string) = format(&toolchain_to_display) {
