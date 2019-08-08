@@ -41,26 +41,30 @@ enum Lookup {
     Yarn,
 }
 
-fn lookup_version(lookup: Lookup, spec: &Rc<PlatformSpec>) -> Option<Version> {
-    match lookup {
-        Lookup::Runtime => Some(spec.node_runtime.clone()),
-        Lookup::Yarn => spec.yarn.clone(),
+impl Lookup {
+    fn version_from_spec(self) -> impl Fn(Rc<PlatformSpec>) -> Option<Version> {
+        move |spec| match self {
+            Lookup::Runtime => Some(spec.node_runtime.clone()),
+            Lookup::Yarn => spec.yarn.clone(),
+        }
     }
 }
 
 /// Determine the `Source` for a given kind of tool (`Lookup`).
 fn source(
-    project: &Option<Rc<PlatformSpec>>,
+    project: &Option<Rc<Project>>,
     user: &Option<Rc<PlatformSpec>>,
-    cwd: &PathBuf,
     lookup: Lookup,
 ) -> Option<(Source, Version)> {
-    if let Some(project) = project {
-        lookup_version(lookup, project).map(|version| (Source::Project(cwd.clone()), version))
-    } else if let Some(user) = user {
-        lookup_version(lookup, user).map(|version| (Source::Default, version))
-    } else {
-        None
+    match project {
+        Some(project) => project
+            .platform()
+            .and_then(lookup.version_from_spec())
+            .map(|version| (Source::Project(project.package_file()), version)),
+        None => user
+            .clone()
+            .and_then(lookup.version_from_spec())
+            .map(|version| (Source::Default, version)),
     }
 }
 
@@ -75,24 +79,20 @@ fn package_source(name: &str, version: &Version, project: &Option<Rc<Project>>) 
 
 impl Toolchain {
     pub(super) fn active(
-        project_platform: &Option<Rc<PlatformSpec>>,
-        user_platform: &Option<Rc<PlatformSpec>>,
         project: &Option<Rc<Project>>,
+        user_platform: &Option<Rc<PlatformSpec>>,
         inventory: &Inventory,
         filter: &Filter,
     ) -> Fallible<Toolchain> {
-        let cwd = std::env::current_dir().with_context(|_| ErrorDetails::CurrentDirError)?;
-
-        let runtime = source(&project_platform, &user_platform, &cwd, Lookup::Runtime)
+        let runtime = source(&project, user_platform, Lookup::Runtime)
             .map(|(source, version)| Node { source, version });
 
-        let package_manager = source(&project_platform, &user_platform, &cwd, Lookup::Yarn).map(
-            |(source, version)| PackageManager {
+        let package_manager =
+            source(&project, user_platform, Lookup::Yarn).map(|(source, version)| PackageManager {
                 kind: PackageManagerKind::Yarn,
                 source,
                 version,
-            },
-        );
+            });
 
         let packages = inventory
             .packages

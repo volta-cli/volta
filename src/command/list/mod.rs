@@ -63,6 +63,8 @@ impl fmt::Display for Source {
     }
 }
 
+/// A package and its associated tools, for displaying to the user as part of
+/// their toolchain.
 struct Package {
     /// The name of the package.
     pub name: String,
@@ -186,7 +188,8 @@ impl Command for List {
         session.add_event_start(ActivityKind::List);
 
         let inventory = session.inventory()?;
-        let project = session.project();
+        let project = session.project()?;
+        let user_platform = session.user_platform()?;
         let format = match self.output_format() {
             Format::Human => human::format,
             Format::Plain => plain::format,
@@ -201,13 +204,7 @@ impl Command for List {
 
         let toolchain_to_display: Toolchain = match self.subcommand {
             // For no subcommand, show the user's current toolchain
-            None => Toolchain::active(
-                &session.project_platform()?,
-                &session.user_platform()?,
-                &session.project()?,
-                &inventory,
-                &filter,
-            )?,
+            None => Toolchain::active(&project, &user_platform, &inventory, &filter)?,
             Some(Subcommand::All) => Toolchain::all(&inventory)?,
             Some(Subcommand::Node) => Toolchain::node(&inventory, &filter)?,
             Some(Subcommand::Yarn) => Toolchain::yarn(&inventory, &filter)?,
