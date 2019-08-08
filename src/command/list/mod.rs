@@ -205,7 +205,7 @@ impl Command for List {
         let toolchain_to_display: Toolchain = match self.subcommand {
             // For no subcommand, show the user's current toolchain
             None => Toolchain::active(&project, &user_platform, &inventory, &filter)?,
-            Some(Subcommand::All) => Toolchain::all(&inventory)?,
+            Some(Subcommand::All) => Toolchain::all(&project, &user_platform, &inventory)?,
             Some(Subcommand::Node) => Toolchain::node(&inventory, &filter)?,
             Some(Subcommand::Yarn) => Toolchain::yarn(&inventory, &filter)?,
             Some(Subcommand::PackageOrTool { name }) => {

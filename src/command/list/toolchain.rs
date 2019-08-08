@@ -48,23 +48,30 @@ impl Lookup {
             Lookup::Yarn => spec.yarn.clone(),
         }
     }
-}
 
-/// Determine the `Source` for a given kind of tool (`Lookup`).
-fn source(
-    project: &Option<Rc<Project>>,
-    user: &Option<Rc<PlatformSpec>>,
-    lookup: Lookup,
-) -> Option<(Source, Version)> {
-    match project {
-        Some(project) => project
-            .platform()
-            .and_then(lookup.version_from_spec())
-            .map(|version| (Source::Project(project.package_file()), version)),
-        None => user
-            .clone()
-            .and_then(lookup.version_from_spec())
-            .map(|version| (Source::Default, version)),
+    fn version_source<'p>(
+        self,
+        project: &'p Option<Rc<Project>>,
+        user_platform: &Option<Rc<PlatformSpec>>,
+        version: &Version,
+    ) -> Source {
+        match project {
+            Some(project) => project
+                .platform()
+                .and_then(self.version_from_spec())
+                .and_then(|ref project_version| match project_version == version {
+                    true => Some(Source::Project(project.package_file())),
+                    false => None,
+                }),
+            None => user_platform
+                .clone()
+                .and_then(self.version_from_spec())
+                .and_then(|ref default_version| match default_version == version {
+                    true => Some(Source::Default),
+                    false => None,
+                }),
+        }
+        .unwrap_or(Source::None)
     }
 
     /// Determine the `Source` for a given kind of tool (`Lookup`).
@@ -137,8 +144,50 @@ impl Toolchain {
         })
     }
 
-    pub(super) fn all(inventory: &Inventory) -> Fallible<Toolchain> {
-        unimplemented!()
+    pub(super) fn all(
+        project: &Option<Rc<Project>>,
+        user_platform: &Option<Rc<PlatformSpec>>,
+        inventory: &Inventory,
+    ) -> Fallible<Toolchain> {
+        let runtimes = inventory
+            .node
+            .versions
+            .iter()
+            .map(|version| Node {
+                source: Lookup::Runtime.version_source(project, user_platform, version),
+                version: version.clone(),
+            })
+            .collect();
+
+        let package_managers = inventory
+            .yarn
+            .versions
+            .iter()
+            .map(|version| PackageManager {
+                kind: PackageManagerKind::Yarn,
+                source: Lookup::Yarn.version_source(project, user_platform, version),
+                version: version.clone(),
+            })
+            .collect();
+
+        let packages = inventory
+            .packages
+            .clone()
+            .into_iter()
+            .map(|config| Package {
+                source: package_source(&config.name, &config.version, &project),
+                name: config.name,
+                version: config.version,
+                node: config.platform.node_runtime,
+                tools: config.bins,
+            })
+            .collect();
+
+        Ok(Toolchain::All {
+            runtimes,
+            package_managers,
+            packages,
+        })
     }
 
     pub(super) fn node(inventory: &Inventory, filter: &Filter) -> Fallible<Toolchain> {
