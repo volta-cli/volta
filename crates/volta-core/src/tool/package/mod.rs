@@ -14,7 +14,7 @@ use semver::Version;
 use volta_fail::{Fallible, ResultExt};
 
 mod fetch;
-mod install;
+pub(crate) mod install;
 mod resolve;
 mod serial;
 

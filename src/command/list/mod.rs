@@ -4,20 +4,14 @@ mod toolchain;
 
 use std::fmt;
 use std::path::PathBuf;
-use std::str::FromStr;
 
 use semver::Version;
 use structopt::StructOpt;
 
-use volta_core::{
-    inventory::{Inventory, LazyInventory},
-    session::{ActivityKind, Session},
-};
-use volta_fail::{ExitCode, Fallible};
-
-use crate::command::list::Toolchain::Tool;
 use crate::command::Command;
 use toolchain::Toolchain;
+use volta_core::session::{ActivityKind, Session};
+use volta_fail::{ExitCode, Fallible};
 
 #[derive(Copy, Clone)]
 enum Format {
@@ -196,7 +190,13 @@ impl Command for List {
 
         let toolchain_to_display: Toolchain = match self.subcommand {
             // For no subcommand, show the user's current toolchain
-            None => Toolchain::active(&inventory, &filter)?,
+            None => Toolchain::active(
+                &session.project_platform()?,
+                &session.user_platform()?,
+                &session.project()?,
+                &inventory,
+                &filter,
+            )?,
             Some(Subcommand::All) => Toolchain::all(&inventory)?,
             Some(Subcommand::Node) => Toolchain::node(&inventory, &filter)?,
             Some(Subcommand::Yarn) => Toolchain::yarn(&inventory, &filter)?,

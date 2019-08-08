@@ -10,7 +10,7 @@ use volta_fail::Fallible;
 
 mod node;
 mod npm;
-mod package;
+pub(crate) mod package;
 mod serial;
 mod yarn;
 

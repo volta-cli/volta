@@ -22,6 +22,9 @@ use log::debug;
 use semver::Version;
 use volta_fail::{throw, Fallible, ResultExt};
 
+// TODO: this may not really belong in the `install` module, since we now need
+//       to expose it *outside* this module for the sake of listing data about
+//       installed packages.
 /// Configuration information about an installed package.
 ///
 /// This information will be stored in ~/.volta/tools/user/packages/<package>.json.
@@ -43,7 +46,7 @@ use volta_fail::{throw, Fallible, ResultExt};
 ///     "cowthink"
 ///   ]
 /// }
-#[derive(PartialOrd, Ord, PartialEq, Eq)]
+#[derive(PartialOrd, Ord, PartialEq, Eq, Clone)]
 pub struct PackageConfig {
     /// The package name
     pub name: String,
