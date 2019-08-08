@@ -66,6 +66,24 @@ fn source(
             .and_then(lookup.version_from_spec())
             .map(|version| (Source::Default, version)),
     }
+
+    /// Determine the `Source` for a given kind of tool (`Lookup`).
+    fn active_tool(
+        self,
+        project: &Option<Rc<Project>>,
+        user: &Option<Rc<PlatformSpec>>,
+    ) -> Option<(Source, Version)> {
+        match project {
+            Some(project) => project
+                .platform()
+                .and_then(self.version_from_spec())
+                .map(|version| (Source::Project(project.package_file()), version)),
+            None => user
+                .clone()
+                .and_then(self.version_from_spec())
+                .map(|version| (Source::Default, version)),
+        }
+    }
 }
 
 fn package_source(name: &str, version: &Version, project: &Option<Rc<Project>>) -> Source {
@@ -84,15 +102,18 @@ impl Toolchain {
         inventory: &Inventory,
         filter: &Filter,
     ) -> Fallible<Toolchain> {
-        let runtime = source(&project, user_platform, Lookup::Runtime)
+        let runtime = Lookup::Runtime
+            .active_tool(project, user_platform)
             .map(|(source, version)| Node { source, version });
 
         let package_manager =
-            source(&project, user_platform, Lookup::Yarn).map(|(source, version)| PackageManager {
-                kind: PackageManagerKind::Yarn,
-                source,
-                version,
-            });
+            Lookup::Yarn
+                .active_tool(project, user_platform)
+                .map(|(source, version)| PackageManager {
+                    kind: PackageManagerKind::Yarn,
+                    source,
+                    version,
+                });
 
         let packages = inventory
             .packages
