@@ -110,9 +110,21 @@ struct PackageManager {
     version: Version,
 }
 
+/// How (if at all) should the list query be narrowed?
 enum Filter {
+    /// Display only the currently active tool(s).
+    ///
+    /// For example, if the user queries `volta list --current yarn`, show only
+    /// the version of Yarn currently in use: project, default, or none.
     Current,
+
+    /// Show only the user's default tool(s).
+    ///
+    /// For example, if the user queries `volta list --default node`, show only
+    /// the user's default Node version.
     Default,
+
+    /// Do not filter at all. Show all tool(s) matching the query.
     None,
 }
 
