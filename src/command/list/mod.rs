@@ -227,7 +227,7 @@ impl Command for List {
             _ => Filter::None,
         };
 
-        let toolchain_to_display: Toolchain = match self.subcommand {
+        let toolchain = match self.subcommand {
             // For no subcommand, show the user's current toolchain
             None => Toolchain::active(&project, &user_platform, &inventory, &filter)?,
             Some(Subcommand::All) => Toolchain::all(&project, &user_platform, &inventory)?,
@@ -242,7 +242,7 @@ impl Command for List {
             }
         };
 
-        if let Some(string) = format(&toolchain_to_display) {
+        if let Some(string) = format(&toolchain) {
             println!("{}", string);
         };
 
