@@ -5,6 +5,7 @@ use failure::ResultExt;
 use semver::Version;
 
 use super::{Filter, Node, Package, PackageManager, Source};
+use crate::command::list::toolchain::Toolchain::Tool;
 use crate::command::list::PackageManagerKind;
 use volta_core::tool::PackageConfig;
 use volta_core::{
@@ -244,8 +245,94 @@ impl Toolchain {
     pub(super) fn package_or_tool(
         name: &str,
         inventory: &Inventory,
+        project: &Option<Rc<Project>>,
+        user_platform: &Option<Rc<PlatformSpec>>,
         filter: &Filter,
-    ) -> Fallible<Toolchain> {
-        unimplemented!()
+    ) -> Toolchain {
+        /// An internal-only helper for tracking whether we found a given item
+        /// from the `PackageCollection` as a *package* or as a *tool*.
+        #[derive(PartialEq)]
+        enum Kind {
+            Package,
+            Tool,
+        }
+
+        let packages_and_tools = inventory
+            .packages
+            .clone()
+            .into_iter()
+            .filter_map(|config| {
+                let source = package_source(&config.name, &config.version, project);
+                if source.allowed_with(filter) {
+                    // Start with the package itself, since tools often match
+                    // the package name and we prioritize packages.
+                    if &config.name == name {
+                        Some((Kind::Package, config, source))
+                    } else if let Some(bin) = config.bins.iter().find(|bin| bin.as_str() == name) {
+                        Some((Kind::Tool, config, source))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<(Kind, PackageConfig, Source)>>();
+
+        let has_packages = packages_and_tools
+            .iter()
+            .any(|(kind, ..)| kind == &Kind::Package);
+
+        let has_tools = packages_and_tools
+            .iter()
+            .any(|(kind, ..)| kind == &Kind::Tool);
+
+        match (has_packages, has_tools) {
+            // If there are neither packages nor tools, treat it as `Packages`,
+            // but don't re-process the data just to construct an empty `Vec`!
+            (false, false) => Toolchain::Packages(vec![]),
+            // If there are any packages, we resolve this *as* `Packages`, even
+            // if there are also matching tools, since we give priority to
+            // listing packages between packages and tools.
+            (true, _) => {
+                let packages = packages_and_tools
+                    .into_iter()
+                    .filter_map(|(kind, config, source)| match kind {
+                        Kind::Package => Some(Package {
+                            name: config.name,
+                            source,
+                            version: config.version,
+                            node: config.platform.node_runtime,
+                            tools: config.bins,
+                        }),
+                        Kind::Tool => None,
+                    })
+                    .collect();
+
+                Toolchain::Packages(packages)
+            }
+            // If there are no packages matching, but we do have tools matching,
+            // we return `Tool`.
+            (false, true) => {
+                let host_packages = packages_and_tools
+                    .into_iter()
+                    .filter_map(|(kind, config, source)| match kind {
+                        Kind::Tool => Some(Package {
+                            name: config.name,
+                            source,
+                            version: config.version,
+                            node: config.platform.node_runtime,
+                            tools: config.bins,
+                        }),
+                        Kind::Package => None, // should be none of these!
+                    })
+                    .collect();
+
+                Toolchain::Tool {
+                    name: name.into(),
+                    host_packages,
+                }
+            }
+        }
     }
 }
