@@ -214,8 +214,31 @@ impl Toolchain {
         Toolchain::Node(runtimes)
     }
 
-    pub(super) fn yarn(inventory: &Inventory, filter: &Filter) -> Fallible<Toolchain> {
-        unimplemented!()
+    pub(super) fn yarn(
+        inventory: &Inventory,
+        project: &Option<Rc<Project>>,
+        user_platform: &Option<Rc<PlatformSpec>>,
+        filter: &Filter,
+    ) -> Toolchain {
+        let yarns = inventory
+            .yarn
+            .versions
+            .iter()
+            .filter_map(|version| {
+                let source = Lookup::Yarn.version_source(project, user_platform, version);
+                if source.allowed_with(filter) {
+                    Some(PackageManager {
+                        kind: PackageManagerKind::Yarn,
+                        source,
+                        version: version.clone(),
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        Toolchain::PackageManagers(yarns)
     }
 
     pub(super) fn package_or_tool(
