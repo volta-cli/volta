@@ -1,16 +1,11 @@
-use std::path::PathBuf;
 use std::rc::Rc;
 
-use failure::ResultExt;
 use semver::Version;
 
 use super::{Filter, Node, Package, PackageManager, Source};
-use crate::command::list::toolchain::Toolchain::Tool;
 use crate::command::list::PackageManagerKind;
-use volta_core::tool::PackageConfig;
 use volta_core::{
-    error::ErrorDetails, inventory::Inventory, platform::PlatformSpec, project::Project,
-    session::Session,
+    inventory::Inventory, platform::PlatformSpec, project::Project, tool::PackageConfig,
 };
 use volta_fail::Fallible;
 
@@ -60,7 +55,7 @@ impl Lookup {
             Some(project) => project
                 .platform()
                 .and_then(self.version_from_spec())
-                .and_then(|ref project_version| match project_version == version {
+                .and_then(|project_version| match &project_version == version {
                     true => Some(Source::Project(project.package_file())),
                     false => None,
                 }),
@@ -108,7 +103,6 @@ impl Toolchain {
         project: &Option<Rc<Project>>,
         user_platform: &Option<Rc<PlatformSpec>>,
         inventory: &Inventory,
-        filter: &Filter,
     ) -> Fallible<Toolchain> {
         let runtime = Lookup::Runtime
             .active_tool(project, user_platform)
@@ -246,7 +240,6 @@ impl Toolchain {
         name: &str,
         inventory: &Inventory,
         project: &Option<Rc<Project>>,
-        user_platform: &Option<Rc<PlatformSpec>>,
         filter: &Filter,
     ) -> Toolchain {
         /// An internal-only helper for tracking whether we found a given item
@@ -268,7 +261,12 @@ impl Toolchain {
                     // the package name and we prioritize packages.
                     if &config.name == name {
                         Some((Kind::Package, config, source))
-                    } else if let Some(bin) = config.bins.iter().find(|bin| bin.as_str() == name) {
+                    } else if config
+                        .bins
+                        .iter()
+                        .find(|bin| bin.as_str() == name)
+                        .is_some()
+                    {
                         Some((Kind::Tool, config, source))
                     } else {
                         None

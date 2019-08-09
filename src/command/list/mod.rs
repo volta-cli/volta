@@ -2,8 +2,7 @@ mod human;
 mod plain;
 mod toolchain;
 
-use std::fmt;
-use std::path::PathBuf;
+use std::{fmt, path::PathBuf, str::FromStr};
 
 use semver::Version;
 use structopt::StructOpt;
@@ -19,7 +18,7 @@ enum Format {
     Plain,
 }
 
-impl std::str::FromStr for Format {
+impl FromStr for Format {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -229,12 +228,12 @@ impl Command for List {
 
         let toolchain = match self.subcommand {
             // For no subcommand, show the user's current toolchain
-            None => Toolchain::active(&project, &user_platform, inventory, &filter)?,
+            None => Toolchain::active(&project, &user_platform, inventory)?,
             Some(Subcommand::All) => Toolchain::all(&project, &user_platform, inventory)?,
             Some(Subcommand::Node) => Toolchain::node(inventory, &project, &user_platform, &filter),
             Some(Subcommand::Yarn) => Toolchain::yarn(inventory, &project, &user_platform, &filter),
             Some(Subcommand::PackageOrTool { name }) => {
-                Toolchain::package_or_tool(&name, inventory, &project, &user_platform, &filter)
+                Toolchain::package_or_tool(&name, inventory, &project, &filter)
             }
         };
 
