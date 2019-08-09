@@ -142,9 +142,9 @@ enum Filter {
 
 #[derive(StructOpt)]
 pub(crate) struct List {
-    /// Display
-    #[structopt(subcommand)]
-    subcommand: Option<Subcommand>,
+    /// The tool to lookup: `all`, `node`, `yarn`, or the name of a package or binary.
+    #[structopt(name = "tool")]
+    subcommand: Option<String>,
 
     /// Specify the output format.
     ///
@@ -155,30 +155,26 @@ pub(crate) struct List {
     /// Show the currently-active tool(s).
     ///
     /// Equivalent to `volta list` when not specifying a specific tool.
-    #[structopt(long = "current", conflicts_with = "default")]
+    #[structopt(long = "current", short = "c", conflicts_with = "default")]
     current: bool,
 
     /// Show your default tool(s).
-    #[structopt(long = "default", conflicts_with = "current")]
+    #[structopt(long = "default", short = "d", conflicts_with = "current")]
     default: bool,
 }
 
-#[derive(StructOpt)]
+/// Which tool should we look up?
 enum Subcommand {
     /// Show every item in the toolchain.
-    #[structopt(name = "all")]
     All,
 
     /// Show locally cached Node versions.
-    #[structopt(name = "node")]
     Node,
 
     /// Show locally cached Yarn versions.
-    #[structopt(name = "yarn")]
     Yarn,
 
     /// Show locally cached versions of a package or a package binary.
-    #[structopt(name = "<package or tool>")]
     PackageOrTool { name: String },
 }
 
@@ -205,6 +201,12 @@ impl List {
             Format::Plain
         })
     }
+
+    fn subcommand(&self) -> Option<Subcommand> {
+        self.subcommand
+            .as_ref()
+            .map(|s| Subcommand::from(s.as_str()))
+    }
 }
 
 impl Command for List {
@@ -226,7 +228,7 @@ impl Command for List {
             _ => Filter::None,
         };
 
-        let toolchain = match self.subcommand {
+        let toolchain = match self.subcommand() {
             // For no subcommand, show the user's current toolchain
             None => Toolchain::active(&project, &user_platform, inventory)?,
             Some(Subcommand::All) => Toolchain::all(&project, &user_platform, inventory)?,
