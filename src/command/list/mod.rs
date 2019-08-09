@@ -36,7 +36,7 @@ impl std::str::FromStr for Format {
 /// Note: this is distinct from `volta_core::platform::sourced::Source`, which
 /// represents the source only of a `Platform`, which is a composite structure.
 /// By contrast, this `Source` is concerned *only* with a single item.
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 enum Source {
     /// The item is from a project. The wrapped `PathBuf` is the path to the
     /// project's `package.json`.
@@ -47,6 +47,19 @@ enum Source {
 
     /// The item is one that has been *fetched* but is not *installed* anywhere.
     None,
+}
+
+impl Source {
+    fn allowed_with(&self, filter: &Filter) -> bool {
+        match filter {
+            Filter::Default => self == &Source::Default,
+            Filter::Current => match self {
+                Source::Default | Source::Project(_) => true,
+                _ => false,
+            },
+            Filter::None => true,
+        }
+    }
 }
 
 impl fmt::Display for Source {
