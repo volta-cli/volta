@@ -25,17 +25,16 @@ impl PackageCollection {
             // we can report to the user in any case. Log the failure in the
             // debug output, though
             .filter_map(|entry| match entry {
-                Ok(dir_entry) => Some(dir_entry),
+                Ok(dir_entry) => {
+                    // Ignore directory entries.
+                    if dir_entry.file_type().is_file() {
+                        Some(dir_entry.into_path())
+                    } else {
+                        None
+                    }
+                }
                 Err(e) => {
                     debug!("{}", e);
-                    None
-                }
-            })
-            // Ignore directory entries.
-            .filter_map(|dir_entry| {
-                if dir_entry.file_type().is_dir() {
-                    Some(PathBuf::from(dir_entry.file_name()))
-                } else {
                     None
                 }
             })
