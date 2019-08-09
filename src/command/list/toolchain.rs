@@ -190,8 +190,28 @@ impl Toolchain {
         })
     }
 
-    pub(super) fn node(inventory: &Inventory, filter: &Filter) -> Fallible<Toolchain> {
-        unimplemented!()
+    pub(super) fn node(
+        inventory: &Inventory,
+        project: &Option<Rc<Project>>,
+        user_platform: &Option<Rc<PlatformSpec>>,
+        filter: &Filter,
+    ) -> Toolchain {
+        let runtimes = inventory
+            .node
+            .versions
+            .iter()
+            .filter_map(|version| {
+                let source = Lookup::Runtime.version_source(project, user_platform, version);
+                if source.allowed_with(filter) {
+                    let version = version.clone();
+                    Some(Node { source, version })
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        Toolchain::Node(runtimes)
     }
 
     pub(super) fn yarn(inventory: &Inventory, filter: &Filter) -> Fallible<Toolchain> {
