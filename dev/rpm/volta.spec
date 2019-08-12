@@ -32,27 +32,40 @@ cargo build --release
 
 # this installs into a chroot directory resembling the user's root directory
 %install
-# setup the /usr/bin/volta/ directory
+# /usr/bin/volta-lib/
+%define volta_bin_dir %{_bindir}/%{name}-lib
+# BUILDROOT/usr/bin/volta-lib
+%define volta_install_dir %{buildroot}/%{volta_bin_dir}
+# setup the /usr/bin/volta-lib/ directory
 rm -rf %{buildroot}
-mkdir -p %{buildroot}/%{_bindir}/%{name}
-# install the compiled binaries into /usr/bin/volta/
-install -m 0755 target/release/%{name} %{buildroot}/%{_bindir}/%{name}/%{name}
-install -m 0755 target/release/shim %{buildroot}/%{_bindir}/%{name}/shim
-# and put the postinstall script there too
-install -m 0755 dev/rpm/volta-postinstall.sh %{buildroot}/%{_bindir}/%{name}/volta-postinstall.sh
-# and the shell integration scripts
-install -m 0644 shell/unix/load.sh %{buildroot}/%{_bindir}/%{name}/load.sh
-install -m 0644 shell/unix/load.fish %{buildroot}/%{_bindir}/%{name}/load.fish
+mkdir -p %{volta_install_dir}
+# install the `volta` binary into /usr/bin/, so it's on the PATH
+install -m 0755 target/release/%{name} %{buildroot}/%{_bindir}/%{name}
+# install everything else to /usr/bin/volta-lib/ (so they are not on the PATH)
+# the `shim` binary
+install -m 0755 target/release/shim %{volta_install_dir}/shim
+# the postinstall script
+install -m 0755 dev/rpm/volta-postinstall.sh %{volta_install_dir}/volta-postinstall.sh
+# the shell integration scripts
+# TODO: still need these?
+install -m 0644 shell/unix/load.sh %{volta_install_dir}/load.sh
+install -m 0644 shell/unix/load.fish %{volta_install_dir}/load.fish
 
 
 # files installed by this package
 %files
 %license LICENSE
-%{_bindir}/%{name}/%{name}
-%{_bindir}/%{name}/shim
-%{_bindir}/%{name}/volta-postinstall.sh
-%{_bindir}/%{name}/load.sh
-%{_bindir}/%{name}/load.fish
+%{_bindir}/%{name}
+%{volta_bin_dir}/shim
+%{volta_bin_dir}/volta-postinstall.sh
+%{volta_bin_dir}/load.sh
+%{volta_bin_dir}/load.fish
+
+
+# this runs before install
+%pre
+# make sure the /usr/bin/volta/ dir does not exist, from prev RPM installs (or this will fail)
+rm -rf %{_bindir}/%{name}
 
 
 # this runs after install, and sets up VOLTA_HOME and the shell integration
@@ -63,11 +76,15 @@ printf '\033[1;32m%12s\033[0m %s\n' "Running" "Volta post-install setup..." 1>&2
 
 
 # this runs after uninstall
+# TODO: I don't think this is right - this happens after package upgrade?
 %postun
 printf '\033[1;32m%12s\033[0m %s\n' "Removing" "~/.volta/ directory" 1>&2
 # run this as the user who invoked sudo (not as root, because we're using $HOME)
 # and using single quotes so $HOME doesn't expand here (for root), but expands in the user's shell
 /bin/su -c 'rm -rf $HOME/.volta' - $SUDO_USER
+# the RPM removes the binaries in this dir, but not the dir itself
+printf '\033[1;32m%12s\033[0m %s\n' "Removing" %{volta_bin_dir}" directory" 1>&2
+rm -rf %{volta_bin_dir}
 
 
 %changelog
