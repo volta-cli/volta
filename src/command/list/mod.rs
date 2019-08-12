@@ -1,9 +1,10 @@
-mod human;
+// mod human;
 mod plain;
 mod toolchain;
 
 use std::{fmt, path::PathBuf, str::FromStr};
 
+use log::{info, warn};
 use semver::Version;
 use structopt::StructOpt;
 
@@ -209,6 +210,14 @@ impl List {
     }
 }
 
+fn human_fallback(_toolchain: &Toolchain) -> Option<String> {
+    Some(String::from(
+        "The `--format=human` printer is not yet implemented. For now, you can \
+         use `volta list --format=plain`.\n\n\
+         To track progress on this task, see https://github.com/volta-cli/volta/issues/#523",
+    ))
+}
+
 impl Command for List {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::List);
@@ -217,7 +226,7 @@ impl Command for List {
         let project = session.project()?;
         let user_platform = session.user_platform()?;
         let format = match self.output_format() {
-            Format::Human => human::format,
+            Format::Human => human_fallback,
             Format::Plain => plain::format,
         };
 
@@ -240,7 +249,11 @@ impl Command for List {
         };
 
         if let Some(string) = format(&toolchain) {
-            println!("{}", string);
+            // TODO: #523 -- just `info!("{}", string)` once `human` implemented
+            match self.output_format() {
+                Format::Plain => info!("{}", string),
+                Format::Human => warn!("{}", string),
+            }
         };
 
         session.add_event_end(ActivityKind::List, ExitCode::Success);
