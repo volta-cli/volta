@@ -94,7 +94,7 @@ fn describe_packages(packages: &[Package]) -> Option<String> {
         Some(
             packages
                 .iter()
-                .flat_map(display_package)
+                .map(display_package)
                 .collect::<Vec<String>>()
                 .join("\n"),
         )
@@ -104,7 +104,7 @@ fn describe_packages(packages: &[Package]) -> Option<String> {
 fn describe_tool_set(name: &str, hosts: &[Package]) -> String {
     hosts
         .iter()
-        .map(|package| display_tool(name, package))
+        .filter_map(|package| display_tool(name, package))
         .collect::<Vec<String>>()
         .join("\n")
 }
@@ -121,25 +121,65 @@ fn display_package_manager(package_manager: &PackageManager) -> String {
     )
 }
 
-fn display_package(package: &Package) -> Vec<String> {
-    package
-        .tools
-        .iter()
-        .map(|tool_name| display_tool(&tool_name, package))
-        .collect()
+fn package_source(package: &Package) -> String {
+    match package {
+        Package::Default { .. } => String::from(" (default)"),
+        Package::Project { path, .. } => format!(" (current @ {})", path.display()),
+        Package::Fetched(..) => String::new(),
+    }
 }
 
-fn display_tool(name: &str, host: &Package) -> String {
-    format!(
-        "tool {} / {} {} {}{}",
-        name,
-        tool_version(&host.name, &host.version),
-        tool_version("node", &host.node),
-        // Should be updated when we support installing with custom package_managers,
-        // whether Yarn or non-built-in versions of npm
-        "npm@built-in",
-        host.source
-    )
+fn display_package(package: &Package) -> String {
+    match package {
+        Package::Default {
+            details,
+            node,
+            tools,
+            ..
+        }
+        | Package::Project {
+            details,
+            node,
+            tools,
+            ..
+        } => {
+            let tools = match tools.len() {
+                0 => String::from(" "),
+                _ => format!(" {} ", tools.join(", ")),
+            };
+
+            format!(
+                "package {} /{}/ {} {}{}",
+                tool_version(&details.name, &details.version),
+                tools,
+                tool_version("node", &node),
+                // Should be updated when we support installing with custom package_managers,
+                // whether Yarn or non-built-in versions of npm
+                "npm@built-in",
+                package_source(&package)
+            )
+        }
+        Package::Fetched(details) => format!(
+            "package {} (fetched)",
+            tool_version(&details.name, &details.version)
+        ),
+    }
+}
+
+fn display_tool(name: &str, host: &Package) -> Option<String> {
+    match host {
+        Package::Default { details, node, .. } | Package::Project { details, node, .. } => {
+            Some(format!(
+                "tool {} / {} / {} {}{}",
+                name,
+                tool_version(&details.name, &details.version),
+                tool_version("node", &node),
+                "npm@built-in",
+                package_source(&host)
+            ))
+        }
+        Package::Fetched(..) => None,
+    }
 }
 
 // These tests are organized by way of the *item* being printed, unlike in the
@@ -150,6 +190,8 @@ mod tests {
 
     use lazy_static::lazy_static;
     use semver::Version;
+
+    use crate::command::list::PackageDetails;
 
     lazy_static! {
         static ref NODE_VERSION: Version = Version::from((12, 4, 0));
@@ -235,6 +277,93 @@ mod tests {
         }
     }
 
+    mod package {
+        use super::super::*;
+        use super::*;
+
+        #[test]
+        fn single_default() {
+            assert_eq!(
+                describe_packages(&[Package::Default {
+                    details: PackageDetails {
+                        name: "typescript".into(),
+                        version: TYPESCRIPT_VERSION.clone(),
+                    },
+                    node: NODE_VERSION.clone(),
+                    tools: vec!["tsc".into(), "tsserver".into()]
+                }])
+                .expect("Should always return a `String` if given a non-empty set")
+                .as_str(),
+                "package typescript@3.4.1 / tsc, tsserver / node@12.4.0 npm@built-in (default)"
+            );
+        }
+
+        #[test]
+        fn single_project() {
+            assert_eq!(
+                describe_packages(&[Package::Project {
+                    details: PackageDetails {
+                        name: "typescript".into(),
+                        version: TYPESCRIPT_VERSION.clone(),
+                    },
+                    path: PROJECT_PATH.clone(),
+                    node: NODE_VERSION.clone(),
+                    tools: vec!["tsc".into(), "tsserver".into()]
+                }])
+                .expect("Should always return a `String` if given a non-empty set")
+                .as_str(),
+                "package typescript@3.4.1 / tsc, tsserver / node@12.4.0 npm@built-in (current @ /a/b/c)"
+            );
+        }
+
+        #[test]
+        fn mixed() {
+            assert_eq!(
+                describe_packages(&[
+                    Package::Project {
+                        details: PackageDetails {
+                            name: "typescript".into(),
+                            version: TYPESCRIPT_VERSION.clone(),
+                        },
+                        path: PROJECT_PATH.clone(),
+                        node: NODE_VERSION.clone(),
+                        tools: vec!["tsc".into(), "tsserver".into()]
+                    },
+                    Package::Default {
+                        details: PackageDetails {
+                            name: "ember-cli".into(),
+                            version: Version::from((3, 10, 0)),
+                        },
+                        node: NODE_VERSION.clone(),
+                        tools: vec!["ember".into()],
+                    },
+                    Package::Fetched(PackageDetails {
+                        name: "create-react-app".into(),
+                        version: Version::from((1, 0, 0)),
+                    })
+                ])
+                .expect("Should always return a `String` if given a non-empty set")
+                .as_str(),
+                "package typescript@3.4.1 / tsc, tsserver / node@12.4.0 npm@built-in (current @ /a/b/c)\n\
+                 package ember-cli@3.10.0 / ember / node@12.4.0 npm@built-in (default)\n\
+                 package create-react-app@1.0.0 (fetched)"
+            );
+        }
+
+        #[test]
+        fn installed_not_set() {
+            assert_eq!(
+                describe_packages(&[Package::Fetched(PackageDetails {
+                    name: "typescript".into(),
+                    version: TYPESCRIPT_VERSION.clone(),
+                })])
+                .expect("Should always return a `String` if given a non-empty set")
+                .as_str(),
+                "package typescript@3.4.1 (fetched)"
+            );
+        }
+    }
+
     mod tool {
         use super::super::*;
         use super::*;
@@ -244,16 +373,18 @@ mod tests {
             assert_eq!(
                 display_tool(
                     "tsc",
-                    &Package {
-                        name: "typescript".into(),
-                        source: Source::Default,
-                        version: TYPESCRIPT_VERSION.clone(),
+                    &Package::Default {
+                        details: PackageDetails {
+                            name: "typescript".into(),
+                            version: TYPESCRIPT_VERSION.clone(),
+                        },
                         node: NODE_VERSION.clone(),
-                        tools: vec![],
+                        tools: vec!["tsc".into(), "tsserver".into()],
                     }
                 )
+                .expect("should always return `Some` for `Default`")
                 .as_str(),
-                "tool tsc / typescript@3.4.1 node@12.4.0 npm@built-in (default)"
+                "tool tsc / typescript@3.4.1 / node@12.4.0 npm@built-in (default)"
             );
         }
 
@@ -262,34 +393,33 @@ mod tests {
             assert_eq!(
                 display_tool(
                     "tsc",
-                    &Package {
-                        name: "typescript".into(),
-                        source: Source::Project(PROJECT_PATH.clone()),
-                        version: TYPESCRIPT_VERSION.clone(),
-                        node: NODE_VERSION.clone(),
-                        tools: vec![],
-                    }
-                )
-                .as_str(),
-                "tool tsc / typescript@3.4.1 node@12.4.0 npm@built-in (current @ /a/b/c)"
-            );
-        }
-
-        #[test]
-        fn installed_not_set() {
-            assert_eq!(
-                display_tool(
-                    "tsc",
-                    &Package {
-                        name: "typescript".into(),
-                        source: Source::None,
-                        version: TYPESCRIPT_VERSION.clone(),
+                    &Package::Project {
+                        details: PackageDetails {
+                            name: "typescript".into(),
+                            version: TYPESCRIPT_VERSION.clone(),
+                        },
+                        path: PROJECT_PATH.clone(),
                         node: NODE_VERSION.clone(),
                         tools: vec!["tsc".into(), "tsserver".into()],
                     }
                 )
+                .expect("should always return `Some` for `Project`")
                 .as_str(),
-                "tool tsc / typescript@3.4.1 node@12.4.0 npm@built-in"
+                "tool tsc / typescript@3.4.1 / node@12.4.0 npm@built-in (current @ /a/b/c)"
+            );
+        }
+
+        #[test]
+        fn fetched() {
+            assert_eq!(
+                display_tool(
+                    "tsc",
+                    &Package::Fetched(PackageDetails {
+                        name: "typescript".into(),
+                        version: TYPESCRIPT_VERSION.clone()
+                    })
+                ),
+                None
             );
         }
     }
@@ -326,24 +456,28 @@ mod tests {
                         }
                     ],
                     packages: vec![
-                        Package {
-                            name: "ember-cli".into(),
-                            source: Source::Default,
-                            version: Version::from((3, 10, 2)),
+                        Package::Default {
+                            details: PackageDetails {
+                                name: "ember-cli".into(),
+                                version: Version::from((3, 10, 2)),
+                            },
                             node: NODE_VERSION.clone(),
                             tools: vec!["ember".into()]
                         },
-                        Package {
-                            name: "ember-cli".into(),
-                            source: Source::Project(PROJECT_PATH.clone()),
-                            version: Version::from((3, 8, 1)),
+                        Package::Project {
+                            details: PackageDetails {
+                                name: "ember-cli".into(),
+                                version: Version::from((3, 8, 1)),
+                            },
+                            path: PROJECT_PATH.clone(),
                             node: NODE_VERSION.clone(),
                             tools: vec!["ember".into()]
                         },
-                        Package {
-                            name: "typescript".into(),
-                            source: Source::Default,
-                            version: TYPESCRIPT_VERSION.clone(),
+                        Package::Default {
+                            details: PackageDetails {
+                                name: "typescript".into(),
+                                version: TYPESCRIPT_VERSION.clone(),
+                            },
                             node: NODE_VERSION.clone(),
                             tools: vec!["tsc".into(), "tsserver".into()]
                         }
@@ -355,10 +489,9 @@ mod tests {
                  runtime node@8.2.4\n\
                  package-manager yarn@1.16.0 (current @ /a/b/c)\n\
                  package-manager yarn@1.17.0 (default)\n\
-                 tool ember / ember-cli@3.10.2 node@12.4.0 npm@built-in (default)\n\
-                 tool ember / ember-cli@3.8.1 node@12.4.0 npm@built-in (current @ /a/b/c)\n\
-                 tool tsc / typescript@3.4.1 node@12.4.0 npm@built-in (default)\n\
-                 tool tsserver / typescript@3.4.1 node@12.4.0 npm@built-in (default)"
+                 package ember-cli@3.10.2 / ember / node@12.4.0 npm@built-in (default)\n\
+                 package ember-cli@3.8.1 / ember / node@12.4.0 npm@built-in (current @ /a/b/c)\n\
+                 package typescript@3.4.1 / tsc, tsserver / node@12.4.0 npm@built-in (default)"
             )
         }
     }

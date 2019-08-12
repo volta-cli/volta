@@ -121,14 +121,11 @@ impl Toolchain {
             .packages
             .clone()
             .into_iter()
-            .map(|config| Package {
-                // Putting this first lets us borrow here, then move everything
-                // into the `Package` after.
-                source: package_source(&config.name, &config.version, &project),
-                name: config.name,
-                version: config.version,
-                node: config.platform.node_runtime,
-                tools: config.bins,
+            .map(|config| {
+                Package::new(
+                    &config,
+                    &package_source(&config.name, &config.version, &project),
+                )
             })
             .collect();
 
@@ -169,12 +166,11 @@ impl Toolchain {
             .packages
             .clone()
             .into_iter()
-            .map(|config| Package {
-                source: package_source(&config.name, &config.version, &project),
-                name: config.name,
-                version: config.version,
-                node: config.platform.node_runtime,
-                tools: config.bins,
+            .map(|config| {
+                Package::new(
+                    &config,
+                    &package_source(&config.name, &config.version, &project),
+                )
             })
             .collect();
 
@@ -296,13 +292,7 @@ impl Toolchain {
                 let packages = packages_and_tools
                     .into_iter()
                     .filter_map(|(kind, config, source)| match kind {
-                        Kind::Package => Some(Package {
-                            name: config.name,
-                            source,
-                            version: config.version,
-                            node: config.platform.node_runtime,
-                            tools: config.bins,
-                        }),
+                        Kind::Package => Some(Package::new(&config, &source)),
                         Kind::Tool => None,
                     })
                     .collect();
@@ -315,13 +305,7 @@ impl Toolchain {
                 let host_packages = packages_and_tools
                     .into_iter()
                     .filter_map(|(kind, config, source)| match kind {
-                        Kind::Tool => Some(Package {
-                            name: config.name,
-                            source,
-                            version: config.version,
-                            node: config.platform.node_runtime,
-                            tools: config.bins,
-                        }),
+                        Kind::Tool => Some(Package::new(&config, &source)),
                         Kind::Package => None, // should be none of these!
                     })
                     .collect();

@@ -10,10 +10,13 @@ use structopt::StructOpt;
 
 use crate::command::Command;
 use toolchain::Toolchain;
-use volta_core::session::{ActivityKind, Session};
+use volta_core::{
+    session::{ActivityKind, Session},
+    tool::PackageConfig,
+};
 use volta_fail::{ExitCode, Fallible};
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 enum Format {
     Human,
     Plain,
@@ -78,17 +81,54 @@ impl fmt::Display for Source {
 
 /// A package and its associated tools, for displaying to the user as part of
 /// their toolchain.
-struct Package {
+struct PackageDetails {
     /// The name of the package.
     pub name: String,
-    /// Where the package is specified.
-    pub source: Source,
     /// The package's own version.
     pub version: Version,
-    /// The version of Node the package is installed against.
-    pub node: Version,
-    /// The names of the tools associated with the package.
-    pub tools: Vec<String>,
+}
+
+enum Package {
+    Default {
+        details: PackageDetails,
+        /// The version of Node the package is installed against.
+        node: Version,
+        /// The names of the tools associated with the package.
+        tools: Vec<String>,
+    },
+    Project {
+        details: PackageDetails,
+        /// The version of Node the package is installed against.
+        node: Version,
+        /// The names of the tools associated with the package.
+        tools: Vec<String>,
+        path: PathBuf,
+    },
+    Fetched(PackageDetails),
+}
+
+impl Package {
+    fn new(config: &PackageConfig, source: &Source) -> Package {
+        let details = PackageDetails {
+            name: config.name.clone(),
+            version: config.version.clone(),
+        };
+
+        match source {
+            Source::Default => Package::Default {
+                details,
+                node: config.platform.node_runtime.clone(),
+                tools: config.bins.clone(),
+            },
+            Source::Project(path) => Package::Project {
+                details,
+                node: config.platform.node_runtime.clone(),
+                tools: config.bins.clone(),
+                path: path.clone(),
+            },
+            Source::None => Package::Fetched(details),
+        }
+    }
 }
 
 #[derive(Clone)]
