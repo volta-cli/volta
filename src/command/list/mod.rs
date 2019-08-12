@@ -140,6 +140,7 @@ struct Node {
 #[derive(Clone)]
 enum PackageManagerKind {
     Yarn,
+    #[allow(dead_code)]
     Npm,
 }
 
