@@ -12,7 +12,7 @@ set -e
 # where Volta will be installed
 VOLTA_HOME="$HOME/.volta"
 # where the RPM installed the compiled binaries
-BIN_DIR="/usr/bin/volta"
+BIN_DIR="/usr/bin/volta-lib"
 
 
 # symlink bins in home dir to /usr/bin/volta/{volta,shim}
@@ -21,7 +21,7 @@ create_bin_symlinks() {
 
   info 'Creating' "symlinks to installed binaries"
 
-  local bin_shims=( shim volta )
+  local bin_shims=( shim )
 
   # remove these symlinks or binaries if they exist, and re-link them
   # (using -f so there is no error if the files don't exist)

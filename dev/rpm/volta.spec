@@ -72,7 +72,7 @@ rm -rf %{_bindir}/%{name}
 %post
 printf '\033[1;32m%12s\033[0m %s\n' "Running" "Volta post-install setup..." 1>&2
 # run this as the user who invoked sudo (not as root, because we're writing to $HOME)
-/bin/su -c %{_bindir}/%{name}/volta-postinstall.sh - $SUDO_USER
+/bin/su -c %{volta_bin_dir}/volta-postinstall.sh - $SUDO_USER
 
 
 # this runs after uninstall
