@@ -46,7 +46,7 @@ use volta_fail::{throw, Fallible, ResultExt};
 ///     "cowthink"
 ///   ]
 /// }
-#[derive(PartialOrd, Ord, PartialEq, Eq, Clone)]
+#[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Debug)]
 pub struct PackageConfig {
     /// The package name
     pub name: String,

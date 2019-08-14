@@ -1,3 +1,4 @@
+use std::ffi::OsString;
 use std::rc::Rc;
 
 use semver::Version;
@@ -89,12 +90,22 @@ impl Lookup {
     }
 }
 
-fn package_source(name: &str, version: &Version, project: &Option<Rc<Project>>) -> Source {
+/// Look up the `Source` for a tool with a given name.
+fn tool_source(name: &str, version: &Version, project: &Option<Rc<Project>>) -> Fallible<Source> {
     match project {
-        Some(project) if project.has_dependency(name, version) => {
-            Source::Project(project.package_file())
+        Some(project) => {
+            let project_version_is_tool_version = project
+                .as_ref()
+                .matching_bin(&OsString::from(name), version)?
+                .map_or(false, |bin| &bin.version == version);
+
+            if project_version_is_tool_version {
+                Ok(Source::Project(project.package_file()))
+            } else {
+                Ok(Source::Default)
+            }
         }
-        _ => Source::Default,
+        _ => Ok(Source::Default),
     }
 }
 
@@ -117,17 +128,7 @@ impl Toolchain {
                     version,
                 });
 
-        let packages = inventory
-            .packages
-            .clone()
-            .into_iter()
-            .map(|config| {
-                Package::new(
-                    &config,
-                    &package_source(&config.name, &config.version, &project),
-                )
-            })
-            .collect();
+        let packages = Package::from_inventory_and_project(inventory, project);
 
         Ok(Toolchain::Active {
             runtime,
@@ -162,17 +163,7 @@ impl Toolchain {
             })
             .collect();
 
-        let packages = inventory
-            .packages
-            .clone()
-            .into_iter()
-            .map(|config| {
-                Package::new(
-                    &config,
-                    &package_source(&config.name, &config.version, &project),
-                )
-            })
-            .collect();
+        let packages = Package::from_inventory_and_project(inventory, project);
 
         Ok(Toolchain::All {
             runtimes,
@@ -237,41 +228,73 @@ impl Toolchain {
         inventory: &Inventory,
         project: &Option<Rc<Project>>,
         filter: &Filter,
-    ) -> Toolchain {
+    ) -> Fallible<Toolchain> {
         /// An internal-only helper for tracking whether we found a given item
         /// from the `PackageCollection` as a *package* or as a *tool*.
-        #[derive(PartialEq)]
+        #[derive(PartialEq, Debug)]
         enum Kind {
             Package,
             Tool,
         }
 
-        let packages_and_tools = inventory
-            .packages
-            .clone()
-            .into_iter()
-            .filter_map(|config| {
-                let source = package_source(&config.name, &config.version, project);
-                if source.allowed_with(filter) {
+        /// A convenient name for this tuple, since we have to name it in a few
+        /// spots below.
+        type Triple = (Kind, PackageConfig, Source);
+
+        let (packages_and_tools, errors): (Vec<Fallible<Triple>>, Vec<Fallible<Triple>>) =
+            inventory
+                .packages
+                .clone()
+                .into_iter()
+                .filter_map(|config| {
                     // Start with the package itself, since tools often match
                     // the package name and we prioritize packages.
                     if &config.name == name {
-                        Some((Kind::Package, config, source))
+                        let source = Package::source(name, &config.version, project);
+                        if source.allowed_with(filter) {
+                            Some(Ok((Kind::Package, config, source)))
+                        } else {
+                            None
+                        }
+
+                    // Then check if the passed name matches an installed package's
+                    // binaries. If it does, we have a tool.
                     } else if config
                         .bins
                         .iter()
                         .find(|bin| bin.as_str() == name)
                         .is_some()
                     {
-                        Some((Kind::Tool, config, source))
+                        tool_source(name, &config.version, project)
+                            .map(|source| {
+                                if source.allowed_with(filter) {
+                                    Some((Kind::Tool, config, source))
+                                } else {
+                                    None
+                                }
+                            })
+                            .transpose()
+
+                    // Otherwise, we don't have any match all.
                     } else {
                         None
                     }
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<(Kind, PackageConfig, Source)>>();
+                })
+                .partition(|result| result.is_ok());
+
+        // If there are any errors, return the first one, since we don't have a
+        // notion of composite errors in our error handling at this point.
+        // (This should be quite unusual, as it means something failed in
+        // looking up a tool's bin directory.)
+        let first_error = errors.into_iter().map(|error| error.unwrap_err()).nth(0);
+        if let Some(error) = first_error {
+            return Err(error);
+        }
+
+        let packages_and_tools: Vec<Triple> = packages_and_tools
+            .into_iter()
+            .map(|ok| ok.unwrap())
+            .collect();
 
         let has_packages = packages_and_tools
             .iter()
@@ -281,7 +304,7 @@ impl Toolchain {
             .iter()
             .any(|(kind, ..)| kind == &Kind::Tool);
 
-        match (has_packages, has_tools) {
+        let toolchain = match (has_packages, has_tools) {
             // If there are neither packages nor tools, treat it as `Packages`,
             // but don't re-process the data just to construct an empty `Vec`!
             (false, false) => Toolchain::Packages(vec![]),
@@ -315,6 +338,8 @@ impl Toolchain {
                     host_packages,
                 }
             }
-        }
+        };
+
+        Ok(toolchain)
     }
 }

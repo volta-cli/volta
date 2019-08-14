@@ -9,7 +9,10 @@ use semver::Version;
 use structopt::StructOpt;
 
 use crate::command::Command;
+use std::rc::Rc;
 use toolchain::Toolchain;
+use volta_core::inventory::Inventory;
+use volta_core::project::Project;
 use volta_core::{
     session::{ActivityKind, Session},
     tool::PackageConfig,
@@ -39,7 +42,7 @@ impl FromStr for Format {
 /// Note: this is distinct from `volta_core::platform::sourced::Source`, which
 /// represents the source only of a `Platform`, which is a composite structure.
 /// By contrast, this `Source` is concerned *only* with a single item.
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 enum Source {
     /// The item is from a project. The wrapped `PathBuf` is the path to the
     /// project's `package.json`.
@@ -127,6 +130,32 @@ impl Package {
                 path: path.clone(),
             },
             Source::None => Package::Fetched(details),
+        }
+    }
+
+    fn from_inventory_and_project(
+        inventory: &Inventory,
+        project: &Option<Rc<Project>>,
+    ) -> Vec<Package> {
+        inventory
+            .packages
+            .clone()
+            .into_iter()
+            .map(|config| {
+                Package::new(
+                    &config,
+                    &Self::source(&config.name, &config.version, project),
+                )
+            })
+            .collect()
+    }
+
+    fn source(name: &str, version: &Version, project: &Option<Rc<Project>>) -> Source {
+        match project {
+            Some(project) if project.has_dependency(name, version) => {
+                Source::Project(project.package_file())
+            }
+            _ => Source::Default,
         }
     }
 }
@@ -285,7 +314,7 @@ impl Command for List {
             Some(Subcommand::Node) => Toolchain::node(inventory, &project, &user_platform, &filter),
             Some(Subcommand::Yarn) => Toolchain::yarn(inventory, &project, &user_platform, &filter),
             Some(Subcommand::PackageOrTool { name }) => {
-                Toolchain::package_or_tool(&name, inventory, &project, &filter)
+                Toolchain::package_or_tool(&name, inventory, &project, &filter)?
             }
         };
 
