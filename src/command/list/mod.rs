@@ -142,10 +142,8 @@ impl Package {
             .clone()
             .into_iter()
             .map(|config| {
-                Package::new(
-                    &config,
-                    &Self::source(&config.name, &config.version, project),
-                )
+                let source = Self::source(&config.name, &config.version, project);
+                Package::new(&config, &source)
             })
             .collect()
     }
