@@ -16,7 +16,7 @@ pub mod sourced;
 pub use self::sourced::{Source, SourcedImage, SourcedPlatformSpec};
 
 /// A specification of tool versions needed for a platform
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PlatformSpec {
     /// The pinned version of Node.
     pub node_runtime: Version,

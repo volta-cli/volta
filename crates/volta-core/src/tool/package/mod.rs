@@ -50,8 +50,8 @@ pub struct PackageDetails {
 /// The Tool implementation for fetching and installing 3rd-party packages
 #[derive(Debug)]
 pub struct Package {
-    pub(super) name: String,
-    pub(super) details: PackageDetails,
+    pub(crate) name: String,
+    pub(crate) details: PackageDetails,
 }
 
 impl Package {

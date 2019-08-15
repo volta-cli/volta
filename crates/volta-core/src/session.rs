@@ -23,6 +23,7 @@ pub enum ActivityKind {
     Fetch,
     Install,
     Uninstall,
+    List,
     Current,
     Deactivate,
     Activate,
@@ -48,6 +49,7 @@ impl Display for ActivityKind {
             &ActivityKind::Fetch => "fetch",
             &ActivityKind::Install => "install",
             &ActivityKind::Uninstall => "uninstall",
+            &ActivityKind::List => "list",
             &ActivityKind::Current => "current",
             &ActivityKind::Deactivate => "deactivate",
             &ActivityKind::Activate => "activate",
@@ -176,7 +178,7 @@ impl Session {
     pub(crate) fn ensure_node(&mut self, version: &Version) -> Fallible<()> {
         let inventory = self.inventory.get_mut()?;
 
-        if !inventory.node.contains(version) {
+        if !inventory.node.versions.contains(version) {
             Node::new(version.clone()).fetch_internal(self)?;
         }
 
@@ -187,7 +189,7 @@ impl Session {
     pub(crate) fn ensure_yarn(&mut self, version: &Version) -> Fallible<()> {
         let inventory = self.inventory.get_mut()?;
 
-        if !inventory.yarn.contains(version) {
+        if !inventory.yarn.versions.contains(version) {
             Yarn::new(version.clone()).fetch_internal(self)?;
         }
 

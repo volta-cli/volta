@@ -1,10 +1,12 @@
 //! Provides the `Project` type, which represents a Node project tree in
 //! the filesystem.
 
+use std::collections::HashMap;
 use std::env;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
+use std::str::FromStr;
 
 use lazycell::LazyCell;
 use semver::Version;
@@ -104,9 +106,42 @@ impl Project {
         Ok(false)
     }
 
+    /// Returns a matching config if the bin exists at the specified version in
+    /// the project.
+    pub fn matching_bin(&self, bin_name: &OsStr, version: &Version) -> Fallible<Option<BinConfig>> {
+        let config_path = bin_name
+            .to_str()
+            .map(path::user_tool_bin_config)
+            .transpose()?;
+
+        let bin_config = config_path.map(BinConfig::from_file).transpose()?;
+
+        let matching_config = bin_config.and_then(|config| {
+            if self.has_direct_dependency(&config.package) && &config.version == version {
+                Some(config)
+            } else {
+                None
+            }
+        });
+
+        Ok(matching_config)
+    }
+
     fn has_direct_dependency(&self, dependency: &str) -> bool {
         self.manifest.dependencies.contains_key(dependency)
             || self.manifest.dev_dependencies.contains_key(dependency)
+    }
+
+    pub fn has_dependency(&self, dependency: &str, version: &Version) -> bool {
+        let has_dep = |deps: &HashMap<String, String>| {
+            deps.get(dependency)
+                .and_then(|v| Version::from_str(v).ok())
+                .map(|v| &v == version)
+        };
+
+        has_dep(&self.manifest.dependencies)
+            .or(has_dep(&self.manifest.dev_dependencies))
+            .unwrap_or(false)
     }
 
     /// Writes the specified version of Node to the `volta.node` key in package.json.
