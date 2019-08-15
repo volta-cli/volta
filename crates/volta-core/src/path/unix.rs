@@ -114,27 +114,23 @@ pub fn volta_file() -> Fallible<PathBuf> {
     Ok(volta_home()?.join("volta"))
 }
 
+// check that it exists - if not, check some other locations
 pub fn shim_executable() -> Fallible<PathBuf> {
-    // default location for the shim executable (most user installs)
+    // prefer the default location for the shim executable
+    // (this will be the case for the majority of installs)
     let default_shim_executable = volta_home()?.join("shim");
-
-    // TODO: check that it exists - if not, check some other locations
-    // (like what volta_home() does, sorta)
-    //
-    // prefer the default location, if it exists
     if default_shim_executable.exists() {
         return Ok(default_shim_executable);
     }
 
-    // when an RPM is installed as root, the shim will be here (managed installs)
+    // when an RPM is installed as root, the shim will be here for non-root users
+    // (this will be the case for some managed installs)
     let rpm_shim_executable = Path::new("/usr/bin/volta-lib/shim").to_path_buf();
-
     if rpm_shim_executable.exists() {
         return Ok(rpm_shim_executable);
     }
 
-    // TODO: for now
-    Ok(rpm_shim_executable)
+    Err(ErrorDetails::ShimExecutableNotFound.into())
 }
 
 pub fn env_paths() -> Fallible<Vec<PathBuf>> {
