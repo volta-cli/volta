@@ -211,6 +211,10 @@ enum Filter {
 
 #[derive(StructOpt)]
 pub(crate) struct List {
+    // Note: we implement the subcommand as an `Option<String>` instead of an
+    // `Option<Subcommand>` with `impl FromStr for Subcommand` for `StructOpt`
+    // because StructOpt does not currently support custom parsing for enum
+    // variants (as detailed in commit 5f9214ae).
     /// The tool to lookup: `all`, `node`, `yarn`, or the name of a package or binary.
     #[structopt(name = "tool")]
     subcommand: Option<String>,

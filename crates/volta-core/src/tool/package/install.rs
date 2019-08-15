@@ -22,7 +22,7 @@ use log::debug;
 use semver::Version;
 use volta_fail::{throw, Fallible, ResultExt};
 
-// TODO: this may not really belong in the `install` module, since we now need
+// TODO: (#526) this does not belong in the `install` module, since we now need
 //       to expose it *outside* this module for the sake of listing data about
 //       installed packages.
 /// Configuration information about an installed package.
