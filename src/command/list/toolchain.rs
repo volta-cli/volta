@@ -288,7 +288,7 @@ impl Toolchain {
                 .fold((false, false), |(packages, tools), (kind, ..)| {
                     (
                         packages || kind == &Kind::Package,
-                        tools || kind == &Kind::Package,
+                        tools || kind == &Kind::Tool,
                     )
                 });
 
