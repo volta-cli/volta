@@ -109,11 +109,14 @@ pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
     Ok(shim_dir()?.join(toolname))
 }
 
+// this is not currently used by anything
 pub fn volta_file() -> Fallible<PathBuf> {
     Ok(volta_home()?.join("volta"))
 }
 
 pub fn shim_executable() -> Fallible<PathBuf> {
+    // TODO: check that it exists - if not, check some other locations
+    // (like what volta_home() does, sorta)
     Ok(volta_home()?.join("shim"))
 }
 
