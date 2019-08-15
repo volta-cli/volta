@@ -17,7 +17,7 @@ impl PackageCollection {
     pub(crate) fn load() -> Fallible<Self> {
         let package_dir = path::user_package_dir()?;
 
-        let file_paths = WalkDir::new(&package_dir)
+        WalkDir::new(&package_dir)
             .max_depth(1)
             .into_iter()
             // Ignore any items which didn't resolve as `DirEntry` correctly.
@@ -38,18 +38,9 @@ impl PackageCollection {
                     None
                 }
             })
-            .collect::<Vec<PathBuf>>();
-
-        // Note: this approach fails eagerly -- if *any* of the packages
-        //       installed error out on deserialization, we die immediately and
-        //       report to the user.
-        let mut packages: BTreeSet<PackageConfig> = BTreeSet::new();
-        for file_path in file_paths {
-            let config = PackageConfig::from_file(&file_path)?;
-            packages.insert(config);
-        }
-
-        Ok(PackageCollection(packages))
+            .map(|file_path| PackageConfig::from_file(&file_path))
+            .collect::<Fallible<BTreeSet<PackageConfig>>>()
+            .map(PackageCollection)
     }
 }
 
