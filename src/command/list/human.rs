@@ -1,4 +1,4 @@
-//! Define the "plain" format style for list commands.
+//! Define the "human" format style for list commands.
 
 use textwrap::Wrapper;
 
