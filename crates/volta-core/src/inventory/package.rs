@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet, iter::Iterator, path::PathBuf};
+use std::{collections::BTreeSet, iter::Iterator};
 
 use log::debug;
 use walkdir::WalkDir;
