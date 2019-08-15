@@ -1119,8 +1119,12 @@ at {}
 {}"#,
                 name, PERMISSIONS_CTA
             ),
-            // TODO: fix this message
-            ErrorDetails::ShimExecutableNotFound => write!(f, "shim executable not found!"),
+            ErrorDetails::ShimExecutableNotFound => write!(
+                f,
+                "Volta shim executable not found!
+
+Please re-install Volta to create the shim file."
+            ),
             // This case does not have a CTA as there is no avenue to allow users to remove built-in shims
             ErrorDetails::ShimRemoveBuiltInError { name } => {
                 write!(f, r#"Cannot remove built-in shim for "{}""#, name)

@@ -1,6 +1,7 @@
 //! Provides functions for determining the paths of files and directories
 //! in a standard Volta layout in Unix-based operating systems.
 
+use std::env;
 use std::io;
 use std::os::unix;
 use std::path::{Path, PathBuf};
@@ -116,7 +117,13 @@ pub fn volta_file() -> Fallible<PathBuf> {
 
 // check that it exists - if not, check some other locations
 pub fn shim_executable() -> Fallible<PathBuf> {
-    // prefer the default location for the shim executable
+    // if VOLTA_SHIM is set, try that first
+    // (not documented yet, as it's currently only used for testing)
+    if let Some(shim_location) = env::var_os("VOLTA_SHIM") {
+        return Ok(Path::new(&shim_location).to_path_buf());
+    }
+
+    // default location for the shim executable
     // (this will be the case for the majority of installs)
     let default_shim_executable = volta_home()?.join("shim");
     if default_shim_executable.exists() {
