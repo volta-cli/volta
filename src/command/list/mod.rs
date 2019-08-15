@@ -139,8 +139,7 @@ impl Package {
     ) -> Vec<Package> {
         inventory
             .packages
-            .clone()
-            .into_iter()
+            .iter()
             .map(|config| {
                 let source = Self::source(&config.name, &config.version, project);
                 Package::new(&config, &source)
@@ -276,9 +275,7 @@ impl List {
     }
 
     fn subcommand(&self) -> Option<Subcommand> {
-        self.subcommand
-            .as_ref()
-            .map(|s| Subcommand::from(s.as_str()))
+        self.subcommand.as_ref().map(|s| s.as_str().into())
     }
 }
 

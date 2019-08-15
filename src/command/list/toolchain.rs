@@ -239,70 +239,58 @@ impl Toolchain {
 
         /// A convenient name for this tuple, since we have to name it in a few
         /// spots below.
-        type Triple = (Kind, PackageConfig, Source);
+        type Triple<'p> = (Kind, &'p PackageConfig, Source);
 
-        let (packages_and_tools, errors): (Vec<Fallible<Triple>>, Vec<Fallible<Triple>>) =
-            inventory
-                .packages
-                .clone()
-                .into_iter()
-                .filter_map(|config| {
-                    // Start with the package itself, since tools often match
-                    // the package name and we prioritize packages.
-                    if &config.name == name {
-                        let source = Package::source(name, &config.version, project);
-                        if source.allowed_with(filter) {
-                            Some(Ok((Kind::Package, config, source)))
-                        } else {
-                            None
-                        }
-
-                    // Then check if the passed name matches an installed package's
-                    // binaries. If it does, we have a tool.
-                    } else if config
-                        .bins
-                        .iter()
-                        .find(|bin| bin.as_str() == name)
-                        .is_some()
-                    {
-                        tool_source(name, &config.version, project)
-                            .map(|source| {
-                                if source.allowed_with(filter) {
-                                    Some((Kind::Tool, config, source))
-                                } else {
-                                    None
-                                }
-                            })
-                            .transpose()
-
-                    // Otherwise, we don't have any match all.
+        let packages_and_tools = inventory
+            .packages
+            .iter()
+            .filter_map(|config| {
+                // Start with the package itself, since tools often match
+                // the package name and we prioritize packages.
+                if &config.name == name {
+                    let source = Package::source(name, &config.version, project);
+                    if source.allowed_with(filter) {
+                        Some(Ok((Kind::Package, config, source)))
                     } else {
                         None
                     }
-                })
-                .partition(|result| result.is_ok());
 
-        // If there are any errors, return the first one, since we don't have a
-        // notion of composite errors in our error handling at this point.
-        // (This should be quite unusual, as it means something failed in
-        // looking up a tool's bin directory.)
-        let first_error = errors.into_iter().map(|error| error.unwrap_err()).nth(0);
-        if let Some(error) = first_error {
-            return Err(error);
-        }
+                // Then check if the passed name matches an installed package's
+                // binaries. If it does, we have a tool.
+                } else if config
+                    .bins
+                    .iter()
+                    .find(|bin| bin.as_str() == name)
+                    .is_some()
+                {
+                    tool_source(name, &config.version, project)
+                        .map(|source| {
+                            if source.allowed_with(filter) {
+                                Some((Kind::Tool, config, source))
+                            } else {
+                                None
+                            }
+                        })
+                        .transpose()
 
-        let packages_and_tools: Vec<Triple> = packages_and_tools
-            .into_iter()
-            .map(|ok| ok.unwrap())
-            .collect();
+                // Otherwise, we don't have any match all.
+                } else {
+                    None
+                }
+            })
+            // Then eagerly collect the first error (if there are any) and
+            // return it; otherwise we have a totally valid collection.
+            .collect::<Fallible<Vec<Triple>>>()?;
 
-        let has_packages = packages_and_tools
-            .iter()
-            .any(|(kind, ..)| kind == &Kind::Package);
-
-        let has_tools = packages_and_tools
-            .iter()
-            .any(|(kind, ..)| kind == &Kind::Tool);
+        let (has_packages, has_tools) =
+            packages_and_tools
+                .iter()
+                .fold((false, false), |(packages, tools), (kind, ..)| {
+                    (
+                        packages || kind == &Kind::Package,
+                        tools || kind == &Kind::Package,
+                    )
+                });
 
         let toolchain = match (has_packages, has_tools) {
             // If there are neither packages nor tools, treat it as `Packages`,

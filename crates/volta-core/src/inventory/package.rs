@@ -42,13 +42,8 @@ impl PackageCollection {
             .collect::<Fallible<BTreeSet<PackageConfig>>>()
             .map(PackageCollection)
     }
-}
 
-impl IntoIterator for PackageCollection {
-    type Item = PackageConfig;
-    type IntoIter = std::collections::btree_set::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+    pub fn iter(&self) -> impl Iterator<Item = &PackageConfig> {
+        self.0.iter()
     }
 }
