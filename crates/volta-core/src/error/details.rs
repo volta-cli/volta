@@ -1382,8 +1382,4 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::YarnVersionNotFound { .. } => ExitCode::NoVersionMatch,
         }
     }
-
-    fn is_user_friendly(&self) -> bool {
-        true
-    }
 }
