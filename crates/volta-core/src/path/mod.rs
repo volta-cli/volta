@@ -49,6 +49,7 @@ pub fn ensure_volta_dirs_exist() -> Fallible<()> {
         ensure_shim_exists("node")?;
         ensure_shim_exists("yarn")?;
         ensure_shim_exists("npm")?;
+        ensure_shim_exists("npx")?;
     }
 
     Ok(())

@@ -34,8 +34,9 @@ fn empty_volta_home_is_auto_created() {
 
     // shims should all be created
     assert!(Sandbox::shim_exists("node"));
-    assert!(Sandbox::shim_exists("npm"));
     assert!(Sandbox::shim_exists("yarn"));
+    assert!(Sandbox::shim_exists("npm"));
+    assert!(Sandbox::shim_exists("npx"));
 }
 
 #[test]
@@ -67,6 +68,7 @@ fn existing_volta_home_is_unchanged() {
     assert!(Sandbox::dir_exists(".volta/tools/inventory/yarn"));
 
     assert!(!Sandbox::shim_exists("node"));
-    assert!(!Sandbox::shim_exists("npm"));
     assert!(!Sandbox::shim_exists("yarn"));
+    assert!(!Sandbox::shim_exists("npm"));
+    assert!(!Sandbox::shim_exists("npx"));
 }
