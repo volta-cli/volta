@@ -33,10 +33,15 @@ fn empty_volta_home_is_auto_created() {
     assert!(Sandbox::dir_exists(".volta/tools/user"));
 
     // shims should all be created
-    assert!(Sandbox::shim_exists("node"));
-    assert!(Sandbox::shim_exists("yarn"));
-    assert!(Sandbox::shim_exists("npm"));
-    assert!(Sandbox::shim_exists("npx"));
+    // NOTE: this doesn't work in Windows, because the shim directory
+    //       is stored in the Registry, and not accessible
+    #[cfg(unix)]
+    {
+        assert!(Sandbox::shim_exists("node"));
+        assert!(Sandbox::shim_exists("yarn"));
+        assert!(Sandbox::shim_exists("npm"));
+        assert!(Sandbox::shim_exists("npx"));
+    }
 }
 
 #[test]

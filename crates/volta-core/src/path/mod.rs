@@ -46,10 +46,15 @@ pub fn ensure_volta_dirs_exist() -> Fallible<()> {
         ensure_dir_exists(tmp_dir()?)?;
         ensure_dir_exists(log_dir()?)?;
         // also ensure the basic shims exist
-        ensure_shim_exists("node")?;
-        ensure_shim_exists("yarn")?;
-        ensure_shim_exists("npm")?;
-        ensure_shim_exists("npx")?;
+        // this is only for unix until the update process is refactored
+        // (windows stores the location in the Registry, which is not available for the tests)
+        #[cfg(unix)]
+        {
+            ensure_shim_exists("node")?;
+            ensure_shim_exists("yarn")?;
+            ensure_shim_exists("npm")?;
+            ensure_shim_exists("npx")?;
+        }
     }
 
     Ok(())
