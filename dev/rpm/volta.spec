@@ -47,7 +47,7 @@ install -m 0755 target/release/shim %{volta_install_dir}/shim
 # the postinstall script
 install -m 0755 dev/rpm/volta-postinstall.sh %{volta_install_dir}/volta-postinstall.sh
 # the shell integration scripts
-# TODO: still need these?
+# these are loaded for the user that installed the RPM
 install -m 0644 shell/unix/load.sh %{volta_install_dir}/load.sh
 install -m 0644 shell/unix/load.fish %{volta_install_dir}/load.fish
 
@@ -65,6 +65,7 @@ install -m 0644 shell/unix/load.fish %{volta_install_dir}/load.fish
 # this runs before install
 %pre
 # make sure the /usr/bin/volta/ dir does not exist, from prev RPM installs (or this will fail)
+printf '\033[1;32m%12s\033[0m %s\n' "Running" "Volta pre-install..." 1>&2
 rm -rf %{_bindir}/%{name}
 
 
@@ -75,16 +76,20 @@ printf '\033[1;32m%12s\033[0m %s\n' "Running" "Volta post-install setup..." 1>&2
 /bin/su -c %{volta_bin_dir}/volta-postinstall.sh - $SUDO_USER
 
 
-# this runs after uninstall
-# TODO: I don't think this is right - this happens after package upgrade?
+# this is called after package uninstall _and_ upgrade, but we only want to remove these for uninstall
+# - it is passed "the number of packages that will be left after this step is completed",
+#   so it checks that value - 0 means uninstall, anything else is upgrade
 %postun
-printf '\033[1;32m%12s\033[0m %s\n' "Removing" "~/.volta/ directory" 1>&2
-# run this as the user who invoked sudo (not as root, because we're using $HOME)
-# and using single quotes so $HOME doesn't expand here (for root), but expands in the user's shell
-/bin/su -c 'rm -rf $HOME/.volta' - $SUDO_USER
-# the RPM removes the binaries in this dir, but not the dir itself
-printf '\033[1;32m%12s\033[0m %s\n' "Removing" %{volta_bin_dir}" directory" 1>&2
-rm -rf %{volta_bin_dir}
+# only run these for uninstall
+if [ $1 -eq 0 ]; then
+  printf '\033[1;32m%12s\033[0m %s\n' "Removing" "~/.volta/ directory" 1>&2
+  # run this as the user who invoked sudo (not as root, because we're using $HOME)
+  # and using single quotes so $HOME doesn't expand here (for root), but expands in the user's shell
+  /bin/su -c 'rm -rf $HOME/.volta' - $SUDO_USER
+  # the RPM removes the binaries in this dir, but not the dir itself
+  printf '\033[1;32m%12s\033[0m %s\n' "Removing" %{volta_bin_dir}" directory" 1>&2
+  rm -rf %{volta_bin_dir}
+fi
 
 
 %changelog
