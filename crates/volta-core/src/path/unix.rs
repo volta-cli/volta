@@ -132,7 +132,7 @@ pub fn shim_executable() -> Fallible<PathBuf> {
 
     // when an RPM is installed as root, the shim will be here for non-root users
     // (this will be the case for some managed installs)
-    let rpm_shim_executable = Path::new("/usr/bin/volta-lib/shim").to_path_buf();
+    let rpm_shim_executable = PathBuf::from("/usr/bin/volta-lib/shim");
     if rpm_shim_executable.exists() {
         return Ok(rpm_shim_executable);
     }
