@@ -120,7 +120,7 @@ pub fn shim_executable() -> Fallible<PathBuf> {
     // if VOLTA_SHIM is set, try that first
     // (not documented yet, as it's currently only used for testing)
     if let Some(shim_location) = env::var_os("VOLTA_SHIM") {
-        return Ok(Path::new(&shim_location).to_path_buf());
+        return Ok(shim_location.into());
     }
 
     // default location for the shim executable
