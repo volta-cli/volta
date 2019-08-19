@@ -1,6 +1,7 @@
 //! Provides functions for determining the paths of files and directories
 //! in a standard Volta layout in Unix-based operating systems.
 
+use std::env;
 use std::io;
 use std::os::unix;
 use std::path::{Path, PathBuf};
@@ -109,12 +110,34 @@ pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
     Ok(shim_dir()?.join(toolname))
 }
 
+// this is not currently used by anything
 pub fn volta_file() -> Fallible<PathBuf> {
     Ok(volta_home()?.join("volta"))
 }
 
+// check that it exists - if not, check some other locations
 pub fn shim_executable() -> Fallible<PathBuf> {
-    Ok(volta_home()?.join("shim"))
+    // if VOLTA_SHIM is set, try that first
+    // (not documented yet, as it's currently only used for testing)
+    if let Some(shim_location) = env::var_os("VOLTA_SHIM") {
+        return Ok(shim_location.into());
+    }
+
+    // default location for the shim executable
+    // (this will be the case for the majority of installs)
+    let default_shim_executable = volta_home()?.join("shim");
+    if default_shim_executable.exists() {
+        return Ok(default_shim_executable);
+    }
+
+    // when an RPM is installed as root, the shim will be here for non-root users
+    // (this will be the case for some managed installs)
+    let rpm_shim_executable = PathBuf::from("/usr/bin/volta-lib/shim");
+    if rpm_shim_executable.exists() {
+        return Ok(rpm_shim_executable);
+    }
+
+    Err(ErrorDetails::ShimExecutableNotFound.into())
 }
 
 pub fn env_paths() -> Fallible<Vec<PathBuf>> {

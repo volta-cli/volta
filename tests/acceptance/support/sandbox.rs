@@ -513,6 +513,10 @@ fn user_platform_file() -> PathBuf {
     user_dir().join("platform.json")
 }
 
+fn sandbox_dir(dir_path: &str) -> PathBuf {
+    home_dir().join(dir_path)
+}
+
 pub struct Sandbox {
     root: PathBuf,
     mocks: Vec<mockito::Mock>,
@@ -607,6 +611,10 @@ impl Sandbox {
         fs::read_dir(volta_log_dir()).ok()
     }
 
+    pub fn remove_volta_home(&self) -> () {
+        volta_home().rm_rf();
+    }
+
     // check that files in the sandbox exist
 
     pub fn node_inventory_archive_exists(&self, version: &str) -> bool {
@@ -629,6 +637,9 @@ impl Sandbox {
     }
     pub fn shim_exists(name: &str) -> bool {
         shim_file(name).exists()
+    }
+    pub fn dir_exists(dir_path: &str) -> bool {
+        sandbox_dir(dir_path).exists()
     }
     pub fn package_image_exists(name: &str, version: &str) -> bool {
         let package_img_dir = package_image_dir(name, version);
@@ -679,7 +690,7 @@ fn volta_exe() -> PathBuf {
     cargo_dir().join(format!("volta{}", env::consts::EXE_SUFFIX))
 }
 
-fn shim_exe() -> PathBuf {
+pub fn shim_exe() -> PathBuf {
     cargo_dir().join(format!("shim{}", env::consts::EXE_SUFFIX))
 }
 

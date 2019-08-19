@@ -2,6 +2,7 @@ mod support;
 
 // test files
 
+mod autocreate_home_dir;
 mod corrupted_download;
 mod intercept_global_installs;
 mod merged_platform;

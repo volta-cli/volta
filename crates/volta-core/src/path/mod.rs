@@ -7,6 +7,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::error::ErrorDetails;
+use crate::shim;
 use volta_fail::{Fallible, ResultExt};
 
 cfg_if::cfg_if! {
@@ -44,6 +45,16 @@ pub fn ensure_volta_dirs_exist() -> Fallible<()> {
         ensure_dir_exists(user_toolchain_dir()?)?;
         ensure_dir_exists(tmp_dir()?)?;
         ensure_dir_exists(log_dir()?)?;
+        // also ensure the basic shims exist
+        // this is only for unix until the update process is refactored
+        // (windows stores the location in the Registry, which is not available for the tests)
+        #[cfg(unix)]
+        {
+            ensure_shim_exists("node")?;
+            ensure_shim_exists("yarn")?;
+            ensure_shim_exists("npm")?;
+            ensure_shim_exists("npx")?;
+        }
     }
 
     Ok(())
@@ -51,6 +62,10 @@ pub fn ensure_volta_dirs_exist() -> Fallible<()> {
 
 fn ensure_dir_exists(path: PathBuf) -> Fallible<()> {
     fs::create_dir_all(&path).with_context(|_| ErrorDetails::CreateDirError { dir: path })
+}
+
+fn ensure_shim_exists(shim_name: &str) -> Fallible<shim::ShimResult> {
+    shim::create(shim_name)
 }
 
 pub fn volta_home() -> Fallible<PathBuf> {
