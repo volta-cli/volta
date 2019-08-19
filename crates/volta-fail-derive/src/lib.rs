@@ -17,7 +17,6 @@ pub fn volta_fail(token_stream: TokenStream) -> TokenStream {
 
     let mut code = Ident::new("UnknownError", Span::call_site());
     let mut code_set = false;
-    let mut is_friendly = Ident::new("true", Span::call_site());
 
     for meta in input.attrs.iter().filter_map(get_volta_fail_meta_items) {
         for item in meta {
@@ -34,15 +33,6 @@ pub fn volta_fail(token_stream: TokenStream) -> TokenStream {
                     if let Lit::Str(s) = &m.lit {
                         code = Ident::new(&s.value(), Span::call_site());
                         code_set = true;
-                    } else {
-                        // Defined, but not a string.
-                        panic!("#[volta_fail()]: 'code' must be a string.");
-                    }
-                }
-
-                Meta(NameValue(ref m)) if m.ident == "friendly" => {
-                    if let Lit::Str(s) = &m.lit {
-                        is_friendly = Ident::new(&s.value(), Span::call_site());
                     } else {
                         // Defined, but not a string.
                         panic!("#[volta_fail()]: 'code' must be a string.");
@@ -68,10 +58,6 @@ pub fn volta_fail(token_stream: TokenStream) -> TokenStream {
         impl VoltaFail for #name {
             fn exit_code(&self) -> ExitCode {
                 ExitCode::#code
-            }
-
-            fn is_user_friendly(&self) -> bool {
-                #is_friendly
             }
         }
     };

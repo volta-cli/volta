@@ -1,27 +1,15 @@
 //! This crate provides a protocol for Volta's error handling, including a subtrait
 //! of the [`failure`](https://github.com/rust-lang-nursery/failure) crate's
 //! [`Fail`](https://docs.rs/failure/0.1.1/failure/trait.Fail.html) trait to manage
-//! the distinction between user-facing and internal error messages, as well as
 //! the interface between errors and process exit codes.
 //!
 //! # The `VoltaFail` trait
 //!
 //! The main interface for Volta errors is `VoltaFail`, which extends the
 //! [`Fail`](https://docs.rs/failure/0.1.1/failure/trait.Fail.html) trait from the
-//! [`failure`](https://github.com/rust-lang-nursery/failure) library with two additional
-//! methods.
-//!
-//! ## User-friendly errors
-//!
-//! The `VoltaFail::is_user_friendly()` method determines whether an error type is
-//! intended for being presented to the end-user. The top-level logic of Volta uses
-//! this to create a single catch-all behavior to present any non-user-friendly errors
-//! as an internal error.
-//!
-//! ## Exit codes
-//!
-//! The `VoltaFail::exit_code()` method allows each error type to indicate what the
-//! process exit code should be if the error is the reason for exiting Volta.
+//! [`failure`](https://github.com/rust-lang-nursery/failure) library with an additional
+//! method. The `VoltaFail::exit_code()` method allows each error type to indicate what
+//! the process exit code should be if the error is the reason for exiting Volta.
 //!
 //! # The `VoltaError` type and `Fallible` functions
 //!
@@ -67,10 +55,6 @@
 //! To create an error type in Volta, add a `#[derive]` attribute to derive the `Fail`
 //! trait before the type declaration, and add a `#[fail(display = "...")]` attribute to
 //! construct the error message string.
-//!
-//! If the error type is one that contains a user-friendly error message, declare an
-//! implementation of `VoltaFail` for the type where `is_user_friendly` returns `true`
-//! and `exit_code` returns the process exit code for errors of this type.
 //!
 //! Continuing with the running example, we could create an error type for running past
 //! the end of the input string:
@@ -129,36 +113,10 @@
 //! not automatically converted into Volta errors.
 //!
 //! Instead, this crate provides a couple of extension traits that you can import to
-//! add an `unknown()` method to errors (`FailExt`) or `Result`s (`ResultExt`). This
-//! method will convert any third-party error to a Volta error. The resulting Volta
-//! error will be treated as an internal error. (But see the sections below to learn
-//! how to wrap internal errors with user-friendly messages without losing data.)
+//! add an `with_context()` method to errors (`FailExt`) or `Result`s (`ResultExt`). This
+//! method will convert any third-party error to a Volta error.
 //!
-//! ## Example
-//!
-//! ```
-//! # use failure::Fail;
-//! # use volta_fail::{throw, ExitCode, Fallible, VoltaFail};
-//! # use volta_fail_derive::*;
-//! // add `unknown()` extension method to Results
-//! use volta_fail::ResultExt;
-//! # #[derive(Debug, Fail, VoltaFail)]
-//! # #[fail(display = "unexpected end of string")]
-//! # #[volta_fail(code = "InvalidArguments")]
-//! # struct UnexpectedEndOfString;
-//!
-//! fn parse_component(src: &str, i: usize) -> Fallible<u8> {
-//!     if i + 2 > src.len() {
-//!         // UnexpectedEndOfString implements VoltaFail, so it coerces to VoltaError
-//!         throw!(UnexpectedEndOfString);
-//!     }
-//!
-//!     // convert the std::num::ParseIntError into a VoltaError
-//!     u8::from_str_radix(&src[i..i + 2], 16).unknown()
-//! }
-//! ```
-//!
-//! # Cause chains
+//! ## Cause chains
 //!
 //! Since errors get propagated up from lower abstraction layers to higher ones, the
 //! higher layers of abstraction often need to add contextual information to the error
@@ -180,30 +138,21 @@
 //!
 //! ## Example
 //!
-//! ```compile_fail
+//! ```
 //! # use failure::Fail;
-//! # use volta_fail::{ExitCode, Fallible, VoltaFail};
+//! # use volta_fail::{throw, ExitCode, Fallible, VoltaFail};
 //! # use volta_fail_derive::*;
-//! // add `unknown()` and `with_context()` extension methods to Results
-//! use volta_fail::ResultExt;
-//! # use std::fmt::Display;
-//!
 //! # #[derive(Debug, Fail, VoltaFail)]
 //! # #[fail(display = "unexpected end of string")]
 //! # #[volta_fail(code = "InvalidArguments")]
 //! # struct UnexpectedEndOfString;
-//! #
-//! # fn parse_component(src: &str, i: usize) -> Fallible<u8> {
-//! #     if i + 2 > src.len() {
-//! #         // UnexpectedEndOfString implements VoltaFail, so it coerces to VoltaError
-//! #         throw!(UnexpectedEndOfString);
-//! #     }
-//! #
-//! #     // convert the std::num::ParseIntError into a VoltaError
-//! #     u8::from_str_radix(&src[i..i + 2], 16).unknown()
-//! # }
+//!
+//! use std::fmt::Display;
+//! // add `with_context()` extension method to Results
+//! use volta_fail::ResultExt;
+//!
 //! #[derive(Debug, Fail, VoltaFail)]
-//! #[fail(display = "invalid RGB string: ", details)]
+//! #[fail(display = "invalid RGB string: {}", details)]
 //! #[volta_fail(code = "InvalidArguments")]
 //! struct InvalidRgbString { details: String }
 //!
@@ -213,14 +162,14 @@
 //!     }
 //! }
 //!
-//! impl Rgb {
-//!     fn parse(src: &str) -> Fallible<Rgb> {
-//!         Ok(Rgb {
-//!             r: parse_component(src, 0).with_context(InvalidRgbString::new)?,
-//!             g: parse_component(src, 2).with_context(InvalidRgbString::new)?,
-//!             b: parse_component(src, 4).with_context(InvalidRgbString::new)?
-//!         })
+//! fn parse_component(src: &str, i: usize) -> Fallible<u8> {
+//!     if i + 2 > src.len() {
+//!         // UnexpectedEndOfString implements VoltaFail, so it coerces to VoltaError
+//!         throw!(UnexpectedEndOfString);
 //!     }
+//!
+//!     // convert the std::num::ParseIntError into a VoltaError
+//!     u8::from_str_radix(&src[i..i + 2], 16).with_context(InvalidRgbString::new)
 //! }
 //! ```
 //!
@@ -231,12 +180,11 @@
 //! was being parsed and where it came from (say, the filename and line number).
 
 use std::convert::{From, Into};
-use std::fmt::{self, Display};
+use std::fmt;
 use std::process::exit;
 
 use failure::{Backtrace, Fail};
 use serde::Serialize;
-use volta_fail_derive::*;
 
 /// A temporary polyfill for `throw!` until the new `failure` library includes it.
 #[macro_export]
@@ -291,9 +239,6 @@ impl ExitCode {
 
 /// The failure trait for all Volta errors.
 pub trait VoltaFail: Fail {
-    /// Indicates whether this error has a message suitable for reporting to an end-user.
-    fn is_user_friendly(&self) -> bool;
-
     /// Returns the process exit code that should be returned if the process exits with this error.
     fn exit_code(&self) -> ExitCode;
 }
@@ -303,9 +248,6 @@ pub trait VoltaFail: Fail {
 pub struct VoltaError {
     /// The underlying error.
     error: failure::Error,
-
-    /// The result of `error.is_user_friendly()`.
-    user_friendly: bool,
 
     /// The result of `error.exit_code()`.
     exit_code: ExitCode,
@@ -352,11 +294,6 @@ impl VoltaError {
         self.error.downcast_mut()
     }
 
-    /// Indicates whether this error has a message suitable for reporting to an end-user.
-    pub fn is_user_friendly(&self) -> bool {
-        self.user_friendly
-    }
-
     /// Returns the process exit code that should be returned if the process exits with this error.
     pub fn exit_code(&self) -> ExitCode {
         self.exit_code
@@ -365,11 +302,9 @@ impl VoltaError {
 
 impl<T: VoltaFail> From<T> for VoltaError {
     fn from(failure: T) -> Self {
-        let user_friendly = failure.is_user_friendly();
         let exit_code = failure.exit_code();
         VoltaError {
             error: failure.into(),
-            user_friendly,
             exit_code,
         }
     }
@@ -379,7 +314,6 @@ impl<T: VoltaFail> From<T> for VoltaError {
 /// to be converted to a Volta error. This marks the error as an unknown error, i.e.
 /// a non-user-friendly error.
 pub trait FailExt {
-    fn unknown(self) -> VoltaError;
     fn with_context<F, D>(self, f: F) -> VoltaError
     where
         F: FnOnce(&Self) -> D,
@@ -389,9 +323,6 @@ pub trait FailExt {
 /// An extension trait for `Result` values, allowing conversion of third-party errors
 /// or other lower-layer errors into Volta errors.
 pub trait ResultExt<T, E> {
-    /// Convert any error-producing result into a `VoltaError`-producing result.
-    fn unknown(self) -> Result<T, VoltaError>;
-
     /// Wrap any error-producing result in a higher-layer error-producing result, pushing
     /// the lower-layer error onto the cause chain.
     fn with_context<F, D>(self, f: F) -> Result<T, VoltaError>
@@ -400,46 +331,7 @@ pub trait ResultExt<T, E> {
         D: VoltaFail;
 }
 
-/// A wrapper type for unknown errors.
-#[derive(VoltaFail)]
-#[volta_fail(code = "UnknownError", friendly = "false")]
-struct UnknownVoltaError {
-    error: failure::Error,
-}
-
-// The `Debug` implementation for `failure::Error` prints out a stack
-// trace, which is too much information for many debugging purposes,
-// and doesn't nest properly within the debug string of compound data
-// structures, so just show the debug string for the underlying cause
-// instead.
-
-impl fmt::Debug for UnknownVoltaError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Debug::fmt(self.error.as_fail(), f)
-    }
-}
-
-impl Display for UnknownVoltaError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "An unknown error has occurred")
-    }
-}
-
-impl Fail for UnknownVoltaError {
-    fn cause(&self) -> Option<&dyn Fail> {
-        Some(self.error.as_fail())
-    }
-
-    fn backtrace(&self) -> Option<&Backtrace> {
-        Some(self.error.backtrace())
-    }
-}
-
 impl<E: Into<failure::Error>> FailExt for E {
-    fn unknown(self) -> VoltaError {
-        UnknownVoltaError { error: self.into() }.into()
-    }
-
     fn with_context<F, D>(self, f: F) -> VoltaError
     where
         F: FnOnce(&Self) -> D,
@@ -453,10 +345,6 @@ impl<E: Into<failure::Error>> FailExt for E {
 }
 
 impl<T, E: Into<failure::Error>> ResultExt<T, E> for Result<T, E> {
-    fn unknown(self) -> Result<T, VoltaError> {
-        self.map_err(|err| UnknownVoltaError { error: err.into() }.into())
-    }
-
     fn with_context<F, D>(self, f: F) -> Result<T, VoltaError>
     where
         F: FnOnce(&E) -> D,
@@ -467,10 +355,6 @@ impl<T, E: Into<failure::Error>> ResultExt<T, E> for Result<T, E> {
 }
 
 impl<D: VoltaFail> VoltaFail for failure::Context<D> {
-    fn is_user_friendly(&self) -> bool {
-        self.get_context().is_user_friendly()
-    }
-
     fn exit_code(&self) -> ExitCode {
         self.get_context().exit_code()
     }
