@@ -1,3 +1,7 @@
+# Version 0.6.2
+
+- Added `volta list` command for inspecting the available tools and versions (#461)
+
 # Version 0.6.1
 
 - Windows users will see a spinner instead of a � when Volta is loading data (#511)
