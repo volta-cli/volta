@@ -82,7 +82,7 @@ fn load_cached_distro(file: &Path, shasum_file: &Path) -> Option<Box<dyn Archive
 }
 
 fn fetch_remote_distro(spec: tool::Spec, url: &str, path: &Path) -> Fallible<Box<Archive>> {
-    debug!("Downloading {} from {}", &spec, &url);
+    debug!("Downloading {} from {}, to {}", &spec, &url, path.display());
     Tarball::fetch(url, path).with_context(download_tool_error(spec, url.to_string()))
 }
 
