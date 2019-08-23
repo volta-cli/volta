@@ -99,3 +99,22 @@ fn install_package() {
         execs().with_status(0).with_stdout_contains(COWSAY_HELLO)
     );
 }
+
+#[test]
+fn install_scoped_package() {
+    let p = temp_project().build();
+
+    // have to install node first, because we need npm
+    assert_that!(p.volta("install node@10.4.1"), execs().with_status(0));
+
+    assert_that!(p.volta("install @wdio/cli@5.12.4"), execs().with_status(0));
+    assert_eq!(p.shim_exists("wdio"), true);
+
+    assert_eq!(p.package_version_is_fetched("wdio", "5.12.4"), true);
+    assert_eq!(p.package_version_is_unpacked("wdio", "5.12.4"), true);
+
+    assert_that!(
+        p.exec_shim("wdio", "--version"),
+        execs().with_status(0).with_stdout_contains("5.12.4")
+    );
+}
