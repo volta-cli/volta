@@ -110,8 +110,8 @@ fn install_scoped_package() {
     assert_that!(p.volta("install @wdio/cli@5.12.4"), execs().with_status(0));
     assert_eq!(p.shim_exists("wdio"), true);
 
-    assert_eq!(p.package_version_is_fetched("wdio", "5.12.4"), true);
-    assert_eq!(p.package_version_is_unpacked("wdio", "5.12.4"), true);
+    assert_eq!(p.package_version_is_fetched("@wdio/cli", "5.12.4"), true);
+    assert_eq!(p.package_version_is_unpacked("@wdio/cli", "5.12.4"), true);
 
     assert_that!(
         p.exec_shim("wdio", "--version"),
