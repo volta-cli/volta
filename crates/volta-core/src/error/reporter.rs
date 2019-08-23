@@ -4,11 +4,11 @@ use std::fs::File;
 use std::io::Write as IoWrite;
 use std::path::PathBuf;
 
-use crate::fs::ensure_containing_dir_exists;
 use crate::path::log_dir;
 use crate::style::format_error_cause;
 use chrono::Local;
 use failure::Error;
+use fs_utils::ensure_containing_dir_exists;
 use log::{debug, error};
 use volta_fail::VoltaError;
 

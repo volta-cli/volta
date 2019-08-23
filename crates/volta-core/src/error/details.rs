@@ -534,8 +534,7 @@ Please remove the file or pass `-f` or `--force` to override.",
             ),
             ErrorDetails::ContainingDirError { path } => write!(
                 f,
-                "Could not determine directory information
-for {}
+                "Could not create the containing directory for {}
 
 {}",
                 path.display(),

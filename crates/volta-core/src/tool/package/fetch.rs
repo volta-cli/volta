@@ -6,15 +6,13 @@ use std::path::{Path, PathBuf};
 
 use super::super::download_tool_error;
 use crate::error::ErrorDetails;
-use crate::fs::{
-    create_staging_dir, ensure_containing_dir_exists, ensure_dir_does_not_exist, read_dir_eager,
-    read_file,
-};
+use crate::fs::{create_staging_dir, ensure_dir_does_not_exist, read_dir_eager, read_file};
 use crate::path;
 use crate::style::{progress_bar, tool_version};
 use crate::tool::{self, PackageDetails};
 use crate::version::VersionSpec;
 use archive::{Archive, Tarball};
+use fs_utils::ensure_containing_dir_exists;
 use log::debug;
 use semver::Version;
 use sha1::{Digest, Sha1};
@@ -109,7 +107,11 @@ fn unpack_archive(archive: Box<Archive>, name: &str, version: &Version) -> Falli
 
     let image_dir = path::package_image_dir(&name, &version.to_string())?;
     // ensure that the dir where this will be unpacked exists
-    ensure_containing_dir_exists(&image_dir)?;
+    ensure_containing_dir_exists(&image_dir).with_context(|_| {
+        ErrorDetails::ContainingDirError {
+            path: image_dir.clone(),
+        }
+    })?;
     // and ensure that the target directory does not exist
     ensure_dir_does_not_exist(&image_dir)?;
 

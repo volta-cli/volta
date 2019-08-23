@@ -9,7 +9,7 @@ use std::time::{Duration, SystemTime};
 use super::super::registry_fetch_error;
 use super::serial;
 use crate::error::ErrorDetails;
-use crate::fs::{create_staging_file, ensure_containing_dir_exists, read_file};
+use crate::fs::{create_staging_file, read_file};
 use crate::hook::ToolHooks;
 use crate::path;
 use crate::session::Session;
@@ -17,6 +17,7 @@ use crate::style::progress_spinner;
 use crate::tool::Node;
 use crate::version::VersionSpec;
 use cfg_if::cfg_if;
+use fs_utils::ensure_containing_dir_exists;
 use headers_011::Headers011;
 use log::debug;
 use reqwest;
@@ -227,7 +228,11 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::RawNodeIndex> {
                 })?;
 
             let index_cache_file = path::node_index_file()?;
-            ensure_containing_dir_exists(&index_cache_file)?;
+            ensure_containing_dir_exists(&index_cache_file).with_context(|_| {
+                ErrorDetails::ContainingDirError {
+                    path: index_cache_file.clone(),
+                }
+            })?;
             cached.persist(&index_cache_file).with_context(|_| {
                 ErrorDetails::WriteNodeIndexCacheError {
                     file: index_cache_file,
@@ -251,7 +256,11 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::RawNodeIndex> {
             })?;
 
             let index_expiry_file = path::node_index_expiry_file()?;
-            ensure_containing_dir_exists(&index_expiry_file)?;
+            ensure_containing_dir_exists(&index_expiry_file).with_context(|_| {
+                ErrorDetails::ContainingDirError {
+                    path: index_expiry_file.clone(),
+                }
+            })?;
             expiry.persist(&index_expiry_file).with_context(|_| {
                 ErrorDetails::WriteNodeIndexExpiryError {
                     file: index_expiry_file,

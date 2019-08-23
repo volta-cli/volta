@@ -5,7 +5,7 @@ use std::path::Path;
 
 use super::super::download_tool_error;
 use crate::error::ErrorDetails;
-use crate::fs::{create_staging_dir, create_staging_file, ensure_containing_dir_exists};
+use crate::fs::{create_staging_dir, create_staging_file};
 use crate::hook::ToolHooks;
 use crate::path;
 use crate::style::{progress_bar, tool_version};
@@ -13,6 +13,7 @@ use crate::tool::{self, Node, NodeVersion};
 use crate::version::VersionSpec;
 use archive::{self, Archive};
 use cfg_if::cfg_if;
+use fs_utils::ensure_containing_dir_exists;
 use log::debug;
 use semver::Version;
 use serde::Deserialize;
@@ -54,7 +55,11 @@ pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Node>>) -> Fallible<Nod
     let node_version = unpack_archive(archive, version)?;
 
     if let Some(staging_file) = staging {
-        ensure_containing_dir_exists(&cache_file)?;
+        ensure_containing_dir_exists(&cache_file).with_context(|_| {
+            ErrorDetails::ContainingDirError {
+                path: cache_file.clone(),
+            }
+        })?;
         staging_file
             .persist(cache_file)
             .with_context(|_| ErrorDetails::PersistInventoryError {
@@ -96,7 +101,8 @@ fn unpack_archive(archive: Box<Archive>, version: &Version) -> Fallible<NodeVers
     save_default_npm_version(&version, &npm)?;
 
     let dest = path::node_image_dir(&version_string, &npm.to_string())?;
-    ensure_containing_dir_exists(&dest)?;
+    ensure_containing_dir_exists(&dest)
+        .with_context(|_| ErrorDetails::ContainingDirError { path: dest.clone() })?;
 
     rename(
         temp.path()

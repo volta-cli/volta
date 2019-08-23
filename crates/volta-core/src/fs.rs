@@ -20,23 +20,6 @@ pub fn touch(path: &Path) -> io::Result<File> {
     File::open(path)
 }
 
-/// This creates the parent directory of the input path, assuming the input path is a file.
-pub fn ensure_containing_dir_exists<P: AsRef<Path>>(path: &P) -> Fallible<()> {
-    path.as_ref()
-        .parent()
-        .ok_or(
-            ErrorDetails::ContainingDirError {
-                path: path.as_ref().to_path_buf(),
-            }
-            .into(),
-        )
-        .and_then(|dir| {
-            fs::create_dir_all(dir).with_context(|_| ErrorDetails::CreateDirError {
-                dir: dir.to_path_buf(),
-            })
-        })
-}
-
 /// This deletes the input directory, if it exists
 pub fn ensure_dir_does_not_exist<P: AsRef<Path>>(path: &P) -> Fallible<()> {
     if path.as_ref().exists() {
