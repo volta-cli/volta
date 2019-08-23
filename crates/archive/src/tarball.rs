@@ -44,26 +44,30 @@ struct CreateDirError {
     dir: String,
 }
 
+/// This creates the parent directory of the input path, assuming the input path is a file.
+pub fn ensure_containing_dir_exists<P: AsRef<Path>>(path: &P) -> Result<(), failure::Error> {
+    path.as_ref()
+        .parent()
+        .ok_or(
+            ContainingDirError {
+                path: path.as_ref().to_string_lossy().to_string(),
+            }
+            .into(),
+        )
+        .and_then(|dir| {
+            fs::create_dir_all(dir).map_err(|_| {
+                CreateDirError {
+                    dir: dir.to_string_lossy().to_string(),
+                }
+                .into()
+            })
+        })
+}
+
 #[derive(Fail, Debug)]
 #[fail(display = "HTTP header '{}' not found", header)]
 struct MissingHeaderError {
     header: String,
-}
-
-/// This creates the parent directory of the input path, assuming the input path is a file.
-pub fn ensure_containing_dir_exists<P: AsRef<Path>>(path: &P) -> Result<(), failure::Error> {
-    // TODO: don't know WTF I'm doing with this
-    // path.as_ref()
-    //     .parent()
-    //     .ok_or(Err("some error"))
-    //     .and_then(|dir| fs::create_dir_all(dir))
-    //     .or(Err("another error"))
-    fs::create_dir_all(path.as_ref()).map_err(|_| {
-        CreateDirError {
-            dir: path.as_ref().to_string_lossy().to_string(),
-        }
-        .into()
-    })
 }
 
 /// Determines the length of an HTTP response's content in bytes, using
