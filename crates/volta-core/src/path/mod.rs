@@ -8,7 +8,12 @@ use std::path::{Path, PathBuf};
 
 use crate::error::ErrorDetails;
 use crate::shim;
+use lazycell::AtomicLazyCell;
+use log::debug;
 use volta_fail::{Fallible, ResultExt};
+
+#[macro_use]
+mod macros;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "cross-platform-docs")] {
@@ -32,6 +37,9 @@ cfg_if::cfg_if! {
     }
 }
 
+static VOLTA_HOME: AtomicLazyCell<PathBuf> = AtomicLazyCell::NONE;
+static INSTALL_DIR: AtomicLazyCell<PathBuf> = AtomicLazyCell::NONE;
+
 pub fn ensure_volta_dirs_exist() -> Fallible<()> {
     // Assume that if volta_home() exists, then the directory structure has been initialized
     if !volta_home()?.exists() {
@@ -50,10 +58,10 @@ pub fn ensure_volta_dirs_exist() -> Fallible<()> {
         // (windows stores the location in the Registry, which is not available for the tests)
         #[cfg(unix)]
         {
-            ensure_shim_exists("node")?;
-            ensure_shim_exists("yarn")?;
-            ensure_shim_exists("npm")?;
-            ensure_shim_exists("npx")?;
+            shim::create("node")?;
+            shim::create("yarn")?;
+            shim::create("npm")?;
+            shim::create("npx")?;
         }
     }
 
@@ -64,132 +72,165 @@ fn ensure_dir_exists(path: PathBuf) -> Fallible<()> {
     fs::create_dir_all(&path).with_context(|_| ErrorDetails::CreateDirError { dir: path })
 }
 
-fn ensure_shim_exists(shim_name: &str) -> Fallible<shim::ShimResult> {
-    shim::create(shim_name)
+pub fn volta_home() -> Fallible<PathBuf> {
+    if let Some(path) = VOLTA_HOME.borrow() {
+        return Ok(path.clone());
+    }
+
+    let home = match env::var_os("VOLTA_HOME") {
+        Some(path) => PathBuf::from(path),
+        None => default_volta_home()?,
+    };
+
+    if VOLTA_HOME.fill(home.clone()).is_err() {
+        debug!("VOLTA_HOME was filled while it was being calculated");
+    }
+
+    Ok(home)
 }
 
-pub fn volta_home() -> Fallible<PathBuf> {
-    if let Some(home) = env::var_os("VOLTA_HOME") {
-        Ok(Path::new(&home).to_path_buf())
-    } else {
-        default_volta_home()
+pub fn install_dir() -> Fallible<PathBuf> {
+    if let Some(path) = INSTALL_DIR.borrow() {
+        return Ok(path.clone());
     }
+
+    // if VOLTA_INSTALL_DIR is set, try that first
+    // (not documented yet, as it's currently only used for testing)
+    let install = match env::var_os("VOLTA_INSTALL_DIR") {
+        Some(path) => PathBuf::from(path),
+        None => default_install_dir()?,
+    };
+
+    if INSTALL_DIR.fill(install.clone()).is_err() {
+        debug!("INSTALL_DIR was filled while it was being calculated");
+    }
+
+    Ok(install)
 }
 
 pub fn cache_dir() -> Fallible<PathBuf> {
-    Ok(volta_home()?.join("cache"))
+    Ok(path_join!(volta_home()?, "cache"))
 }
 
 pub fn tmp_dir() -> Fallible<PathBuf> {
-    Ok(volta_home()?.join("tmp"))
+    Ok(path_join!(volta_home()?, "tmp"))
 }
 
 pub fn log_dir() -> Fallible<PathBuf> {
-    Ok(volta_home()?.join("log"))
+    Ok(path_join!(volta_home()?, "log"))
 }
 
 pub fn node_inventory_dir() -> Fallible<PathBuf> {
-    Ok(inventory_dir()?.join("node"))
+    Ok(path_join!(inventory_dir()?, "node"))
 }
 
 pub fn yarn_inventory_dir() -> Fallible<PathBuf> {
-    Ok(inventory_dir()?.join("yarn"))
+    Ok(path_join!(inventory_dir()?, "yarn"))
 }
 
 pub fn package_inventory_dir() -> Fallible<PathBuf> {
-    Ok(inventory_dir()?.join("packages"))
+    Ok(path_join!(inventory_dir()?, "packages"))
 }
 
 pub fn package_distro_file(name: &str, version: &str) -> Fallible<PathBuf> {
-    Ok(package_inventory_dir()?.join(package_distro_file_name(name, version)))
+    Ok(path_join!(
+        package_inventory_dir()?,
+        package_distro_file_name(name, version)
+    ))
 }
 
 pub fn package_distro_shasum(name: &str, version: &str) -> Fallible<PathBuf> {
-    Ok(package_inventory_dir()?.join(package_shasum_file_name(name, version)))
+    Ok(path_join!(
+        package_inventory_dir()?,
+        package_shasum_file_name(name, version)
+    ))
 }
 
 pub fn node_cache_dir() -> Fallible<PathBuf> {
-    Ok(cache_dir()?.join("node"))
+    Ok(path_join!(cache_dir()?, "node"))
 }
 
 pub fn node_index_file() -> Fallible<PathBuf> {
-    Ok(node_cache_dir()?.join("index.json"))
+    Ok(path_join!(node_cache_dir()?, "index.json"))
 }
 
 pub fn node_index_expiry_file() -> Fallible<PathBuf> {
-    Ok(node_cache_dir()?.join("index.json.expires"))
+    Ok(path_join!(node_cache_dir()?, "index.json.expires"))
 }
 
 pub fn image_dir() -> Fallible<PathBuf> {
-    Ok(tools_dir()?.join("image"))
+    Ok(path_join!(tools_dir()?, "image"))
 }
 
 pub fn node_image_root_dir() -> Fallible<PathBuf> {
-    Ok(image_dir()?.join("node"))
+    Ok(path_join!(image_dir()?, "node"))
 }
 
 pub fn node_image_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
-    Ok(node_image_root_dir()?.join(node).join(npm))
+    Ok(path_join!(node_image_root_dir()?, node, npm))
 }
 
 pub fn yarn_image_root_dir() -> Fallible<PathBuf> {
-    Ok(image_dir()?.join("yarn"))
+    Ok(path_join!(image_dir()?, "yarn"))
 }
 
 pub fn yarn_image_dir(version: &str) -> Fallible<PathBuf> {
-    Ok(yarn_image_root_dir()?.join(version))
+    Ok(path_join!(yarn_image_root_dir()?, version))
 }
 
 pub fn yarn_image_bin_dir(version: &str) -> Fallible<PathBuf> {
-    Ok(yarn_image_dir(version)?.join("bin"))
+    Ok(path_join!(yarn_image_dir(version)?, "bin"))
 }
 
 pub fn package_image_root_dir() -> Fallible<PathBuf> {
-    Ok(image_dir()?.join("packages"))
+    Ok(path_join!(image_dir()?, "packages"))
 }
 
 pub fn package_image_dir(name: &str, version: &str) -> Fallible<PathBuf> {
-    Ok(package_image_root_dir()?.join(name).join(version))
+    Ok(path_join!(package_image_root_dir()?, name, version))
 }
 
 pub fn shim_dir() -> Fallible<PathBuf> {
-    Ok(volta_home()?.join("bin"))
+    Ok(path_join!(volta_home()?, "bin"))
 }
 
 pub fn user_hooks_file() -> Fallible<PathBuf> {
-    Ok(volta_home()?.join("hooks.json"))
+    Ok(path_join!(volta_home()?, "hooks.json"))
 }
 
 pub fn tools_dir() -> Fallible<PathBuf> {
-    Ok(volta_home()?.join("tools"))
+    Ok(path_join!(volta_home()?, "tools"))
 }
 
 pub fn inventory_dir() -> Fallible<PathBuf> {
-    Ok(tools_dir()?.join("inventory"))
+    Ok(path_join!(tools_dir()?, "inventory"))
 }
 
 pub fn user_toolchain_dir() -> Fallible<PathBuf> {
-    Ok(tools_dir()?.join("user"))
+    Ok(path_join!(tools_dir()?, "user"))
 }
 
 pub fn user_platform_file() -> Fallible<PathBuf> {
-    Ok(user_toolchain_dir()?.join("platform.json"))
+    Ok(path_join!(user_toolchain_dir()?, "platform.json"))
 }
 
 pub fn user_package_dir() -> Fallible<PathBuf> {
-    Ok(user_toolchain_dir()?.join("packages"))
+    Ok(path_join!(user_toolchain_dir()?, "packages"))
 }
 
 pub fn user_package_config_file(package_name: &str) -> Fallible<PathBuf> {
-    Ok(user_package_dir()?.join(format!("{}.json", package_name)))
+    Ok(path_join!(
+        user_package_dir()?,
+        format!("{}.json", package_name)
+    ))
 }
 
 pub fn user_bin_dir() -> Fallible<PathBuf> {
-    Ok(user_toolchain_dir()?.join("bins"))
+    Ok(path_join!(user_toolchain_dir()?, "bins"))
 }
 
 pub fn user_tool_bin_config(bin_name: &str) -> Fallible<PathBuf> {
-    Ok(user_bin_dir()?.join(format!("{}.json", bin_name)))
+    Ok(path_join!(user_bin_dir()?, format!("{}.json", bin_name)))
 }
 
 pub fn node_distro_file_name(version: &str) -> String {
@@ -202,7 +243,7 @@ pub fn node_distro_file_name(version: &str) -> String {
 
 pub fn node_npm_version_file(version: &str) -> Fallible<PathBuf> {
     let filename = format!("node-v{}-npm", version);
-    Ok(node_inventory_dir()?.join(&filename))
+    Ok(path_join!(node_inventory_dir()?, &filename))
 }
 
 pub fn node_archive_root_dir_name(version: &str) -> String {

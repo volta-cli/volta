@@ -1,17 +1,16 @@
 //! Provides functions for determining the paths of files and directories
 //! in a standard Volta layout in Unix-based operating systems.
 
-use std::env;
 use std::io;
 use std::os::unix;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use dirs;
 
 use crate::error::ErrorDetails;
 use volta_fail::Fallible;
 
-use super::{node_archive_root_dir_name, node_image_dir, shim_dir, volta_home};
+use super::{install_dir, node_archive_root_dir_name, node_image_dir, shim_dir, volta_home};
 
 // These are taken from: https://nodejs.org/dist/index.json and are used
 // by `path::archive_root_dir` to determine the root directory of the
@@ -86,8 +85,27 @@ cfg_if::cfg_if! {
 //         hooks.json                                      user_hooks_file
 
 pub fn default_volta_home() -> Fallible<PathBuf> {
-    let home = dirs::home_dir().ok_or(ErrorDetails::NoHomeEnvironmentVar)?;
-    Ok(home.join(".volta"))
+    let mut home = dirs::home_dir().ok_or(ErrorDetails::NoHomeEnvironmentVar)?;
+    home.push(".volta");
+    Ok(home)
+}
+
+pub fn default_install_dir() -> Fallible<PathBuf> {
+    // default location for the install directory
+    // (this will be the case for the majority of installs)
+    let home = volta_home()?;
+    if home.join("shim").exists() {
+        return Ok(home);
+    }
+
+    // when an RPM is installed as root, the install_dir will be here for non-root users
+    // (this will be the case for some managed installs)
+    let rpm_home = PathBuf::from("/usr/bin/volta-lib");
+    if rpm_home.join("shim").exists() {
+        return Ok(rpm_home);
+    }
+
+    Err(ErrorDetails::ShimExecutableNotFound.into())
 }
 
 pub fn archive_extension() -> String {
@@ -95,49 +113,26 @@ pub fn archive_extension() -> String {
 }
 
 pub fn node_image_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
-    Ok(node_image_dir(node, npm)?.join("bin"))
+    Ok(path_join!(node_image_dir(node, npm)?, "bin"))
 }
 
 pub fn node_archive_npm_package_json_path(version: &str) -> PathBuf {
-    Path::new(&node_archive_root_dir_name(version))
-        .join("lib")
-        .join("node_modules")
-        .join("npm")
-        .join("package.json")
+    path_join!(
+        PathBuf::from(&node_archive_root_dir_name(version)),
+        "lib",
+        "node_modules",
+        "npm",
+        "package.json"
+    )
 }
 
 pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
-    Ok(shim_dir()?.join(toolname))
-}
-
-// this is not currently used by anything
-pub fn volta_file() -> Fallible<PathBuf> {
-    Ok(volta_home()?.join("volta"))
+    Ok(path_join!(shim_dir()?, toolname))
 }
 
 // check that it exists - if not, check some other locations
 pub fn shim_executable() -> Fallible<PathBuf> {
-    // if VOLTA_SHIM is set, try that first
-    // (not documented yet, as it's currently only used for testing)
-    if let Some(shim_location) = env::var_os("VOLTA_SHIM") {
-        return Ok(shim_location.into());
-    }
-
-    // default location for the shim executable
-    // (this will be the case for the majority of installs)
-    let default_shim_executable = volta_home()?.join("shim");
-    if default_shim_executable.exists() {
-        return Ok(default_shim_executable);
-    }
-
-    // when an RPM is installed as root, the shim will be here for non-root users
-    // (this will be the case for some managed installs)
-    let rpm_shim_executable = PathBuf::from("/usr/bin/volta-lib/shim");
-    if rpm_shim_executable.exists() {
-        return Ok(rpm_shim_executable);
-    }
-
-    Err(ErrorDetails::ShimExecutableNotFound.into())
+    Ok(path_join!(install_dir()?, "shim"))
 }
 
 pub fn env_paths() -> Fallible<Vec<PathBuf>> {

@@ -6,7 +6,7 @@ use test_support::matchers::execs;
 #[test]
 fn empty_volta_home_is_auto_created() {
     let s = sandbox()
-        .env("VOLTA_SHIM", &shim_exe().to_string_lossy())
+        .env("VOLTA_INSTALL_DIR", &shim_exe().parent().unwrap().to_string_lossy())
         .build();
 
     // clear out the .volta dir

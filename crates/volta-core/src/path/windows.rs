@@ -11,7 +11,7 @@ use cfg_if::cfg_if;
 use dirs;
 use volta_fail::Fallible;
 
-use super::{node_archive_root_dir_name, node_image_dir, shim_dir};
+use super::{install_dir, node_archive_root_dir_name, node_image_dir, shim_dir};
 
 // These are taken from: https://nodejs.org/dist/index.json and are used
 // by `path::archive_root_dir` to determine the root directory of the
@@ -80,8 +80,9 @@ cfg_if! {
 //         shim.exe                                        shim_executable
 
 pub fn default_volta_home() -> Fallible<PathBuf> {
-    let home = dirs::data_local_dir().ok_or(ErrorDetails::NoLocalDataDir)?;
-    Ok(home.join("Volta"))
+    let mut home = dirs::data_local_dir().ok_or(ErrorDetails::NoLocalDataDir)?;
+    home.push("Volta");
+    Ok(home)
 }
 
 pub fn archive_extension() -> String {
@@ -93,16 +94,18 @@ pub fn node_image_bin_dir(node: &str, npm: &str) -> Fallible<PathBuf> {
 }
 
 pub fn node_archive_npm_package_json_path(version: &str) -> PathBuf {
-    Path::new(&node_archive_root_dir_name(version))
-        .join("node_modules")
-        .join("npm")
-        .join("package.json")
+    path_join!(
+        PathBuf::from(node_archive_root_dir_name(version)),
+        "node_modules",
+        "npm",
+        "package.json"
+    )
 }
 
 cfg_if::cfg_if! {
     // We don't want to be reading from the Registry when testing, so use a fixture PathBuf
     if #[cfg(any(test, feature = "cross-platform-docs"))] {
-        fn install_dir() -> Fallible<PathBuf> {
+        pub fn default_install_dir() -> Fallible<PathBuf> {
             Ok(PathBuf::from(r#"Z:\"#))
         }
     } else {
@@ -116,7 +119,7 @@ cfg_if::cfg_if! {
         // This Key needs to exactly match the Name from the above element in the Windows Installer
         const VOLTA_INSTALL_DIR: &'static str = "InstallDir";
 
-        fn install_dir() -> Fallible<PathBuf> {
+        pub fn default_install_dir() -> Fallible<PathBuf> {
             let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
             let volta_key = hklm.open_subkey(VOLTA_REGISTRY_PATH).with_context(install_dir_error)?;
             let install_path: String = volta_key.get_value(VOLTA_INSTALL_DIR).with_context(install_dir_error)?;
@@ -129,23 +132,19 @@ cfg_if::cfg_if! {
 }
 
 pub fn install_bin_dir() -> Fallible<PathBuf> {
-    Ok(install_dir()?.join("bin"))
+    Ok(path_join!(install_dir()?, "bin"))
 }
 
 pub fn shim_executable() -> Fallible<PathBuf> {
-    Ok(install_dir()?.join("shim.exe"))
-}
-
-pub fn volta_file() -> Fallible<PathBuf> {
-    Ok(install_bin_dir()?.join("volta.exe"))
+    Ok(path_join!(install_dir()?, "shim.exe"))
 }
 
 pub fn shim_file(toolname: &str) -> Fallible<PathBuf> {
-    Ok(shim_dir()?.join(&format!("{}.exe", toolname)))
+    Ok(path_join!(shim_dir()?, format!("{}.exe", toolname)))
 }
 
 pub fn shim_git_bash_script_file(toolname: &str) -> Fallible<PathBuf> {
-    Ok(shim_dir()?.join(toolname))
+    Ok(path_join!(shim_dir()?, toolname))
 }
 
 pub fn env_paths() -> Fallible<Vec<PathBuf>> {
