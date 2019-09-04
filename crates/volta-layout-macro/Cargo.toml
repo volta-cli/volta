@@ -1,0 +1,13 @@
+[package]
+name = "volta-layout-macro"
+version = "0.1.0"
+authors = ["David Herman <david.herman@gmail.com>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "1.0.5"
+quote = "1.0.2"
+proc-macro2 = "1.0.2"

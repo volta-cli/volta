@@ -2423,6 +2423,7 @@ dependencies = [
  "validate-npm-package-name 0.1.0",
  "volta-fail 0.1.0",
  "volta-fail-derive 0.1.0",
+ "volta-layout 0.1.0",
  "walkdir 2.2.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "winfolder 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "winreg 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2440,6 +2441,22 @@ dependencies = [
 
 [[package]]
 name = "volta-fail-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quote 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "volta-layout"
+version = "0.1.0"
+dependencies = [
+ "volta-layout-macro 0.1.0",
+]
+
+[[package]]
+name = "volta-layout-macro"
 version = "0.1.0"
 dependencies = [
  "proc-macro2 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
