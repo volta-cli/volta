@@ -7,10 +7,10 @@ use super::install::{BinConfig, BinLoader, PackageConfig};
 use super::resolve::PackageIndex;
 use super::PackageDetails;
 use crate::error::ErrorDetails;
-use crate::fs::ensure_containing_dir_exists;
 use crate::path;
 use crate::toolchain;
 use crate::version::version_serde;
+use fs_utils::ensure_containing_dir_exists;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use volta_fail::{Fallible, ResultExt, VoltaError};
@@ -133,7 +133,11 @@ impl RawPackageConfig {
     pub fn write(self) -> Fallible<()> {
         let config_file_path = path::user_package_config_file(&self.name)?;
         let src = self.to_json()?;
-        ensure_containing_dir_exists(&config_file_path)?;
+        ensure_containing_dir_exists(&config_file_path).with_context(|_| {
+            ErrorDetails::ContainingDirError {
+                path: config_file_path.clone(),
+            }
+        })?;
         write(&config_file_path, src).with_context(|_| ErrorDetails::WritePackageConfigError {
             file: config_file_path,
         })
@@ -211,7 +215,11 @@ impl RawBinConfig {
     pub fn write(self) -> Fallible<()> {
         let bin_config_path = path::user_tool_bin_config(&self.name)?;
         let src = self.to_json()?;
-        ensure_containing_dir_exists(&bin_config_path)?;
+        ensure_containing_dir_exists(&bin_config_path).with_context(|_| {
+            ErrorDetails::ContainingDirError {
+                path: bin_config_path.clone(),
+            }
+        })?;
         write(&bin_config_path, src).with_context(|_| ErrorDetails::WriteBinConfigError {
             file: bin_config_path,
         })

@@ -5,7 +5,7 @@ use std::str::FromStr;
 use semver::Version;
 
 use crate::error::{CreatePostscriptErrorPath, ErrorDetails};
-use crate::fs::ensure_containing_dir_exists;
+use fs_utils::ensure_containing_dir_exists;
 use volta_fail::{Fallible, ResultExt, VoltaError};
 
 use crate::env;
@@ -29,7 +29,9 @@ pub trait Shell {
 
     fn save_postscript(&self, postscript: &Postscript) -> Fallible<()> {
         let path = self.postscript_path();
-        ensure_containing_dir_exists(&path)?;
+        ensure_containing_dir_exists(&path).with_context(|_| ErrorDetails::ContainingDirError {
+            path: path.to_path_buf(),
+        })?;
         write(path, self.compile_postscript(postscript).as_bytes()).with_context(|_| {
             let in_dir = path
                 .parent()

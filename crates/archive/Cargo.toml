@@ -13,6 +13,7 @@ headers-011 = { path = "../headers-011" }
 tee = "0.1.0"
 failure = "0.1.1"
 failure_derive = "0.1.1"
+fs-utils = { path = "../fs-utils" }
 progress-read = { path = "../progress-read" }
 verbatim = "0.1"
 cfg-if = "0.1"

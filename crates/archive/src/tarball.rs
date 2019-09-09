@@ -7,6 +7,7 @@ use std::path::Path;
 
 use failure::{self, Fail};
 use flate2::read::GzDecoder;
+use fs_utils::ensure_containing_dir_exists;
 use headers_011::Headers011;
 use progress_read::ProgressRead;
 use reqwest;
@@ -82,6 +83,7 @@ impl Tarball {
             false => None,
         };
 
+        ensure_containing_dir_exists(&cache_file)?;
         let file = File::create(cache_file)?;
         let data = Box::new(TeeReader::new(response, file));
 
