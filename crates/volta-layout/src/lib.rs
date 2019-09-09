@@ -1,8 +1,8 @@
-use volta_layout_macro::layout;
+#[macro_use]
+pub mod macros;
 
-layout! {
-    pub struct VoltaInstall {
-        "volta[.exe]": volta_file;
-        "shim[.exe]": shim_executable;
-    }
+pub mod v0;
+
+fn executable(name: &str) -> String {
+    format!("{}{}", name, std::env::consts::EXE_SUFFIX)
 }
