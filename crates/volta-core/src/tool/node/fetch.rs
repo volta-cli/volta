@@ -71,7 +71,7 @@ pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Node>>) -> Fallible<Nod
 }
 
 /// Unpack the node archive into the image directory so that it is ready for use
-fn unpack_archive(archive: Box<Archive>, version: &Version) -> Fallible<NodeVersion> {
+fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<NodeVersion> {
     let temp = create_staging_dir()?;
     debug!("Unpacking node into '{}'", temp.path().display());
 
@@ -165,7 +165,7 @@ fn fetch_remote_distro(
     version: &Version,
     url: &str,
     staging_path: &Path,
-) -> Fallible<Box<Archive>> {
+) -> Fallible<Box<dyn Archive>> {
     debug!("Downloading {} from {}", tool_version("node", version), url);
     archive::fetch_native(url, staging_path).with_context(download_tool_error(
         tool::Spec::Node(VersionSpec::exact(&version)),

@@ -33,7 +33,7 @@ pub trait Archive {
     fn unpack(
         self: Box<Self>,
         dest: &Path,
-        progress: &mut FnMut(&(), usize),
+        progress: &mut dyn FnMut(&(), usize),
     ) -> Result<(), failure::Error>;
 
     fn origin(&self) -> Origin;
@@ -45,7 +45,7 @@ cfg_if::cfg_if! {
         ///
         /// On Windows, the preferred format is zip. On Unixes, the preferred format
         /// is tarball.
-        pub fn load_native(source: File) -> Result<Box<Archive>, failure::Error> {
+        pub fn load_native(source: File) -> Result<Box<dyn Archive>, failure::Error> {
             Tarball::load(source)
         }
 
@@ -54,7 +54,7 @@ cfg_if::cfg_if! {
         ///
         /// On Windows, the preferred format is zip. On Unixes, the preferred format
         /// is tarball.
-        pub fn fetch_native(url: &str, cache_file: &Path) -> Result<Box<Archive>, failure::Error> {
+        pub fn fetch_native(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, failure::Error> {
             Tarball::fetch(url, cache_file)
         }
     } else if #[cfg(windows)] {

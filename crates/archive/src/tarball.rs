@@ -27,7 +27,7 @@ pub struct Tarball {
     // If the uncompressed size is not available, the compressed size will be
     // used for the download/unpack progress indicator, so that will be slightly off.
     uncompressed_size: Option<u64>,
-    data: Box<Read>,
+    data: Box<dyn Read>,
     origin: Origin,
 }
 
@@ -54,7 +54,7 @@ fn content_length(response: &Response) -> Result<u64, failure::Error> {
 
 impl Tarball {
     /// Loads a tarball from the specified file.
-    pub fn load(mut source: File) -> Result<Box<Archive>, failure::Error> {
+    pub fn load(mut source: File) -> Result<Box<dyn Archive>, failure::Error> {
         let uncompressed_size = load_uncompressed_size(&mut source);
         let compressed_size = source.metadata()?.len();
         Ok(Box::new(Tarball {
@@ -68,7 +68,7 @@ impl Tarball {
     /// Initiate fetching of a tarball from the given URL, returning a
     /// tarball that can be streamed (and that tees its data to a local
     /// file as it streams).
-    pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<Archive>, failure::Error> {
+    pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, failure::Error> {
         let response = reqwest::get(url)?;
 
         if !response.status().is_success() {
@@ -106,7 +106,7 @@ impl Archive for Tarball {
     fn unpack(
         self: Box<Self>,
         dest: &Path,
-        progress: &mut FnMut(&(), usize),
+        progress: &mut dyn FnMut(&(), usize),
     ) -> Result<(), failure::Error> {
         let decoded = GzDecoder::new(self.data);
         let mut tarball = tar::Archive::new(ProgressRead::new(decoded, (), progress));

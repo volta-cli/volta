@@ -79,12 +79,12 @@ fn load_cached_distro(file: &Path, shasum_file: &Path) -> Option<Box<dyn Archive
     Tarball::load(distro).ok()
 }
 
-fn fetch_remote_distro(spec: tool::Spec, url: &str, path: &Path) -> Fallible<Box<Archive>> {
+fn fetch_remote_distro(spec: tool::Spec, url: &str, path: &Path) -> Fallible<Box<dyn Archive>> {
     debug!("Downloading {} from {}, to {}", &spec, &url, path.display());
     Tarball::fetch(url, path).with_context(download_tool_error(spec, url.to_string()))
 }
 
-fn unpack_archive(archive: Box<Archive>, name: &str, version: &Version) -> Fallible<()> {
+fn unpack_archive(archive: Box<dyn Archive>, name: &str, version: &Version) -> Fallible<()> {
     let temp = create_staging_dir()?;
     debug!("Unpacking {} into '{}'", name, temp.path().display());
 

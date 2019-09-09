@@ -70,7 +70,7 @@ pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<()>
 }
 
 /// Unpack the yarn archive into the image directory so that it is ready for use
-fn unpack_archive(archive: Box<Archive>, version: &Version) -> Fallible<()> {
+fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<()> {
     let temp = create_staging_dir()?;
     debug!("Unpacking yarn into '{}'", temp.path().display());
 
@@ -118,7 +118,7 @@ fn unpack_archive(archive: Box<Archive>, version: &Version) -> Fallible<()> {
 /// Return the archive if it is valid. It may have been corrupted or interrupted in the middle of
 /// downloading.
 // ISSUE(#134) - verify checksum
-fn load_cached_distro(file: &PathBuf) -> Option<Box<Archive>> {
+fn load_cached_distro(file: &PathBuf) -> Option<Box<dyn Archive>> {
     if file.is_file() {
         let file = File::open(file).ok()?;
         Tarball::load(file).ok()
@@ -153,7 +153,7 @@ fn fetch_remote_distro(
     version: &Version,
     url: &str,
     staging_path: &Path,
-) -> Fallible<Box<Archive>> {
+) -> Fallible<Box<dyn Archive>> {
     debug!("Downloading {} from {}", tool_version("yarn", version), url);
     Tarball::fetch(url, staging_path).with_context(download_tool_error(
         tool::Spec::Yarn(VersionSpec::exact(&version)),
