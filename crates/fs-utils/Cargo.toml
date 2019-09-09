@@ -5,4 +5,3 @@ authors = ["Michael Stewart <mikrostew@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-failure = "0.1.1"
