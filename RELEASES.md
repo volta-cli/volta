@@ -1,3 +1,7 @@
+# Version 0.6.3
+
+- `volta install` will no longer error when installing a scoped binary package (#537)
+
 # Version 0.6.2
 
 - Added `volta list` command for inspecting the available tools and versions (#461)

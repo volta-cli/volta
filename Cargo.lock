@@ -635,9 +635,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "fs-utils"
 version = "0.1.0"
-dependencies = [
- "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "fuchsia-cprng"
@@ -2340,7 +2337,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "volta"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "atty 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "cfg-if 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
