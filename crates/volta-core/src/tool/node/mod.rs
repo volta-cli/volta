@@ -11,7 +11,9 @@ mod fetch;
 mod resolve;
 mod serial;
 
-pub use fetch::load_default_npm_version;
+pub use fetch::{
+    load_default_npm_version, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION, NODE_DISTRO_OS,
+};
 pub use resolve::resolve;
 
 /// A full Node version including not just the version of Node itself

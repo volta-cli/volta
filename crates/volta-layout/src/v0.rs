@@ -104,6 +104,13 @@ impl VoltaHome {
     }
 }
 
+#[cfg(windows)]
+impl VoltaInstall {
+    pub fn bin_dir(&self) -> PathBuf {
+        path_buf!(self.root.clone(), "bin")
+    }
+}
+
 #[cfg(unix)]
 impl VoltaHome {
     pub fn node_image_bin_dir(&self, node: &str, npm: &str) -> PathBuf {

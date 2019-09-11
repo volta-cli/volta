@@ -11,6 +11,7 @@ mod event;
 pub(crate) mod fs;
 mod hook;
 pub mod inventory;
+pub mod layout;
 pub mod log;
 pub mod manifest;
 pub mod monitor;

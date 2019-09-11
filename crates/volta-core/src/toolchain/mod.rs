@@ -6,7 +6,7 @@ use semver::Version;
 
 use crate::error::ErrorDetails;
 use crate::fs::touch;
-use crate::path::user_platform_file;
+use crate::layout::volta_home;
 use crate::platform::PlatformSpec;
 use crate::tool::NodeVersion;
 
@@ -45,10 +45,12 @@ pub struct Toolchain {
 
 impl Toolchain {
     fn current() -> Fallible<Toolchain> {
-        let path = user_platform_file()?;
+        let path = volta_home()?.user_platform_file();
         let src = touch(&path)
             .and_then(|mut file| file.read_into_string())
-            .with_context(|_| ErrorDetails::ReadPlatformError { file: path.clone() })?;
+            .with_context(|_| ErrorDetails::ReadPlatformError {
+                file: path.to_owned(),
+            })?;
 
         let platform = serial::Platform::from_json(src)?.into_platform()?;
         if platform.is_some() {
@@ -130,7 +132,7 @@ impl Toolchain {
     }
 
     pub fn save(&self) -> Fallible<()> {
-        let path = user_platform_file()?;
+        let path = volta_home()?.user_platform_file();
         let result = match &self.platform {
             Some(platform) => {
                 let src = platform.to_serial().to_json()?;
@@ -138,6 +140,8 @@ impl Toolchain {
             }
             None => write(&path, "{}"),
         };
-        result.with_context(|_| ErrorDetails::WritePlatformError { file: path })
+        result.with_context(|_| ErrorDetails::WritePlatformError {
+            file: path.to_owned(),
+        })
     }
 }

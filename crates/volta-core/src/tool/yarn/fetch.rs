@@ -7,7 +7,7 @@ use super::super::download_tool_error;
 use crate::error::ErrorDetails;
 use crate::fs::{create_staging_dir, create_staging_file};
 use crate::hook::ToolHooks;
-use crate::path;
+use crate::layout::volta_home;
 use crate::style::{progress_bar, tool_version};
 use crate::tool::{self, Yarn};
 use crate::version::VersionSpec;
@@ -30,9 +30,17 @@ cfg_if! {
     }
 }
 
+fn yarn_distro_filename(version: &str) -> String {
+    format!("{}.tar.gz", yarn_archive_basename(version))
+}
+
+fn yarn_archive_basename(version: &str) -> String {
+    format!("yarn-v{}", version)
+}
+
 pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<()> {
-    let yarn_dir = path::yarn_inventory_dir()?;
-    let cache_file = yarn_dir.join(path::yarn_distro_file_name(&version.to_string()));
+    let yarn_dir = volta_home()?.yarn_inventory_dir();
+    let cache_file = yarn_dir.join(yarn_distro_filename(&version.to_string()));
 
     let (archive, staging) = match load_cached_distro(&cache_file) {
         Some(archive) => {
@@ -92,13 +100,13 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<()> 
             version: version_string.clone(),
         })?;
 
-    let dest = path::yarn_image_dir(&version_string)?;
+    let dest = volta_home()?.yarn_image_dir(&version_string);
     ensure_containing_dir_exists(&dest)
         .with_context(|_| ErrorDetails::ContainingDirError { path: dest.clone() })?;
 
     rename(
         temp.path()
-            .join(path::yarn_archive_root_dir_name(&version_string)),
+            .join(yarn_archive_basename(&version_string)),
         &dest,
     )
     .with_context(|_| ErrorDetails::SetupToolImageError {
@@ -130,7 +138,7 @@ fn load_cached_distro(file: &PathBuf) -> Option<Box<dyn Archive>> {
 /// Determine the remote URL to download from, using the hooks if available
 fn determine_remote_url(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<String> {
     let version_str = version.to_string();
-    let distro_file_name = path::yarn_distro_file_name(&version_str);
+    let distro_file_name = yarn_distro_filename(&version_str);
     match hooks {
         Some(&ToolHooks {
             distro: Some(ref hook),

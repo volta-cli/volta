@@ -8,7 +8,7 @@ use std::process::{Command, ExitStatus};
 use crate::command::create_command;
 use crate::env::UNSAFE_GLOBAL;
 use crate::error::ErrorDetails;
-use crate::path;
+use crate::layout::ensure_volta_dirs_exist;
 use crate::platform::System;
 use crate::session::Session;
 use crate::signal::pass_control_to_shim;
@@ -31,7 +31,7 @@ enum CommandArg {
 }
 
 pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
-    path::ensure_volta_dirs_exist()?;
+    ensure_volta_dirs_exist()?;
 
     let mut args = args_os();
     let exe = get_tool_name(&mut args)?;

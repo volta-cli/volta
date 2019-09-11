@@ -10,8 +10,8 @@ use super::super::Spec;
 use super::bin_full_path;
 use crate::command::create_command;
 use crate::error::ErrorDetails;
+use crate::layout::volta_home;
 use crate::manifest::BinManifest;
-use crate::path;
 use crate::platform::{Image, PlatformSpec};
 use crate::session::Session;
 use crate::shim;
@@ -112,7 +112,7 @@ pub fn install(
     version: &Version,
     session: &mut Session,
 ) -> Fallible<HashMap<String, String>> {
-    let package_dir = path::package_image_dir(name, &version.to_string())?;
+    let package_dir = volta_home()?.package_image_dir(name, &version.to_string());
     let bin_map = read_bins(name, version)?;
     let display = tool_version(name, version);
 
@@ -237,7 +237,7 @@ fn build_install_command(in_dir: &Path, path: &OsStr) -> Command {
 
 /// Read a fetched package and generate a map of all the bins it provides
 fn read_bins(name: &str, version: &Version) -> Fallible<HashMap<String, String>> {
-    let image_dir = path::package_image_dir(&name, &version.to_string())?;
+    let image_dir = volta_home()?.package_image_dir(&name, &version.to_string());
     let pkg_info = BinManifest::for_dir(&image_dir)?;
     let bin_map = pkg_info.bin;
     if bin_map.is_empty() {
@@ -247,7 +247,7 @@ fn read_bins(name: &str, version: &Version) -> Fallible<HashMap<String, String>>
     for (bin_name, _bin_path) in bin_map.iter() {
         // check for conflicts with installed bins
         // some packages may install bins with the same name
-        let bin_config_file = path::user_tool_bin_config(&bin_name)?;
+        let bin_config_file = volta_home()?.user_tool_bin_config(&bin_name);
         if bin_config_file.exists() {
             let bin_config = BinConfig::from_file(bin_config_file)?;
             // if the bin was installed by the package that is currently being installed,

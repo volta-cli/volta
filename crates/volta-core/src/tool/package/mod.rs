@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use super::{debug_already_fetched, info_fetched, Tool};
 use crate::error::ErrorDetails;
 use crate::fs::{delete_dir_error, delete_file_error, dir_entry_match};
-use crate::path;
+use crate::layout::volta_home;
 use crate::session::Session;
 use crate::shim;
 use crate::style::{success_prefix, tool_version};
@@ -31,7 +31,7 @@ where
     P: AsRef<Path>,
 {
     // canonicalize because path is relative, and sometimes uses '.' char
-    path::package_image_dir(package, &version.to_string())?
+    volta_home()?.package_image_dir(package, &version.to_string())
         .join(bin_path)
         .canonicalize()
         .with_context(|_| ErrorDetails::ExecutablePathError {
@@ -63,7 +63,7 @@ impl Package {
         // ISSUE(#288) - Once we have a valid Collection, we can check that in the same way as node/yarn
         // Until then, we use the existence of the image directory as the indicator that the package is
         // already fetched
-        if path::package_image_dir(&self.name, &self.details.version.to_string())?.exists() {
+        if volta_home()?.package_image_dir(&self.name, &self.details.version.to_string()).exists() {
             debug_already_fetched(self);
             Ok(())
         } else {
@@ -74,7 +74,8 @@ impl Package {
     fn is_installed(&self) -> bool {
         // Check if the package config exists and contains the same version
         // (The PackageConfig is written after the installation is complete)
-        if let Ok(pkg_config_file) = path::user_package_config_file(&self.name) {
+        if let Ok(home) = volta_home() {
+            let pkg_config_file = home.user_package_config_file(&self.name);
             if let Ok(package_config) = PackageConfig::from_file(&pkg_config_file) {
                 return package_config.version == self.details.version;
             }
@@ -131,8 +132,9 @@ impl Display for Package {
 /// * the shims
 /// * the unpacked and initialized package
 pub fn uninstall(name: &str) -> Fallible<()> {
+    let home = volta_home()?;
     // if the package config file exists, use that to remove any installed bins and shims
-    let package_config_file = path::user_package_config_file(name)?;
+    let package_config_file = home.user_package_config_file(name);
     if package_config_file.exists() {
         let package_config = PackageConfig::from_file(&package_config_file)?;
 
@@ -150,7 +152,7 @@ pub fn uninstall(name: &str) -> Fallible<()> {
     }
 
     // if any unpacked and initialized packages exists, remove them
-    let package_image_dir = path::package_image_root_dir()?.join(name);
+    let package_image_dir = home.package_image_root_dir().join(name);
     if package_image_dir.exists() {
         fs::remove_dir_all(&package_image_dir)
             .with_context(delete_dir_error(&package_image_dir))?;
@@ -161,7 +163,7 @@ pub fn uninstall(name: &str) -> Fallible<()> {
 
 fn remove_config_and_shim(bin_name: &str, pkg_name: &str) -> Fallible<()> {
     shim::delete(bin_name)?;
-    let config_file = path::user_tool_bin_config(&bin_name)?;
+    let config_file = volta_home()?.user_tool_bin_config(&bin_name);
     fs::remove_file(&config_file).with_context(delete_file_error(&config_file))?;
     info!(
         "Removed executable '{}' installed by '{}'",
@@ -173,7 +175,7 @@ fn remove_config_and_shim(bin_name: &str, pkg_name: &str) -> Fallible<()> {
 /// Reads the contents of a directory and returns a Vec containing the names of
 /// all the binaries installed by the input package.
 fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
-    let bin_config_dir = path::user_bin_dir()?;
+    let bin_config_dir = volta_home()?.user_bin_dir();
     if bin_config_dir.exists() {
         dir_entry_match(&bin_config_dir, |entry| {
             let path = entry.path();
@@ -185,7 +187,7 @@ fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
             None
         })
         .with_context(|_| ErrorDetails::ReadBinConfigDirError {
-            dir: bin_config_dir,
+            dir: bin_config_dir.to_owned(),
         })
     } else {
         Ok(vec![])

@@ -5,7 +5,7 @@ use std::io::{self, ErrorKind};
 use std::path::Path;
 
 use crate::error::ErrorDetails;
-use crate::path;
+use crate::layout::volta_home;
 use tempfile::{tempdir_in, NamedTempFile, TempDir};
 use volta_fail::{Fallible, ResultExt};
 
@@ -90,13 +90,26 @@ where
 
 /// Creates a NamedTempFile in the Volta tmp directory
 pub fn create_staging_file() -> Fallible<NamedTempFile> {
-    let tmp_dir = path::tmp_dir()?;
+    let tmp_dir = volta_home()?.tmp_dir();
     NamedTempFile::new_in(&tmp_dir)
-        .with_context(|_| ErrorDetails::CreateTempFileError { in_dir: tmp_dir })
+        .with_context(|_| ErrorDetails::CreateTempFileError { in_dir: tmp_dir.to_owned() })
 }
 
 /// Creates a staging directory in the Volta tmp directory
 pub fn create_staging_dir() -> Fallible<TempDir> {
-    let tmp_root = path::tmp_dir()?;
-    tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root })
+    let tmp_root = volta_home()?.tmp_dir();
+    tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root.to_owned() })
+}
+
+/// Create a symlink. The `dst` path will be a symbolic link pointing to the `src` path.
+pub fn symlink_file<S, D>(src: S, dest: D) -> io::Result<()>
+where
+    S: AsRef<Path>,
+    D: AsRef<Path>,
+{
+    #[cfg(windows)]
+    return std::os::windows::fs::symlink_file(src, dest);
+
+    #[cfg(unix)]
+    return std::os::unix::fs::symlink_file(src, dest);
 }
