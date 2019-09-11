@@ -62,7 +62,7 @@ cfg_if::cfg_if! {
         ///
         /// On Windows, the preferred format is zip. On Unixes, the preferred format
         /// is tarball.
-        pub fn load_native(source: File) -> Result<Box<Archive>, failure::Error> {
+        pub fn load_native(source: File) -> Result<Box<dyn Archive>, failure::Error> {
             Zip::load(source)
         }
 
@@ -71,7 +71,7 @@ cfg_if::cfg_if! {
         ///
         /// On Windows, the preferred format is zip. On Unixes, the preferred format
         /// is tarball.
-        pub fn fetch_native(url: &str, cache_file: &Path) -> Result<Box<Archive>, failure::Error> {
+        pub fn fetch_native(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, failure::Error> {
             Zip::fetch(url, cache_file)
         }
     } else {
