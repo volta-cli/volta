@@ -114,5 +114,5 @@ where
     return std::os::windows::fs::symlink_file(src, dest);
 
     #[cfg(unix)]
-    return std::os::unix::fs::symlink_file(src, dest);
+    return std::os::unix::fs::symlink(src, dest);
 }

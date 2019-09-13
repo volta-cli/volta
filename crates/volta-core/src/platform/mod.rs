@@ -159,6 +159,7 @@ mod test {
 
         let node_bin = volta_home()
             .unwrap()
+            .root()
             .join("tools")
             .join("image")
             .join("node")
@@ -169,6 +170,7 @@ mod test {
 
         let yarn_bin = volta_home()
             .unwrap()
+            .root()
             .join("tools")
             .join("image")
             .join("yarn")
@@ -323,7 +325,7 @@ mod test {
     #[cfg(unix)]
     fn test_system_enabled_path() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
-        pathbufs.push(volta_home().unwrap().shim_dir().to_owend());
+        pathbufs.push(volta_home().unwrap().shim_dir().to_owned());
         pathbufs.push(PathBuf::from("/usr/bin"));
         pathbufs.push(PathBuf::from("/bin"));
 
