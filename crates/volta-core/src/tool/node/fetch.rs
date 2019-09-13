@@ -31,57 +31,8 @@ cfg_if! {
     }
 }
 
-cfg_if! {
-    if #[cfg(target_os = "windows")] {
-        /// The OS component of a Node distro's filename.
-        pub const NODE_DISTRO_OS: &'static str = "win";
-    } else if #[cfg(target_os = "macos")] {
-        /// The OS component of a Node distro's filename.
-        pub const NODE_DISTRO_OS: &'static str = "darwin";
-    } else if #[cfg(target_os = "linux")] {
-        /// The OS component of a Node distro's filename.
-        pub const NODE_DISTRO_OS: &'static str = "linux";
-    } else {
-        compile_error!("Unsupported operating system (expected Windows, macOS, or Linux).");
-    }
-}
-
-cfg_if! {
-    if #[cfg(target_arch = "x86")] {
-        /// The system architecture component of a Node distro's name.
-        pub const NODE_DISTRO_ARCH: &'static str = "x86";
-    } else if #[cfg(target_arch = "x86_64")] {
-        /// The system architecture component of a Node distro's name.
-        pub const NODE_DISTRO_ARCH: &'static str = "x64";
-    } else {
-        compile_error!("Unsupported target_arch variant (expected 'x86' or 'x64').");
-    }
-}
-
-cfg_if! {
-    if #[cfg(target_os = "windows")] {
-        /// Filename extension for Node distro files.
-        pub const NODE_DISTRO_EXTENSION: &'static str = "zip";
-    } else {
-        /// Filename extension for Node distro files.
-        pub const NODE_DISTRO_EXTENSION: &'static str = "tar.gz";
-    }
-}
-
-fn node_distro_filename(version: &str) -> String {
-    format!(
-        "{}.{}",
-        node_archive_basename(version),
-        NODE_DISTRO_EXTENSION
-    )
-}
-
-fn node_archive_basename(version: &str) -> String {
-    format!("node-v{}-{}-{}", version, NODE_DISTRO_OS, NODE_DISTRO_ARCH)
-}
-
 fn npm_manifest_path(version: &str) -> PathBuf {
-    let mut manifest = PathBuf::from(node_archive_basename(version));
+    let mut manifest = PathBuf::from(Node::archive_basename(version));
 
     #[cfg(unix)]
     manifest.push("lib");
@@ -96,7 +47,7 @@ fn npm_manifest_path(version: &str) -> PathBuf {
 pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Node>>) -> Fallible<NodeVersion> {
     let home = volta_home()?;
     let node_dir = home.node_inventory_dir();
-    let cache_file = node_dir.join(node_distro_filename(&version.to_string()));
+    let cache_file = node_dir.join(Node::archive_filename(&version.to_string()));
 
     let (archive, staging) = match load_cached_distro(&cache_file) {
         Some(archive) => {
@@ -157,9 +108,7 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<Node
         })?;
 
     // Save the npm version number in the npm version file for this distro
-    let npm_package_json = temp
-        .path()
-        .join(npm_manifest_path(&version_string));
+    let npm_package_json = temp.path().join(npm_manifest_path(&version_string));
     let npm = Manifest::version(&npm_package_json)?;
     save_default_npm_version(&version, &npm)?;
 
@@ -168,8 +117,7 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<Node
         .with_context(|_| ErrorDetails::ContainingDirError { path: dest.clone() })?;
 
     rename(
-        temp.path()
-            .join(node_archive_basename(&version_string)),
+        temp.path().join(Node::archive_basename(&version_string)),
         &dest,
     )
     .with_context(|_| ErrorDetails::SetupToolImageError {
@@ -205,7 +153,7 @@ fn load_cached_distro(file: &Path) -> Option<Box<dyn Archive>> {
 /// Determine the remote URL to download from, using the hooks if available
 fn determine_remote_url(version: &Version, hooks: Option<&ToolHooks<Node>>) -> Fallible<String> {
     let version_str = version.to_string();
-    let distro_file_name = node_distro_filename(&version_str);
+    let distro_file_name = Node::archive_filename(&version_str);
     match hooks {
         Some(&ToolHooks {
             distro: Some(ref hook),

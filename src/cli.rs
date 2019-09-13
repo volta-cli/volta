@@ -1,7 +1,7 @@
 use structopt::StructOpt;
 
 use crate::command::{self, Command};
-use volta_core::path;
+use volta_core::layout;
 use volta_core::session::Session;
 use volta_fail::{ExitCode, Fallible};
 
@@ -47,7 +47,7 @@ pub(crate) struct Volta {
 
 impl Volta {
     pub(crate) fn run(self, session: &mut Session) -> Fallible<ExitCode> {
-        path::ensure_volta_dirs_exist()?;
+        layout::ensure_volta_dirs_exist()?;
         if self.version {
             println!("{}", env!("CARGO_PKG_VERSION"));
             Ok(ExitCode::Success)

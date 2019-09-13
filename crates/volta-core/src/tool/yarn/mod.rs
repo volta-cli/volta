@@ -24,6 +24,14 @@ impl Yarn {
         Yarn { version }
     }
 
+    pub fn archive_basename(version: &str) -> String {
+        format!("yarn-v{}", version)
+    }
+
+    pub fn archive_filename(version: &str) -> String {
+        format!("{}.tar.gz", Yarn::archive_basename(version))
+    }
+
     pub(crate) fn fetch_internal(&self, session: &mut Session) -> Fallible<()> {
         let inventory = session.inventory()?;
         if inventory.yarn.versions.contains(&self.version) {

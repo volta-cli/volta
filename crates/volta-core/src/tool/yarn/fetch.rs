@@ -30,17 +30,9 @@ cfg_if! {
     }
 }
 
-fn yarn_distro_filename(version: &str) -> String {
-    format!("{}.tar.gz", yarn_archive_basename(version))
-}
-
-fn yarn_archive_basename(version: &str) -> String {
-    format!("yarn-v{}", version)
-}
-
 pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<()> {
     let yarn_dir = volta_home()?.yarn_inventory_dir();
-    let cache_file = yarn_dir.join(yarn_distro_filename(&version.to_string()));
+    let cache_file = yarn_dir.join(Yarn::archive_filename(&version.to_string()));
 
     let (archive, staging) = match load_cached_distro(&cache_file) {
         Some(archive) => {
@@ -105,8 +97,7 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<()> 
         .with_context(|_| ErrorDetails::ContainingDirError { path: dest.clone() })?;
 
     rename(
-        temp.path()
-            .join(yarn_archive_basename(&version_string)),
+        temp.path().join(Yarn::archive_basename(&version_string)),
         &dest,
     )
     .with_context(|_| ErrorDetails::SetupToolImageError {
@@ -138,7 +129,7 @@ fn load_cached_distro(file: &PathBuf) -> Option<Box<dyn Archive>> {
 /// Determine the remote URL to download from, using the hooks if available
 fn determine_remote_url(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<String> {
     let version_str = version.to_string();
-    let distro_file_name = yarn_distro_filename(&version_str);
+    let distro_file_name = Yarn::archive_filename(&version_str);
     match hooks {
         Some(&ToolHooks {
             distro: Some(ref hook),
