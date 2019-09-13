@@ -126,7 +126,9 @@ fn npm_view_query(name: &str, version: &str, session: &mut Session) -> Fallible<
             String::from_utf8_lossy(&output.stderr).to_string()
         );
         debug!("Exit code is {:?}", output.status.code());
-        throw!(ErrorDetails::NpmViewMetadataFetchError);
+        throw!(ErrorDetails::NpmViewMetadataFetchError {
+            package: name.to_string(),
+        });
     }
 
     let response_json = String::from_utf8_lossy(&output.stdout);
@@ -134,9 +136,12 @@ fn npm_view_query(name: &str, version: &str, session: &mut Session) -> Fallible<
     // Sometimes the returned JSON is an array (semver case), otherwise it's a single object.
     // Check if the first char is '[' and parse as an array if so
     if response_json.chars().next() == Some('[') {
-        let metadatas: Vec<super::serial::NpmViewData> =
-            serde_json::de::from_str(&response_json)
-                .with_context(|_| ErrorDetails::NpmViewMetadataParseError)?;
+        let metadatas: Vec<super::serial::NpmViewData> = serde_json::de::from_str(&response_json)
+            .with_context(|_| {
+            ErrorDetails::NpmViewMetadataParseError {
+                package: name.to_string(),
+            }
+        })?;
         debug!("[parsed package metadata (array)]\n{:?}", metadatas);
 
         // get latest version, making sure the array is not empty
@@ -156,7 +161,9 @@ fn npm_view_query(name: &str, version: &str, session: &mut Session) -> Fallible<
         Ok(PackageIndex { latest, entries })
     } else {
         let metadata: super::serial::NpmViewData = serde_json::de::from_str(&response_json)
-            .with_context(|_| ErrorDetails::NpmViewMetadataParseError)?;
+            .with_context(|_| ErrorDetails::NpmViewMetadataParseError {
+                package: name.to_string(),
+            })?;
         debug!("[parsed package metadata (single)]\n{:?}", metadata);
 
         Ok(PackageIndex {
