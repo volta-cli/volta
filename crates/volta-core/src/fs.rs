@@ -91,14 +91,17 @@ where
 /// Creates a NamedTempFile in the Volta tmp directory
 pub fn create_staging_file() -> Fallible<NamedTempFile> {
     let tmp_dir = volta_home()?.tmp_dir();
-    NamedTempFile::new_in(&tmp_dir)
-        .with_context(|_| ErrorDetails::CreateTempFileError { in_dir: tmp_dir.to_owned() })
+    NamedTempFile::new_in(&tmp_dir).with_context(|_| ErrorDetails::CreateTempFileError {
+        in_dir: tmp_dir.to_owned(),
+    })
 }
 
 /// Creates a staging directory in the Volta tmp directory
 pub fn create_staging_dir() -> Fallible<TempDir> {
     let tmp_root = volta_home()?.tmp_dir();
-    tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError { in_dir: tmp_root.to_owned() })
+    tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError {
+        in_dir: tmp_root.to_owned(),
+    })
 }
 
 /// Create a symlink. The `dst` path will be a symbolic link pointing to the `src` path.

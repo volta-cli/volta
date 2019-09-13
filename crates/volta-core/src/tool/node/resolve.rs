@@ -165,8 +165,10 @@ pub struct NodeDistroFiles {
 /// Reads a public index from the Node cache, if it exists and hasn't expired.
 fn read_cached_opt() -> Fallible<Option<serial::RawNodeIndex>> {
     let expiry_file = volta_home()?.node_index_expiry_file();
-    let expiry = read_file(&expiry_file)
-        .with_context(|_| ErrorDetails::ReadNodeIndexExpiryError { file: expiry_file.to_owned() })?;
+    let expiry =
+        read_file(&expiry_file).with_context(|_| ErrorDetails::ReadNodeIndexExpiryError {
+            file: expiry_file.to_owned(),
+        })?;
 
     if let Some(string) = expiry {
         let expiry_date = HttpDate::from_str(&string)
@@ -175,8 +177,10 @@ fn read_cached_opt() -> Fallible<Option<serial::RawNodeIndex>> {
 
         if current_date < expiry_date {
             let index_file = volta_home()?.node_index_file();
-            let cached = read_file(&index_file)
-                .with_context(|_| ErrorDetails::ReadNodeIndexCacheError { file: index_file.to_owned() })?;
+            let cached =
+                read_file(&index_file).with_context(|_| ErrorDetails::ReadNodeIndexCacheError {
+                    file: index_file.to_owned(),
+                })?;
 
             if let Some(string) = cached {
                 return serde_json::de::from_str(&string)

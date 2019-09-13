@@ -31,7 +31,8 @@ where
     P: AsRef<Path>,
 {
     // canonicalize because path is relative, and sometimes uses '.' char
-    volta_home()?.package_image_dir(package, &version.to_string())
+    volta_home()?
+        .package_image_dir(package, &version.to_string())
         .join(bin_path)
         .canonicalize()
         .with_context(|_| ErrorDetails::ExecutablePathError {
@@ -63,7 +64,10 @@ impl Package {
         // ISSUE(#288) - Once we have a valid Collection, we can check that in the same way as node/yarn
         // Until then, we use the existence of the image directory as the indicator that the package is
         // already fetched
-        if volta_home()?.package_image_dir(&self.name, &self.details.version.to_string()).exists() {
+        if volta_home()?
+            .package_image_dir(&self.name, &self.details.version.to_string())
+            .exists()
+        {
             debug_already_fetched(self);
             Ok(())
         } else {
