@@ -12,9 +12,7 @@ mod fetch;
 mod resolve;
 mod serial;
 
-pub use fetch::{
-    load_default_npm_version
-};
+pub use fetch::load_default_npm_version;
 pub use resolve::resolve;
 
 cfg_if! {
@@ -92,7 +90,11 @@ impl Node {
     }
 
     pub fn archive_filename(version: &str) -> String {
-        format!("{}.{}", Node::archive_basename(version), NODE_DISTRO_EXTENSION)
+        format!(
+            "{}.{}",
+            Node::archive_basename(version),
+            NODE_DISTRO_EXTENSION
+        )
     }
 
     pub(crate) fn fetch_internal(&self, session: &mut Session) -> Fallible<NodeVersion> {
@@ -150,5 +152,29 @@ impl Tool for Node {
 impl Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&tool_version("node", &self.version))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_node_archive_basename() {
+        assert_eq!(
+            Node::archive_basename("1.2.3"),
+            format!("node-v1.2.3-{}-{}", NODE_DISTRO_OS, NODE_DISTRO_ARCH)
+        );
+    }
+
+    #[test]
+    fn test_node_archive_filename() {
+        assert_eq!(
+            Node::archive_filename("1.2.3"),
+            format!(
+                "node-v1.2.3-{}-{}.{}",
+                NODE_DISTRO_OS, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION
+            )
+        );
     }
 }

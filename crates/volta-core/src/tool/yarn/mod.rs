@@ -83,3 +83,18 @@ impl Display for Yarn {
         f.write_str(&tool_version("yarn", &self.version))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_yarn_archive_basename() {
+        assert_eq!(Yarn::archive_basename("1.2.3"), "yarn-v1.2.3");
+    }
+
+    #[test]
+    fn test_yarn_archive_filename() {
+        assert_eq!(Yarn::archive_filename("1.2.3"), "yarn-v1.2.3.tar.gz");
+    }
+}
