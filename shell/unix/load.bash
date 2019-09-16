@@ -39,17 +39,18 @@ _volta_error() {
 # Expecting bash.
 [[ -z "${BASH}" ]] && _volta_error "Expecting bash."
 
+
 # Make _setup a function so you don't pollute the environment with working variables like `me` and `here`
 #  and you don't have to keep track of them.
 _volta_setup() {
-    local me=$(realpath ${BASH_SOURCE})
+    local me=$(realpath ${BASH_SOURCE}) # zsh ${(%):-%x}
     local here=${me%/*}
     export VOLTA_HOME=${VOLTA_HOME:-${here}}
     if [[ -d ${VOLTA_HOME} ]] ; then
         local bin=${VOLTA_HOME}/bin
         [[ -d ${bin} ]] || _volta_error "Expecting ${bin}, not found."
-        # Add to PATH iff not already there. Next line is hack city.
-        if ! tr ':' '\n' <<< ${PATH} | grep --silent --no-messages ${bin} ; then
+        # Add to PATH iff not already there. Assumes the unix/linux path delimiter ':'
+        if [[ ! $PATH =~ \b*${bin}\b*: ]] ; then
             export PATH=${bin}:$PATH
         fi
     else
