@@ -283,7 +283,7 @@ fn human_fallback(_toolchain: &Toolchain) -> Option<String> {
     Some(String::from(
         "The `--format=human` printer is not yet implemented. For now, you can \
          use `volta list --format=plain`.\n\n\
-         To track progress on this task, see https://github.com/volta-cli/volta/issues/#523",
+         To track progress on this task, see https://github.com/volta-cli/volta/issues/523",
     ))
 }
 
