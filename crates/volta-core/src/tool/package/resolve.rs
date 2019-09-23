@@ -1,13 +1,13 @@
 //! Provides resolution of 3rd-party packages into specific versions, using the npm repository
 
-use std::process::Command;
+use std::ffi::OsString;
 
-use crate::command::create_command;
 use crate::error::ErrorDetails;
 use crate::hook::ToolHooks;
+use crate::run::{self, ToolCommand};
 use crate::session::Session;
 use crate::style::{progress_spinner, tool_version};
-use crate::tool::{Package, PackageDetails};
+use crate::tool::PackageDetails;
 use crate::version::VersionSpec;
 use log::debug;
 use semver::{Version, VersionReq};
@@ -18,16 +18,15 @@ pub fn resolve(
     matching: VersionSpec,
     session: &mut Session,
 ) -> Fallible<PackageDetails> {
-    let hooks = session.hooks()?.package();
     match matching {
-        VersionSpec::Latest | VersionSpec::Lts => resolve_latest(name, hooks),
-        VersionSpec::Semver(requirement) => resolve_semver(name, requirement, hooks),
-        VersionSpec::Exact(version) => resolve_semver(name, VersionReq::exact(&version), hooks),
+        VersionSpec::Latest | VersionSpec::Lts => resolve_latest(name, session),
+        VersionSpec::Semver(requirement) => resolve_semver(name, requirement, session),
+        VersionSpec::Exact(version) => resolve_semver(name, VersionReq::exact(&version), session),
     }
 }
 
-fn resolve_latest(name: &str, hooks: Option<&ToolHooks<Package>>) -> Fallible<PackageDetails> {
-    let package_index = match hooks {
+fn resolve_latest(name: &str, session: &mut Session) -> Fallible<PackageDetails> {
+    let package_index = match session.hooks()?.package() {
         Some(&ToolHooks {
             latest: Some(ref hook),
             ..
@@ -36,7 +35,7 @@ fn resolve_latest(name: &str, hooks: Option<&ToolHooks<Package>>) -> Fallible<Pa
             let url = hook.resolve(&name)?;
             resolve_package_metadata(name, &url)?.into()
         }
-        _ => npm_view_query(name, "latest")?,
+        _ => npm_view_query(name, "latest", session)?,
     };
 
     let latest = package_index.latest.clone();
@@ -65,9 +64,9 @@ fn resolve_latest(name: &str, hooks: Option<&ToolHooks<Package>>) -> Fallible<Pa
 fn resolve_semver(
     name: &str,
     matching: VersionReq,
-    hooks: Option<&ToolHooks<Package>>,
+    session: &mut Session,
 ) -> Fallible<PackageDetails> {
-    let package_index = match hooks {
+    let package_index = match session.hooks()?.package() {
         Some(&ToolHooks {
             index: Some(ref hook),
             ..
@@ -76,7 +75,7 @@ fn resolve_semver(
             let url = hook.resolve(&name)?;
             resolve_package_metadata(name, &url)?.into()
         }
-        _ => npm_view_query(name, &matching.to_string())?,
+        _ => npm_view_query(name, &matching.to_string(), session)?,
     };
 
     let details_opt = package_index
@@ -110,17 +109,15 @@ pub struct PackageIndex {
 ///
 /// * normal package installation from the public npm repo
 /// * installing packages from alternate registries, configured via .npmrc
-fn npm_view_query(name: &str, version: &str) -> Fallible<PackageIndex> {
-    let mut command = npm_view_command_for(name, version);
+fn npm_view_query(name: &str, version: &str, session: &mut Session) -> Fallible<PackageIndex> {
+    let command = npm_view_command_for(name, version, session)?;
     debug!("Running command: `{:?}`", command);
 
     let spinner = progress_spinner(&format!(
         "Querying metadata for {}",
         tool_version(name, version)
     ));
-    let output = command
-        .output()
-        .with_context(|_| ErrorDetails::NpmViewError)?;
+    let output = command.output()?;
     spinner.finish_and_clear();
 
     if !output.status.success() {
@@ -129,7 +126,9 @@ fn npm_view_query(name: &str, version: &str) -> Fallible<PackageIndex> {
             String::from_utf8_lossy(&output.stderr).to_string()
         );
         debug!("Exit code is {:?}", output.status.code());
-        throw!(ErrorDetails::NpmViewMetadataFetchError);
+        throw!(ErrorDetails::NpmViewMetadataFetchError {
+            package: name.to_string(),
+        });
     }
 
     let response_json = String::from_utf8_lossy(&output.stdout);
@@ -137,9 +136,12 @@ fn npm_view_query(name: &str, version: &str) -> Fallible<PackageIndex> {
     // Sometimes the returned JSON is an array (semver case), otherwise it's a single object.
     // Check if the first char is '[' and parse as an array if so
     if response_json.chars().next() == Some('[') {
-        let metadatas: Vec<super::serial::NpmViewData> =
-            serde_json::de::from_str(&response_json)
-                .with_context(|_| ErrorDetails::NpmViewMetadataParseError)?;
+        let metadatas: Vec<super::serial::NpmViewData> = serde_json::de::from_str(&response_json)
+            .with_context(|_| {
+            ErrorDetails::NpmViewMetadataParseError {
+                package: name.to_string(),
+            }
+        })?;
         debug!("[parsed package metadata (array)]\n{:?}", metadatas);
 
         // get latest version, making sure the array is not empty
@@ -159,7 +161,9 @@ fn npm_view_query(name: &str, version: &str) -> Fallible<PackageIndex> {
         Ok(PackageIndex { latest, entries })
     } else {
         let metadata: super::serial::NpmViewData = serde_json::de::from_str(&response_json)
-            .with_context(|_| ErrorDetails::NpmViewMetadataParseError)?;
+            .with_context(|_| ErrorDetails::NpmViewMetadataParseError {
+                package: name.to_string(),
+            })?;
         debug!("[parsed package metadata (single)]\n{:?}", metadata);
 
         Ok(PackageIndex {
@@ -170,10 +174,13 @@ fn npm_view_query(name: &str, version: &str) -> Fallible<PackageIndex> {
 }
 
 // build a command to run `npm view` with json output
-fn npm_view_command_for(name: &str, version: &str) -> Command {
-    let mut command = create_command("npm");
-    command.args(&["view", "--json", &format!("{}@{}", name, version)]);
-    command
+fn npm_view_command_for(name: &str, version: &str, session: &mut Session) -> Fallible<ToolCommand> {
+    let args = vec![
+        OsString::from("view"),
+        OsString::from("--json"),
+        OsString::from(format!("{}@{}", name, version)),
+    ];
+    run::npm::command(args, session)
 }
 
 // fetch metadata for the input url

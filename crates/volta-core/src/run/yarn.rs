@@ -10,7 +10,7 @@ use crate::style::tool_version;
 use log::debug;
 use volta_fail::{throw, Fallible};
 
-pub(super) fn command<A>(args: A, session: &mut Session) -> Fallible<ToolCommand>
+pub(crate) fn command<A>(args: A, session: &mut Session) -> Fallible<ToolCommand>
 where
     A: IntoIterator<Item = OsString>,
 {

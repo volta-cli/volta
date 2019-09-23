@@ -14,7 +14,7 @@ use crate::tool::{BinConfig, BinLoader};
 use log::debug;
 use volta_fail::{throw, Fallible};
 
-pub(super) fn command<A>(exe: OsString, args: A, session: &mut Session) -> Fallible<ToolCommand>
+pub(crate) fn command<A>(exe: OsString, args: A, session: &mut Session) -> Fallible<ToolCommand>
 where
     A: IntoIterator<Item = OsString>,
 {

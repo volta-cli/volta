@@ -2,8 +2,9 @@
 
 use std::env::{self, args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
+use std::fmt;
 use std::path::Path;
-use std::process::{Command, ExitStatus};
+use std::process::{Command, ExitStatus, Output};
 
 use crate::command::create_command;
 use crate::env::UNSAFE_GLOBAL;
@@ -14,13 +15,11 @@ use crate::session::Session;
 use crate::signal::pass_control_to_shim;
 use volta_fail::{Fallible, ResultExt};
 
-mod binary;
-mod node;
-mod npm;
-mod npx;
-mod yarn;
-
-pub use binary::DefaultBinary;
+pub mod binary;
+pub mod node;
+pub mod npm;
+pub mod npx;
+pub mod yarn;
 
 /// Distinguish global `add` commands in npm or yarn from all others.
 enum CommandArg {
@@ -44,11 +43,12 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
         _ => binary::command(exe, args, session)?,
     };
 
-    command.exec()
+    pass_control_to_shim();
+    command.status()
 }
 
 /// Represents the command to execute a tool
-struct ToolCommand {
+pub(crate) struct ToolCommand {
     /// The command that will execute a tool with the right PATH context
     command: Command,
 
@@ -100,9 +100,18 @@ impl ToolCommand {
         })
     }
 
-    fn exec(mut self) -> Fallible<ExitStatus> {
-        pass_control_to_shim();
+    pub(crate) fn status(mut self) -> Fallible<ExitStatus> {
         self.command.status().with_context(|_| self.on_failure)
+    }
+
+    pub(crate) fn output(mut self) -> Fallible<Output> {
+        self.command.output().with_context(|_| self.on_failure)
+    }
+}
+
+impl fmt::Debug for ToolCommand {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self.command)
     }
 }
 
