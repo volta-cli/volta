@@ -180,7 +180,7 @@ fn npm_view_command_for(name: &str, version: &str, session: &mut Session) -> Fal
         OsString::from("--json"),
         OsString::from(format!("{}@{}", name, version)),
     ];
-    run::npm::command(args, session)
+    run::npm::command(args, session, None)
 }
 
 // fetch metadata for the input url

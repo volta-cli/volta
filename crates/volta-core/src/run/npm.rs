@@ -1,5 +1,6 @@
 use std::env::args_os;
 use std::ffi::{OsStr, OsString};
+use std::path::Path;
 
 use super::{intercept_global_installs, CommandArg, ToolCommand};
 use crate::error::ErrorDetails;
@@ -10,7 +11,11 @@ use crate::style::tool_version;
 use log::debug;
 use volta_fail::{throw, Fallible};
 
-pub(crate) fn command<A>(args: A, session: &mut Session) -> Fallible<ToolCommand>
+pub(crate) fn command<A>(
+    args: A,
+    session: &mut Session,
+    current_dir: Option<&Path>,
+) -> Fallible<ToolCommand>
 where
     A: IntoIterator<Item = OsString>,
 {
@@ -33,11 +38,21 @@ where
             let version = tool_version("npm", &image.node().npm);
             debug!("Using {} from {} configuration", version, source);
 
-            Ok(ToolCommand::direct(OsStr::new("npm"), args, &path))
+            Ok(ToolCommand::direct(
+                OsStr::new("npm"),
+                args,
+                &path,
+                current_dir,
+            ))
         }
         None => {
             debug!("Could not find Volta-managed npm, delegating to system");
-            ToolCommand::passthrough(OsStr::new("npm"), args, ErrorDetails::NoPlatform)
+            ToolCommand::passthrough(
+                OsStr::new("npm"),
+                args,
+                ErrorDetails::NoPlatform,
+                current_dir,
+            )
         }
     }
 }

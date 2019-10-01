@@ -1,6 +1,6 @@
 use std::ffi::{OsStr, OsString};
 use std::iter::once;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use super::ToolCommand;
 use crate::error::ErrorDetails;
@@ -14,7 +14,12 @@ use crate::tool::{BinConfig, BinLoader};
 use log::debug;
 use volta_fail::{throw, Fallible};
 
-pub(crate) fn command<A>(exe: OsString, args: A, session: &mut Session) -> Fallible<ToolCommand>
+pub(crate) fn command<A>(
+    exe: OsString,
+    args: A,
+    session: &mut Session,
+    current_dir: Option<&Path>,
+) -> Fallible<ToolCommand>
 where
     A: IntoIterator<Item = OsString>,
 {
@@ -53,12 +58,22 @@ where
 
                 let image = platform.checkout(session)?;
                 let path = image.path()?;
-                return Ok(ToolCommand::project_local(&path_to_bin, args, &path));
+                return Ok(ToolCommand::project_local(
+                    &path_to_bin,
+                    args,
+                    &path,
+                    current_dir,
+                ));
             }
 
             // if there's no platform available, pass through to existing PATH.
             debug!("Could not find Volta configuration, delegating to system");
-            return ToolCommand::passthrough(&path_to_bin, args, ErrorDetails::NoPlatform);
+            return ToolCommand::passthrough(
+                &path_to_bin,
+                args,
+                ErrorDetails::NoPlatform,
+                current_dir,
+            );
         }
     }
 
@@ -87,8 +102,9 @@ where
                     .chain(once(tool_path))
                     .chain(args),
                 &path,
+                None,
             ),
-            None => ToolCommand::direct(&tool_path, args, &path),
+            None => ToolCommand::direct(&tool_path, args, &path, None),
         };
         return Ok(cmd);
     }
@@ -105,6 +121,7 @@ where
         ErrorDetails::BinaryNotFound {
             name: exe.to_string_lossy().to_string(),
         },
+        current_dir,
     )
 }
 

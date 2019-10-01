@@ -59,7 +59,7 @@ impl Package {
         Package { name, details }
     }
 
-    fn fetch_internal(&self) -> Fallible<()> {
+    fn fetch_internal(&self, mut session: &mut Session) -> Fallible<()> {
         // ISSUE(#288) - Once we have a valid Collection, we can check that in the same way as node/yarn
         // Until then, we use the existence of the image directory as the indicator that the package is
         // already fetched
@@ -67,7 +67,7 @@ impl Package {
             debug_already_fetched(self);
             Ok(())
         } else {
-            fetch::fetch(&self.name, &self.details)
+            fetch::fetch(&self.name, &self.details, &mut session)
         }
     }
 
@@ -84,18 +84,18 @@ impl Package {
 }
 
 impl Tool for Package {
-    fn fetch(self, _session: &mut Session) -> Fallible<()> {
-        self.fetch_internal()?;
+    fn fetch(self, mut session: &mut Session) -> Fallible<()> {
+        self.fetch_internal(&mut session)?;
 
         info_fetched(self);
         Ok(())
     }
-    fn install(self, session: &mut Session) -> Fallible<()> {
+    fn install(self, mut session: &mut Session) -> Fallible<()> {
         if self.is_installed() {
             info!("Package {} is already installed", self);
             Ok(())
         } else {
-            self.fetch_internal()?;
+            self.fetch_internal(&mut session)?;
 
             let bin_map = install::install(&self.name, &self.details.version, session)?;
 

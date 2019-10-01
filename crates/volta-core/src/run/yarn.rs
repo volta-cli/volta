@@ -1,5 +1,6 @@
 use std::env::args_os;
 use std::ffi::{OsStr, OsString};
+use std::path::Path;
 
 use super::{intercept_global_installs, CommandArg, ToolCommand};
 use crate::error::ErrorDetails;
@@ -10,7 +11,11 @@ use crate::style::tool_version;
 use log::debug;
 use volta_fail::{throw, Fallible};
 
-pub(crate) fn command<A>(args: A, session: &mut Session) -> Fallible<ToolCommand>
+pub(crate) fn command<A>(
+    args: A,
+    session: &mut Session,
+    current_dir: Option<&Path>,
+) -> Fallible<ToolCommand>
 where
     A: IntoIterator<Item = OsString>,
 {
@@ -34,11 +39,21 @@ where
 
             let image = platform.checkout(session)?;
             let path = image.path()?;
-            Ok(ToolCommand::direct(OsStr::new("yarn"), args, &path))
+            Ok(ToolCommand::direct(
+                OsStr::new("yarn"),
+                args,
+                &path,
+                current_dir,
+            ))
         }
         None => {
             debug!("Could not find Volta-managed yarn, delegating to system");
-            ToolCommand::passthrough(OsStr::new("yarn"), args, ErrorDetails::NoPlatform)
+            ToolCommand::passthrough(
+                OsStr::new("yarn"),
+                args,
+                ErrorDetails::NoPlatform,
+                current_dir,
+            )
         }
     }
 }

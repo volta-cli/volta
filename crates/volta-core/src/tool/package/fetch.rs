@@ -1,5 +1,6 @@
 //! Provides fetcher for 3rd-party packages
 
+use std::ffi::OsString;
 use std::fs::{rename, write, File};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
@@ -8,7 +9,9 @@ use super::super::download_tool_error;
 use crate::error::ErrorDetails;
 use crate::fs::{create_staging_dir, ensure_dir_does_not_exist, read_dir_eager, read_file};
 use crate::path;
-use crate::style::{progress_bar, tool_version};
+use crate::run::{self, ToolCommand};
+use crate::session::Session;
+use crate::style::{progress_bar, progress_spinner, tool_version};
 use crate::tool::{self, PackageDetails};
 use crate::version::VersionSpec;
 use archive::{Archive, Tarball};
@@ -16,9 +19,9 @@ use fs_utils::ensure_containing_dir_exists;
 use log::debug;
 use semver::Version;
 use sha1::{Digest, Sha1};
-use volta_fail::{Fallible, ResultExt};
+use volta_fail::{throw, Fallible, ResultExt};
 
-pub fn fetch(name: &str, details: &PackageDetails) -> Fallible<()> {
+pub fn fetch(name: &str, details: &PackageDetails, session: &mut Session) -> Fallible<()> {
     let version_string = details.version.to_string();
     let cache_file = path::package_distro_file(&name, &version_string)?;
     let shasum_file = path::package_distro_shasum(&name, &version_string)?;
@@ -37,6 +40,10 @@ pub fn fetch(name: &str, details: &PackageDetails) -> Fallible<()> {
                 tool::Spec::Package(name.into(), VersionSpec::exact(&details.version)),
                 &details.tarball_url,
                 &cache_file,
+                &shasum_file,
+                &name,
+                &details,
+                session,
             )?;
             (archive, false)
         }
@@ -79,9 +86,66 @@ fn load_cached_distro(file: &Path, shasum_file: &Path) -> Option<Box<dyn Archive
     Tarball::load(distro).ok()
 }
 
-fn fetch_remote_distro(spec: tool::Spec, url: &str, path: &Path) -> Fallible<Box<Archive>> {
+fn fetch_remote_distro(
+    spec: tool::Spec,
+    url: &str,
+    path: &Path,
+    shasum_file: &Path,
+    name: &str,
+    details: &PackageDetails,
+    session: &mut Session,
+) -> Fallible<Box<Archive>> {
+    debug!("YOU'RE IN MARK!!!");
+
+    ensure_containing_dir_exists(&path);
+
+    let dir = path.parent().unwrap();
+
+    let command = npm_pack_command_for(name, &details.version.to_string()[..], session, Some(dir))?;
+    debug!("Running command: `{:?}`", command);
+
+    debug!(
+        "Downloading via {} npm pack to {}",
+        tool_version(name, details.version.to_string()),
+        dir.to_str().unwrap()
+    );
+    let spinner = progress_spinner(&format!(
+        "Downloading via {} npm pack to {}",
+        tool_version(name, details.version.to_string()),
+        dir.to_str().unwrap()
+    ));
+    let output = command.output()?;
+    spinner.finish_and_clear();
+
+    if !output.status.success() {
+        debug!(
+            "Command failed, stderr is:\n{}",
+            String::from_utf8_lossy(&output.stderr).to_string()
+        );
+        debug!("Exit code is {:?}", output.status.code());
+        // TODO: Make this be a correct error
+        throw!(ErrorDetails::NpmViewMetadataFetchError {
+            package: name.to_string(),
+        });
+    }
+
     debug!("Downloading {} from {}, to {}", &spec, &url, path.display());
     Tarball::fetch(url, path).with_context(download_tool_error(spec, url.to_string()))
+}
+
+// build a command to run `npm pack` with json output
+fn npm_pack_command_for(
+    name: &str,
+    version: &str,
+    session: &mut Session,
+    current_dir: Option<&Path>,
+) -> Fallible<ToolCommand> {
+    let args = vec![
+        OsString::from("pack"),
+        OsString::from("--json"),
+        OsString::from(format!("{}@{}", name, version)),
+    ];
+    run::npm::command(args, session, current_dir)
 }
 
 fn unpack_archive(archive: Box<Archive>, name: &str, version: &Version) -> Fallible<()> {
