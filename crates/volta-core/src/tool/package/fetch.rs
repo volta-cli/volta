@@ -5,7 +5,6 @@ use std::fs::{rename, write, File};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
-use super::super::download_tool_error;
 use crate::error::ErrorDetails;
 use crate::fs::{create_staging_dir, ensure_dir_does_not_exist, read_dir_eager, read_file};
 use crate::path;
@@ -95,8 +94,6 @@ fn fetch_remote_distro(
     details: &PackageDetails,
     session: &mut Session,
 ) -> Fallible<Box<Archive>> {
-    debug!("YOU'RE IN MARK!!!");
-
     ensure_containing_dir_exists(&path);
 
     let dir = path.parent().unwrap();
@@ -129,8 +126,47 @@ fn fetch_remote_distro(
         });
     }
 
-    debug!("Downloading {} from {}, to {}", &spec, &url, path.display());
-    Tarball::fetch(url, path).with_context(download_tool_error(spec, url.to_string()))
+    let response_json = String::from_utf8_lossy(&output.stdout);
+
+    debug!("Parsing json");
+    let metadatas: Vec<super::serial::NpmPackData> = serde_json::de::from_str(&response_json)
+        // TODO: Make this be a correct error
+        .with_context(|_| ErrorDetails::NpmViewMetadataParseError {
+            package: name.to_string(),
+        })?;
+
+    debug!("Finding the first/only record from the output");
+    let metadata: super::serial::NpmPackData = match metadatas.iter().next() {
+        Some(data) => data.clone(),
+        // TODO: Make this be a correct error
+        None => throw!(ErrorDetails::PackageNotFound {
+            package: name.to_string()
+        }),
+    };
+
+    let tarball_from_npm_pack = dir.join(metadata.filename);
+
+    debug!("Moving the tarball to the expected path");
+    // TODO: Make this be a correct error
+    rename(tarball_from_npm_pack, path).with_context(|_| ErrorDetails::SetupToolImageError {
+        tool: name.into(),
+        version: details.version.to_string(),
+        dir: dir.to_path_buf(),
+    })?;
+
+    // debug!("Downloading {} from {}, to {}", &spec, &url, path.display());
+    // Tarball::fetch(url, path).with_context(download_tool_error(spec, url.to_string()))
+
+    debug!("Attempting to load the now cached tarball from disk");
+    // TODO: Make this be a correct error
+    let distro = File::open(path).with_context(|_| ErrorDetails::PackageNotFound {
+        package: name.to_string(),
+    })?;
+
+    // TODO: Make this be a correct error
+    Tarball::load(distro).with_context(|_| ErrorDetails::PackageNotFound {
+        package: name.to_string(),
+    })
 }
 
 // build a command to run `npm pack` with json output

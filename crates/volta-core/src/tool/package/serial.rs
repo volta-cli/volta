@@ -285,3 +285,34 @@ impl From<BinLoader> for RawBinLoader {
         }
     }
 }
+
+// Data structures for `npm pack` data
+//
+// $ npm pack --dry-run --json ember-cli
+// {
+//   "id": "ember-cli@3.13.1",
+//   "name": "ember-cli",
+//   "version": "3.13.1",
+//   "from": "ember-cli@latest",
+//   "size": 199017,
+//   "unpackedSize": 827812,
+//   "shasum": "8daefb108130740cd79ad7e4e1c9138fb1f7313d",
+//   "integrity": "sha512-CMVLpJYseyCNmN2Tp3vTmTFTXPSZlMQB7q2uoZ+ZTKMgdQ4ekeceW9mVAC4XwXm2FW+v8liowP+co/Bu1xUbPg==",
+//   "filename": "ember-cli-3.13.1.tgz",
+//   "files": [
+//     {
+//       "path": "blueprints/app/files/.editorconfig",
+//       "size": 368,
+//       "mode": 420
+//     },
+//     (and lots more files...)
+//    ],
+//   "entryCount": 290,
+//   "bundled": []
+// }
+//
+#[derive(Deserialize, Clone, Debug)]
+pub struct NpmPackData {
+    // there's a lot more in there, but right now just care about the filename
+    pub filename: String,
+}
