@@ -130,7 +130,6 @@ pub mod version_serde {
     {
         deserializer.deserialize_string(VersionVisitor)
     }
-
 }
 
 // custom serialization and de-serialization for Option<Version>
@@ -162,5 +161,4 @@ pub mod option_version_serde {
         }
         Ok(None)
     }
-
 }
