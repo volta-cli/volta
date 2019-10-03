@@ -11,8 +11,7 @@ use crate::path;
 use crate::run::{self, ToolCommand};
 use crate::session::Session;
 use crate::style::{progress_bar, progress_spinner, tool_version};
-use crate::tool::{self, PackageDetails};
-use crate::version::VersionSpec;
+use crate::tool::PackageDetails;
 use archive::{Archive, Tarball};
 use fs_utils::ensure_containing_dir_exists;
 use log::debug;
@@ -35,15 +34,7 @@ pub fn fetch(name: &str, details: &PackageDetails, session: &mut Session) -> Fal
             (archive, true)
         }
         None => {
-            let archive = fetch_remote_distro(
-                tool::Spec::Package(name.into(), VersionSpec::exact(&details.version)),
-                &details.tarball_url,
-                &cache_file,
-                &shasum_file,
-                &name,
-                &details,
-                session,
-            )?;
+            let archive = fetch_remote_distro(&cache_file, &name, &details, session)?;
             (archive, false)
         }
     };
@@ -86,26 +77,20 @@ fn load_cached_distro(file: &Path, shasum_file: &Path) -> Option<Box<dyn Archive
 }
 
 fn fetch_remote_distro(
-    spec: tool::Spec,
-    url: &str,
     path: &Path,
-    shasum_file: &Path,
     name: &str,
     details: &PackageDetails,
     session: &mut Session,
 ) -> Fallible<Box<Archive>> {
-    ensure_containing_dir_exists(&path);
+    ensure_containing_dir_exists(&path).with_context(|_| ErrorDetails::ContainingDirError {
+        path: path.to_path_buf(),
+    })?;
 
     let dir = path.parent().unwrap();
 
     let command = npm_pack_command_for(name, &details.version.to_string()[..], session, Some(dir))?;
     debug!("Running command: `{:?}`", command);
 
-    debug!(
-        "Downloading via {} npm pack to {}",
-        tool_version(name, details.version.to_string()),
-        dir.to_str().unwrap()
-    );
     let spinner = progress_spinner(&format!(
         "Downloading via {} npm pack to {}",
         tool_version(name, details.version.to_string()),
@@ -120,18 +105,15 @@ fn fetch_remote_distro(
             String::from_utf8_lossy(&output.stderr).to_string()
         );
         debug!("Exit code is {:?}", output.status.code());
-        // TODO: Make this be a correct error
-        throw!(ErrorDetails::NpmViewMetadataFetchError {
+        throw!(ErrorDetails::NpmPackMetadataFetchError {
             package: name.to_string(),
         });
     }
 
     let response_json = String::from_utf8_lossy(&output.stdout);
 
-    debug!("Parsing json");
     let metadatas: Vec<super::serial::NpmPackData> = serde_json::de::from_str(&response_json)
-        // TODO: Make this be a correct error
-        .with_context(|_| ErrorDetails::NpmViewMetadataParseError {
+        .with_context(|_| ErrorDetails::NpmPackMetadataParseError {
             package: name.to_string(),
         })?;
 
@@ -147,15 +129,11 @@ fn fetch_remote_distro(
     let tarball_from_npm_pack = dir.join(metadata.filename);
 
     debug!("Moving the tarball to the expected path");
-    // TODO: Make this be a correct error
     rename(tarball_from_npm_pack, path).with_context(|_| ErrorDetails::SetupToolImageError {
         tool: name.into(),
         version: details.version.to_string(),
         dir: dir.to_path_buf(),
     })?;
-
-    // debug!("Downloading {} from {}, to {}", &spec, &url, path.display());
-    // Tarball::fetch(url, path).with_context(download_tool_error(spec, url.to_string()))
 
     debug!("Attempting to load the now cached tarball from disk");
     // TODO: Make this be a correct error

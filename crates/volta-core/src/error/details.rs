@@ -221,6 +221,16 @@ pub enum ErrorDetails {
         package: String,
     },
 
+    /// Thrown when there is an error running `npm pack`
+    NpmPackMetadataFetchError {
+        package: String,
+    },
+
+    /// Thrown when there is an parsing the metadata from `npm pack`
+    NpmPackMetadataParseError {
+        package: String,
+    },
+
     NpxNotAvailable {
         version: String,
     },
@@ -815,6 +825,14 @@ Use `volta install yarn` to select a default version (see `volta help install fo
             ),
             // No CTA as this error is purely informational
             ErrorDetails::NoVersionsFound => write!(f, "No tool versions found"),
+            ErrorDetails::NpmPackMetadataFetchError { package } => write!(
+                f,
+                "Could not download package via npm pack for '{}'",
+                package
+            ),
+            ErrorDetails::NpmPackMetadataParseError { package } => {
+                write!(f, "Could not parse npm pack results for '{}'", package)
+            }
             ErrorDetails::NpmViewMetadataFetchError { package } => write!(
                 f,
                 "Could not download package metadata for '{}'
@@ -1323,6 +1341,8 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::NotInPackage => ExitCode::ConfigurationError,
             ErrorDetails::NoUserYarn => ExitCode::ConfigurationError,
             ErrorDetails::NoVersionsFound => ExitCode::NoVersionMatch,
+            ErrorDetails::NpmPackMetadataFetchError { .. } => ExitCode::NetworkError,
+            ErrorDetails::NpmPackMetadataParseError { .. } => ExitCode::UnknownError,
             ErrorDetails::NpmViewMetadataFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::NpmViewMetadataParseError { .. } => ExitCode::UnknownError,
             ErrorDetails::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
