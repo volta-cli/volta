@@ -235,11 +235,6 @@ impl SandboxBuilder {
         self
     }
 
-    /// Set the shell for the sandbox (chainable)
-    pub fn volta_shell(self, shell_name: &str) -> Self {
-        self.env("VOLTA_SHELL", shell_name)
-    }
-
     /// Set an environment variable for the sandbox (chainable)
     pub fn env(mut self, name: &str, value: &str) -> Self {
         self.root.env_vars.push(EnvVar::new(name, value));
@@ -597,11 +592,6 @@ impl Sandbox {
     pub fn read_package_json(&self) -> String {
         let package_file = package_json_file(self.root());
         read_file_to_string(package_file)
-    }
-
-    pub fn read_postscript(&self) -> String {
-        let postscript_file = volta_postscript();
-        read_file_to_string(postscript_file)
     }
 
     pub fn read_log_dir(&self) -> Option<fs::ReadDir> {

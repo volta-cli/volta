@@ -106,21 +106,6 @@ impl System {
 
         new_path.join().with_context(build_path_error)
     }
-
-    /// Reproduces the Volta-enabled `PATH` environment variable for situations where
-    /// Volta has been deactivated
-    pub fn enabled_path() -> Fallible<OsString> {
-        let old_path = envoy::path().unwrap_or(envoy::Var::from(""));
-        let mut new_path = old_path.split();
-
-        for add_path in env_paths()? {
-            if !old_path.split().any(|part| part == add_path) {
-                new_path = new_path.prefix_entry(add_path);
-            }
-        }
-
-        new_path.join().with_context(build_path_error)
-    }
 }
 
 fn build_path_error(_err: &JoinPathsError) -> ErrorDetails {
@@ -136,7 +121,6 @@ mod test {
     use crate::layout::volta_install;
     use semver::Version;
     use std;
-    use std::path::PathBuf;
 
     // Since unit tests are run in parallel, tests that modify the PATH environment variable are subject to race conditions
     // To prevent that, ensure that all tests that rely on PATH are run in serial by adding them to this meta-test
@@ -144,7 +128,6 @@ mod test {
     fn test_paths() {
         test_image_path();
         test_system_path();
-        test_system_enabled_path();
     }
 
     #[cfg(unix)]
@@ -318,61 +301,6 @@ mod test {
 
         assert_eq!(
             System::path().unwrap().into_string().unwrap(),
-            expected_path
-        );
-    }
-
-    #[cfg(unix)]
-    fn test_system_enabled_path() {
-        let mut pathbufs: Vec<PathBuf> = Vec::new();
-        pathbufs.push(volta_home().unwrap().shim_dir().to_owned());
-        pathbufs.push(PathBuf::from("/usr/bin"));
-        pathbufs.push(PathBuf::from("/bin"));
-
-        let expected_path = std::env::join_paths(pathbufs.iter())
-            .unwrap()
-            .into_string()
-            .expect("Could not create path containing shim dir");
-
-        // If the path already contains the shim dir, there shouldn't be any changes
-        std::env::set_var("PATH", expected_path.clone());
-        assert_eq!(
-            System::enabled_path().unwrap().into_string().unwrap(),
-            expected_path
-        );
-
-        // If the path doesn't contain the shim dir, it should be prefixed onto the existing path
-        std::env::set_var("PATH", "/usr/bin:/bin");
-        assert_eq!(
-            System::enabled_path().unwrap().into_string().unwrap(),
-            expected_path
-        );
-    }
-
-    #[cfg(windows)]
-    fn test_system_enabled_path() {
-        let mut pathbufs: Vec<PathBuf> = Vec::new();
-        pathbufs.push(volta_install().unwrap().bin_dir());
-        pathbufs.push(volta_home().unwrap().shim_dir().to_owned());
-        pathbufs.push(PathBuf::from("C:\\\\somebin"));
-        pathbufs.push(PathBuf::from("D:\\\\Program Files"));
-
-        let expected_path = std::env::join_paths(pathbufs.iter())
-            .unwrap()
-            .into_string()
-            .expect("Could not create path containing shim dir");
-
-        // If the path already contains the shim dir, there shouldn't be any changes
-        std::env::set_var("PATH", expected_path.clone());
-        assert_eq!(
-            System::enabled_path().unwrap().into_string().unwrap(),
-            expected_path
-        );
-
-        // If the path doesn't contain the shim dir, it should be prefixed onto the existing path
-        std::env::set_var("PATH", "C:\\\\somebin;D:\\\\Program Files");
-        assert_eq!(
-            System::enabled_path().unwrap().into_string().unwrap(),
             expected_path
         );
     }

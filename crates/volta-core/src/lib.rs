@@ -5,7 +5,6 @@
 #![cfg_attr(feature = "cross-platform-docs", feature(doc_cfg))]
 
 mod command;
-pub mod env;
 pub mod error;
 mod event;
 pub mod fs;
@@ -19,7 +18,6 @@ pub mod platform;
 pub mod project;
 pub mod run;
 pub mod session;
-pub mod shell;
 pub mod shim;
 pub mod signal;
 pub mod style;

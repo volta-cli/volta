@@ -3,7 +3,6 @@ use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
 
-use volta_core::env::UNSAFE_GLOBAL;
 use volta_fail::ExitCode;
 
 const PACKAGE_JSON: &'static str = r#"{
@@ -72,7 +71,7 @@ fn npm_prevents_global_install() {
 fn npm_allows_global_install_with_env_variable() {
     let s = sandbox()
         .package_json(PACKAGE_JSON)
-        .env(UNSAFE_GLOBAL, "1")
+        .env("VOLTA_UNSAFE_GLOBAL", "1")
         .build();
 
     // Since we are using a fake Node version, we expect to get an error about being unable to download
@@ -115,7 +114,7 @@ fn yarn_prevents_global_add() {
 fn yarn_allows_global_add_with_env_variable() {
     let s = sandbox()
         .package_json(PACKAGE_JSON)
-        .env(UNSAFE_GLOBAL, "1")
+        .env("VOLTA_UNSAFE_GLOBAL", "1")
         .build();
 
     // Since we are using a fake Yarn/Node version, we expect to get an error about being unable to download

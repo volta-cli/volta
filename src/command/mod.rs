@@ -1,7 +1,5 @@
-pub(crate) mod activate;
 pub(crate) mod completions;
 pub(crate) mod current;
-pub(crate) mod deactivate;
 pub(crate) mod fetch;
 pub(crate) mod install;
 pub(crate) mod list;
@@ -12,10 +10,8 @@ pub(crate) mod r#use;
 pub(crate) mod which;
 
 pub(crate) use self::which::Which;
-pub(crate) use activate::Activate;
 pub(crate) use completions::Completions;
 pub(crate) use current::Current;
-pub(crate) use deactivate::Deactivate;
 pub(crate) use fetch::Fetch;
 pub(crate) use install::Install;
 pub(crate) use list::List;

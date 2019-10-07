@@ -96,24 +96,6 @@ pub(crate) enum Subcommand {
     )]
     Current(command::Current),
 
-    /// Disables Volta in the current shell
-    #[structopt(
-        name = "deactivate",
-        author = "",
-        version = "",
-        raw(setting = "structopt::clap::AppSettings::Hidden")
-    )]
-    Deactivate(command::Deactivate),
-
-    /// Re-enables Volta in the current shell
-    #[structopt(
-        name = "activate",
-        author = "",
-        version = "",
-        raw(setting = "structopt::clap::AppSettings::Hidden")
-    )]
-    Activate(command::Activate),
-
     /// Generates Volta completions
     #[structopt(
         name = "completions",
@@ -158,8 +140,6 @@ impl Subcommand {
             Subcommand::Pin(pin) => pin.run(session),
             Subcommand::List(list) => list.run(session),
             Subcommand::Current(current) => current.run(session),
-            Subcommand::Deactivate(deactivate) => deactivate.run(session),
-            Subcommand::Activate(activate) => activate.run(session),
             Subcommand::Completions(completions) => completions.run(session),
             Subcommand::Which(which) => which.run(session),
             Subcommand::Use(r#use) => r#use.run(session),
