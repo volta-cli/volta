@@ -33,5 +33,4 @@ pub mod tests {
         env::set_var("VOLTA_POSTSCRIPT", "/some/path");
         assert_eq!(postscript_path().unwrap(), PathBuf::from("/some/path"));
     }
-
 }

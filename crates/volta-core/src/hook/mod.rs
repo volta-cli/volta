@@ -6,7 +6,8 @@ use std::marker::PhantomData;
 use std::path::Path;
 
 use crate::error::ErrorDetails;
-use crate::path::{find_project_dir, user_hooks_file};
+use crate::layout::volta_home;
+use crate::project::Project;
 use crate::tool::{Node, Package, Tool, Yarn};
 use lazycell::LazyCell;
 use log::debug;
@@ -138,7 +139,7 @@ impl HookConfig {
     /// specified directory is not itself a project, its ancestors will be
     /// searched.
     fn for_dir(base_dir: &Path) -> Fallible<Option<Self>> {
-        match find_project_dir(&base_dir) {
+        match Project::find_dir(&base_dir) {
             Some(project_dir) => {
                 let path = project_dir.join(".volta").join("hooks.json");
                 let hooks_config = Self::from_file(&path)?;
@@ -174,7 +175,7 @@ impl HookConfig {
 
     /// Returns the per-user hooks, loaded from the filesystem.
     fn for_user() -> Fallible<Option<Self>> {
-        let path = user_hooks_file()?;
+        let path = volta_home()?.user_hooks_file();
         let hooks_config = Self::from_file(&path)?;
 
         if hooks_config.is_some() {

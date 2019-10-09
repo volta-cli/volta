@@ -24,6 +24,14 @@ impl Yarn {
         Yarn { version }
     }
 
+    pub fn archive_basename(version: &str) -> String {
+        format!("yarn-v{}", version)
+    }
+
+    pub fn archive_filename(version: &str) -> String {
+        format!("{}.tar.gz", Yarn::archive_basename(version))
+    }
+
     pub(crate) fn fetch_internal(&self, session: &mut Session) -> Fallible<()> {
         let inventory = session.inventory()?;
         if inventory.yarn.versions.contains(&self.version) {
@@ -73,5 +81,20 @@ impl Tool for Yarn {
 impl Display for Yarn {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&tool_version("yarn", &self.version))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_yarn_archive_basename() {
+        assert_eq!(Yarn::archive_basename("1.2.3"), "yarn-v1.2.3");
+    }
+
+    #[test]
+    fn test_yarn_archive_filename() {
+        assert_eq!(Yarn::archive_filename("1.2.3"), "yarn-v1.2.3.tar.gz");
     }
 }

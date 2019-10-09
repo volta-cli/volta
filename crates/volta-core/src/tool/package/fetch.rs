@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use super::super::download_tool_error;
 use crate::error::ErrorDetails;
 use crate::fs::{create_staging_dir, ensure_dir_does_not_exist, read_dir_eager, read_file};
-use crate::path;
+use crate::layout::volta_home;
 use crate::style::{progress_bar, tool_version};
 use crate::tool::{self, PackageDetails};
 use crate::version::VersionSpec;
@@ -20,8 +20,9 @@ use volta_fail::{Fallible, ResultExt};
 
 pub fn fetch(name: &str, details: &PackageDetails) -> Fallible<()> {
     let version_string = details.version.to_string();
-    let cache_file = path::package_distro_file(&name, &version_string)?;
-    let shasum_file = path::package_distro_shasum(&name, &version_string)?;
+    let home = volta_home()?;
+    let cache_file = home.package_distro_file(&name, &version_string);
+    let shasum_file = home.package_distro_shasum(&name, &version_string);
 
     let (archive, cached) = match load_cached_distro(&cache_file, &shasum_file) {
         Some(archive) => {
@@ -79,12 +80,12 @@ fn load_cached_distro(file: &Path, shasum_file: &Path) -> Option<Box<dyn Archive
     Tarball::load(distro).ok()
 }
 
-fn fetch_remote_distro(spec: tool::Spec, url: &str, path: &Path) -> Fallible<Box<Archive>> {
+fn fetch_remote_distro(spec: tool::Spec, url: &str, path: &Path) -> Fallible<Box<dyn Archive>> {
     debug!("Downloading {} from {}, to {}", &spec, &url, path.display());
     Tarball::fetch(url, path).with_context(download_tool_error(spec, url.to_string()))
 }
 
-fn unpack_archive(archive: Box<Archive>, name: &str, version: &Version) -> Fallible<()> {
+fn unpack_archive(archive: Box<dyn Archive>, name: &str, version: &Version) -> Fallible<()> {
     let temp = create_staging_dir()?;
     debug!("Unpacking {} into '{}'", name, temp.path().display());
 
@@ -105,7 +106,7 @@ fn unpack_archive(archive: Box<Archive>, name: &str, version: &Version) -> Falli
             version: version.to_string(),
         })?;
 
-    let image_dir = path::package_image_dir(&name, &version.to_string())?;
+    let image_dir = volta_home()?.package_image_dir(&name, &version.to_string());
     // ensure that the dir where this will be unpacked exists
     ensure_containing_dir_exists(&image_dir).with_context(|_| {
         ErrorDetails::ContainingDirError {

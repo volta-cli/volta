@@ -14,7 +14,10 @@ mod package;
 mod serial;
 mod yarn;
 
-pub use node::{load_default_npm_version, Node, NodeVersion};
+pub use node::{
+    load_default_npm_version, Node, NodeVersion, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION,
+    NODE_DISTRO_OS,
+};
 pub use npm::Npm;
 pub use package::{bin_full_path, BinConfig, BinLoader, Package, PackageConfig, PackageDetails};
 pub use yarn::Yarn;

@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::Write as IoWrite;
 use std::path::PathBuf;
 
-use crate::path::log_dir;
+use crate::layout::volta_home;
 use crate::style::format_error_cause;
 use chrono::Local;
 use failure::Error;
@@ -43,7 +43,7 @@ fn write_error_log(
     let file_name = Local::now()
         .format("volta-error-%Y-%m-%d_%H_%M_%S%.3f.log")
         .to_string();
-    let log_file_path = log_dir()?.join(&file_name);
+    let log_file_path = volta_home()?.log_dir().join(&file_name);
 
     ensure_containing_dir_exists(&log_file_path)?;
     let mut log_file = File::create(&log_file_path)?;

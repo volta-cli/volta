@@ -1,0 +1,8 @@
+[package]
+name = "volta-layout"
+version = "0.1.0"
+authors = ["Chuck Pierce <cpierce.grad@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+volta-layout-macro = { path = "../volta-layout-macro" }

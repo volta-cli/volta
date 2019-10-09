@@ -11,7 +11,7 @@ use super::serial;
 use crate::error::ErrorDetails;
 use crate::fs::{create_staging_file, read_file};
 use crate::hook::ToolHooks;
-use crate::path;
+use crate::layout::volta_home;
 use crate::session::Session;
 use crate::style::progress_spinner;
 use crate::tool::Node;
@@ -164,9 +164,11 @@ pub struct NodeDistroFiles {
 
 /// Reads a public index from the Node cache, if it exists and hasn't expired.
 fn read_cached_opt() -> Fallible<Option<serial::RawNodeIndex>> {
-    let expiry_file = path::node_index_expiry_file()?;
-    let expiry = read_file(&expiry_file)
-        .with_context(|_| ErrorDetails::ReadNodeIndexExpiryError { file: expiry_file })?;
+    let expiry_file = volta_home()?.node_index_expiry_file();
+    let expiry =
+        read_file(&expiry_file).with_context(|_| ErrorDetails::ReadNodeIndexExpiryError {
+            file: expiry_file.to_owned(),
+        })?;
 
     if let Some(string) = expiry {
         let expiry_date = HttpDate::from_str(&string)
@@ -174,9 +176,11 @@ fn read_cached_opt() -> Fallible<Option<serial::RawNodeIndex>> {
         let current_date = HttpDate::from(SystemTime::now());
 
         if current_date < expiry_date {
-            let index_file = path::node_index_file()?;
-            let cached = read_file(&index_file)
-                .with_context(|_| ErrorDetails::ReadNodeIndexCacheError { file: index_file })?;
+            let index_file = volta_home()?.node_index_file();
+            let cached =
+                read_file(&index_file).with_context(|_| ErrorDetails::ReadNodeIndexCacheError {
+                    file: index_file.to_owned(),
+                })?;
 
             if let Some(string) = cached {
                 return serde_json::de::from_str(&string)
@@ -227,15 +231,15 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::RawNodeIndex> {
                     file: cached.path().to_path_buf(),
                 })?;
 
-            let index_cache_file = path::node_index_file()?;
+            let index_cache_file = volta_home()?.node_index_file();
             ensure_containing_dir_exists(&index_cache_file).with_context(|_| {
                 ErrorDetails::ContainingDirError {
-                    path: index_cache_file.clone(),
+                    path: index_cache_file.to_owned(),
                 }
             })?;
             cached.persist(&index_cache_file).with_context(|_| {
                 ErrorDetails::WriteNodeIndexCacheError {
-                    file: index_cache_file,
+                    file: index_cache_file.to_owned(),
                 }
             })?;
 
@@ -255,15 +259,15 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::RawNodeIndex> {
                 file: expiry.path().to_path_buf(),
             })?;
 
-            let index_expiry_file = path::node_index_expiry_file()?;
+            let index_expiry_file = volta_home()?.node_index_expiry_file();
             ensure_containing_dir_exists(&index_expiry_file).with_context(|_| {
                 ErrorDetails::ContainingDirError {
-                    path: index_expiry_file.clone(),
+                    path: index_expiry_file.to_owned(),
                 }
             })?;
             expiry.persist(&index_expiry_file).with_context(|_| {
                 ErrorDetails::WriteNodeIndexExpiryError {
-                    file: index_expiry_file,
+                    file: index_expiry_file.to_owned(),
                 }
             })?;
 

@@ -23,7 +23,7 @@ pub struct Zip {
 
 impl Zip {
     /// Loads a cached Node zip archive from the specified file.
-    pub fn load(source: File) -> Result<Box<Archive>, failure::Error> {
+    pub fn load(source: File) -> Result<Box<dyn Archive>, failure::Error> {
         let compressed_size = source.metadata()?.len();
 
         Ok(Box::new(Zip {
@@ -35,7 +35,7 @@ impl Zip {
 
     /// Initiate fetching of a Node zip archive from the given URL, returning
     /// a `Remote` data source.
-    pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<Archive>, failure::Error> {
+    pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, failure::Error> {
         let mut response = reqwest::get(url)?;
 
         if !response.status().is_success() {
@@ -70,7 +70,7 @@ impl Archive for Zip {
     fn unpack(
         self: Box<Self>,
         dest: &Path,
-        progress: &mut FnMut(&(), usize),
+        progress: &mut dyn FnMut(&(), usize),
     ) -> Result<(), failure::Error> {
         // Use a verbatim path to avoid the legacy Windows 260 byte path limit.
         let dest: &Path = &dest.to_verbatim();
