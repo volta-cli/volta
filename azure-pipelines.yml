@@ -43,7 +43,7 @@ jobs:
         name: overrides
         displayName: Extract overrides from top commit
 
-# Note: The following 2 jobscan be removed when the updates feature is complete, along with the file
+# Note: The following 2 jobs can be removed when the updates feature is complete, along with the file
 # 'ci/run-tests-updates.yml' and the check for '[volta updates]' in 'ci/check-overrides.sh'
   - job: nix_test_updates
     dependsOn:
