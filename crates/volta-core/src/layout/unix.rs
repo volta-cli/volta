@@ -18,8 +18,9 @@ pub(super) fn default_install_dir() -> Fallible<PathBuf> {
         return Ok(home.to_owned());
     }
 
-    // when an RPM is installed as root, the install_dir will be here for non-root users
-    // (this will be the case for some managed installs)
+    // The current Volta RPM, when run as root, installs the `volta` binary into `/usr/bin`
+    // and the `shim` binary in `/usr/bin/volta-lib`, so check there as well for the shim
+    // This logic will be changing with full updates https://github.com/volta-cli/rfcs/pull/37
     let rpm_home = PathBuf::from("/usr/bin/volta-lib");
     if rpm_home.join("shim").exists() {
         return Ok(rpm_home);
