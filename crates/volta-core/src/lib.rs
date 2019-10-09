@@ -5,6 +5,7 @@
 #![cfg_attr(feature = "cross-platform-docs", feature(doc_cfg))]
 
 mod command;
+#[cfg(not(feature = "volta-updates"))]
 pub mod env;
 pub mod error;
 mod event;
@@ -19,6 +20,7 @@ pub mod platform;
 pub mod project;
 pub mod run;
 pub mod session;
+#[cfg(not(feature = "volta-updates"))]
 pub mod shell;
 pub mod shim;
 pub mod signal;

@@ -25,7 +25,9 @@ pub enum ActivityKind {
     Uninstall,
     List,
     Current,
+    #[cfg(not(feature = "volta-updates"))]
     Deactivate,
+    #[cfg(not(feature = "volta-updates"))]
     Activate,
     Default,
     Pin,
@@ -51,7 +53,9 @@ impl Display for ActivityKind {
             ActivityKind::Uninstall => "uninstall",
             ActivityKind::List => "list",
             ActivityKind::Current => "current",
+            #[cfg(not(feature = "volta-updates"))]
             ActivityKind::Deactivate => "deactivate",
+            #[cfg(not(feature = "volta-updates"))]
             ActivityKind::Activate => "activate",
             ActivityKind::Default => "default",
             ActivityKind::Pin => "pin",
