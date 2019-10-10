@@ -36,11 +36,11 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
     let exe = get_tool_name(&mut args)?;
 
     let command = match &exe.to_str() {
-        Some("node") => node::command(args, session, None)?,
-        Some("npm") => npm::command(args, session, None)?,
-        Some("npx") => npx::command(args, session, None)?,
-        Some("yarn") => yarn::command(args, session, None)?,
-        _ => binary::command(exe, args, session, None)?,
+        Some("node") => node::command(args, session)?,
+        Some("npm") => npm::command(args, session)?,
+        Some("npx") => npx::command(args, session)?,
+        Some("yarn") => yarn::command(args, session)?,
+        _ => binary::command(exe, args, session)?,
     };
 
     pass_control_to_shim();
@@ -61,23 +61,23 @@ pub(crate) struct ToolCommand {
 
 impl ToolCommand {
     /// Build a ToolCommand that is directly calling a tool in the Volta directory
-    fn direct<A>(exe: &OsStr, args: A, path_var: &OsStr, current_dir: Option<&Path>) -> Self
+    fn direct<A>(exe: &OsStr, args: A, path_var: &OsStr) -> Self
     where
         A: IntoIterator<Item = OsString>,
     {
         ToolCommand {
-            command: command_for(exe, args, path_var, current_dir),
+            command: command_for(exe, args, path_var),
             on_failure: ErrorDetails::BinaryExecError,
         }
     }
 
     /// Build a ToolCommand that is calling a binary in the current project's `node_modules/bin`
-    fn project_local<A>(exe: &OsStr, args: A, path_var: &OsStr, current_dir: Option<&Path>) -> Self
+    fn project_local<A>(exe: &OsStr, args: A, path_var: &OsStr) -> Self
     where
         A: IntoIterator<Item = OsString>,
     {
         ToolCommand {
-            command: command_for(exe, args, path_var, current_dir),
+            command: command_for(exe, args, path_var),
             on_failure: ErrorDetails::ProjectLocalBinaryExecError {
                 command: exe.to_string_lossy().to_string(),
             },
@@ -89,20 +89,20 @@ impl ToolCommand {
     /// This will allow the existing system to resolve the tool, if possible. If that still fails,
     /// then we show `default_error` as the friendly error to the user, directing them how to
     /// resolve the issue (e.g. run `volta install node` to enable `node`)
-    fn passthrough<A>(
-        exe: &OsStr,
-        args: A,
-        default_error: ErrorDetails,
-        current_dir: Option<&Path>,
-    ) -> Fallible<Self>
+    fn passthrough<A>(exe: &OsStr, args: A, default_error: ErrorDetails) -> Fallible<Self>
     where
         A: IntoIterator<Item = OsString>,
     {
         let path = System::path()?;
         Ok(ToolCommand {
-            command: command_for(exe, args, &path, current_dir),
+            command: command_for(exe, args, &path),
             on_failure: default_error,
         })
+    }
+
+    pub(crate) fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut ToolCommand {
+        self.command.current_dir(dir);
+        self
     }
 
     pub(crate) fn status(mut self) -> Fallible<ExitStatus> {
@@ -141,20 +141,13 @@ fn tool_name_from_file_name(file_name: &OsStr) -> OsString {
     }
 }
 
-fn command_for<A>(exe: &OsStr, args: A, path_var: &OsStr, current_dir: Option<&Path>) -> Command
+fn command_for<A>(exe: &OsStr, args: A, path_var: &OsStr) -> Command
 where
     A: IntoIterator<Item = OsString>,
 {
     let mut command = create_command(exe);
     command.args(args);
     command.env("PATH", path_var);
-
-    match current_dir {
-        Some(dir) => {
-            command.current_dir(dir);
-        }
-        None => {}
-    }
     command
 }
 

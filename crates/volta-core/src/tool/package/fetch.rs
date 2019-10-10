@@ -89,7 +89,7 @@ fn fetch_remote_distro(
 
     let dir = path.parent().unwrap();
 
-    let command = npm_pack_command_for(name, &details.version.to_string()[..], session, Some(dir))?;
+    let command = npm_pack_command_for(name, &details.version.to_string()[..], session, dir)?;
     debug!("Running command: `{:?}`", command);
 
     let spinner = progress_spinner(&format!(
@@ -143,14 +143,16 @@ fn npm_pack_command_for(
     name: &str,
     version: &str,
     session: &mut Session,
-    current_dir: Option<&Path>,
+    current_dir: &Path,
 ) -> Fallible<ToolCommand> {
     let args = vec![
         OsString::from("pack"),
         OsString::from("--no-update-notifier"),
         OsString::from(format!("{}@{}", name, version)),
     ];
-    run::npm::command(args, session, current_dir)
+    let mut command = run::npm::command(args, session)?;
+    command.current_dir(current_dir);
+    Ok(command)
 }
 
 fn unpack_archive(archive: Box<dyn Archive>, name: &str, version: &Version) -> Fallible<()> {

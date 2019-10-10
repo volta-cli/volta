@@ -1,5 +1,4 @@
 use std::ffi::{OsStr, OsString};
-use std::path::Path;
 
 use super::ToolCommand;
 use crate::error::ErrorDetails;
@@ -11,11 +10,7 @@ use crate::version::VersionSpec;
 use log::debug;
 use volta_fail::Fallible;
 
-pub(crate) fn command<A>(
-    args: A,
-    session: &mut Session,
-    current_dir: Option<&Path>,
-) -> Fallible<ToolCommand>
+pub(crate) fn command<A>(args: A, session: &mut Session) -> Fallible<ToolCommand>
 where
     A: IntoIterator<Item = OsString>,
 {
@@ -37,12 +32,7 @@ where
                 debug!("Using {} from {} configuration", version, source);
 
                 let path = image.path()?;
-                Ok(ToolCommand::direct(
-                    OsStr::new("npx"),
-                    args,
-                    &path,
-                    current_dir,
-                ))
+                Ok(ToolCommand::direct(OsStr::new("npx"), args, &path))
             } else {
                 Err(ErrorDetails::NpxNotAvailable {
                     version: image.node().npm.to_string(),
@@ -52,12 +42,7 @@ where
         }
         None => {
             debug!("Could not find Volta-managed npx, delegating to system");
-            ToolCommand::passthrough(
-                OsStr::new("npx"),
-                args,
-                ErrorDetails::NoPlatform,
-                current_dir,
-            )
+            ToolCommand::passthrough(OsStr::new("npx"), args, ErrorDetails::NoPlatform)
         }
     }
 }
