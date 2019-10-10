@@ -87,6 +87,8 @@ fn fetch_remote_distro(
         path: path.to_path_buf(),
     })?;
 
+    // path.parent() will always be Some, because the previous call to ensure_containing_dir_exists would
+    // error otherwise
     let dir = path.parent().unwrap();
 
     let command = npm_pack_command_for(name, &details.version.to_string()[..], session, dir)?;
@@ -133,13 +135,17 @@ fn fetch_remote_distro(
         });
     }
 
-    debug!(
-        "Moving the tarball from {:?} to the expected path {:?}",
-        tarball_from_npm_pack, path
-    );
-    rename(tarball_from_npm_pack, path).with_context(|_| ErrorDetails::NpmPackUnpackError {
-        package: tool_version(name, details.version.to_string()),
-    })?;
+    // If `npm pack` didn't name the tarball what we expect (usually because of scoped packages),
+    // move it to where we expect it to be.
+    if tarball_from_npm_pack != path {
+        debug!(
+            "Moving the tarball from {:?} to the expected path {:?}",
+            tarball_from_npm_pack, path
+        );
+        rename(tarball_from_npm_pack, path).with_context(|_| ErrorDetails::NpmPackUnpackError {
+            package: tool_version(name, details.version.to_string()),
+        })?;
+    }
 
     debug!("Attempting to load {:?}", path);
     let distro = File::open(path).with_context(|_| ErrorDetails::NpmPackUnpackError {
@@ -151,7 +157,7 @@ fn fetch_remote_distro(
     })
 }
 
-// build a command to run `npm pack` with json output
+// build a command to run `npm pack`
 fn npm_pack_command_for(
     name: &str,
     version: &str,
