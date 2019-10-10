@@ -1,24 +1,25 @@
 //! Provides fetcher for 3rd-party packages
 
+use std::ffi::OsString;
 use std::fs::{rename, write, File};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
-use super::super::download_tool_error;
 use crate::error::ErrorDetails;
 use crate::fs::{create_staging_dir, ensure_dir_does_not_exist, read_dir_eager, read_file};
 use crate::layout::volta_home;
-use crate::style::{progress_bar, tool_version};
-use crate::tool::{self, PackageDetails};
-use crate::version::VersionSpec;
+use crate::run::{self, ToolCommand};
+use crate::session::Session;
+use crate::style::{progress_bar, progress_spinner, tool_version};
+use crate::tool::PackageDetails;
 use archive::{Archive, Tarball};
 use fs_utils::ensure_containing_dir_exists;
 use log::debug;
 use semver::Version;
 use sha1::{Digest, Sha1};
-use volta_fail::{Fallible, ResultExt};
+use volta_fail::{throw, Fallible, ResultExt};
 
-pub fn fetch(name: &str, details: &PackageDetails) -> Fallible<()> {
+pub fn fetch(name: &str, details: &PackageDetails, session: &mut Session) -> Fallible<()> {
     let version_string = details.version.to_string();
     let home = volta_home()?;
     let cache_file = home.package_distro_file(&name, &version_string);
@@ -34,11 +35,7 @@ pub fn fetch(name: &str, details: &PackageDetails) -> Fallible<()> {
             (archive, true)
         }
         None => {
-            let archive = fetch_remote_distro(
-                tool::Spec::Package(name.into(), VersionSpec::exact(&details.version)),
-                &details.tarball_url,
-                &cache_file,
-            )?;
+            let archive = fetch_remote_distro(&cache_file, &name, &details, session)?;
             (archive, false)
         }
     };
@@ -80,9 +77,101 @@ fn load_cached_distro(file: &Path, shasum_file: &Path) -> Option<Box<dyn Archive
     Tarball::load(distro).ok()
 }
 
-fn fetch_remote_distro(spec: tool::Spec, url: &str, path: &Path) -> Fallible<Box<dyn Archive>> {
-    debug!("Downloading {} from {}, to {}", &spec, &url, path.display());
-    Tarball::fetch(url, path).with_context(download_tool_error(spec, url.to_string()))
+fn fetch_remote_distro(
+    path: &Path,
+    name: &str,
+    details: &PackageDetails,
+    session: &mut Session,
+) -> Fallible<Box<dyn Archive>> {
+    ensure_containing_dir_exists(&path).with_context(|_| ErrorDetails::ContainingDirError {
+        path: path.to_path_buf(),
+    })?;
+
+    // path.parent() will always be Some, because the previous call to ensure_containing_dir_exists would
+    // error otherwise
+    let dir = path.parent().unwrap();
+
+    let command = npm_pack_command_for(name, &details.version.to_string()[..], session, dir)?;
+    debug!("Running command: `{:?}`", command);
+
+    debug!(
+        "Downloading {} via npm pack to {}",
+        tool_version(name, details.version.to_string()),
+        dir.to_str().unwrap()
+    );
+    let spinner = progress_spinner(&format!(
+        "Downloading {}",
+        tool_version(name, details.version.to_string()),
+    ));
+    let output = command.output()?;
+    spinner.finish_and_clear();
+
+    if !output.status.success() {
+        debug!(
+            "Command failed, stderr is:\n{}",
+            String::from_utf8_lossy(&output.stderr).to_string()
+        );
+        debug!("Exit code is {:?}", output.status.code());
+        throw!(ErrorDetails::NpmPackFetchError {
+            package: tool_version(name, details.version.to_string()),
+        });
+    }
+
+    let filename = String::from_utf8_lossy(&output.stdout);
+    // The output from `npm pack` contains a newline, so we'll trim it here.
+    let trimmed_filename = filename.trim();
+
+    if trimmed_filename.is_empty() {
+        throw!(ErrorDetails::NpmPackUnpackError {
+            package: tool_version(name, details.version.to_string())
+        });
+    }
+
+    let tarball_from_npm_pack = dir.join(trimmed_filename.to_string());
+
+    if !tarball_from_npm_pack.exists() {
+        throw!(ErrorDetails::NpmPackUnpackError {
+            package: tool_version(name, details.version.to_string())
+        });
+    }
+
+    // If `npm pack` didn't name the tarball what we expect (usually because of scoped packages),
+    // move it to where we expect it to be.
+    if tarball_from_npm_pack != path {
+        debug!(
+            "Moving the tarball from {:?} to the expected path {:?}",
+            tarball_from_npm_pack, path
+        );
+        rename(tarball_from_npm_pack, path).with_context(|_| ErrorDetails::NpmPackUnpackError {
+            package: tool_version(name, details.version.to_string()),
+        })?;
+    }
+
+    debug!("Attempting to load {:?}", path);
+    let distro = File::open(path).with_context(|_| ErrorDetails::NpmPackUnpackError {
+        package: tool_version(name, details.version.to_string()),
+    })?;
+
+    Tarball::load(distro).with_context(|_| ErrorDetails::NpmPackUnpackError {
+        package: tool_version(name, details.version.to_string()),
+    })
+}
+
+// build a command to run `npm pack`
+fn npm_pack_command_for(
+    name: &str,
+    version: &str,
+    session: &mut Session,
+    current_dir: &Path,
+) -> Fallible<ToolCommand> {
+    let args = vec![
+        OsString::from("pack"),
+        OsString::from("--no-update-notifier"),
+        OsString::from(format!("{}@{}", name, version)),
+    ];
+    let mut command = run::npm::command(args, session)?;
+    command.current_dir(current_dir);
+    Ok(command)
 }
 
 fn unpack_archive(archive: Box<dyn Archive>, name: &str, version: &Version) -> Fallible<()> {

@@ -100,6 +100,11 @@ impl ToolCommand {
         })
     }
 
+    pub(crate) fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut ToolCommand {
+        self.command.current_dir(dir);
+        self
+    }
+
     pub(crate) fn status(mut self) -> Fallible<ExitStatus> {
         self.command.status().with_context(|_| self.on_failure)
     }

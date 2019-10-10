@@ -221,6 +221,16 @@ pub enum ErrorDetails {
         package: String,
     },
 
+    /// Thrown when there is an error running `npm pack`
+    NpmPackFetchError {
+        package: String,
+    },
+
+    /// Thrown when there is issue finding, loading, or unpacking the file downloaded via `npm pack`
+    NpmPackUnpackError {
+        package: String,
+    },
+
     NpxNotAvailable {
         version: String,
     },
@@ -815,6 +825,20 @@ Use `volta install yarn` to select a default version (see `volta help install fo
             ),
             // No CTA as this error is purely informational
             ErrorDetails::NoVersionsFound => write!(f, "No tool versions found"),
+            ErrorDetails::NpmPackFetchError { package } => write!(
+                f,
+                "Could not download '{}' via npm pack
+
+Please verify your internet connection and ensure the correct version is specified.",
+                package
+            ),
+            ErrorDetails::NpmPackUnpackError { package } => write!(
+                f,
+                "Could not read archive for '{}' from npm pack.
+
+{}",
+                package, PERMISSIONS_CTA
+            ),
             ErrorDetails::NpmViewMetadataFetchError { package } => write!(
                 f,
                 "Could not download package metadata for '{}'
@@ -1323,6 +1347,8 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::NotInPackage => ExitCode::ConfigurationError,
             ErrorDetails::NoUserYarn => ExitCode::ConfigurationError,
             ErrorDetails::NoVersionsFound => ExitCode::NoVersionMatch,
+            ErrorDetails::NpmPackFetchError { .. } => ExitCode::NetworkError,
+            ErrorDetails::NpmPackUnpackError { .. } => ExitCode::FileSystemError,
             ErrorDetails::NpmViewMetadataFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::NpmViewMetadataParseError { .. } => ExitCode::UnknownError,
             ErrorDetails::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
