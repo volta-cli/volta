@@ -107,29 +107,19 @@ fn fetch_remote_distro(
         );
         debug!("Exit code is {:?}", output.status.code());
         throw!(ErrorDetails::NpmPackMetadataFetchError {
-            package: name.to_string(),
+            package: tool_version(name, details.version.to_string()),
         });
     }
 
-    let response_json = String::from_utf8_lossy(&output.stdout);
+    let filename = String::from_utf8_lossy(&output.stdout);
+    // The output from `npm pack` contains a newline, so we'll trim it here.
+    let trimmed_filename = filename.trim();
+    let tarball_from_npm_pack = dir.join(trimmed_filename.to_string());
 
-    let metadatas: Vec<super::serial::NpmPackData> = serde_json::de::from_str(&response_json)
-        .with_context(|_| ErrorDetails::NpmPackMetadataParseError {
-            package: name.to_string(),
-        })?;
-
-    debug!("Finding the first/only record from the output");
-    let metadata: super::serial::NpmPackData = match metadatas.iter().next() {
-        Some(data) => data.clone(),
-        // TODO: Make this be a correct error
-        None => throw!(ErrorDetails::PackageNotFound {
-            package: name.to_string()
-        }),
-    };
-
-    let tarball_from_npm_pack = dir.join(metadata.filename);
-
-    debug!("Moving the tarball to the expected path");
+    debug!(
+        "Moving the tarball from {:?} to the expected path {:?}",
+        tarball_from_npm_pack, path
+    );
     rename(tarball_from_npm_pack, path).with_context(|_| ErrorDetails::SetupToolImageError {
         tool: name.into(),
         version: details.version.to_string(),
@@ -157,7 +147,7 @@ fn npm_pack_command_for(
 ) -> Fallible<ToolCommand> {
     let args = vec![
         OsString::from("pack"),
-        OsString::from("--json"),
+        OsString::from("--no-update-notifier"),
         OsString::from(format!("{}@{}", name, version)),
     ];
     run::npm::command(args, session, current_dir)
