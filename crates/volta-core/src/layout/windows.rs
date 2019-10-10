@@ -12,14 +12,14 @@ pub(super) fn default_home_dir() -> Fallible<PathBuf> {
 }
 
 cfg_if! {
-    if #[cfg(test)] {
+    if #[cfg(all(test, not(feature = "volta-updates")))] {
         pub(super) fn default_install_dir() -> Fallible<PathBuf> {
             // None of the current tests require that this be a directory that exists, but there are
             // some that need this function to not result in an error. Since the tests are run on
             // machines that might not have the Volta keys in the registry, use a dummy value
             Ok(PathBuf::from(r#"Z:\"#))
         }
-    } else {
+    } else if #[cfg(not(feature = "volta-updates"))] {
         use std::io;
         use winreg::{RegKey, enums::HKEY_LOCAL_MACHINE};
         use volta_fail::ResultExt;

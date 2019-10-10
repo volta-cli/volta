@@ -10,6 +10,7 @@ pub(super) fn default_home_dir() -> Fallible<PathBuf> {
     Ok(home)
 }
 
+#[cfg(not(feature = "volta-updates"))]
 pub(super) fn default_install_dir() -> Fallible<PathBuf> {
     // default location for the install directory
     // (this will be the case for the majority of installs)

@@ -397,6 +397,7 @@ pub enum ErrorDetails {
     },
 
     /// Thrown when Volta cannot find the shim executable
+    #[cfg(not(feature = "volta-updates"))]
     ShimExecutableNotFound,
 
     /// Thrown when trying to remove a built-in shim (`node`, `yarn`, etc.)
@@ -1137,6 +1138,7 @@ at {}
 {}"#,
                 name, PERMISSIONS_CTA
             ),
+            #[cfg(not(feature = "volta-updates"))]
             ErrorDetails::ShimExecutableNotFound => write!(
                 f,
                 "Volta shim executable not found!
@@ -1387,6 +1389,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::SetupToolImageError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ShimCreateError { .. } => ExitCode::FileSystemError,
+            #[cfg(not(feature = "volta-updates"))]
             ErrorDetails::ShimExecutableNotFound => ExitCode::EnvironmentError,
             ErrorDetails::ShimRemoveBuiltInError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::ShimRemoveError { .. } => ExitCode::FileSystemError,

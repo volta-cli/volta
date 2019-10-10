@@ -50,6 +50,23 @@ pub fn volta_install<'a>() -> Fallible<&'a VoltaInstall> {
     })
 }
 
+/// Determine the binary install directory from the currently running executable
+///
+/// The volta-shim and volta binaries will be installed in the same location, so we can use the
+/// currently running executable to find the binary install directory. Note that we need to
+/// canonicalize the path we get from current_exe to make sure we resolve symlinks and find the
+/// actual binary files
+#[cfg(feature = "volta-updates")]
+fn default_install_dir() -> Fallible<PathBuf> {
+    env::current_exe()
+        .map(|mut path| {
+            path.pop(); // Remove the executable name from the path
+            path
+        })
+        .and_then(|path| path.canonicalize())
+        .with_context(|_| ErrorDetails::NoInstallDir)
+}
+
 pub fn ensure_volta_dirs_exist() -> Fallible<()> {
     let home = volta_home()?;
     if !home.root().exists() {
