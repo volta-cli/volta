@@ -92,10 +92,14 @@ fn fetch_remote_distro(
     let command = npm_pack_command_for(name, &details.version.to_string()[..], session, dir)?;
     debug!("Running command: `{:?}`", command);
 
-    let spinner = progress_spinner(&format!(
-        "Downloading via {} npm pack to {}",
+    debug!(
+        "Downloading {} via npm pack to {}",
         tool_version(name, details.version.to_string()),
         dir.to_str().unwrap()
+    );
+    let spinner = progress_spinner(&format!(
+        "Downloading {}",
+        tool_version(name, details.version.to_string()),
     ));
     let output = command.output()?;
     spinner.finish_and_clear();
@@ -106,7 +110,7 @@ fn fetch_remote_distro(
             String::from_utf8_lossy(&output.stderr).to_string()
         );
         debug!("Exit code is {:?}", output.status.code());
-        throw!(ErrorDetails::NpmPackMetadataFetchError {
+        throw!(ErrorDetails::NpmPackFetchError {
             package: tool_version(name, details.version.to_string()),
         });
     }
@@ -114,27 +118,36 @@ fn fetch_remote_distro(
     let filename = String::from_utf8_lossy(&output.stdout);
     // The output from `npm pack` contains a newline, so we'll trim it here.
     let trimmed_filename = filename.trim();
+
+    if trimmed_filename.is_empty() {
+        throw!(ErrorDetails::NpmPackUnpackError {
+            package: tool_version(name, details.version.to_string())
+        });
+    }
+
     let tarball_from_npm_pack = dir.join(trimmed_filename.to_string());
+
+    if !tarball_from_npm_pack.exists() {
+        throw!(ErrorDetails::NpmPackUnpackError {
+            package: tool_version(name, details.version.to_string())
+        });
+    }
 
     debug!(
         "Moving the tarball from {:?} to the expected path {:?}",
         tarball_from_npm_pack, path
     );
-    rename(tarball_from_npm_pack, path).with_context(|_| ErrorDetails::SetupToolImageError {
-        tool: name.into(),
-        version: details.version.to_string(),
-        dir: dir.to_path_buf(),
+    rename(tarball_from_npm_pack, path).with_context(|_| ErrorDetails::NpmPackUnpackError {
+        package: tool_version(name, details.version.to_string()),
     })?;
 
-    debug!("Attempting to load the now cached tarball from disk");
-    // TODO: Make this be a correct error
-    let distro = File::open(path).with_context(|_| ErrorDetails::PackageNotFound {
-        package: name.to_string(),
+    debug!("Attempting to load {:?}", path);
+    let distro = File::open(path).with_context(|_| ErrorDetails::NpmPackUnpackError {
+        package: tool_version(name, details.version.to_string()),
     })?;
 
-    // TODO: Make this be a correct error
-    Tarball::load(distro).with_context(|_| ErrorDetails::PackageNotFound {
-        package: name.to_string(),
+    Tarball::load(distro).with_context(|_| ErrorDetails::NpmPackUnpackError {
+        package: tool_version(name, details.version.to_string()),
     })
 }
 
