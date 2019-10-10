@@ -1,13 +1,13 @@
 //! Provides fetcher for Node distributions
 
 use std::fs::{read_to_string, rename, write, File};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use super::super::download_tool_error;
 use crate::error::ErrorDetails;
 use crate::fs::{create_staging_dir, create_staging_file};
 use crate::hook::ToolHooks;
-use crate::path;
+use crate::layout::volta_home;
 use crate::style::{progress_bar, tool_version};
 use crate::tool::{self, Node, NodeVersion};
 use crate::version::VersionSpec;
@@ -31,9 +31,23 @@ cfg_if! {
     }
 }
 
+fn npm_manifest_path(version: &str) -> PathBuf {
+    let mut manifest = PathBuf::from(Node::archive_basename(version));
+
+    #[cfg(unix)]
+    manifest.push("lib");
+
+    manifest.push("node_modules");
+    manifest.push("npm");
+    manifest.push("package.json");
+
+    manifest
+}
+
 pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Node>>) -> Fallible<NodeVersion> {
-    let node_dir = path::node_inventory_dir()?;
-    let cache_file = node_dir.join(path::node_distro_file_name(&version.to_string()));
+    let home = volta_home()?;
+    let node_dir = home.node_inventory_dir();
+    let cache_file = node_dir.join(Node::archive_filename(&version.to_string()));
 
     let (archive, staging) = match load_cached_distro(&cache_file) {
         Some(archive) => {
@@ -71,7 +85,7 @@ pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Node>>) -> Fallible<Nod
 }
 
 /// Unpack the node archive into the image directory so that it is ready for use
-fn unpack_archive(archive: Box<Archive>, version: &Version) -> Fallible<NodeVersion> {
+fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<NodeVersion> {
     let temp = create_staging_dir()?;
     debug!("Unpacking node into '{}'", temp.path().display());
 
@@ -94,19 +108,16 @@ fn unpack_archive(archive: Box<Archive>, version: &Version) -> Fallible<NodeVers
         })?;
 
     // Save the npm version number in the npm version file for this distro
-    let npm_package_json = temp
-        .path()
-        .join(path::node_archive_npm_package_json_path(&version_string));
+    let npm_package_json = temp.path().join(npm_manifest_path(&version_string));
     let npm = Manifest::version(&npm_package_json)?;
     save_default_npm_version(&version, &npm)?;
 
-    let dest = path::node_image_dir(&version_string, &npm.to_string())?;
+    let dest = volta_home()?.node_image_dir(&version_string, &npm.to_string());
     ensure_containing_dir_exists(&dest)
         .with_context(|_| ErrorDetails::ContainingDirError { path: dest.clone() })?;
 
     rename(
-        temp.path()
-            .join(path::node_archive_root_dir_name(&version_string)),
+        temp.path().join(Node::archive_basename(&version_string)),
         &dest,
     )
     .with_context(|_| ErrorDetails::SetupToolImageError {
@@ -142,7 +153,7 @@ fn load_cached_distro(file: &Path) -> Option<Box<dyn Archive>> {
 /// Determine the remote URL to download from, using the hooks if available
 fn determine_remote_url(version: &Version, hooks: Option<&ToolHooks<Node>>) -> Fallible<String> {
     let version_str = version.to_string();
-    let distro_file_name = path::node_distro_file_name(&version_str);
+    let distro_file_name = Node::archive_filename(&version_str);
     match hooks {
         Some(&ToolHooks {
             distro: Some(ref hook),
@@ -165,7 +176,7 @@ fn fetch_remote_distro(
     version: &Version,
     url: &str,
     staging_path: &Path,
-) -> Fallible<Box<Archive>> {
+) -> Fallible<Box<dyn Archive>> {
     debug!("Downloading {} from {}", tool_version("node", version), url);
     archive::fetch_native(url, staging_path).with_context(download_tool_error(
         tool::Spec::Node(VersionSpec::exact(&version)),
@@ -191,7 +202,7 @@ impl Manifest {
 
 /// Load the local npm version file to determine the default npm version for a given version of Node
 pub fn load_default_npm_version(node: &Version) -> Fallible<Version> {
-    let npm_version_file_path = path::node_npm_version_file(&node.to_string())?;
+    let npm_version_file_path = volta_home()?.node_npm_version_file(&node.to_string());
     let npm_version = read_to_string(&npm_version_file_path).with_context(|_| {
         ErrorDetails::ReadDefaultNpmError {
             file: npm_version_file_path,
@@ -202,7 +213,7 @@ pub fn load_default_npm_version(node: &Version) -> Fallible<Version> {
 
 /// Save the default npm version to the filesystem for a given version of Node
 fn save_default_npm_version(node: &Version, npm: &Version) -> Fallible<()> {
-    let npm_version_file_path = path::node_npm_version_file(&node.to_string())?;
+    let npm_version_file_path = volta_home()?.node_npm_version_file(&node.to_string());
     write(&npm_version_file_path, npm.to_string().as_bytes()).with_context(|_| {
         ErrorDetails::WriteDefaultNpmError {
             file: npm_version_file_path,

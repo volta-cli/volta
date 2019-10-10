@@ -15,7 +15,7 @@ pub(crate) fn success_prefix() -> StyledObject<&'static str> {
 }
 
 /// Format the underlying cause of an error
-pub(crate) fn format_error_cause(inner: &Fail) -> String {
+pub(crate) fn format_error_cause(inner: &dyn Fail) -> String {
     format!(
         "{}{} {}",
         style("Error cause").underlined().bold(),

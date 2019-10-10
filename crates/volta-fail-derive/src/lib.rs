@@ -6,8 +6,7 @@ use syn;
 
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
-use syn::Meta::{List, NameValue, Word};
-use syn::NestedMeta::{Literal, Meta};
+use syn::Meta::{List, NameValue, Path};
 use syn::{DeriveInput, Lit, NestedMeta};
 
 #[proc_macro_derive(VoltaFail, attributes(volta_fail))]
@@ -21,15 +20,15 @@ pub fn volta_fail(token_stream: TokenStream) -> TokenStream {
     for meta in input.attrs.iter().filter_map(get_volta_fail_meta_items) {
         for item in meta {
             match item {
-                Literal(_) => {
+                NestedMeta::Lit(_) => {
                     panic!("#[volta_fail()]: must be name/value pairs, not a literal");
                 }
 
-                Meta(List(_)) => {
+                NestedMeta::Meta(List(_)) => {
                     panic!("#[volta_fail()]: must be name/value pairs, not a list");
                 }
 
-                Meta(NameValue(ref m)) if m.ident == "code" => {
+                NestedMeta::Meta(NameValue(ref m)) if m.path.is_ident("code") => {
                     if let Lit::Str(s) = &m.lit {
                         code = Ident::new(&s.value(), Span::call_site());
                         code_set = true;
@@ -39,11 +38,14 @@ pub fn volta_fail(token_stream: TokenStream) -> TokenStream {
                     }
                 }
 
-                Meta(NameValue(m)) => {
-                    panic!("#[volta_fail()]: not a recognized name: '{}'", m.ident);
+                NestedMeta::Meta(NameValue(m)) => {
+                    panic!(
+                        "#[volta_fail()]: not a recognized name: '{}'",
+                        m.path.to_token_stream()
+                    );
                 }
 
-                Meta(Word(_)) => {
+                NestedMeta::Meta(Path(_)) => {
                     panic!("#[volta_fail()]: must be name/value pairs, not an identifier");
                 }
             }
@@ -67,8 +69,8 @@ pub fn volta_fail(token_stream: TokenStream) -> TokenStream {
 
 fn get_volta_fail_meta_items(attr: &syn::Attribute) -> Option<Vec<NestedMeta>> {
     if attr.path.segments.len() == 1 && attr.path.segments[0].ident == "volta_fail" {
-        match attr.interpret_meta() {
-            Some(List(ref meta)) => Some(meta.nested.iter().cloned().collect()),
+        match attr.parse_meta() {
+            Ok(List(ref meta)) => Some(meta.nested.iter().cloned().collect()),
 
             _ => {
                 panic!("#[volta_fail()] must be a list of attributes");

@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 use crate::error::ErrorDetails;
 use crate::fs::{create_staging_dir, ensure_dir_does_not_exist, read_dir_eager, read_file};
-use crate::path;
+use crate::layout::volta_home;
 use crate::run::{self, ToolCommand};
 use crate::session::Session;
 use crate::style::{progress_bar, progress_spinner, tool_version};
@@ -21,8 +21,9 @@ use volta_fail::{throw, Fallible, ResultExt};
 
 pub fn fetch(name: &str, details: &PackageDetails, session: &mut Session) -> Fallible<()> {
     let version_string = details.version.to_string();
-    let cache_file = path::package_distro_file(&name, &version_string)?;
-    let shasum_file = path::package_distro_shasum(&name, &version_string)?;
+    let home = volta_home()?;
+    let cache_file = home.package_distro_file(&name, &version_string);
+    let shasum_file = home.package_distro_shasum(&name, &version_string);
 
     let (archive, cached) = match load_cached_distro(&cache_file, &shasum_file) {
         Some(archive) => {
@@ -81,7 +82,7 @@ fn fetch_remote_distro(
     name: &str,
     details: &PackageDetails,
     session: &mut Session,
-) -> Fallible<Box<Archive>> {
+) -> Fallible<Box<dyn Archive>> {
     ensure_containing_dir_exists(&path).with_context(|_| ErrorDetails::ContainingDirError {
         path: path.to_path_buf(),
     })?;
@@ -162,7 +163,7 @@ fn npm_pack_command_for(
     run::npm::command(args, session, current_dir)
 }
 
-fn unpack_archive(archive: Box<Archive>, name: &str, version: &Version) -> Fallible<()> {
+fn unpack_archive(archive: Box<dyn Archive>, name: &str, version: &Version) -> Fallible<()> {
     let temp = create_staging_dir()?;
     debug!("Unpacking {} into '{}'", name, temp.path().display());
 
@@ -183,7 +184,7 @@ fn unpack_archive(archive: Box<Archive>, name: &str, version: &Version) -> Falli
             version: version.to_string(),
         })?;
 
-    let image_dir = path::package_image_dir(&name, &version.to_string())?;
+    let image_dir = volta_home()?.package_image_dir(&name, &version.to_string());
     // ensure that the dir where this will be unpacked exists
     ensure_containing_dir_exists(&image_dir).with_context(|_| {
         ErrorDetails::ContainingDirError {

@@ -3,7 +3,7 @@ use std::{collections::BTreeSet, iter::Iterator};
 use log::debug;
 use walkdir::WalkDir;
 
-use crate::path;
+use crate::layout::volta_home;
 use crate::tool::PackageConfig;
 use volta_fail::Fallible;
 
@@ -15,7 +15,7 @@ pub struct PackageCollection(BTreeSet<PackageConfig>);
 
 impl PackageCollection {
     pub(crate) fn load() -> Fallible<Self> {
-        let package_dir = path::user_package_dir()?;
+        let package_dir = volta_home()?.user_package_dir();
 
         WalkDir::new(&package_dir)
             .max_depth(1)

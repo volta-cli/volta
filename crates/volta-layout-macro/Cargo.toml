@@ -1,7 +1,7 @@
 [package]
-name = "volta-fail-derive"
+name = "volta-layout-macro"
 version = "0.1.0"
-authors = ["Ben Blank <ben.blank@gmail.com>"]
+authors = ["David Herman <david.herman@gmail.com>"]
 edition = "2018"
 
 [lib]
