@@ -2435,7 +2435,7 @@ dependencies = [
  "validate-npm-package-name 0.1.0",
  "volta-fail 0.1.0",
  "volta-fail-derive 0.1.0",
- "volta-layout 0.1.0",
+ "volta-layout 0.1.1",
  "walkdir 2.2.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "winfolder 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "winreg 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2462,7 +2462,7 @@ dependencies = [
 
 [[package]]
 name = "volta-layout"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "volta-layout-macro 0.1.0",
 ]

@@ -217,6 +217,9 @@ mod test {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
         pathbufs.push(volta_home().unwrap().shim_dir().to_owned());
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
+        #[cfg(feature = "volta-updates")]
+        pathbufs.push(volta_install().unwrap().root().to_owned());
+        #[cfg(not(feature = "volta-updates"))]
         pathbufs.push(volta_install().unwrap().bin_dir());
         pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
 
@@ -304,6 +307,9 @@ mod test {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
         pathbufs.push(volta_home().unwrap().shim_dir().to_owned());
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
+        #[cfg(feature = "volta-updates")]
+        pathbufs.push(volta_install().unwrap().root().to_owned());
+        #[cfg(not(feature = "volta-updates"))]
         pathbufs.push(volta_install().unwrap().bin_dir());
         pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
 
@@ -352,6 +358,9 @@ mod test {
     #[cfg(windows)]
     fn test_system_enabled_path() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
+        #[cfg(feature = "volta-updates")]
+        pathbufs.push(volta_install().unwrap().root().to_owned());
+        #[cfg(not(feature = "volta-updates"))]
         pathbufs.push(volta_install().unwrap().bin_dir());
         pathbufs.push(volta_home().unwrap().shim_dir().to_owned());
         pathbufs.push(PathBuf::from("C:\\\\somebin"));

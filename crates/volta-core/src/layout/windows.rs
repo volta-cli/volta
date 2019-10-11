@@ -46,5 +46,10 @@ cfg_if! {
 pub fn env_paths() -> Fallible<Vec<PathBuf>> {
     let home = volta_home()?;
     let install = volta_install()?;
-    Ok(vec![home.shim_dir().to_owned(), install.bin_dir()])
+
+    #[cfg(feature = "volta-updates")]
+    return Ok(vec![home.shim_dir().to_owned(), install.root().to_owned()]);
+
+    #[cfg(not(feature = "volta-updates"))]
+    return Ok(vec![home.shim_dir().to_owned(), install.bin_dir()]);
 }

@@ -17,6 +17,11 @@ volta-updates = ["volta-core/volta-updates"]
 name = "shim"
 path = "src/shim.rs"
 
+[[bin]]
+name = "volta-shim"
+path = "src/volta-shim.rs"
+required-features = ["volta-updates"]
+
 [dependencies]
 atty = "0.2"
 volta-core = { path = "crates/volta-core" }

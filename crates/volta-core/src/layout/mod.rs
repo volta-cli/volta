@@ -8,7 +8,14 @@ use cfg_if::cfg_if;
 use double_checked_cell::DoubleCheckedCell;
 use lazy_static::lazy_static;
 use volta_fail::{Fallible, ResultExt};
-use volta_layout::v0::{VoltaHome, VoltaInstall};
+
+cfg_if! {
+    if #[cfg(feature = "volta-updates")] {
+        use volta_layout::v1::{VoltaHome, VoltaInstall};
+    } else {
+        use volta_layout::v0::{VoltaHome, VoltaInstall};
+    }
+}
 
 cfg_if! {
     if #[cfg(unix)] {

@@ -690,7 +690,11 @@ fn volta_exe() -> PathBuf {
 }
 
 pub fn shim_exe() -> PathBuf {
-    cargo_dir().join(format!("shim{}", env::consts::EXE_SUFFIX))
+    #[cfg(feature = "volta-updates")]
+    return cargo_dir().join(format!("volta-shim{}", env::consts::EXE_SUFFIX));
+
+    #[cfg(not(feature = "volta-updates"))]
+    return cargo_dir().join(format!("shim{}", env::consts::EXE_SUFFIX));
 }
 
 fn split_and_add_args(p: &mut ProcessBuilder, s: &str) {
