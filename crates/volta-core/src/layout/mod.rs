@@ -74,23 +74,25 @@ fn default_install_dir() -> Fallible<PathBuf> {
         .with_context(|_| ErrorDetails::NoInstallDir)
 }
 
+pub fn bootstrap_volta_dirs() -> Fallible<()> {
+    let home = volta_home()?;
+    home.create()
+        .with_context(|_| ErrorDetails::CreateDirError {
+            dir: home.root().to_owned(),
+        })?;
+
+    shim::create("node")?;
+    shim::create("yarn")?;
+    shim::create("npm")?;
+    shim::create("npx")?;
+
+    Ok(())
+}
+
 pub fn ensure_volta_dirs_exist() -> Fallible<()> {
     let home = volta_home()?;
     if !home.root().exists() {
-        home.create()
-            .with_context(|_| ErrorDetails::CreateDirError {
-                dir: home.root().to_owned(),
-            })?;
-
-        // also ensure the basic shims exist
-        // this is only for unix until the update process is refactored
-        #[cfg(unix)]
-        {
-            shim::create("node")?;
-            shim::create("yarn")?;
-            shim::create("npm")?;
-            shim::create("npx")?;
-        }
+        bootstrap_volta_dirs()?;
     }
 
     Ok(())

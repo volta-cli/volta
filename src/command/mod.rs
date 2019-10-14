@@ -8,8 +8,9 @@ pub(crate) mod fetch;
 pub(crate) mod install;
 pub(crate) mod list;
 pub(crate) mod pin;
+#[cfg(feature = "volta-updates")]
+pub(crate) mod setup;
 pub(crate) mod uninstall;
-#[macro_use]
 pub(crate) mod r#use;
 pub(crate) mod which;
 
@@ -25,6 +26,8 @@ pub(crate) use install::Install;
 pub(crate) use list::List;
 pub(crate) use pin::Pin;
 pub(crate) use r#use::Use;
+#[cfg(feature = "volta-updates")]
+pub(crate) use setup::Setup;
 pub(crate) use uninstall::Uninstall;
 
 use volta_core::session::Session;

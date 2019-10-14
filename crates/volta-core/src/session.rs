@@ -43,6 +43,8 @@ pub enum ActivityKind {
     Shim,
     Completions,
     Which,
+    #[cfg(feature = "volta-updates")]
+    Setup,
 }
 
 impl Display for ActivityKind {
@@ -68,6 +70,8 @@ impl Display for ActivityKind {
             ActivityKind::Help => "help",
             ActivityKind::Version => "version",
             ActivityKind::Binary => "binary",
+            #[cfg(feature = "volta-updates")]
+            ActivityKind::Setup => "setup",
             ActivityKind::Shim => "shim",
             ActivityKind::Completions => "completions",
             ActivityKind::Which => "which",

@@ -202,6 +202,13 @@ pub enum ErrorDetails {
     /// Thrown when Yarn is not set in a project
     NoProjectYarn,
 
+    /// Thrown when no shell profiles could be found
+    #[cfg(feature = "volta-updates")]
+    NoShellProfile {
+        env_profile: String,
+        bin_dir: PathBuf,
+    },
+
     /// Thrown when the user tries to pin Node or Yarn versions outside of a package.
     NotInPackage,
 
@@ -815,6 +822,15 @@ To run any Node command, first set a default version using `volta install node`"
 
 Use `volta pin yarn` to select a version (see `volta help pin` for more info)."
             ),
+            #[cfg(feature = "volta-updates")]
+            ErrorDetails::NoShellProfile { env_profile, bin_dir } => write!(
+                f,
+                "Could not locate user profile.
+Tried $PROFILE ({}), ~/.bashrc, ~/.bash_profile, ~/.zshrc, ~/.profile, and ~/.config/fish/config.fish
+
+Please create one of these and try again; or you can edit your profile manually to add '{}' to your PATH",
+                env_profile, bin_dir.display()
+            ),
             ErrorDetails::NotInPackage => write!(
                 f,
                 "Not in a node package.
@@ -1356,6 +1372,8 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::NoPinnedNodeVersion => ExitCode::ConfigurationError,
             ErrorDetails::NoPlatform => ExitCode::ConfigurationError,
             ErrorDetails::NoProjectYarn => ExitCode::ConfigurationError,
+            #[cfg(feature = "volta-updates")]
+            ErrorDetails::NoShellProfile { .. } => ExitCode::EnvironmentError,
             ErrorDetails::NotInPackage => ExitCode::ConfigurationError,
             ErrorDetails::NoUserYarn => ExitCode::ConfigurationError,
             ErrorDetails::NoVersionsFound => ExitCode::NoVersionMatch,

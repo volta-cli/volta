@@ -149,6 +149,11 @@ otherwise, they will be written to `stdout`.
         )
     )]
     Use(command::Use),
+
+    /// Enables Volta for the current user / shell
+    #[cfg(feature = "volta-updates")]
+    #[structopt(name = "setup", author = "", version = "")]
+    Setup(command::Setup),
 }
 
 impl Subcommand {
@@ -167,6 +172,8 @@ impl Subcommand {
             Subcommand::Completions(completions) => completions.run(session),
             Subcommand::Which(which) => which.run(session),
             Subcommand::Use(r#use) => r#use.run(session),
+            #[cfg(feature = "volta-updates")]
+            Subcommand::Setup(setup) => setup.run(session),
         }
     }
 }

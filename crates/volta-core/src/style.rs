@@ -10,7 +10,7 @@ const MAX_WIDTH: usize = 100;
 const MAX_PROGRESS_WIDTH: usize = 40;
 
 /// Generate the styled prefix for a success message
-pub(crate) fn success_prefix() -> StyledObject<&'static str> {
+pub fn success_prefix() -> StyledObject<&'static str> {
     style("success:").green().bold()
 }
 
