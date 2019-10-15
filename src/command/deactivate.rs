@@ -1,3 +1,4 @@
+use log::warn;
 use structopt::StructOpt;
 
 use volta_core::error::ErrorDetails;
@@ -24,6 +25,9 @@ impl Command for Deactivate {
         let postscript = Postscript::Deactivate(path);
 
         shell.save_postscript(&postscript)?;
+
+        warn!("`volta deactivate` is deprecated and will be removed in a future version.");
+
         session.add_event_end(ActivityKind::Deactivate, ExitCode::Success);
         Ok(ExitCode::Success)
     }

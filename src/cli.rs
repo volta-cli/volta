@@ -96,7 +96,7 @@ pub(crate) enum Subcommand {
     )]
     Current(command::Current),
 
-    /// Disables Volta in the current shell
+    /// [DEPRECATED] Disables Volta in the current shell
     #[structopt(
         name = "deactivate",
         author = "",
@@ -105,7 +105,7 @@ pub(crate) enum Subcommand {
     )]
     Deactivate(command::Deactivate),
 
-    /// Re-enables Volta in the current shell
+    /// [DEPRECATED] Re-enables Volta in the current shell
     #[structopt(
         name = "activate",
         author = "",
