@@ -1,3 +1,8 @@
+# Version 0.6.4
+
+- `volta install` now works for installing packages from a private, authenticated registry (#554)
+- `volta install` now has better diagnostic messages when things go wrong (#548)
+
 # Version 0.6.3
 
 - `volta install` will no longer error when installing a scoped binary package (#537)
