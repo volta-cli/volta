@@ -26,7 +26,10 @@ impl Command for Deactivate {
 
         shell.save_postscript(&postscript)?;
 
-        warn!("`volta deactivate` is deprecated and will be removed in a future version.");
+        warn!(
+            "`volta deactivate` is deprecated and will be removed in a future version.
+For more information, see https://github.com/volta-cli/volta/issues/562"
+        );
 
         session.add_event_end(ActivityKind::Deactivate, ExitCode::Success);
         Ok(ExitCode::Success)

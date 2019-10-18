@@ -27,7 +27,10 @@ impl Command for Activate {
 
         shell.save_postscript(&postscript)?;
 
-        warn!("`volta activate` is deprecated and will be removed in a future version.");
+        warn!(
+            "`volta activate` is deprecated and will be removed in a future version.
+For more information, see https://github.com/volta-cli/volta/issues/562"
+        );
 
         session.add_event_end(ActivityKind::Activate, ExitCode::Success);
         Ok(ExitCode::Success)
