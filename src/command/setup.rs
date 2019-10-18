@@ -2,7 +2,7 @@ use log::info;
 use structopt::StructOpt;
 use volta_core::layout::bootstrap_volta_dirs;
 use volta_core::session::{ActivityKind, Session};
-use volta_core::style::{progress_spinner, success_prefix};
+use volta_core::style::success_prefix;
 use volta_fail::{ExitCode, Fallible};
 
 use crate::command::Command;
@@ -17,10 +17,8 @@ impl Command for Setup {
         // ISSUE #566 - Once we have a working migration, we can leave the creation of the
         // directory structure to the migration and not have to call it here
 
-        let spinner = progress_spinner("Setting up Volta in your environment");
         bootstrap_volta_dirs()?;
         os::setup_environment()?;
-        spinner.finish_and_clear();
 
         info!(
             "{} Setup complete. Open a new terminal to start using Volta!",
@@ -34,6 +32,7 @@ impl Command for Setup {
 
 #[cfg(unix)]
 mod os {
+    use std::env;
     use std::fs::{File, OpenOptions};
     use std::io::{self, Read, Write};
     use std::path::Path;
@@ -62,37 +61,42 @@ mod os {
         let home = volta_home()?;
 
         debug!("Searching for profiles to update");
-        let found_profile = PROFILES.iter().fold(false, |prev, path| {
-            let profile = user_home_dir.join(path);
-            match check_profile(&profile) {
-                ProfileState::NotFound => {
-                    debug!("Profile script not found: {}", profile.display());
-                    prev
-                }
-                ProfileState::FoundMentionsVolta => {
-                    debug!(
-                        "Profile script found, already mentions Volta: {}",
-                        profile.display()
-                    );
-                    true
-                }
-                ProfileState::FoundWithoutVolta(file) => {
-                    debug!("Profile script found: {}", profile.display());
-                    let result = match profile.extension() {
-                        Some(ext) if ext == "fish" => modify_profile_fish(file, home.root()),
-                        _ => modify_profile_sh(file, home.root()),
-                    };
+        let env_profile = env::var("PROFILE");
 
-                    match result {
-                        Ok(()) => true,
-                        Err(err) => {
-                            debug!("Could not modify profile script: {}", err);
-                            prev
+        let found_profile = PROFILES
+            .iter()
+            .chain(&env_profile.as_ref().map(String::as_str))
+            .fold(false, |prev, path| {
+                let profile = user_home_dir.join(path);
+                match check_profile(&profile) {
+                    ProfileState::NotFound => {
+                        debug!("Profile script not found: {}", profile.display());
+                        prev
+                    }
+                    ProfileState::FoundMentionsVolta => {
+                        debug!(
+                            "Profile script found, already mentions Volta: {}",
+                            profile.display()
+                        );
+                        true
+                    }
+                    ProfileState::FoundWithoutVolta(file) => {
+                        debug!("Profile script found: {}", profile.display());
+                        let result = match profile.extension() {
+                            Some(ext) if ext == "fish" => modify_profile_fish(file, home.root()),
+                            _ => modify_profile_sh(file, home.root()),
+                        };
+
+                        match result {
+                            Ok(()) => true,
+                            Err(err) => {
+                                debug!("Could not modify profile script: {}", err);
+                                prev
+                            }
                         }
                     }
                 }
-            }
-        });
+            });
 
         if found_profile {
             Ok(())
