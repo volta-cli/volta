@@ -46,6 +46,9 @@ textwrap = "0.11.0"
 which = "2.0.1"
 dirs = "1.0.4"
 
+[target.'cfg(windows)'.dependencies]
+winreg = "0.6.0"
+
 [dev-dependencies]
 hamcrest2 = "0.3.0"
 envoy = "0.1.3"

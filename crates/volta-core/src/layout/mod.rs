@@ -2,7 +2,6 @@ use std::env;
 use std::path::PathBuf;
 
 use crate::error::ErrorDetails;
-#[cfg(unix)]
 use crate::shim;
 use cfg_if::cfg_if;
 use double_checked_cell::DoubleCheckedCell;

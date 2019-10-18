@@ -2395,6 +2395,7 @@ dependencies = [
  "volta-fail 0.1.0",
  "volta-fail-derive 0.1.0",
  "which 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winreg 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

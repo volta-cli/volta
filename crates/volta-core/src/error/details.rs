@@ -385,15 +385,19 @@ pub enum ErrorDetails {
         file: PathBuf,
     },
 
-    /// Thrown when the shim binary is called directly, not through a symlink
-    #[cfg(feature = "volta-updates")]
-    RunShimDirectly,
+    /// Thrown when unable to read the user Path environment variable from the registry
+    #[cfg(windows)]
+    ReadUserPathError,
 
     /// Thrown when the public registry for Node or Yarn could not be downloaded.
     RegistryFetchError {
         tool: String,
         from_url: String,
     },
+
+    /// Thrown when the shim binary is called directly, not through a symlink
+    #[cfg(feature = "volta-updates")]
+    RunShimDirectly,
 
     /// Thrown when there was an error copying an unpacked tool to the image directory
     SetupToolImageError {
@@ -495,6 +499,10 @@ pub enum ErrorDetails {
     WritePlatformError {
         file: PathBuf,
     },
+
+    /// Thrown when unable to write the user PATH environment variable
+    #[cfg(windows)]
+    WriteUserPathError,
 
     /// Thrown when there is an error fetching the latest version of Yarn
     YarnLatestFetchError {
@@ -1132,6 +1140,13 @@ from {}
                 file.display(),
                 PERMISSIONS_CTA
             ),
+            #[cfg(windows)]
+            ErrorDetails::ReadUserPathError => write!(
+                f,
+                "Could not read user Path environment variable.
+
+Please ensure you have access to the your environment variables."
+            ),
             ErrorDetails::RegistryFetchError { tool, from_url } => write!(
                 f,
                 "Could not download {} version registry
@@ -1311,6 +1326,13 @@ to {}
                 file.display(),
                 PERMISSIONS_CTA
             ),
+            #[cfg(windows)]
+            ErrorDetails::WriteUserPathError => write!(
+                f,
+                "Could not write Path environment variable.
+
+Please ensure you have permissions to edit your environment variables."
+            ),
             ErrorDetails::YarnLatestFetchError { from_url } => write!(
                 f,
                 "Could not fetch latest version of Yarn
@@ -1415,6 +1437,8 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::ReadNpmManifestError => ExitCode::UnknownError,
             ErrorDetails::ReadPackageConfigError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ReadPlatformError { .. } => ExitCode::FileSystemError,
+            #[cfg(windows)]
+            ErrorDetails::ReadUserPathError => ExitCode::EnvironmentError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
             #[cfg(feature = "volta-updates")]
             ErrorDetails::RunShimDirectly => ExitCode::InvalidArguments,
@@ -1441,6 +1465,8 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::WritePackageConfigError { .. } => ExitCode::FileSystemError,
             ErrorDetails::WritePackageShasumError { .. } => ExitCode::FileSystemError,
             ErrorDetails::WritePlatformError { .. } => ExitCode::FileSystemError,
+            #[cfg(windows)]
+            ErrorDetails::WriteUserPathError => ExitCode::EnvironmentError,
             ErrorDetails::YarnLatestFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::YarnVersionNotFound { .. } => ExitCode::NoVersionMatch,
         }
