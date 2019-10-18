@@ -2,7 +2,7 @@ use log::info;
 use structopt::StructOpt;
 use volta_core::layout::bootstrap_volta_dirs;
 use volta_core::session::{ActivityKind, Session};
-use volta_core::style::success_prefix;
+use volta_core::style::{progress_spinner, success_prefix};
 use volta_fail::{ExitCode, Fallible};
 
 use crate::command::Command;
@@ -16,10 +16,11 @@ impl Command for Setup {
 
         // ISSUE #566 - Once we have a working migration, we can leave the creation of the
         // directory structure to the migration and not have to call it here
+
+        let spinner = progress_spinner("Setting up Volta in your environment");
         bootstrap_volta_dirs()?;
         os::setup_environment()?;
-
-        // TODO - CPIERCE: Show spinner and messages for each step (similar to current shell installer)
+        spinner.finish_and_clear();
 
         info!(
             "{} Setup complete. Open a new terminal to start using Volta!",
@@ -34,9 +35,10 @@ impl Command for Setup {
 #[cfg(unix)]
 mod os {
     use std::fs::{File, OpenOptions};
-    use std::io::Write;
+    use std::io::{self, Read, Write};
     use std::path::Path;
 
+    use log::debug;
     use volta_core::error::ErrorDetails;
     use volta_core::layout::volta_home;
     use volta_fail::Fallible;
@@ -49,34 +51,48 @@ mod os {
         ".config/fish/config.fish",
     ];
 
+    enum ProfileState {
+        NotFound,
+        FoundMentionsVolta,
+        FoundWithoutVolta(File),
+    }
+
     pub fn setup_environment() -> Fallible<()> {
         let user_home_dir = dirs::home_dir().ok_or(ErrorDetails::NoHomeEnvironmentVar)?;
         let home = volta_home()?;
-        let mut found_profile = false;
 
-        for path in PROFILES.iter() {
-            // TODO - CPIERCE: Make debug statements about what is happening
+        debug!("Searching for profiles to update");
+        let found_profile = PROFILES.iter().fold(false, |prev, path| {
             let profile = user_home_dir.join(path);
-            if let Some(mut file) = open_for_append(&profile) {
-                let result = match profile.extension() {
-                    Some(ext) if ext == "fish" => write!(
-                        file,
-                        "\nset -gx VOLTA_HOME \"{}\"\nstring match -r \".volta\" \"$PATH\" > /dev/null; or set -gx PATH \"$VOLTA_HOME/bin\" $PATH\n",
-                        home.root().display()
-                    ),
-                    _ => write!(
-                        file,
-                        "\nexport VOLTA_HOME=\"{}\"\ngrep --silent \"$VOLTA_HOME/bin\" <<< $PATH || export PATH=\"$VOLTA_HOME/bin:$PATH\"\n",
-                        home.root().display()
-                    ),
-                };
+            match check_profile(&profile) {
+                ProfileState::NotFound => {
+                    debug!("Profile script not found: {}", profile.display());
+                    prev
+                }
+                ProfileState::FoundMentionsVolta => {
+                    debug!(
+                        "Profile script found, already mentions Volta: {}",
+                        profile.display()
+                    );
+                    true
+                }
+                ProfileState::FoundWithoutVolta(file) => {
+                    debug!("Profile script found: {}", profile.display());
+                    let result = match profile.extension() {
+                        Some(ext) if ext == "fish" => modify_profile_fish(file, home.root()),
+                        _ => modify_profile_sh(file, home.root()),
+                    };
 
-                // TODO - CPIERCE: On error, show error details in debug output
-                if result.is_ok() {
-                    found_profile = true;
+                    match result {
+                        Ok(()) => true,
+                        Err(err) => {
+                            debug!("Could not modify profile script: {}", err);
+                            prev
+                        }
+                    }
                 }
             }
-        }
+        });
 
         if found_profile {
             Ok(())
@@ -89,14 +105,51 @@ mod os {
         }
     }
 
-    fn open_for_append<P: AsRef<Path>>(path: P) -> Option<File> {
-        OpenOptions::new().append(true).open(path).ok()
+    fn check_profile(profile: &Path) -> ProfileState {
+        match open_for_read_write(profile) {
+            Ok(mut file) => {
+                let mut contents = String::new();
+                match file.read_to_string(&mut contents) {
+                    Ok(_) => {
+                        if contents.contains("VOLTA_HOME") {
+                            ProfileState::FoundMentionsVolta
+                        } else {
+                            ProfileState::FoundWithoutVolta(file)
+                        }
+                    }
+                    Err(_) => ProfileState::NotFound,
+                }
+            }
+            Err(_) => ProfileState::NotFound,
+        }
+    }
+
+    fn modify_profile_sh(mut file: File, volta_home: &Path) -> io::Result<()> {
+        write!(
+            file,
+            "\nexport VOLTA_HOME=\"{}\"\ngrep --silent \"$VOLTA_HOME/bin\" <<< $PATH || export PATH=\"$VOLTA_HOME/bin:$PATH\"\n",
+            volta_home.display()
+        )
+    }
+
+    fn modify_profile_fish(mut file: File, volta_home: &Path) -> io::Result<()> {
+        write!(
+            file,
+            "\nset -gx VOLTA_HOME \"{}\"\nstring match -r \".volta\" \"$PATH\" > /dev/null; or set -gx PATH \"$VOLTA_HOME/bin\" $PATH\n",
+            volta_home.display()
+        )
+    }
+
+    fn open_for_read_write<P: AsRef<Path>>(path: P) -> io::Result<File> {
+        OpenOptions::new().read(true).write(true).open(path)
     }
 }
 
 #[cfg(windows)]
 mod os {
     use std::process::Command;
+
+    use log::debug;
     use volta_core::error::ErrorDetails;
     use volta_core::layout::volta_home;
     use volta_fail::{Fallible, ResultExt};
@@ -119,13 +172,14 @@ mod os {
             command.arg("Path");
             command.arg(format!("{};{}", shim_dir, path));
 
-            // TODO - CPIERCE: Debug show the command being run
+            debug!("Modifying User Path with command: {:?}", command);
             let output = command
                 .output()
                 .with_context(|_| ErrorDetails::WriteUserPathError)?;
 
             if !output.status.success() {
-                // TODO - CPIERCE: If this fails, write the stdout and stderr to the debug log
+                debug!("[setx stderr]\n{}", String::from_utf8_lossy(&output.stderr));
+                debug!("[setx stdout]\n{}", String::from_utf8_lossy(&output.stdout));
                 return Err(ErrorDetails::WriteUserPathError.into());
             }
         }
