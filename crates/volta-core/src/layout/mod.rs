@@ -80,10 +80,13 @@ pub fn bootstrap_volta_dirs() -> Fallible<()> {
             dir: home.root().to_owned(),
         })?;
 
-    shim::create("node")?;
-    shim::create("yarn")?;
-    shim::create("npm")?;
-    shim::create("npx")?;
+    #[cfg(any(unix, feature = "volta-updates"))]
+    {
+        shim::create("node")?;
+        shim::create("yarn")?;
+        shim::create("npm")?;
+        shim::create("npx")?;
+    }
 
     Ok(())
 }
