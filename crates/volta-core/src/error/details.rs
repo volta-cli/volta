@@ -386,7 +386,7 @@ pub enum ErrorDetails {
     },
 
     /// Thrown when unable to read the user Path environment variable from the registry
-    #[cfg(windows)]
+    #[cfg(all(windows, feature = "volta-updates"))]
     ReadUserPathError,
 
     /// Thrown when the public registry for Node or Yarn could not be downloaded.
@@ -501,7 +501,7 @@ pub enum ErrorDetails {
     },
 
     /// Thrown when unable to write the user PATH environment variable
-    #[cfg(windows)]
+    #[cfg(all(windows, feature = "volta-updates"))]
     WriteUserPathError,
 
     /// Thrown when there is an error fetching the latest version of Yarn
@@ -1140,7 +1140,7 @@ from {}
                 file.display(),
                 PERMISSIONS_CTA
             ),
-            #[cfg(windows)]
+            #[cfg(all(windows, feature = "volta-updates"))]
             ErrorDetails::ReadUserPathError => write!(
                 f,
                 "Could not read user Path environment variable.
@@ -1326,7 +1326,7 @@ to {}
                 file.display(),
                 PERMISSIONS_CTA
             ),
-            #[cfg(windows)]
+            #[cfg(all(windows, feature = "volta-updates"))]
             ErrorDetails::WriteUserPathError => write!(
                 f,
                 "Could not write Path environment variable.
@@ -1437,7 +1437,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::ReadNpmManifestError => ExitCode::UnknownError,
             ErrorDetails::ReadPackageConfigError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ReadPlatformError { .. } => ExitCode::FileSystemError,
-            #[cfg(windows)]
+            #[cfg(all(windows, feature = "volta-updates"))]
             ErrorDetails::ReadUserPathError => ExitCode::EnvironmentError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
             #[cfg(feature = "volta-updates")]
@@ -1465,7 +1465,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::WritePackageConfigError { .. } => ExitCode::FileSystemError,
             ErrorDetails::WritePackageShasumError { .. } => ExitCode::FileSystemError,
             ErrorDetails::WritePlatformError { .. } => ExitCode::FileSystemError,
-            #[cfg(windows)]
+            #[cfg(all(windows, feature = "volta-updates"))]
             ErrorDetails::WriteUserPathError => ExitCode::EnvironmentError,
             ErrorDetails::YarnLatestFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::YarnVersionNotFound { .. } => ExitCode::NoVersionMatch,
