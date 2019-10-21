@@ -1,3 +1,4 @@
+use log::warn;
 use structopt::StructOpt;
 
 use volta_core::error::ErrorDetails;
@@ -25,6 +26,12 @@ impl Command for Activate {
         let postscript = Postscript::Activate(path);
 
         shell.save_postscript(&postscript)?;
+
+        warn!(
+            "`volta activate` is deprecated and will be removed in a future version.
+For more information, see https://github.com/volta-cli/volta/issues/562"
+        );
+
         session.add_event_end(ActivityKind::Activate, ExitCode::Success);
         Ok(ExitCode::Success)
     }
