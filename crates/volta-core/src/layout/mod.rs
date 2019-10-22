@@ -2,6 +2,7 @@ use std::env;
 use std::path::PathBuf;
 
 use crate::error::ErrorDetails;
+#[cfg(unix)]
 use crate::shim;
 use cfg_if::cfg_if;
 use double_checked_cell::DoubleCheckedCell;
@@ -80,7 +81,7 @@ pub fn bootstrap_volta_dirs() -> Fallible<()> {
             dir: home.root().to_owned(),
         })?;
 
-    #[cfg(any(unix, feature = "volta-updates"))]
+    #[cfg(unix)]
     {
         shim::create("node")?;
         shim::create("yarn")?;
