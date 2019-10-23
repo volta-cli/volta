@@ -1,6 +1,5 @@
 use log::info;
 use structopt::StructOpt;
-use volta_core::layout::bootstrap_volta_dirs;
 use volta_core::session::{ActivityKind, Session};
 use volta_core::style::success_prefix;
 use volta_fail::{ExitCode, Fallible};
@@ -14,10 +13,6 @@ impl Command for Setup {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Setup);
 
-        // ISSUE #566 - Once we have a working migration, we can leave the creation of the
-        // directory structure to the migration and not have to call it here
-
-        bootstrap_volta_dirs()?;
         os::setup_environment()?;
 
         info!(

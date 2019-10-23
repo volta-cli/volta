@@ -1,6 +1,7 @@
 use structopt::StructOpt;
 
 use crate::command::{self, Command};
+#[cfg(not(feature = "volta-updates"))]
 use volta_core::layout;
 use volta_core::session::Session;
 use volta_fail::{ExitCode, Fallible};
@@ -47,7 +48,9 @@ pub(crate) struct Volta {
 
 impl Volta {
     pub(crate) fn run(self, session: &mut Session) -> Fallible<ExitCode> {
+        #[cfg(not(feature = "volta-updates"))]
         layout::ensure_volta_dirs_exist()?;
+
         if self.version {
             // suffix indicator for dev build
             if cfg!(debug_assertions) {

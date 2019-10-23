@@ -540,6 +540,7 @@ impl Sandbox {
         p.cwd(self.root())
             // sandbox the Volta environment
             .env("VOLTA_HOME", volta_home())
+            .env("VOLTA_INSTALL_DIR", cargo_dir())
             .env("PATH", &self.path)
             .env("VOLTA_POSTSCRIPT", volta_postscript())
             .env_remove("VOLTA_SHELL")

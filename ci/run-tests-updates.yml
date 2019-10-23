@@ -2,7 +2,7 @@ steps:
   # the unit tests for all crates (without mocking the network)
   # run single-threaded because some tests change environment variables,
   # which is not thread-safe
-  - script: cargo test --features volta-updates --package volta-core --package volta-fail --package archive --package volta-fail-derive --package progress-read -- --test-threads=1
+  - script: cargo test --features volta-updates --package volta-core --package volta-fail --package archive --package volta-fail-derive --package progress-read --package volta-layout --package volta-layout-macro --package volta-migrate -- --test-threads=1
     displayName: Unit Tests
 
   # the acceptance tests, using network mocks

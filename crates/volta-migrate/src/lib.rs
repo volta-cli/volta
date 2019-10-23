@@ -1,0 +1,1 @@
+#![cfg(feature = "volta-updates")]

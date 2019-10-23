@@ -2,6 +2,7 @@ mod support;
 
 // test files
 
+#[cfg(not(feature = "volta-updates"))]
 mod autocreate_home_dir;
 mod corrupted_download;
 mod intercept_global_installs;

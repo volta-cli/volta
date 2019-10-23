@@ -2,8 +2,6 @@ use std::env;
 use std::path::PathBuf;
 
 use crate::error::ErrorDetails;
-#[cfg(unix)]
-use crate::shim;
 use cfg_if::cfg_if;
 use double_checked_cell::DoubleCheckedCell;
 use lazy_static::lazy_static;
@@ -13,6 +11,8 @@ cfg_if! {
     if #[cfg(feature = "volta-updates")] {
         use volta_layout::v1::{VoltaHome, VoltaInstall};
     } else {
+        #[cfg(unix)]
+        use crate::shim;
         use volta_layout::v0::{VoltaHome, VoltaInstall};
     }
 }
@@ -46,6 +46,7 @@ pub fn volta_home<'a>() -> Fallible<&'a VoltaHome> {
 // NOTE: This initialization will, on some code paths, call volta_home()
 // We need to make sure that volta_home does not in turn call this method
 // or we will run into problems with deadlocks
+// TODO: Remove this comment when we enable Volta updates - No longer true
 pub fn volta_install<'a>() -> Fallible<&'a VoltaInstall> {
     VOLTA_INSTALL.get_or_try_init(|| {
         let install_dir = match env::var_os("VOLTA_INSTALL_DIR") {
@@ -74,6 +75,7 @@ fn default_install_dir() -> Fallible<PathBuf> {
         .with_context(|_| ErrorDetails::NoInstallDir)
 }
 
+#[cfg(not(feature = "volta-updates"))]
 pub fn bootstrap_volta_dirs() -> Fallible<()> {
     let home = volta_home()?;
     home.create()
@@ -92,6 +94,7 @@ pub fn bootstrap_volta_dirs() -> Fallible<()> {
     Ok(())
 }
 
+#[cfg(not(feature = "volta-updates"))]
 pub fn ensure_volta_dirs_exist() -> Fallible<()> {
     let home = volta_home()?;
     if !home.root().exists() {

@@ -4,31 +4,75 @@ mod cli;
 
 use structopt::StructOpt;
 
+use cfg_if::cfg_if;
 use volta_core::error::report_error;
 use volta_core::log::{LogContext, LogVerbosity, Logger};
 use volta_core::session::{ActivityKind, Session};
 
-/// The entry point for the `volta` CLI.
-pub fn main() {
-    let volta = cli::Volta::from_args();
-    let verbosity = match (&volta.verbose, &volta.quiet) {
-        (false, false) => LogVerbosity::Default,
-        (true, false) => LogVerbosity::Verbose,
-        (false, true) => LogVerbosity::Quiet,
-        (true, true) => unreachable!(
-            "StructOpt should prevent the user from providing both --verbose and --quiet"
-        ),
-    };
-    Logger::init(LogContext::Volta, verbosity).expect("Only a single logger should be initialized");
+cfg_if! {
+    if #[cfg(feature = "volta-updates")] {
+        mod common;
+        use common::{ensure_layout, Error};
 
-    let mut session = Session::init();
-    session.add_event_start(ActivityKind::Volta);
-    let exit_code = volta.run(&mut session).unwrap_or_else(|err| {
-        report_error(env!("CARGO_PKG_VERSION"), &err);
-        session.add_event_error(ActivityKind::Volta, &err);
-        err.exit_code()
-    });
+        /// The entry point for the `volta` CLI.
+        pub fn main() {
+            let volta = cli::Volta::from_args();
+            let verbosity = match (&volta.verbose, &volta.quiet) {
+                (false, false) => LogVerbosity::Default,
+                (true, false) => LogVerbosity::Verbose,
+                (false, true) => LogVerbosity::Quiet,
+                (true, true) => unreachable!(
+                    "StructOpt should prevent the user from providing both --verbose and --quiet"
+                ),
+            };
+            Logger::init(LogContext::Volta, verbosity).expect("Only a single logger should be initialized");
 
-    session.add_event_end(ActivityKind::Volta, exit_code);
-    session.exit(exit_code);
+            let mut session = Session::init();
+            session.add_event_start(ActivityKind::Volta);
+
+            let result = ensure_layout().and_then(|()| volta.run(&mut session).map_err(Error::Volta));
+            match result {
+                Ok(exit_code) => {
+                    session.add_event_end(ActivityKind::Volta, exit_code);
+                    session.exit(exit_code);
+                }
+                Err(Error::Tool(code)) => {
+                    session.add_event_tool_end(ActivityKind::Volta, code);
+                    session.exit_tool(code);
+                }
+                Err(Error::Volta(err)) => {
+                    report_error(env!("CARGO_PKG_VERSION"), &err);
+                    session.add_event_error(ActivityKind::Volta, &err);
+                    let code = err.exit_code();
+                    session.add_event_end(ActivityKind::Volta, code);
+                    session.exit(code);
+                }
+            }
+        }
+    } else {
+        /// The entry point for the `volta` CLI.
+        pub fn main() {
+            let volta = cli::Volta::from_args();
+            let verbosity = match (&volta.verbose, &volta.quiet) {
+                (false, false) => LogVerbosity::Default,
+                (true, false) => LogVerbosity::Verbose,
+                (false, true) => LogVerbosity::Quiet,
+                (true, true) => unreachable!(
+                    "StructOpt should prevent the user from providing both --verbose and --quiet"
+                ),
+            };
+            Logger::init(LogContext::Volta, verbosity).expect("Only a single logger should be initialized");
+
+            let mut session = Session::init();
+            session.add_event_start(ActivityKind::Volta);
+            let exit_code = volta.run(&mut session).unwrap_or_else(|err| {
+                report_error(env!("CARGO_PKG_VERSION"), &err);
+                session.add_event_error(ActivityKind::Volta, &err);
+                err.exit_code()
+            });
+
+            session.add_event_end(ActivityKind::Volta, exit_code);
+            session.exit(exit_code);
+        }
+    }
 }

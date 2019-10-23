@@ -1,0 +1,13 @@
+[package]
+name = "volta-migrate"
+version = "0.1.0"
+authors = ["Charles Pierce <cpierce.grad@gmail.com>"]
+edition = "2018"
+
+[features]
+volta-updates = ["volta-fail", "volta-core/volta-updates", "volta-layout/volta-updates"]
+
+[dependencies]
+volta-core = { path = "../volta-core", optional = true }
+volta-fail = { path = "../volta-fail", optional = true }
+volta-layout = { path = "../volta-layout", optional = true }

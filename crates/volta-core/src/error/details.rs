@@ -75,6 +75,10 @@ pub enum ErrorDetails {
 
     CouldNotDetermineTool,
 
+    /// Thrown when unable to start the migration executable
+    #[cfg(feature = "volta-updates")]
+    CouldNotStartMigration,
+
     CreateDirError {
         dir: PathBuf,
     },
@@ -589,6 +593,13 @@ Please remove the file or pass `-f` or `--force` to override.",
 
 {}",
                 REPORT_BUG_CTA
+            ),
+            #[cfg(feature = "volta-updates")]
+            ErrorDetails::CouldNotStartMigration => write!(
+                f,
+                "Volta is out-of-date and could not start migration process.
+
+Please ensure Volta was installed correctly."
             ),
             ErrorDetails::CreateDirError { dir } => write!(
                 f,
@@ -1377,6 +1388,8 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::CompletionsOutFileError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::ContainingDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::CouldNotDetermineTool => ExitCode::UnknownError,
+            #[cfg(feature = "volta-updates")]
+            ErrorDetails::CouldNotStartMigration => ExitCode::EnvironmentError,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::CreatePostscriptError { .. } => ExitCode::FileSystemError,
             ErrorDetails::CreateTempDirError { .. } => ExitCode::FileSystemError,
