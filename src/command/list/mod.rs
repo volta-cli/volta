@@ -318,9 +318,9 @@ impl Command for List {
         };
 
         if let Some(string) = format(&toolchain) {
-            // TODO: #523 -- just `info!("{}", string)` once `human` implemented
+            // TODO: #523 -- just `println!("{}", string)` once `human` implemented
             match self.output_format() {
-                Format::Plain => info!("{}", string),
+                Format::Plain => println!("{}", string),
                 Format::Human => warn!("{}", string),
             }
         };
