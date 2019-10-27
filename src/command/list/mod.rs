@@ -1,4 +1,5 @@
 // mod human;
+mod json;
 mod plain;
 mod toolchain;
 
@@ -9,6 +10,7 @@ use semver::Version;
 use structopt::StructOpt;
 
 use crate::command::Command;
+use serde::Serialize;
 use toolchain::Toolchain;
 use volta_core::inventory::Inventory;
 use volta_core::project::Project;
@@ -21,6 +23,7 @@ use volta_fail::{ExitCode, Fallible};
 #[derive(Copy, Clone, PartialEq)]
 enum Format {
     Human,
+    JSON,
     Plain,
 }
 
@@ -30,6 +33,7 @@ impl FromStr for Format {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "human" => Ok(Format::Human),
+            "json" => Ok(Format::JSON),
             "plain" => Ok(Format::Plain),
             _ => Err("No".into()),
         }
@@ -41,7 +45,7 @@ impl FromStr for Format {
 /// Note: this is distinct from `volta_core::platform::sourced::Source`, which
 /// represents the source only of a `Platform`, which is a composite structure.
 /// By contrast, this `Source` is concerned *only* with a single item.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize)]
 enum Source {
     /// The item is from a project. The wrapped `PathBuf` is the path to the
     /// project's `package.json`.
@@ -83,6 +87,7 @@ impl fmt::Display for Source {
 
 /// A package and its associated tools, for displaying to the user as part of
 /// their toolchain.
+#[derive(Serialize)]
 struct PackageDetails {
     /// The name of the package.
     pub name: String,
@@ -90,6 +95,7 @@ struct PackageDetails {
     pub version: Version,
 }
 
+#[derive(Serialize)]
 enum Package {
     Default {
         details: PackageDetails,
@@ -156,16 +162,15 @@ impl Package {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
 struct Node {
     pub source: Source,
     pub version: Version,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
 enum PackageManagerKind {
     Yarn,
-    #[allow(dead_code)]
     Npm,
 }
 
@@ -182,7 +187,7 @@ impl fmt::Display for PackageManagerKind {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
 struct PackageManager {
     kind: PackageManagerKind,
     source: Source,
@@ -220,8 +225,17 @@ pub(crate) struct List {
     /// Specify the output format.
     ///
     /// Defaults to `human` for TTYs, `plain` otherwise.
-    #[structopt(long = "format", raw(possible_values = r#"&["human", "plain"]"#))]
+    #[structopt(
+        long = "format",
+        raw(possible_values = r#"&["human", "plain", "json"]"#)
+    )]
     format: Option<Format>,
+
+    /// Show a pretty version of the output (only for JSON format).
+    ///
+    ///
+    #[structopt(long = "pretty", short = "p")]
+    pretty: bool,
 
     /// Show the currently-active tool(s).
     ///
@@ -295,6 +309,7 @@ impl Command for List {
         let default_platform = session.default_platform()?;
         let format = match self.output_format() {
             Format::Human => human_fallback,
+            Format::JSON => json::format,
             Format::Plain => plain::format,
         };
 
@@ -324,6 +339,7 @@ impl Command for List {
             // TODO: #523 -- just `println!("{}", string)` once `human` implemented
             match self.output_format() {
                 Format::Plain => println!("{}", string),
+                Format::JSON => println!("{}", string),
                 Format::Human => warn!("{}", string),
             }
         };

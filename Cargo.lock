@@ -1811,6 +1811,7 @@ version = "0.9.0"
 source = "git+https://github.com/mikrostew/semver?branch=new-parser#7583eb352dc181ccd09978fd2b16461c1b1669c1"
 dependencies = [
  "semver-parser 0.10.0 (git+https://github.com/mikrostew/semver-parser?branch=rewrite)",
+ "serde 1.0.92 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
