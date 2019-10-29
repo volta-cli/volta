@@ -9,6 +9,6 @@
   },
   "devDependencies": {
     "@namespaced/something-else": "^6.3.7",
-    "eslint": "~4.8.0"
+    "eslint": "~6.6.0"
   }
 }
