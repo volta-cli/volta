@@ -11,6 +11,7 @@ mod v1;
 use log::debug;
 use volta_core::error::ErrorDetails;
 use volta_core::fs::read_dir_eager;
+use volta_core::layout::{volta_home, volta_install};
 use volta_core::shim;
 use volta_fail::{Fallible, ResultExt};
 
@@ -22,7 +23,50 @@ enum MigrationState {
 
 impl MigrationState {
     fn current() -> Fallible<Self> {
-        unimplemented!();
+        /*
+        Triage for determining the current layout version:
+        - Does the V1 layout file exist? If yes then V1
+        - Does Volta Home exist? If yes (Windows) then V0
+            - If yes (Unix) then check if Volta Install is outside shim_dir?
+                - If yes, then V0
+                - If no, then check if $VOLTA_HOME/load.sh exists? If yes then V0
+        - Else Empty
+
+        The extra logic on Unix is necessary because Unix installs can be either inside or outside $VOLTA_HOME
+        If it is inside, then the directory necessarily must exist, so we can't use that as a determination.
+        If it is outside (and for Windows which is always outside), then if $VOLTA_HOME exists, it must be from a
+        previous, V0 installation.
+
+        Going forward, each new version will have an associated layout file, so we can use that as a discriminant
+        */
+
+        let home = volta_home()?;
+        let volta_home = home.root().to_owned();
+
+        if home.layout_file().exists() {
+            return Ok(MigrationState::V1(v1::V1::new(volta_home)));
+        }
+
+        if volta_home.exists() {
+            #[cfg(windows)]
+            return Ok(MigrationState::V0(v0::V0::new(volta_home)));
+
+            #[cfg(unix)]
+            {
+                let install = volta_install()?;
+                if install.root().starts_with(&volta_home) {
+                    // Installed inside $VOLTA_HOME, so need to look for `load.sh` as a marker
+                    if volta_home.join("load.sh").exists() {
+                        return Ok(MigrationState::V0(v0::V0::new(volta_home)));
+                    }
+                } else {
+                    // Installed outside of $VOLTA_HOME, so it must exist from a previous V0 install
+                    return Ok(MigrationState::V0(v0::V0::new(volta_home)));
+                }
+            }
+        }
+
+        Ok(MigrationState::Empty(empty::Empty::new(volta_home)))
     }
 }
 
