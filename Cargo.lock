@@ -2483,6 +2483,7 @@ dependencies = [
 name = "volta-migrate"
 version = "0.1.0"
 dependencies = [
+ "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "volta-core 0.1.0",
  "volta-fail 0.1.0",
  "volta-layout 0.1.1",

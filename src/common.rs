@@ -16,6 +16,7 @@ pub fn ensure_layout() -> Result<(), Error> {
     if !home.layout_file().exists() {
         let install = volta_install().map_err(Error::Volta)?;
         Command::new(install.migrate_executable())
+            .env("VOLTA_LOGLEVEL", format!("{}", log::max_level()))
             .status()
             .with_context(|_| ErrorDetails::CouldNotStartMigration)
             .into_result()?;

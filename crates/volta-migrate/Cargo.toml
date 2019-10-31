@@ -11,3 +11,4 @@ volta-updates = ["volta-fail", "volta-core/volta-updates", "volta-layout/volta-u
 volta-core = { path = "../volta-core", optional = true }
 volta-fail = { path = "../volta-fail", optional = true }
 volta-layout = { path = "../volta-layout", optional = true }
+log = { version = "0.4", features = ["std"] }

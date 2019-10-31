@@ -66,7 +66,7 @@ impl Inventory {
 /// The regex should contain the `version` named capture by using the Rust regex
 /// syntax `?P<version>`.
 fn versions_matching(dir: &Path, re: &Regex) -> Fallible<BTreeSet<Version>> {
-    let contents = read_dir_eager(dir).with_context(|_| ErrorDetails::ReadInventoryDirError {
+    let contents = read_dir_eager(dir).with_context(|_| ErrorDetails::ReadDirError {
         dir: dir.to_path_buf(),
     })?;
 
