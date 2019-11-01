@@ -33,8 +33,8 @@ impl Command for Setup {
 #[cfg(unix)]
 mod os {
     use std::env;
-    use std::fs::{File, OpenOptions};
-    use std::io::{self, Read, Write};
+    use std::fs::File;
+    use std::io::{self, BufRead, BufReader, Write};
     use std::path::Path;
 
     use log::debug;
@@ -50,12 +50,6 @@ mod os {
         ".config/fish/config.fish",
     ];
 
-    enum ProfileState {
-        NotFound,
-        FoundMentionsVolta,
-        FoundWithoutVolta(File),
-    }
-
     pub fn setup_environment() -> Fallible<()> {
         let user_home_dir = dirs::home_dir().ok_or(ErrorDetails::NoHomeEnvironmentVar)?;
         let home = volta_home()?;
@@ -68,23 +62,14 @@ mod os {
             .chain(&env_profile.as_ref().map(String::as_str))
             .fold(false, |prev, path| {
                 let profile = user_home_dir.join(path);
-                match check_profile(&profile) {
-                    ProfileState::NotFound => {
-                        debug!("Profile script not found: {}", profile.display());
-                        prev
-                    }
-                    ProfileState::FoundMentionsVolta => {
-                        debug!(
-                            "Profile script found, already mentions Volta: {}",
-                            profile.display()
-                        );
-                        true
-                    }
-                    ProfileState::FoundWithoutVolta(file) => {
+                match read_profile_without_volta(&profile) {
+                    Some(contents) => {
                         debug!("Profile script found: {}", profile.display());
                         let result = match profile.extension() {
-                            Some(ext) if ext == "fish" => modify_profile_fish(file, home.root()),
-                            _ => modify_profile_sh(file, home.root()),
+                            Some(ext) if ext == "fish" => {
+                                write_profile_fish(&profile, contents, home.root())
+                            }
+                            _ => write_profile_sh(&profile, contents, home.root()),
                         };
 
                         match result {
@@ -94,6 +79,10 @@ mod os {
                                 prev
                             }
                         }
+                    }
+                    None => {
+                        debug!("Profile script not found: {}", profile.display());
+                        prev
                     }
                 }
             });
@@ -109,43 +98,40 @@ mod os {
         }
     }
 
-    fn check_profile(profile: &Path) -> ProfileState {
-        match open_for_read_write(profile) {
-            Ok(mut file) => {
-                let mut contents = String::new();
-                match file.read_to_string(&mut contents) {
-                    Ok(_) => {
-                        if contents.contains("VOLTA_HOME") {
-                            ProfileState::FoundMentionsVolta
-                        } else {
-                            ProfileState::FoundWithoutVolta(file)
-                        }
-                    }
-                    Err(_) => ProfileState::NotFound,
-                }
-            }
-            Err(_) => ProfileState::NotFound,
-        }
+    fn read_profile_without_volta(path: &Path) -> Option<String> {
+        let file = File::open(path).ok()?;
+        let reader = BufReader::new(file);
+        let lines = reader
+            .lines()
+            .filter(|line_result| match line_result {
+                Ok(line) if !line.contains("VOLTA") => true,
+                Ok(_) => false,
+                Err(_) => true,
+            })
+            .collect::<io::Result<Vec<String>>>()
+            .ok()?;
+
+        Some(lines.join("\n"))
     }
 
-    fn modify_profile_sh(mut file: File, volta_home: &Path) -> io::Result<()> {
+    fn write_profile_sh(path: &Path, contents: String, volta_home: &Path) -> io::Result<()> {
+        let mut file = File::create(path)?;
         write!(
             file,
-            "\nexport VOLTA_HOME=\"{}\"\ngrep --silent \"$VOLTA_HOME/bin\" <<< $PATH || export PATH=\"$VOLTA_HOME/bin:$PATH\"\n",
-            volta_home.display()
+            "{}\nexport VOLTA_HOME=\"{}\"\ngrep --silent \"$VOLTA_HOME/bin\" <<< $PATH || export PATH=\"$VOLTA_HOME/bin:$PATH\"\n",
+            contents,
+            volta_home.display(),
         )
     }
 
-    fn modify_profile_fish(mut file: File, volta_home: &Path) -> io::Result<()> {
+    fn write_profile_fish(path: &Path, contents: String, volta_home: &Path) -> io::Result<()> {
+        let mut file = File::create(path)?;
         write!(
             file,
-            "\nset -gx VOLTA_HOME \"{}\"\nstring match -r \".volta\" \"$PATH\" > /dev/null; or set -gx PATH \"$VOLTA_HOME/bin\" $PATH\n",
-            volta_home.display()
+            "{}\nset -gx VOLTA_HOME \"{}\"\nstring match -r \".volta\" \"$PATH\" > /dev/null; or set -gx PATH \"$VOLTA_HOME/bin\" $PATH\n",
+            contents,
+            volta_home.display(),
         )
-    }
-
-    fn open_for_read_write<P: AsRef<Path>>(path: P) -> io::Result<File> {
-        OpenOptions::new().read(true).write(true).open(path)
     }
 }
 
