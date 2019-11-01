@@ -80,6 +80,20 @@ impl TryFrom<V0> for V1 {
             }
         }
 
+        debug!("Removing old Volta binaries");
+        let old_volta_bin = new_home.root().join("volta");
+        if old_volta_bin.exists() {
+            remove_file(&old_volta_bin).with_context(|_| ErrorDetails::DeleteFileError {
+                file: old_volta_bin,
+            })?;
+        }
+
+        let old_shim_bin = new_home.root().join("shim");
+        if old_shim_bin.exists() {
+            remove_file(&old_shim_bin)
+                .with_context(|_| ErrorDetails::DeleteFileError { file: old_shim_bin })?;
+        }
+
         Ok(V1 { home: new_home })
     }
 }

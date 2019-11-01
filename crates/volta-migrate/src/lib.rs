@@ -120,7 +120,7 @@ fn get_shim_list_deduped(dir: &Path) -> Fallible<HashSet<String>> {
 }
 
 fn entry_to_shim_name((entry, metadata): (DirEntry, Metadata)) -> Option<String> {
-    if !metadata.is_dir() {
+    if metadata.file_type().is_symlink() {
         entry
             .path()
             .file_stem()
