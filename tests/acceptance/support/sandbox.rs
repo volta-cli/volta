@@ -235,6 +235,12 @@ impl SandboxBuilder {
         self
     }
 
+    /// Set a layout version file for the sandbox (chainable)
+    pub fn layout_file(mut self, version: &str) -> Self {
+        self.files.push(FileBuilder::new(layout_file(version), ""));
+        self
+    }
+
     /// Set the shell for the sandbox (chainable)
     #[cfg(all(unix, not(feature = "volta-updates")))]
     pub fn volta_shell(self, shell_name: &str) -> Self {
@@ -510,9 +516,12 @@ fn package_image_dir(name: &str, version: &str) -> PathBuf {
 fn user_platform_file() -> PathBuf {
     user_dir().join("platform.json")
 }
+fn layout_file(version: &str) -> PathBuf {
+    volta_home().join(format!("layout.{}", version))
+}
 
-fn sandbox_dir(dir_path: &str) -> PathBuf {
-    home_dir().join(dir_path)
+fn sandbox_path(path: &str) -> PathBuf {
+    home_dir().join(path)
 }
 
 pub struct Sandbox {
@@ -638,8 +647,8 @@ impl Sandbox {
     pub fn shim_exists(name: &str) -> bool {
         shim_file(name).exists()
     }
-    pub fn dir_exists(dir_path: &str) -> bool {
-        sandbox_dir(dir_path).exists()
+    pub fn path_exists(path: &str) -> bool {
+        sandbox_path(path).exists()
     }
     pub fn package_image_exists(name: &str, version: &str) -> bool {
         let package_img_dir = package_image_dir(name, version);
