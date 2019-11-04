@@ -1,3 +1,8 @@
+# Version 0.6.5
+
+- `volta list` Now always outputs to stdout, regardless of how it is called (#581)
+- DEPRECATION: `volta activate` and `volta deactivate` are deprecated and will be removed in a future version (#571)
+
 # Version 0.6.4
 
 - `volta install` now works for installing packages from a private, authenticated registry (#554)

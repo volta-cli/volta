@@ -4,7 +4,7 @@ mod toolchain;
 
 use std::{fmt, path::PathBuf, str::FromStr};
 
-use log::{info, warn};
+use log::warn;
 use semver::Version;
 use structopt::StructOpt;
 
