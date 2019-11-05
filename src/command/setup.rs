@@ -37,7 +37,7 @@ mod os {
     use std::io::{self, BufRead, BufReader, Write};
     use std::path::Path;
 
-    use log::debug;
+    use log::{debug, warn};
     use volta_core::error::ErrorDetails;
     use volta_core::layout::volta_home;
     use volta_fail::Fallible;
@@ -75,7 +75,11 @@ mod os {
                         match result {
                             Ok(()) => true,
                             Err(err) => {
-                                debug!("Could not modify profile script: {}", err);
+                                warn!(
+                                    "Found profile script, but could not modify it: {}",
+                                    profile.display()
+                                );
+                                debug!("Profile modification error: {}", err);
                                 prev
                             }
                         }
