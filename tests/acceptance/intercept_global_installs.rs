@@ -6,7 +6,7 @@ use test_support::matchers::execs;
 use volta_core::env::UNSAFE_GLOBAL;
 use volta_fail::ExitCode;
 
-const PACKAGE_JSON: &'static str = r#"{
+const PACKAGE_JSON: &str = r#"{
     "name": "text-package",
     "volta": {
         "node": "10.22.123",

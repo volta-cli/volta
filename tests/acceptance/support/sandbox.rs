@@ -317,10 +317,10 @@ impl SandboxBuilder {
         if let Some(uncompressed_size) = metadata.uncompressed_size {
             // This can be abstracted when https://github.com/rust-lang/rust/issues/52963 lands.
             let uncompressed_size_bytes: [u8; 4] = [
-                ((uncompressed_size & 0xff000000) >> 24) as u8,
-                ((uncompressed_size & 0x00ff0000) >> 16) as u8,
-                ((uncompressed_size & 0x0000ff00) >> 8) as u8,
-                (uncompressed_size & 0x000000ff) as u8,
+                ((uncompressed_size & 0xff00_0000) >> 24) as u8,
+                ((uncompressed_size & 0x00ff_0000) >> 16) as u8,
+                ((uncompressed_size & 0x0000_ff00) >> 8) as u8,
+                (uncompressed_size & 0x0000_00ff) as u8,
             ];
 
             let range_mock = mock("GET", &server_path[..])
@@ -608,7 +608,7 @@ impl Sandbox {
         fs::read_dir(volta_log_dir()).ok()
     }
 
-    pub fn remove_volta_home(&self) -> () {
+    pub fn remove_volta_home(&self) {
         volta_home().rm_rf();
     }
 

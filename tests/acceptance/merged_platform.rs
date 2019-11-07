@@ -5,7 +5,7 @@ use test_support::matchers::execs;
 
 use volta_fail::ExitCode;
 
-const PACKAGE_JSON_WITH_YARN: &'static str = r#"{
+const PACKAGE_JSON_WITH_YARN: &str = r#"{
     "name": "with-yarn",
     "volta": {
         "node": "10.22.123",
@@ -13,14 +13,14 @@ const PACKAGE_JSON_WITH_YARN: &'static str = r#"{
     }
 }"#;
 
-const PACKAGE_JSON_NO_YARN: &'static str = r#"{
+const PACKAGE_JSON_NO_YARN: &str = r#"{
     "name": "without-yarn",
     "volta": {
         "node": "10.22.123"
     }
 }"#;
 
-const PLATFORM_WITH_YARN: &'static str = r#"{
+const PLATFORM_WITH_YARN: &str = r#"{
     "node":{
         "runtime":"9.11.2",
         "npm":"5.6.0"
@@ -28,7 +28,7 @@ const PLATFORM_WITH_YARN: &'static str = r#"{
     "yarn": "1.22.300"
 }"#;
 
-const PLATFORM_NO_YARN: &'static str = r#"{
+const PLATFORM_NO_YARN: &str = r#"{
     "node":{
         "runtime":"9.11.2",
         "npm":"5.6.0"

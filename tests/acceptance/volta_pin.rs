@@ -5,7 +5,7 @@ use test_support::matchers::execs;
 
 use volta_fail::ExitCode;
 
-const BASIC_PACKAGE_JSON: &'static str = r#"{
+const BASIC_PACKAGE_JSON: &str = r#"{
   "name": "test-package"
 }"#;
 
@@ -65,7 +65,7 @@ fn package_json_with_pinned_node_npm_yarn(
     )
 }
 
-const NODE_VERSION_INFO: &'static str = r#"[
+const NODE_VERSION_INFO: &str = r#"[
 {"version":"v10.99.1040","npm":"6.2.26","lts": "Dubnium","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]},
 {"version":"v9.27.6","npm":"5.6.17","lts": false,"files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]},
 {"version":"v8.9.10","npm":"5.6.7","lts": false,"files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]},
@@ -79,22 +79,22 @@ cfg_if::cfg_if! {
             DistroMetadata {
                 version: "10.99.1040",
                 compressed_size: 273,
-                uncompressed_size: Some(0x00280000),
+                uncompressed_size: Some(0x0028_0000),
             },
             DistroMetadata {
                 version: "9.27.6",
                 compressed_size: 272,
-                uncompressed_size: Some(0x00280000),
+                uncompressed_size: Some(0x0028_0000),
             },
             DistroMetadata {
                 version: "8.9.10",
                 compressed_size: 272,
-                uncompressed_size: Some(0x00280000),
+                uncompressed_size: Some(0x0028_0000),
             },
             DistroMetadata {
                 version: "6.19.62",
                 compressed_size: 273,
-                uncompressed_size: Some(0x00280000),
+                uncompressed_size: Some(0x0028_0000),
             },
         ];
     } else if #[cfg(target_os = "linux")] {
@@ -102,22 +102,22 @@ cfg_if::cfg_if! {
             DistroMetadata {
                 version: "10.99.1040",
                 compressed_size: 273,
-                uncompressed_size: Some(0x00280000),
+                uncompressed_size: Some(0x0028_0000),
             },
             DistroMetadata {
                 version: "9.27.6",
                 compressed_size: 272,
-                uncompressed_size: Some(0x00280000),
+                uncompressed_size: Some(0x0028_0000),
             },
             DistroMetadata {
                 version: "8.9.10",
                 compressed_size: 270,
-                uncompressed_size: Some(0x00280000),
+                uncompressed_size: Some(0x0028_0000),
             },
             DistroMetadata {
                 version: "6.19.62",
                 compressed_size: 273,
-                uncompressed_size: Some(0x00280000),
+                uncompressed_size: Some(0x0028_0000),
             },
         ];
     } else if #[cfg(target_os = "windows")] {
@@ -148,7 +148,7 @@ cfg_if::cfg_if! {
     }
 }
 
-const YARN_VERSION_INFO: &'static str = r#"[
+const YARN_VERSION_INFO: &str = r#"[
 {"tag_name":"v1.2.42","assets":[{"name":"yarn-v1.2.42.tar.gz"}]},
 {"tag_name":"v1.3.1","assets":[{"name":"yarn-v1.3.1.msi"}]},
 {"tag_name":"v1.4.159","assets":[{"name":"yarn-v1.4.159.tar.gz"}]},
@@ -160,26 +160,26 @@ const YARN_VERSION_FIXTURES: [DistroMetadata; 4] = [
     DistroMetadata {
         version: "1.12.99",
         compressed_size: 178,
-        uncompressed_size: Some(0x00280000),
+        uncompressed_size: Some(0x0028_0000),
     },
     DistroMetadata {
         version: "1.7.71",
         compressed_size: 176,
-        uncompressed_size: Some(0x00280000),
+        uncompressed_size: Some(0x0028_0000),
     },
     DistroMetadata {
         version: "1.4.159",
         compressed_size: 177,
-        uncompressed_size: Some(0x00280000),
+        uncompressed_size: Some(0x0028_0000),
     },
     DistroMetadata {
         version: "1.2.42",
         compressed_size: 174,
-        uncompressed_size: Some(0x00280000),
+        uncompressed_size: Some(0x0028_0000),
     },
 ];
 
-const NPM_VERSION_INFO: &'static str = r#"
+const NPM_VERSION_INFO: &str = r#"
 {
     "name":"npm",
     "dist-tags": { "latest":"6.8.0" },
@@ -193,7 +193,7 @@ const NPM_VERSION_INFO: &'static str = r#"
 }
 "#;
 
-const VOLTA_LOGLEVEL: &'static str = "VOLTA_LOGLEVEL";
+const VOLTA_LOGLEVEL: &str = "VOLTA_LOGLEVEL";
 
 #[test]
 fn pin_node() {
