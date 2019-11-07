@@ -101,8 +101,13 @@ impl Session {
     }
 
     /// Produces a reference to the current Node project, if any.
-    pub fn project(&self) -> Fallible<Option<Rc<Project>>> {
+    pub fn project(&self) -> Fallible<Option<&Project>> {
         self.project.get()
+    }
+
+    /// Produces a mutable reference to the current Node project, if any.
+    pub fn project_mut(&mut self) -> Fallible<Option<&mut Project>> {
+        self.project.get_mut()
     }
 
     /// Returns the user's currently active platform, if any

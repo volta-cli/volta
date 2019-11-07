@@ -21,7 +21,7 @@ use volta_fail::{Fallible, ResultExt};
 
 /// A lazily loaded Project
 pub struct LazyProject {
-    project: LazyCell<Option<Rc<Project>>>,
+    project: LazyCell<Option<Project>>,
 }
 
 impl LazyProject {
@@ -31,11 +31,14 @@ impl LazyProject {
         }
     }
 
-    pub fn get(&self) -> Fallible<Option<Rc<Project>>> {
-        let project = self
-            .project
-            .try_borrow_with(|| Project::for_current_dir())?;
-        Ok(project.clone())
+    pub fn get(&self) -> Fallible<Option<&Project>> {
+        let project = self.project.try_borrow_with(Project::for_current_dir)?;
+        Ok(project.as_ref())
+    }
+
+    pub fn get_mut(&mut self) -> Fallible<Option<&mut Project>> {
+        let project = self.project.try_borrow_mut_with(Project::for_current_dir)?;
+        Ok(project.as_mut())
     }
 }
 
@@ -64,7 +67,7 @@ fn is_project_root(dir: &Path) -> bool {
 impl Project {
     /// Returns the Node project containing the current working directory,
     /// if any.
-    fn for_current_dir() -> Fallible<Option<Rc<Project>>> {
+    fn for_current_dir() -> Fallible<Option<Project>> {
         let current_dir: &Path =
             &env::current_dir().with_context(|_| ErrorDetails::CurrentDirError)?;
         Self::for_dir(&current_dir)
@@ -86,14 +89,14 @@ impl Project {
     }
 
     /// Returns the Node project for the input directory, if any.
-    fn for_dir(base_dir: &Path) -> Fallible<Option<Rc<Project>>> {
+    fn for_dir(base_dir: &Path) -> Fallible<Option<Project>> {
         match Self::find_dir(base_dir) {
             Some(dir) => {
                 debug!("Found project manifest in '{}'", dir.display());
-                Ok(Some(Rc::new(Project {
+                Ok(Some(Project {
                     manifest: Manifest::for_dir(&dir)?,
                     project_root: PathBuf::from(dir),
-                })))
+                }))
             }
             None => Ok(None),
         }
