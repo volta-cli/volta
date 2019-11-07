@@ -190,16 +190,12 @@ impl From<RawBinManifest> for super::BinManifest {
     }
 }
 
-impl ToolchainSpec {
-    pub fn new(
-        node_version: String,
-        npm_version: Option<String>,
-        yarn_version: Option<String>,
-    ) -> Self {
+impl From<Rc<platform::PlatformSpec>> for ToolchainSpec {
+    fn from(source: Rc<platform::PlatformSpec>) -> Self {
         ToolchainSpec {
-            node: node_version,
-            npm: npm_version,
-            yarn: yarn_version,
+            node: source.node_runtime.to_string(),
+            npm: source.npm.as_ref().map(|v| v.to_string()),
+            yarn: source.yarn.as_ref().map(|v| v.to_string()),
         }
     }
 }

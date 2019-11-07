@@ -70,7 +70,7 @@ impl Tool for Yarn {
             self.fetch_internal(session)?;
 
             // Note: We know this will succeed, since we checked above
-            let project = session.project()?.unwrap();
+            let project = session.project_mut()?.unwrap();
             project.pin_yarn(&self.version)?;
 
             info_pinned(self);

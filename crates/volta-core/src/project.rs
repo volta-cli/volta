@@ -13,7 +13,7 @@ use semver::Version;
 
 use crate::error::ErrorDetails;
 use crate::layout::volta_home;
-use crate::manifest::{serial, Manifest};
+use crate::manifest::Manifest;
 use crate::platform::PlatformSpec;
 use crate::tool::{load_default_npm_version, BinConfig, NodeVersion};
 use log::debug;
@@ -179,52 +179,57 @@ impl Project {
     }
 
     /// Writes the specified version of Node to the `volta.node` key in package.json.
-    pub fn pin_node(&self, node_version: &NodeVersion) -> Fallible<()> {
+    pub fn pin_node(&mut self, node_version: &NodeVersion) -> Fallible<()> {
         // prevent writing the npm version if it is equal to the default version
 
-        let npm_str = load_default_npm_version(&node_version.runtime)
+        let npm = load_default_npm_version(&node_version.runtime)
             .ok()
             .and_then(|default| {
                 if node_version.npm == default {
                     debug!("Not writing 'npm' key since the version matches the Node default");
                     None
                 } else {
-                    Some(node_version.npm.to_string())
+                    Some(node_version.npm.clone())
                 }
             });
 
-        let toolchain = serial::ToolchainSpec::new(
-            node_version.runtime.to_string(),
-            npm_str,
-            self.manifest().yarn_str().clone(),
-        );
-        Manifest::update_toolchain(toolchain, self.package_file())?;
-        Ok(())
+        let updated_platform = PlatformSpec {
+            node_runtime: node_version.runtime.clone(),
+            npm,
+            yarn: self.manifest.yarn(),
+        };
+
+        self.manifest.update_platform(updated_platform);
+        self.manifest.write(self.package_file())
     }
 
     /// Writes the specified version of Yarn to the `volta.yarn` key in package.json.
-    pub fn pin_yarn(&self, yarn_version: &Version) -> Fallible<()> {
-        if let Some(platform) = self.manifest().platform() {
-            let toolchain = serial::ToolchainSpec::new(
-                platform.node_runtime.to_string(),
-                platform.npm.as_ref().map(|npm| npm.to_string()),
-                Some(yarn_version.to_string()),
-            );
-            Manifest::update_toolchain(toolchain, self.package_file())
+    pub fn pin_yarn(&mut self, yarn_version: &Version) -> Fallible<()> {
+        if let Some(platform) = self.manifest.platform() {
+            let updated_platform = PlatformSpec {
+                node_runtime: platform.node_runtime.clone(),
+                npm: platform.npm.clone(),
+                yarn: Some(yarn_version.clone()),
+            };
+
+            self.manifest.update_platform(updated_platform);
+            self.manifest.write(self.package_file())
         } else {
             Err(ErrorDetails::NoPinnedNodeVersion.into())
         }
     }
 
     /// Writes the specified version of Npm to the `volta.npm` key in package.json.
-    pub fn pin_npm(&self, npm_version: &Version) -> Fallible<()> {
-        if let Some(platform) = self.manifest().platform() {
-            let toolchain = serial::ToolchainSpec::new(
-                platform.node_runtime.to_string(),
-                Some(npm_version.to_string()),
-                self.manifest().yarn_str().clone(),
-            );
-            Manifest::update_toolchain(toolchain, self.package_file())
+    pub fn pin_npm(&mut self, npm_version: &Version) -> Fallible<()> {
+        if let Some(platform) = self.manifest.platform() {
+            let updated_platform = PlatformSpec {
+                node_runtime: platform.node_runtime.clone(),
+                npm: Some(npm_version.clone()),
+                yarn: self.manifest.yarn(),
+            };
+
+            self.manifest.update_platform(updated_platform);
+            self.manifest.write(self.package_file())
         } else {
             Err(ErrorDetails::NoPinnedNodeVersion.into())
         }

@@ -140,7 +140,7 @@ impl Tool for Node {
             let node_version = self.fetch_internal(session)?;
 
             // Note: We know this will succeed, since we checked above
-            let project = session.project()?.unwrap();
+            let project = session.project_mut()?.unwrap();
             project.pin_node(&node_version)?;
 
             info_pinned(node_version);
