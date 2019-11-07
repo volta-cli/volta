@@ -107,6 +107,7 @@
                     Action='set'
                     System='no' />
             </Component>
+            <Merge Id='VCRedist' SourceFile='wix\Microsoft_VC140_CRT_x64.msm' DiskId='1' Language='0'/>
         </Directory>
 
         <ComponentGroup Id='Binaries' Directory='INSTALLBINDIR'>
@@ -157,6 +158,10 @@
             <ComponentRef Id='UserBinDir'/>
             <ComponentRef Id='shimBinary'/>
             <ComponentGroupRef Id='Binaries'/>
+        </Feature>
+
+        <Feature Id='VCRedistributable' Title='Visual C++ Runtime' AllowAdvertise='no' Display='hidden' Level='1'>
+            <MergeRef Id='VCRedist'/>
         </Feature>
 
         <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
