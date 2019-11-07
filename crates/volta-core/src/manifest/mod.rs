@@ -43,7 +43,7 @@ impl Manifest {
 
     /// Returns a reference to the platform image specified by manifest, if any.
     pub fn platform(&self) -> Option<Rc<PlatformSpec>> {
-        self.platform.as_ref().map(|p| p.clone())
+        self.platform.as_ref().cloned()
     }
 
     /// Gets the names of all the direct dependencies in the manifest.

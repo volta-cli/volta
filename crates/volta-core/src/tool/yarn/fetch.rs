@@ -74,18 +74,18 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<()> 
     let temp = create_staging_dir()?;
     debug!("Unpacking yarn into '{}'", temp.path().display());
 
-    let bar = progress_bar(
+    let progress = progress_bar(
         archive.origin(),
         &tool_version("yarn", version),
         archive
             .uncompressed_size()
-            .unwrap_or(archive.compressed_size()),
+            .unwrap_or_else(|| archive.compressed_size()),
     );
     let version_string = version.to_string();
 
     archive
         .unpack(temp.path(), &mut |_, read| {
-            bar.inc(read as u64);
+            progress.inc(read as u64);
         })
         .with_context(|_| ErrorDetails::UnpackArchiveError {
             tool: "Yarn".into(),
@@ -106,7 +106,7 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<()> 
         dir: dest.clone(),
     })?;
 
-    bar.finish_and_clear();
+    progress.finish_and_clear();
 
     // Note: We write this after the progress bar is finished to avoid display bugs with re-renders of the progress
     debug!("Installing yarn in '{}'", dest.display());

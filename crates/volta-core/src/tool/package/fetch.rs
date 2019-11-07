@@ -178,17 +178,17 @@ fn unpack_archive(archive: Box<dyn Archive>, name: &str, version: &Version) -> F
     let temp = create_staging_dir()?;
     debug!("Unpacking {} into '{}'", name, temp.path().display());
 
-    let bar = progress_bar(
+    let progress = progress_bar(
         archive.origin(),
         &tool_version(&name, &version),
         archive
             .uncompressed_size()
-            .unwrap_or(archive.compressed_size()),
+            .unwrap_or_else(|| archive.compressed_size()),
     );
 
     archive
         .unpack(temp.path(), &mut |_, read| {
-            bar.inc(read as u64);
+            progress.inc(read as u64);
         })
         .with_context(|_| ErrorDetails::UnpackArchiveError {
             tool: name.into(),
@@ -212,7 +212,7 @@ fn unpack_archive(archive: Box<dyn Archive>, name: &str, version: &Version) -> F
         dir: image_dir.clone(),
     })?;
 
-    bar.finish_and_clear();
+    progress.finish_and_clear();
 
     // Note: We write this after the progress bar is finished to avoid display bugs with re-renders of the progress
     debug!("Installing {} in '{}'", name, image_dir.display());

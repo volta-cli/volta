@@ -23,7 +23,7 @@ pub struct LazyInventory {
 
 impl LazyInventory {
     /// Constructs a new `LazyInventory`.
-    pub fn new() -> LazyInventory {
+    pub fn init() -> LazyInventory {
         LazyInventory {
             inventory: LazyCell::new(),
         }
@@ -31,12 +31,12 @@ impl LazyInventory {
 
     /// Forces the loading of the inventory and returns an immutable reference to it.
     pub fn get(&self) -> Fallible<&Inventory> {
-        self.inventory.try_borrow_with(|| Inventory::current())
+        self.inventory.try_borrow_with(Inventory::current)
     }
 
     /// Forces the loading of the inventory and returns a mutable reference to it.
     pub fn get_mut(&mut self) -> Fallible<&mut Inventory> {
-        self.inventory.try_borrow_mut_with(|| Inventory::current())
+        self.inventory.try_borrow_mut_with(Inventory::current)
     }
 }
 

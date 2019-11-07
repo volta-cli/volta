@@ -83,7 +83,7 @@ where
                 loader
                     .args
                     .iter()
-                    .map(|arg| OsString::from(arg))
+                    .map(OsString::from)
                     .chain(once(tool_path))
                     .chain(args),
                 &path,

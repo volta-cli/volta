@@ -184,7 +184,7 @@ fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
         dir_entry_match(&bin_config_dir, |entry| {
             let path = entry.path();
             if let Ok(config) = BinConfig::from_file(path) {
-                if config.package == package.to_string() {
+                if config.package == package {
                     return Some(config.name);
                 }
             };

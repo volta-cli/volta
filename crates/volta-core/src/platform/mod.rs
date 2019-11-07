@@ -74,7 +74,7 @@ impl Image {
     /// will find toolchain executables (Node, Yarn) in the installation directories
     /// for the given versions instead of in the Volta shim directory.
     pub fn path(&self) -> Fallible<OsString> {
-        let old_path = envoy::path().unwrap_or(envoy::Var::from(""));
+        let old_path = envoy::path().unwrap_or_else(|| envoy::Var::from(""));
         let mut new_path = old_path.split();
 
         for remove_path in env_paths()? {
@@ -97,7 +97,7 @@ impl System {
     /// removes the Volta shims and binaries, to use for running system node and
     /// executables.
     pub fn path() -> Fallible<OsString> {
-        let old_path = envoy::path().unwrap_or(envoy::Var::from(""));
+        let old_path = envoy::path().unwrap_or_else(|| envoy::Var::from(""));
         let mut new_path = old_path.split();
 
         for remove_path in env_paths()? {
@@ -110,7 +110,7 @@ impl System {
     /// Reproduces the Volta-enabled `PATH` environment variable for situations where
     /// Volta has been deactivated
     pub fn enabled_path() -> Fallible<OsString> {
-        let old_path = envoy::path().unwrap_or(envoy::Var::from(""));
+        let old_path = envoy::path().unwrap_or_else(|| envoy::Var::from(""));
         let mut new_path = old_path.split();
 
         for add_path in env_paths()? {

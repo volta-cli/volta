@@ -63,7 +63,7 @@ fn check_yarn_add() -> CommandArg {
     // Yarn global installs must be of the form `yarn global add`
     // However, they may have options intermixed, e.g. yarn --verbose global add ember-cli
     let mut args = args_os().skip(1).filter(|arg| match arg.to_str() {
-        Some(arg) => !arg.starts_with("-"),
+        Some(arg) => !arg.starts_with('-'),
         None => true,
     });
 

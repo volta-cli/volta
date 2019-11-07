@@ -1,6 +1,5 @@
 use std::io::Write;
 use std::process::{Child, Stdio};
-use std::vec::Vec;
 
 use log::error;
 use serde_json;
@@ -22,7 +21,7 @@ impl Monitor {
 
     /// send event to the monitor process
     // if hook command is not configured, this is a no-op
-    pub fn send_events(&mut self, events: &Vec<Event>) -> () {
+    pub fn send_events(&mut self, events: &[Event]) {
         if let Some(ref mut child_process) = self.monitor_process {
             if let Some(ref mut p_stdin) = child_process.stdin.as_mut() {
                 let json = serde_json::to_string(&events);
@@ -43,9 +42,9 @@ impl Monitor {
 }
 
 fn spawn_process(command: &str) -> Option<Child> {
-    command.split(" ").take(1).next().and_then(|executable| {
+    command.split(' ').take(1).next().and_then(|executable| {
         let child = create_command(executable)
-            .args(command.split(" ").skip(1))
+            .args(command.split(' ').skip(1))
             .stdin(Stdio::piped()) // JSON data is sent over stdin
             // .stdout(Stdio::piped()) // let the plugin write to stdout for now
             .spawn();

@@ -25,7 +25,7 @@ pub struct LazyProject {
 }
 
 impl LazyProject {
-    pub fn new() -> Self {
+    pub fn init() -> Self {
         LazyProject {
             project: LazyCell::new(),
         }
@@ -75,7 +75,7 @@ impl Project {
 
     /// Starts at `base_dir` and walks up the directory tree until a package.json file is found
     pub(crate) fn find_dir(base_dir: &Path) -> Option<&Path> {
-        let mut dir = base_dir.clone();
+        let mut dir = base_dir;
         while !is_project_root(dir) {
             dir = match dir.parent() {
                 Some(parent) => parent,
@@ -174,7 +174,7 @@ impl Project {
         };
 
         has_dep(&self.manifest.dependencies)
-            .or(has_dep(&self.manifest.dev_dependencies))
+            .or_else(|| has_dep(&self.manifest.dev_dependencies))
             .unwrap_or(false)
     }
 
