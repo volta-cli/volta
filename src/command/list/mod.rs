@@ -9,7 +9,6 @@ use semver::Version;
 use structopt::StructOpt;
 
 use crate::command::Command;
-use std::rc::Rc;
 use toolchain::Toolchain;
 use volta_core::inventory::Inventory;
 use volta_core::project::Project;
@@ -135,7 +134,7 @@ impl Package {
 
     fn from_inventory_and_project(
         inventory: &Inventory,
-        project: &Option<Rc<Project>>,
+        project: Option<&Project>,
     ) -> Vec<Package> {
         inventory
             .packages
@@ -147,7 +146,7 @@ impl Package {
             .collect()
     }
 
-    fn source(name: &str, version: &Version, project: &Option<Rc<Project>>) -> Source {
+    fn source(name: &str, version: &Version, project: Option<&Project>) -> Source {
         match project {
             Some(project) if project.has_dependency(name, version) => {
                 Source::Project(project.package_file())
@@ -308,12 +307,12 @@ impl Command for List {
 
         let toolchain = match self.subcommand() {
             // For no subcommand, show the user's current toolchain
-            None => Toolchain::active(&project, &user_platform, inventory)?,
-            Some(Subcommand::All) => Toolchain::all(&project, &user_platform, inventory)?,
-            Some(Subcommand::Node) => Toolchain::node(inventory, &project, &user_platform, &filter),
-            Some(Subcommand::Yarn) => Toolchain::yarn(inventory, &project, &user_platform, &filter),
+            None => Toolchain::active(project, &user_platform, inventory)?,
+            Some(Subcommand::All) => Toolchain::all(project, &user_platform, inventory)?,
+            Some(Subcommand::Node) => Toolchain::node(inventory, project, &user_platform, &filter),
+            Some(Subcommand::Yarn) => Toolchain::yarn(inventory, project, &user_platform, &filter),
             Some(Subcommand::PackageOrTool { name }) => {
-                Toolchain::package_or_tool(&name, inventory, &project, &filter)?
+                Toolchain::package_or_tool(&name, inventory, project, &filter)?
             }
         };
 

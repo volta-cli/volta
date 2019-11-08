@@ -66,8 +66,11 @@ impl Tool for Yarn {
         Ok(())
     }
     fn pin(self, session: &mut Session) -> Fallible<()> {
-        if let Some(ref project) = session.project()? {
+        if session.project()?.is_some() {
             self.fetch_internal(session)?;
+
+            // Note: We know this will succeed, since we checked above
+            let project = session.project_mut()?.unwrap();
             project.pin_yarn(&self.version)?;
 
             info_pinned(self);

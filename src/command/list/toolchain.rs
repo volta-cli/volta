@@ -48,7 +48,7 @@ impl Lookup {
 
     fn version_source<'p>(
         self,
-        project: &'p Option<Rc<Project>>,
+        project: Option<&'p Project>,
         user_platform: &Option<Rc<PlatformSpec>>,
         version: &Version,
     ) -> Source {
@@ -74,7 +74,7 @@ impl Lookup {
     /// Determine the `Source` for a given kind of tool (`Lookup`).
     fn active_tool(
         self,
-        project: &Option<Rc<Project>>,
+        project: Option<&Project>,
         user: &Option<Rc<PlatformSpec>>,
     ) -> Option<(Source, Version)> {
         match project {
@@ -91,11 +91,10 @@ impl Lookup {
 }
 
 /// Look up the `Source` for a tool with a given name.
-fn tool_source(name: &str, version: &Version, project: &Option<Rc<Project>>) -> Fallible<Source> {
+fn tool_source(name: &str, version: &Version, project: Option<&Project>) -> Fallible<Source> {
     match project {
         Some(project) => {
             let project_version_is_tool_version = project
-                .as_ref()
                 .matching_bin(&OsString::from(name), version)?
                 .map_or(false, |bin| &bin.version == version);
 
@@ -111,7 +110,7 @@ fn tool_source(name: &str, version: &Version, project: &Option<Rc<Project>>) -> 
 
 impl Toolchain {
     pub(super) fn active(
-        project: &Option<Rc<Project>>,
+        project: Option<&Project>,
         user_platform: &Option<Rc<PlatformSpec>>,
         inventory: &Inventory,
     ) -> Fallible<Toolchain> {
@@ -138,7 +137,7 @@ impl Toolchain {
     }
 
     pub(super) fn all(
-        project: &Option<Rc<Project>>,
+        project: Option<&Project>,
         user_platform: &Option<Rc<PlatformSpec>>,
         inventory: &Inventory,
     ) -> Fallible<Toolchain> {
@@ -174,7 +173,7 @@ impl Toolchain {
 
     pub(super) fn node(
         inventory: &Inventory,
-        project: &Option<Rc<Project>>,
+        project: Option<&Project>,
         user_platform: &Option<Rc<PlatformSpec>>,
         filter: &Filter,
     ) -> Toolchain {
@@ -198,7 +197,7 @@ impl Toolchain {
 
     pub(super) fn yarn(
         inventory: &Inventory,
-        project: &Option<Rc<Project>>,
+        project: Option<&Project>,
         user_platform: &Option<Rc<PlatformSpec>>,
         filter: &Filter,
     ) -> Toolchain {
@@ -226,7 +225,7 @@ impl Toolchain {
     pub(super) fn package_or_tool(
         name: &str,
         inventory: &Inventory,
-        project: &Option<Rc<Project>>,
+        project: Option<&Project>,
         filter: &Filter,
     ) -> Fallible<Toolchain> {
         /// An internal-only helper for tracking whether we found a given item

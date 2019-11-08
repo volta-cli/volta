@@ -441,3 +441,24 @@ fn pin_npm() {
         package_json_with_pinned_node_npm("1.2.3", "5.10.12"),
     )
 }
+
+#[test]
+fn pin_node_and_yarn() {
+    let s = sandbox()
+        .package_json(BASIC_PACKAGE_JSON)
+        .node_available_versions(NODE_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .yarn_available_versions(YARN_VERSION_INFO)
+        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .build();
+
+    assert_that!(
+        s.volta("pin node@6 yarn@1.4"),
+        execs().with_status(ExitCode::Success as i32)
+    );
+
+    assert_eq!(
+        s.read_package_json(),
+        package_json_with_pinned_node_yarn("6.19.62", "1.4.159"),
+    )
+}

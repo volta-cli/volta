@@ -100,10 +100,7 @@ impl TempProjectBuilder {
         ok_or_panic!(symlink_file(shim_exe(), self.root.yarn_exe()));
         ok_or_panic!(symlink_file(shim_exe(), self.root.npm_exe()));
 
-        ok_or_panic!(symlink_file(
-            shim_exe(),
-            shim_executable(self.root())
-        ));
+        ok_or_panic!(symlink_file(shim_exe(), shim_executable(self.root())));
 
         // write files
         for file_builder in self.files {
@@ -218,7 +215,10 @@ fn user_platform_file(root: PathBuf) -> PathBuf {
     user_dir(root).join("platform.json")
 }
 pub fn node_distro_file_name(version: &str) -> String {
-    format!("node-v{}-{}-{}.tar.gz", version, NODE_DISTRO_OS, NODE_DISTRO_ARCH)
+    format!(
+        "node-v{}-{}-{}.tar.gz",
+        version, NODE_DISTRO_OS, NODE_DISTRO_ARCH
+    )
 }
 fn yarn_distro_file_name(version: &str) -> String {
     format!("yarn-v{}.tar.gz", version)

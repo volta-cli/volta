@@ -136,9 +136,11 @@ impl Tool for Node {
         Ok(())
     }
     fn pin(self, session: &mut Session) -> Fallible<()> {
-        if let Some(ref project) = session.project()? {
+        if session.project()?.is_some() {
             let node_version = self.fetch_internal(session)?;
 
+            // Note: We know this will succeed, since we checked above
+            let project = session.project_mut()?.unwrap();
             project.pin_node(&node_version)?;
 
             info_pinned(node_version);
