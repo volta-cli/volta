@@ -42,7 +42,7 @@ mod os {
     use volta_core::layout::volta_home;
     use volta_fail::Fallible;
 
-    const PROFILES: [&'static str; 5] = [
+    const PROFILES: [&str; 5] = [
         ".profile",
         ".bash_profile",
         ".bashrc",
