@@ -26,10 +26,10 @@ cfg_if! {
 
         // This path needs to exactly match the Registry Key in the Windows Installer
         // wix/main.wxs -
-        const VOLTA_REGISTRY_PATH: &'static str = r#"Software\The Volta Maintainers\Volta"#;
+        const VOLTA_REGISTRY_PATH: &str = r#"Software\The Volta Maintainers\Volta"#;
 
         // This Key needs to exactly match the Name from the above element in the Windows Installer
-        const VOLTA_INSTALL_DIR: &'static str = "InstallDir";
+        const VOLTA_INSTALL_DIR: &str = "InstallDir";
 
         pub(super) fn default_install_dir() -> Fallible<PathBuf> {
             let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);

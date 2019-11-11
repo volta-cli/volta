@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Once;
 
-static SMOKE_TEST_DIR: &'static str = "smoke_test";
+static SMOKE_TEST_DIR: &str = "smoke_test";
 static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
 
 thread_local!(static TASK_ID: usize = NEXT_ID.fetch_add(1, Ordering::SeqCst));
@@ -67,7 +67,7 @@ impl Remove {
         }
     }
 
-    fn at(&self, path: &Path) -> () {
+    fn at(&self, path: &Path) {
         if cfg!(windows) {
             let mut p = ok_or_panic!(path.metadata()).permissions();
             p.set_readonly(false);

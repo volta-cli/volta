@@ -72,15 +72,17 @@ impl Tarball {
         let response = reqwest::get(url)?;
 
         if !response.status().is_success() {
-            Err(super::HttpError {
+            return Err(super::HttpError {
                 code: response.status(),
-            })?;
+            }
+            .into());
         }
 
         let compressed_size = content_length(&response)?;
-        let uncompressed_size = match accepts_byte_ranges(&response) {
-            true => fetch_uncompressed_size(url, compressed_size),
-            false => None,
+        let uncompressed_size = if accepts_byte_ranges(&response) {
+            fetch_uncompressed_size(url, compressed_size)
+        } else {
+            None
         };
 
         ensure_containing_dir_exists(&cache_file)?;
@@ -156,17 +158,19 @@ fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], failure::Error> {
         .send()?;
 
     if !response.status().is_success() {
-        Err(super::HttpError {
+        return Err(super::HttpError {
             code: response.status(),
-        })?;
+        }
+        .into());
     }
 
     let actual_length = content_length(&response)?;
 
     if actual_length != 4 {
-        Err(UnexpectedContentLengthError {
+        return Err(UnexpectedContentLengthError {
             length: actual_length,
-        })?;
+        }
+        .into());
     }
 
     let mut buf = [0; 4];
@@ -199,15 +203,13 @@ fn accepts_byte_ranges(response: &Response) -> bool {
 /// slower than the extra round trips.
 fn fetch_uncompressed_size(url: &str, len: u64) -> Option<u64> {
     // if there is an error, we ignore it and return None, instead of failing
-    fetch_isize(url, len)
-        .ok()
-        .map(|packed| unpack_isize(packed))
+    fetch_isize(url, len).ok().map(unpack_isize)
 }
 
 /// Determines the uncompressed size of the specified gzip file on disk.
 fn load_uncompressed_size(file: &mut File) -> Option<u64> {
     // if there is an error, we ignore it and return None, instead of failing
-    load_isize(file).ok().map(|packed| unpack_isize(packed))
+    load_isize(file).ok().map(unpack_isize)
 }
 
 #[cfg(test)]

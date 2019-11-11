@@ -236,6 +236,7 @@ impl SandboxBuilder {
     }
 
     /// Set the shell for the sandbox (chainable)
+    #[cfg(unix)]
     pub fn volta_shell(self, shell_name: &str) -> Self {
         self.env("VOLTA_SHELL", shell_name)
     }
@@ -599,6 +600,7 @@ impl Sandbox {
         read_file_to_string(package_file)
     }
 
+    #[cfg(unix)]
     pub fn read_postscript(&self) -> String {
         let postscript_file = volta_postscript();
         read_file_to_string(postscript_file)
