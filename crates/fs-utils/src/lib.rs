@@ -17,5 +17,5 @@ pub fn ensure_containing_dir_exists<P: AsRef<Path>>(path: &P) -> io::Result<()> 
                 ),
             )
         })
-        .and_then(|dir| fs::create_dir_all(dir))
+        .and_then(fs::create_dir_all)
 }
