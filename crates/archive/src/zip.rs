@@ -39,9 +39,10 @@ impl Zip {
         let mut response = reqwest::get(url)?;
 
         if !response.status().is_success() {
-            Err(super::HttpError {
+            return Err(super::HttpError {
                 code: response.status(),
-            })?;
+            }
+            .into());
         }
 
         {

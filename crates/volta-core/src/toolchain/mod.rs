@@ -22,7 +22,7 @@ pub struct LazyToolchain {
 
 impl LazyToolchain {
     /// Creates a new `LazyToolchain`
-    pub fn new() -> Self {
+    pub fn init() -> Self {
         LazyToolchain {
             toolchain: LazyCell::new(),
         }
@@ -30,12 +30,12 @@ impl LazyToolchain {
 
     /// Forces loading of the toolchain and returns an immutable reference to it
     pub fn get(&self) -> Fallible<&Toolchain> {
-        self.toolchain.try_borrow_with(|| Toolchain::current())
+        self.toolchain.try_borrow_with(Toolchain::current)
     }
 
     /// Forces loading of the toolchain and returns a mutable reference to it
     pub fn get_mut(&mut self) -> Fallible<&mut Toolchain> {
-        self.toolchain.try_borrow_mut_with(|| Toolchain::current())
+        self.toolchain.try_borrow_mut_with(Toolchain::current)
     }
 }
 
@@ -97,7 +97,7 @@ impl Toolchain {
     pub fn set_active_yarn(&mut self, yarn_version: &Version) -> Fallible<()> {
         let mut dirty = false;
 
-        if let &mut Some(ref mut platform) = &mut self.platform {
+        if let Some(ref mut platform) = self.platform {
             if platform.yarn.as_ref() != Some(yarn_version) {
                 platform.yarn = Some(yarn_version.clone());
                 dirty = true;
@@ -115,7 +115,7 @@ impl Toolchain {
     pub fn set_active_npm(&mut self, npm_version: &Version) -> Fallible<()> {
         let mut dirty = false;
 
-        if let &mut Some(ref mut platform) = &mut self.platform {
+        if let Some(ref mut platform) = self.platform {
             if let Some(ref npm) = &platform.npm {
                 if npm != npm_version {
                     platform.npm = Some(npm_version.clone());
@@ -135,7 +135,7 @@ impl Toolchain {
         let path = volta_home()?.user_platform_file();
         let result = match &self.platform {
             Some(platform) => {
-                let src = platform.to_serial().to_json()?;
+                let src = platform.to_serial().into_json()?;
                 write(&path, src)
             }
             None => write(&path, "{}"),

@@ -8,13 +8,13 @@ use volta_fail::{ExitCode, Fallible};
 // NOTE: These use the same text as the `long_about` in crate::cli.
 //       It's hard to abstract since it's in an attribute string.
 
-pub(crate) const USAGE: &'static str = "The subcommand `use` is deprecated.
+pub(crate) const USAGE: &str = "The subcommand `use` is deprecated.
 
     To install a tool in your toolchain, use `volta install`.
     To pin your project's runtime or package manager, use `volta pin`.
 ";
 
-const ADVICE: &'static str = "
+const ADVICE: &str = "
     To install a tool in your toolchain, use `volta install`.
     To pin your project's runtime or package manager, use `volta pin`.
 ";

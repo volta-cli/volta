@@ -3,7 +3,7 @@ use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
 
-const PKG_CONFIG_BASIC: &'static str = r#"{
+const PKG_CONFIG_BASIC: &str = r#"{
   "name": "cowsay",
   "version": "1.4.0",
   "platform": {
@@ -19,7 +19,7 @@ const PKG_CONFIG_BASIC: &'static str = r#"{
   ]
 }"#;
 
-const PKG_CONFIG_NO_BINS: &'static str = r#"{
+const PKG_CONFIG_NO_BINS: &str = r#"{
   "name": "cowsay",
   "version": "1.4.0",
   "platform": {
@@ -51,7 +51,7 @@ fn bin_config(name: &str) -> String {
     )
 }
 
-const VOLTA_LOGLEVEL: &'static str = "VOLTA_LOGLEVEL";
+const VOLTA_LOGLEVEL: &str = "VOLTA_LOGLEVEL";
 
 #[test]
 fn uninstall_nonexistent_pkg() {

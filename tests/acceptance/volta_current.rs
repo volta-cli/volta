@@ -5,7 +5,7 @@ use test_support::matchers::execs;
 
 use volta_fail::ExitCode;
 
-const BASIC_PACKAGE_JSON: &'static str = r#"{
+const BASIC_PACKAGE_JSON: &str = r#"{
   "name": "test-package"
 }"#;
 

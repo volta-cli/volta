@@ -19,8 +19,8 @@ pub(super) enum Toolchain {
         host_packages: Vec<Package>,
     },
     Active {
-        runtime: Option<Node>,
-        package_manager: Option<PackageManager>,
+        runtime: Option<Box<Node>>,
+        package_manager: Option<Box<PackageManager>>,
         packages: Vec<Package>,
     },
     All {
@@ -56,16 +56,22 @@ impl Lookup {
             Some(project) => project
                 .platform()
                 .and_then(self.version_from_spec())
-                .and_then(|project_version| match &project_version == version {
-                    true => Some(Source::Project(project.package_file())),
-                    false => None,
+                .and_then(|project_version| {
+                    if &project_version == version {
+                        Some(Source::Project(project.package_file()))
+                    } else {
+                        None
+                    }
                 }),
             None => user_platform
                 .clone()
                 .and_then(self.version_from_spec())
-                .and_then(|ref default_version| match default_version == version {
-                    true => Some(Source::Default),
-                    false => None,
+                .and_then(|ref default_version| {
+                    if default_version == version {
+                        Some(Source::Default)
+                    } else {
+                        None
+                    }
                 }),
         }
         .unwrap_or(Source::None)
@@ -116,15 +122,17 @@ impl Toolchain {
     ) -> Fallible<Toolchain> {
         let runtime = Lookup::Runtime
             .active_tool(project, user_platform)
-            .map(|(source, version)| Node { source, version });
+            .map(|(source, version)| Box::new(Node { source, version }));
 
         let package_manager =
             Lookup::Yarn
                 .active_tool(project, user_platform)
-                .map(|(source, version)| PackageManager {
-                    kind: PackageManagerKind::Yarn,
-                    source,
-                    version,
+                .map(|(source, version)| {
+                    Box::new(PackageManager {
+                        kind: PackageManagerKind::Yarn,
+                        source,
+                        version,
+                    })
                 });
 
         let packages = Package::from_inventory_and_project(inventory, project);
@@ -246,7 +254,7 @@ impl Toolchain {
             .filter_map(|config| {
                 // Start with the package itself, since tools often match
                 // the package name and we prioritize packages.
-                if &config.name == name {
+                if config.name == name {
                     let source = Package::source(name, &config.version, project);
                     if source.allowed_with(filter) {
                         Some(Ok((Kind::Package, config, source)))
@@ -256,12 +264,7 @@ impl Toolchain {
 
                 // Then check if the passed name matches an installed package's
                 // binaries. If it does, we have a tool.
-                } else if config
-                    .bins
-                    .iter()
-                    .find(|bin| bin.as_str() == name)
-                    .is_some()
-                {
+                } else if config.bins.iter().any(|bin| bin.as_str() == name) {
                     tool_source(name, &config.version, project)
                         .map(|source| {
                             if source.allowed_with(filter) {

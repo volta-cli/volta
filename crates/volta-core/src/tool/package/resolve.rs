@@ -135,7 +135,7 @@ fn npm_view_query(name: &str, version: &str, session: &mut Session) -> Fallible<
 
     // Sometimes the returned JSON is an array (semver case), otherwise it's a single object.
     // Check if the first char is '[' and parse as an array if so
-    if response_json.chars().next() == Some('[') {
+    if response_json.starts_with('[') {
         let metadatas: Vec<super::serial::NpmViewData> = serde_json::de::from_str(&response_json)
             .with_context(|_| {
             ErrorDetails::NpmViewMetadataParseError {

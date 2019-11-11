@@ -16,3 +16,10 @@ steps:
     env:
       RUST_BACKTRACE: full
     displayName: Smoke Tests
+
+  # clippy lints
+  - script: |
+      rustup component add clippy
+      cargo clippy --features volta-updates
+      cargo clippy --tests --features mock-network,volta-updates
+    displayName: Linting with Clippy

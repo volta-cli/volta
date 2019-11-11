@@ -18,13 +18,13 @@ pub use resolve::resolve;
 cfg_if! {
     if #[cfg(target_os = "windows")] {
         /// The OS component of a Node distro's filename.
-        pub const NODE_DISTRO_OS: &'static str = "win";
+        pub const NODE_DISTRO_OS: &str = "win";
     } else if #[cfg(target_os = "macos")] {
         /// The OS component of a Node distro's filename.
-        pub const NODE_DISTRO_OS: &'static str = "darwin";
+        pub const NODE_DISTRO_OS: &str = "darwin";
     } else if #[cfg(target_os = "linux")] {
         /// The OS component of a Node distro's filename.
-        pub const NODE_DISTRO_OS: &'static str = "linux";
+        pub const NODE_DISTRO_OS: &str = "linux";
     } else {
         compile_error!("Unsupported operating system (expected Windows, macOS, or Linux).");
     }
@@ -33,10 +33,10 @@ cfg_if! {
 cfg_if! {
     if #[cfg(target_arch = "x86")] {
         /// The system architecture component of a Node distro's name.
-        pub const NODE_DISTRO_ARCH: &'static str = "x86";
+        pub const NODE_DISTRO_ARCH: &str = "x86";
     } else if #[cfg(target_arch = "x86_64")] {
         /// The system architecture component of a Node distro's name.
-        pub const NODE_DISTRO_ARCH: &'static str = "x64";
+        pub const NODE_DISTRO_ARCH: &str = "x64";
     } else {
         compile_error!("Unsupported target_arch variant (expected 'x86' or 'x64').");
     }
@@ -45,10 +45,10 @@ cfg_if! {
 cfg_if! {
     if #[cfg(target_os = "windows")] {
         /// Filename extension for Node distro files.
-        pub const NODE_DISTRO_EXTENSION: &'static str = "zip";
+        pub const NODE_DISTRO_EXTENSION: &str = "zip";
     } else {
         /// Filename extension for Node distro files.
-        pub const NODE_DISTRO_EXTENSION: &'static str = "tar.gz";
+        pub const NODE_DISTRO_EXTENSION: &str = "tar.gz";
     }
 }
 

@@ -13,9 +13,9 @@ use log::debug;
 use semver::Version;
 use volta_fail::{throw, Fallible, ResultExt};
 
-const ARCH_TEMPLATE: &'static str = "{{arch}}";
-const OS_TEMPLATE: &'static str = "{{os}}";
-const VERSION_TEMPLATE: &'static str = "{{version}}";
+const ARCH_TEMPLATE: &str = "{{arch}}";
+const OS_TEMPLATE: &str = "{{os}}";
+const VERSION_TEMPLATE: &str = "{{version}}";
 
 lazy_static! {
     static ref REL_PATH: String = format!(".{}", std::path::MAIN_SEPARATOR);

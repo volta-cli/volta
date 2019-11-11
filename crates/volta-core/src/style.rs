@@ -62,15 +62,15 @@ pub fn progress_bar(origin: Origin, details: &str, len: u64) -> ProgressBar {
         None => MAX_PROGRESS_WIDTH,
     };
 
-    let bar = ProgressBar::new(len);
+    let progress = ProgressBar::new(len);
 
-    bar.set_message(&format!(
+    progress.set_message(&format!(
         "{: >width$} {}",
         style(action).green().bold(),
         details,
         width = action_width,
     ));
-    bar.set_style(
+    progress.set_style(
         ProgressStyle::default_bar()
             .template(&format!(
                 "{{msg}}  [{{bar:{}.cyan/blue}}] {{percent:>3}}%",
@@ -79,7 +79,7 @@ pub fn progress_bar(origin: Origin, details: &str, len: u64) -> ProgressBar {
             .progress_chars("=> "),
     );
 
-    bar
+    progress
 }
 
 cfg_if! {

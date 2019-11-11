@@ -10,13 +10,12 @@ use volta_fail::{ExitCode, VoltaFail};
 use crate::style::{text_width, tool_version};
 use crate::tool;
 
-const REPORT_BUG_CTA: &'static str =
+const REPORT_BUG_CTA: &str =
     "Please rerun the command that triggered this error with the environment
 variables `VOLTA_LOGLEVEL` set to `debug` and `RUST_BACKTRACE` set to `full`, and open
 an issue at https://github.com/volta-cli/volta/issues with the details!";
 
-const PERMISSIONS_CTA: &'static str =
-    "Please ensure you have correct permissions to the Volta directory.";
+const PERMISSIONS_CTA: &str = "Please ensure you have correct permissions to the Volta directory.";
 
 #[derive(Debug, PartialEq)]
 pub enum CreatePostscriptErrorPath {

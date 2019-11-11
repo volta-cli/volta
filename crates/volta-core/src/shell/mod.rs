@@ -48,7 +48,7 @@ pub struct CurrentShell(Box<dyn Shell>);
 impl CurrentShell {
     pub fn detect() -> Fallible<Self> {
         env::shell_name()
-            .ok_or(ErrorDetails::UnspecifiedShell.into())
+            .ok_or_else(|| ErrorDetails::UnspecifiedShell.into())
             .and_then(|name| name.parse())
     }
 }

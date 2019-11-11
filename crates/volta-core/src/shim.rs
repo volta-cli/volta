@@ -84,7 +84,7 @@ mod windows {
     use std::io::ErrorKind;
     use volta_fail::{FailExt, Fallible, ResultExt};
 
-    const BASH_SCRIPT: &'static str = r#"cmd //C $0 "$@""#;
+    const BASH_SCRIPT: &str = r#"cmd //C $0 "$@""#;
 
     pub fn create_git_bash_script(shim_name: &str) -> Fallible<()> {
         let script_path = volta_home()?.shim_git_bash_script_file(shim_name);

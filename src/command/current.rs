@@ -32,11 +32,11 @@ impl Command for Current {
                 let user_active = project.is_none() && user.is_some();
                 let any = project.is_some() || user.is_some();
 
-                for version in project {
+                if let Some(version) = project {
                     println!("project: v{} (active)", version);
                 }
 
-                for version in user {
+                if let Some(version) = user {
                     println!(
                         "user: v{}{}",
                         version,

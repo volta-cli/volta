@@ -21,7 +21,7 @@ pub fn main() {
     };
     Logger::init(LogContext::Volta, verbosity).expect("Only a single logger should be initialized");
 
-    let mut session = Session::new();
+    let mut session = Session::init();
     session.add_event_start(ActivityKind::Volta);
     let exit_code = volta.run(&mut session).unwrap_or_else(|err| {
         report_error(env!("CARGO_PKG_VERSION"), &err);

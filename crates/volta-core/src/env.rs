@@ -3,7 +3,7 @@
 use std::env;
 use std::path::{Path, PathBuf};
 
-pub const UNSAFE_GLOBAL: &'static str = "VOLTA_UNSAFE_GLOBAL";
+pub const UNSAFE_GLOBAL: &str = "VOLTA_UNSAFE_GLOBAL";
 
 pub(crate) fn shell_name() -> Option<String> {
     env::var_os("VOLTA_SHELL").map(|s| s.to_string_lossy().into_owned())

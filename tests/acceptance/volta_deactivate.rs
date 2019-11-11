@@ -1,10 +1,11 @@
+#![cfg(unix)]
+
 use crate::support::sandbox::sandbox;
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
 
 #[test]
-#[cfg(unix)]
 fn deactivate_bash() {
     let s = sandbox()
         .volta_shell("bash")

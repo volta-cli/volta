@@ -53,7 +53,7 @@ fn check_npm_install() -> CommandArg {
     // command itself skipped and all flags excluded entirely. The first item
     // in that skipped, filter iterator is the command itself.
     let mut args = args_os().skip(1).filter(|arg| match arg.to_str() {
-        Some(arg) => !arg.starts_with("-"),
+        Some(arg) => !arg.starts_with('-'),
         None => true,
     });
     let command = args.next();
