@@ -32,7 +32,7 @@ pub struct LazyHookConfig {
 }
 
 impl LazyHookConfig {
-    /// Constructs a new `LazyHookConfig` (but does not initialize it).
+    /// Constructs a new `LazyHookConfig`
     pub fn init() -> LazyHookConfig {
         LazyHookConfig {
             settings: LazyCell::new(),
