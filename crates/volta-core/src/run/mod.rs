@@ -23,7 +23,7 @@ pub mod yarn;
 
 cfg_if! {
     if #[cfg(feature = "volta-updates")] {
-        const UNSAFE_GLOBAL: &'static str = "VOLTA_UNSAFE_GLOBAL";
+        const UNSAFE_GLOBAL: &str = "VOLTA_UNSAFE_GLOBAL";
     } else {
         use crate::env::UNSAFE_GLOBAL;
     }
