@@ -11,7 +11,7 @@ pub(super) fn run_shim() {
         .expect("Only a single Logger should be initialized");
     setup_signal_handler();
 
-    let mut session = Session::new();
+    let mut session = Session::init();
 
     session.add_event_start(ActivityKind::Tool);
 
