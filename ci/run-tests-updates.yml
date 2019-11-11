@@ -6,13 +6,13 @@ steps:
     displayName: Unit Tests
 
   # the acceptance tests, using network mocks
-  - script: cargo test --features mock-network volta-updates
+  - script: cargo test --features mock-network,volta-updates
     env:
       RUST_BACKTRACE: full
     displayName: Acceptance Tests
 
   # smoke tests: real data and no mocks
-  - script: cargo test --test smoke --features smoke-tests volta-updates -- --test-threads 1
+  - script: cargo test --test smoke --features smoke-tests,volta-updates -- --test-threads 1
     env:
       RUST_BACKTRACE: full
     displayName: Smoke Tests
