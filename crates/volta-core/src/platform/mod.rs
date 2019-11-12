@@ -109,6 +109,7 @@ impl System {
 
     /// Reproduces the Volta-enabled `PATH` environment variable for situations where
     /// Volta has been deactivated
+    #[cfg(not(feature = "volta-updates"))]
     pub fn enabled_path() -> Fallible<OsString> {
         let old_path = envoy::path().unwrap_or_else(|| envoy::Var::from(""));
         let mut new_path = old_path.split();
@@ -136,6 +137,7 @@ mod test {
     use crate::layout::volta_install;
     use semver::Version;
     use std;
+    #[cfg(not(feature = "volta-updates"))]
     use std::path::PathBuf;
 
     // Since unit tests are run in parallel, tests that modify the PATH environment variable are subject to race conditions
@@ -144,6 +146,7 @@ mod test {
     fn test_paths() {
         test_image_path();
         test_system_path();
+        #[cfg(not(feature = "volta-updates"))]
         test_system_enabled_path();
     }
 
@@ -322,7 +325,7 @@ mod test {
         );
     }
 
-    #[cfg(unix)]
+    #[cfg(all(unix, not(feature = "volta-updates")))]
     fn test_system_enabled_path() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
         pathbufs.push(volta_home().unwrap().shim_dir().to_owned());
@@ -349,7 +352,7 @@ mod test {
         );
     }
 
-    #[cfg(windows)]
+    #[cfg(all(windows, not(feature = "volta-updates")))]
     fn test_system_enabled_path() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
         pathbufs.push(volta_install().unwrap().bin_dir());
