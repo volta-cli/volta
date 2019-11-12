@@ -52,6 +52,11 @@ pub enum ErrorDetails {
     /// Thrown when building the virtual environment path fails
     BuildPathError,
 
+    /// Thrown when unable to launch a command with VOLTA_BYPASS set
+    BypassError {
+        command: String,
+    },
+
     /// Thrown when a user tries to `volta pin` something other than node/yarn/npm.
     CannotPinPackage {
         package: String,
@@ -532,6 +537,13 @@ Use `volta install` to add a package to your toolchain (see `volta help install`
                 "Could not create execution environment.
 
 Please ensure your PATH is valid."
+            ),
+            ErrorDetails::BypassError { command } => write!(
+                f,
+                "Could not execute command '{}'
+
+VOLTA_BYPASS is enabled, please ensure that the command exists on your system or unset VOLTA_BYPASS",
+                command,
             ),
             ErrorDetails::CannotPinPackage { package } => write!(
                 f,
@@ -1321,6 +1333,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::BinaryExecError => ExitCode::ExecutionFailure,
             ErrorDetails::BinaryNotFound { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::BuildPathError => ExitCode::EnvironmentError,
+            ErrorDetails::BypassError { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::CannotPinPackage { .. } => ExitCode::InvalidArguments,
             ErrorDetails::CompletionsOutFileError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::ContainingDirError { .. } => ExitCode::FileSystemError,
