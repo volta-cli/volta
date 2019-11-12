@@ -7,14 +7,13 @@ use std::path::Path;
 use std::process::{Command, ExitStatus, Output};
 
 use crate::command::create_command;
-use crate::env::UNSAFE_GLOBAL;
 use crate::error::ErrorDetails;
 use crate::layout::ensure_volta_dirs_exist;
 use crate::platform::System;
 use crate::session::Session;
 use crate::signal::pass_control_to_shim;
-#[cfg(feature = "volta-updates")]
 use volta_fail::throw;
+use cfg_if::cfg_if;
 use volta_fail::{Fallible, ResultExt};
 
 pub mod binary;
@@ -22,6 +21,14 @@ pub mod node;
 pub mod npm;
 pub mod npx;
 pub mod yarn;
+
+cfg_if! {
+    if #[cfg(feature = "volta-updates")] {
+        const UNSAFE_GLOBAL: &str = "VOLTA_UNSAFE_GLOBAL";
+    } else {
+        use crate::env::UNSAFE_GLOBAL;
+    }
+}
 
 /// Distinguish global `add` commands in npm or yarn from all others.
 enum CommandArg {

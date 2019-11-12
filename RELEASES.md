@@ -1,3 +1,8 @@
+# Version 0.6.6
+
+- Node and Yarn can now both be pinned in the same command `volta pin node yarn` (#593)
+- Windows installer will now work on minimal Windows installs (e.g. Windows Sandbox) (#592)
+
 # Version 0.6.5
 
 - `volta list` Now always outputs to stdout, regardless of how it is called (#581)

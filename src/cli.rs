@@ -97,6 +97,7 @@ pub(crate) enum Subcommand {
     Current(command::Current),
 
     /// [DEPRECATED] Disables Volta in the current shell
+    #[cfg(not(feature = "volta-updates"))]
     #[structopt(
         name = "deactivate",
         author = "",
@@ -106,6 +107,7 @@ pub(crate) enum Subcommand {
     Deactivate(command::Deactivate),
 
     /// [DEPRECATED] Re-enables Volta in the current shell
+    #[cfg(not(feature = "volta-updates"))]
     #[structopt(
         name = "activate",
         author = "",
@@ -158,7 +160,9 @@ impl Subcommand {
             Subcommand::Pin(pin) => pin.run(session),
             Subcommand::List(list) => list.run(session),
             Subcommand::Current(current) => current.run(session),
+            #[cfg(not(feature = "volta-updates"))]
             Subcommand::Deactivate(deactivate) => deactivate.run(session),
+            #[cfg(not(feature = "volta-updates"))]
             Subcommand::Activate(activate) => activate.run(session),
             Subcommand::Completions(completions) => completions.run(session),
             Subcommand::Which(which) => which.run(session),
