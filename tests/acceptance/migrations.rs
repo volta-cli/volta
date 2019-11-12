@@ -42,7 +42,6 @@ fn empty_volta_home_is_created() {
     }
 }
 
-#[cfg(unix)]
 #[test]
 fn legacy_v0_volta_home_is_upgraded() {
     let s = sandbox().build();
