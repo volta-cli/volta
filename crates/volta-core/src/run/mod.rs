@@ -13,6 +13,8 @@ use crate::platform::System;
 use crate::session::Session;
 use crate::signal::pass_control_to_shim;
 use cfg_if::cfg_if;
+#[cfg(feature = "volta-updates")]
+use volta_fail::throw;
 use volta_fail::{Fallible, ResultExt};
 
 pub mod binary;
@@ -44,6 +46,8 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
     let exe = get_tool_name(&mut args)?;
 
     let command = match &exe.to_str() {
+        #[cfg(feature = "volta-updates")]
+        Some("volta-shim") => throw!(ErrorDetails::RunShimDirectly),
         Some("node") => node::command(args, session)?,
         Some("npm") => npm::command(args, session)?,
         Some("npx") => npx::command(args, session)?,

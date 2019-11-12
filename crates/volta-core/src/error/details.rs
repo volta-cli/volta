@@ -378,6 +378,10 @@ pub enum ErrorDetails {
         file: PathBuf,
     },
 
+    /// Thrown when the shim binary is called directly, not through a symlink
+    #[cfg(feature = "volta-updates")]
+    RunShimDirectly,
+
     /// Thrown when the public registry for Node or Yarn could not be downloaded.
     RegistryFetchError {
         tool: String,
@@ -397,6 +401,7 @@ pub enum ErrorDetails {
     },
 
     /// Thrown when Volta cannot find the shim executable
+    #[cfg(not(feature = "volta-updates"))]
     ShimExecutableNotFound,
 
     /// Thrown when trying to remove a built-in shim (`node`, `yarn`, etc.)
@@ -1119,6 +1124,13 @@ from {}
 Please verify your internet connection.",
                 tool, from_url
             ),
+            #[cfg(feature = "volta-updates")]
+            ErrorDetails::RunShimDirectly => write!(
+                f,
+                "'volta-shim' should not be called directly.
+
+Please use the existing shims provided by Volta (node, yarn, etc.) to run tools."
+            ),
             ErrorDetails::SetupToolImageError { tool, version, dir } => write!(
                 f,
                 "Could not create environment for {} v{}
@@ -1137,6 +1149,7 @@ at {}
 {}"#,
                 name, PERMISSIONS_CTA
             ),
+            #[cfg(not(feature = "volta-updates"))]
             ErrorDetails::ShimExecutableNotFound => write!(
                 f,
                 "Volta shim executable not found!
@@ -1385,8 +1398,11 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::ReadPackageConfigError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ReadPlatformError { .. } => ExitCode::FileSystemError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
+            #[cfg(feature = "volta-updates")]
+            ErrorDetails::RunShimDirectly => ExitCode::InvalidArguments,
             ErrorDetails::SetupToolImageError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ShimCreateError { .. } => ExitCode::FileSystemError,
+            #[cfg(not(feature = "volta-updates"))]
             ErrorDetails::ShimExecutableNotFound => ExitCode::EnvironmentError,
             ErrorDetails::ShimRemoveBuiltInError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::ShimRemoveError { .. } => ExitCode::FileSystemError,
