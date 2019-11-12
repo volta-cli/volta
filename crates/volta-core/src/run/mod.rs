@@ -12,8 +12,9 @@ use crate::layout::ensure_volta_dirs_exist;
 use crate::platform::System;
 use crate::session::Session;
 use crate::signal::pass_control_to_shim;
-use volta_fail::throw;
 use cfg_if::cfg_if;
+#[cfg(feature = "volta-updates")]
+use volta_fail::throw;
 use volta_fail::{Fallible, ResultExt};
 
 pub mod binary;

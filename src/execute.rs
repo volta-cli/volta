@@ -5,7 +5,6 @@ use volta_core::session::{ActivityKind, Session};
 use volta_core::signal::setup_signal_handler;
 use volta_fail::ExitCode;
 
-#[inline]
 pub(super) fn run_shim() {
     Logger::init(LogContext::Shim, LogVerbosity::Default)
         .expect("Only a single Logger should be initialized");
