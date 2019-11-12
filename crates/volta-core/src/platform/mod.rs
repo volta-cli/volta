@@ -135,7 +135,6 @@ mod test {
     use crate::layout::volta_home;
     #[cfg(windows)]
     use crate::layout::volta_install;
-    use cfg_if::cfg_if;
     use semver::Version;
     use std;
     #[cfg(not(feature = "volta-updates"))]
@@ -221,12 +220,11 @@ mod test {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
         pathbufs.push(volta_home().unwrap().shim_dir().to_owned());
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
-        cfg_if! {
-            if #[cfg(feature = "volta-updates")] {
-                pathbufs.push(volta_install().unwrap().root().to_owned());
-            } else {
-                pathbufs.push(volta_install().unwrap().bin_dir());
-            }
+        {
+            #[cfg(feature = "volta-updates")]
+            pathbufs.push(volta_install().unwrap().root().to_owned());
+            #[cfg(not(feature = "volta-updates"))]
+            pathbufs.push(volta_install().unwrap().bin_dir());
         }
         pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
 
@@ -314,12 +312,11 @@ mod test {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
         pathbufs.push(volta_home().unwrap().shim_dir().to_owned());
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
-        cfg_if! {
-            if #[cfg(feature = "volta-updates")] {
-                pathbufs.push(volta_install().unwrap().root().to_owned());
-            } else {
-                pathbufs.push(volta_install().unwrap().bin_dir());
-            }
+        {
+            #[cfg(feature = "volta-updates")]
+            pathbufs.push(volta_install().unwrap().root().to_owned());
+            #[cfg(not(feature = "volta-updates"))]
+            pathbufs.push(volta_install().unwrap().bin_dir());
         }
         pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
 
@@ -368,12 +365,11 @@ mod test {
     #[cfg(all(windows, not(feature = "volta-updates")))]
     fn test_system_enabled_path() {
         let mut pathbufs: Vec<PathBuf> = Vec::new();
-        cfg_if! {
-            if #[cfg(feature = "volta-updates")] {
-                pathbufs.push(volta_install().unwrap().root().to_owned());
-            } else {
-                pathbufs.push(volta_install().unwrap().bin_dir());
-            }
+        {
+            #[cfg(feature = "volta-updates")]
+            pathbufs.push(volta_install().unwrap().root().to_owned());
+            #[cfg(not(feature = "volta-updates"))]
+            pathbufs.push(volta_install().unwrap().bin_dir());
         }
         pathbufs.push(volta_home().unwrap().shim_dir().to_owned());
         pathbufs.push(PathBuf::from("C:\\\\somebin"));
