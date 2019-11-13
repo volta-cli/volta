@@ -65,14 +65,13 @@ mod os {
                 match read_profile_without_volta(&profile) {
                     Some(contents) => {
                         debug!("Profile script found: {}", profile.display());
-                        let result = match profile.extension() {
-                            Some(ext) if ext == "fish" => {
-                                write_profile_fish(&profile, contents, home.root())
-                            }
-                            _ => write_profile_sh(&profile, contents, home.root()),
+
+                        let write_profile = match profile.extension() {
+                            Some(ext) if ext == "fish" => write_profile_fish,
+                            _ => write_profile_sh,
                         };
 
-                        match result {
+                        match write_profile(&profile, contents, home.root()) {
                             Ok(()) => true,
                             Err(err) => {
                                 warn!(
@@ -105,7 +104,8 @@ mod os {
     fn read_profile_without_volta(path: &Path) -> Option<String> {
         let file = File::open(path).ok()?;
         let reader = BufReader::new(file);
-        let lines = reader
+
+        reader
             .lines()
             .filter(|line_result| match line_result {
                 Ok(line) if !line.contains("VOLTA") => true,
@@ -113,9 +113,8 @@ mod os {
                 Err(_) => true,
             })
             .collect::<io::Result<Vec<String>>>()
-            .ok()?;
-
-        Some(lines.join("\n"))
+            .map(|lines| lines.join("\n"))
+            .ok()
     }
 
     fn write_profile_sh(path: &Path, contents: String, volta_home: &Path) -> io::Result<()> {
