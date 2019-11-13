@@ -23,6 +23,7 @@ pub mod npm;
 pub mod npx;
 pub mod yarn;
 
+const VOLTA_BYPASS: &str = "VOLTA_BYPASS";
 cfg_if! {
     if #[cfg(feature = "volta-updates")] {
         const UNSAFE_GLOBAL: &str = "VOLTA_UNSAFE_GLOBAL";
@@ -45,14 +46,24 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
     let mut args = args_os();
     let exe = get_tool_name(&mut args)?;
 
-    let command = match &exe.to_str() {
-        #[cfg(feature = "volta-updates")]
-        Some("volta-shim") => throw!(ErrorDetails::RunShimDirectly),
-        Some("node") => node::command(args, session)?,
-        Some("npm") => npm::command(args, session)?,
-        Some("npx") => npx::command(args, session)?,
-        Some("yarn") => yarn::command(args, session)?,
-        _ => binary::command(exe, args, session)?,
+    let command = if env::var_os(VOLTA_BYPASS).is_some() {
+        ToolCommand::passthrough(
+            &exe,
+            args,
+            ErrorDetails::BypassError {
+                command: exe.to_string_lossy().to_string(),
+            },
+        )?
+    } else {
+        match &exe.to_str() {
+            #[cfg(feature = "volta-updates")]
+            Some("volta-shim") => throw!(ErrorDetails::RunShimDirectly),
+            Some("node") => node::command(args, session)?,
+            Some("npm") => npm::command(args, session)?,
+            Some("npx") => npx::command(args, session)?,
+            Some("yarn") => yarn::command(args, session)?,
+            _ => binary::command(exe, args, session)?,
+        }
     };
 
     pass_control_to_shim();
