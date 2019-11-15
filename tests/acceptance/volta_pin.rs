@@ -8,6 +8,10 @@ use volta_fail::ExitCode;
 const BASIC_PACKAGE_JSON: &'static str = r#"{
   "name": "test-package"
 }"#;
+const PACKAGE_JSON_WITH_EMPTY_LINE: &'static str = r#"{
+  "name": "test-package"
+}
+"#;
 
 fn package_json_with_pinned_node(node: &str) -> String {
     format!(
@@ -419,6 +423,24 @@ fn pin_yarn_leaves_npm() {
     assert_eq!(
         s.read_package_json(),
         package_json_with_pinned_node_npm_yarn("1.2.3", "3.4.5", "1.4.159"),
+    )
+}
+
+#[test]
+fn pin_dont_remove_bottom_empty_line() {
+    let s = sandbox()
+        .package_json(PACKAGE_JSON_WITH_EMPTY_LINE)
+        .node_available_versions(NODE_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .build();
+
+    assert_that!(
+        s.volta("pin node@6"),
+        execs().with_status(ExitCode::Success as i32)
+    );
+
+    assert!(
+        s.read_package_json().ends_with("\n")
     )
 }
 

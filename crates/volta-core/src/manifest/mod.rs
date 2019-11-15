@@ -2,6 +2,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fs::{read_to_string, File};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -89,6 +90,9 @@ impl Manifest {
         // parse the entire package.json file into a Value
         let contents = read_to_string(&package_file)
             .with_context(|_| ErrorDetails::PackageReadError { file: get_file() })?;
+
+        let is_end_with_newline = contents.ends_with("\n");
+
         let mut v: serde_json::Value = serde_json::from_str(&contents)
             .with_context(|_| ErrorDetails::PackageParseError { file: get_file() })?;
 
@@ -102,13 +106,18 @@ impl Manifest {
             map.insert("volta".to_string(), toolchain_value);
 
             // serialize the updated contents back to package.json
-            let file = File::create(&package_file)
+            let mut file = File::create(&package_file)
                 .with_context(|_| ErrorDetails::PackageWriteError { file: get_file() })?;
             let formatter =
                 serde_json::ser::PrettyFormatter::with_indent(indent.indent().as_bytes());
-            let mut ser = serde_json::Serializer::with_formatter(file, formatter);
+            let mut ser = serde_json::Serializer::with_formatter(&file, formatter);
             map.serialize(&mut ser)
                 .with_context(|_| ErrorDetails::PackageWriteError { file: get_file() })?;
+            // append the empty line if the original package.json has one
+            if is_end_with_newline {
+                file.write_all("\n".as_bytes())
+                    .with_context(|_| ErrorDetails::PackageWriteError { file: get_file() })?;
+            }
         }
         Ok(())
     }
