@@ -9,7 +9,7 @@ use crate::hook::ToolHooks;
 use crate::session::Session;
 use crate::style::progress_spinner;
 use crate::tool::Yarn;
-use crate::version::VersionSpec;
+use crate::version::{parse_version, VersionSpec, VersionTag};
 use cfg_if::cfg_if;
 use log::debug;
 use semver::{Version, VersionReq};
@@ -39,9 +39,13 @@ cfg_if! {
 pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Version> {
     let hooks = session.hooks()?.yarn();
     match matching {
-        VersionSpec::Latest | VersionSpec::Lts => resolve_latest(hooks),
         VersionSpec::Semver(requirement) => resolve_semver(requirement, hooks),
         VersionSpec::Exact(version) => Ok(version),
+        VersionSpec::None | VersionSpec::Tag(VersionTag::Latest) => resolve_latest(hooks),
+        VersionSpec::Tag(tag) => Err(ErrorDetails::YarnVersionNotFound {
+            matching: tag.to_string(),
+        }
+        .into()),
     }
 }
 
@@ -63,7 +67,7 @@ fn resolve_latest(hooks: Option<&ToolHooks<Yarn>>) -> Fallible<Version> {
         })?;
 
     debug!("Found yarn latest version ({}) from {}", response_text, url);
-    VersionSpec::parse_version(response_text)
+    parse_version(response_text)
 }
 
 fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<Version> {

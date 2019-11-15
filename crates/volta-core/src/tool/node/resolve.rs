@@ -15,7 +15,7 @@ use crate::layout::volta_home;
 use crate::session::Session;
 use crate::style::progress_spinner;
 use crate::tool::Node;
-use crate::version::VersionSpec;
+use crate::version::{VersionSpec, VersionTag};
 use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
 use headers_011::Headers011;
@@ -42,10 +42,13 @@ cfg_if! {
 pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Version> {
     let hooks = session.hooks()?.node();
     match matching {
-        VersionSpec::Latest => resolve_latest(hooks),
-        VersionSpec::Lts => resolve_lts(hooks),
         VersionSpec::Semver(requirement) => resolve_semver(requirement, hooks),
         VersionSpec::Exact(version) => Ok(version),
+        VersionSpec::None | VersionSpec::Tag(VersionTag::Lts) => resolve_lts(hooks),
+        VersionSpec::Tag(VersionTag::Latest) => resolve_latest(hooks),
+        VersionSpec::Tag(VersionTag::Custom(tag)) => {
+            Err(ErrorDetails::NodeVersionNotFound { matching: tag }.into())
+        }
     }
 }
 

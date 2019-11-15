@@ -16,7 +16,7 @@ use crate::platform::{Image, PlatformSpec};
 use crate::session::Session;
 use crate::shim;
 use crate::style::{progress_spinner, tool_version};
-use crate::version::VersionSpec;
+use crate::version::{VersionSpec, VersionTag};
 use atty::Stream;
 use log::debug;
 use semver::Version;
@@ -139,11 +139,11 @@ fn determine_engine(package_dir: &Path, display: &str) -> Fallible<VersionSpec> 
                 "Found 'engines.node' specification for {}: {}",
                 display, engine
             );
-            VersionSpec::parse(engine)
+            engine.parse()
         }
         None => {
             debug!("No 'engines.node' found for {}, using latest", display);
-            Ok(VersionSpec::Latest)
+            Ok(VersionSpec::Tag(VersionTag::Latest))
         }
     }
 }

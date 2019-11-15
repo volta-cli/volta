@@ -10,7 +10,7 @@ use crate::hook::ToolHooks;
 use crate::layout::volta_home;
 use crate::style::{progress_bar, tool_version};
 use crate::tool::{self, Node, NodeVersion};
-use crate::version::VersionSpec;
+use crate::version::{parse_version, VersionSpec};
 use archive::{self, Archive};
 use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
@@ -179,7 +179,7 @@ fn fetch_remote_distro(
 ) -> Fallible<Box<dyn Archive>> {
     debug!("Downloading {} from {}", tool_version("node", version), url);
     archive::fetch_native(url, staging_path).with_context(download_tool_error(
-        tool::Spec::Node(VersionSpec::exact(&version)),
+        tool::Spec::Node(VersionSpec::Exact(version.clone())),
         url,
     ))
 }
@@ -196,7 +196,7 @@ impl Manifest {
         let file = File::open(path).with_context(|_| ErrorDetails::ReadNpmManifestError)?;
         let manifest: Manifest = serde_json::de::from_reader(file)
             .with_context(|_| ErrorDetails::ParseNpmManifestError)?;
-        VersionSpec::parse_version(manifest.version)
+        parse_version(manifest.version)
     }
 }
 
@@ -208,7 +208,7 @@ pub fn load_default_npm_version(node: &Version) -> Fallible<Version> {
             file: npm_version_file_path,
         }
     })?;
-    VersionSpec::parse_version(npm_version)
+    parse_version(npm_version)
 }
 
 /// Save the default npm version to the filesystem for a given version of Node

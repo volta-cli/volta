@@ -8,13 +8,14 @@ mod yarn;
 use std::collections::BTreeSet;
 use std::path::Path;
 
+use crate::error::ErrorDetails;
+use crate::fs::read_dir_eager;
+use crate::version::parse_version;
 use failure::ResultExt;
 use lazycell::LazyCell;
 use regex::Regex;
 use semver::Version;
 use volta_fail::Fallible;
-
-use crate::{error::ErrorDetails, fs::read_dir_eager, version::VersionSpec};
 
 /// Lazily loaded inventory.
 pub struct LazyInventory {
@@ -75,7 +76,7 @@ fn versions_matching(dir: &Path, re: &Regex) -> Fallible<BTreeSet<Version>> {
             let path = entry.path();
             let file_name = path.file_name()?.to_string_lossy();
             let captures = re.captures(&file_name)?;
-            VersionSpec::parse_version(&captures["version"]).ok()
+            parse_version(&captures["version"]).ok()
         })
         .collect();
 

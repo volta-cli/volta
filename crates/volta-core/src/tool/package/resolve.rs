@@ -8,7 +8,7 @@ use crate::run::{self, ToolCommand};
 use crate::session::Session;
 use crate::style::{progress_spinner, tool_version};
 use crate::tool::PackageDetails;
-use crate::version::VersionSpec;
+use crate::version::{VersionSpec, VersionTag};
 use log::debug;
 use semver::{Version, VersionReq};
 use volta_fail::{throw, Fallible, ResultExt};
@@ -19,9 +19,14 @@ pub fn resolve(
     session: &mut Session,
 ) -> Fallible<PackageDetails> {
     match matching {
-        VersionSpec::Latest | VersionSpec::Lts => resolve_latest(name, session),
         VersionSpec::Semver(requirement) => resolve_semver(name, requirement, session),
         VersionSpec::Exact(version) => resolve_semver(name, VersionReq::exact(&version), session),
+        VersionSpec::None | VersionSpec::Tag(VersionTag::Latest) => resolve_latest(name, session),
+        VersionSpec::Tag(tag) => Err(ErrorDetails::PackageVersionNotFound {
+            name: name.into(),
+            matching: tag.to_string(),
+        }
+        .into()),
     }
 }
 
