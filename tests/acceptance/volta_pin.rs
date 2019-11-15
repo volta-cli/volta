@@ -480,7 +480,5 @@ fn pin_node_does_not_remove_bottom_empty_line() {
         execs().with_status(ExitCode::Success as i32)
     );
 
-    assert!(
-        s.read_package_json().ends_with("\n")
-    )
+    assert!(s.read_package_json().ends_with("\n"))
 }
