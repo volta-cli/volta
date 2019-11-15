@@ -32,7 +32,8 @@ impl fmt::Display for CreatePostscriptErrorPath {
     }
 }
 
-#[derive(Debug, Fail, PartialEq)]
+#[derive(Debug, Fail)]
+#[cfg_attr(test, derive(PartialEq))]
 pub enum ErrorDetails {
     /// Thrown when package tries to install a binary that is already installed.
     BinaryAlreadyInstalled {

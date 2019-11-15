@@ -10,7 +10,8 @@ use volta_fail::{Fallible, ResultExt};
 
 use self::serial::parse_requirements;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub enum VersionSpec {
     Latest,
     Lts,
