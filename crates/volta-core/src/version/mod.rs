@@ -188,3 +188,23 @@ pub mod option_version_serde {
         Ok(None)
     }
 }
+
+// custom deserialization for HashMap<String, Version>
+// because Version doesn't work with serde out of the box
+pub mod hashmap_version_serde {
+    use super::version_serde;
+    use semver::Version;
+    use serde::{self, Deserialize, Deserializer};
+    use std::collections::HashMap;
+
+    #[derive(Deserialize)]
+    struct Wrapper(#[serde(deserialize_with = "version_serde::deserialize")] Version);
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<HashMap<String, Version>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let m = HashMap::<String, Wrapper>::deserialize(deserializer)?;
+        Ok(m.into_iter().map(|(k, Wrapper(v))| (k, v)).collect())
+    }
+}
