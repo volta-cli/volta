@@ -1,3 +1,18 @@
+# Version 0.6.6
+
+- Node and Yarn can now both be pinned in the same command `volta pin node yarn` (#593)
+- Windows installer will now work on minimal Windows installs (e.g. Windows Sandbox) (#592)
+
+# Version 0.6.5
+
+- `volta list` Now always outputs to stdout, regardless of how it is called (#581)
+- DEPRECATION: `volta activate` and `volta deactivate` are deprecated and will be removed in a future version (#571)
+
+# Version 0.6.4
+
+- `volta install` now works for installing packages from a private, authenticated registry (#554)
+- `volta install` now has better diagnostic messages when things go wrong (#548)
+
 # Version 0.6.3
 
 - `volta install` will no longer error when installing a scoped binary package (#537)

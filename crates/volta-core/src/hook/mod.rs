@@ -6,7 +6,8 @@ use std::marker::PhantomData;
 use std::path::Path;
 
 use crate::error::ErrorDetails;
-use crate::path::{find_project_dir, user_hooks_file};
+use crate::layout::volta_home;
+use crate::project::Project;
 use crate::tool::{Node, Package, Tool, Yarn};
 use lazycell::LazyCell;
 use log::debug;
@@ -31,8 +32,8 @@ pub struct LazyHookConfig {
 }
 
 impl LazyHookConfig {
-    /// Constructs a new `LazyHookConfig` (but does not initialize it).
-    pub fn new() -> LazyHookConfig {
+    /// Constructs a new `LazyHookConfig`
+    pub fn init() -> LazyHookConfig {
         LazyHookConfig {
             settings: LazyCell::new(),
         }
@@ -40,7 +41,7 @@ impl LazyHookConfig {
 
     /// Forces the loading of the hook configuration
     pub fn get(&self) -> Fallible<&HookConfig> {
-        self.settings.try_borrow_with(|| HookConfig::current())
+        self.settings.try_borrow_with(HookConfig::current)
     }
 }
 
@@ -138,7 +139,7 @@ impl HookConfig {
     /// specified directory is not itself a project, its ancestors will be
     /// searched.
     fn for_dir(base_dir: &Path) -> Fallible<Option<Self>> {
-        match find_project_dir(&base_dir) {
+        match Project::find_dir(&base_dir) {
             Some(project_dir) => {
                 let path = project_dir.join(".volta").join("hooks.json");
                 let hooks_config = Self::from_file(&path)?;
@@ -167,14 +168,14 @@ impl HookConfig {
                 file: file_path.to_path_buf(),
             })?;
 
-        let hooks_path = file_path.parent().unwrap_or(Path::new("/"));
+        let hooks_path = file_path.parent().unwrap_or_else(|| Path::new("/"));
 
-        raw.into_hook_config(hooks_path).map(|hooks| Some(hooks))
+        raw.into_hook_config(hooks_path).map(Some)
     }
 
     /// Returns the per-user hooks, loaded from the filesystem.
     fn for_user() -> Fallible<Option<Self>> {
-        let path = user_hooks_file()?;
+        let path = volta_home()?.user_hooks_file();
         let hooks_config = Self::from_file(&path)?;
 
         if hooks_config.is_some() {

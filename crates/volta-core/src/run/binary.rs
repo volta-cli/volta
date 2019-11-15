@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use super::ToolCommand;
 use crate::error::ErrorDetails;
-use crate::path;
+use crate::layout::volta_home;
 use crate::platform::PlatformSpec;
 use crate::platform::Source;
 use crate::session::{ActivityKind, Session};
@@ -83,7 +83,7 @@ where
                 loader
                     .args
                     .iter()
-                    .map(|arg| OsString::from(arg))
+                    .map(OsString::from)
                     .chain(once(tool_path))
                     .chain(args),
                 &path,
@@ -151,7 +151,7 @@ impl DefaultBinary {
 
     pub fn from_name(tool_name: &OsStr, session: &mut Session) -> Fallible<Option<Self>> {
         let bin_config_file = match tool_name.to_str() {
-            Some(name) => path::user_tool_bin_config(name)?,
+            Some(name) => volta_home()?.user_tool_bin_config(name),
             None => return Ok(None),
         };
 

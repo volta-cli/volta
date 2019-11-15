@@ -8,13 +8,13 @@ use textwrap::{NoHyphenation, Wrapper};
 
 use crate::style::text_width;
 
-const ERROR_PREFIX: &'static str = "error:";
-const WARNING_PREFIX: &'static str = "warning:";
-const SHIM_ERROR_PREFIX: &'static str = "Volta error:";
-const SHIM_WARNING_PREFIX: &'static str = "Volta warning:";
-const VOLTA_LOGLEVEL: &'static str = "VOLTA_LOGLEVEL";
-const ALLOWED_PREFIX: &'static str = "volta";
-const WRAP_INDENT: &'static str = "    ";
+const ERROR_PREFIX: &str = "error:";
+const WARNING_PREFIX: &str = "warning:";
+const SHIM_ERROR_PREFIX: &str = "Volta error:";
+const SHIM_WARNING_PREFIX: &str = "Volta warning:";
+const VOLTA_LOGLEVEL: &str = "VOLTA_LOGLEVEL";
+const ALLOWED_PREFIX: &str = "volta";
+const WRAP_INDENT: &str = "    ";
 
 /// Represents the context from which the logger was created
 pub enum LogContext {

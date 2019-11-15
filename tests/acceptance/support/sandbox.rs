@@ -9,9 +9,8 @@ use reqwest::hyper_011::header::HttpDate;
 
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 
-use volta_core::path::{
-    archive_extension, create_file_symlink, node_distro_file_name, yarn_distro_file_name, ARCH, OS,
-};
+use volta_core::fs::symlink_file;
+use volta_core::tool::{Node, Yarn, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION, NODE_DISTRO_OS};
 
 #[cfg(feature = "mock-network")]
 use mockito::{self, mock, Matcher};
@@ -155,19 +154,17 @@ impl From<DistroMetadata> for YarnFixture {
 impl DistroFixture for NodeFixture {
     fn server_path(&self) -> String {
         let version = &self.metadata.version;
-        let extension = archive_extension();
         format!(
             "/v{}/node-v{}-{}-{}.{}",
-            version, version, OS, ARCH, extension
+            version, version, NODE_DISTRO_OS, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION
         )
     }
 
     fn fixture_path(&self) -> String {
         let version = &self.metadata.version;
-        let extension = archive_extension();
         format!(
             "tests/fixtures/node-v{}-{}-{}.{}",
-            version, OS, ARCH, extension
+            version, NODE_DISTRO_OS, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION
         )
     }
 
@@ -239,6 +236,7 @@ impl SandboxBuilder {
     }
 
     /// Set the shell for the sandbox (chainable)
+    #[cfg(all(unix, not(feature = "volta-updates")))]
     pub fn volta_shell(self, shell_name: &str) -> Self {
         self.env("VOLTA_SHELL", shell_name)
     }
@@ -320,10 +318,10 @@ impl SandboxBuilder {
         if let Some(uncompressed_size) = metadata.uncompressed_size {
             // This can be abstracted when https://github.com/rust-lang/rust/issues/52963 lands.
             let uncompressed_size_bytes: [u8; 4] = [
-                ((uncompressed_size & 0xff000000) >> 24) as u8,
-                ((uncompressed_size & 0x00ff0000) >> 16) as u8,
-                ((uncompressed_size & 0x0000ff00) >> 8) as u8,
-                (uncompressed_size & 0x000000ff) as u8,
+                ((uncompressed_size & 0xff00_0000) >> 24) as u8,
+                ((uncompressed_size & 0x00ff_0000) >> 16) as u8,
+                ((uncompressed_size & 0x0000_ff00) >> 8) as u8,
+                (uncompressed_size & 0x0000_00ff) as u8,
             ];
 
             let range_mock = mock("GET", &server_path[..])
@@ -413,8 +411,8 @@ impl SandboxBuilder {
         ok_or_panic! { fs::create_dir_all(volta_tmp_dir()) };
 
         // Make sure the shims to npm and yarn exist
-        ok_or_panic! { create_file_symlink(shim_exe(), self.root.npm_exe()) };
-        ok_or_panic! { create_file_symlink(shim_exe(), self.root.yarn_exe()) };
+        ok_or_panic! { symlink_file(shim_exe(), self.root.npm_exe()) };
+        ok_or_panic! { symlink_file(shim_exe(), self.root.yarn_exe()) };
 
         // write node and yarn caches
         for cache in self.caches.iter() {
@@ -602,6 +600,7 @@ impl Sandbox {
         read_file_to_string(package_file)
     }
 
+    #[cfg(all(unix, not(feature = "volta-updates")))]
     pub fn read_postscript(&self) -> String {
         let postscript_file = volta_postscript();
         read_file_to_string(postscript_file)
@@ -611,7 +610,7 @@ impl Sandbox {
         fs::read_dir(volta_log_dir()).ok()
     }
 
-    pub fn remove_volta_home(&self) -> () {
+    pub fn remove_volta_home(&self) {
         volta_home().rm_rf();
     }
 
@@ -619,13 +618,13 @@ impl Sandbox {
 
     pub fn node_inventory_archive_exists(&self, version: &str) -> bool {
         node_inventory_dir()
-            .join(node_distro_file_name(version))
+            .join(Node::archive_filename(version))
             .exists()
     }
 
     pub fn yarn_inventory_archive_exists(&self, version: &str) -> bool {
         yarn_inventory_dir()
-            .join(yarn_distro_file_name(version))
+            .join(Yarn::archive_filename(version))
             .exists()
     }
 
@@ -691,7 +690,11 @@ fn volta_exe() -> PathBuf {
 }
 
 pub fn shim_exe() -> PathBuf {
-    cargo_dir().join(format!("shim{}", env::consts::EXE_SUFFIX))
+    #[cfg(feature = "volta-updates")]
+    return cargo_dir().join(format!("volta-shim{}", env::consts::EXE_SUFFIX));
+
+    #[cfg(not(feature = "volta-updates"))]
+    return cargo_dir().join(format!("shim{}", env::consts::EXE_SUFFIX));
 }
 
 fn split_and_add_args(p: &mut ProcessBuilder, s: &str) {

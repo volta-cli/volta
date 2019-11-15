@@ -43,6 +43,43 @@ jobs:
         name: overrides
         displayName: Extract overrides from top commit
 
+# Note: The following 2 jobs can be removed when the updates feature is complete, along with the file
+# 'ci/run-tests-updates.yml' and the check for '[volta updates]' in 'ci/check-overrides.sh'
+  - job: nix_test_updates
+    dependsOn:
+      - vars
+      - nix
+    strategy:
+      matrix:
+        ubuntu:
+          imageName: "ubuntu-16.04"
+        mac:
+          imageName: "macos-10.13"
+    pool:
+      vmImage: $(imageName)
+    steps:
+      - template: ci/install-rust.yml
+      - template: ci/run-tests-updates.yml
+    displayName: Test nix (with Updates Feature)
+    condition: and(succeeded('nix'), dependencies.vars.outputs['overrides.updates'])
+
+  - job: windows_test_updates
+    dependsOn:
+      - vars
+      - windows
+    strategy:
+      matrix:
+        windows:
+          imageName: "vs2017-win2016"
+    pool:
+      vmImage: $(imageName)
+    steps:
+      - template: ci/install-rust.yml
+      - template: ci/run-tests-updates.yml
+    displayName: Test Windows (with Updates Feature)
+    condition: and(succeeded('windows'), dependencies.vars.outputs['overrides.updates'])
+# End updates special case
+
   - job: api_docs
     dependsOn:
       - vars

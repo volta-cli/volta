@@ -5,7 +5,7 @@ use test_support::matchers::execs;
 
 use volta_fail::ExitCode;
 
-const NODE_VERSION_INFO: &'static str = r#"[
+const NODE_VERSION_INFO: &str = r#"[
 {"version":"v10.99.1040","npm":"6.2.26","lts": "Dubnium","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]},
 {"version":"v9.27.6","npm":"5.6.17","lts": false,"files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]},
 {"version":"v8.9.10","npm":"5.6.7","lts": false,"files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip"]},

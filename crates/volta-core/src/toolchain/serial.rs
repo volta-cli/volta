@@ -47,7 +47,7 @@ impl Platform {
     }
 
     /// Serialize the Platform to a JSON String
-    pub fn to_json(self) -> Fallible<String> {
+    pub fn into_json(self) -> Fallible<String> {
         serde_json::to_string_pretty(&self).with_context(|_| ErrorDetails::StringifyPlatformError)
     }
 }
@@ -108,7 +108,7 @@ pub mod tests {
     }
 
     #[test]
-    fn test_to_json() {
+    fn test_into_json() {
         let platform = platform::PlatformSpec {
             yarn: Some(Version::parse("1.2.3").expect("could not parse version")),
             node_runtime: Version::parse("4.5.6").expect("could not parse version"),
@@ -116,7 +116,7 @@ pub mod tests {
         };
         let json_str = platform
             .to_serial()
-            .to_json()
+            .into_json()
             .expect("could not serialize platform to JSON");
         let expected_json_str = BASIC_JSON_STR.to_string();
         assert_eq!(json_str, expected_json_str);

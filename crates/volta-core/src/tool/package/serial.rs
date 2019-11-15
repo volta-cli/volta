@@ -7,7 +7,7 @@ use super::install::{BinConfig, BinLoader, PackageConfig};
 use super::resolve::PackageIndex;
 use super::PackageDetails;
 use crate::error::ErrorDetails;
-use crate::path;
+use crate::layout::volta_home;
 use crate::toolchain;
 use crate::version::version_serde;
 use fs_utils::ensure_containing_dir_exists;
@@ -120,7 +120,7 @@ pub struct RawPackageConfig {
 }
 
 impl RawPackageConfig {
-    pub fn to_json(self) -> Fallible<String> {
+    pub fn into_json(self) -> Fallible<String> {
         serde_json::to_string_pretty(&self)
             .with_context(|_| ErrorDetails::StringifyPackageConfigError)
     }
@@ -131,8 +131,8 @@ impl RawPackageConfig {
 
     // Write the package config info to disk
     pub fn write(self) -> Fallible<()> {
-        let config_file_path = path::user_package_config_file(&self.name)?;
-        let src = self.to_json()?;
+        let config_file_path = volta_home()?.user_package_config_file(&self.name);
+        let src = self.into_json()?;
         ensure_containing_dir_exists(&config_file_path).with_context(|_| {
             ErrorDetails::ContainingDirError {
                 path: config_file_path.clone(),
@@ -203,7 +203,7 @@ pub struct RawBinLoader {
 }
 
 impl RawBinConfig {
-    pub fn to_json(self) -> Fallible<String> {
+    pub fn into_json(self) -> Fallible<String> {
         serde_json::to_string_pretty(&self).with_context(|_| ErrorDetails::StringifyBinConfigError)
     }
 
@@ -213,8 +213,8 @@ impl RawBinConfig {
 
     /// Write the config to disk
     pub fn write(self) -> Fallible<()> {
-        let bin_config_path = path::user_tool_bin_config(&self.name)?;
-        let src = self.to_json()?;
+        let bin_config_path = volta_home()?.user_tool_bin_config(&self.name);
+        let src = self.into_json()?;
         ensure_containing_dir_exists(&bin_config_path).with_context(|_| {
             ErrorDetails::ContainingDirError {
                 path: bin_config_path.clone(),

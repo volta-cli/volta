@@ -13,15 +13,15 @@ impl Shell for Bash {
 
     fn compile_postscript(&self, postscript: &Postscript) -> String {
         match postscript {
-            &Postscript::Activate(ref s) => format!(
+            Postscript::Activate(ref s) => format!(
                 "export PATH='{}'\nexport VOLTA_HOME=\"${{HOME}}/.volta\"\n",
                 s
             ),
-            &Postscript::Deactivate(ref s) => {
+            Postscript::Deactivate(ref s) => {
                 // ISSUE(#99): proper escaping
                 format!("export PATH='{}'\nunset VOLTA_HOME\n", s)
             }
-            &Postscript::ToolVersion {
+            Postscript::ToolVersion {
                 ref tool,
                 ref version,
             } => format!(

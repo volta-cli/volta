@@ -1,7 +1,7 @@
 use structopt::StructOpt;
 
 use crate::command::{self, Command};
-use volta_core::path;
+use volta_core::layout;
 use volta_core::session::Session;
 use volta_fail::{ExitCode, Fallible};
 
@@ -47,7 +47,7 @@ pub(crate) struct Volta {
 
 impl Volta {
     pub(crate) fn run(self, session: &mut Session) -> Fallible<ExitCode> {
-        path::ensure_volta_dirs_exist()?;
+        layout::ensure_volta_dirs_exist()?;
         if self.version {
             println!("{}", env!("CARGO_PKG_VERSION"));
             Ok(ExitCode::Success)
@@ -96,7 +96,8 @@ pub(crate) enum Subcommand {
     )]
     Current(command::Current),
 
-    /// Disables Volta in the current shell
+    /// [DEPRECATED] Disables Volta in the current shell
+    #[cfg(not(feature = "volta-updates"))]
     #[structopt(
         name = "deactivate",
         author = "",
@@ -105,7 +106,8 @@ pub(crate) enum Subcommand {
     )]
     Deactivate(command::Deactivate),
 
-    /// Re-enables Volta in the current shell
+    /// [DEPRECATED] Re-enables Volta in the current shell
+    #[cfg(not(feature = "volta-updates"))]
     #[structopt(
         name = "activate",
         author = "",
@@ -147,6 +149,11 @@ otherwise, they will be written to `stdout`.
         )
     )]
     Use(command::Use),
+
+    /// Enables Volta for the current user / shell
+    #[cfg(feature = "volta-updates")]
+    #[structopt(name = "setup", author = "", version = "")]
+    Setup(command::Setup),
 }
 
 impl Subcommand {
@@ -158,11 +165,15 @@ impl Subcommand {
             Subcommand::Pin(pin) => pin.run(session),
             Subcommand::List(list) => list.run(session),
             Subcommand::Current(current) => current.run(session),
+            #[cfg(not(feature = "volta-updates"))]
             Subcommand::Deactivate(deactivate) => deactivate.run(session),
+            #[cfg(not(feature = "volta-updates"))]
             Subcommand::Activate(activate) => activate.run(session),
             Subcommand::Completions(completions) => completions.run(session),
             Subcommand::Which(which) => which.run(session),
             Subcommand::Use(r#use) => r#use.run(session),
+            #[cfg(feature = "volta-updates")]
+            Subcommand::Setup(setup) => setup.run(session),
         }
     }
 }

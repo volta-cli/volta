@@ -10,13 +10,12 @@ use volta_fail::{ExitCode, VoltaFail};
 use crate::style::{text_width, tool_version};
 use crate::tool;
 
-const REPORT_BUG_CTA: &'static str =
+const REPORT_BUG_CTA: &str =
     "Please rerun the command that triggered this error with the environment
 variables `VOLTA_LOGLEVEL` set to `debug` and `RUST_BACKTRACE` set to `full`, and open
 an issue at https://github.com/volta-cli/volta/issues with the details!";
 
-const PERMISSIONS_CTA: &'static str =
-    "Please ensure you have correct permissions to the Volta directory.";
+const PERMISSIONS_CTA: &str = "Please ensure you have correct permissions to the Volta directory.";
 
 #[derive(Debug, PartialEq)]
 pub enum CreatePostscriptErrorPath {
@@ -52,6 +51,11 @@ pub enum ErrorDetails {
 
     /// Thrown when building the virtual environment path fails
     BuildPathError,
+
+    /// Thrown when unable to launch a command with VOLTA_BYPASS set
+    BypassError {
+        command: String,
+    },
 
     /// Thrown when a user tries to `volta pin` something other than node/yarn/npm.
     CannotPinPackage {
@@ -203,6 +207,13 @@ pub enum ErrorDetails {
     /// Thrown when Yarn is not set in a project
     NoProjectYarn,
 
+    /// Thrown when no shell profiles could be found
+    #[cfg(feature = "volta-updates")]
+    NoShellProfile {
+        env_profile: String,
+        bin_dir: PathBuf,
+    },
+
     /// Thrown when the user tries to pin Node or Yarn versions outside of a package.
     NotInPackage,
 
@@ -218,6 +229,16 @@ pub enum ErrorDetails {
 
     /// Thrown when there is an parsing the metadata from `npm view`
     NpmViewMetadataParseError {
+        package: String,
+    },
+
+    /// Thrown when there is an error running `npm pack`
+    NpmPackFetchError {
+        package: String,
+    },
+
+    /// Thrown when there is issue finding, loading, or unpacking the file downloaded via `npm pack`
+    NpmPackUnpackError {
         package: String,
     },
 
@@ -369,11 +390,19 @@ pub enum ErrorDetails {
         file: PathBuf,
     },
 
+    /// Thrown when unable to read the user Path environment variable from the registry
+    #[cfg(all(windows, feature = "volta-updates"))]
+    ReadUserPathError,
+
     /// Thrown when the public registry for Node or Yarn could not be downloaded.
     RegistryFetchError {
         tool: String,
         from_url: String,
     },
+
+    /// Thrown when the shim binary is called directly, not through a symlink
+    #[cfg(feature = "volta-updates")]
+    RunShimDirectly,
 
     /// Thrown when there was an error copying an unpacked tool to the image directory
     SetupToolImageError {
@@ -388,6 +417,7 @@ pub enum ErrorDetails {
     },
 
     /// Thrown when Volta cannot find the shim executable
+    #[cfg(not(feature = "volta-updates"))]
     ShimExecutableNotFound,
 
     /// Thrown when trying to remove a built-in shim (`node`, `yarn`, etc.)
@@ -475,6 +505,10 @@ pub enum ErrorDetails {
         file: PathBuf,
     },
 
+    /// Thrown when unable to write the user PATH environment variable
+    #[cfg(all(windows, feature = "volta-updates"))]
+    WriteUserPathError,
+
     /// Thrown when there is an error fetching the latest version of Yarn
     YarnLatestFetchError {
         from_url: String,
@@ -518,6 +552,13 @@ Use `volta install` to add a package to your toolchain (see `volta help install`
                 "Could not create execution environment.
 
 Please ensure your PATH is valid."
+            ),
+            ErrorDetails::BypassError { command } => write!(
+                f,
+                "Could not execute command '{}'
+
+VOLTA_BYPASS is enabled, please ensure that the command exists on your system or unset VOLTA_BYPASS",
+                command,
             ),
             ErrorDetails::CannotPinPackage { package } => write!(
                 f,
@@ -801,6 +842,15 @@ To run any Node command, first set a default version using `volta install node`"
 
 Use `volta pin yarn` to select a version (see `volta help pin` for more info)."
             ),
+            #[cfg(feature = "volta-updates")]
+            ErrorDetails::NoShellProfile { env_profile, bin_dir } => write!(
+                f,
+                "Could not locate user profile.
+Tried $PROFILE ({}), ~/.bashrc, ~/.bash_profile, ~/.zshrc, ~/.profile, and ~/.config/fish/config.fish
+
+Please create one of these and try again; or you can edit your profile manually to add '{}' to your PATH",
+                env_profile, bin_dir.display()
+            ),
             ErrorDetails::NotInPackage => write!(
                 f,
                 "Not in a node package.
@@ -815,6 +865,20 @@ Use `volta install yarn` to select a default version (see `volta help install fo
             ),
             // No CTA as this error is purely informational
             ErrorDetails::NoVersionsFound => write!(f, "No tool versions found"),
+            ErrorDetails::NpmPackFetchError { package } => write!(
+                f,
+                "Could not download '{}' via npm pack
+
+Please verify your internet connection and ensure the correct version is specified.",
+                package
+            ),
+            ErrorDetails::NpmPackUnpackError { package } => write!(
+                f,
+                "Could not read archive for '{}' from npm pack.
+
+{}",
+                package, PERMISSIONS_CTA
+            ),
             ErrorDetails::NpmViewMetadataFetchError { package } => write!(
                 f,
                 "Could not download package metadata for '{}'
@@ -1088,6 +1152,13 @@ from {}
                 file.display(),
                 PERMISSIONS_CTA
             ),
+            #[cfg(all(windows, feature = "volta-updates"))]
+            ErrorDetails::ReadUserPathError => write!(
+                f,
+                "Could not read user Path environment variable.
+
+Please ensure you have access to the your environment variables."
+            ),
             ErrorDetails::RegistryFetchError { tool, from_url } => write!(
                 f,
                 "Could not download {} version registry
@@ -1095,6 +1166,13 @@ from {}
 
 Please verify your internet connection.",
                 tool, from_url
+            ),
+            #[cfg(feature = "volta-updates")]
+            ErrorDetails::RunShimDirectly => write!(
+                f,
+                "'volta-shim' should not be called directly.
+
+Please use the existing shims provided by Volta (node, yarn, etc.) to run tools."
             ),
             ErrorDetails::SetupToolImageError { tool, version, dir } => write!(
                 f,
@@ -1114,6 +1192,7 @@ at {}
 {}"#,
                 name, PERMISSIONS_CTA
             ),
+            #[cfg(not(feature = "volta-updates"))]
             ErrorDetails::ShimExecutableNotFound => write!(
                 f,
                 "Volta shim executable not found!
@@ -1259,6 +1338,13 @@ to {}
                 file.display(),
                 PERMISSIONS_CTA
             ),
+            #[cfg(all(windows, feature = "volta-updates"))]
+            ErrorDetails::WriteUserPathError => write!(
+                f,
+                "Could not write Path environment variable.
+
+Please ensure you have permissions to edit your environment variables."
+            ),
             ErrorDetails::YarnLatestFetchError { from_url } => write!(
                 f,
                 "Could not fetch latest version of Yarn
@@ -1285,6 +1371,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::BinaryExecError => ExitCode::ExecutionFailure,
             ErrorDetails::BinaryNotFound { .. } => ExitCode::ExecutableNotFound,
             ErrorDetails::BuildPathError => ExitCode::EnvironmentError,
+            ErrorDetails::BypassError { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::CannotPinPackage { .. } => ExitCode::InvalidArguments,
             ErrorDetails::CompletionsOutFileError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::ContainingDirError { .. } => ExitCode::FileSystemError,
@@ -1320,9 +1407,13 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::NoPinnedNodeVersion => ExitCode::ConfigurationError,
             ErrorDetails::NoPlatform => ExitCode::ConfigurationError,
             ErrorDetails::NoProjectYarn => ExitCode::ConfigurationError,
+            #[cfg(feature = "volta-updates")]
+            ErrorDetails::NoShellProfile { .. } => ExitCode::EnvironmentError,
             ErrorDetails::NotInPackage => ExitCode::ConfigurationError,
             ErrorDetails::NoUserYarn => ExitCode::ConfigurationError,
             ErrorDetails::NoVersionsFound => ExitCode::NoVersionMatch,
+            ErrorDetails::NpmPackFetchError { .. } => ExitCode::NetworkError,
+            ErrorDetails::NpmPackUnpackError { .. } => ExitCode::FileSystemError,
             ErrorDetails::NpmViewMetadataFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::NpmViewMetadataParseError { .. } => ExitCode::UnknownError,
             ErrorDetails::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
@@ -1359,9 +1450,14 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::ReadNpmManifestError => ExitCode::UnknownError,
             ErrorDetails::ReadPackageConfigError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ReadPlatformError { .. } => ExitCode::FileSystemError,
+            #[cfg(all(windows, feature = "volta-updates"))]
+            ErrorDetails::ReadUserPathError => ExitCode::EnvironmentError,
             ErrorDetails::RegistryFetchError { .. } => ExitCode::NetworkError,
+            #[cfg(feature = "volta-updates")]
+            ErrorDetails::RunShimDirectly => ExitCode::InvalidArguments,
             ErrorDetails::SetupToolImageError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ShimCreateError { .. } => ExitCode::FileSystemError,
+            #[cfg(not(feature = "volta-updates"))]
             ErrorDetails::ShimExecutableNotFound => ExitCode::EnvironmentError,
             ErrorDetails::ShimRemoveBuiltInError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::ShimRemoveError { .. } => ExitCode::FileSystemError,
@@ -1382,6 +1478,8 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::WritePackageConfigError { .. } => ExitCode::FileSystemError,
             ErrorDetails::WritePackageShasumError { .. } => ExitCode::FileSystemError,
             ErrorDetails::WritePlatformError { .. } => ExitCode::FileSystemError,
+            #[cfg(all(windows, feature = "volta-updates"))]
+            ErrorDetails::WriteUserPathError => ExitCode::EnvironmentError,
             ErrorDetails::YarnLatestFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::YarnVersionNotFound { .. } => ExitCode::NoVersionMatch,
         }

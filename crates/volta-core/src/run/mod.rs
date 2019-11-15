@@ -7,12 +7,14 @@ use std::path::Path;
 use std::process::{Command, ExitStatus, Output};
 
 use crate::command::create_command;
-use crate::env::UNSAFE_GLOBAL;
 use crate::error::ErrorDetails;
-use crate::path;
+use crate::layout::ensure_volta_dirs_exist;
 use crate::platform::System;
 use crate::session::Session;
 use crate::signal::pass_control_to_shim;
+use cfg_if::cfg_if;
+#[cfg(feature = "volta-updates")]
+use volta_fail::throw;
 use volta_fail::{Fallible, ResultExt};
 
 pub mod binary;
@@ -20,6 +22,15 @@ pub mod node;
 pub mod npm;
 pub mod npx;
 pub mod yarn;
+
+const VOLTA_BYPASS: &str = "VOLTA_BYPASS";
+cfg_if! {
+    if #[cfg(feature = "volta-updates")] {
+        const UNSAFE_GLOBAL: &str = "VOLTA_UNSAFE_GLOBAL";
+    } else {
+        use crate::env::UNSAFE_GLOBAL;
+    }
+}
 
 /// Distinguish global `add` commands in npm or yarn from all others.
 enum CommandArg {
@@ -30,17 +41,29 @@ enum CommandArg {
 }
 
 pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
-    path::ensure_volta_dirs_exist()?;
+    ensure_volta_dirs_exist()?;
 
     let mut args = args_os();
     let exe = get_tool_name(&mut args)?;
 
-    let command = match &exe.to_str() {
-        Some("node") => node::command(args, session)?,
-        Some("npm") => npm::command(args, session)?,
-        Some("npx") => npx::command(args, session)?,
-        Some("yarn") => yarn::command(args, session)?,
-        _ => binary::command(exe, args, session)?,
+    let command = if env::var_os(VOLTA_BYPASS).is_some() {
+        ToolCommand::passthrough(
+            &exe,
+            args,
+            ErrorDetails::BypassError {
+                command: exe.to_string_lossy().to_string(),
+            },
+        )?
+    } else {
+        match &exe.to_str() {
+            #[cfg(feature = "volta-updates")]
+            Some("volta-shim") => throw!(ErrorDetails::RunShimDirectly),
+            Some("node") => node::command(args, session)?,
+            Some("npm") => npm::command(args, session)?,
+            Some("npx") => npx::command(args, session)?,
+            Some("yarn") => yarn::command(args, session)?,
+            _ => binary::command(exe, args, session)?,
+        }
     };
 
     pass_control_to_shim();
@@ -100,6 +123,11 @@ impl ToolCommand {
         })
     }
 
+    pub(crate) fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut ToolCommand {
+        self.command.current_dir(dir);
+        self
+    }
+
     pub(crate) fn status(mut self) -> Fallible<ExitStatus> {
         self.command.status().with_context(|_| self.on_failure)
     }
@@ -118,7 +146,7 @@ impl fmt::Debug for ToolCommand {
 fn get_tool_name(args: &mut ArgsOs) -> Fallible<OsString> {
     args.nth(0)
         .and_then(|arg0| Path::new(&arg0).file_name().map(tool_name_from_file_name))
-        .ok_or(ErrorDetails::CouldNotDetermineTool.into())
+        .ok_or_else(|| ErrorDetails::CouldNotDetermineTool.into())
 }
 
 #[cfg(unix)]

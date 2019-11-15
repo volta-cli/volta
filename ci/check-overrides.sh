@@ -49,11 +49,6 @@ check_override() {
     # https://docs.microsoft.com/en-us/azure/devops/pipelines/process/expressions?view=azure-devops#type-casting
     result=$(echo "$message" | fgrep -q "$directive" && echo True)
 
-    if [[ "$SYSTEM_PULLREQUEST_ISFORK" == "True" && "$result" == "True" ]]; then
-      err 'Forks do not have permissions to publish docs.'
-      exit 1
-    fi
-
     pretty_directive=$(cyan "$directive")
     info "Checking override $pretty_directive: ${result:-False}"
 
@@ -84,5 +79,12 @@ echo
 
 # FIXME: add an early check that this isn't from a fork repo, to give a better error message
 docs=$(check_override "$commit_message" '[ci docs]')
+if [[ "$SYSTEM_PULLREQUEST_ISFORK" == "True" && "$docs" == "True" ]]; then
+    err 'Forks do not have permissions to publish docs.'
+    exit 1
+else
+    set_output_variable docs $docs
+fi
 
-set_output_variable docs $docs
+updates=$(check_override "$commit_message" '[volta updates]')
+set_output_variable updates $updates

@@ -6,7 +6,7 @@ use semver::Version;
 use volta_fail::Fallible;
 
 use super::versions_matching;
-use crate::path;
+use crate::layout::volta_home;
 
 // Convenience for access as `yarn::Collection`
 pub use YarnCollection as Collection;
@@ -27,7 +27,7 @@ impl YarnCollection {
         )
         .unwrap();
 
-        let versions = versions_matching(&path::yarn_inventory_dir()?, &re)?;
+        let versions = versions_matching(volta_home()?.yarn_inventory_dir(), &re)?;
 
         Ok(Collection { versions })
     }

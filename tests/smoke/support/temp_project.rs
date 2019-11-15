@@ -7,7 +7,8 @@ use std::path::{Path, PathBuf};
 use envoy;
 use serde_json;
 
-use volta_core::path::{create_file_symlink, ARCH, OS};
+use volta_core::fs::symlink_file;
+use volta_core::tool::{NODE_DISTRO_ARCH, NODE_DISTRO_OS};
 
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 
@@ -95,14 +96,11 @@ impl TempProjectBuilder {
         user_platform_file(self.root()).rm();
 
         // create symlinks to shim executable for node, yarn, npm, and packages
-        ok_or_panic!(create_file_symlink(shim_exe(), self.root.node_exe()));
-        ok_or_panic!(create_file_symlink(shim_exe(), self.root.yarn_exe()));
-        ok_or_panic!(create_file_symlink(shim_exe(), self.root.npm_exe()));
+        ok_or_panic!(symlink_file(shim_exe(), self.root.node_exe()));
+        ok_or_panic!(symlink_file(shim_exe(), self.root.yarn_exe()));
+        ok_or_panic!(symlink_file(shim_exe(), self.root.npm_exe()));
 
-        ok_or_panic!(create_file_symlink(
-            shim_exe(),
-            shim_executable(self.root())
-        ));
+        ok_or_panic!(symlink_file(shim_exe(), shim_executable(self.root())));
 
         // write files
         for file_builder in self.files {
@@ -138,7 +136,11 @@ fn volta_file(root: PathBuf) -> PathBuf {
     volta_home(root).join("volta")
 }
 fn shim_executable(root: PathBuf) -> PathBuf {
-    volta_home(root).join("shim")
+    #[cfg(feature = "volta-updates")]
+    return volta_home(root).join("volta-shim");
+
+    #[cfg(not(feature = "volta-updates"))]
+    return volta_home(root).join("shim");
 }
 fn user_hooks_file(root: PathBuf) -> PathBuf {
     volta_home(root).join("hooks.json")
@@ -217,7 +219,10 @@ fn user_platform_file(root: PathBuf) -> PathBuf {
     user_dir(root).join("platform.json")
 }
 pub fn node_distro_file_name(version: &str) -> String {
-    format!("node-v{}-{}-{}.tar.gz", version, OS, ARCH)
+    format!(
+        "node-v{}-{}-{}.tar.gz",
+        version, NODE_DISTRO_OS, NODE_DISTRO_ARCH
+    )
 }
 fn yarn_distro_file_name(version: &str) -> String {
     format!("yarn-v{}.tar.gz", version)
@@ -430,7 +435,11 @@ fn volta_exe() -> PathBuf {
 }
 
 fn shim_exe() -> PathBuf {
-    cargo_dir().join(format!("shim{}", env::consts::EXE_SUFFIX))
+    #[cfg(feature = "volta-updates")]
+    return cargo_dir().join(format!("volta-shim{}", env::consts::EXE_SUFFIX));
+
+    #[cfg(not(feature = "volta-updates"))]
+    return cargo_dir().join(format!("shim{}", env::consts::EXE_SUFFIX));
 }
 
 fn split_and_add_args(p: &mut ProcessBuilder, s: &str) {

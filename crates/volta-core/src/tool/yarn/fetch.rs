@@ -7,7 +7,7 @@ use super::super::download_tool_error;
 use crate::error::ErrorDetails;
 use crate::fs::{create_staging_dir, create_staging_file};
 use crate::hook::ToolHooks;
-use crate::path;
+use crate::layout::volta_home;
 use crate::style::{progress_bar, tool_version};
 use crate::tool::{self, Yarn};
 use crate::version::VersionSpec;
@@ -31,8 +31,8 @@ cfg_if! {
 }
 
 pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<()> {
-    let yarn_dir = path::yarn_inventory_dir()?;
-    let cache_file = yarn_dir.join(path::yarn_distro_file_name(&version.to_string()));
+    let yarn_dir = volta_home()?.yarn_inventory_dir();
+    let cache_file = yarn_dir.join(Yarn::archive_filename(&version.to_string()));
 
     let (archive, staging) = match load_cached_distro(&cache_file) {
         Some(archive) => {
@@ -70,35 +70,34 @@ pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<()>
 }
 
 /// Unpack the yarn archive into the image directory so that it is ready for use
-fn unpack_archive(archive: Box<Archive>, version: &Version) -> Fallible<()> {
+fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<()> {
     let temp = create_staging_dir()?;
     debug!("Unpacking yarn into '{}'", temp.path().display());
 
-    let bar = progress_bar(
+    let progress = progress_bar(
         archive.origin(),
         &tool_version("yarn", version),
         archive
             .uncompressed_size()
-            .unwrap_or(archive.compressed_size()),
+            .unwrap_or_else(|| archive.compressed_size()),
     );
     let version_string = version.to_string();
 
     archive
         .unpack(temp.path(), &mut |_, read| {
-            bar.inc(read as u64);
+            progress.inc(read as u64);
         })
         .with_context(|_| ErrorDetails::UnpackArchiveError {
             tool: "Yarn".into(),
             version: version_string.clone(),
         })?;
 
-    let dest = path::yarn_image_dir(&version_string)?;
+    let dest = volta_home()?.yarn_image_dir(&version_string);
     ensure_containing_dir_exists(&dest)
         .with_context(|_| ErrorDetails::ContainingDirError { path: dest.clone() })?;
 
     rename(
-        temp.path()
-            .join(path::yarn_archive_root_dir_name(&version_string)),
+        temp.path().join(Yarn::archive_basename(&version_string)),
         &dest,
     )
     .with_context(|_| ErrorDetails::SetupToolImageError {
@@ -107,7 +106,7 @@ fn unpack_archive(archive: Box<Archive>, version: &Version) -> Fallible<()> {
         dir: dest.clone(),
     })?;
 
-    bar.finish_and_clear();
+    progress.finish_and_clear();
 
     // Note: We write this after the progress bar is finished to avoid display bugs with re-renders of the progress
     debug!("Installing yarn in '{}'", dest.display());
@@ -118,7 +117,7 @@ fn unpack_archive(archive: Box<Archive>, version: &Version) -> Fallible<()> {
 /// Return the archive if it is valid. It may have been corrupted or interrupted in the middle of
 /// downloading.
 // ISSUE(#134) - verify checksum
-fn load_cached_distro(file: &PathBuf) -> Option<Box<Archive>> {
+fn load_cached_distro(file: &PathBuf) -> Option<Box<dyn Archive>> {
     if file.is_file() {
         let file = File::open(file).ok()?;
         Tarball::load(file).ok()
@@ -130,7 +129,7 @@ fn load_cached_distro(file: &PathBuf) -> Option<Box<Archive>> {
 /// Determine the remote URL to download from, using the hooks if available
 fn determine_remote_url(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<String> {
     let version_str = version.to_string();
-    let distro_file_name = path::yarn_distro_file_name(&version_str);
+    let distro_file_name = Yarn::archive_filename(&version_str);
     match hooks {
         Some(&ToolHooks {
             distro: Some(ref hook),
@@ -153,7 +152,7 @@ fn fetch_remote_distro(
     version: &Version,
     url: &str,
     staging_path: &Path,
-) -> Fallible<Box<Archive>> {
+) -> Fallible<Box<dyn Archive>> {
     debug!("Downloading {} from {}", tool_version("yarn", version), url);
     Tarball::fetch(url, staging_path).with_context(download_tool_error(
         tool::Spec::Yarn(VersionSpec::exact(&version)),

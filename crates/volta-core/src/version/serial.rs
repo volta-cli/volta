@@ -13,10 +13,10 @@ use semver::{Compat, ReqParseError, VersionReq};
 // a Node-compatible way (or we get the wrong version info returned).
 pub fn parse_requirements(src: &str) -> Result<VersionReq, ReqParseError> {
     let src = src.trim();
-    if src.len() > 0 && src.chars().next().unwrap().is_digit(10) {
+    if !src.is_empty() && src.chars().next().unwrap().is_digit(10) {
         let defaulted = format!("={}", src);
         VersionReq::parse_compat(&defaulted, Compat::Node)
-    } else if src.len() > 0 && src.chars().next().unwrap() == 'v' {
+    } else if !src.is_empty() && src.starts_with('v') {
         let defaulted = src.replacen("v", "=", 1);
         VersionReq::parse_compat(&defaulted, Compat::Node)
     } else {

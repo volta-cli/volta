@@ -3,7 +3,8 @@
 use std::{fs, io};
 
 use crate::error::ErrorDetails;
-use crate::path;
+use crate::fs::symlink_file;
+use crate::layout::{volta_home, volta_install};
 use volta_fail::{throw, FailExt, Fallible};
 
 #[derive(PartialEq)]
@@ -22,13 +23,13 @@ fn is_3p_shim(name: &str) -> bool {
 }
 
 pub fn create(shim_name: &str) -> Fallible<ShimResult> {
-    let executable = path::shim_executable()?;
-    let shim = path::shim_file(shim_name)?;
+    let executable = volta_install()?.shim_executable();
+    let shim = volta_home()?.shim_file(shim_name);
 
     #[cfg(windows)]
     windows::create_git_bash_script(shim_name)?;
 
-    match path::create_file_symlink(executable, shim) {
+    match symlink_file(executable, shim) {
         Ok(_) => Ok(ShimResult::Created),
         Err(err) => {
             if err.kind() == io::ErrorKind::AlreadyExists {
@@ -48,7 +49,7 @@ pub fn delete(shim_name: &str) -> Fallible<ShimResult> {
             name: shim_name.to_string(),
         });
     }
-    let shim = path::shim_file(shim_name)?;
+    let shim = volta_home()?.shim_file(shim_name);
 
     #[cfg(windows)]
     windows::delete_git_bash_script(shim_name)?;
@@ -78,22 +79,22 @@ pub fn delete(shim_name: &str) -> Fallible<ShimResult> {
 #[cfg(windows)]
 mod windows {
     use crate::error::ErrorDetails;
-    use crate::path;
+    use crate::layout::volta_home;
     use std::fs::{remove_file, write};
     use std::io::ErrorKind;
     use volta_fail::{FailExt, Fallible, ResultExt};
 
-    const BASH_SCRIPT: &'static str = r#"cmd //C $0 "$@""#;
+    const BASH_SCRIPT: &str = r#"cmd //C $0 "$@""#;
 
     pub fn create_git_bash_script(shim_name: &str) -> Fallible<()> {
-        let script_path = path::shim_git_bash_script_file(shim_name)?;
+        let script_path = volta_home()?.shim_git_bash_script_file(shim_name);
         write(script_path, BASH_SCRIPT).with_context(|_| ErrorDetails::ShimCreateError {
             name: shim_name.to_string(),
         })
     }
 
     pub fn delete_git_bash_script(shim_name: &str) -> Fallible<()> {
-        let script_path = path::shim_git_bash_script_file(shim_name)?;
+        let script_path = volta_home()?.shim_git_bash_script_file(shim_name);
         remove_file(script_path).or_else(|e| {
             if e.kind() == ErrorKind::NotFound {
                 Ok(())

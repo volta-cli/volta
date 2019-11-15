@@ -25,7 +25,9 @@ pub enum ActivityKind {
     Uninstall,
     List,
     Current,
+    #[cfg(not(feature = "volta-updates"))]
     Deactivate,
+    #[cfg(not(feature = "volta-updates"))]
     Activate,
     Default,
     Pin,
@@ -41,32 +43,38 @@ pub enum ActivityKind {
     Shim,
     Completions,
     Which,
+    #[cfg(feature = "volta-updates")]
+    Setup,
 }
 
 impl Display for ActivityKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         let s = match self {
-            &ActivityKind::Fetch => "fetch",
-            &ActivityKind::Install => "install",
-            &ActivityKind::Uninstall => "uninstall",
-            &ActivityKind::List => "list",
-            &ActivityKind::Current => "current",
-            &ActivityKind::Deactivate => "deactivate",
-            &ActivityKind::Activate => "activate",
-            &ActivityKind::Default => "default",
-            &ActivityKind::Pin => "pin",
-            &ActivityKind::Node => "node",
-            &ActivityKind::Npm => "npm",
-            &ActivityKind::Npx => "npx",
-            &ActivityKind::Yarn => "yarn",
-            &ActivityKind::Volta => "volta",
-            &ActivityKind::Tool => "tool",
-            &ActivityKind::Help => "help",
-            &ActivityKind::Version => "version",
-            &ActivityKind::Binary => "binary",
-            &ActivityKind::Shim => "shim",
-            &ActivityKind::Completions => "completions",
-            &ActivityKind::Which => "which",
+            ActivityKind::Fetch => "fetch",
+            ActivityKind::Install => "install",
+            ActivityKind::Uninstall => "uninstall",
+            ActivityKind::List => "list",
+            ActivityKind::Current => "current",
+            #[cfg(not(feature = "volta-updates"))]
+            ActivityKind::Deactivate => "deactivate",
+            #[cfg(not(feature = "volta-updates"))]
+            ActivityKind::Activate => "activate",
+            ActivityKind::Default => "default",
+            ActivityKind::Pin => "pin",
+            ActivityKind::Node => "node",
+            ActivityKind::Npm => "npm",
+            ActivityKind::Npx => "npx",
+            ActivityKind::Yarn => "yarn",
+            ActivityKind::Volta => "volta",
+            ActivityKind::Tool => "tool",
+            ActivityKind::Help => "help",
+            ActivityKind::Version => "version",
+            ActivityKind::Binary => "binary",
+            #[cfg(feature = "volta-updates")]
+            ActivityKind::Setup => "setup",
+            ActivityKind::Shim => "shim",
+            ActivityKind::Completions => "completions",
+            ActivityKind::Which => "which",
         };
         f.write_str(s)
     }
@@ -90,19 +98,24 @@ pub struct Session {
 
 impl Session {
     /// Constructs a new `Session`.
-    pub fn new() -> Session {
+    pub fn init() -> Session {
         Session {
-            hooks: LazyHookConfig::new(),
-            inventory: LazyInventory::new(),
-            toolchain: LazyToolchain::new(),
-            project: LazyProject::new(),
-            event_log: EventLog::new(),
+            hooks: LazyHookConfig::init(),
+            inventory: LazyInventory::init(),
+            toolchain: LazyToolchain::init(),
+            project: LazyProject::init(),
+            event_log: EventLog::init(),
         }
     }
 
     /// Produces a reference to the current Node project, if any.
-    pub fn project(&self) -> Fallible<Option<Rc<Project>>> {
+    pub fn project(&self) -> Fallible<Option<&Project>> {
         self.project.get()
+    }
+
+    /// Produces a mutable reference to the current Node project, if any.
+    pub fn project_mut(&mut self) -> Fallible<Option<&mut Project>> {
+        self.project.get_mut()
     }
 
     /// Returns the user's currently active platform, if any
@@ -255,7 +268,7 @@ pub mod tests {
     fn test_in_pinned_project() {
         let project_pinned = fixture_path("basic");
         env::set_current_dir(&project_pinned).expect("Could not set current directory");
-        let pinned_session = Session::new();
+        let pinned_session = Session::init();
         let pinned_platform = pinned_session
             .project_platform()
             .expect("Couldn't create Project");
@@ -263,7 +276,7 @@ pub mod tests {
 
         let project_unpinned = fixture_path("no_toolchain");
         env::set_current_dir(&project_unpinned).expect("Could not set current directory");
-        let unpinned_session = Session::new();
+        let unpinned_session = Session::init();
         let unpinned_platform = unpinned_session
             .project_platform()
             .expect("Couldn't create Project");

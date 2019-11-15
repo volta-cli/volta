@@ -11,6 +11,7 @@ mock-network = ["mockito"]
 # See ci/publish-docs.yml for an example of how it's enabled.
 # See volta-core::path for an example of where it's used.
 cross-platform-docs = []
+volta-updates = ["volta-layout/volta-updates"]
 
 [dependencies]
 term_size = "0.3.0"
@@ -49,6 +50,8 @@ atty = "0.2"
 log = { version = "0.4", features = ["std"] }
 ctrlc = "3.1.3"
 walkdir = "2.2.9"
+volta-layout = { path = "../volta-layout" }
+double-checked-cell = "2.0.2"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.6.0"

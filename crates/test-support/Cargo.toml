@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 failure = "0.1.1"
 failure_derive = "0.1.1"
-hamcrest2 = "0.2.6"
+hamcrest2 = "0.3.0"
 archive = { path = "../archive" }
 volta-fail = { path = "../volta-fail" }
 volta-fail-derive = { path = "../volta-fail-derive" }

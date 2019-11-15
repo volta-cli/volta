@@ -19,8 +19,8 @@ pub(super) enum Toolchain {
         host_packages: Vec<Package>,
     },
     Active {
-        runtime: Option<Node>,
-        package_manager: Option<PackageManager>,
+        runtime: Option<Box<Node>>,
+        package_manager: Option<Box<PackageManager>>,
         packages: Vec<Package>,
     },
     All {
@@ -48,7 +48,7 @@ impl Lookup {
 
     fn version_source<'p>(
         self,
-        project: &'p Option<Rc<Project>>,
+        project: Option<&'p Project>,
         user_platform: &Option<Rc<PlatformSpec>>,
         version: &Version,
     ) -> Source {
@@ -56,16 +56,22 @@ impl Lookup {
             Some(project) => project
                 .platform()
                 .and_then(self.version_from_spec())
-                .and_then(|project_version| match &project_version == version {
-                    true => Some(Source::Project(project.package_file())),
-                    false => None,
+                .and_then(|project_version| {
+                    if &project_version == version {
+                        Some(Source::Project(project.package_file()))
+                    } else {
+                        None
+                    }
                 }),
             None => user_platform
                 .clone()
                 .and_then(self.version_from_spec())
-                .and_then(|ref default_version| match default_version == version {
-                    true => Some(Source::Default),
-                    false => None,
+                .and_then(|ref default_version| {
+                    if default_version == version {
+                        Some(Source::Default)
+                    } else {
+                        None
+                    }
                 }),
         }
         .unwrap_or(Source::None)
@@ -74,7 +80,7 @@ impl Lookup {
     /// Determine the `Source` for a given kind of tool (`Lookup`).
     fn active_tool(
         self,
-        project: &Option<Rc<Project>>,
+        project: Option<&Project>,
         user: &Option<Rc<PlatformSpec>>,
     ) -> Option<(Source, Version)> {
         match project {
@@ -91,11 +97,10 @@ impl Lookup {
 }
 
 /// Look up the `Source` for a tool with a given name.
-fn tool_source(name: &str, version: &Version, project: &Option<Rc<Project>>) -> Fallible<Source> {
+fn tool_source(name: &str, version: &Version, project: Option<&Project>) -> Fallible<Source> {
     match project {
         Some(project) => {
             let project_version_is_tool_version = project
-                .as_ref()
                 .matching_bin(&OsString::from(name), version)?
                 .map_or(false, |bin| &bin.version == version);
 
@@ -111,21 +116,23 @@ fn tool_source(name: &str, version: &Version, project: &Option<Rc<Project>>) -> 
 
 impl Toolchain {
     pub(super) fn active(
-        project: &Option<Rc<Project>>,
+        project: Option<&Project>,
         user_platform: &Option<Rc<PlatformSpec>>,
         inventory: &Inventory,
     ) -> Fallible<Toolchain> {
         let runtime = Lookup::Runtime
             .active_tool(project, user_platform)
-            .map(|(source, version)| Node { source, version });
+            .map(|(source, version)| Box::new(Node { source, version }));
 
         let package_manager =
             Lookup::Yarn
                 .active_tool(project, user_platform)
-                .map(|(source, version)| PackageManager {
-                    kind: PackageManagerKind::Yarn,
-                    source,
-                    version,
+                .map(|(source, version)| {
+                    Box::new(PackageManager {
+                        kind: PackageManagerKind::Yarn,
+                        source,
+                        version,
+                    })
                 });
 
         let packages = Package::from_inventory_and_project(inventory, project);
@@ -138,7 +145,7 @@ impl Toolchain {
     }
 
     pub(super) fn all(
-        project: &Option<Rc<Project>>,
+        project: Option<&Project>,
         user_platform: &Option<Rc<PlatformSpec>>,
         inventory: &Inventory,
     ) -> Fallible<Toolchain> {
@@ -174,7 +181,7 @@ impl Toolchain {
 
     pub(super) fn node(
         inventory: &Inventory,
-        project: &Option<Rc<Project>>,
+        project: Option<&Project>,
         user_platform: &Option<Rc<PlatformSpec>>,
         filter: &Filter,
     ) -> Toolchain {
@@ -198,7 +205,7 @@ impl Toolchain {
 
     pub(super) fn yarn(
         inventory: &Inventory,
-        project: &Option<Rc<Project>>,
+        project: Option<&Project>,
         user_platform: &Option<Rc<PlatformSpec>>,
         filter: &Filter,
     ) -> Toolchain {
@@ -226,7 +233,7 @@ impl Toolchain {
     pub(super) fn package_or_tool(
         name: &str,
         inventory: &Inventory,
-        project: &Option<Rc<Project>>,
+        project: Option<&Project>,
         filter: &Filter,
     ) -> Fallible<Toolchain> {
         /// An internal-only helper for tracking whether we found a given item
@@ -247,7 +254,7 @@ impl Toolchain {
             .filter_map(|config| {
                 // Start with the package itself, since tools often match
                 // the package name and we prioritize packages.
-                if &config.name == name {
+                if config.name == name {
                     let source = Package::source(name, &config.version, project);
                     if source.allowed_with(filter) {
                         Some(Ok((Kind::Package, config, source)))
@@ -257,12 +264,7 @@ impl Toolchain {
 
                 // Then check if the passed name matches an installed package's
                 // binaries. If it does, we have a tool.
-                } else if config
-                    .bins
-                    .iter()
-                    .find(|bin| bin.as_str() == name)
-                    .is_some()
-                {
+                } else if config.bins.iter().any(|bin| bin.as_str() == name) {
                     tool_source(name, &config.version, project)
                         .map(|source| {
                             if source.allowed_with(filter) {

@@ -10,12 +10,12 @@ const MAX_WIDTH: usize = 100;
 const MAX_PROGRESS_WIDTH: usize = 40;
 
 /// Generate the styled prefix for a success message
-pub(crate) fn success_prefix() -> StyledObject<&'static str> {
+pub fn success_prefix() -> StyledObject<&'static str> {
     style("success:").green().bold()
 }
 
 /// Format the underlying cause of an error
-pub(crate) fn format_error_cause(inner: &Fail) -> String {
+pub(crate) fn format_error_cause(inner: &dyn Fail) -> String {
     format!(
         "{}{} {}",
         style("Error cause").underlined().bold(),
@@ -62,15 +62,15 @@ pub fn progress_bar(origin: Origin, details: &str, len: u64) -> ProgressBar {
         None => MAX_PROGRESS_WIDTH,
     };
 
-    let bar = ProgressBar::new(len);
+    let progress = ProgressBar::new(len);
 
-    bar.set_message(&format!(
+    progress.set_message(&format!(
         "{: >width$} {}",
         style(action).green().bold(),
         details,
         width = action_width,
     ));
-    bar.set_style(
+    progress.set_style(
         ProgressStyle::default_bar()
             .template(&format!(
                 "{{msg}}  [{{bar:{}.cyan/blue}}] {{percent:>3}}%",
@@ -79,7 +79,7 @@ pub fn progress_bar(origin: Origin, details: &str, len: u64) -> ProgressBar {
             .progress_chars("=> "),
     );
 
-    bar
+    progress
 }
 
 cfg_if! {

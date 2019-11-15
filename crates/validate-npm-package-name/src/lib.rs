@@ -91,15 +91,15 @@ pub fn validate(name: &str) -> Validity {
     let mut warnings = Vec::new();
     let mut errors = Vec::new();
 
-    if name.len() == 0 {
+    if name.is_empty() {
         errors.push("name length must be greater than zero".into());
     }
 
-    if name.starts_with(".") {
+    if name.starts_with('.') {
         errors.push("name cannot start with a period".into());
     }
 
-    if name.starts_with("_") {
+    if name.starts_with('_') {
         errors.push("name cannot start with an underscore".into());
     }
 

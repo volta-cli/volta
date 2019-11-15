@@ -24,10 +24,10 @@ pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
         } => (
             runtime
                 .as_ref()
-                .and_then(|r| describe_runtimes(&[r.clone()])),
+                .and_then(|r| describe_runtimes(&[(**r).clone()])),
             package_manager
                 .as_ref()
-                .and_then(|p| describe_package_managers(&[p.clone()])),
+                .and_then(|p| describe_package_managers(&[(**p).clone()])),
             describe_packages(&packages),
         ),
         Toolchain::All {
@@ -49,12 +49,12 @@ pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
             Some(format!("{}\n{}", runtimes, package_managers))
         }
         (Some(runtimes), None, Some(packages)) => Some(format!("{}\n{}", runtimes, packages)),
-        (Some(runtimes), None, None) => Some(format!("{}", runtimes)),
+        (Some(runtimes), None, None) => Some(runtimes.to_string()),
         (None, Some(package_managers), Some(packages)) => {
             Some(format!("{}\n{}", package_managers, packages))
         }
-        (None, Some(package_managers), None) => Some(format!("{}", package_managers)),
-        (None, None, Some(packages)) => Some(format!("{}", packages)),
+        (None, Some(package_managers), None) => Some(package_managers.to_string()),
+        (None, None, Some(packages)) => Some(packages.to_string()),
         (None, None, None) => None,
     }
 }

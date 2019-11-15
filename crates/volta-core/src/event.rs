@@ -81,13 +81,13 @@ fn get_error_env() -> ErrorEnv {
     let platform = info.os_type().to_string();
     let platform_version = info.version().to_string();
 
-    return ErrorEnv {
-        argv: argv,
-        exec_path: exec_path,
-        path: path,
-        platform: platform,
-        platform_version: platform_version,
-    };
+    ErrorEnv {
+        argv,
+        exec_path,
+        path,
+        platform,
+        platform_version,
+    }
 }
 
 pub struct EventLog {
@@ -96,7 +96,7 @@ pub struct EventLog {
 
 impl EventLog {
     /// Constructs a new 'EventLog'
-    pub fn new() -> Self {
+    pub fn init() -> Self {
         EventLog { events: Vec::new() }
     }
 
@@ -113,7 +113,7 @@ impl EventLog {
         let exit_code = error.exit_code();
         self.add_event(
             EventKind::Error {
-                exit_code: exit_code,
+                exit_code,
                 error: error.to_string(),
                 env: get_error_env(),
             },
@@ -149,7 +149,7 @@ pub mod tests {
 
     #[test]
     fn test_adding_events() {
-        let mut event_log = EventLog::new();
+        let mut event_log = EventLog::init();
         assert_eq!(event_log.events.len(), 0);
 
         event_log.add_event_start(ActivityKind::Current);

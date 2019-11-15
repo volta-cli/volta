@@ -6,7 +6,7 @@ use semver::Version;
 use volta_fail::Fallible;
 
 use super::versions_matching;
-use crate::path;
+use crate::layout::volta_home;
 
 // Convenience for access as `node::Collection`
 pub use NodeCollection as Collection;
@@ -31,7 +31,7 @@ impl NodeCollection {
         )
         .unwrap();
 
-        let versions = versions_matching(&path::node_inventory_dir()?, &re)?;
+        let versions = versions_matching(volta_home()?.node_inventory_dir(), &re)?;
 
         Ok(NodeCollection { versions })
     }

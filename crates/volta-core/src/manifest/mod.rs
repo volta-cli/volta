@@ -44,7 +44,7 @@ impl Manifest {
 
     /// Returns a reference to the platform image specified by manifest, if any.
     pub fn platform(&self) -> Option<Rc<PlatformSpec>> {
-        self.platform.as_ref().map(|p| p.clone())
+        self.platform.as_ref().cloned()
     }
 
     /// Gets the names of all the direct dependencies in the manifest.
@@ -61,28 +61,18 @@ impl Manifest {
         self.platform().map(|t| t.node_runtime.clone())
     }
 
-    /// Returns the pinned verison of Node as a String, if any.
-    pub fn node_str(&self) -> Option<String> {
-        self.platform().map(|t| t.node_runtime.to_string())
-    }
-
     /// Returns the pinned verison of Yarn as a Version, if any.
     pub fn yarn(&self) -> Option<Version> {
         self.platform().map(|t| t.yarn.clone()).unwrap_or(None)
     }
 
-    /// Returns the pinned verison of Yarn as a String, if any.
-    pub fn yarn_str(&self) -> Option<String> {
-        self.platform()
-            .and_then(|t| t.yarn.as_ref().map(|yarn| yarn.to_string()))
+    /// Updates the pinned platform information
+    pub fn update_platform(&mut self, platform: PlatformSpec) {
+        self.platform = Some(Rc::new(platform));
     }
 
-    /// Writes the input ToolchainManifest to package.json, adding the "volta" key if
-    /// necessary.
-    pub fn update_toolchain(
-        toolchain: serial::ToolchainSpec,
-        package_file: PathBuf,
-    ) -> Fallible<()> {
+    /// Updates the `volta` key in the specified `package.json` to match the current Manifest
+    pub fn write(&self, package_file: PathBuf) -> Fallible<()> {
         // Helper for lazily creating the file name string without moving `package_file` into
         // one of the individual `with_context` closures below.
         let get_file = || package_file.to_owned();
@@ -101,9 +91,13 @@ impl Manifest {
             let indent = detect_indent::detect_indent(&contents);
 
             // update the "volta" key
-            let toolchain_value = serde_json::to_value(toolchain)
-                .with_context(|_| ErrorDetails::StringifyToolchainError)?;
-            map.insert("volta".to_string(), toolchain_value);
+            if let Some(platform) = self.platform() {
+                let volta_value = serde_json::to_value(serial::ToolchainSpec::from(platform))
+                    .with_context(|_| ErrorDetails::StringifyToolchainError)?;
+                map.insert("volta".to_string(), volta_value);
+            } else {
+                map.remove("volta");
+            }
 
             // serialize the updated contents back to package.json
             let mut file = File::create(&package_file)

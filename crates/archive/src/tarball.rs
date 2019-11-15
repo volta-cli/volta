@@ -27,7 +27,7 @@ pub struct Tarball {
     // If the uncompressed size is not available, the compressed size will be
     // used for the download/unpack progress indicator, so that will be slightly off.
     uncompressed_size: Option<u64>,
-    data: Box<Read>,
+    data: Box<dyn Read>,
     origin: Origin,
 }
 
@@ -54,7 +54,7 @@ fn content_length(response: &Response) -> Result<u64, failure::Error> {
 
 impl Tarball {
     /// Loads a tarball from the specified file.
-    pub fn load(mut source: File) -> Result<Box<Archive>, failure::Error> {
+    pub fn load(mut source: File) -> Result<Box<dyn Archive>, failure::Error> {
         let uncompressed_size = load_uncompressed_size(&mut source);
         let compressed_size = source.metadata()?.len();
         Ok(Box::new(Tarball {
@@ -68,19 +68,21 @@ impl Tarball {
     /// Initiate fetching of a tarball from the given URL, returning a
     /// tarball that can be streamed (and that tees its data to a local
     /// file as it streams).
-    pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<Archive>, failure::Error> {
+    pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, failure::Error> {
         let response = reqwest::get(url)?;
 
         if !response.status().is_success() {
-            Err(super::HttpError {
+            return Err(super::HttpError {
                 code: response.status(),
-            })?;
+            }
+            .into());
         }
 
         let compressed_size = content_length(&response)?;
-        let uncompressed_size = match accepts_byte_ranges(&response) {
-            true => fetch_uncompressed_size(url, compressed_size),
-            false => None,
+        let uncompressed_size = if accepts_byte_ranges(&response) {
+            fetch_uncompressed_size(url, compressed_size)
+        } else {
+            None
         };
 
         ensure_containing_dir_exists(&cache_file)?;
@@ -106,7 +108,7 @@ impl Archive for Tarball {
     fn unpack(
         self: Box<Self>,
         dest: &Path,
-        progress: &mut FnMut(&(), usize),
+        progress: &mut dyn FnMut(&(), usize),
     ) -> Result<(), failure::Error> {
         let decoded = GzDecoder::new(self.data);
         let mut tarball = tar::Archive::new(ProgressRead::new(decoded, (), progress));
@@ -156,17 +158,19 @@ fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], failure::Error> {
         .send()?;
 
     if !response.status().is_success() {
-        Err(super::HttpError {
+        return Err(super::HttpError {
             code: response.status(),
-        })?;
+        }
+        .into());
     }
 
     let actual_length = content_length(&response)?;
 
     if actual_length != 4 {
-        Err(UnexpectedContentLengthError {
+        return Err(UnexpectedContentLengthError {
             length: actual_length,
-        })?;
+        }
+        .into());
     }
 
     let mut buf = [0; 4];
@@ -199,15 +203,13 @@ fn accepts_byte_ranges(response: &Response) -> bool {
 /// slower than the extra round trips.
 fn fetch_uncompressed_size(url: &str, len: u64) -> Option<u64> {
     // if there is an error, we ignore it and return None, instead of failing
-    fetch_isize(url, len)
-        .ok()
-        .map(|packed| unpack_isize(packed))
+    fetch_isize(url, len).ok().map(unpack_isize)
 }
 
 /// Determines the uncompressed size of the specified gzip file on disk.
 fn load_uncompressed_size(file: &mut File) -> Option<u64> {
     // if there is an error, we ignore it and return None, instead of failing
-    load_isize(file).ok().map(|packed| unpack_isize(packed))
+    load_isize(file).ok().map(unpack_isize)
 }
 
 #[cfg(test)]

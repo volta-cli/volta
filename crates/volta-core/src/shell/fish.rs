@@ -6,7 +6,7 @@ pub(crate) struct Fish {
     pub(crate) postscript_path: PathBuf,
 }
 
-static STATUS_HANDLING: &'static str = r#"
+static STATUS_HANDLING: &str = r#"
 if test $status != 0;
   printf '\n\033[1;31mError\033[0m: Volta cannot update your `PATH`. If you are running fish 2.x, this often\n' 1>&2
   printf '       happens if your `PATH` includes an entry pointing to a value that is not\n' 1>&2
@@ -17,8 +17,8 @@ if test $status != 0;
 end;
 "#;
 
-static SET_VOLTA_HOME: &'static str = "set -x VOLTA_HOME \"$HOME/.volta\"\n";
-static UNSET_VOLTA_HOME: &'static str = "set -e VOLTA_HOME\n";
+static SET_VOLTA_HOME: &str = "set -x VOLTA_HOME \"$HOME/.volta\"\n";
+static UNSET_VOLTA_HOME: &str = "set -e VOLTA_HOME\n";
 
 impl Shell for Fish {
     fn postscript_path(&self) -> &Path {
@@ -27,16 +27,16 @@ impl Shell for Fish {
 
     fn compile_postscript(&self, postscript: &Postscript) -> String {
         match postscript {
-            &Postscript::Activate(ref s) => {
+            Postscript::Activate(ref s) => {
                 let updated_path = format!("set -x PATH \"{}\"\n", s);
                 updated_path + STATUS_HANDLING + SET_VOLTA_HOME
             }
             // ISSUE(#99): proper escaping
-            &Postscript::Deactivate(ref s) => {
+            Postscript::Deactivate(ref s) => {
                 let updated_path = format!("set -x PATH \"{}\"\n", s);
                 updated_path + STATUS_HANDLING + UNSET_VOLTA_HOME
             }
-            &Postscript::ToolVersion {
+            Postscript::ToolVersion {
                 ref tool,
                 ref version,
             } => format!(

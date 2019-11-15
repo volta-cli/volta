@@ -6,16 +6,16 @@ use std::process::Stdio;
 
 use crate::command::create_command;
 use crate::error::ErrorDetails;
-use crate::path::{ARCH, OS};
+use crate::tool::{NODE_DISTRO_ARCH, NODE_DISTRO_OS};
 use cmdline_words_parser::StrExt;
 use lazy_static::lazy_static;
 use log::debug;
 use semver::Version;
 use volta_fail::{throw, Fallible, ResultExt};
 
-const ARCH_TEMPLATE: &'static str = "{{arch}}";
-const OS_TEMPLATE: &'static str = "{{os}}";
-const VERSION_TEMPLATE: &'static str = "{{version}}";
+const ARCH_TEMPLATE: &str = "{{arch}}";
+const OS_TEMPLATE: &str = "{{os}}";
+const VERSION_TEMPLATE: &str = "{{version}}";
 
 lazy_static! {
     static ref REL_PATH: String = format!(".{}", std::path::MAIN_SEPARATOR);
@@ -37,8 +37,8 @@ impl DistroHook {
         match &self {
             DistroHook::Prefix(prefix) => Ok(format!("{}{}", prefix, filename)),
             DistroHook::Template(template) => Ok(template
-                .replace(ARCH_TEMPLATE, ARCH)
-                .replace(OS_TEMPLATE, OS)
+                .replace(ARCH_TEMPLATE, NODE_DISTRO_ARCH)
+                .replace(OS_TEMPLATE, NODE_DISTRO_OS)
                 .replace(VERSION_TEMPLATE, &version.to_string())),
             DistroHook::Bin { bin, base_path } => {
                 execute_binary(bin, base_path, Some(version.to_string()))
@@ -61,8 +61,8 @@ impl MetadataHook {
         match &self {
             MetadataHook::Prefix(prefix) => Ok(format!("{}{}", prefix, filename)),
             MetadataHook::Template(template) => Ok(template
-                .replace(ARCH_TEMPLATE, ARCH)
-                .replace(OS_TEMPLATE, OS)),
+                .replace(ARCH_TEMPLATE, NODE_DISTRO_ARCH)
+                .replace(OS_TEMPLATE, NODE_DISTRO_OS)),
             MetadataHook::Bin { bin, base_path } => execute_binary(bin, base_path, None),
         }
     }
@@ -127,7 +127,7 @@ fn execute_binary(bin: &str, base_path: &Path, extra_arg: Option<String>) -> Fal
 #[cfg(test)]
 pub mod tests {
     use super::{DistroHook, MetadataHook};
-    use crate::path::{ARCH, OS};
+    use crate::tool::{NODE_DISTRO_ARCH, NODE_DISTRO_OS};
     use semver::Version;
 
     #[test]
@@ -152,8 +152,8 @@ pub mod tests {
         let version = Version::new(1, 0, 0);
         let expected = format!(
             "http://localhost/node/{}/{}/{}/node.tar.gz",
-            OS,
-            ARCH,
+            NODE_DISTRO_OS,
+            NODE_DISTRO_ARCH,
             version.to_string()
         );
 
@@ -180,7 +180,10 @@ pub mod tests {
     fn test_metadata_template_resolve() {
         let hook =
             MetadataHook::Template("http://localhost/node/{{os}}/{{arch}}/index.json".to_string());
-        let expected = format!("http://localhost/node/{}/{}/index.json", OS, ARCH);
+        let expected = format!(
+            "http://localhost/node/{}/{}/index.json",
+            NODE_DISTRO_OS, NODE_DISTRO_ARCH
+        );
 
         assert_eq!(
             hook.resolve("index.json").expect("Could not resolve URL"),
