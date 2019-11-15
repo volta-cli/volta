@@ -10,18 +10,33 @@ mod serial;
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum VersionSpec {
+    /// No version specified (default)
     None,
+
+    /// Semver Range
     Semver(VersionReq),
+
+    /// Exact Version
     Exact(Version),
+
+    /// Arbitrary Version Tag
     Tag(VersionTag),
 }
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum VersionTag {
+    /// The 'latest' tag, a special case that exists for all packages
     Latest,
+
+    /// The 'lts' tag, a special case for Node
     Lts,
+
+    /// An arbitrary tag version
     Custom(String),
+
+    /// An internal tag that represents the latest LTS version which matches a set of requirements
+    LtsRequirement(VersionReq),
 }
 
 impl fmt::Display for VersionSpec {
@@ -41,6 +56,7 @@ impl fmt::Display for VersionTag {
             VersionTag::Latest => write!(f, "latest"),
             VersionTag::Lts => write!(f, "lts"),
             VersionTag::Custom(s) => s.fmt(f),
+            VersionTag::LtsRequirement(req) => req.fmt(f),
         }
     }
 }
