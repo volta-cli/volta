@@ -427,24 +427,6 @@ fn pin_yarn_leaves_npm() {
 }
 
 #[test]
-fn pin_dont_remove_bottom_empty_line() {
-    let s = sandbox()
-        .package_json(PACKAGE_JSON_WITH_EMPTY_LINE)
-        .node_available_versions(NODE_VERSION_INFO)
-        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .build();
-
-    assert_that!(
-        s.volta("pin node@6"),
-        execs().with_status(ExitCode::Success as i32)
-    );
-
-    assert!(
-        s.read_package_json().ends_with("\n")
-    )
-}
-
-#[test]
 #[ignore]
 fn pin_npm() {
     // ISSUE(#292): Get this test working after pinning npm is correct
@@ -482,5 +464,23 @@ fn pin_node_and_yarn() {
     assert_eq!(
         s.read_package_json(),
         package_json_with_pinned_node_yarn("6.19.62", "1.4.159"),
+    )
+}
+
+#[test]
+fn pin_node_does_not_remove_bottom_empty_line() {
+    let s = sandbox()
+        .package_json(PACKAGE_JSON_WITH_EMPTY_LINE)
+        .node_available_versions(NODE_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .build();
+
+    assert_that!(
+        s.volta("pin node@6"),
+        execs().with_status(ExitCode::Success as i32)
+    );
+
+    assert!(
+        s.read_package_json().ends_with("\n")
     )
 }
