@@ -109,7 +109,7 @@ impl Manifest {
                 .with_context(|_| ErrorDetails::PackageWriteError { file: get_file() })?;
             // append the empty line if the original package.json has one
             if is_end_with_newline {
-                file.write_all("\n".as_bytes())
+                write!(file, "\n")
                     .with_context(|_| ErrorDetails::PackageWriteError { file: get_file() })?;
             }
         }
