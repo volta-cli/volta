@@ -49,7 +49,10 @@ impl Volta {
     pub(crate) fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         layout::ensure_volta_dirs_exist()?;
         if self.version {
-            println!("{}", env!("CARGO_PKG_VERSION"));
+            match cfg!(debug_assertions) {
+                true => println!("{}-DEV", env!("CARGO_PKG_VERSION")),
+                false => println!("{}", env!("CARGO_PKG_VERSION")),
+            }
             Ok(ExitCode::Success)
         } else if let Some(command) = self.command {
             command.run(session)
