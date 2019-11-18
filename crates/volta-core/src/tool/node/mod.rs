@@ -37,8 +37,11 @@ cfg_if! {
     } else if #[cfg(target_arch = "x86_64")] {
         /// The system architecture component of a Node distro's name.
         pub const NODE_DISTRO_ARCH: &str = "x64";
+    } else if #[cfg(target_arch = "aarch64")] {
+        /// The system architecture component of a Node distro's name.
+        pub const NODE_DISTRO_ARCH: &str = "arm64";
     } else {
-        compile_error!("Unsupported target_arch variant (expected 'x86' or 'x64').");
+        compile_error!("Unsupported target_arch variant (expected 'x86', 'x64', or 'aarch64').");
     }
 }
 
