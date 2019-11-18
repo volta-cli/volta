@@ -1,3 +1,8 @@
+# Version 0.6.7
+
+- `volta pin` will no longer remove a closing newline from `package.json` (#603)
+- New environment variable `VOLTA_BYPASS` will allow you to temporarily disable Volta shims (#600)
+
 # Version 0.6.6
 
 - Node and Yarn can now both be pinned in the same command `volta pin node yarn` (#593)
