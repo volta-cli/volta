@@ -49,8 +49,9 @@ impl Volta {
     pub(crate) fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         layout::ensure_volta_dirs_exist()?;
         if self.version {
+            // suffix indicator for dev build
             match cfg!(debug_assertions) {
-                true => println!("{}-DEV", env!("CARGO_PKG_VERSION")),
+                true => println!("{}-dev", env!("CARGO_PKG_VERSION")),
                 false => println!("{}", env!("CARGO_PKG_VERSION")),
             }
             Ok(ExitCode::Success)
