@@ -50,9 +50,10 @@ impl Volta {
         layout::ensure_volta_dirs_exist()?;
         if self.version {
             // suffix indicator for dev build
-            match cfg!(debug_assertions) {
-                true => println!("{}-dev", env!("CARGO_PKG_VERSION")),
-                false => println!("{}", env!("CARGO_PKG_VERSION")),
+            if cfg!(debug_assertions) {
+                println!("{}-dev", env!("CARGO_PKG_VERSION"));
+            } else {
+                println!("{}", env!("CARGO_PKG_VERSION"));
             }
             Ok(ExitCode::Success)
         } else if let Some(command) = self.command {
