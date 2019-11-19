@@ -47,6 +47,7 @@ pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Version
         VersionSpec::None | VersionSpec::Tag(VersionTag::Lts) => resolve_lts(hooks),
         VersionSpec::Tag(VersionTag::Latest) => resolve_latest(hooks),
         VersionSpec::Tag(VersionTag::LtsRequirement(req)) => resolve_lts_semver(req, hooks),
+        // Node doesn't have "tagged" versions (apart from 'latest' and 'lts'), so custom tags will always be an error
         VersionSpec::Tag(VersionTag::Custom(tag)) => {
             Err(ErrorDetails::NodeVersionNotFound { matching: tag }.into())
         }
