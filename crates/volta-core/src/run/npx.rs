@@ -5,7 +5,7 @@ use crate::error::ErrorDetails;
 use crate::platform::Source;
 use crate::session::{ActivityKind, Session};
 use crate::style::tool_version;
-use crate::version::VersionSpec;
+use crate::version::parse_version;
 
 use log::debug;
 use volta_fail::Fallible;
@@ -22,7 +22,7 @@ where
 
             // npx was only included with npm 5.2.0 and higher. If the npm version is less than that, we
             // should include a helpful error message
-            let required_npm = VersionSpec::parse_version("5.2.0")?;
+            let required_npm = parse_version("5.2.0")?;
             if image.node().npm >= required_npm {
                 let source = match image.source() {
                     Source::Project | Source::ProjectNodeDefaultYarn => "project",

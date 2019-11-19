@@ -1,9 +1,8 @@
 use std::cmp::Ordering;
-use std::str::FromStr;
 
 use super::Spec;
 use crate::error::ErrorDetails;
-use crate::version::VersionSpec;
+use crate::version::{VersionSpec, VersionTag};
 use lazy_static::lazy_static;
 use regex::Regex;
 use validate_npm_package_name::{validate, Validity};
@@ -48,7 +47,7 @@ impl Spec {
 
         let version = captures
             .name("version")
-            .map(|version| VersionSpec::parse(version.as_str()))
+            .map(|version| version.as_str().parse())
             .transpose()?
             .unwrap_or_default();
 
@@ -95,15 +94,13 @@ impl Spec {
         // The case we are concerned with is where we have `<tool> <number>`.
         // This is only interesting if there are exactly two args. Then we care
         // whether the two items are a bare name (with no `@version`), followed
-        // by a valid version specifier. That is:
+        // by a valid version specifier (ignoring custom tags). That is:
         //
         // - `volta install node@lts latest` is allowed.
         // - `volta install node latest` is an error.
         // - `volta install node latest yarn` is allowed.
         if let (Some(name), Some(maybe_version), None) = (args.next(), args.next(), args.next()) {
-            if !HAS_VERSION.is_match(name.as_ref())
-                && VersionSpec::from_str(maybe_version.as_ref()).is_ok()
-            {
+            if !HAS_VERSION.is_match(name.as_ref()) && is_version_like(maybe_version.as_ref()) {
                 return Err(ErrorDetails::InvalidInvocation {
                     action: action.to_string(),
                     name: name.as_ref().to_string(),
@@ -137,19 +134,33 @@ impl Spec {
     }
 }
 
+/// Determine if a given string is "version-like".
+///
+/// This means it is either 'latest', 'lts', a Version, or a Version Range.
+fn is_version_like(value: &str) -> bool {
+    match value.parse() {
+        Ok(VersionSpec::Exact(_))
+        | Ok(VersionSpec::Semver(_))
+        | Ok(VersionSpec::Tag(VersionTag::Latest))
+        | Ok(VersionSpec::Tag(VersionTag::Lts)) => true,
+        _ => false,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     mod try_from_str {
         use std::str::FromStr as _;
 
         use super::super::super::Spec;
-        use crate::version::VersionSpec;
+        use crate::version::{VersionSpec, VersionTag};
 
         const LTS: &str = "lts";
         const LATEST: &str = "latest";
         const MAJOR: &str = "3";
         const MINOR: &str = "3.0";
         const PATCH: &str = "3.0.0";
+        const BETA: &str = "beta";
 
         /// Convenience macro for generating the <tool>@<version> string.
         macro_rules! versioned_tool {
@@ -187,12 +198,12 @@ mod tests {
 
             assert_eq!(
                 Spec::try_from_str(&versioned_tool!(tool, LATEST)).expect("succeeds"),
-                Spec::Node(VersionSpec::Latest)
+                Spec::Node(VersionSpec::Tag(VersionTag::Latest))
             );
 
             assert_eq!(
                 Spec::try_from_str(&versioned_tool!(tool, LTS)).expect("succeeds"),
-                Spec::Node(VersionSpec::Lts)
+                Spec::Node(VersionSpec::Tag(VersionTag::Lts))
             );
         }
 
@@ -225,12 +236,7 @@ mod tests {
 
             assert_eq!(
                 Spec::try_from_str(&versioned_tool!(tool, LATEST)).expect("succeeds"),
-                Spec::Yarn(VersionSpec::Latest)
-            );
-
-            assert_eq!(
-                Spec::try_from_str(&versioned_tool!(tool, LTS)).expect("succeeds"),
-                Spec::Yarn(VersionSpec::Lts)
+                Spec::Yarn(VersionSpec::Tag(VersionTag::Latest))
             );
         }
 
@@ -282,12 +288,20 @@ mod tests {
 
             assert_eq!(
                 Spec::try_from_str(&versioned_tool!(package, LATEST)).expect("succeeds"),
-                Spec::Package(package.into(), VersionSpec::Latest)
+                Spec::Package(package.into(), VersionSpec::Tag(VersionTag::Latest))
             );
 
             assert_eq!(
                 Spec::try_from_str(&versioned_tool!(package, LTS)).expect("succeeds"),
-                Spec::Package(package.into(), VersionSpec::Lts)
+                Spec::Package(package.into(), VersionSpec::Tag(VersionTag::Lts))
+            );
+
+            assert_eq!(
+                Spec::try_from_str(&versioned_tool!(package, BETA)).expect("succeeds"),
+                Spec::Package(
+                    package.into(),
+                    VersionSpec::Tag(VersionTag::Custom(BETA.into()))
+                )
             );
         }
 
@@ -321,18 +335,27 @@ mod tests {
 
             assert_eq!(
                 Spec::try_from_str(&versioned_tool!(package, LATEST)).expect("succeeds"),
-                Spec::Package(package.into(), VersionSpec::Latest)
+                Spec::Package(package.into(), VersionSpec::Tag(VersionTag::Latest))
             );
 
             assert_eq!(
                 Spec::try_from_str(&versioned_tool!(package, LTS)).expect("succeeds"),
-                Spec::Package(package.into(), VersionSpec::Lts)
+                Spec::Package(package.into(), VersionSpec::Tag(VersionTag::Lts))
+            );
+
+            assert_eq!(
+                Spec::try_from_str(&versioned_tool!(package, BETA)).expect("succeeds"),
+                Spec::Package(
+                    package.into(),
+                    VersionSpec::Tag(VersionTag::Custom(BETA.into()))
+                )
             );
         }
     }
 
     mod from_strings {
         use super::super::*;
+        use std::str::FromStr;
 
         static PIN: &'static str = "pin";
 
@@ -411,7 +434,7 @@ mod tests {
                 "node@latest".to_owned(),
             ];
             let expected = [
-                Spec::Node(VersionSpec::Latest),
+                Spec::Node(VersionSpec::Tag(VersionTag::Latest)),
                 Spec::Npm(VersionSpec::from_str("5").expect("requirement is valid")),
                 Spec::Yarn(VersionSpec::default()),
                 Spec::Package(
@@ -429,8 +452,11 @@ mod tests {
         fn keeps_package_order_unchanged() {
             let packages_with_node = ["typescript@latest", "ember-cli@3", "node@lts", "mocha"];
             let expected = [
-                Spec::Node(VersionSpec::Lts),
-                Spec::Package("typescript".to_owned(), VersionSpec::Latest),
+                Spec::Node(VersionSpec::Tag(VersionTag::Lts)),
+                Spec::Package(
+                    "typescript".to_owned(),
+                    VersionSpec::Tag(VersionTag::Latest),
+                ),
                 Spec::Package(
                     "ember-cli".to_owned(),
                     VersionSpec::from_str("3").expect("requirement is valid"),
