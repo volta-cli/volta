@@ -231,7 +231,7 @@ impl SandboxBuilder {
     /// Set the platform.json for the sandbox (chainable)
     pub fn platform(mut self, contents: &str) -> Self {
         self.files
-            .push(FileBuilder::new(user_platform_file(), contents));
+            .push(FileBuilder::new(default_platform_file(), contents));
         self
     }
 
@@ -462,8 +462,8 @@ fn volta_tools_dir() -> PathBuf {
 fn inventory_dir() -> PathBuf {
     volta_tools_dir().join("inventory")
 }
-fn user_dir() -> PathBuf {
-    volta_tools_dir().join("user")
+fn default_dir() -> PathBuf {
+    volta_tools_dir().join("default")
 }
 fn image_dir() -> PathBuf {
     volta_tools_dir().join("image")
@@ -496,10 +496,12 @@ fn package_json_file(mut root: PathBuf) -> PathBuf {
     root
 }
 fn package_config_file(name: &str) -> PathBuf {
-    user_dir().join("packages").join(format!("{}.json", name))
+    default_dir()
+        .join("packages")
+        .join(format!("{}.json", name))
 }
 fn binary_config_file(name: &str) -> PathBuf {
-    user_dir().join("bins").join(format!("{}.json", name))
+    default_dir().join("bins").join(format!("{}.json", name))
 }
 fn shim_file(name: &str) -> PathBuf {
     volta_bin_dir().join(format!("{}{}", name, env::consts::EXE_SUFFIX))
@@ -507,8 +509,8 @@ fn shim_file(name: &str) -> PathBuf {
 fn package_image_dir(name: &str, version: &str) -> PathBuf {
     image_dir().join("packages").join(name).join(version)
 }
-fn user_platform_file() -> PathBuf {
-    user_dir().join("platform.json")
+fn default_platform_file() -> PathBuf {
+    default_dir().join("platform.json")
 }
 
 fn sandbox_dir(dir_path: &str) -> PathBuf {

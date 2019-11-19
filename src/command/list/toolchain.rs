@@ -49,7 +49,7 @@ impl Lookup {
     fn version_source<'p>(
         self,
         project: Option<&'p Project>,
-        user_platform: &Option<Rc<PlatformSpec>>,
+        default_platform: &Option<Rc<PlatformSpec>>,
         version: &Version,
     ) -> Source {
         match project {
@@ -63,7 +63,7 @@ impl Lookup {
                         None
                     }
                 }),
-            None => user_platform
+            None => default_platform
                 .clone()
                 .and_then(self.version_from_spec())
                 .and_then(|ref default_version| {
@@ -81,14 +81,14 @@ impl Lookup {
     fn active_tool(
         self,
         project: Option<&Project>,
-        user: &Option<Rc<PlatformSpec>>,
+        default: &Option<Rc<PlatformSpec>>,
     ) -> Option<(Source, Version)> {
         match project {
             Some(project) => project
                 .platform()
                 .and_then(self.version_from_spec())
                 .map(|version| (Source::Project(project.package_file()), version)),
-            None => user
+            None => default
                 .clone()
                 .and_then(self.version_from_spec())
                 .map(|version| (Source::Default, version)),
@@ -117,16 +117,16 @@ fn tool_source(name: &str, version: &Version, project: Option<&Project>) -> Fall
 impl Toolchain {
     pub(super) fn active(
         project: Option<&Project>,
-        user_platform: &Option<Rc<PlatformSpec>>,
+        default_platform: &Option<Rc<PlatformSpec>>,
         inventory: &Inventory,
     ) -> Fallible<Toolchain> {
         let runtime = Lookup::Runtime
-            .active_tool(project, user_platform)
+            .active_tool(project, default_platform)
             .map(|(source, version)| Box::new(Node { source, version }));
 
         let package_manager =
             Lookup::Yarn
-                .active_tool(project, user_platform)
+                .active_tool(project, default_platform)
                 .map(|(source, version)| {
                     Box::new(PackageManager {
                         kind: PackageManagerKind::Yarn,
@@ -146,7 +146,7 @@ impl Toolchain {
 
     pub(super) fn all(
         project: Option<&Project>,
-        user_platform: &Option<Rc<PlatformSpec>>,
+        default_platform: &Option<Rc<PlatformSpec>>,
         inventory: &Inventory,
     ) -> Fallible<Toolchain> {
         let runtimes = inventory
@@ -154,7 +154,7 @@ impl Toolchain {
             .versions
             .iter()
             .map(|version| Node {
-                source: Lookup::Runtime.version_source(project, user_platform, version),
+                source: Lookup::Runtime.version_source(project, default_platform, version),
                 version: version.clone(),
             })
             .collect();
@@ -165,7 +165,7 @@ impl Toolchain {
             .iter()
             .map(|version| PackageManager {
                 kind: PackageManagerKind::Yarn,
-                source: Lookup::Yarn.version_source(project, user_platform, version),
+                source: Lookup::Yarn.version_source(project, default_platform, version),
                 version: version.clone(),
             })
             .collect();
@@ -182,7 +182,7 @@ impl Toolchain {
     pub(super) fn node(
         inventory: &Inventory,
         project: Option<&Project>,
-        user_platform: &Option<Rc<PlatformSpec>>,
+        default_platform: &Option<Rc<PlatformSpec>>,
         filter: &Filter,
     ) -> Toolchain {
         let runtimes = inventory
@@ -190,7 +190,7 @@ impl Toolchain {
             .versions
             .iter()
             .filter_map(|version| {
-                let source = Lookup::Runtime.version_source(project, user_platform, version);
+                let source = Lookup::Runtime.version_source(project, default_platform, version);
                 if source.allowed_with(filter) {
                     let version = version.clone();
                     Some(Node { source, version })
@@ -206,7 +206,7 @@ impl Toolchain {
     pub(super) fn yarn(
         inventory: &Inventory,
         project: Option<&Project>,
-        user_platform: &Option<Rc<PlatformSpec>>,
+        default_platform: &Option<Rc<PlatformSpec>>,
         filter: &Filter,
     ) -> Toolchain {
         let yarns = inventory
@@ -214,7 +214,7 @@ impl Toolchain {
             .versions
             .iter()
             .filter_map(|version| {
-                let source = Lookup::Yarn.version_source(project, user_platform, version);
+                let source = Lookup::Yarn.version_source(project, default_platform, version);
                 if source.allowed_with(filter) {
                     Some(PackageManager {
                         kind: PackageManagerKind::Yarn,

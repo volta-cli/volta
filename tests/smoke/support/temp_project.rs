@@ -86,14 +86,14 @@ impl TempProjectBuilder {
         node_image_root_dir(self.root()).ensure_empty();
         yarn_image_root_dir(self.root()).ensure_empty();
         package_image_root_dir(self.root()).ensure_empty();
-        user_toolchain_dir(self.root()).ensure_empty();
+        default_toolchain_dir(self.root()).ensure_empty();
         volta_tmp_dir(self.root()).ensure_empty();
 
         // and these files do not exist
         volta_file(self.root()).rm();
         shim_executable(self.root()).rm();
-        user_hooks_file(self.root()).rm();
-        user_platform_file(self.root()).rm();
+        default_hooks_file(self.root()).rm();
+        default_platform_file(self.root()).rm();
 
         // create symlinks to shim executable for node, yarn, npm, and packages
         ok_or_panic!(symlink_file(shim_exe(), self.root.node_exe()));
@@ -142,7 +142,7 @@ fn shim_executable(root: PathBuf) -> PathBuf {
     #[cfg(not(feature = "volta-updates"))]
     return volta_home(root).join("shim");
 }
-fn user_hooks_file(root: PathBuf) -> PathBuf {
+fn default_hooks_file(root: PathBuf) -> PathBuf {
     volta_home(root).join("hooks.json")
 }
 fn volta_tmp_dir(root: PathBuf) -> PathBuf {
@@ -157,11 +157,11 @@ fn volta_tools_dir(root: PathBuf) -> PathBuf {
 fn inventory_dir(root: PathBuf) -> PathBuf {
     volta_tools_dir(root).join("inventory")
 }
-fn user_toolchain_dir(root: PathBuf) -> PathBuf {
-    volta_tools_dir(root).join("user")
+fn default_toolchain_dir(root: PathBuf) -> PathBuf {
+    volta_tools_dir(root).join("default")
 }
-fn user_dir(root: PathBuf) -> PathBuf {
-    volta_tools_dir(root).join("user")
+fn default_dir(root: PathBuf) -> PathBuf {
+    volta_tools_dir(root).join("default")
 }
 fn image_dir(root: PathBuf) -> PathBuf {
     volta_tools_dir(root).join("image")
@@ -215,8 +215,8 @@ fn shim_file(name: &str, root: PathBuf) -> PathBuf {
 fn package_image_dir(name: &str, version: &str, root: PathBuf) -> PathBuf {
     image_dir(root).join("packages").join(name).join(version)
 }
-fn user_platform_file(root: PathBuf) -> PathBuf {
-    user_dir(root).join("platform.json")
+fn default_platform_file(root: PathBuf) -> PathBuf {
+    default_dir(root).join("platform.json")
 }
 pub fn node_distro_file_name(version: &str) -> String {
     format!(
@@ -330,8 +330,8 @@ impl TempProject {
 
     /// Verify that the input Node version has been installed.
     pub fn assert_node_version_is_installed(&self, version: &str, npm_version: &str) -> () {
-        let user_platform = user_platform_file(self.root());
-        let platform_contents = read_file_to_string(user_platform);
+        let default_platform = default_platform_file(self.root());
+        let platform_contents = read_file_to_string(default_platform);
         let json_contents: serde_json::Value =
             serde_json::from_str(&platform_contents).expect("could not parse platform.json");
         assert_eq!(json_contents["node"]["runtime"], version);
@@ -353,8 +353,8 @@ impl TempProject {
 
     /// Verify that the input Yarn version has been installed.
     pub fn assert_yarn_version_is_installed(&self, version: &str) -> () {
-        let user_platform = user_platform_file(self.root());
-        let platform_contents = read_file_to_string(user_platform);
+        let default_platform = default_platform_file(self.root());
+        let platform_contents = read_file_to_string(default_platform);
         let json_contents: serde_json::Value =
             serde_json::from_str(&platform_contents).expect("could not parse platform.json");
         assert_eq!(json_contents["yarn"], version);
@@ -377,8 +377,8 @@ impl TempProject {
 
     /// Verify that the input Npm version has been installed.
     pub fn assert_npm_version_is_installed(&self, version: &str) -> () {
-        let user_platform = user_platform_file(self.root());
-        let platform_contents = read_file_to_string(user_platform);
+        let default_platform = default_platform_file(self.root());
+        let platform_contents = read_file_to_string(default_platform);
         let json_contents: serde_json::Value =
             serde_json::from_str(&platform_contents).expect("could not parse platform.json");
         assert_eq!(json_contents["node"]["npm"], version);

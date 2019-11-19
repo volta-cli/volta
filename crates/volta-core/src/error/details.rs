@@ -218,7 +218,7 @@ pub enum ErrorDetails {
     NotInPackage,
 
     /// Thrown when default Yarn is not set
-    NoUserYarn,
+    NoDefaultYarn,
 
     NoVersionsFound,
 
@@ -857,7 +857,7 @@ Please create one of these and try again; or you can edit your profile manually 
 
 Use `volta install` to select a default version of a tool."
             ),
-            ErrorDetails::NoUserYarn => write!(
+            ErrorDetails::NoDefaultYarn => write!(
                 f,
                 "Yarn is not available.
 
@@ -1410,7 +1410,7 @@ impl VoltaFail for ErrorDetails {
             #[cfg(feature = "volta-updates")]
             ErrorDetails::NoShellProfile { .. } => ExitCode::EnvironmentError,
             ErrorDetails::NotInPackage => ExitCode::ConfigurationError,
-            ErrorDetails::NoUserYarn => ExitCode::ConfigurationError,
+            ErrorDetails::NoDefaultYarn => ExitCode::ConfigurationError,
             ErrorDetails::NoVersionsFound => ExitCode::NoVersionMatch,
             ErrorDetails::NpmPackFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::NpmPackUnpackError { .. } => ExitCode::FileSystemError,

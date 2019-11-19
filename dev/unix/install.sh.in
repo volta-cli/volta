@@ -49,7 +49,7 @@ volta_create_tree() {
   #             image/
   #                 node/
   #                 yarn/
-  #             user/
+  #             default/
   #         bin/
   #         tmp/
 
@@ -59,7 +59,7 @@ volta_create_tree() {
   mkdir -p "${INSTALL_DIR}"/tools/inventory/yarn
   mkdir -p "${INSTALL_DIR}"/tools/image/node
   mkdir -p "${INSTALL_DIR}"/tools/image/yarn
-  mkdir -p "${INSTALL_DIR}"/tools/user
+  mkdir -p "${INSTALL_DIR}"/tools/default
   mkdir -p "${INSTALL_DIR}"/bin
   mkdir -p "${INSTALL_DIR}"/tmp
 }

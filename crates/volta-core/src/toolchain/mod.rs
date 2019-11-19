@@ -45,7 +45,7 @@ pub struct Toolchain {
 
 impl Toolchain {
     fn current() -> Fallible<Toolchain> {
-        let path = volta_home()?.user_platform_file();
+        let path = volta_home()?.default_platform_file();
         let src = touch(&path)
             .and_then(|mut file| file.read_into_string())
             .with_context(|_| ErrorDetails::ReadPlatformError {
@@ -63,7 +63,7 @@ impl Toolchain {
         self.platform.as_ref()
     }
 
-    /// Set the active Node version in the user platform file.
+    /// Set the active Node version in the default platform file.
     pub fn set_active_node(&mut self, node_version: &NodeVersion) -> Fallible<()> {
         let mut dirty = false;
 
@@ -93,7 +93,7 @@ impl Toolchain {
         Ok(())
     }
 
-    /// Set the active Yarn version in the user platform file.
+    /// Set the active Yarn version in the default platform file.
     pub fn set_active_yarn(&mut self, yarn_version: &Version) -> Fallible<()> {
         let mut dirty = false;
 
@@ -111,7 +111,7 @@ impl Toolchain {
         Ok(())
     }
 
-    /// Set the active Npm version in the user platform file.
+    /// Set the active Npm version in the default platform file.
     pub fn set_active_npm(&mut self, npm_version: &Version) -> Fallible<()> {
         let mut dirty = false;
 
@@ -132,7 +132,7 @@ impl Toolchain {
     }
 
     pub fn save(&self) -> Fallible<()> {
-        let path = volta_home()?.user_platform_file();
+        let path = volta_home()?.default_platform_file();
         let result = match &self.platform {
             Some(platform) => {
                 let src = platform.to_serial().into_json()?;

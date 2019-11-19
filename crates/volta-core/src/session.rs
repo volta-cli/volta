@@ -131,15 +131,15 @@ impl Session {
             if platform.yarn.is_some() {
                 Ok(Some(SourcedPlatformSpec::project(platform)))
             } else {
-                let user_yarn = self.user_platform()?.and_then(|p| p.yarn.clone());
+                let default_yarn = self.default_platform()?.and_then(|p| p.yarn.clone());
                 let merged = Rc::new(PlatformSpec {
                     node_runtime: platform.node_runtime.clone(),
                     npm: platform.npm.clone(),
-                    yarn: user_yarn,
+                    yarn: default_yarn,
                 });
                 Ok(Some(SourcedPlatformSpec::merged(merged)))
             }
-        } else if let Some(platform) = self.user_platform()? {
+        } else if let Some(platform) = self.default_platform()? {
             Ok(Some(SourcedPlatformSpec::default(platform)))
         } else {
             Ok(None)
@@ -147,7 +147,7 @@ impl Session {
     }
 
     /// Returns the user's default platform, if any
-    pub fn user_platform(&self) -> Fallible<Option<Rc<PlatformSpec>>> {
+    pub fn default_platform(&self) -> Fallible<Option<Rc<PlatformSpec>>> {
         let toolchain = self.toolchain.get()?;
         Ok(toolchain
             .platform_ref()

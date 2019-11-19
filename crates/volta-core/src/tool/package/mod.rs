@@ -79,7 +79,7 @@ impl Package {
         // Check if the package config exists and contains the same version
         // (The PackageConfig is written after the installation is complete)
         if let Ok(home) = volta_home() {
-            let pkg_config_file = home.user_package_config_file(&self.name);
+            let pkg_config_file = home.default_package_config_file(&self.name);
             if let Ok(package_config) = PackageConfig::from_file(&pkg_config_file) {
                 return package_config.version == self.details.version;
             }
@@ -138,7 +138,7 @@ impl Display for Package {
 pub fn uninstall(name: &str) -> Fallible<()> {
     let home = volta_home()?;
     // if the package config file exists, use that to remove any installed bins and shims
-    let package_config_file = home.user_package_config_file(name);
+    let package_config_file = home.default_package_config_file(name);
     if package_config_file.exists() {
         let package_config = PackageConfig::from_file(&package_config_file)?;
 
@@ -167,7 +167,7 @@ pub fn uninstall(name: &str) -> Fallible<()> {
 
 fn remove_config_and_shim(bin_name: &str, pkg_name: &str) -> Fallible<()> {
     shim::delete(bin_name)?;
-    let config_file = volta_home()?.user_tool_bin_config(&bin_name);
+    let config_file = volta_home()?.default_tool_bin_config(&bin_name);
     fs::remove_file(&config_file).with_context(delete_file_error(&config_file))?;
     info!(
         "Removed executable '{}' installed by '{}'",
@@ -179,7 +179,7 @@ fn remove_config_and_shim(bin_name: &str, pkg_name: &str) -> Fallible<()> {
 /// Reads the contents of a directory and returns a Vec containing the names of
 /// all the binaries installed by the input package.
 fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
-    let bin_config_dir = volta_home()?.user_bin_dir();
+    let bin_config_dir = volta_home()?.default_bin_dir();
     if bin_config_dir.exists() {
         dir_entry_match(&bin_config_dir, |entry| {
             let path = entry.path();

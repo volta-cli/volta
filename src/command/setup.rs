@@ -51,7 +51,7 @@ mod os {
     ];
 
     pub fn setup_environment() -> Fallible<()> {
-        let user_home_dir = dirs::home_dir().ok_or(ErrorDetails::NoHomeEnvironmentVar)?;
+        let default_home_dir = dirs::home_dir().ok_or(ErrorDetails::NoHomeEnvironmentVar)?;
         let home = volta_home()?;
 
         debug!("Searching for profiles to update");
@@ -61,7 +61,7 @@ mod os {
             .iter()
             .chain(&env_profile.as_ref().map(String::as_str))
             .fold(false, |prev, path| {
-                let profile = user_home_dir.join(path);
+                let profile = default_home_dir.join(path);
                 match read_profile_without_volta(&profile) {
                     Some(contents) => {
                         debug!("Profile script found: {}", profile.display());
@@ -154,10 +154,10 @@ mod os {
         let hkcu = RegKey::predef(HKEY_CURRENT_USER);
         let env = hkcu
             .open_subkey("Environment")
-            .with_context(|_| ErrorDetails::ReadUserPathError)?;
+            .with_context(|_| ErrorDetails::ReadDefaultPathError)?;
         let path: String = env
             .get_value("Path")
-            .with_context(|_| ErrorDetails::ReadUserPathError)?;
+            .with_context(|_| ErrorDetails::ReadDefaultPathError)?;
 
         if !path.contains(&shim_dir) {
             // Use `setx` command to edit the user Path environment variable
@@ -165,15 +165,15 @@ mod os {
             command.arg("Path");
             command.arg(format!("{};{}", shim_dir, path));
 
-            debug!("Modifying User Path with command: {:?}", command);
+            debug!("Modifying Default Path with command: {:?}", command);
             let output = command
                 .output()
-                .with_context(|_| ErrorDetails::WriteUserPathError)?;
+                .with_context(|_| ErrorDetails::WriteDefaultPathError)?;
 
             if !output.status.success() {
                 debug!("[setx stderr]\n{}", String::from_utf8_lossy(&output.stderr));
                 debug!("[setx stdout]\n{}", String::from_utf8_lossy(&output.stdout));
-                return Err(ErrorDetails::WriteUserPathError.into());
+                return Err(ErrorDetails::WriteDefaultPathError.into());
             }
         }
 

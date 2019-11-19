@@ -109,15 +109,15 @@ impl HookConfig {
     /// the project hooks (if any).
     fn current() -> Fallible<Self> {
         let maybe_project_config = Self::for_current_dir()?;
-        let maybe_user_config = Self::for_user()?;
+        let maybe_default_config = Self::for_default()?;
 
-        Ok(match (maybe_project_config, maybe_user_config) {
-            (Some(project_config), Some(user_config)) => {
-                debug!("Merging user and project hooks");
-                Self::merge(user_config, project_config)
+        Ok(match (maybe_project_config, maybe_default_config) {
+            (Some(project_config), Some(default_config)) => {
+                debug!("Merging default and project hooks");
+                Self::merge(default_config, project_config)
             }
             (Some(project_config), None) => project_config,
-            (None, Some(user_config)) => user_config,
+            (None, Some(default_config)) => default_config,
             (None, None) => {
                 debug!("No custom hooks found");
                 Self {
@@ -174,8 +174,8 @@ impl HookConfig {
     }
 
     /// Returns the per-user hooks, loaded from the filesystem.
-    fn for_user() -> Fallible<Option<Self>> {
-        let path = volta_home()?.user_hooks_file();
+    fn for_default() -> Fallible<Option<Self>> {
+        let path = volta_home()?.default_hooks_file();
         let hooks_config = Self::from_file(&path)?;
 
         if hooks_config.is_some() {
@@ -422,7 +422,7 @@ pub mod tests {
     #[test]
     fn test_merge() {
         let fixture_dir = fixture_path("hooks");
-        let user_hooks = HookConfig::from_file(&fixture_dir.join("templates.json"))
+        let default_hooks = HookConfig::from_file(&fixture_dir.join("templates.json"))
             .unwrap()
             .unwrap();
         let project_dir = fixture_path("hooks/project");
@@ -430,7 +430,7 @@ pub mod tests {
         let project_hooks = HookConfig::for_dir(&project_dir)
             .expect("Could not read project hooks.json")
             .expect("Could not find project hooks.json");
-        let merged_hooks = HookConfig::merge(user_hooks, project_hooks);
+        let merged_hooks = HookConfig::merge(default_hooks, project_hooks);
         let node = merged_hooks.node.expect("No node config found");
         let yarn = merged_hooks.yarn.expect("No yarn config found");
 

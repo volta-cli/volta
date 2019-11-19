@@ -14,33 +14,33 @@ pub(crate) struct Current {
     #[structopt(short = "p", long = "project")]
     project: bool,
 
-    /// Display the user's Node version
-    #[structopt(short = "u", long = "user")]
-    user: bool,
+    /// Display the default Node version
+    #[structopt(short = "d", long = "default")]
+    default: bool,
 }
 
 impl Command for Current {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Current);
 
-        let result = match (self.project, self.user) {
+        let result = match (self.project, self.default) {
             // both or neither => "all"
             (true, true) | (false, false) => {
                 let project = project_node_version(&session)?;
-                let user = user_node_version(&session)?;
+                let default = default_node_version(&session)?;
 
-                let user_active = project.is_none() && user.is_some();
-                let any = project.is_some() || user.is_some();
+                let default_active = project.is_none() && default.is_some();
+                let any = project.is_some() || default.is_some();
 
                 if let Some(version) = project {
                     println!("project: v{} (active)", version);
                 }
 
-                if let Some(version) = user {
+                if let Some(version) = default {
                     println!(
-                        "user: v{}{}",
+                        "default: v{}{}",
                         version,
-                        if user_active { " (active)" } else { "" }
+                        if default_active { " (active)" } else { "" }
                     );
                 }
 
@@ -56,8 +56,8 @@ impl Command for Current {
                 None => false,
             },
 
-            // Only user set
-            (false, true) => match user_node_version(&session)? {
+            // Only default set
+            (false, true) => match default_node_version(&session)? {
                 Some(version) => {
                     println!("v{}", version);
                     true
@@ -88,8 +88,8 @@ fn project_node_version(session: &Session) -> Fallible<Option<String>> {
         .map(|platform| platform.node_runtime.to_string()))
 }
 
-fn user_node_version(session: &Session) -> Fallible<Option<String>> {
+fn default_node_version(session: &Session) -> Fallible<Option<String>> {
     Ok(session
-        .user_platform()?
+        .default_platform()?
         .map(|platform| platform.node_runtime.to_string()))
 }

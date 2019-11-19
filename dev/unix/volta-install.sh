@@ -391,7 +391,7 @@ create_tree() {
   #             node/
   #             packages/
   #             yarn/
-  #         user/
+  #         default/
 
   mkdir -p "$install_dir"
   mkdir -p "$install_dir"/bin
@@ -400,7 +400,7 @@ create_tree() {
   mkdir -p "$install_dir"/tmp
   mkdir -p "$install_dir"/tools/image/{node,packages,yarn}
   mkdir -p "$install_dir"/tools/inventory/{node,packages,yarn}
-  mkdir -p "$install_dir"/tools/user
+  mkdir -p "$install_dir"/tools/default
 }
 
 install_version() {

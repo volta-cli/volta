@@ -43,7 +43,7 @@ where
     }
 }
 
-/// Determine the correct platform (project or user) and check if yarn is set for that platform
+/// Determine the correct platform (project or default) and check if yarn is set for that platform
 fn get_yarn_platform(session: &mut Session) -> Fallible<Option<SourcedPlatformSpec>> {
     match session.current_platform()? {
         Some(platform) => match platform.yarn() {
@@ -52,7 +52,7 @@ fn get_yarn_platform(session: &mut Session) -> Fallible<Option<SourcedPlatformSp
                 Source::Project | Source::ProjectNodeDefaultYarn => {
                     Err(ErrorDetails::NoProjectYarn.into())
                 }
-                Source::Default => Err(ErrorDetails::NoUserYarn.into()),
+                Source::Default => Err(ErrorDetails::NoDefaultYarn.into()),
             },
         },
         None => Ok(None),

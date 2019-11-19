@@ -28,7 +28,7 @@ impl Command for Which {
 
         let bin = OsString::from(self.binary.as_str());
 
-        let user_tool = DefaultBinary::from_name(&bin, session)?;
+        let default_tool = DefaultBinary::from_name(&bin, session)?;
         let project_bin_path =
             session
                 .project()?
@@ -37,7 +37,7 @@ impl Command for Which {
                     _ => None,
                 });
 
-        let tool_path = match (user_tool, project_bin_path) {
+        let tool_path = match (default_tool, project_bin_path) {
             (Some(_), Some(project_bin_dir)) => Some(project_bin_dir.join(&bin)),
             (Some(tool), _) => Some(tool.bin_path),
             _ => None,

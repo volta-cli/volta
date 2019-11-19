@@ -104,7 +104,7 @@ fn throws_project_error_in_project() {
 }
 
 #[test]
-fn throws_user_error_outside_project() {
+fn throws_default_error_outside_project() {
     let s = sandbox().platform(PLATFORM_NO_YARN).build();
 
     assert_that!(
