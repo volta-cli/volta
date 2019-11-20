@@ -61,7 +61,7 @@ mod os {
             .iter()
             .chain(&env_profile.as_ref().map(String::as_str))
             .fold(false, |prev, path| {
-                let profile = default_home_dir.join(path);
+                let profile = user_home_dir.join(path);
                 match read_profile_without_volta(&profile) {
                     Some(contents) => {
                         debug!("Profile script found: {}", profile.display());
@@ -165,7 +165,7 @@ mod os {
             command.arg("Path");
             command.arg(format!("{};{}", shim_dir, path));
 
-            debug!("Modifying Default Path with command: {:?}", command);
+            debug!("Modifying User Path with command: {:?}", command);
             let output = command
                 .output()
                 .with_context(|_| ErrorDetails::WriteUserPathError)?;
