@@ -27,7 +27,7 @@ use volta_fail::{throw, Fallible, ResultExt};
 //       installed packages.
 /// Configuration information about an installed package.
 ///
-/// This information will be stored in ~/.volta/tools/default/packages/<package>.json.
+/// This information will be stored in ~/.volta/tools/user/packages/<package>.json.
 ///
 /// For an example, this looks like:
 ///
@@ -60,7 +60,7 @@ pub struct PackageConfig {
 
 /// Configuration information about an installed binary from a package.
 ///
-/// This information will be stored in ~/.volta/tools/default/bins/<bin-name>.json.
+/// This information will be stored in ~/.volta/tools/user/bins/<bin-name>.json.
 ///
 /// For an example, this looks like:
 ///

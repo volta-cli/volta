@@ -28,7 +28,7 @@ layout! {
                 "yarn": yarn_image_root_dir {}
                 "packages": package_image_root_dir {}
             }
-            "default": default_toolchain_dir {
+            "user": default_toolchain_dir {
                 "bins": default_bin_dir {}
                 "packages": default_package_dir {}
                 "platform.json": default_platform_file;

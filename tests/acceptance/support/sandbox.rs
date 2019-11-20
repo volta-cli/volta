@@ -462,8 +462,8 @@ fn volta_tools_dir() -> PathBuf {
 fn inventory_dir() -> PathBuf {
     volta_tools_dir().join("inventory")
 }
-fn default_dir() -> PathBuf {
-    volta_tools_dir().join("default")
+fn user_dir() -> PathBuf {
+    volta_tools_dir().join("user")
 }
 fn image_dir() -> PathBuf {
     volta_tools_dir().join("image")
@@ -496,12 +496,10 @@ fn package_json_file(mut root: PathBuf) -> PathBuf {
     root
 }
 fn package_config_file(name: &str) -> PathBuf {
-    default_dir()
-        .join("packages")
-        .join(format!("{}.json", name))
+    user_dir().join("packages").join(format!("{}.json", name))
 }
 fn binary_config_file(name: &str) -> PathBuf {
-    default_dir().join("bins").join(format!("{}.json", name))
+    user_dir().join("bins").join(format!("{}.json", name))
 }
 fn shim_file(name: &str) -> PathBuf {
     volta_bin_dir().join(format!("{}{}", name, env::consts::EXE_SUFFIX))
@@ -510,7 +508,7 @@ fn package_image_dir(name: &str, version: &str) -> PathBuf {
     image_dir().join("packages").join(name).join(version)
 }
 fn default_platform_file() -> PathBuf {
-    default_dir().join("platform.json")
+    user_dir().join("platform.json")
 }
 
 fn sandbox_dir(dir_path: &str) -> PathBuf {

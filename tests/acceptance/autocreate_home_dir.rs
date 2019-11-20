@@ -33,7 +33,7 @@ fn empty_volta_home_is_auto_created() {
     assert!(Sandbox::dir_exists(".volta/tools/inventory/node"));
     assert!(Sandbox::dir_exists(".volta/tools/inventory/packages"));
     assert!(Sandbox::dir_exists(".volta/tools/inventory/yarn"));
-    assert!(Sandbox::dir_exists(".volta/tools/default"));
+    assert!(Sandbox::dir_exists(".volta/tools/user"));
 
     // shims should all be created
     // NOTE: this doesn't work in Windows, because the shim directory

@@ -158,10 +158,7 @@ fn inventory_dir(root: PathBuf) -> PathBuf {
     volta_tools_dir(root).join("inventory")
 }
 fn default_toolchain_dir(root: PathBuf) -> PathBuf {
-    volta_tools_dir(root).join("default")
-}
-fn default_dir(root: PathBuf) -> PathBuf {
-    volta_tools_dir(root).join("default")
+    volta_tools_dir(root).join("user")
 }
 fn image_dir(root: PathBuf) -> PathBuf {
     volta_tools_dir(root).join("image")
@@ -216,7 +213,7 @@ fn package_image_dir(name: &str, version: &str, root: PathBuf) -> PathBuf {
     image_dir(root).join("packages").join(name).join(version)
 }
 fn default_platform_file(root: PathBuf) -> PathBuf {
-    default_dir(root).join("platform.json")
+    default_toolchain_dir(root).join("platform.json")
 }
 pub fn node_distro_file_name(version: &str) -> String {
     format!(
