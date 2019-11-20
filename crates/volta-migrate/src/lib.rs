@@ -11,7 +11,9 @@ mod v1;
 use log::debug;
 use volta_core::error::ErrorDetails;
 use volta_core::fs::read_dir_eager;
-use volta_core::layout::{volta_home, volta_install};
+use volta_core::layout::volta_home;
+#[cfg(unix)]
+use volta_core::layout::volta_install;
 use volta_core::shim;
 use volta_fail::{Fallible, ResultExt};
 

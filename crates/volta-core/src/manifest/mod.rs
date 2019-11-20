@@ -81,7 +81,7 @@ impl Manifest {
         let contents = read_to_string(&package_file)
             .with_context(|_| ErrorDetails::PackageReadError { file: get_file() })?;
 
-        let is_end_with_newline = contents.ends_with("\n");
+        let is_end_with_newline = contents.ends_with('\n');
 
         let mut v: serde_json::Value = serde_json::from_str(&contents)
             .with_context(|_| ErrorDetails::PackageParseError { file: get_file() })?;
@@ -109,7 +109,7 @@ impl Manifest {
                 .with_context(|_| ErrorDetails::PackageWriteError { file: get_file() })?;
             // append the empty line if the original package.json has one
             if is_end_with_newline {
-                write!(file, "\n")
+                writeln!(file)
                     .with_context(|_| ErrorDetails::PackageWriteError { file: get_file() })?;
             }
         }

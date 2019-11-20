@@ -1,5 +1,7 @@
 use std::convert::TryFrom;
-use std::fs::{remove_file, File};
+#[cfg(unix)]
+use std::fs::remove_file;
+use std::fs::File;
 use std::path::PathBuf;
 
 use super::empty::Empty;
@@ -7,6 +9,7 @@ use super::regenerate_shims_for_dir;
 use super::v0::V0;
 use log::debug;
 use volta_core::error::ErrorDetails;
+#[cfg(unix)]
 use volta_core::fs::read_dir_eager;
 use volta_fail::{Fallible, ResultExt, VoltaError};
 use volta_layout::v1;
