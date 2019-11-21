@@ -15,7 +15,7 @@ use crate::layout::volta_home;
 use crate::session::Session;
 use crate::style::progress_spinner;
 use crate::tool::Node;
-use crate::version::VersionSpec;
+use crate::version::{VersionSpec, VersionTag};
 use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
 use headers_011::Headers011;
@@ -42,10 +42,15 @@ cfg_if! {
 pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Version> {
     let hooks = session.hooks()?.node();
     match matching {
-        VersionSpec::Latest => resolve_latest(hooks),
-        VersionSpec::Lts => resolve_lts(hooks),
         VersionSpec::Semver(requirement) => resolve_semver(requirement, hooks),
         VersionSpec::Exact(version) => Ok(version),
+        VersionSpec::None | VersionSpec::Tag(VersionTag::Lts) => resolve_lts(hooks),
+        VersionSpec::Tag(VersionTag::Latest) => resolve_latest(hooks),
+        VersionSpec::Tag(VersionTag::LtsRequirement(req)) => resolve_lts_semver(req, hooks),
+        // Node doesn't have "tagged" versions (apart from 'latest' and 'lts'), so custom tags will always be an error
+        VersionSpec::Tag(VersionTag::Custom(tag)) => {
+            Err(ErrorDetails::NodeVersionNotFound { matching: tag }.into())
+        }
     }
 }
 
@@ -121,6 +126,55 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Node>>) -> Fall
         Some(version) => {
             debug!(
                 "Found node@{} matching requirement '{}' from {}",
+                version, matching, url
+            );
+            Ok(version)
+        }
+        None => Err(ErrorDetails::NodeVersionNotFound {
+            matching: matching.to_string(),
+        }
+        .into()),
+    }
+}
+
+fn resolve_lts_semver(matching: VersionReq, hooks: Option<&ToolHooks<Node>>) -> Fallible<Version> {
+    // ISSUE #34: also make sure this OS is available for this version
+    let url = match hooks {
+        Some(&ToolHooks {
+            index: Some(ref hook),
+            ..
+        }) => {
+            debug!("Using node.index hook to determine node index URL");
+            hook.resolve("index.json")?
+        }
+        _ => public_node_version_index(),
+    };
+
+    let first_pass = match_node_version(
+        &url,
+        |&NodeEntry {
+             ref version, lts, ..
+         }| { lts && matching.matches(version) },
+    )?;
+
+    match first_pass {
+        Some(version) => {
+            debug!(
+                "Found LTS node@{} matching requirement '{}' from {}",
+                version, matching, url
+            );
+            return Ok(version);
+        }
+        None => debug!(
+            "No LTS version found matching requirement '{}', checking for non-LTS",
+            matching
+        ),
+    };
+
+    match match_node_version(&url, |NodeEntry { version, .. }| matching.matches(version))? {
+        Some(version) => {
+            debug!(
+                "Found non-LTS node@{} matching requirement '{}' from {}",
                 version, matching, url
             );
             Ok(version)

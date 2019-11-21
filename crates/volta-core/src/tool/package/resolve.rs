@@ -1,5 +1,6 @@
 //! Provides resolution of 3rd-party packages into specific versions, using the npm repository
 
+use std::collections::HashMap;
 use std::ffi::OsString;
 
 use crate::error::ErrorDetails;
@@ -8,7 +9,7 @@ use crate::run::{self, ToolCommand};
 use crate::session::Session;
 use crate::style::{progress_spinner, tool_version};
 use crate::tool::PackageDetails;
-use crate::version::VersionSpec;
+use crate::version::{VersionSpec, VersionTag};
 use log::debug;
 use semver::{Version, VersionReq};
 use volta_fail::{throw, Fallible, ResultExt};
@@ -19,13 +20,16 @@ pub fn resolve(
     session: &mut Session,
 ) -> Fallible<PackageDetails> {
     match matching {
-        VersionSpec::Latest | VersionSpec::Lts => resolve_latest(name, session),
         VersionSpec::Semver(requirement) => resolve_semver(name, requirement, session),
         VersionSpec::Exact(version) => resolve_semver(name, VersionReq::exact(&version), session),
+        VersionSpec::None | VersionSpec::Tag(VersionTag::Latest) => {
+            resolve_tag(name, "latest", session)
+        }
+        VersionSpec::Tag(tag) => resolve_tag(name, &tag.to_string(), session),
     }
 }
 
-fn resolve_latest(name: &str, session: &mut Session) -> Fallible<PackageDetails> {
+fn resolve_tag(name: &str, tag: &str, session: &mut Session) -> Fallible<PackageDetails> {
     let package_index = match session.hooks()?.package() {
         Some(&ToolHooks {
             latest: Some(ref hook),
@@ -35,15 +39,14 @@ fn resolve_latest(name: &str, session: &mut Session) -> Fallible<PackageDetails>
             let url = hook.resolve(&name)?;
             resolve_package_metadata(name, &url)?.into()
         }
-        _ => npm_view_query(name, "latest", session)?,
+        _ => npm_view_query(name, tag, session)?,
     };
 
-    let latest = package_index.latest.clone();
-
+    let mut entries = package_index.entries.into_iter();
     let details_opt = package_index
-        .entries
-        .into_iter()
-        .find(|PackageDetails { version, .. }| &latest == version);
+        .tags
+        .get(tag)
+        .and_then(|v| entries.find(|PackageDetails { version, .. }| v == version));
 
     match details_opt {
         Some(details) => {
@@ -55,7 +58,7 @@ fn resolve_latest(name: &str, session: &mut Session) -> Fallible<PackageDetails>
         }
         None => Err(ErrorDetails::PackageVersionNotFound {
             name: name.to_string(),
-            matching: "latest".into(),
+            matching: tag.into(),
         }
         .into()),
     }
@@ -101,7 +104,7 @@ fn resolve_semver(
 
 /// Index of versions of a specific package.
 pub struct PackageIndex {
-    pub latest: Version,
+    pub tags: HashMap<String, Version>,
     pub entries: Vec<PackageDetails>,
 }
 
@@ -145,8 +148,8 @@ fn npm_view_query(name: &str, version: &str, session: &mut Session) -> Fallible<
         debug!("[parsed package metadata (array)]\n{:?}", metadatas);
 
         // get latest version, making sure the array is not empty
-        let latest = match metadatas.iter().next() {
-            Some(m) => m.dist_tags.latest.clone(),
+        let tags = match metadatas.iter().next() {
+            Some(m) => m.dist_tags.clone(),
             None => throw!(ErrorDetails::PackageNotFound {
                 package: name.to_string()
             }),
@@ -158,7 +161,7 @@ fn npm_view_query(name: &str, version: &str, session: &mut Session) -> Fallible<
 
         debug!("[sorted entries]\n{:?}", entries);
 
-        Ok(PackageIndex { latest, entries })
+        Ok(PackageIndex { tags, entries })
     } else {
         let metadata: super::serial::NpmViewData = serde_json::de::from_str(&response_json)
             .with_context(|_| ErrorDetails::NpmViewMetadataParseError {
@@ -167,7 +170,7 @@ fn npm_view_query(name: &str, version: &str, session: &mut Session) -> Fallible<
         debug!("[parsed package metadata (single)]\n{:?}", metadata);
 
         Ok(PackageIndex {
-            latest: metadata.dist_tags.latest.clone(),
+            tags: metadata.dist_tags.clone(),
             entries: vec![metadata.into()],
         })
     }

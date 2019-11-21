@@ -155,7 +155,7 @@ fn fetch_remote_distro(
 ) -> Fallible<Box<dyn Archive>> {
     debug!("Downloading {} from {}", tool_version("yarn", version), url);
     Tarball::fetch(url, staging_path).with_context(download_tool_error(
-        tool::Spec::Yarn(VersionSpec::exact(&version)),
+        tool::Spec::Yarn(VersionSpec::Exact(version.clone())),
         url,
     ))
 }

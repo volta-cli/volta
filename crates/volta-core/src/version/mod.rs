@@ -1,84 +1,110 @@
-pub(crate) mod serial;
-
 use std::fmt;
 use std::str::FromStr;
 
-use semver::{ReqParseError, Version, VersionReq};
-
 use crate::error::ErrorDetails;
-use volta_fail::{Fallible, ResultExt};
+use semver::{Version, VersionReq};
+use volta_fail::{Fallible, ResultExt, VoltaError};
 
-use self::serial::parse_requirements;
+mod serial;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub enum VersionSpec {
-    Latest,
-    Lts,
+    /// No version specified (default)
+    None,
+
+    /// Semver Range
     Semver(VersionReq),
+
+    /// Exact Version
     Exact(Version),
+
+    /// Arbitrary Version Tag
+    Tag(VersionTag),
+}
+
+#[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
+pub enum VersionTag {
+    /// The 'latest' tag, a special case that exists for all packages
+    Latest,
+
+    /// The 'lts' tag, a special case for Node
+    Lts,
+
+    /// An arbitrary tag version
+    Custom(String),
+
+    /// An internal tag that represents the latest LTS version which matches a set of requirements
+    LtsRequirement(VersionReq),
 }
 
 impl fmt::Display for VersionSpec {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        match *self {
-            VersionSpec::Latest => write!(f, "latest"),
-            VersionSpec::Lts => write!(f, "lts"),
-            VersionSpec::Semver(ref req) => req.fmt(f),
-            VersionSpec::Exact(ref version) => version.fmt(f),
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            VersionSpec::None => write!(f, "<default>"),
+            VersionSpec::Semver(req) => req.fmt(f),
+            VersionSpec::Exact(version) => version.fmt(f),
+            VersionSpec::Tag(tag) => tag.fmt(f),
+        }
+    }
+}
+
+impl fmt::Display for VersionTag {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            VersionTag::Latest => write!(f, "latest"),
+            VersionTag::Lts => write!(f, "lts"),
+            VersionTag::Custom(s) => s.fmt(f),
+            VersionTag::LtsRequirement(req) => req.fmt(f),
         }
     }
 }
 
 impl Default for VersionSpec {
     fn default() -> Self {
-        VersionSpec::Lts
-    }
-}
-
-impl VersionSpec {
-    pub fn exact(version: &Version) -> Self {
-        VersionSpec::Exact(version.clone())
-    }
-
-    pub fn parse(s: impl AsRef<str>) -> Fallible<Self> {
-        let s = s.as_ref();
-        s.parse().with_context(version_parse_error(s))
-    }
-
-    pub fn parse_requirements(s: impl AsRef<str>) -> Fallible<VersionReq> {
-        parse_requirements(s.as_ref()).with_context(version_parse_error(s))
-    }
-
-    pub fn parse_version(s: impl AsRef<str>) -> Fallible<Version> {
-        Version::parse(s.as_ref()).with_context(version_parse_error(s))
+        VersionSpec::None
     }
 }
 
 impl FromStr for VersionSpec {
-    type Err = ReqParseError;
+    type Err = VoltaError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s == "latest" {
-            return Ok(VersionSpec::Latest);
-        } else if s == "lts" {
-            return Ok(VersionSpec::Lts);
-        }
-
-        if let Ok(ref exact) = VersionSpec::parse_version(s) {
-            Ok(VersionSpec::exact(exact))
+    fn from_str(s: &str) -> Fallible<Self> {
+        if let Ok(version) = parse_version(s) {
+            Ok(VersionSpec::Exact(version))
+        } else if let Ok(req) = parse_requirements(s) {
+            Ok(VersionSpec::Semver(req))
         } else {
-            Ok(VersionSpec::Semver(parse_requirements(s)?))
+            s.parse().map(VersionSpec::Tag)
         }
     }
 }
 
-fn version_parse_error<E, S>(version: S) -> impl FnOnce(&E) -> ErrorDetails
-where
-    E: std::error::Error,
-    S: AsRef<str>,
-{
-    let version = version.as_ref().to_string();
-    |_error: &E| ErrorDetails::VersionParseError { version }
+impl FromStr for VersionTag {
+    type Err = VoltaError;
+
+    fn from_str(s: &str) -> Fallible<Self> {
+        if s == "latest" {
+            Ok(VersionTag::Latest)
+        } else if s == "lts" {
+            Ok(VersionTag::Lts)
+        } else {
+            Ok(VersionTag::Custom(s.into()))
+        }
+    }
+}
+
+pub fn parse_requirements(s: impl AsRef<str>) -> Fallible<VersionReq> {
+    let s = s.as_ref();
+    serial::parse_requirements(s)
+        .with_context(|_| ErrorDetails::VersionParseError { version: s.into() })
+}
+
+pub fn parse_version(s: impl AsRef<str>) -> Fallible<Version> {
+    let s = s.as_ref();
+    s.parse()
+        .with_context(|_| ErrorDetails::VersionParseError { version: s.into() })
 }
 
 // remove the leading 'v' from the version string, if present
@@ -160,5 +186,25 @@ pub mod option_version_serde {
             ));
         }
         Ok(None)
+    }
+}
+
+// custom deserialization for HashMap<String, Version>
+// because Version doesn't work with serde out of the box
+pub mod hashmap_version_serde {
+    use super::version_serde;
+    use semver::Version;
+    use serde::{self, Deserialize, Deserializer};
+    use std::collections::HashMap;
+
+    #[derive(Deserialize)]
+    struct Wrapper(#[serde(deserialize_with = "version_serde::deserialize")] Version);
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<HashMap<String, Version>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let m = HashMap::<String, Wrapper>::deserialize(deserializer)?;
+        Ok(m.into_iter().map(|(k, Wrapper(v))| (k, v)).collect())
     }
 }

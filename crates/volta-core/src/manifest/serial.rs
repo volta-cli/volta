@@ -6,15 +6,13 @@ use std::ops::{Deref, DerefMut};
 use std::path::Path;
 use std::rc::Rc;
 
+use super::super::{manifest, platform};
+use crate::version::parse_version;
 use log::warn;
 use serde;
 use serde::de::{Deserialize, Deserializer, Error, MapAccess, Visitor};
 use serde_json::value::Value;
-
 use volta_fail::Fallible;
-
-use super::super::{manifest, platform};
-use crate::version::VersionSpec;
 
 // wrapper for HashMap to use with deserialization
 #[derive(Debug, PartialEq)]
@@ -151,14 +149,14 @@ impl Manifest {
 
         if let Some(toolchain) = &toolchain {
             return Ok(Some(platform::PlatformSpec {
-                node_runtime: VersionSpec::parse_version(&toolchain.node)?,
+                node_runtime: parse_version(&toolchain.node)?,
                 npm: if let Some(npm) = &toolchain.npm {
-                    Some(VersionSpec::parse_version(&npm)?)
+                    Some(parse_version(&npm)?)
                 } else {
                     None
                 },
                 yarn: if let Some(yarn) = &toolchain.yarn {
-                    Some(VersionSpec::parse_version(&yarn)?)
+                    Some(parse_version(&yarn)?)
                 } else {
                     None
                 },

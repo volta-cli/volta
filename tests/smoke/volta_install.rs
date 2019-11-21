@@ -16,8 +16,8 @@ fn install_node() {
     );
 
     // node 10.2.1 comes with npm 5.6.0
-    assert_eq!(p.node_version_is_fetched("10.2.1"), true);
-    assert_eq!(p.node_version_is_unpacked("10.2.1", "5.6.0"), true);
+    assert!(p.node_version_is_fetched("10.2.1"));
+    assert!(p.node_version_is_unpacked("10.2.1", "5.6.0"));
     p.assert_node_version_is_installed("10.2.1", "5.6.0");
 }
 
@@ -42,8 +42,8 @@ fn install_yarn() {
         execs().with_status(0).with_stdout_contains("1.9.2")
     );
 
-    assert_eq!(p.yarn_version_is_fetched("1.9.2"), true);
-    assert_eq!(p.yarn_version_is_unpacked("1.9.2"), true);
+    assert!(p.yarn_version_is_fetched("1.9.2"));
+    assert!(p.yarn_version_is_unpacked("1.9.2"));
     p.assert_yarn_version_is_installed("1.9.2");
 }
 
@@ -62,8 +62,8 @@ fn install_npm() {
 
     // install npm 6.8.0 and verify that is installed correctly
     assert_that!(p.volta("install npm@6.8.0"), execs().with_status(0));
-    assert_eq!(p.npm_version_is_fetched("6.8.0"), true);
-    assert_eq!(p.npm_version_is_unpacked("6.8.0"), true);
+    assert!(p.npm_version_is_fetched("6.8.0"));
+    assert!(p.npm_version_is_unpacked("6.8.0"));
     p.assert_npm_version_is_installed("6.8.0");
 
     assert_that!(
@@ -89,10 +89,10 @@ fn install_package() {
     assert_that!(p.volta("install node@10.4.1"), execs().with_status(0));
 
     assert_that!(p.volta("install cowsay@1.4.0"), execs().with_status(0));
-    assert_eq!(p.shim_exists("cowsay"), true);
+    assert!(p.shim_exists("cowsay"));
 
-    assert_eq!(p.package_version_is_fetched("cowsay", "1.4.0"), true);
-    assert_eq!(p.package_version_is_unpacked("cowsay", "1.4.0"), true);
+    assert!(p.package_version_is_fetched("cowsay", "1.4.0"));
+    assert!(p.package_version_is_unpacked("cowsay", "1.4.0"));
 
     assert_that!(
         p.exec_shim("cowsay", "hello"),
@@ -108,13 +108,29 @@ fn install_scoped_package() {
     assert_that!(p.volta("install node@10.4.1"), execs().with_status(0));
 
     assert_that!(p.volta("install @wdio/cli@5.12.4"), execs().with_status(0));
-    assert_eq!(p.shim_exists("wdio"), true);
+    assert!(p.shim_exists("wdio"));
 
-    assert_eq!(p.package_version_is_fetched("@wdio/cli", "5.12.4"), true);
-    assert_eq!(p.package_version_is_unpacked("@wdio/cli", "5.12.4"), true);
+    assert!(p.package_version_is_fetched("@wdio/cli", "5.12.4"));
+    assert!(p.package_version_is_unpacked("@wdio/cli", "5.12.4"));
 
     assert_that!(
         p.exec_shim("wdio", "--version"),
         execs().with_status(0).with_stdout_contains("5.12.4")
+    );
+}
+
+#[test]
+fn install_package_tag_version() {
+    let p = temp_project().build();
+
+    // have to install node first, because we need npm
+    assert_that!(p.volta("install node@10.4.1"), execs().with_status(0));
+
+    assert_that!(p.volta("install elm@elm0.19.0"), execs().with_status(0));
+    assert!(p.shim_exists("elm"));
+
+    assert_that!(
+        p.exec_shim("elm", "--version"),
+        execs().with_status(0).with_stdout_contains("0.19.0")
     );
 }

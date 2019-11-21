@@ -9,7 +9,7 @@ use super::PackageDetails;
 use crate::error::ErrorDetails;
 use crate::layout::volta_home;
 use crate::toolchain;
-use crate::version::version_serde;
+use crate::version::{hashmap_version_serde, version_serde};
 use fs_utils::ensure_containing_dir_exists;
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -24,8 +24,11 @@ pub struct RawPackageMetadata {
     pub name: String,
     pub description: Option<String>,
     pub versions: HashMap<String, RawPackageVersionInfo>,
-    #[serde(rename = "dist-tags")]
-    pub dist_tags: RawPackageDistTags,
+    #[serde(
+        rename = "dist-tags",
+        deserialize_with = "hashmap_version_serde::deserialize"
+    )]
+    pub dist_tags: HashMap<String, Version>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -34,13 +37,6 @@ pub struct RawPackageVersionInfo {
     #[serde(with = "version_serde")]
     pub version: Version,
     pub dist: RawDistInfo,
-}
-
-#[derive(Deserialize, Clone, Debug)]
-pub struct RawPackageDistTags {
-    #[serde(with = "version_serde")]
-    pub latest: Version,
-    pub beta: Option<String>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -64,7 +60,7 @@ impl From<RawPackageMetadata> for PackageIndex {
         entries.sort_by(|a, b| b.version.cmp(&a.version));
 
         PackageIndex {
-            latest: serial.dist_tags.latest,
+            tags: serial.dist_tags,
             entries,
         }
     }
@@ -96,8 +92,11 @@ pub struct NpmViewData {
     #[serde(with = "version_serde")]
     pub version: Version,
     pub dist: RawDistInfo,
-    #[serde(rename = "dist-tags")]
-    pub dist_tags: RawPackageDistTags,
+    #[serde(
+        rename = "dist-tags",
+        deserialize_with = "hashmap_version_serde::deserialize"
+    )]
+    pub dist_tags: HashMap<String, Version>,
 }
 
 impl From<NpmViewData> for PackageDetails {

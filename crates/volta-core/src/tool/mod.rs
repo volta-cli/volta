@@ -3,7 +3,7 @@ use std::fmt::{self, Display};
 use crate::error::ErrorDetails;
 use crate::session::Session;
 use crate::style::{success_prefix, tool_version};
-use crate::version::VersionSpec;
+use crate::version::{parse_version, VersionSpec};
 use log::{debug, info};
 use semver::Version;
 use volta_fail::Fallible;
@@ -53,7 +53,8 @@ pub trait Tool: Display {
 }
 
 /// Specification for a tool and its associated version.
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub enum Spec {
     Node(VersionSpec),
     Npm(VersionSpec),
@@ -86,9 +87,7 @@ impl Spec {
             // ISSUE (#292): To preserve error message context, we always resolve Npm to Version 0.0.0
             // This will allow us to show the correct error message based on the user's command
             // e.g. `volta install npm` vs `volta pin npm`
-            Spec::Npm(_) => VersionSpec::parse_version("0.0.0")
-                .map(Npm::new)
-                .map(Resolved::Npm),
+            Spec::Npm(_) => parse_version("0.0.0").map(Npm::new).map(Resolved::Npm),
         }
     }
 
