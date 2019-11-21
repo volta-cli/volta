@@ -1,3 +1,13 @@
+//! Provides types for modeling the current state of the Volta directory and for migrating between versions
+//!
+//! A new layout should be represented by it's own struct (as in the existing v0 or v1 modules)
+//! Migrations between types should be represented by `TryFrom` implementations between the layout types
+//! (see v1.rs for examples)
+//!
+//! NOTE: Since the layout file is written once the migration is complete, all migration implementations
+//! need to be aware that they may be partially applied (if something fails in the process) and should be
+//! able to re-start gracefully from an interrupted migration
+
 #![cfg(feature = "volta-updates")]
 use std::collections::HashSet;
 use std::convert::TryInto;
@@ -7,6 +17,9 @@ use std::path::Path;
 mod empty;
 mod v0;
 mod v1;
+
+use v0::V0;
+use v1::V1;
 
 use log::debug;
 use volta_core::error::ErrorDetails;
@@ -19,8 +32,8 @@ use volta_fail::{Fallible, ResultExt};
 
 enum MigrationState {
     Empty(empty::Empty),
-    V0(Box<v0::V0>),
-    V1(Box<v1::V1>),
+    V0(Box<V0>),
+    V1(Box<V1>),
 }
 
 impl MigrationState {
@@ -46,12 +59,12 @@ impl MigrationState {
         let volta_home = home.root().to_owned();
 
         if home.layout_file().exists() {
-            return Ok(MigrationState::V1(Box::new(v1::V1::new(volta_home))));
+            return Ok(MigrationState::V1(Box::new(V1::new(volta_home))));
         }
 
         if volta_home.exists() {
             #[cfg(windows)]
-            return Ok(MigrationState::V0(Box::new(v0::V0::new(volta_home))));
+            return Ok(MigrationState::V0(Box::new(V0::new(volta_home))));
 
             #[cfg(unix)]
             {
@@ -59,11 +72,11 @@ impl MigrationState {
                 if install.root().starts_with(&volta_home) {
                     // Installed inside $VOLTA_HOME, so need to look for `load.sh` as a marker
                     if volta_home.join("load.sh").exists() {
-                        return Ok(MigrationState::V0(Box::new(v0::V0::new(volta_home))));
+                        return Ok(MigrationState::V0(Box::new(V0::new(volta_home))));
                     }
                 } else {
                     // Installed outside of $VOLTA_HOME, so it must exist from a previous V0 install
-                    return Ok(MigrationState::V0(Box::new(v0::V0::new(volta_home))));
+                    return Ok(MigrationState::V0(Box::new(V0::new(volta_home))));
                 }
             }
         }
@@ -80,7 +93,7 @@ pub fn run_migration() -> Fallible<()> {
             MigrationState::Empty(e) => MigrationState::V1(Box::new(e.try_into()?)),
             MigrationState::V0(zero) => MigrationState::V1(Box::new((*zero).try_into()?)),
             MigrationState::V1(one) => {
-                one.finalize()?;
+                one.commit()?;
                 break;
             }
         };

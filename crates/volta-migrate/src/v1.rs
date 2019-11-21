@@ -14,6 +14,9 @@ use volta_core::fs::read_dir_eager;
 use volta_fail::{Fallible, ResultExt, VoltaError};
 use volta_layout::v1;
 
+/// Represents a V1 Volta Layout (from v0.7.0)
+///
+/// Holds a reference to the V1 layout struct to support potential future migrations
 pub struct V1 {
     pub home: v1::VoltaHome,
 }
@@ -25,7 +28,7 @@ impl V1 {
         }
     }
 
-    pub fn finalize(&self) -> Fallible<()> {
+    pub fn commit(&self) -> Fallible<()> {
         regenerate_shims_for_dir(self.home.shim_dir())?;
 
         debug!("Writing layout marker file");
