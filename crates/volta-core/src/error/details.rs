@@ -598,9 +598,9 @@ Please remove the file or pass `-f` or `--force` to override.",
             #[cfg(feature = "volta-updates")]
             ErrorDetails::CouldNotStartMigration => write!(
                 f,
-                "Volta is out-of-date and could not start migration process.
+                "Could not start migration process to upgrade your Volta directory.
 
-Please ensure Volta was installed correctly."
+Please ensure you have 'volta-migrate' on your PATH and run it directly."
             ),
             ErrorDetails::CreateDirError { dir } => write!(
                 f,

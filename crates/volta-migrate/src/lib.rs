@@ -1,6 +1,6 @@
 //! Provides types for modeling the current state of the Volta directory and for migrating between versions
 //!
-//! A new layout should be represented by it's own struct (as in the existing v0 or v1 modules)
+//! A new layout should be represented by its own struct (as in the existing v0 or v1 modules)
 //! Migrations between types should be represented by `TryFrom` implementations between the layout types
 //! (see v1.rs for examples)
 //!
@@ -29,7 +29,12 @@ use volta_core::layout::volta_home;
 use volta_core::layout::volta_install;
 use volta_core::shim;
 use volta_fail::{Fallible, ResultExt};
+use volta_layout::v1::VoltaHome;
 
+/// Represents the state of the Volta directory at every point in the migration process
+///
+/// Migrations should be applied sequentially, migrating from V0 to V1 to ... as needed, cycling
+/// through the possible MigrationState values.
 enum MigrationState {
     Empty(empty::Empty),
     V0(Box<V0>),
@@ -38,10 +43,33 @@ enum MigrationState {
 
 impl MigrationState {
     fn current() -> Fallible<Self> {
+        // First look for a tagged version (V1+). If that can't be found, then go through the triage
+        // for detecting a legacy version
+
+        let home = volta_home()?;
+
+        match MigrationState::detect_tagged_state(home) {
+            Some(state) => Ok(state),
+            None => MigrationState::detect_legacy_state(home),
+        }
+    }
+
+    fn detect_tagged_state(home: &VoltaHome) -> Option<Self> {
+        // Detect a layout at or above V1, which will always have an associated layout file to use as a discriminant
+        if home.layout_file().exists() {
+            Some(MigrationState::V1(Box::new(V1::new(
+                home.root().to_owned(),
+            ))))
+        } else {
+            None
+        }
+    }
+
+    fn detect_legacy_state(home: &VoltaHome) -> Fallible<Self> {
         /*
-        Triage for determining the current layout version:
-        - Does the V1 layout file exist? If yes then V1
-        - Does Volta Home exist? If yes (Windows) then V0
+        Triage for determining the lagacy layout version:
+        - Does Volta Home exist?
+            - If yes (Windows) then V0
             - If yes (Unix) then check if Volta Install is outside shim_dir?
                 - If yes, then V0
                 - If no, then check if $VOLTA_HOME/load.sh exists? If yes then V0
@@ -51,16 +79,9 @@ impl MigrationState {
         If it is inside, then the directory necessarily must exist, so we can't use that as a determination.
         If it is outside (and for Windows which is always outside), then if $VOLTA_HOME exists, it must be from a
         previous, V0 installation.
-
-        Going forward, each new version will have an associated layout file, so we can use that as a discriminant
         */
 
-        let home = volta_home()?;
         let volta_home = home.root().to_owned();
-
-        if home.layout_file().exists() {
-            return Ok(MigrationState::V1(Box::new(V1::new(volta_home))));
-        }
 
         if volta_home.exists() {
             #[cfg(windows)]
@@ -88,12 +109,15 @@ impl MigrationState {
 pub fn run_migration() -> Fallible<()> {
     let mut state = MigrationState::current()?;
 
+    // To keep the complexity of writing a new migration from continuously increasing, each new
+    // layout version only needs to implement a migration from 2 states: Empty and the previously
+    // latest version. We then apply the migrations sequentially here: V0 -> V1 -> ... -> VX
     loop {
         state = match state {
             MigrationState::Empty(e) => MigrationState::V1(Box::new(e.try_into()?)),
             MigrationState::V0(zero) => MigrationState::V1(Box::new((*zero).try_into()?)),
             MigrationState::V1(one) => {
-                one.commit()?;
+                regenerate_shims_for_dir(one.home.shim_dir())?;
                 break;
             }
         };

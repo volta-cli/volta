@@ -5,7 +5,6 @@ use std::fs::File;
 use std::path::PathBuf;
 
 use super::empty::Empty;
-use super::regenerate_shims_for_dir;
 use super::v0::V0;
 use log::debug;
 use volta_core::error::ErrorDetails;
@@ -26,19 +25,6 @@ impl V1 {
         V1 {
             home: v1::VoltaHome::new(home),
         }
-    }
-
-    pub fn commit(&self) -> Fallible<()> {
-        regenerate_shims_for_dir(self.home.shim_dir())?;
-
-        debug!("Writing layout marker file");
-        File::create(self.home.layout_file()).with_context(|_| {
-            ErrorDetails::CreateLayoutFileError {
-                file: self.home.layout_file().to_owned(),
-            }
-        })?;
-
-        Ok(())
     }
 }
 
@@ -102,6 +88,15 @@ impl TryFrom<V0> for V1 {
                     .with_context(|_| ErrorDetails::DeleteFileError { file: old_shim_bin })?;
             }
         }
+
+        // Write the layout marker file _last_, so that we don't accidentally mark the migration
+        // as finished before we have completed everything else required
+        debug!("Writing layout marker file");
+        File::create(new_home.layout_file()).with_context(|_| {
+            ErrorDetails::CreateLayoutFileError {
+                file: new_home.layout_file().to_owned(),
+            }
+        })?;
 
         Ok(V1 { home: new_home })
     }
