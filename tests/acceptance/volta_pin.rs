@@ -8,7 +8,7 @@ use volta_fail::ExitCode;
 const BASIC_PACKAGE_JSON: &str = r#"{
   "name": "test-package"
 }"#;
-const PACKAGE_JSON_WITH_EMPTY_LINE: &'static str = r#"{
+const PACKAGE_JSON_WITH_EMPTY_LINE: &str = r#"{
   "name": "test-package"
 }
 "#;
@@ -480,5 +480,5 @@ fn pin_node_does_not_remove_bottom_empty_line() {
         execs().with_status(ExitCode::Success as i32)
     );
 
-    assert!(s.read_package_json().ends_with("\n"))
+    assert!(s.read_package_json().ends_with('\n'))
 }
