@@ -15,7 +15,7 @@ pub struct PackageCollection(BTreeSet<PackageConfig>);
 
 impl PackageCollection {
     pub(crate) fn load() -> Fallible<Self> {
-        let package_dir = volta_home()?.user_package_dir();
+        let package_dir = volta_home()?.default_package_dir();
 
         WalkDir::new(&package_dir)
             .max_depth(1)

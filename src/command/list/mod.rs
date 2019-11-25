@@ -292,7 +292,7 @@ impl Command for List {
 
         let inventory = session.inventory()?;
         let project = session.project()?;
-        let user_platform = session.user_platform()?;
+        let default_platform = session.default_platform()?;
         let format = match self.output_format() {
             Format::Human => human_fallback,
             Format::Plain => plain::format,
@@ -307,10 +307,14 @@ impl Command for List {
 
         let toolchain = match self.subcommand() {
             // For no subcommand, show the user's current toolchain
-            None => Toolchain::active(project, &user_platform, inventory)?,
-            Some(Subcommand::All) => Toolchain::all(project, &user_platform, inventory)?,
-            Some(Subcommand::Node) => Toolchain::node(inventory, project, &user_platform, &filter),
-            Some(Subcommand::Yarn) => Toolchain::yarn(inventory, project, &user_platform, &filter),
+            None => Toolchain::active(project, &default_platform, inventory)?,
+            Some(Subcommand::All) => Toolchain::all(project, &default_platform, inventory)?,
+            Some(Subcommand::Node) => {
+                Toolchain::node(inventory, project, &default_platform, &filter)
+            }
+            Some(Subcommand::Yarn) => {
+                Toolchain::yarn(inventory, project, &default_platform, &filter)
+            }
             Some(Subcommand::PackageOrTool { name }) => {
                 Toolchain::package_or_tool(&name, inventory, project, &filter)?
             }

@@ -248,7 +248,7 @@ fn read_bins(name: &str, version: &Version) -> Fallible<HashMap<String, String>>
     for (bin_name, _bin_path) in bin_map.iter() {
         // check for conflicts with installed bins
         // some packages may install bins with the same name
-        let bin_config_file = volta_home()?.user_tool_bin_config(&bin_name);
+        let bin_config_file = volta_home()?.default_tool_bin_config(&bin_name);
         if bin_config_file.exists() {
             let bin_config = BinConfig::from_file(bin_config_file)?;
             // if the bin was installed by the package that is currently being installed,

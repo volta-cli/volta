@@ -62,13 +62,13 @@ where
         }
     }
 
-    // try to use the user toolchain
-    if let Some(user_tool) = DefaultBinary::from_name(&exe, session)? {
-        let image = user_tool.platform.checkout(session)?;
+    // try to use the default toolchain
+    if let Some(default_tool) = DefaultBinary::from_name(&exe, session)? {
+        let image = default_tool.platform.checkout(session)?;
         debug!(
             "Found default {} in '{}'",
             exe.to_string_lossy(),
-            user_tool.bin_path.display()
+            default_tool.bin_path.display()
         );
         debug!(
             "Using node@{} from binary configuration",
@@ -76,8 +76,8 @@ where
         );
 
         let path = image.path()?;
-        let tool_path = user_tool.bin_path.into_os_string();
-        let cmd = match user_tool.loader {
+        let tool_path = default_tool.bin_path.into_os_string();
+        let cmd = match default_tool.loader {
             Some(loader) => ToolCommand::direct(
                 loader.command.as_ref(),
                 loader
@@ -93,7 +93,7 @@ where
         return Ok(cmd);
     }
 
-    // at this point, there is no project or user toolchain
+    // at this point, there is no project or default toolchain
     // Pass through to the existing PATH
     debug!(
         "Could not find {}, delegating to system",
@@ -108,7 +108,7 @@ where
     )
 }
 
-/// Information about the location and execution context of user-default binaries
+/// Information about the location and execution context of default binaries
 ///
 /// Fetched from the config files in the Volta directory, represents the binary that is executed
 /// when the user is outside of a project that has the given bin as a dependency.
@@ -133,7 +133,7 @@ impl DefaultBinary {
             Some(_) => bin_config.platform,
             None => {
                 let yarn = session
-                    .user_platform()?
+                    .default_platform()?
                     .and_then(|ref plat| plat.yarn.clone());
                 PlatformSpec {
                     yarn,
@@ -151,7 +151,7 @@ impl DefaultBinary {
 
     pub fn from_name(tool_name: &OsStr, session: &mut Session) -> Fallible<Option<Self>> {
         let bin_config_file = match tool_name.to_str() {
-            Some(name) => volta_home()?.user_tool_bin_config(name),
+            Some(name) => volta_home()?.default_tool_bin_config(name),
             None => return Ok(None),
         };
 

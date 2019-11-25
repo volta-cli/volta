@@ -231,7 +231,7 @@ impl SandboxBuilder {
     /// Set the platform.json for the sandbox (chainable)
     pub fn platform(mut self, contents: &str) -> Self {
         self.files
-            .push(FileBuilder::new(user_platform_file(), contents));
+            .push(FileBuilder::new(default_platform_file(), contents));
         self
     }
 
@@ -507,7 +507,7 @@ fn shim_file(name: &str) -> PathBuf {
 fn package_image_dir(name: &str, version: &str) -> PathBuf {
     image_dir().join("packages").join(name).join(version)
 }
-fn user_platform_file() -> PathBuf {
+fn default_platform_file() -> PathBuf {
     user_dir().join("platform.json")
 }
 

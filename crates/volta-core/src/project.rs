@@ -131,7 +131,7 @@ impl Project {
     /// Returns true if the input binary name is a direct dependency of the input project
     pub fn has_direct_bin(&self, bin_name: &OsStr) -> Fallible<bool> {
         if let Some(name) = bin_name.to_str() {
-            let config_path = volta_home()?.user_tool_bin_config(name);
+            let config_path = volta_home()?.default_tool_bin_config(name);
             if config_path.exists() {
                 let config = BinConfig::from_file(config_path)?;
                 return Ok(self.has_direct_dependency(&config.package));
@@ -146,7 +146,7 @@ impl Project {
         let home = volta_home()?;
         let config_path = bin_name
             .to_str()
-            .map(|name| home.user_tool_bin_config(name));
+            .map(|name| home.default_tool_bin_config(name));
 
         let bin_config = config_path.map(BinConfig::from_file).transpose()?;
 

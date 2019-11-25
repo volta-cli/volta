@@ -37,7 +37,7 @@ fn pinned_project() {
 }
 
 #[test]
-fn pinned_project_with_user_node_default() {
+fn pinned_project_with_default_node() {
     let s = sandbox()
         .package_json(&package_json_with_pinned_node("4.1.0", "2.14.3"))
         .platform(r#"{"node":{"runtime":"9.11.2","npm":"5.6.0"}}"#)
@@ -48,7 +48,7 @@ fn pinned_project_with_user_node_default() {
         execs()
             .with_status(0)
             .with_stdout_contains("project: v4.1.0 (active)")
-            .with_stdout_contains("user: v9.11.2")
+            .with_stdout_contains("default: v9.11.2")
     );
 }
 
@@ -65,7 +65,7 @@ fn unpinned_project() {
 }
 
 #[test]
-fn unpinned_project_with_user_node_default() {
+fn unpinned_project_default_node() {
     let s = sandbox()
         .package_json(BASIC_PACKAGE_JSON)
         .platform(r#"{"node":{"runtime":"9.11.2","npm":"5.6.0"}}"#)
@@ -75,7 +75,7 @@ fn unpinned_project_with_user_node_default() {
         s.volta("current"),
         execs()
             .with_status(0)
-            .with_stdout_contains("user: v9.11.2 (active)")
+            .with_stdout_contains("default: v9.11.2 (active)")
     );
 }
 
@@ -92,7 +92,7 @@ fn no_project() {
 }
 
 #[test]
-fn no_project_with_user_node_default() {
+fn no_project_with_default_node() {
     let s = sandbox()
         .platform(r#"{"node":{"runtime":"9.11.2","npm":"5.6.0"}}"#)
         .build();
@@ -101,6 +101,6 @@ fn no_project_with_user_node_default() {
         s.volta("current"),
         execs()
             .with_status(0)
-            .with_stdout_contains("user: v9.11.2 (active)")
+            .with_stdout_contains("default: v9.11.2 (active)")
     );
 }

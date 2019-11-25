@@ -138,7 +138,7 @@ mod tests {
         }
 
         #[test]
-        fn runtime_only_user() {
+        fn runtime_only_default() {
             let expected = "⚡️ Currently active tools:
 
     Node: v12.2.0 (default)
@@ -182,7 +182,7 @@ See options for more detailed reports by running `volta list --help`.";
         }
 
         #[test]
-        fn runtime_and_yarn_user() {
+        fn runtime_and_yarn_default() {
             let expected = "⚡️ Currently active tools:
 
     Node: v12.2.0 (default)
@@ -263,7 +263,7 @@ See options for more detailed reports by running `volta list --help`.";
         }
 
         #[test]
-        fn with_user_tools() {
+        fn with_default_tools() {
             let expected = "⚡️ Currently active tools:
 
     Node: v12.2.0 (current @ ~/path/to/project.json)
@@ -887,7 +887,7 @@ See `volta help install` for details and more options.";
 
         #[test]
         fn full() {
-            let expected = "⚡️ User toolchain:
+            let expected = "⚡️ Default toolchain:
 
     Node runtimes:
         v12.2.0 (current @ ~/path/to/project.json)
