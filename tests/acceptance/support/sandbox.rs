@@ -248,6 +248,7 @@ impl SandboxBuilder {
     }
 
     /// Add a directory to the PATH (chainable)
+    #[cfg(all(unix, not(feature = "volta-updates")))]
     pub fn path_dir(mut self, dir: &str) -> Self {
         self.path_dirs.push(PathBuf::from(dir));
         self
