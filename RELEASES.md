@@ -1,7 +1,12 @@
+# Version 0.6.8
+
+- You can now use tagged versions when installing a tool with `volta install` (#604)
+- `volta install <tool>` will now prefer LTS Node when pinning a version (#604)
+
 # Version 0.6.7
 
 - `volta pin` will no longer remove a closing newline from `package.json` (#603)
-- New environment variable `VOLTA_BYPASS` will allow you to temporarily disable Volta shims (#600)
+- New environment variable `VOLTA_BYPASS` will allow you to temporarily disable Volta shims (#603)
 
 # Version 0.6.6
 
