@@ -67,7 +67,7 @@ impl MigrationState {
 
     fn detect_legacy_state(home: &VoltaHome) -> Fallible<Self> {
         /*
-        Triage for determining the lagacy layout version:
+        Triage for determining the legacy layout version:
         - Does Volta Home exist?
             - If yes (Windows) then V0
             - If yes (Unix) then check if Volta Install is outside shim_dir?
