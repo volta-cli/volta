@@ -30,9 +30,11 @@ fn empty_volta_home_is_created() {
     assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
     assert!(Sandbox::path_exists(".volta/tools/user"));
 
+    // Layout file should now exist
+    assert!(Sandbox::path_exists(".volta/layout.v1"));
+
     // shims should all be created
-    // NOTE: this doesn't work in Windows, because the shim directory
-    //       is stored in the Registry, and not accessible
+    // NOTE: this doesn't work in Windows, because the default shims are stored separately
     #[cfg(unix)]
     {
         assert!(Sandbox::shim_exists("node"));
