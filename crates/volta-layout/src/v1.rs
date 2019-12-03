@@ -30,14 +30,14 @@ layout! {
                 "yarn": yarn_image_root_dir {}
                 "packages": package_image_root_dir {}
             }
-            "user": user_toolchain_dir {
-                "bins": user_bin_dir {}
-                "packages": user_package_dir {}
-                "platform.json": user_platform_file;
+            "user": default_toolchain_dir {
+                "bins": default_bin_dir {}
+                "packages": default_package_dir {}
+                "platform.json": default_platform_file;
             }
         }
         "tmp": tmp_dir {}
-        "hooks.json": user_hooks_file;
+        "hooks.json": default_hooks_file;
         "layout.v1": layout_file;
     }
 }
@@ -73,15 +73,15 @@ impl VoltaHome {
         path_buf!(self.package_image_root_dir.clone(), name, version)
     }
 
-    pub fn user_package_config_file(&self, package_name: &str) -> PathBuf {
+    pub fn default_package_config_file(&self, package_name: &str) -> PathBuf {
         path_buf!(
-            self.user_package_dir.clone(),
+            self.default_package_dir.clone(),
             format!("{}.json", package_name)
         )
     }
 
-    pub fn user_tool_bin_config(&self, bin_name: &str) -> PathBuf {
-        path_buf!(self.user_bin_dir.clone(), format!("{}.json", bin_name))
+    pub fn default_tool_bin_config(&self, bin_name: &str) -> PathBuf {
+        path_buf!(self.default_bin_dir.clone(), format!("{}.json", bin_name))
     }
 
     pub fn node_npm_version_file(&self, version: &str) -> PathBuf {
