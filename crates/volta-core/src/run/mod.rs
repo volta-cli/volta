@@ -8,6 +8,7 @@ use std::process::{Command, ExitStatus, Output};
 
 use crate::command::create_command;
 use crate::error::ErrorDetails;
+#[cfg(not(feature = "volta-updates"))]
 use crate::layout::ensure_volta_dirs_exist;
 use crate::platform::System;
 use crate::session::Session;
@@ -41,6 +42,7 @@ enum CommandArg {
 }
 
 pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
+    #[cfg(not(feature = "volta-updates"))]
     ensure_volta_dirs_exist()?;
 
     let mut args = args_os();

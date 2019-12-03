@@ -89,6 +89,14 @@
                     Source='target\release\volta-shim.exe'
                     KeyPath='yes'/>
             </Component>
+            <Component Id='migrateBinary' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='voltamigrateEXE'
+                    Name='volta-migrate.exe'
+                    DiskId='1'
+                    Source='target\release\volta-migrate.exe'
+                    KeyPath='yes'/>
+            </Component>
             <Component Id='nodeBinary' Guid='*' Win64='$(var.Win64)'>
                 <File
                     Id='nodeEXE'

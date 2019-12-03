@@ -75,8 +75,18 @@ pub enum ErrorDetails {
 
     CouldNotDetermineTool,
 
+    /// Thrown when unable to start the migration executable
+    #[cfg(feature = "volta-updates")]
+    CouldNotStartMigration,
+
     CreateDirError {
         dir: PathBuf,
+    },
+
+    /// Thrown when unable to create the layout file
+    #[cfg(feature = "volta-updates")]
+    CreateLayoutFileError {
+        file: PathBuf,
     },
 
     /// Thrown when unable to create the postscript file
@@ -358,14 +368,14 @@ pub enum ErrorDetails {
         file: PathBuf,
     },
 
+    /// Thrown when unable to read the contents of a directory
+    ReadDirError {
+        dir: PathBuf,
+    },
+
     /// Thrown when there was an error opening a hooks.json file
     ReadHooksError {
         file: PathBuf,
-    },
-
-    /// Thrown when there was an error reading the inventory contents
-    ReadInventoryDirError {
-        dir: PathBuf,
     },
 
     /// Thrown when there was an error reading the Node Index Cache
@@ -420,11 +430,6 @@ pub enum ErrorDetails {
     /// Thrown when Volta cannot find the shim executable
     #[cfg(not(feature = "volta-updates"))]
     ShimExecutableNotFound,
-
-    /// Thrown when trying to remove a built-in shim (`node`, `yarn`, etc.)
-    ShimRemoveBuiltInError {
-        name: String,
-    },
 
     /// Thrown when Volta is unable to remove a shim
     ShimRemoveError {
@@ -590,12 +595,27 @@ Please remove the file or pass `-f` or `--force` to override.",
 {}",
                 REPORT_BUG_CTA
             ),
+            #[cfg(feature = "volta-updates")]
+            ErrorDetails::CouldNotStartMigration => write!(
+                f,
+                "Could not start migration process to upgrade your Volta directory.
+
+Please ensure you have 'volta-migrate' on your PATH and run it directly."
+            ),
             ErrorDetails::CreateDirError { dir } => write!(
                 f,
                 "Could not create directory {}
 
 Please ensure that you have the correct permissions.",
                 dir.display()
+            ),
+            #[cfg(feature = "volta-updates")]
+            ErrorDetails::CreateLayoutFileError { file } => write!(
+                f,
+                "Could not create layout file {}
+
+{}",
+                file.display(), PERMISSIONS_CTA
             ),
             ErrorDetails::CreatePostscriptError { in_dir } => write!(
                 f,
@@ -1093,6 +1113,13 @@ from {}
                 file.display(),
                 PERMISSIONS_CTA
             ),
+            ErrorDetails::ReadDirError { dir } => write!(
+                f,
+                "Could not read contents from directory {}
+
+{}",
+                dir.display(), PERMISSIONS_CTA
+            ),
             ErrorDetails::ReadHooksError { file } => write!(
                 f,
                 "Could not read hooks file
@@ -1100,15 +1127,6 @@ from {}
 
 {}",
                 file.display(),
-                PERMISSIONS_CTA
-            ),
-            ErrorDetails::ReadInventoryDirError { dir } => write!(
-                f,
-                "Could not read tool inventory contents
-from {}
-
-{}",
-                dir.display(),
                 PERMISSIONS_CTA
             ),
             ErrorDetails::ReadNodeIndexCacheError { file } => write!(
@@ -1200,10 +1218,6 @@ at {}
 
 Please re-install Volta to create the shim file."
             ),
-            // This case does not have a CTA as there is no avenue to allow users to remove built-in shims
-            ErrorDetails::ShimRemoveBuiltInError { name } => {
-                write!(f, r#"Cannot remove built-in shim for "{}""#, name)
-            }
             ErrorDetails::ShimRemoveError { name } => write!(
                 f,
                 r#"Could not remove shim for "{}"
@@ -1377,7 +1391,11 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::CompletionsOutFileError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::ContainingDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::CouldNotDetermineTool => ExitCode::UnknownError,
+            #[cfg(feature = "volta-updates")]
+            ErrorDetails::CouldNotStartMigration => ExitCode::EnvironmentError,
             ErrorDetails::CreateDirError { .. } => ExitCode::FileSystemError,
+            #[cfg(feature = "volta-updates")]
+            ErrorDetails::CreateLayoutFileError { .. } => ExitCode::FileSystemError,
             ErrorDetails::CreatePostscriptError { .. } => ExitCode::FileSystemError,
             ErrorDetails::CreateTempDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::CreateTempFileError { .. } => ExitCode::FileSystemError,
@@ -1444,8 +1462,8 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::ReadBinConfigDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ReadBinConfigError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ReadDefaultNpmError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::ReadDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ReadHooksError { .. } => ExitCode::FileSystemError,
-            ErrorDetails::ReadInventoryDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ReadNodeIndexCacheError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ReadNodeIndexExpiryError { .. } => ExitCode::FileSystemError,
             ErrorDetails::ReadNpmManifestError => ExitCode::UnknownError,
@@ -1460,7 +1478,6 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::ShimCreateError { .. } => ExitCode::FileSystemError,
             #[cfg(not(feature = "volta-updates"))]
             ErrorDetails::ShimExecutableNotFound => ExitCode::EnvironmentError,
-            ErrorDetails::ShimRemoveBuiltInError { .. } => ExitCode::InvalidArguments,
             ErrorDetails::ShimRemoveError { .. } => ExitCode::FileSystemError,
             ErrorDetails::StringifyBinConfigError => ExitCode::UnknownError,
             ErrorDetails::StringifyPackageConfigError => ExitCode::UnknownError,

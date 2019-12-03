@@ -2394,6 +2394,7 @@ dependencies = [
  "volta-core 0.1.0",
  "volta-fail 0.1.0",
  "volta-fail-derive 0.1.0",
+ "volta-migrate 0.1.0",
  "which 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "winreg 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -2476,6 +2477,16 @@ dependencies = [
  "proc-macro2 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "volta-migrate"
+version = "0.1.0"
+dependencies = [
+ "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "volta-core 0.1.0",
+ "volta-fail 0.1.0",
+ "volta-layout 0.1.1",
 ]
 
 [[package]]

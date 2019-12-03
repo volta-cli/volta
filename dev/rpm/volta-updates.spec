@@ -40,6 +40,7 @@ mkdir -p %{volta_install_dir}
 # install everything into into /usr/bin/, so it's on the PATH
 install -m 0755 target/release/%{name} %{volta_install_dir}/%{name}
 install -m 0755 target/release/volta-shim %{volta_install_dir}/volta-shim
+install -m 0755 target/release/volta-migrate %{volta_install_dir}/volta-migrate
 
 
 # files installed by this package
@@ -47,6 +48,7 @@ install -m 0755 target/release/volta-shim %{volta_install_dir}/volta-shim
 %license LICENSE
 %{_bindir}/%{name}
 %{_bindir}/volta-shim
+%{_bindir}/volta-migrate
 
 
 # this runs before install

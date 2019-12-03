@@ -1,10 +1,10 @@
-use crate::support::sandbox::{sandbox, shim_exe, Sandbox};
+use crate::support::sandbox::{sandbox, Sandbox};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
 
 #[test]
-fn empty_volta_home_is_auto_created() {
+fn empty_volta_home_is_created() {
     let s = sandbox().build();
 
     // clear out the .volta dir
@@ -43,7 +43,7 @@ fn empty_volta_home_is_auto_created() {
 }
 
 #[test]
-fn existing_volta_home_is_unchanged() {
+fn legacy_v0_volta_home_is_upgraded() {
     let s = sandbox().build();
 
     // directories that are already created by the test framework
@@ -54,10 +54,8 @@ fn existing_volta_home_is_unchanged() {
     assert!(Sandbox::path_exists(".volta/tools/inventory/packages"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
 
-    // shims do not exist
-    assert!(!Sandbox::shim_exists("node"));
-    assert!(!Sandbox::shim_exists("npm"));
-    assert!(!Sandbox::shim_exists("yarn"));
+    // Layout file is not there
+    assert!(!Sandbox::path_exists(".volta/layout.v1"));
 
     // running volta should not create anything else
     assert_that!(s.volta("--version"), execs().with_status(0));
@@ -70,8 +68,43 @@ fn existing_volta_home_is_unchanged() {
     assert!(Sandbox::path_exists(".volta/tools/inventory/packages"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
 
-    assert!(!Sandbox::shim_exists("node"));
-    assert!(!Sandbox::shim_exists("yarn"));
-    assert!(!Sandbox::shim_exists("npm"));
-    assert!(!Sandbox::shim_exists("npx"));
+    // Layout file should now exist
+    assert!(Sandbox::path_exists(".volta/layout.v1"));
+
+    // shims should all be created
+    // NOTE: this doesn't work in Windows, because the shim directory
+    //       is stored in the Registry, and not accessible
+    #[cfg(unix)]
+    {
+        assert!(Sandbox::shim_exists("node"));
+        assert!(Sandbox::shim_exists("yarn"));
+        assert!(Sandbox::shim_exists("npm"));
+        assert!(Sandbox::shim_exists("npx"));
+    }
+}
+
+#[test]
+fn current_v1_volta_home_is_unchanged() {
+    let s = sandbox().layout_file("v1").build();
+
+    // directories that are already created by the test framework
+    assert!(Sandbox::path_exists(".volta"));
+    assert!(Sandbox::path_exists(".volta/layout.v1"));
+    assert!(Sandbox::path_exists(".volta/cache/node"));
+    assert!(Sandbox::path_exists(".volta/tmp"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/node"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/packages"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
+
+    // running volta should not create anything else
+    assert_that!(s.volta("--version"), execs().with_status(0));
+
+    // everything should be the same as before running the command
+    assert!(Sandbox::path_exists(".volta"));
+    assert!(Sandbox::path_exists(".volta/layout.v1"));
+    assert!(Sandbox::path_exists(".volta/cache/node"));
+    assert!(Sandbox::path_exists(".volta/tmp"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/node"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/packages"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
 }

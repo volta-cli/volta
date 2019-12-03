@@ -12,6 +12,8 @@ const ERROR_PREFIX: &str = "error:";
 const WARNING_PREFIX: &str = "warning:";
 const SHIM_ERROR_PREFIX: &str = "Volta error:";
 const SHIM_WARNING_PREFIX: &str = "Volta warning:";
+const MIGRATION_ERROR_PREFIX: &str = "Volta update error:";
+const MIGRATION_WARNING_PREFIX: &str = "Volta update warning:";
 const VOLTA_LOGLEVEL: &str = "VOLTA_LOGLEVEL";
 const ALLOWED_PREFIX: &str = "volta";
 const WRAP_INDENT: &str = "    ";
@@ -23,6 +25,9 @@ pub enum LogContext {
 
     /// Log messages from one of the shims
     Shim,
+
+    /// Log messages from the migration
+    Migration,
 }
 
 /// Represents the level of verbosity that was requested by the user
@@ -85,6 +90,7 @@ impl Logger {
         let prefix = match &self.context {
             LogContext::Volta => ERROR_PREFIX,
             LogContext::Shim => SHIM_ERROR_PREFIX,
+            LogContext::Migration => MIGRATION_ERROR_PREFIX,
         };
 
         eprintln!("{} {}", style(prefix).red().bold(), message);
@@ -97,10 +103,11 @@ impl Logger {
         let prefix = match &self.context {
             LogContext::Volta => WARNING_PREFIX,
             LogContext::Shim => SHIM_WARNING_PREFIX,
+            LogContext::Migration => MIGRATION_WARNING_PREFIX,
         };
 
         eprintln!(
-            "{}{}",
+            "{} {}",
             style(prefix).yellow().bold(),
             wrap_content(prefix, message)
         );
@@ -132,21 +139,16 @@ where
 ///     If it is a TTY, we use Info
 ///     If it is NOT a TTY, we use Error as we don't want to show warnings when running as a script
 fn level_from_env() -> LevelFilter {
-    match env::var(VOLTA_LOGLEVEL).as_ref() {
-        Ok(l) if l == "off" => LevelFilter::Off,
-        Ok(l) if l == "error" => LevelFilter::Error,
-        Ok(l) if l == "warn" => LevelFilter::Warn,
-        Ok(l) if l == "info" => LevelFilter::Info,
-        Ok(l) if l == "debug" => LevelFilter::Debug,
-        Ok(l) if l == "trace" => LevelFilter::Trace,
-        _ => {
+    env::var(VOLTA_LOGLEVEL)
+        .ok()
+        .and_then(|level| level.to_uppercase().parse().ok())
+        .unwrap_or_else(|| {
             if atty::is(Stream::Stdout) {
                 LevelFilter::Info
             } else {
                 LevelFilter::Error
             }
-        }
-    }
+        })
 }
 
 #[cfg(test)]

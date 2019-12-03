@@ -15,13 +15,6 @@ pub enum ShimResult {
     DoesntExist,
 }
 
-fn is_3p_shim(name: &str) -> bool {
-    match name {
-        "node" | "yarn" | "npm" | "npx" => false,
-        _ => true,
-    }
-}
-
 pub fn create(shim_name: &str) -> Fallible<ShimResult> {
     let executable = volta_install()?.shim_executable();
     let shim = volta_home()?.shim_file(shim_name);
@@ -44,11 +37,6 @@ pub fn create(shim_name: &str) -> Fallible<ShimResult> {
 }
 
 pub fn delete(shim_name: &str) -> Fallible<ShimResult> {
-    if !is_3p_shim(shim_name) {
-        throw!(ErrorDetails::ShimRemoveBuiltInError {
-            name: shim_name.to_string(),
-        });
-    }
     let shim = volta_home()?.shim_file(shim_name);
 
     #[cfg(windows)]

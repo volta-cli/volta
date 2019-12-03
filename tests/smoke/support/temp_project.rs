@@ -100,8 +100,6 @@ impl TempProjectBuilder {
         ok_or_panic!(symlink_file(shim_exe(), self.root.yarn_exe()));
         ok_or_panic!(symlink_file(shim_exe(), self.root.npm_exe()));
 
-        ok_or_panic!(symlink_file(shim_exe(), shim_executable(self.root())));
-
         // write files
         for file_builder in self.files {
             file_builder.build();
@@ -137,7 +135,7 @@ fn volta_file(root: PathBuf) -> PathBuf {
 }
 fn shim_executable(root: PathBuf) -> PathBuf {
     #[cfg(feature = "volta-updates")]
-    return volta_home(root).join("volta-shim");
+    return volta_bin_dir(root).join("volta-shim");
 
     #[cfg(not(feature = "volta-updates"))]
     return volta_home(root).join("shim");
@@ -255,6 +253,7 @@ impl TempProject {
             .env("PATH", &self.path)
             .env("HOME", home_dir(self.root()))
             .env("VOLTA_HOME", volta_home(self.root()))
+            .env("VOLTA_INSTALL_DIR", cargo_dir())
             .env_remove("VOLTA_NODE_VERSION")
             .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
 
