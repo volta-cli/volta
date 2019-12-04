@@ -26,6 +26,19 @@ impl V1 {
             home: v1::VoltaHome::new(home),
         }
     }
+
+    /// Write the layout file to mark migration to V1 as complete
+    ///
+    /// Should only be called once all other migration steps are finished, so that we don't
+    /// accidentally mark an incomplete migration as completed
+    fn complete_migration(home: v1::VoltaHome) -> Fallible<Self> {
+        debug!("Writing layout marker file");
+        File::create(home.layout_file()).with_context(|_| ErrorDetails::CreateLayoutFileError {
+            file: home.layout_file().to_owned(),
+        })?;
+
+        Ok(V1 { home })
+    }
 }
 
 impl TryFrom<Empty> for V1 {
@@ -40,7 +53,7 @@ impl TryFrom<Empty> for V1 {
                 dir: home.root().to_owned(),
             })?;
 
-        Ok(V1 { home })
+        V1::complete_migration(home)
     }
 }
 
@@ -89,15 +102,6 @@ impl TryFrom<V0> for V1 {
             }
         }
 
-        // Write the layout marker file _last_, so that we don't accidentally mark the migration
-        // as finished before we have completed everything else required
-        debug!("Writing layout marker file");
-        File::create(new_home.layout_file()).with_context(|_| {
-            ErrorDetails::CreateLayoutFileError {
-                file: new_home.layout_file().to_owned(),
-            }
-        })?;
-
-        Ok(V1 { home: new_home })
+        V1::complete_migration(new_home)
     }
 }
