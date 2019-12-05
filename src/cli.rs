@@ -1,8 +1,6 @@
 use structopt::StructOpt;
 
 use crate::command::{self, Command};
-#[cfg(not(feature = "volta-updates"))]
-use volta_core::layout;
 use volta_core::session::Session;
 use volta_fail::{ExitCode, Fallible};
 
@@ -48,9 +46,6 @@ pub(crate) struct Volta {
 
 impl Volta {
     pub(crate) fn run(self, session: &mut Session) -> Fallible<ExitCode> {
-        #[cfg(not(feature = "volta-updates"))]
-        layout::ensure_volta_dirs_exist()?;
-
         if self.version {
             // suffix indicator for dev build
             if cfg!(debug_assertions) {
@@ -89,26 +84,6 @@ pub(crate) enum Subcommand {
     #[structopt(name = "list", alias = "ls", author = "", version = "")]
     List(command::List),
 
-    /// [DEPRECATED] Disables Volta in the current shell
-    #[cfg(not(feature = "volta-updates"))]
-    #[structopt(
-        name = "deactivate",
-        author = "",
-        version = "",
-        raw(setting = "structopt::clap::AppSettings::Hidden")
-    )]
-    Deactivate(command::Deactivate),
-
-    /// [DEPRECATED] Re-enables Volta in the current shell
-    #[cfg(not(feature = "volta-updates"))]
-    #[structopt(
-        name = "activate",
-        author = "",
-        version = "",
-        raw(setting = "structopt::clap::AppSettings::Hidden")
-    )]
-    Activate(command::Activate),
-
     /// Generates Volta completions
     #[structopt(
         name = "completions",
@@ -144,7 +119,6 @@ otherwise, they will be written to `stdout`.
     Use(command::Use),
 
     /// Enables Volta for the current user / shell
-    #[cfg(feature = "volta-updates")]
     #[structopt(name = "setup", author = "", version = "")]
     Setup(command::Setup),
 }
@@ -157,14 +131,9 @@ impl Subcommand {
             Subcommand::Uninstall(uninstall) => uninstall.run(session),
             Subcommand::Pin(pin) => pin.run(session),
             Subcommand::List(list) => list.run(session),
-            #[cfg(not(feature = "volta-updates"))]
-            Subcommand::Deactivate(deactivate) => deactivate.run(session),
-            #[cfg(not(feature = "volta-updates"))]
-            Subcommand::Activate(activate) => activate.run(session),
             Subcommand::Completions(completions) => completions.run(session),
             Subcommand::Which(which) => which.run(session),
             Subcommand::Use(r#use) => r#use.run(session),
-            #[cfg(feature = "volta-updates")]
             Subcommand::Setup(setup) => setup.run(session),
         }
     }

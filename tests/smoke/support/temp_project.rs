@@ -134,11 +134,7 @@ fn volta_file(root: PathBuf) -> PathBuf {
     volta_home(root).join("volta")
 }
 fn shim_executable(root: PathBuf) -> PathBuf {
-    #[cfg(feature = "volta-updates")]
-    return volta_bin_dir(root).join("volta-shim");
-
-    #[cfg(not(feature = "volta-updates"))]
-    return volta_home(root).join("shim");
+    volta_bin_dir(root).join("volta-shim")
 }
 fn default_hooks_file(root: PathBuf) -> PathBuf {
     volta_home(root).join("hooks.json")
@@ -431,11 +427,7 @@ fn volta_exe() -> PathBuf {
 }
 
 fn shim_exe() -> PathBuf {
-    #[cfg(feature = "volta-updates")]
-    return cargo_dir().join(format!("volta-shim{}", env::consts::EXE_SUFFIX));
-
-    #[cfg(not(feature = "volta-updates"))]
-    return cargo_dir().join(format!("shim{}", env::consts::EXE_SUFFIX));
+    cargo_dir().join(format!("volta-shim{}", env::consts::EXE_SUFFIX))
 }
 
 fn split_and_add_args(p: &mut ProcessBuilder, s: &str) {

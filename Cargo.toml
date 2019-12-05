@@ -11,21 +11,14 @@ cross-platform-docs = ["volta-core/cross-platform-docs"]
 mock-network = ["mockito", "volta-core/mock-network"]
 volta-dev = []
 smoke-tests = []
-volta-updates = ["volta-migrate/volta-updates", "volta-core/volta-updates"]
-
-[[bin]]
-name = "shim"
-path = "src/shim.rs"
 
 [[bin]]
 name = "volta-shim"
 path = "src/volta-shim.rs"
-required-features = ["volta-updates"]
 
 [[bin]]
 name = "volta-migrate"
 path = "src/volta-migrate.rs"
-required-features = ["volta-updates"]
 
 [dependencies]
 atty = "0.2"
@@ -50,7 +43,7 @@ test-support = { path = "crates/test-support" }
 textwrap = "0.11.0"
 which = "2.0.1"
 dirs = "1.0.4"
-volta-migrate = { path = "crates/volta-migrate", optional = true }
+volta-migrate = { path = "crates/volta-migrate" }
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.6.0"

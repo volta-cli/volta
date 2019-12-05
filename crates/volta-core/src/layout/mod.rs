@@ -6,16 +6,7 @@ use cfg_if::cfg_if;
 use double_checked_cell::DoubleCheckedCell;
 use lazy_static::lazy_static;
 use volta_fail::{Fallible, ResultExt};
-
-cfg_if! {
-    if #[cfg(feature = "volta-updates")] {
-        use volta_layout::v1::{VoltaHome, VoltaInstall};
-    } else {
-        #[cfg(unix)]
-        use crate::shim;
-        use volta_layout::v0::{VoltaHome, VoltaInstall};
-    }
-}
+use volta_layout::v1::{VoltaHome, VoltaInstall};
 
 cfg_if! {
     if #[cfg(unix)] {
@@ -64,7 +55,6 @@ pub fn volta_install<'a>() -> Fallible<&'a VoltaInstall> {
 /// currently running executable to find the binary install directory. Note that we need to
 /// canonicalize the path we get from current_exe to make sure we resolve symlinks and find the
 /// actual binary files
-#[cfg(feature = "volta-updates")]
 fn default_install_dir() -> Fallible<PathBuf> {
     env::current_exe()
         .map(|mut path| {
@@ -73,33 +63,4 @@ fn default_install_dir() -> Fallible<PathBuf> {
         })
         .and_then(|path| path.canonicalize())
         .with_context(|_| ErrorDetails::NoInstallDir)
-}
-
-#[cfg(not(feature = "volta-updates"))]
-pub fn bootstrap_volta_dirs() -> Fallible<()> {
-    let home = volta_home()?;
-    home.create()
-        .with_context(|_| ErrorDetails::CreateDirError {
-            dir: home.root().to_owned(),
-        })?;
-
-    #[cfg(unix)]
-    {
-        shim::create("node")?;
-        shim::create("yarn")?;
-        shim::create("npm")?;
-        shim::create("npx")?;
-    }
-
-    Ok(())
-}
-
-#[cfg(not(feature = "volta-updates"))]
-pub fn ensure_volta_dirs_exist() -> Fallible<()> {
-    let home = volta_home()?;
-    if !home.root().exists() {
-        bootstrap_volta_dirs()?;
-    }
-
-    Ok(())
 }

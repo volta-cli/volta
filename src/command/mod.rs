@@ -1,30 +1,20 @@
-#[cfg(not(feature = "volta-updates"))]
-pub(crate) mod activate;
 pub(crate) mod completions;
-#[cfg(not(feature = "volta-updates"))]
-pub(crate) mod deactivate;
 pub(crate) mod fetch;
 pub(crate) mod install;
 pub(crate) mod list;
 pub(crate) mod pin;
-#[cfg(feature = "volta-updates")]
 pub(crate) mod setup;
 pub(crate) mod uninstall;
 pub(crate) mod r#use;
 pub(crate) mod which;
 
 pub(crate) use self::which::Which;
-#[cfg(not(feature = "volta-updates"))]
-pub(crate) use activate::Activate;
 pub(crate) use completions::Completions;
-#[cfg(not(feature = "volta-updates"))]
-pub(crate) use deactivate::Deactivate;
 pub(crate) use fetch::Fetch;
 pub(crate) use install::Install;
 pub(crate) use list::List;
 pub(crate) use pin::Pin;
 pub(crate) use r#use::Use;
-#[cfg(feature = "volta-updates")]
 pub(crate) use setup::Setup;
 pub(crate) use uninstall::Uninstall;
 

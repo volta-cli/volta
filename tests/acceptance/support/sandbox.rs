@@ -240,23 +240,9 @@ impl SandboxBuilder {
         self.files.push(FileBuilder::new(layout_file(version), ""));
         self
     }
-
-    /// Set the shell for the sandbox (chainable)
-    #[cfg(all(unix, not(feature = "volta-updates")))]
-    pub fn volta_shell(self, shell_name: &str) -> Self {
-        self.env("VOLTA_SHELL", shell_name)
-    }
-
     /// Set an environment variable for the sandbox (chainable)
     pub fn env(mut self, name: &str, value: &str) -> Self {
         self.root.env_vars.push(EnvVar::new(name, value));
-        self
-    }
-
-    /// Add a directory to the PATH (chainable)
-    #[cfg(all(unix, not(feature = "volta-updates")))]
-    pub fn path_dir(mut self, dir: &str) -> Self {
-        self.path_dirs.push(PathBuf::from(dir));
         self
     }
 
@@ -611,12 +597,6 @@ impl Sandbox {
         read_file_to_string(package_file)
     }
 
-    #[cfg(all(unix, not(feature = "volta-updates")))]
-    pub fn read_postscript(&self) -> String {
-        let postscript_file = volta_postscript();
-        read_file_to_string(postscript_file)
-    }
-
     pub fn read_log_dir(&self) -> Option<fs::ReadDir> {
         fs::read_dir(volta_log_dir()).ok()
     }
@@ -701,11 +681,7 @@ fn volta_exe() -> PathBuf {
 }
 
 pub fn shim_exe() -> PathBuf {
-    #[cfg(feature = "volta-updates")]
-    return cargo_dir().join(format!("volta-shim{}", env::consts::EXE_SUFFIX));
-
-    #[cfg(not(feature = "volta-updates"))]
-    return cargo_dir().join(format!("shim{}", env::consts::EXE_SUFFIX));
+    cargo_dir().join(format!("volta-shim{}", env::consts::EXE_SUFFIX))
 }
 
 fn split_and_add_args(p: &mut ProcessBuilder, s: &str) {

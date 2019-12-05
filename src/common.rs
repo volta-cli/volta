@@ -1,4 +1,3 @@
-#![cfg(feature = "volta-updates")]
 use std::process::{Command, ExitStatus};
 
 use volta_core::error::ErrorDetails;

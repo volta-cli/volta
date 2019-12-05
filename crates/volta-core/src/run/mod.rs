@@ -8,15 +8,10 @@ use std::process::{Command, ExitStatus, Output};
 
 use crate::command::create_command;
 use crate::error::ErrorDetails;
-#[cfg(not(feature = "volta-updates"))]
-use crate::layout::ensure_volta_dirs_exist;
 use crate::platform::System;
 use crate::session::Session;
 use crate::signal::pass_control_to_shim;
-use cfg_if::cfg_if;
-#[cfg(feature = "volta-updates")]
-use volta_fail::throw;
-use volta_fail::{Fallible, ResultExt};
+use volta_fail::{throw, Fallible, ResultExt};
 
 pub mod binary;
 pub mod node;
@@ -25,13 +20,7 @@ pub mod npx;
 pub mod yarn;
 
 const VOLTA_BYPASS: &str = "VOLTA_BYPASS";
-cfg_if! {
-    if #[cfg(feature = "volta-updates")] {
-        const UNSAFE_GLOBAL: &str = "VOLTA_UNSAFE_GLOBAL";
-    } else {
-        use crate::env::UNSAFE_GLOBAL;
-    }
-}
+const UNSAFE_GLOBAL: &str = "VOLTA_UNSAFE_GLOBAL";
 
 /// Distinguish global `add` commands in npm or yarn from all others.
 enum CommandArg {
@@ -42,9 +31,6 @@ enum CommandArg {
 }
 
 pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
-    #[cfg(not(feature = "volta-updates"))]
-    ensure_volta_dirs_exist()?;
-
     let mut args = args_os();
     let exe = get_tool_name(&mut args)?;
 
@@ -58,7 +44,6 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
         )?
     } else {
         match &exe.to_str() {
-            #[cfg(feature = "volta-updates")]
             Some("volta-shim") => throw!(ErrorDetails::RunShimDirectly),
             Some("node") => node::command(args, session)?,
             Some("npm") => npm::command(args, session)?,

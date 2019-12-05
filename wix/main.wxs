@@ -60,57 +60,12 @@
         <Directory Id='TARGETDIR' Name='SourceDir'>
             <Directory Id='$(var.PlatformProgramFilesFolder)' Name='PFiles'>
                 <Directory Id='INSTALLDIR' Name='Volta'>
-                    <Component Id='shimBinary' Guid='*' Win64='$(var.Win64)'>
-                        <File
-                            Id='shimEXE'
-                            Name='shim.exe'
-                            DiskId='1'
-                            Source='target\release\shim.exe'
-                            KeyPath='yes'/>
-                    </Component>
-
-                    <Directory Id='INSTALLBINDIR' Name='bin'>
-                        <Component Id='InstallDir' Guid='*' Win64='$(var.Win64)'>
-                            <RegistryValue
-                                Root='HKLM'
-                                Key='Software\[Manufacturer]\[ProductName]'
-                                Name='InstallDir'
-                                Type='string'
-                                Value='[INSTALLDIR]'
-                                KeyPath='yes' />
-                            <Environment
-                                Id='INSTALLPATH'
-                                Name='PATH'
-                                Value='[INSTALLBINDIR]'
-                                Permanent='no'
-                                Part='first'
-                                Action='set'
-                                System='yes' />
-                        </Component>
-                    </Directory>
                 </Directory>
             </Directory>
-            <Component Id='UserBinDir' Guid='*' Win64='$(var.Win64)'>
-                <RegistryValue
-                    Root='HKCU'
-                    Key='Software\[Manufacturer]\[ProductName]'
-                    Name='BinDir'
-                    Type='string'
-                    Value='[LocalAppDataFolder]Volta\bin'
-                    KeyPath='yes' />
-                <Environment
-                    Id='BINPATH'
-                    Name='PATH'
-                    Value='[LocalAppDataFolder]Volta\bin'
-                    Permanent='no'
-                    Part='first'
-                    Action='set'
-                    System='no' />
-            </Component>
-            <Merge Id='VCRedist' SourceFile='wix\Microsoft_VC140_CRT_x64.msm' DiskId='1' Language='0'/>
+            <Merge Id='VCRedist' SourceFile='wix\Microsoft_VC140_CRT_x64.msm' DiskId='1' Lanuage='0'/>
         </Directory>
 
-        <ComponentGroup Id='Binaries' Directory='INSTALLBINDIR'>
+        <ComponentGroup Id='Binaries' Directory='INSTALLDIR'>
             <Component Id='voltaBinary' Guid='*' Win64='$(var.Win64)'>
                 <File
                     Id='voltaEXE'
@@ -118,13 +73,37 @@
                     DiskId='1'
                     Source='target\release\volta.exe'
                     KeyPath='yes'/>
+                <Environment
+                    Id='INSTALLPATH'
+                    Name='PATH'
+                    Value='[INSTALLDIR]'
+                    Permanent='no'
+                    Part='first'
+                    Action='set'
+                    System='yes' />
+            </Component>
+            <Component Id='shimBinary' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='voltashimEXE'
+                    Name='volta-shim.exe'
+                    DiskId='1'
+                    Source='target\release\volta-shim.exe'
+                    KeyPath='yes'/>
+            </Component>
+            <Component Id='migrateBinary' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='voltamigrateEXE'
+                    Name='volta-migrate.exe'
+                    DiskId='1'
+                    Source='target\release\volta-migrate.exe'
+                    KeyPath='yes'/>
             </Component>
             <Component Id='nodeBinary' Guid='*' Win64='$(var.Win64)'>
                 <File
                     Id='nodeEXE'
                     Name='node.exe'
                     DiskId='1'
-                    Source='target\release\shim.exe'
+                    Source='target\release\volta-shim.exe'
                     KeyPath='yes'/>
             </Component>
             <Component Id='npmBinary' Guid='*' Win64='$(var.Win64)'>
@@ -132,7 +111,7 @@
                     Id='npmEXE'
                     Name='npm.exe'
                     DiskId='1'
-                    Source='target\release\shim.exe'
+                    Source='target\release\volta-shim.exe'
                     KeyPath='yes'/>
             </Component>
             <Component Id='npxBinary' Guid='*' Win64='$(var.Win64)'>
@@ -140,7 +119,7 @@
                     Id='npxEXE'
                     Name='npx.exe'
                     DiskId='1'
-                    Source='target\release\shim.exe'
+                    Source='target\release\volta-shim.exe'
                     KeyPath='yes'/>
             </Component>
             <Component Id='yarnBinary' Guid='*' Win64='$(var.Win64)'>
@@ -148,15 +127,12 @@
                     Id='yarnEXE'
                     Name='yarn.exe'
                     DiskId='1'
-                    Source='target\release\shim.exe'
+                    Source='target\release\volta-shim.exe'
                     KeyPath='yes'/>
             </Component>
         </ComponentGroup>
 
         <Feature Id='MainProgram'>
-            <ComponentRef Id='InstallDir'/>
-            <ComponentRef Id='UserBinDir'/>
-            <ComponentRef Id='shimBinary'/>
             <ComponentGroupRef Id='Binaries'/>
         </Feature>
 
@@ -166,7 +142,17 @@
 
         <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
 
-        
+        <CustomAction
+            Id="VoltaSetup"
+            FileKey="voltaEXE"
+            ExeCommand="setup"
+            Execute="deferred"
+            Return="ignore" />
+
+        <InstallExecuteSequence>
+            <Custom Action="VoltaSetup" Before="InstallFinalize" />
+        </InstallExecuteSequence>
+
         <!--
           Uncomment the following `Icon` and `Property` tags to change the product icon.
 
@@ -215,5 +201,4 @@
         <!--<WixVariable Id='WixUIDialogBmp' Value='wix\Dialog.bmp'/>-->
 
     </Product>
-
 </Wix>

@@ -25,10 +25,6 @@ pub enum ActivityKind {
     Uninstall,
     List,
     Current,
-    #[cfg(not(feature = "volta-updates"))]
-    Deactivate,
-    #[cfg(not(feature = "volta-updates"))]
-    Activate,
     Default,
     Pin,
     Node,
@@ -43,7 +39,6 @@ pub enum ActivityKind {
     Shim,
     Completions,
     Which,
-    #[cfg(feature = "volta-updates")]
     Setup,
 }
 
@@ -55,10 +50,6 @@ impl Display for ActivityKind {
             ActivityKind::Uninstall => "uninstall",
             ActivityKind::List => "list",
             ActivityKind::Current => "current",
-            #[cfg(not(feature = "volta-updates"))]
-            ActivityKind::Deactivate => "deactivate",
-            #[cfg(not(feature = "volta-updates"))]
-            ActivityKind::Activate => "activate",
             ActivityKind::Default => "default",
             ActivityKind::Pin => "pin",
             ActivityKind::Node => "node",
@@ -70,7 +61,6 @@ impl Display for ActivityKind {
             ActivityKind::Help => "help",
             ActivityKind::Version => "version",
             ActivityKind::Binary => "binary",
-            #[cfg(feature = "volta-updates")]
             ActivityKind::Setup => "setup",
             ActivityKind::Shim => "shim",
             ActivityKind::Completions => "completions",

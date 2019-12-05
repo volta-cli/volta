@@ -32,34 +32,23 @@ cargo build --release
 
 # this installs into a chroot directory resembling the user's root directory
 %install
-# /usr/bin/volta-lib/
-%define volta_bin_dir %{_bindir}/%{name}-lib
-# BUILDROOT/usr/bin/volta-lib
-%define volta_install_dir %{buildroot}/%{volta_bin_dir}
+# BUILDROOT/usr/bin
+%define volta_install_dir %{buildroot}/%{_bindir}
 # setup the /usr/bin/volta-lib/ directory
 rm -rf %{buildroot}
 mkdir -p %{volta_install_dir}
-# install the `volta` binary into /usr/bin/, so it's on the PATH
-install -m 0755 target/release/%{name} %{buildroot}/%{_bindir}/%{name}
-# install everything else to /usr/bin/volta-lib/ (so they are not on the PATH)
-# the `shim` binary
-install -m 0755 target/release/shim %{volta_install_dir}/shim
-# the postinstall script
-install -m 0755 dev/rpm/volta-postinstall.sh %{volta_install_dir}/volta-postinstall.sh
-# the shell integration scripts
-# these are loaded for the user that installed the RPM
-install -m 0644 shell/unix/load.sh %{volta_install_dir}/load.sh
-install -m 0644 shell/unix/load.fish %{volta_install_dir}/load.fish
+# install everything into into /usr/bin/, so it's on the PATH
+install -m 0755 target/release/%{name} %{volta_install_dir}/%{name}
+install -m 0755 target/release/volta-shim %{volta_install_dir}/volta-shim
+install -m 0755 target/release/volta-migrate %{volta_install_dir}/volta-migrate
 
 
 # files installed by this package
 %files
 %license LICENSE
 %{_bindir}/%{name}
-%{volta_bin_dir}/shim
-%{volta_bin_dir}/volta-postinstall.sh
-%{volta_bin_dir}/load.sh
-%{volta_bin_dir}/load.fish
+%{_bindir}/volta-shim
+%{_bindir}/volta-migrate
 
 
 # this runs before install
@@ -73,25 +62,11 @@ rm -rf %{_bindir}/%{name}
 %post
 printf '\033[1;32m%12s\033[0m %s\n' "Running" "Volta post-install setup..." 1>&2
 # run this as the user who invoked sudo (not as root, because we're writing to $HOME)
-/bin/su -c %{volta_bin_dir}/volta-postinstall.sh - $SUDO_USER
-
-
-# this is called after package uninstall _and_ upgrade, but we only want to remove these for uninstall
-# - it is passed "the number of packages that will be left after this step is completed",
-#   so it checks that value - 0 means uninstall, anything else is upgrade
-%postun
-# only run these for uninstall
-if [ $1 -eq 0 ]; then
-  printf '\033[1;32m%12s\033[0m %s\n' "Removing" "~/.volta/ directory" 1>&2
-  # run this as the user who invoked sudo (not as root, because we're using $HOME)
-  # and using single quotes so $HOME doesn't expand here (for root), but expands in the user's shell
-  /bin/su -c 'rm -rf $HOME/.volta' - $SUDO_USER
-  # the RPM removes the binaries in this dir, but not the dir itself
-  printf '\033[1;32m%12s\033[0m %s\n' "Removing" %{volta_bin_dir}" directory" 1>&2
-  rm -rf %{volta_bin_dir}
-fi
+/bin/su -c "%{_bindir}/volta setup" - $SUDO_USER
 
 
 %changelog
+* Tue Oct 22 2019 Charles Pierce <cpierce.grad@gmail.com> - 0.6.5-1
+- Update to use 'volta setup' as the postinstall script
 * Mon Jun 03 2019 Michael Stewart <mikrostew@gmail.com> - 0.5.3-1
 - First volta package
