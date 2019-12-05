@@ -34,10 +34,6 @@ pub fn volta_home<'a>() -> Fallible<&'a VoltaHome> {
     })
 }
 
-// NOTE: This initialization will, on some code paths, call volta_home()
-// We need to make sure that volta_home does not in turn call this method
-// or we will run into problems with deadlocks
-// ISSUE(#611): Remove this comment when we enable Volta updates - No longer true
 pub fn volta_install<'a>() -> Fallible<&'a VoltaInstall> {
     VOLTA_INSTALL.get_or_try_init(|| {
         let install_dir = match env::var_os("VOLTA_INSTALL_DIR") {
