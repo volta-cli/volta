@@ -1,7 +1,6 @@
 #[cfg(not(feature = "volta-updates"))]
 pub(crate) mod activate;
 pub(crate) mod completions;
-pub(crate) mod current;
 #[cfg(not(feature = "volta-updates"))]
 pub(crate) mod deactivate;
 pub(crate) mod fetch;
@@ -18,7 +17,6 @@ pub(crate) use self::which::Which;
 #[cfg(not(feature = "volta-updates"))]
 pub(crate) use activate::Activate;
 pub(crate) use completions::Completions;
-pub(crate) use current::Current;
 #[cfg(not(feature = "volta-updates"))]
 pub(crate) use deactivate::Deactivate;
 pub(crate) use fetch::Fetch;
