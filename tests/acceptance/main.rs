@@ -13,7 +13,6 @@ mod migrations;
 mod run_shim_directly;
 mod verbose_errors;
 mod volta_bypass;
-mod volta_current;
 #[cfg(not(feature = "volta-updates"))]
 mod volta_deactivate;
 mod volta_pin;
