@@ -10,13 +10,16 @@ steps:
     displayName: Ensure nightly toolchain is the default
 
   - script: |
-      cargo doc -p progress-read --no-deps
-      cargo doc -p volta-fail --no-deps
-      cargo doc -p archive --no-deps
-      cargo doc --features cross-platform-docs -p volta-core --no-deps
-      cargo doc --features cross-platform-docs --no-deps
-    env:
-      RUSTDOCFLAGS: --document-private-items
+      cargo doc -p progress-read --no-deps --document-private-items
+      cargo doc -p volta-fail --no-deps --document-private-items
+      cargo doc -p volta-layout --no-deps --document-private-items
+      cargo doc -p volta-migrate --no-deps --document-private-items
+      cargo doc -p archive --no-deps --document-private-items
+      cargo doc -p fs-utils --no-deps --document-private-items
+      cargo doc -p headers-011 --no-deps --document-private-items
+      cargo doc -p validate-npm-package-name --no-deps --document-private-items
+      cargo doc --features cross-platform-docs -p volta-core --no-deps --document-private-items
+      cargo doc --features cross-platform-docs --no-deps --document-private-items
     displayName: Generate docs
 
   - script: |
