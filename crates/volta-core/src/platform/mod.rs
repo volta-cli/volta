@@ -9,7 +9,6 @@ use crate::error::ErrorDetails;
 use crate::layout::{env_paths, volta_home};
 use crate::session::Session;
 use crate::tool::load_default_npm_version;
-use crate::tool::NodeVersion;
 use volta_fail::{Fallible, ResultExt};
 
 pub mod sourced;
@@ -35,12 +34,10 @@ impl PlatformSpec {
         }
 
         Ok(Image {
-            node: NodeVersion {
-                runtime: self.node_runtime.clone(),
-                npm: match self.npm {
-                    Some(ref version) => version.clone(),
-                    None => load_default_npm_version(&self.node_runtime)?,
-                },
+            node: self.node_runtime.clone(),
+            npm: match self.npm {
+                Some(ref version) => version.clone(),
+                None => load_default_npm_version(&self.node_runtime)?,
             },
             yarn: self.yarn.clone(),
         })
@@ -51,7 +48,9 @@ impl PlatformSpec {
 #[derive(Clone, Debug)]
 pub struct Image {
     /// The pinned version of Node.
-    pub node: NodeVersion,
+    pub node: Version,
+    /// The pinned version of npm.
+    pub npm: Version,
     /// The pinned version of Yarn, if any.
     pub yarn: Option<Version>,
 }
@@ -59,8 +58,8 @@ pub struct Image {
 impl Image {
     fn bins(&self) -> Fallible<Vec<PathBuf>> {
         let home = volta_home()?;
-        let node_str = self.node.runtime.to_string();
-        let npm_str = self.node.npm.to_string();
+        let node_str = self.node.to_string();
+        let npm_str = self.npm.to_string();
         // ISSUE(#292): Install npm, and handle using that
         let mut bins = vec![home.node_image_bin_dir(&node_str, &npm_str)];
         if let Some(ref yarn) = self.yarn {
@@ -186,10 +185,8 @@ mod test {
         let v643 = Version::parse("6.4.3").unwrap();
 
         let no_yarn_image = Image {
-            node: NodeVersion {
-                runtime: v123.clone(),
-                npm: v643.clone(),
-            },
+            node: v123.clone(),
+            npm: v643.clone(),
             yarn: None,
         };
 
@@ -199,10 +196,8 @@ mod test {
         );
 
         let with_yarn_image = Image {
-            node: NodeVersion {
-                runtime: v123.clone(),
-                npm: v643.clone(),
-            },
+            node: v123.clone(),
+            npm: v643.clone(),
             yarn: Some(v457.clone()),
         };
 
@@ -260,10 +255,8 @@ mod test {
         let v643 = Version::parse("6.4.3").unwrap();
 
         let no_yarn_image = Image {
-            node: NodeVersion {
-                runtime: v123.clone(),
-                npm: v643.clone(),
-            },
+            node: v123.clone(),
+            npm: v643.clone(),
             yarn: None,
         };
 
@@ -273,10 +266,8 @@ mod test {
         );
 
         let with_yarn_image = Image {
-            node: NodeVersion {
-                runtime: v123.clone(),
-                npm: v643.clone(),
-            },
+            node: v123.clone(),
+            npm: v643.clone(),
             yarn: Some(v457.clone()),
         };
 

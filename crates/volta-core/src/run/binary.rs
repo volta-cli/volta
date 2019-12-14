@@ -70,10 +70,7 @@ where
             exe.to_string_lossy(),
             default_tool.bin_path.display()
         );
-        debug!(
-            "Using node@{} from binary configuration",
-            image.node.runtime
-        );
+        debug!("Using node@{} from binary configuration", image.node);
 
         let path = image.path()?;
         let tool_path = default_tool.bin_path.into_os_string();

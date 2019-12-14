@@ -8,7 +8,6 @@ use crate::error::ErrorDetails;
 use crate::fs::touch;
 use crate::layout::volta_home;
 use crate::platform::PlatformSpec;
-use crate::tool::NodeVersion;
 
 use log::debug;
 use volta_fail::{Fallible, ResultExt};
@@ -64,23 +63,18 @@ impl Toolchain {
     }
 
     /// Set the active Node version in the default platform file.
-    pub fn set_active_node(&mut self, node_version: &NodeVersion) -> Fallible<()> {
+    pub fn set_active_node(&mut self, node_version: &Version) -> Fallible<()> {
         let mut dirty = false;
 
         if let Some(ref mut platform) = self.platform {
-            if platform.node_runtime != node_version.runtime {
-                platform.node_runtime = node_version.runtime.clone();
-                dirty = true;
-            }
-
-            if platform.npm.as_ref() != Some(&node_version.npm) {
-                platform.npm = Some(node_version.npm.clone());
+            if platform.node_runtime != *node_version {
+                platform.node_runtime = node_version.clone();
                 dirty = true;
             }
         } else {
             self.platform = Some(PlatformSpec {
-                node_runtime: node_version.runtime.clone(),
-                npm: Some(node_version.npm.clone()),
+                node_runtime: node_version.clone(),
+                npm: None,
                 yarn: None,
             });
             dirty = true;

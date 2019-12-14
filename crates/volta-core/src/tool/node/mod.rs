@@ -133,7 +133,7 @@ impl Tool for Node {
     fn install(self, session: &mut Session) -> Fallible<()> {
         let node_version = self.fetch_internal(session)?;
 
-        session.toolchain_mut()?.set_active_node(&node_version)?;
+        session.toolchain_mut()?.set_active_node(&self.version)?;
 
         info_installed(node_version);
         Ok(())
@@ -144,7 +144,7 @@ impl Tool for Node {
 
             // Note: We know this will succeed, since we checked above
             let project = session.project_mut()?.unwrap();
-            project.pin_node(&node_version)?;
+            project.pin_node(&self.version)?;
 
             info_pinned(node_version);
             Ok(())

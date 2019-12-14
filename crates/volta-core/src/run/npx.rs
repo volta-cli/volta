@@ -23,19 +23,19 @@ where
             // npx was only included with npm 5.2.0 and higher. If the npm version is less than that, we
             // should include a helpful error message
             let required_npm = parse_version("5.2.0")?;
-            if image.node().npm >= required_npm {
+            if *image.npm() >= required_npm {
                 let source = match image.source() {
                     Source::Project | Source::ProjectNodeDefaultYarn => "project",
                     Source::Default => "default",
                 };
-                let version = tool_version("npx", &image.node().npm);
+                let version = tool_version("npx", image.npm());
                 debug!("Using {} from {} configuration", version, source);
 
                 let path = image.path()?;
                 Ok(ToolCommand::direct(OsStr::new("npx"), args, &path))
             } else {
                 Err(ErrorDetails::NpxNotAvailable {
-                    version: image.node().npm.to_string(),
+                    version: image.npm().to_string(),
                 }
                 .into())
             }

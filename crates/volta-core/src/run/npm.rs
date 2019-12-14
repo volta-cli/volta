@@ -30,7 +30,7 @@ where
                 Source::Project | Source::ProjectNodeDefaultYarn => "project",
                 Source::Default => "default",
             };
-            let version = tool_version("npm", &image.node().npm);
+            let version = tool_version("npm", &image.npm());
             debug!("Using {} from {} configuration", version, source);
 
             Ok(ToolCommand::direct(OsStr::new("npm"), args, &path))

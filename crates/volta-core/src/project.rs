@@ -15,7 +15,7 @@ use crate::error::ErrorDetails;
 use crate::layout::volta_home;
 use crate::manifest::Manifest;
 use crate::platform::PlatformSpec;
-use crate::tool::{load_default_npm_version, BinConfig, NodeVersion};
+use crate::tool::BinConfig;
 use log::debug;
 use volta_fail::{Fallible, ResultExt};
 
@@ -179,23 +179,10 @@ impl Project {
     }
 
     /// Writes the specified version of Node to the `volta.node` key in package.json.
-    pub fn pin_node(&mut self, node_version: &NodeVersion) -> Fallible<()> {
-        // prevent writing the npm version if it is equal to the default version
-
-        let npm = load_default_npm_version(&node_version.runtime)
-            .ok()
-            .and_then(|default| {
-                if node_version.npm == default {
-                    debug!("Not writing 'npm' key since the version matches the Node default");
-                    None
-                } else {
-                    Some(node_version.npm.clone())
-                }
-            });
-
+    pub fn pin_node(&mut self, node_version: &Version) -> Fallible<()> {
         let updated_platform = PlatformSpec {
-            node_runtime: node_version.runtime.clone(),
-            npm,
+            node_runtime: node_version.clone(),
+            npm: self.manifest.npm(),
             yarn: self.manifest.yarn(),
         };
 

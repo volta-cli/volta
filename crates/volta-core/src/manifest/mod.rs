@@ -61,9 +61,14 @@ impl Manifest {
         self.platform().map(|t| t.node_runtime.clone())
     }
 
+    /// Returns the pinned version of npm as a Version, if any.
+    pub fn npm(&self) -> Option<Version> {
+        self.platform().and_then(|t| t.npm.clone())
+    }
+
     /// Returns the pinned verison of Yarn as a Version, if any.
     pub fn yarn(&self) -> Option<Version> {
-        self.platform().map(|t| t.yarn.clone()).unwrap_or(None)
+        self.platform().and_then(|t| t.yarn.clone())
     }
 
     /// Updates the pinned platform information

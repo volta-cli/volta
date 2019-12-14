@@ -3,7 +3,6 @@ use std::rc::Rc;
 
 use super::{Image, PlatformSpec};
 use crate::session::Session;
-use crate::tool::NodeVersion;
 use semver::Version;
 use volta_fail::Fallible;
 
@@ -80,8 +79,12 @@ impl SourcedImage {
         self.image.path()
     }
 
-    pub fn node(&self) -> &NodeVersion {
+    pub fn node(&self) -> &Version {
         &self.image.node
+    }
+
+    pub fn npm(&self) -> &Version {
+        &self.image.npm
     }
 
     pub fn yarn(&self) -> Option<&Version> {

@@ -274,26 +274,6 @@ fn pin_node_no_version() {
 }
 
 #[test]
-fn pin_node_removes_npm() {
-    // Pinning Node will set the pinned version of npm to the default for that version, so it will be omitted
-    let s = sandbox()
-        .package_json(&package_json_with_pinned_node_npm("6.19.62", "3.9.1"))
-        .node_available_versions(NODE_VERSION_INFO)
-        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .build();
-
-    assert_that!(
-        s.volta("pin node@8"),
-        execs().with_status(ExitCode::Success as i32)
-    );
-
-    assert_eq!(
-        s.read_package_json(),
-        package_json_with_pinned_node("8.9.10"),
-    )
-}
-
-#[test]
 fn pin_yarn_no_node() {
     let s = sandbox()
         .package_json(BASIC_PACKAGE_JSON)
