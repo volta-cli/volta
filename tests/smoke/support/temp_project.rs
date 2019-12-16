@@ -325,13 +325,12 @@ impl TempProject {
     }
 
     /// Verify that the input Node version has been installed.
-    pub fn assert_node_version_is_installed(&self, version: &str, npm_version: &str) -> () {
+    pub fn assert_node_version_is_installed(&self, version: &str) -> () {
         let default_platform = default_platform_file(self.root());
         let platform_contents = read_file_to_string(default_platform);
         let json_contents: serde_json::Value =
             serde_json::from_str(&platform_contents).expect("could not parse platform.json");
         assert_eq!(json_contents["node"]["runtime"], version);
-        assert_eq!(json_contents["node"]["npm"], npm_version);
     }
 
     /// Verify that the input Yarn version has been fetched.
