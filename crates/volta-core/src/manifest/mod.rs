@@ -7,9 +7,8 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use crate::error::ErrorDetails;
-use crate::platform::PlatformSpec;
+use crate::platform::ProjectPlatformSpec;
 use detect_indent;
-use semver::Version;
 use serde::Serialize;
 use serde_json;
 use volta_fail::{Fallible, ResultExt};
@@ -19,7 +18,7 @@ pub(crate) mod serial;
 /// A Node manifest file.
 pub struct Manifest {
     /// The platform image specified by the `volta` section.
-    pub platform: Option<Rc<PlatformSpec>>,
+    pub platform: Option<Rc<ProjectPlatformSpec>>,
     /// The `dependencies` section.
     pub dependencies: HashMap<String, String>,
     /// The `devDependencies` section.
@@ -43,7 +42,7 @@ impl Manifest {
     }
 
     /// Returns a reference to the platform image specified by manifest, if any.
-    pub fn platform(&self) -> Option<Rc<PlatformSpec>> {
+    pub fn platform(&self) -> Option<Rc<ProjectPlatformSpec>> {
         self.platform.as_ref().cloned()
     }
 
@@ -56,18 +55,8 @@ impl Manifest {
             .collect()
     }
 
-    /// Returns the pinned version of Node as a Version, if any.
-    pub fn node(&self) -> Option<Version> {
-        self.platform().map(|t| t.node_runtime.clone())
-    }
-
-    /// Returns the pinned verison of Yarn as a Version, if any.
-    pub fn yarn(&self) -> Option<Version> {
-        self.platform().map(|t| t.yarn.clone()).unwrap_or(None)
-    }
-
     /// Updates the pinned platform information
-    pub fn update_platform(&mut self, platform: PlatformSpec) {
+    pub fn update_platform(&mut self, platform: ProjectPlatformSpec) {
         self.platform = Some(Rc::new(platform));
     }
 

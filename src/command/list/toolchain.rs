@@ -5,9 +5,8 @@ use semver::Version;
 
 use super::{Filter, Node, Package, PackageManager, Source};
 use crate::command::list::PackageManagerKind;
-use volta_core::{
-    inventory::Inventory, platform::PlatformSpec, project::Project, tool::PackageConfig,
-};
+use volta_core::platform::{DefaultPlatformSpec, PlatformSpec};
+use volta_core::{inventory::Inventory, project::Project, tool::PackageConfig};
 use volta_fail::Fallible;
 
 pub(super) enum Toolchain {
@@ -39,17 +38,20 @@ enum Lookup {
 }
 
 impl Lookup {
-    fn version_from_spec(self) -> impl Fn(Rc<PlatformSpec>) -> Option<Version> {
+    fn version_from_spec<S>(self) -> impl Fn(Rc<S>) -> Option<Version>
+    where
+        S: PlatformSpec,
+    {
         move |spec| match self {
-            Lookup::Runtime => Some(spec.node_runtime.clone()),
-            Lookup::Yarn => spec.yarn.clone(),
+            Lookup::Runtime => Some(spec.node().value.clone()),
+            Lookup::Yarn => spec.yarn().map(|y| y.value.clone()),
         }
     }
 
     fn version_source<'p>(
         self,
         project: Option<&'p Project>,
-        default_platform: &Option<Rc<PlatformSpec>>,
+        default_platform: &Option<Rc<DefaultPlatformSpec>>,
         version: &Version,
     ) -> Source {
         match project {
@@ -81,7 +83,7 @@ impl Lookup {
     fn active_tool(
         self,
         project: Option<&Project>,
-        default: &Option<Rc<PlatformSpec>>,
+        default: &Option<Rc<DefaultPlatformSpec>>,
     ) -> Option<(Source, Version)> {
         match project {
             Some(project) => project
@@ -117,7 +119,7 @@ fn tool_source(name: &str, version: &Version, project: Option<&Project>) -> Fall
 impl Toolchain {
     pub(super) fn active(
         project: Option<&Project>,
-        default_platform: &Option<Rc<PlatformSpec>>,
+        default_platform: &Option<Rc<DefaultPlatformSpec>>,
         inventory: &Inventory,
     ) -> Fallible<Toolchain> {
         let runtime = Lookup::Runtime
@@ -146,7 +148,7 @@ impl Toolchain {
 
     pub(super) fn all(
         project: Option<&Project>,
-        default_platform: &Option<Rc<PlatformSpec>>,
+        default_platform: &Option<Rc<DefaultPlatformSpec>>,
         inventory: &Inventory,
     ) -> Fallible<Toolchain> {
         let runtimes = inventory
@@ -182,7 +184,7 @@ impl Toolchain {
     pub(super) fn node(
         inventory: &Inventory,
         project: Option<&Project>,
-        default_platform: &Option<Rc<PlatformSpec>>,
+        default_platform: &Option<Rc<DefaultPlatformSpec>>,
         filter: &Filter,
     ) -> Toolchain {
         let runtimes = inventory
@@ -206,7 +208,7 @@ impl Toolchain {
     pub(super) fn yarn(
         inventory: &Inventory,
         project: Option<&Project>,
-        default_platform: &Option<Rc<PlatformSpec>>,
+        default_platform: &Option<Rc<DefaultPlatformSpec>>,
         filter: &Filter,
     ) -> Toolchain {
         let yarns = inventory

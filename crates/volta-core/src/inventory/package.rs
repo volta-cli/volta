@@ -10,7 +10,6 @@ use volta_fail::Fallible;
 // Convenience for access as `package::Collection`
 pub use PackageCollection as Collection;
 
-#[derive(Clone)]
 pub struct PackageCollection(BTreeSet<PackageConfig>);
 
 impl PackageCollection {

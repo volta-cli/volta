@@ -9,13 +9,11 @@ use std::rc::Rc;
 use crate::event::EventLog;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
 use crate::inventory::{Inventory, LazyInventory};
-use crate::platform::{PlatformSpec, SourcedPlatformSpec};
+use crate::platform::{DefaultPlatformSpec, PlatformSpec, ProjectPlatformSpec};
 use crate::project::{LazyProject, Project};
-use crate::tool::{Node, Yarn};
 use crate::toolchain::{LazyToolchain, Toolchain};
 
 use log::debug;
-use semver::Version;
 use volta_fail::{ExitCode, Fallible, VoltaError};
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
@@ -116,36 +114,31 @@ impl Session {
     /// - If it exists but doesn't have a Yarn version, then we merge the two,
     ///   pulling Yarn from the user default platform, if available
     /// - If there is no Project platform, then we use the user Default Platform
-    pub fn current_platform(&self) -> Fallible<Option<SourcedPlatformSpec>> {
-        if let Some(platform) = self.project_platform()? {
-            if platform.yarn.is_some() {
-                Ok(Some(SourcedPlatformSpec::project(platform)))
-            } else {
-                let default_yarn = self.default_platform()?.and_then(|p| p.yarn.clone());
-                let merged = Rc::new(PlatformSpec {
-                    node_runtime: platform.node_runtime.clone(),
-                    npm: platform.npm.clone(),
-                    yarn: default_yarn,
-                });
-                Ok(Some(SourcedPlatformSpec::merged(merged)))
+    pub fn current_platform(&self) -> Fallible<Option<Rc<dyn PlatformSpec>>> {
+        match self.project_platform()? {
+            Some(platform) => {
+                if platform.yarn.is_none() {
+                    if let Some(default) = self.default_platform()? {
+                        return Ok(Some(platform.merge(default)));
+                    }
+                }
+                Ok(Some(platform))
             }
-        } else if let Some(platform) = self.default_platform()? {
-            Ok(Some(SourcedPlatformSpec::default(platform)))
-        } else {
-            Ok(None)
+            None => match self.default_platform()? {
+                Some(platform) => Ok(Some(platform)),
+                None => Ok(None),
+            },
         }
     }
 
     /// Returns the user's default platform, if any
-    pub fn default_platform(&self) -> Fallible<Option<Rc<PlatformSpec>>> {
+    pub fn default_platform(&self) -> Fallible<Option<Rc<DefaultPlatformSpec>>> {
         let toolchain = self.toolchain.get()?;
-        Ok(toolchain
-            .platform_ref()
-            .map(|platform| Rc::new(platform.clone())))
+        Ok(toolchain.platform())
     }
 
     /// Returns the current project's pinned platform image, if any.
-    pub fn project_platform(&self) -> Fallible<Option<Rc<PlatformSpec>>> {
+    pub fn project_platform(&self) -> Fallible<Option<Rc<ProjectPlatformSpec>>> {
         if let Some(ref project) = self.project()? {
             return Ok(project.platform());
         }
@@ -175,28 +168,6 @@ impl Session {
     /// Produces a reference to the hook configuration
     pub fn hooks(&self) -> Fallible<&HookConfig> {
         self.hooks.get()
-    }
-
-    /// Ensures that a specific Node version has been fetched and unpacked
-    pub(crate) fn ensure_node(&mut self, version: &Version) -> Fallible<()> {
-        let inventory = self.inventory.get_mut()?;
-
-        if !inventory.node.versions.contains(version) {
-            Node::new(version.clone()).fetch_internal(self)?;
-        }
-
-        Ok(())
-    }
-
-    /// Ensures that a specific Yarn version has been fetched and unpacked
-    pub(crate) fn ensure_yarn(&mut self, version: &Version) -> Fallible<()> {
-        let inventory = self.inventory.get_mut()?;
-
-        if !inventory.yarn.versions.contains(version) {
-            Yarn::new(version.clone()).fetch_internal(self)?;
-        }
-
-        Ok(())
     }
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {

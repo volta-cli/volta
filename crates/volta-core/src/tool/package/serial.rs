@@ -149,7 +149,7 @@ impl TryFrom<RawPackageConfig> for PackageConfig {
     fn try_from(raw: RawPackageConfig) -> Fallible<PackageConfig> {
         let platform = raw
             .platform
-            .into_platform()?
+            .into_binary_platform()
             .ok_or(ErrorDetails::NoBinPlatform {
                 binary: raw.name.clone(),
             })?;
@@ -239,7 +239,7 @@ impl TryFrom<RawBinConfig> for BinConfig {
     fn try_from(raw: RawBinConfig) -> Fallible<BinConfig> {
         let platform = raw
             .platform
-            .into_platform()?
+            .into_binary_platform()
             .ok_or(ErrorDetails::NoBinPlatform {
                 binary: raw.name.clone(),
             })?;

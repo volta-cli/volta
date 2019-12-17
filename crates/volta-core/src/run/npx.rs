@@ -1,10 +1,8 @@
 use std::ffi::{OsStr, OsString};
 
-use super::ToolCommand;
+use super::{debug_tool_message, ToolCommand};
 use crate::error::ErrorDetails;
-use crate::platform::Source;
 use crate::session::{ActivityKind, Session};
-use crate::style::tool_version;
 use crate::version::parse_version;
 
 use log::debug;
@@ -23,19 +21,14 @@ where
             // npx was only included with npm 5.2.0 and higher. If the npm version is less than that, we
             // should include a helpful error message
             let required_npm = parse_version("5.2.0")?;
-            if image.node().npm >= required_npm {
-                let source = match image.source() {
-                    Source::Project | Source::ProjectNodeDefaultYarn => "project",
-                    Source::Default => "default",
-                };
-                let version = tool_version("npx", &image.node().npm);
-                debug!("Using {} from {} configuration", version, source);
-
+            if image.npm.value >= required_npm {
                 let path = image.path()?;
+
+                debug_tool_message("npx", image.npm);
                 Ok(ToolCommand::direct(OsStr::new("npx"), args, &path))
             } else {
                 Err(ErrorDetails::NpxNotAvailable {
-                    version: image.node().npm.to_string(),
+                    version: image.npm.value.to_string(),
                 }
                 .into())
             }

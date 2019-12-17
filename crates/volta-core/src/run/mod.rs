@@ -8,9 +8,12 @@ use std::process::{Command, ExitStatus, Output};
 
 use crate::command::create_command;
 use crate::error::ErrorDetails;
-use crate::platform::System;
+use crate::platform::{Sourced, System};
 use crate::session::Session;
 use crate::signal::pass_control_to_shim;
+use crate::style::tool_version;
+use cfg_if::cfg_if;
+use log::debug;
 use volta_fail::{throw, Fallible, ResultExt};
 
 pub mod binary;
@@ -55,6 +58,17 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
 
     pass_control_to_shim();
     command.status()
+}
+
+fn debug_tool_message<T>(tool: &str, version: Sourced<T>)
+where
+    T: std::fmt::Display + Sized,
+{
+    debug!(
+        "Using {} from {} configuration",
+        tool_version(tool, &version.value),
+        version.source,
+    )
 }
 
 /// Represents the command to execute a tool

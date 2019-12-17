@@ -14,7 +14,7 @@ use crate::command::create_command;
 use crate::error::ErrorDetails;
 use crate::layout::volta_home;
 use crate::manifest::BinManifest;
-use crate::platform::{Image, PlatformSpec};
+use crate::platform::{BinaryPlatformSpec, Image, PlatformSpec};
 use crate::session::Session;
 use crate::shim;
 use crate::style::{progress_spinner, tool_version};
@@ -58,14 +58,14 @@ lazy_static! {
 ///     "cowthink"
 ///   ]
 /// }
-#[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Debug)]
+#[derive(PartialOrd, Ord, PartialEq, Eq)]
 pub struct PackageConfig {
     /// The package name
     pub name: String,
     /// The package version
     pub version: Version,
     /// The platform used to install this package
-    pub platform: PlatformSpec,
+    pub platform: BinaryPlatformSpec,
     /// The binaries installed by this package
     pub bins: Vec<String>,
 }
@@ -103,7 +103,7 @@ pub struct BinConfig {
     /// The relative path of the binary in the installed package
     pub path: String,
     /// The platform used to install this binary
-    pub platform: PlatformSpec,
+    pub platform: BinaryPlatformSpec,
     /// The loader information for the script, if any
     pub loader: Option<BinLoader>,
 }
@@ -129,12 +129,12 @@ pub fn install(
     let display = tool_version(name, version);
 
     let engine = determine_engine(&package_dir, &display)?;
-    let platform = PlatformSpec {
-        node_runtime: Spec::Node(engine).resolve(session)?.into(),
+    let platform = BinaryPlatformSpec {
+        node: Spec::Node(engine).resolve(session)?.into(),
         npm: None,
         yarn: None,
     };
-    let image = platform.clone().checkout(session)?;
+    let image = platform.checkout(session)?;
 
     install_dependencies(&package_dir, image, &display)?;
     write_configs(name, version, &platform, &bin_map)?;
@@ -164,7 +164,7 @@ fn determine_engine(package_dir: &Path, display: &str) -> Fallible<VersionSpec> 
 fn write_configs(
     name: &str,
     version: &Version,
-    platform: &PlatformSpec,
+    platform: &BinaryPlatformSpec,
     bins: &HashMap<String, String>,
 ) -> Fallible<()> {
     super::serial::RawPackageConfig::from(PackageConfig {
