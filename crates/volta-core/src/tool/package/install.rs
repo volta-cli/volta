@@ -12,7 +12,7 @@ use crate::command::create_command;
 use crate::error::ErrorDetails;
 use crate::layout::volta_home;
 use crate::manifest::BinManifest;
-use crate::platform::{Image, PlatformSpec};
+use crate::platform::{Image, PlatformSpec, SourcedVersion};
 use crate::session::Session;
 use crate::shim;
 use crate::style::{progress_spinner, tool_version};
@@ -46,7 +46,7 @@ use volta_fail::{throw, Fallible, ResultExt};
 ///     "cowthink"
 ///   ]
 /// }
-#[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Debug)]
+#[derive(PartialOrd, Ord, PartialEq, Eq)]
 pub struct PackageConfig {
     /// The package name
     pub name: String,
@@ -118,11 +118,11 @@ pub fn install(
 
     let engine = determine_engine(&package_dir, &display)?;
     let platform = PlatformSpec {
-        node_runtime: Spec::Node(engine).resolve(session)?.into(),
+        node: SourcedVersion::binary(Spec::Node(engine).resolve(session)?.into()),
         npm: None,
         yarn: None,
     };
-    let image = platform.clone().checkout(session)?;
+    let image = platform.checkout(session)?;
 
     install_dependencies(&package_dir, image, &display)?;
     write_configs(name, version, &platform, &bin_map)?;

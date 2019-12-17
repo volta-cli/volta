@@ -6,8 +6,9 @@ use std::ops::{Deref, DerefMut};
 use std::path::Path;
 use std::rc::Rc;
 
-use super::super::{manifest, platform};
+use crate::platform::SourcedVersion;
 use crate::version::parse_version;
+use crate::{manifest, platform};
 use log::warn;
 use serde;
 use serde::de::{Deserialize, Deserializer, Error, MapAccess, Visitor};
@@ -149,14 +150,14 @@ impl Manifest {
 
         if let Some(toolchain) = &toolchain {
             return Ok(Some(platform::PlatformSpec {
-                node_runtime: parse_version(&toolchain.node)?,
+                node: SourcedVersion::project(parse_version(&toolchain.node)?),
                 npm: if let Some(npm) = &toolchain.npm {
-                    Some(parse_version(&npm)?)
+                    Some(SourcedVersion::project(parse_version(&npm)?))
                 } else {
                     None
                 },
                 yarn: if let Some(yarn) = &toolchain.yarn {
-                    Some(parse_version(&yarn)?)
+                    Some(SourcedVersion::project(parse_version(&yarn)?))
                 } else {
                     None
                 },
@@ -191,9 +192,9 @@ impl From<RawBinManifest> for super::BinManifest {
 impl From<Rc<platform::PlatformSpec>> for ToolchainSpec {
     fn from(source: Rc<platform::PlatformSpec>) -> Self {
         ToolchainSpec {
-            node: source.node_runtime.to_string(),
-            npm: source.npm.as_ref().map(|v| v.to_string()),
-            yarn: source.yarn.as_ref().map(|v| v.to_string()),
+            node: source.node.version.to_string(),
+            npm: source.npm.as_ref().map(|n| n.version.to_string()),
+            yarn: source.yarn.as_ref().map(|y| y.version.to_string()),
         }
     }
 }

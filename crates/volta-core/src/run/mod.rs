@@ -10,10 +10,12 @@ use crate::command::create_command;
 use crate::error::ErrorDetails;
 #[cfg(not(feature = "volta-updates"))]
 use crate::layout::ensure_volta_dirs_exist;
-use crate::platform::System;
+use crate::platform::{SourcedVersion, System};
 use crate::session::Session;
 use crate::signal::pass_control_to_shim;
+use crate::style::tool_version;
 use cfg_if::cfg_if;
+use log::debug;
 #[cfg(feature = "volta-updates")]
 use volta_fail::throw;
 use volta_fail::{Fallible, ResultExt};
@@ -70,6 +72,14 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
 
     pass_control_to_shim();
     command.status()
+}
+
+fn debug_tool_message(tool: &str, version: &SourcedVersion) {
+    debug!(
+        "Using {} from {} configuration",
+        tool_version(tool, &version.version),
+        version.source
+    );
 }
 
 /// Represents the command to execute a tool

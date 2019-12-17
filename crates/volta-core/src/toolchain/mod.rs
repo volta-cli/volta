@@ -1,4 +1,5 @@
 use std::fs::write;
+use std::rc::Rc;
 
 use lazycell::LazyCell;
 use readext::ReadExt;
@@ -7,7 +8,7 @@ use semver::Version;
 use crate::error::ErrorDetails;
 use crate::fs::touch;
 use crate::layout::volta_home;
-use crate::platform::PlatformSpec;
+use crate::platform::{PlatformSpec, SourcedVersion};
 
 use log::debug;
 use volta_fail::{Fallible, ResultExt};
@@ -39,7 +40,7 @@ impl LazyToolchain {
 }
 
 pub struct Toolchain {
-    platform: Option<PlatformSpec>,
+    platform: Option<Rc<PlatformSpec>>,
 }
 
 impl Toolchain {
@@ -51,32 +52,38 @@ impl Toolchain {
                 file: path.to_owned(),
             })?;
 
-        let platform = serial::Platform::from_json(src)?.into_platform()?;
+        let platform = serial::Platform::from_json(src)?
+            .into_platform()?
+            .map(Rc::new);
         if platform.is_some() {
             debug!("Found default configuration at '{}'", path.display());
         }
         Ok(Toolchain { platform })
     }
 
-    pub fn platform_ref(&self) -> Option<&PlatformSpec> {
-        self.platform.as_ref()
+    pub fn platform(&self) -> Option<Rc<PlatformSpec>> {
+        self.platform.clone()
     }
 
     /// Set the active Node version in the default platform file.
     pub fn set_active_node(&mut self, node_version: &Version) -> Fallible<()> {
         let mut dirty = false;
 
-        if let Some(ref mut platform) = self.platform {
-            if platform.node_runtime != *node_version {
-                platform.node_runtime = node_version.clone();
+        if let Some(platform) = &self.platform {
+            if platform.node.version != *node_version {
+                self.platform = Some(Rc::new(PlatformSpec {
+                    node: SourcedVersion::default(node_version.clone()),
+                    npm: platform.npm.clone(),
+                    yarn: platform.yarn.clone(),
+                }));
                 dirty = true;
             }
         } else {
-            self.platform = Some(PlatformSpec {
-                node_runtime: node_version.clone(),
+            self.platform = Some(Rc::new(PlatformSpec {
+                node: SourcedVersion::default(node_version.clone()),
                 npm: None,
                 yarn: None,
-            });
+            }));
             dirty = true;
         }
 
@@ -89,37 +96,30 @@ impl Toolchain {
 
     /// Set the active Yarn version in the default platform file.
     pub fn set_active_yarn(&mut self, yarn_version: &Version) -> Fallible<()> {
-        let mut dirty = false;
-
-        if let Some(ref mut platform) = self.platform {
-            if platform.yarn.as_ref() != Some(yarn_version) {
-                platform.yarn = Some(yarn_version.clone());
-                dirty = true;
+        if let Some(platform) = &self.platform {
+            if platform.yarn.as_ref().map(|y| &y.version) != Some(yarn_version) {
+                self.platform = Some(Rc::new(PlatformSpec {
+                    node: platform.node.clone(),
+                    npm: platform.npm.clone(),
+                    yarn: Some(SourcedVersion::default(yarn_version.clone())),
+                }));
+                self.save()?;
             }
         }
-
-        if dirty {
-            self.save()?;
-        }
-
         Ok(())
     }
 
     /// Set the active Npm version in the default platform file.
     pub fn set_active_npm(&mut self, npm_version: &Version) -> Fallible<()> {
-        let mut dirty = false;
-
-        if let Some(ref mut platform) = self.platform {
-            if let Some(ref npm) = &platform.npm {
-                if npm != npm_version {
-                    platform.npm = Some(npm_version.clone());
-                    dirty = true;
-                }
+        if let Some(platform) = &self.platform {
+            if platform.npm.as_ref().map(|n| &n.version) != Some(npm_version) {
+                self.platform = Some(Rc::new(PlatformSpec {
+                    node: platform.node.clone(),
+                    npm: Some(SourcedVersion::default(npm_version.clone())),
+                    yarn: platform.yarn.clone(),
+                }));
+                self.save()?;
             }
-        }
-
-        if dirty {
-            self.save()?;
         }
 
         Ok(())

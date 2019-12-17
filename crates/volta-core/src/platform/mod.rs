@@ -1,5 +1,6 @@
 use std::env::JoinPathsError;
 use std::ffi::OsString;
+use std::fmt;
 use std::path::PathBuf;
 
 use envoy;
@@ -8,62 +9,144 @@ use semver::Version;
 use crate::error::ErrorDetails;
 use crate::layout::{env_paths, volta_home};
 use crate::session::Session;
-use crate::tool::load_default_npm_version;
+use crate::tool::{load_default_npm_version, Node, Yarn};
 use volta_fail::{Fallible, ResultExt};
 
-pub mod sourced;
-pub use self::sourced::{Source, SourcedImage, SourcedPlatformSpec};
+/// The source with which a version is associated
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Source {
+    /// Represents a version from the user default platform
+    Default,
+
+    /// Represents a version from a project manifest
+    Project,
+
+    /// Represents a version from a pinned Binary platform
+    Binary,
+}
+
+impl fmt::Display for Source {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Source::Default => write!(f, "default"),
+            Source::Project => write!(f, "project"),
+            Source::Binary => write!(f, "binary"),
+        }
+    }
+}
+
+/// A version tagged with its source
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SourcedVersion {
+    pub version: Version,
+    pub source: Source,
+}
+
+impl SourcedVersion {
+    pub fn default(version: Version) -> Self {
+        SourcedVersion {
+            version,
+            source: Source::Default,
+        }
+    }
+
+    pub fn project(version: Version) -> Self {
+        SourcedVersion {
+            version,
+            source: Source::Project,
+        }
+    }
+
+    pub fn binary(version: Version) -> Self {
+        SourcedVersion {
+            version,
+            source: Source::Binary,
+        }
+    }
+}
 
 /// A specification of tool versions needed for a platform
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PlatformSpec {
-    /// The pinned version of Node.
-    pub node_runtime: Version,
-    /// The pinned version of npm, if any.
-    pub npm: Option<Version>,
-    /// The pinned version of Yarn, if any.
-    pub yarn: Option<Version>,
+    /// The pinned version of Node
+    pub node: SourcedVersion,
+    /// The pinned version of npm, if any
+    pub npm: Option<SourcedVersion>,
+    /// The pinned version of Yarn, if any
+    pub yarn: Option<SourcedVersion>,
 }
 
 impl PlatformSpec {
     pub fn checkout(&self, session: &mut Session) -> Fallible<Image> {
-        session.ensure_node(&self.node_runtime)?;
+        ensure_node(&self.node.version, session)?;
 
-        if let Some(ref yarn_version) = self.yarn {
-            session.ensure_yarn(yarn_version)?;
+        if let Some(yarn) = &self.yarn {
+            ensure_yarn(&yarn.version, session)?;
         }
 
         Ok(Image {
-            node: self.node_runtime.clone(),
-            npm: match self.npm {
-                Some(ref version) => version.clone(),
-                None => load_default_npm_version(&self.node_runtime)?,
+            node: self.node.clone(),
+            npm: match &self.npm {
+                Some(npm) => npm.clone(),
+                None => SourcedVersion {
+                    version: load_default_npm_version(&self.node.version)?,
+                    source: self.node.source,
+                },
             },
             yarn: self.yarn.clone(),
         })
     }
+
+    pub fn merge(&self, other: &Self) -> Self {
+        PlatformSpec {
+            node: self.node.clone(),
+            npm: self.npm.as_ref().cloned().or_else(|| other.npm.clone()),
+            yarn: self.yarn.as_ref().cloned().or_else(|| other.yarn.clone()),
+        }
+    }
 }
 
-/// A platform image.
-#[derive(Clone, Debug)]
+/// Ensures that a specific Node version has been fetched and unpacked
+fn ensure_node(version: &Version, session: &mut Session) -> Fallible<()> {
+    let inventory = session.inventory()?;
+
+    if !inventory.node.versions.contains(version) {
+        Node::new(version.clone()).fetch_internal(session)?;
+    }
+
+    Ok(())
+}
+
+/// Ensures that a specific Yarn version has been fetched and unpacked
+fn ensure_yarn(version: &Version, session: &mut Session) -> Fallible<()> {
+    let inventory = session.inventory()?;
+
+    if !inventory.yarn.versions.contains(version) {
+        Yarn::new(version.clone()).fetch_internal(session)?;
+    }
+
+    Ok(())
+}
+
+/// A platform image
 pub struct Image {
-    /// The pinned version of Node.
-    pub node: Version,
-    /// The pinned version of npm.
-    pub npm: Version,
-    /// The pinned version of Yarn, if any.
-    pub yarn: Option<Version>,
+    /// The selected version of Node
+    pub node: SourcedVersion,
+    /// The resolved version of npm (either bundled or custom)
+    pub npm: SourcedVersion,
+    /// The selected version of Yarn, if any
+    pub yarn: Option<SourcedVersion>,
 }
 
 impl Image {
     fn bins(&self) -> Fallible<Vec<PathBuf>> {
         let home = volta_home()?;
-        let node_str = self.node.to_string();
-        let npm_str = self.npm.to_string();
+        let node_str = self.node.version.to_string();
+        let npm_str = self.npm.version.to_string();
         // ISSUE(#292): Install npm, and handle using that
         let mut bins = vec![home.node_image_bin_dir(&node_str, &npm_str)];
-        if let Some(ref yarn) = self.yarn {
-            let yarn_str = yarn.to_string();
+        if let Some(yarn) = &self.yarn {
+            let yarn_str = yarn.version.to_string();
             bins.push(home.yarn_image_bin_dir(&yarn_str));
         }
         Ok(bins)
@@ -185,8 +268,8 @@ mod test {
         let v643 = Version::parse("6.4.3").unwrap();
 
         let no_yarn_image = Image {
-            node: v123.clone(),
-            npm: v643.clone(),
+            node: SourcedVersion::default(v123.clone()),
+            npm: SourcedVersion::default(v643.clone()),
             yarn: None,
         };
 
@@ -196,9 +279,9 @@ mod test {
         );
 
         let with_yarn_image = Image {
-            node: v123.clone(),
-            npm: v643.clone(),
-            yarn: Some(v457.clone()),
+            node: SourcedVersion::default(v123.clone()),
+            npm: SourcedVersion::default(v643.clone()),
+            yarn: Some(SourcedVersion::default(v457.clone())),
         };
 
         assert_eq!(
@@ -255,8 +338,8 @@ mod test {
         let v643 = Version::parse("6.4.3").unwrap();
 
         let no_yarn_image = Image {
-            node: v123.clone(),
-            npm: v643.clone(),
+            node: SourcedVersion::default(v123.clone()),
+            npm: SourcedVersion::default(v643.clone()),
             yarn: None,
         };
 
@@ -266,9 +349,9 @@ mod test {
         );
 
         let with_yarn_image = Image {
-            node: v123.clone(),
-            npm: v643.clone(),
-            yarn: Some(v457.clone()),
+            node: SourcedVersion::default(v123.clone()),
+            npm: SourcedVersion::default(v643.clone()),
+            yarn: Some(SourcedVersion::default(v457.clone())),
         };
 
         assert_eq!(

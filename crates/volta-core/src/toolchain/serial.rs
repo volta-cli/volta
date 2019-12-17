@@ -1,6 +1,5 @@
-use crate::platform::PlatformSpec;
-
 use crate::error::ErrorDetails;
+use crate::platform::{PlatformSpec, SourcedVersion};
 use crate::version::{option_version_serde, version_serde};
 use volta_fail::{Fallible, ResultExt};
 
@@ -27,10 +26,10 @@ pub struct Platform {
 
 impl Platform {
     pub fn into_platform(self) -> Fallible<Option<PlatformSpec>> {
-        let yarn = self.yarn;
+        let yarn = self.yarn.map(SourcedVersion::default);
         Ok(self.node.map(|node_version| PlatformSpec {
-            node_runtime: node_version.runtime,
-            npm: node_version.npm,
+            node: SourcedVersion::default(node_version.runtime),
+            npm: node_version.npm.map(SourcedVersion::default),
             yarn,
         }))
     }
@@ -56,10 +55,10 @@ impl PlatformSpec {
     pub fn to_serial(&self) -> Platform {
         Platform {
             node: Some(NodeVersion {
-                runtime: self.node_runtime.clone(),
-                npm: self.npm.clone(),
+                runtime: self.node.version.clone(),
+                npm: self.npm.as_ref().map(|n| n.version.clone()),
             }),
-            yarn: self.yarn.clone(),
+            yarn: self.yarn.as_ref().map(|y| y.version.clone()),
         }
     }
 }
@@ -110,9 +109,15 @@ pub mod tests {
     #[test]
     fn test_into_json() {
         let platform = platform::PlatformSpec {
-            yarn: Some(Version::parse("1.2.3").expect("could not parse version")),
-            node_runtime: Version::parse("4.5.6").expect("could not parse version"),
-            npm: Some(Version::parse("7.8.9").expect("could not parse version")),
+            yarn: Some(platform::SourcedVersion::default(
+                Version::parse("1.2.3").expect("could not parse version"),
+            )),
+            node: platform::SourcedVersion::default(
+                Version::parse("4.5.6").expect("could not parse version"),
+            ),
+            npm: Some(platform::SourcedVersion::default(
+                Version::parse("7.8.9").expect("could not parse version"),
+            )),
         };
         let json_str = platform
             .to_serial()

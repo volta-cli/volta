@@ -14,7 +14,7 @@ use semver::Version;
 use crate::error::ErrorDetails;
 use crate::layout::volta_home;
 use crate::manifest::Manifest;
-use crate::platform::PlatformSpec;
+use crate::platform::{PlatformSpec, SourcedVersion};
 use crate::tool::BinConfig;
 use log::debug;
 use volta_fail::{Fallible, ResultExt};
@@ -181,9 +181,9 @@ impl Project {
     /// Writes the specified version of Node to the `volta.node` key in package.json.
     pub fn pin_node(&mut self, node_version: &Version) -> Fallible<()> {
         let updated_platform = PlatformSpec {
-            node_runtime: node_version.clone(),
-            npm: self.manifest.npm(),
-            yarn: self.manifest.yarn(),
+            node: SourcedVersion::project(node_version.clone()),
+            npm: self.manifest.platform().and_then(|p| p.npm.clone()),
+            yarn: self.manifest.platform().and_then(|p| p.yarn.clone()),
         };
 
         self.manifest.update_platform(updated_platform);
@@ -194,9 +194,9 @@ impl Project {
     pub fn pin_yarn(&mut self, yarn_version: &Version) -> Fallible<()> {
         if let Some(platform) = self.manifest.platform() {
             let updated_platform = PlatformSpec {
-                node_runtime: platform.node_runtime.clone(),
+                node: platform.node.clone(),
                 npm: platform.npm.clone(),
-                yarn: Some(yarn_version.clone()),
+                yarn: Some(SourcedVersion::project(yarn_version.clone())),
             };
 
             self.manifest.update_platform(updated_platform);
@@ -210,9 +210,9 @@ impl Project {
     pub fn pin_npm(&mut self, npm_version: &Version) -> Fallible<()> {
         if let Some(platform) = self.manifest.platform() {
             let updated_platform = PlatformSpec {
-                node_runtime: platform.node_runtime.clone(),
-                npm: Some(npm_version.clone()),
-                yarn: self.manifest.yarn(),
+                node: platform.node.clone(),
+                npm: Some(SourcedVersion::project(npm_version.clone())),
+                yarn: platform.yarn.clone(),
             };
 
             self.manifest.update_platform(updated_platform);

@@ -9,7 +9,6 @@ use std::rc::Rc;
 use crate::error::ErrorDetails;
 use crate::platform::PlatformSpec;
 use detect_indent;
-use semver::Version;
 use serde::Serialize;
 use serde_json;
 use volta_fail::{Fallible, ResultExt};
@@ -44,7 +43,7 @@ impl Manifest {
 
     /// Returns a reference to the platform image specified by manifest, if any.
     pub fn platform(&self) -> Option<Rc<PlatformSpec>> {
-        self.platform.as_ref().cloned()
+        self.platform.clone()
     }
 
     /// Gets the names of all the direct dependencies in the manifest.
@@ -54,21 +53,6 @@ impl Manifest {
             .chain(self.dev_dependencies.iter())
             .map(|(name, _version)| name.clone())
             .collect()
-    }
-
-    /// Returns the pinned version of Node as a Version, if any.
-    pub fn node(&self) -> Option<Version> {
-        self.platform().map(|t| t.node_runtime.clone())
-    }
-
-    /// Returns the pinned version of npm as a Version, if any.
-    pub fn npm(&self) -> Option<Version> {
-        self.platform().and_then(|t| t.npm.clone())
-    }
-
-    /// Returns the pinned verison of Yarn as a Version, if any.
-    pub fn yarn(&self) -> Option<Version> {
-        self.platform().and_then(|t| t.yarn.clone())
     }
 
     /// Updates the pinned platform information

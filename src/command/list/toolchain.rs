@@ -41,8 +41,8 @@ enum Lookup {
 impl Lookup {
     fn version_from_spec(self) -> impl Fn(Rc<PlatformSpec>) -> Option<Version> {
         move |spec| match self {
-            Lookup::Runtime => Some(spec.node_runtime.clone()),
-            Lookup::Yarn => spec.yarn.clone(),
+            Lookup::Runtime => Some(spec.node.version.clone()),
+            Lookup::Yarn => spec.yarn.as_ref().map(|y| y.version.clone()),
         }
     }
 

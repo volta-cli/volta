@@ -1,11 +1,11 @@
 use std::env::args_os;
 use std::ffi::{OsStr, OsString};
+use std::rc::Rc;
 
-use super::{intercept_global_installs, CommandArg, ToolCommand};
+use super::{debug_tool_message, intercept_global_installs, CommandArg, ToolCommand};
 use crate::error::ErrorDetails;
-use crate::platform::{Source, SourcedPlatformSpec};
+use crate::platform::{PlatformSpec, Source};
 use crate::session::{ActivityKind, Session};
-use crate::style::tool_version;
 
 use log::debug;
 use volta_fail::{throw, Fallible};
@@ -25,12 +25,7 @@ where
             }
 
             // Note: If we've gotten this far, we know there is a yarn version set
-            let source = match platform.source() {
-                Source::Project => "project",
-                Source::Default | Source::ProjectNodeDefaultYarn => "default",
-            };
-            let version = tool_version("yarn", platform.yarn().unwrap());
-            debug!("Using {} from {} configuration", version, source);
+            debug_tool_message("yarn", platform.yarn.as_ref().unwrap());
 
             let image = platform.checkout(session)?;
             let path = image.path()?;
@@ -44,15 +39,13 @@ where
 }
 
 /// Determine the correct platform (project or default) and check if yarn is set for that platform
-fn get_yarn_platform(session: &mut Session) -> Fallible<Option<SourcedPlatformSpec>> {
+fn get_yarn_platform(session: &mut Session) -> Fallible<Option<Rc<PlatformSpec>>> {
     match session.current_platform()? {
-        Some(platform) => match platform.yarn() {
+        Some(platform) => match &platform.yarn {
             Some(_) => Ok(Some(platform)),
-            None => match platform.source() {
-                Source::Project | Source::ProjectNodeDefaultYarn => {
-                    Err(ErrorDetails::NoProjectYarn.into())
-                }
-                Source::Default => Err(ErrorDetails::NoDefaultYarn.into()),
+            None => match &platform.node.source {
+                Source::Project => Err(ErrorDetails::NoProjectYarn.into()),
+                Source::Default | Source::Binary => Err(ErrorDetails::NoDefaultYarn.into()),
             },
         },
         None => Ok(None),
