@@ -62,7 +62,7 @@
                 <Directory Id='INSTALLDIR' Name='Volta'>
                 </Directory>
             </Directory>
-            <Merge Id='VCRedist' SourceFile='wix\Microsoft_VC140_CRT_x64.msm' DiskId='1' Lanuage='0'/>
+            <Merge Id='VCRedist' SourceFile='wix\Microsoft_VC140_CRT_x64.msm' DiskId='1' Language='0'/>
         </Directory>
 
         <ComponentGroup Id='Binaries' Directory='INSTALLDIR'>
