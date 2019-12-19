@@ -1,5 +1,3 @@
-#![cfg(feature = "volta-updates")]
-
 mod common;
 
 use common::{ensure_layout, Error, IntoResult};

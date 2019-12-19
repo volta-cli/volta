@@ -82,11 +82,9 @@ fi || exit 1
 # then package the binaries and shell scripts together
 shell_script_dir="shell/unix"
 info 'Packaging' "the compiled binaries and shell scripts"
-# copy the load.* shell scripts to the target dir, to include them as well
-cp "$shell_script_dir"/load.* "$target_dir/"
 cd "$target_dir"
 # using COPYFILE_DISABLE to avoid storing extended attribute files when run on OSX
 # (see https://superuser.com/q/61185)
-COPYFILE_DISABLE=1 tar -czvf "$release_filename.tar.gz" volta shim load.*
+COPYFILE_DISABLE=1 tar -czvf "$release_filename.tar.gz" volta volta-shim volta-migrate
 
 info 'Completed' "release in file $target_dir/$release_filename.tar.gz"

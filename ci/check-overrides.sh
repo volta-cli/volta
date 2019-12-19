@@ -85,6 +85,3 @@ if [[ "$SYSTEM_PULLREQUEST_ISFORK" == "True" && "$docs" == "True" ]]; then
 else
     set_output_variable docs $docs
 fi
-
-updates=$(check_override "$commit_message" '[volta updates]')
-set_output_variable updates $updates
