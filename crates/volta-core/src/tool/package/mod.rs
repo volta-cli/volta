@@ -9,6 +9,7 @@ use crate::layout::volta_home;
 use crate::session::Session;
 use crate::shim;
 use crate::style::{success_prefix, tool_version};
+use dunce::canonicalize;
 use log::info;
 use semver::Version;
 use volta_fail::{Fallible, ResultExt};
@@ -30,14 +31,14 @@ pub fn bin_full_path<P>(
 where
     P: AsRef<Path>,
 {
-    // canonicalize because path is relative, and sometimes uses '.' char
-    volta_home()?
+    let raw_path = volta_home()?
         .package_image_dir(package, &version.to_string())
-        .join(bin_path)
-        .canonicalize()
-        .with_context(|_| ErrorDetails::ExecutablePathError {
-            command: bin_name.to_string(),
-        })
+        .join(bin_path);
+
+    // canonicalize because path is relative, and sometimes uses '.' char
+    canonicalize(raw_path).with_context(|_| ErrorDetails::ExecutablePathError {
+        command: bin_name.to_string(),
+    })
 }
 
 /// Details required for fetching a 3rd-party Package
