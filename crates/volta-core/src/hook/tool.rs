@@ -8,6 +8,7 @@ use crate::command::create_command;
 use crate::error::ErrorDetails;
 use crate::tool::{NODE_DISTRO_ARCH, NODE_DISTRO_OS};
 use cmdline_words_parser::StrExt;
+use dunce::canonicalize;
 use lazy_static::lazy_static;
 use log::debug;
 use semver::Version;
@@ -76,7 +77,7 @@ fn execute_binary(bin: &str, base_path: &Path, extra_arg: Option<String>) -> Fal
         Some(word) => {
             // Treat any path that starts with a './' or '../' as a relative path (using OS separator)
             if word.starts_with(REL_PATH.as_str()) || word.starts_with(REL_PATH_PARENT.as_str()) {
-                base_path.join(word).canonicalize().with_context(|_| {
+                canonicalize(base_path.join(word)).with_context(|_| {
                     ErrorDetails::HookPathError {
                         command: String::from(word),
                     }

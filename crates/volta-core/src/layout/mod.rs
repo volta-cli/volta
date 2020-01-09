@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use crate::error::ErrorDetails;
 use cfg_if::cfg_if;
 use double_checked_cell::DoubleCheckedCell;
+use dunce::canonicalize;
 use lazy_static::lazy_static;
 use volta_fail::{Fallible, ResultExt};
 use volta_layout::v1::{VoltaHome, VoltaInstall};
@@ -57,6 +58,6 @@ fn default_install_dir() -> Fallible<PathBuf> {
             path.pop(); // Remove the executable name from the path
             path
         })
-        .and_then(|path| path.canonicalize())
+        .and_then(canonicalize)
         .with_context(|_| ErrorDetails::NoInstallDir)
 }

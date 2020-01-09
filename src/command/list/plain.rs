@@ -49,12 +49,12 @@ pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
             Some(format!("{}\n{}", runtimes, package_managers))
         }
         (Some(runtimes), None, Some(packages)) => Some(format!("{}\n{}", runtimes, packages)),
-        (Some(runtimes), None, None) => Some(runtimes.to_string()),
+        (Some(runtimes), None, None) => Some(runtimes),
         (None, Some(package_managers), Some(packages)) => {
             Some(format!("{}\n{}", package_managers, packages))
         }
-        (None, Some(package_managers), None) => Some(package_managers.to_string()),
-        (None, None, Some(packages)) => Some(packages.to_string()),
+        (None, Some(package_managers), None) => Some(package_managers),
+        (None, None, Some(packages)) => Some(packages),
         (None, None, None) => None,
     }
 }
