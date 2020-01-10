@@ -111,7 +111,6 @@ impl Spec {
             .into()),
             Spec::Package(name, _) => {
                 package::uninstall(&name)?;
-                info!("{} package '{}' uninstalled", success_prefix(), name);
                 Ok(())
             }
         }
