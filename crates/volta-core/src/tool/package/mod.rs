@@ -137,38 +137,43 @@ impl Display for Package {
 /// * the shims
 /// * the unpacked and initialized package
 pub fn uninstall(name: &str) -> Fallible<()> {
+    let mut package_found = false;
     let home = volta_home()?;
+    // if the package config file exists, use that to remove any installed bins and shims
     let package_config_file = home.default_package_config_file(name);
-    let package_binary_file = binaries_from_package(name)?;
+    if package_config_file.exists() {
+        package_found = true;
+        let package_config = PackageConfig::from_file(&package_config_file)?;
 
-    if package_config_file.exists() || !package_binary_file.is_empty() {
-        // if the package config file exists, use that to remove any installed bins and shims
-        if package_config_file.exists() {
-            let package_config = PackageConfig::from_file(&package_config_file)?;
+        for bin_name in package_config.bins {
+            remove_config_and_shim(&bin_name, name)?;
+        }
 
-            for bin_name in package_config.bins {
-                remove_config_and_shim(&bin_name, name)?;
-            }
-
-            fs::remove_file(&package_config_file)
-                .with_context(delete_file_error(&package_config_file))?;
-
-            info!("{} package '{}' uninstalled", success_prefix(), name);
-        } else {
-            // there is no package config - check for orphaned binaries
-            for bin_name in package_binary_file {
+        fs::remove_file(&package_config_file)
+            .with_context(delete_file_error(&package_config_file))?;
+    } else {
+        // there is no package config - check for orphaned binaries
+        let package_binary_list = binaries_from_package(name)?;
+        if !package_binary_list.is_empty() {
+            package_found = true;
+            for bin_name in package_binary_list {
                 remove_config_and_shim(&bin_name, name)?;
             }
         }
-    } else {
-        warn!("No package '{}' found to uninstall.", name);
     }
+
     // if any unpacked and initialized packages exists, remove them
     let package_image_dir = home.package_image_root_dir().join(name);
     if package_image_dir.exists() {
         fs::remove_dir_all(&package_image_dir)
             .with_context(delete_dir_error(&package_image_dir))?;
     }
+
+    match package_found {
+        true => info!("{} package '{}' uninstalled", success_prefix(), name),
+        false => warn!("No package '{}' found to uninstall", name),
+    };
+
     Ok(())
 }
 
