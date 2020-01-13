@@ -170,10 +170,11 @@ pub fn uninstall(name: &str) -> Fallible<()> {
             .with_context(delete_dir_error(&package_image_dir))?;
     }
 
-    match package_found {
-        true => info!("{} package '{}' uninstalled", success_prefix(), name),
-        false => warn!("No package '{}' found to uninstall", name),
-    };
+    if package_found {
+        info!("{} package '{}' uninstalled", success_prefix(), name);
+    } else {
+        warn!("No package '{}' found to uninstall", name);
+    }
 
     Ok(())
 }
