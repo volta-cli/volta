@@ -1,3 +1,9 @@
+# Version 0.7.0
+
+- Removed deprecated commands `volta activate`, `volta deactivate`, and `volta current` (#620, #559)
+- Simplified installer behavior and added data directory migration support (#619)
+- Removed reliance on UNC paths when executing node scripts (#637)
+
 # Version 0.6.8
 
 - You can now use tagged versions when installing a tool with `volta install` (#604)
