@@ -10,7 +10,7 @@ use crate::session::Session;
 use crate::shim;
 use crate::style::{success_prefix, tool_version};
 use dunce::canonicalize;
-use log::info;
+use log::{info, warn};
 use semver::Version;
 use volta_fail::{Fallible, ResultExt};
 
@@ -140,7 +140,7 @@ pub fn uninstall(name: &str) -> Fallible<()> {
     let home = volta_home()?;
     // if the package config file exists, use that to remove any installed bins and shims
     let package_config_file = home.default_package_config_file(name);
-    if package_config_file.exists() {
+    let package_found = if package_config_file.exists() {
         let package_config = PackageConfig::from_file(&package_config_file)?;
 
         for bin_name in package_config.bins {
@@ -149,18 +149,31 @@ pub fn uninstall(name: &str) -> Fallible<()> {
 
         fs::remove_file(&package_config_file)
             .with_context(delete_file_error(&package_config_file))?;
+        true
     } else {
         // there is no package config - check for orphaned binaries
-        for bin_name in binaries_from_package(name)? {
-            remove_config_and_shim(&bin_name, name)?;
+        let package_binary_list = binaries_from_package(name)?;
+        if !package_binary_list.is_empty() {
+            for bin_name in package_binary_list {
+                remove_config_and_shim(&bin_name, name)?;
+            }
+            true
+        } else {
+            false
         }
-    }
+    };
 
     // if any unpacked and initialized packages exists, remove them
     let package_image_dir = home.package_image_root_dir().join(name);
     if package_image_dir.exists() {
         fs::remove_dir_all(&package_image_dir)
             .with_context(delete_dir_error(&package_image_dir))?;
+    }
+
+    if package_found {
+        info!("{} package '{}' uninstalled", success_prefix(), name);
+    } else {
+        warn!("No package '{}' found to uninstall", name);
     }
 
     Ok(())

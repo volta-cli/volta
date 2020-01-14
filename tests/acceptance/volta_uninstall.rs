@@ -62,7 +62,7 @@ fn uninstall_nonexistent_pkg() {
         s.volta("uninstall cowsay"),
         execs()
             .with_status(0)
-            .with_stdout_contains("[..]package 'cowsay' uninstalled")
+            .with_stderr_contains("[..]No package 'cowsay' found to uninstall")
     );
 }
 
