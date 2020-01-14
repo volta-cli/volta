@@ -86,7 +86,11 @@ upgrade_is_ok() {
   local install_dir="$2"
   local is_dev_install="$3"
 
+  # check for Volta in both the old location and the new 0.7.0 location
   local volta_bin="$install_dir/volta"
+  if [ ! -x "$volta_bin" ]; then
+    volta_bin="$install_dir/bin/volta"
+  fi
 
   # this is not able to install Volta prior to 0.5.0 (when it was renamed)
   if [[ "$will_install_version" =~ ^([0-9]+\.[0-9]+) ]]; then
@@ -220,6 +224,7 @@ create_tree() {
 install_version() {
   local version_to_install="$1"
   local install_dir="$2"
+  local should_run_setup="$3"
 
   if ! volta_home_is_ok; then
     exit 1
@@ -248,8 +253,12 @@ install_version() {
 
   if [ "$?" == 0 ]
   then
-      info 'Finished' "installation. Updating user profile settings."
-      "$install_dir"/bin/volta setup
+      if [ "$should_run_setup" == "true" ]; then
+        info 'Finished' "installation. Updating user profile settings."
+        "$install_dir"/bin/volta setup
+      else
+        info 'Finished' "installation. No changes were made to user profile settings."
+      fi
   fi
 }
 
@@ -385,6 +394,9 @@ return 0 2>/dev/null
 # default to installing the latest available version
 version_to_install="latest"
 
+# default to running setup after installing
+should_run_setup="true"
+
 # install to VOLTA_HOME, defaulting to ~/.volta
 install_dir="${VOLTA_HOME:-"$HOME/.volta"}"
 
@@ -411,6 +423,10 @@ do
       version_to_install="$1"
       shift # shift off the value
       ;;
+    --skip-setup)
+      shift # shift off the argument
+      should_run_setup="false"
+      ;;
     *)
       error "unknown option: '$arg'"
       usage
@@ -421,4 +437,4 @@ done
 
 check_architecture "$version_to_install" "$(uname -m)" || exit 1
 
-install_version "$version_to_install" "$install_dir"
+install_version "$version_to_install" "$install_dir" "$should_run_setup"
