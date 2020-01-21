@@ -68,6 +68,10 @@ pub enum ErrorDetails {
         path: PathBuf,
     },
 
+    CompletionsDirCreationError {
+        path: PathBuf,
+    },
+
     /// Thrown when the containing directory could not be determined
     ContainingDirError {
         path: PathBuf,
@@ -570,6 +574,11 @@ Use `npm install` or `yarn add` to select a version of {} for this project.",
                 "Completions file `{}` already exists.
 
 Please remove the file or pass `-f` or `--force` to override.",
+                path.display()
+            ),
+            ErrorDetails::CompletionsDirCreationError { path } => write!(
+                f,
+                "Could not create directory {}.",
                 path.display()
             ),
             ErrorDetails::ContainingDirError { path } => write!(
@@ -1370,6 +1379,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::BypassError { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::CannotPinPackage { .. } => ExitCode::InvalidArguments,
             ErrorDetails::CompletionsOutFileError { .. } => ExitCode::InvalidArguments,
+            ErrorDetails::CompletionsDirCreationError { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::ContainingDirError { .. } => ExitCode::FileSystemError,
             ErrorDetails::CouldNotDetermineTool => ExitCode::UnknownError,
             ErrorDetails::CouldNotStartMigration => ExitCode::EnvironmentError,
