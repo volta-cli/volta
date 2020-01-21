@@ -1,6 +1,8 @@
 use std::fmt::{self, Display};
 
-use super::{debug_already_fetched, info_fetched, info_installed, info_pinned, Tool};
+use super::{
+    debug_already_fetched, info_fetched, info_installed, info_pinned, info_project_version, Tool,
+};
 use crate::error::ErrorDetails;
 use crate::session::Session;
 use crate::style::tool_version;
@@ -136,6 +138,10 @@ impl Tool for Node {
         session.toolchain_mut()?.set_active_node(&node_version)?;
 
         info_installed(node_version);
+
+        if let Ok(Some(project)) = session.project_platform() {
+            info_project_version(tool_version("node", &project.node_runtime));
+        }
         Ok(())
     }
     fn pin(self, session: &mut Session) -> Fallible<()> {
