@@ -290,6 +290,8 @@ fn determine_script_loader(bin_name: &str, full_path: &Path) -> Fallible<Option<
         })?;
     if let Some(Ok(first_line)) = BufReader::new(script).lines().next() {
         if let Some(caps) = SHEBANG.captures(&first_line) {
+            // Note: `caps["args"]` will never panic, since "args" is a non-optional part of the match
+            // So if there is a Regex match, then it will necessarily include the "args" group.
             let args = caps["args"]
                 .trim()
                 .to_string()
