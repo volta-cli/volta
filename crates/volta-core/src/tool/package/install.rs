@@ -3,6 +3,8 @@
 
 use std::collections::HashMap;
 use std::ffi::OsStr;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::process::Command;
 
@@ -18,9 +20,19 @@ use crate::shim;
 use crate::style::{progress_spinner, tool_version};
 use crate::version::{parse_requirements, VersionSpec, VersionTag};
 use atty::Stream;
+use cmdline_words_parser::StrExt;
+use lazy_static::lazy_static;
 use log::debug;
+use regex::Regex;
 use semver::Version;
 use volta_fail::{throw, Fallible, ResultExt};
+
+lazy_static! {
+    // Note: Regex adapted from @zkochan/cmd-shim package used by Yarn
+    // https://github.com/pnpm/cmd-shim/blob/bac160cc554e5157e4c5f5e595af30740be3519a/index.js#L42
+    static ref SHEBANG: Regex = Regex::new(r#"^#!\s*(?:/usr/bin/env)?\s*(?P<exe>[^ \t]+) ?(?P<args>.*)$"#)
+        .expect("Regex is valid");
+}
 
 // TODO: (#526) this does not belong in the `install` module, since we now need
 //       to expose it *outside* this module for the sake of listing data about
@@ -165,7 +177,7 @@ fn write_configs(
 
     for (bin_name, bin_path) in bins.iter() {
         let full_path = bin_full_path(name, version, bin_name, bin_path)?;
-        let loader = os::determine_script_loader(bin_name, &full_path)?;
+        let loader = determine_script_loader(bin_name, &full_path)?;
         super::serial::RawBinConfig::from(BinConfig {
             name: bin_name.clone(),
             package: name.to_string(),
@@ -266,54 +278,44 @@ fn read_bins(name: &str, version: &Version) -> Fallible<HashMap<String, String>>
     Ok(bin_map)
 }
 
+/// Read the script for a shebang loader. If found, return it so it will be stored in the config
+///
+/// This is needed on Windows because Windows doesn't support shebang loaders for scripts
+/// On Unix, we need to do this to remove any potential erroneous \r characters that may
+/// have accidentally been published in the script.
+fn determine_script_loader(bin_name: &str, full_path: &Path) -> Fallible<Option<BinLoader>> {
+    let script =
+        File::open(full_path).with_context(|_| ErrorDetails::DetermineBinaryLoaderError {
+            bin: bin_name.into(),
+        })?;
+    if let Some(Ok(first_line)) = BufReader::new(script).lines().next() {
+        if let Some(caps) = SHEBANG.captures(&first_line) {
+            let args = caps["args"]
+                .trim()
+                .to_string()
+                .parse_cmdline_words()
+                .map(String::from)
+                .collect();
+            return Ok(Some(BinLoader {
+                command: caps["exe"].into(),
+                args,
+            }));
+        }
+    }
+
+    Ok(None)
+}
+
 mod os {
+    use cfg_if::cfg_if;
     use std::io;
     use std::path::Path;
 
-    use super::super::BinLoader;
-    use cfg_if::cfg_if;
-    use volta_fail::Fallible;
-
     cfg_if! {
         if #[cfg(windows)] {
-            use cmdline_words_parser::StrExt;
-            use regex::Regex;
-            use std::io::{BufRead, BufReader};
-            use std::fs::File;
-
-            use crate::error::ErrorDetails;
-            use volta_fail::ResultExt;
-
             /// On Windows, this isn't a concern as there is no concept of 'executable' permissions
             pub fn set_executable_permissions(_bin: &Path) -> io::Result<()> {
                 Ok(())
-            }
-
-            /// On Windows, we need to read the executable and try to find a shebang loader
-            /// If it exists, we store the loader in the BinConfig so that the shim can execute it correctly
-            pub fn determine_script_loader(bin_name: &str, full_path: &Path) -> Fallible<Option<BinLoader>> {
-                let script =
-                    File::open(full_path).with_context(|_| ErrorDetails::DetermineBinaryLoaderError {
-                        bin: bin_name.to_string(),
-                    })?;
-                if let Some(Ok(first_line)) = BufReader::new(script).lines().next() {
-                    // Note: Regex adapted from @zkochan/cmd-shim package used by Yarn
-                    // https://github.com/pnpm/cmd-shim/blob/bac160cc554e5157e4c5f5e595af30740be3519a/index.js#L42
-                    let re = Regex::new(r#"^#!\s*(?:/usr/bin/env)?\s*(?P<exe>[^ \t]+) ?(?P<args>.*)$"#)
-                        .expect("Regex is valid");
-                    if let Some(caps) = re.captures(&first_line) {
-                        let args = caps["args"]
-                            .to_string()
-                            .parse_cmdline_words()
-                            .map(|word| word.to_string())
-                            .collect();
-                        return Ok(Some(BinLoader {
-                            command: caps["exe"].to_string(),
-                            args,
-                        }));
-                    }
-                }
-                Ok(None)
             }
         } else if #[cfg(unix)] {
             use std::fs;
@@ -330,11 +332,6 @@ mod os {
                 } else {
                     Ok(())
                 }
-            }
-
-            /// On Unix, shebang loaders work correctly, so we don't need to bother storing loader information
-            pub fn determine_script_loader(_bin_name: &str, _full_path: &Path) -> Fallible<Option<BinLoader>> {
-                Ok(None)
             }
         }
     }
