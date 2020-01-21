@@ -53,8 +53,8 @@ impl Command for Completions {
                             parent.display()
                         );
                         std::fs::create_dir_all(parent).with_context(|_| {
-                            ErrorDetails::CompletionsDirCreationError {
-                                path: parent.to_path_buf(),
+                            ErrorDetails::CreateDirError {
+                                dir: parent.to_path_buf(),
                             }
                         })?;
                     }
