@@ -2,7 +2,7 @@ use std::fmt::{self, Display};
 
 use crate::error::ErrorDetails;
 use crate::session::Session;
-use crate::style::{success_prefix, tool_version};
+use crate::style::{note_prefix, success_prefix, tool_version};
 use crate::version::{parse_version, VersionSpec};
 use log::{debug, info};
 use semver::Version;
@@ -40,6 +40,15 @@ fn info_fetched<T: Display + Sized>(tool: T) {
 #[inline]
 fn info_pinned<T: Display + Sized>(tool: T) {
     info!("{} pinned {} in package.json", success_prefix(), tool);
+}
+
+#[inline]
+fn info_project_version<T: Display + Sized>(tool: T) {
+    info!(
+        "{} you are using {} in the current project",
+        note_prefix(),
+        tool
+    );
 }
 
 /// Trait representing all of the actions that can be taken with a tool

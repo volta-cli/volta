@@ -14,6 +14,11 @@ pub fn success_prefix() -> StyledObject<&'static str> {
     style("success:").green().bold()
 }
 
+/// Generate the styled prefix for a note
+pub fn note_prefix() -> StyledObject<&'static str> {
+    style("   note:").magenta().bold()
+}
+
 /// Format the underlying cause of an error
 pub(crate) fn format_error_cause(inner: &dyn Fail) -> String {
     format!(

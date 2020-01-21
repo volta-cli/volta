@@ -1,6 +1,8 @@
 use std::fmt::{self, Display};
 
-use super::{debug_already_fetched, info_fetched, info_installed, info_pinned, Tool};
+use super::{
+    debug_already_fetched, info_fetched, info_installed, info_pinned, info_project_version, Tool,
+};
 use crate::error::ErrorDetails;
 use crate::session::Session;
 use crate::style::tool_version;
@@ -63,6 +65,12 @@ impl Tool for Yarn {
         session.toolchain_mut()?.set_active_yarn(&self.version)?;
 
         info_installed(self);
+
+        if let Ok(Some(project)) = session.project_platform() {
+            if let Some(yarn) = &project.yarn {
+                info_project_version(tool_version("yarn", yarn));
+            }
+        }
         Ok(())
     }
     fn pin(self, session: &mut Session) -> Fallible<()> {
