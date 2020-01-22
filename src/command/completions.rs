@@ -1,10 +1,12 @@
 use std::path::PathBuf;
 
+use log::info;
 use structopt::{clap::Shell, StructOpt};
 
 use volta_core::{
     error::ErrorDetails,
     session::{ActivityKind, Session},
+    style::{note_prefix, success_prefix},
 };
 use volta_fail::{throw, ExitCode, Fallible, ResultExt};
 
@@ -41,10 +43,36 @@ impl Command for Completions {
                     throw!(ErrorDetails::CompletionsOutFileError { path })
                 }
 
-                let mut file = &std::fs::File::create(&path)
-                    .with_context(|_| ErrorDetails::CompletionsOutFileError { path })?;
+                // The user may have passed a path that does not yet exist. If
+                // so, we create it, informing the user we have done so.
+                if let Some(parent) = path.parent() {
+                    if !parent.is_dir() {
+                        info!(
+                            "{} {} does not exist, creating it",
+                            note_prefix(),
+                            parent.display()
+                        );
+                        std::fs::create_dir_all(parent).with_context(|_| {
+                            ErrorDetails::CreateDirError {
+                                dir: parent.to_path_buf(),
+                            }
+                        })?;
+                    }
+                }
+
+                let mut file = &std::fs::File::create(&path).with_context(|_| {
+                    ErrorDetails::CompletionsOutFileError {
+                        path: path.to_path_buf(),
+                    }
+                })?;
 
                 app.gen_completions_to("volta", self.shell, &mut file);
+
+                info!(
+                    "{} installed completions to {}",
+                    success_prefix(),
+                    path.display()
+                );
             }
             None => app.gen_completions_to("volta", self.shell, &mut std::io::stdout()),
         };
