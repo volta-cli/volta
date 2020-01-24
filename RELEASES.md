@@ -1,3 +1,10 @@
+# Version 0.7.1
+
+- Added warning when attempting to `volta uninstall` a package you don't have installed (#638)
+- Added informational message about pinned project version when running `volta install` (#646)
+- `volta completions` will attempt to create the output directory if it doesn't exist (#647)
+- `volta install` will correctly handle script files that have CRLF as the line ending (#644)
+
 # Version 0.7.0
 
 - Removed deprecated commands `volta activate`, `volta deactivate`, and `volta current` (#620, #559)
