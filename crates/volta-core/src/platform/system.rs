@@ -22,20 +22,4 @@ impl System {
 
         new_path.join().with_context(build_path_error)
     }
-
-    /// Reproduces the Volta-enabled `PATH` environment variable for situations where
-    /// Volta has been deactivated
-    #[cfg(not(feature = "volta-updates"))]
-    pub fn enabled_path() -> Fallible<OsString> {
-        let old_path = envoy::path().unwrap_or_else(|| envoy::Var::from(""));
-        let mut new_path = old_path.split();
-
-        for add_path in env_paths()? {
-            if !old_path.split().any(|part| part == add_path) {
-                new_path = new_path.prefix_entry(add_path);
-            }
-        }
-
-        new_path.join().with_context(build_path_error)
-    }
 }

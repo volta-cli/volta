@@ -4,8 +4,6 @@ use crate::layout::volta_home;
 use crate::layout::volta_install;
 use semver::Version;
 use std;
-#[cfg(not(feature = "volta-updates"))]
-use std::path::PathBuf;
 
 // Since unit tests are run in parallel, tests that modify the PATH environment variable are subject to race conditions
 // To prevent that, ensure that all tests that rely on PATH are run in serial by adding them to this meta-test
@@ -13,8 +11,6 @@ use std::path::PathBuf;
 fn test_paths() {
     test_image_path();
     test_system_path();
-    #[cfg(not(feature = "volta-updates"))]
-    test_system_enabled_path();
 }
 
 #[cfg(unix)]
@@ -83,12 +79,7 @@ fn test_image_path() {
     let mut pathbufs: Vec<PathBuf> = Vec::new();
     pathbufs.push(volta_home().unwrap().shim_dir().to_owned());
     pathbufs.push(PathBuf::from("C:\\\\somebin"));
-    {
-        #[cfg(feature = "volta-updates")]
-        pathbufs.push(volta_install().unwrap().root().to_owned());
-        #[cfg(not(feature = "volta-updates"))]
-        pathbufs.push(volta_install().unwrap().bin_dir());
-    }
+    pathbufs.push(volta_install().unwrap().root().to_owned());
     pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
 
     let path_with_shims = std::env::join_paths(pathbufs.iter())
@@ -171,12 +162,7 @@ fn test_system_path() {
     let mut pathbufs: Vec<PathBuf> = Vec::new();
     pathbufs.push(volta_home().unwrap().shim_dir().to_owned());
     pathbufs.push(PathBuf::from("C:\\\\somebin"));
-    {
-        #[cfg(feature = "volta-updates")]
-        pathbufs.push(volta_install().unwrap().root().to_owned());
-        #[cfg(not(feature = "volta-updates"))]
-        pathbufs.push(volta_install().unwrap().bin_dir());
-    }
+    pathbufs.push(volta_install().unwrap().root().to_owned());
     pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
 
     let path_with_shims = std::env::join_paths(pathbufs.iter())
@@ -190,66 +176,6 @@ fn test_system_path() {
 
     assert_eq!(
         System::path().unwrap().into_string().unwrap(),
-        expected_path
-    );
-}
-
-#[cfg(all(unix, not(feature = "volta-updates")))]
-fn test_system_enabled_path() {
-    let mut pathbufs: Vec<PathBuf> = Vec::new();
-    pathbufs.push(volta_home().unwrap().shim_dir().to_owned());
-    pathbufs.push(PathBuf::from("/usr/bin"));
-    pathbufs.push(PathBuf::from("/bin"));
-
-    let expected_path = std::env::join_paths(pathbufs.iter())
-        .unwrap()
-        .into_string()
-        .expect("Could not create path containing shim dir");
-
-    // If the path already contains the shim dir, there shouldn't be any changes
-    std::env::set_var("PATH", expected_path.clone());
-    assert_eq!(
-        System::enabled_path().unwrap().into_string().unwrap(),
-        expected_path
-    );
-
-    // If the path doesn't contain the shim dir, it should be prefixed onto the existing path
-    std::env::set_var("PATH", "/usr/bin:/bin");
-    assert_eq!(
-        System::enabled_path().unwrap().into_string().unwrap(),
-        expected_path
-    );
-}
-
-#[cfg(all(windows, not(feature = "volta-updates")))]
-fn test_system_enabled_path() {
-    let mut pathbufs: Vec<PathBuf> = Vec::new();
-    {
-        #[cfg(feature = "volta-updates")]
-        pathbufs.push(volta_install().unwrap().root().to_owned());
-        #[cfg(not(feature = "volta-updates"))]
-        pathbufs.push(volta_install().unwrap().bin_dir());
-    }
-    pathbufs.push(volta_home().unwrap().shim_dir().to_owned());
-    pathbufs.push(PathBuf::from("C:\\\\somebin"));
-    pathbufs.push(PathBuf::from("D:\\\\Program Files"));
-
-    let expected_path = std::env::join_paths(pathbufs.iter())
-        .unwrap()
-        .into_string()
-        .expect("Could not create path containing shim dir");
-
-    // If the path already contains the shim dir, there shouldn't be any changes
-    std::env::set_var("PATH", expected_path.clone());
-    assert_eq!(
-        System::enabled_path().unwrap().into_string().unwrap(),
-        expected_path
-    );
-
-    // If the path doesn't contain the shim dir, it should be prefixed onto the existing path
-    std::env::set_var("PATH", "C:\\\\somebin;D:\\\\Program Files");
-    assert_eq!(
-        System::enabled_path().unwrap().into_string().unwrap(),
         expected_path
     );
 }
