@@ -133,8 +133,7 @@ impl Session {
 
     /// Returns the user's default platform, if any
     pub fn default_platform(&self) -> Fallible<Option<Rc<DefaultPlatformSpec>>> {
-        let toolchain = self.toolchain.get()?;
-        Ok(toolchain.platform())
+        self.toolchain.get().map(Toolchain::platform)
     }
 
     /// Returns the current project's pinned platform image, if any.

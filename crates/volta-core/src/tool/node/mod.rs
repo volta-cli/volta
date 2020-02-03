@@ -140,7 +140,7 @@ impl Tool for Node {
         info_installed(node_version);
 
         if let Ok(Some(project)) = session.project_platform() {
-            info_project_version(tool_version("node", &project.node_runtime));
+            info_project_version(tool_version("node", &project.node));
         }
         Ok(())
     }

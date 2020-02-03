@@ -12,7 +12,6 @@ use crate::platform::{Sourced, System};
 use crate::session::Session;
 use crate::signal::pass_control_to_shim;
 use crate::style::tool_version;
-use cfg_if::cfg_if;
 use log::debug;
 use volta_fail::{throw, Fallible, ResultExt};
 
