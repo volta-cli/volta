@@ -5,15 +5,11 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
+use mockito::{self, mock, Matcher};
 use reqwest::hyper_011::header::HttpDate;
-
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
-
 use volta_core::fs::symlink_file;
 use volta_core::tool::{Node, Yarn, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION, NODE_DISTRO_OS};
-
-#[cfg(feature = "mock-network")]
-use mockito::{self, mock, Matcher};
 
 // version cache for node and yarn
 #[derive(PartialEq, Clone)]
