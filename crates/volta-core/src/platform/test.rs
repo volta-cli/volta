@@ -4,6 +4,8 @@ use crate::layout::volta_home;
 use crate::layout::volta_install;
 use semver::Version;
 use std;
+#[cfg(windows)]
+use std::path::PathBuf;
 
 // Since unit tests are run in parallel, tests that modify the PATH environment variable are subject to race conditions
 // To prevent that, ensure that all tests that rely on PATH are run in serial by adding them to this meta-test
