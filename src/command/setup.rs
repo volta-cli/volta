@@ -1,6 +1,8 @@
 use log::info;
 use structopt::StructOpt;
+use volta_core::layout::volta_home;
 use volta_core::session::{ActivityKind, Session};
+use volta_core::shim::regenerate_shims_for_dir;
 use volta_core::style::success_prefix;
 use volta_fail::{ExitCode, Fallible};
 
@@ -14,6 +16,7 @@ impl Command for Setup {
         session.add_event_start(ActivityKind::Setup);
 
         os::setup_environment()?;
+        regenerate_shims_for_dir(volta_home()?.shim_dir())?;
 
         info!(
             "{} Setup complete. Open a new terminal to start using Volta!",

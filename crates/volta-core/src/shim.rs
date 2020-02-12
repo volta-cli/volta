@@ -1,11 +1,59 @@
 //! Provides utilities for modifying shims for 3rd-party executables
 
-use std::{fs, io};
+use std::collections::HashSet;
+use std::fs::{self, DirEntry, Metadata};
+use std::io;
+use std::path::Path;
 
 use crate::error::ErrorDetails;
-use crate::fs::symlink_file;
+use crate::fs::{read_dir_eager, symlink_file};
 use crate::layout::{volta_home, volta_install};
-use volta_fail::{throw, FailExt, Fallible};
+use log::debug;
+use volta_fail::{throw, FailExt, Fallible, ResultExt};
+
+pub fn regenerate_shims_for_dir(dir: &Path) -> Fallible<()> {
+    debug!("Rebuilding shims for directory: {}", dir.display());
+    for shim_name in get_shim_list_deduped(dir)?.iter() {
+        delete(shim_name)?;
+        create(shim_name)?;
+    }
+
+    Ok(())
+}
+
+fn get_shim_list_deduped(dir: &Path) -> Fallible<HashSet<String>> {
+    let contents = read_dir_eager(dir).with_context(|_| ErrorDetails::ReadDirError {
+        dir: dir.to_owned(),
+    })?;
+
+    #[cfg(unix)]
+    {
+        let mut shims: HashSet<String> = contents.filter_map(entry_to_shim_name).collect();
+        shims.insert("node".into());
+        shims.insert("npm".into());
+        shims.insert("npx".into());
+        shims.insert("yarn".into());
+        Ok(shims)
+    }
+
+    #[cfg(windows)]
+    {
+        // On Windows, the default shims are installed in Program Files, so we don't need to generate them here
+        Ok(contents.filter_map(entry_to_shim_name).collect())
+    }
+}
+
+fn entry_to_shim_name((entry, metadata): (DirEntry, Metadata)) -> Option<String> {
+    if metadata.file_type().is_symlink() {
+        entry
+            .path()
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .map(|stem| stem.to_string())
+    } else {
+        None
+    }
+}
 
 #[derive(PartialEq)]
 pub enum ShimResult {
