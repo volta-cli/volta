@@ -74,8 +74,7 @@ fn legacy_v0_volta_home_is_upgraded() {
     assert!(Sandbox::path_exists(".volta/layout.v1"));
 
     // shims should all be created
-    // NOTE: this doesn't work in Windows, because the shim directory
-    //       is stored in the Registry, and not accessible
+    // NOTE: this doesn't work in Windows, because the default shims are stored separately
     #[cfg(unix)]
     {
         assert!(Sandbox::shim_exists("node"));
