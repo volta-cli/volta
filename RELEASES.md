@@ -1,3 +1,8 @@
+# Version 0.7.2
+
+- Added `npm.cmd`, `npx.cmd`, and `yarn.cmd` on Windows to support tools that look for CMD files specifically (#663)
+- Updated `volta setup` to also ensure that the shim symlinks are set up correctly (#662)
+
 # Version 0.7.1
 
 - Added warning when attempting to `volta uninstall` a package you don't have installed (#638)
