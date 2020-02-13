@@ -114,6 +114,14 @@
                     Source='target\release\volta-shim.exe'
                     KeyPath='yes'/>
             </Component>
+            <Component Id='npmScript' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='npmCMD'
+                    Name='npm.cmd'
+                    DiskId='1'
+                    Source='shell\windows\shim.cmd'
+                    KeyPath='yes'/>
+            </Component>
             <Component Id='npxBinary' Guid='*' Win64='$(var.Win64)'>
                 <File
                     Id='npxEXE'
@@ -122,12 +130,28 @@
                     Source='target\release\volta-shim.exe'
                     KeyPath='yes'/>
             </Component>
+            <Component Id='npxScript' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='npxCMD'
+                    Name='npx.cmd'
+                    DiskId='1'
+                    Source='shell\windows\shim.cmd'
+                    KeyPath='yes'/>
+            </Component>
             <Component Id='yarnBinary' Guid='*' Win64='$(var.Win64)'>
                 <File
                     Id='yarnEXE'
                     Name='yarn.exe'
                     DiskId='1'
                     Source='target\release\volta-shim.exe'
+                    KeyPath='yes'/>
+            </Component>
+            <Component Id='yarnScript' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='yarnCMD'
+                    Name='yarn.cmd'
+                    DiskId='1'
+                    Source='shell\windows\shim.cmd'
                     KeyPath='yes'/>
             </Component>
         </ComponentGroup>
