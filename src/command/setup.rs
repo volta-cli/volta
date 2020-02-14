@@ -119,7 +119,7 @@ mod os {
         let mut file = File::create(path)?;
         write!(
             file,
-            "{}\nexport VOLTA_HOME=\"{}\"\ngrep --silent \"$VOLTA_HOME/bin\" <<< $PATH || export PATH=\"$VOLTA_HOME/bin:$PATH\"\n",
+            "{}\nexport VOLTA_HOME=\"{}\"\nexport PATH=\"$VOLTA_HOME/bin:$PATH\"\n",
             contents,
             volta_home.display(),
         )
@@ -129,7 +129,7 @@ mod os {
         let mut file = File::create(path)?;
         write!(
             file,
-            "{}\nset -gx VOLTA_HOME \"{}\"\nstring match -r \".volta\" \"$PATH\" > /dev/null; or set -gx PATH \"$VOLTA_HOME/bin\" $PATH\n",
+            "{}\nset -gx VOLTA_HOME \"{}\"\nset -gx PATH \"$VOLTA_HOME/bin\" $PATH\n",
             contents,
             volta_home.display(),
         )
