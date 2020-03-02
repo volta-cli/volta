@@ -189,20 +189,22 @@ build_path_str() {
   if [[ $profile =~ \.fish$ ]]; then
     # fish uses a little different syntax to load the shell integration script, and modify the PATH
     cat <<END_FISH_SCRIPT
-
-set -gx VOLTA_HOME "$profile_install_dir"
-test -s "\$VOLTA_HOME/load.fish"; and source "\$VOLTA_HOME/load.fish"
-
-string match -r ".volta" "\$PATH" > /dev/null; or set -gx PATH "\$VOLTA_HOME/bin" \$PATH
+if test -d "$profile_install_dir"
+  set -gx VOLTA_HOME "$profile_install_dir"
+  test -s "\$VOLTA_HOME/load.fish"; and source "\$VOLTA_HOME/load.fish"
+  
+  string match -r ".volta" "\$PATH" > /dev/null; or set -gx PATH "\$VOLTA_HOME/bin" \$PATH
+end
 END_FISH_SCRIPT
   else
     # bash and zsh
     cat <<END_BASH_SCRIPT
+if [ -d "$profile_install_dir" ]; then
+  export VOLTA_HOME="$profile_install_dir"
+  [ -s "\$VOLTA_HOME/load.sh" ] && . "\$VOLTA_HOME/load.sh"
 
-export VOLTA_HOME="$profile_install_dir"
-[ -s "\$VOLTA_HOME/load.sh" ] && . "\$VOLTA_HOME/load.sh"
-
-export PATH="\$VOLTA_HOME/bin:\$PATH"
+  export PATH="\$VOLTA_HOME/bin:\$PATH"
+fi
 END_BASH_SCRIPT
   fi
 }
