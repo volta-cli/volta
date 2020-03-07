@@ -31,7 +31,7 @@ fn empty_volta_home_is_created() {
     assert!(Sandbox::path_exists(".volta/tools/user"));
 
     // Layout file should now exist
-    assert!(Sandbox::path_exists(".volta/layout.v1"));
+    assert!(Sandbox::path_exists(".volta/layout.v2"));
 
     // shims should all be created
     // NOTE: this doesn't work in Windows, because the default shims are stored separately
@@ -58,6 +58,7 @@ fn legacy_v0_volta_home_is_upgraded() {
 
     // Layout file is not there
     assert!(!Sandbox::path_exists(".volta/layout.v1"));
+    assert!(!Sandbox::path_exists(".volta/layout.v2"));
 
     // running volta should not create anything else
     assert_that!(s.volta("--version"), execs().with_status(0));
@@ -71,7 +72,7 @@ fn legacy_v0_volta_home_is_upgraded() {
     assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
 
     // Layout file should now exist
-    assert!(Sandbox::path_exists(".volta/layout.v1"));
+    assert!(Sandbox::path_exists(".volta/layout.v2"));
 
     // shims should all be created
     // NOTE: this doesn't work in Windows, because the default shims are stored separately
@@ -85,12 +86,12 @@ fn legacy_v0_volta_home_is_upgraded() {
 }
 
 #[test]
-fn current_v1_volta_home_is_unchanged() {
-    let s = sandbox().layout_file("v1").build();
+fn current_v2_volta_home_is_unchanged() {
+    let s = sandbox().layout_file("v2").build();
 
     // directories that are already created by the test framework
     assert!(Sandbox::path_exists(".volta"));
-    assert!(Sandbox::path_exists(".volta/layout.v1"));
+    assert!(Sandbox::path_exists(".volta/layout.v2"));
     assert!(Sandbox::path_exists(".volta/cache/node"));
     assert!(Sandbox::path_exists(".volta/tmp"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/node"));
@@ -102,7 +103,7 @@ fn current_v1_volta_home_is_unchanged() {
 
     // everything should be the same as before running the command
     assert!(Sandbox::path_exists(".volta"));
-    assert!(Sandbox::path_exists(".volta/layout.v1"));
+    assert!(Sandbox::path_exists(".volta/layout.v2"));
     assert!(Sandbox::path_exists(".volta/cache/node"));
     assert!(Sandbox::path_exists(".volta/tmp"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/node"));

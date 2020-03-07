@@ -86,13 +86,15 @@ impl TryFrom<V1> for V2 {
 
             if let Some(ref mut node_version) = &mut existing_platform.node {
                 if let Some(npm) = &node_version.npm {
-                    if *npm == load_default_npm_version(&node_version.runtime)? {
-                        node_version.npm = None;
-                        write(platform_file, existing_platform.into_json()?).with_context(
-                            |_| ErrorDetails::WritePlatformError {
-                                file: platform_file.to_owned(),
-                            },
-                        )?;
+                    if let Ok(default_npm) = load_default_npm_version(&node_version.runtime) {
+                        if *npm == default_npm {
+                            node_version.npm = None;
+                            write(platform_file, existing_platform.into_json()?).with_context(
+                                |_| ErrorDetails::WritePlatformError {
+                                    file: platform_file.to_owned(),
+                                },
+                            )?;
+                        }
                     }
                 }
             }
