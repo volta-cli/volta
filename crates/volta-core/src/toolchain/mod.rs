@@ -11,7 +11,7 @@ use readext::ReadExt;
 use semver::Version;
 use volta_fail::{Fallible, ResultExt};
 
-pub(crate) mod serial;
+pub mod serial;
 
 /// Lazily loaded toolchain
 pub struct LazyToolchain {
