@@ -160,11 +160,11 @@ fn image_dir(root: PathBuf) -> PathBuf {
 fn node_image_root_dir(root: PathBuf) -> PathBuf {
     image_dir(root).join("node")
 }
-fn node_image_dir(node: &str, npm: &str, root: PathBuf) -> PathBuf {
-    node_image_root_dir(root).join(node).join(npm)
+fn node_image_dir(node: &str, root: PathBuf) -> PathBuf {
+    node_image_root_dir(root).join(node)
 }
-fn node_image_bin_dir(node: &str, npm: &str, root: PathBuf) -> PathBuf {
-    node_image_dir(node, npm, root).join("bin")
+fn node_image_bin_dir(node: &str, root: PathBuf) -> PathBuf {
+    node_image_dir(node, root).join("bin")
 }
 fn yarn_image_root_dir(root: PathBuf) -> PathBuf {
     image_dir(root).join("yarn")
@@ -315,8 +315,8 @@ impl TempProject {
     }
 
     /// Verify that the input Node version has been unpacked.
-    pub fn node_version_is_unpacked(&self, version: &str, npm_version: &str) -> bool {
-        let unpack_dir = node_image_bin_dir(version, npm_version, self.root());
+    pub fn node_version_is_unpacked(&self, version: &str) -> bool {
+        let unpack_dir = node_image_bin_dir(version, self.root());
         unpack_dir.exists()
     }
 
