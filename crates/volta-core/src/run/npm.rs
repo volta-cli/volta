@@ -24,7 +24,7 @@ where
             let image = platform.checkout(session)?;
             let path = image.path()?;
 
-            debug_tool_message("npm", image.npm);
+            debug_tool_message("npm", &image.npm);
 
             Ok(ToolCommand::direct(OsStr::new("npm"), args, &path))
         }

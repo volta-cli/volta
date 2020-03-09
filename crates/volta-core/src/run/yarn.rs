@@ -25,7 +25,7 @@ where
             }
 
             // Note: If we've gotten this far, we know there is a yarn version set
-            debug_tool_message("yarn", platform.yarn().unwrap());
+            debug_tool_message("yarn", &platform.yarn().unwrap());
 
             let image = platform.checkout(session)?;
             let path = image.path()?;

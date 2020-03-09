@@ -15,7 +15,7 @@ where
 
     match session.current_platform()? {
         Some(platform) => {
-            debug_tool_message("node", platform.node());
+            debug_tool_message("node", &platform.node());
 
             let image = platform.checkout(session)?;
             let path = image.path()?;

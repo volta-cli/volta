@@ -41,7 +41,7 @@ where
             let path_to_bin = path_to_bin.as_os_str();
 
             if let Some(platform) = session.current_platform()? {
-                debug_tool_message("node", platform.node());
+                debug_tool_message("node", &platform.node());
 
                 let image = platform.checkout(session)?;
                 let path = image.path()?;
@@ -62,7 +62,7 @@ where
             exe.to_string_lossy(),
             default_tool.bin_path.display()
         );
-        debug_tool_message("node", image.node.as_ref());
+        debug_tool_message("node", &image.node);
 
         let path = image.path()?;
         let tool_path = default_tool.bin_path.into_os_string();

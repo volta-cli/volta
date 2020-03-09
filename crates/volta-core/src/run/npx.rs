@@ -24,7 +24,7 @@ where
             if image.npm.value >= required_npm {
                 let path = image.path()?;
 
-                debug_tool_message("npx", image.npm);
+                debug_tool_message("npx", &image.npm);
                 Ok(ToolCommand::direct(OsStr::new("npx"), args, &path))
             } else {
                 Err(ErrorDetails::NpxNotAvailable {

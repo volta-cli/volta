@@ -59,7 +59,7 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
     command.status()
 }
 
-fn debug_tool_message<T>(tool: &str, version: Sourced<T>)
+fn debug_tool_message<T>(tool: &str, version: &Sourced<T>)
 where
     T: std::fmt::Display + Sized,
 {
