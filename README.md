@@ -1,11 +1,11 @@
 <p align="center">
   <a href="https://www.volta.sh/">
-    <img alt="Volta" src="./volta.png?raw=true" width="480">
+    <img alt="Volta" src="./volta.jpg?raw=true" width="360">
   </a>
 </p>
 
 <p align="center">
-  The JavaScript Launcher ⚡️
+  Start your engines.
 </p>
 
 <p align="center">
