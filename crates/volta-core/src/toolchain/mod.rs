@@ -1,16 +1,14 @@
 use std::fs::write;
-
-use lazycell::LazyCell;
-use readext::ReadExt;
-use semver::Version;
+use std::rc::Rc;
 
 use crate::error::ErrorDetails;
 use crate::fs::touch;
 use crate::layout::volta_home;
-use crate::platform::PlatformSpec;
-use crate::tool::NodeVersion;
-
+use crate::platform::DefaultPlatformSpec;
+use lazycell::LazyCell;
 use log::debug;
+use readext::ReadExt;
+use semver::Version;
 use volta_fail::{Fallible, ResultExt};
 
 pub(crate) mod serial;
@@ -40,7 +38,7 @@ impl LazyToolchain {
 }
 
 pub struct Toolchain {
-    platform: Option<PlatformSpec>,
+    platform: Option<Rc<DefaultPlatformSpec>>,
 }
 
 impl Toolchain {
@@ -52,37 +50,38 @@ impl Toolchain {
                 file: path.to_owned(),
             })?;
 
-        let platform = serial::Platform::from_json(src)?.into_platform()?;
+        let platform = serial::Platform::from_json(src)?
+            .into_default_platform()
+            .map(Rc::new);
         if platform.is_some() {
             debug!("Found default configuration at '{}'", path.display());
         }
         Ok(Toolchain { platform })
     }
 
-    pub fn platform_ref(&self) -> Option<&PlatformSpec> {
-        self.platform.as_ref()
+    pub fn platform(&self) -> Option<Rc<DefaultPlatformSpec>> {
+        self.platform.clone()
     }
 
     /// Set the active Node version in the default platform file.
-    pub fn set_active_node(&mut self, node_version: &NodeVersion) -> Fallible<()> {
+    pub fn set_active_node(&mut self, node_version: &Version) -> Fallible<()> {
         let mut dirty = false;
 
-        if let Some(ref mut platform) = self.platform {
-            if platform.node_runtime != node_version.runtime {
-                platform.node_runtime = node_version.runtime.clone();
-                dirty = true;
-            }
-
-            if platform.npm.as_ref() != Some(&node_version.npm) {
-                platform.npm = Some(node_version.npm.clone());
+        if let Some(platform) = &self.platform {
+            if platform.node != *node_version {
+                self.platform = Some(Rc::new(DefaultPlatformSpec {
+                    node: node_version.clone(),
+                    npm: platform.npm.clone(),
+                    yarn: platform.yarn.clone(),
+                }));
                 dirty = true;
             }
         } else {
-            self.platform = Some(PlatformSpec {
-                node_runtime: node_version.runtime.clone(),
-                npm: Some(node_version.npm.clone()),
+            self.platform = Some(Rc::new(DefaultPlatformSpec {
+                node: node_version.clone(),
+                npm: None,
                 yarn: None,
-            });
+            }));
             dirty = true;
         }
 
@@ -95,17 +94,15 @@ impl Toolchain {
 
     /// Set the active Yarn version in the default platform file.
     pub fn set_active_yarn(&mut self, yarn_version: &Version) -> Fallible<()> {
-        let mut dirty = false;
-
-        if let Some(ref mut platform) = self.platform {
+        if let Some(platform) = &self.platform {
             if platform.yarn.as_ref() != Some(yarn_version) {
-                platform.yarn = Some(yarn_version.clone());
-                dirty = true;
+                self.platform = Some(Rc::new(DefaultPlatformSpec {
+                    node: platform.node.clone(),
+                    npm: platform.npm.clone(),
+                    yarn: Some(yarn_version.clone()),
+                }));
+                self.save()?;
             }
-        }
-
-        if dirty {
-            self.save()?;
         }
 
         Ok(())
@@ -113,19 +110,15 @@ impl Toolchain {
 
     /// Set the active Npm version in the default platform file.
     pub fn set_active_npm(&mut self, npm_version: &Version) -> Fallible<()> {
-        let mut dirty = false;
-
-        if let Some(ref mut platform) = self.platform {
-            if let Some(ref npm) = &platform.npm {
-                if npm != npm_version {
-                    platform.npm = Some(npm_version.clone());
-                    dirty = true;
-                }
+        if let Some(platform) = &self.platform {
+            if platform.npm.as_ref() != Some(npm_version) {
+                self.platform = Some(Rc::new(DefaultPlatformSpec {
+                    node: platform.node.clone(),
+                    npm: Some(npm_version.clone()),
+                    yarn: platform.yarn.clone(),
+                }));
+                self.save()?;
             }
-        }
-
-        if dirty {
-            self.save()?;
         }
 
         Ok(())

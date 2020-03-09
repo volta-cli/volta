@@ -119,12 +119,12 @@ impl Package {
         match source {
             Source::Default => Package::Default {
                 details,
-                node: config.platform.node_runtime.clone(),
+                node: config.platform.node.clone(),
                 tools: config.bins.clone(),
             },
             Source::Project(path) => Package::Project {
                 details,
-                node: config.platform.node_runtime.clone(),
+                node: config.platform.node.clone(),
                 tools: config.bins.clone(),
                 path: path.clone(),
             },

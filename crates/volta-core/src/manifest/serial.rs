@@ -122,7 +122,10 @@ impl Manifest {
         })
     }
 
-    pub fn to_platform(&self, package_path: &Path) -> Fallible<Option<platform::PlatformSpec>> {
+    pub fn to_platform(
+        &self,
+        package_path: &Path,
+    ) -> Fallible<Option<platform::ProjectPlatformSpec>> {
         // Backwards compatibility to allow users to upgrade to using the
         // `volta` key simultaneously with the `toolchain` key, but with
         // deprecation warnings about the use of `toolchain`. Prefer the `volta`
@@ -148,8 +151,8 @@ impl Manifest {
         };
 
         if let Some(toolchain) = &toolchain {
-            return Ok(Some(platform::PlatformSpec {
-                node_runtime: parse_version(&toolchain.node)?,
+            return Ok(Some(platform::ProjectPlatformSpec {
+                node: parse_version(&toolchain.node)?,
                 npm: if let Some(npm) = &toolchain.npm {
                     Some(parse_version(&npm)?)
                 } else {
@@ -188,10 +191,10 @@ impl From<RawBinManifest> for super::BinManifest {
     }
 }
 
-impl From<Rc<platform::PlatformSpec>> for ToolchainSpec {
-    fn from(source: Rc<platform::PlatformSpec>) -> Self {
+impl From<Rc<platform::ProjectPlatformSpec>> for ToolchainSpec {
+    fn from(source: Rc<platform::ProjectPlatformSpec>) -> Self {
         ToolchainSpec {
-            node: source.node_runtime.to_string(),
+            node: source.node.to_string(),
             npm: source.npm.as_ref().map(|v| v.to_string()),
             yarn: source.yarn.as_ref().map(|v| v.to_string()),
         }

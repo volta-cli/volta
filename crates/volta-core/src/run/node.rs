@@ -1,10 +1,8 @@
 use std::ffi::{OsStr, OsString};
 
-use super::ToolCommand;
+use super::{debug_tool_message, ToolCommand};
 use crate::error::ErrorDetails;
-use crate::platform::Source;
 use crate::session::{ActivityKind, Session};
-use crate::style::tool_version;
 
 use log::debug;
 use volta_fail::Fallible;
@@ -17,12 +15,7 @@ where
 
     match session.current_platform()? {
         Some(platform) => {
-            let source = match platform.source() {
-                Source::Project | Source::ProjectNodeDefaultYarn => "project",
-                Source::Default => "default",
-            };
-            let version = tool_version("node", platform.node());
-            debug!("Using {} from {} configuration", version, source);
+            debug_tool_message("node", &platform.node());
 
             let image = platform.checkout(session)?;
             let path = image.path()?;

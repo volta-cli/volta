@@ -2,11 +2,10 @@ use std::ffi::{OsStr, OsString};
 use std::iter::once;
 use std::path::PathBuf;
 
-use super::ToolCommand;
+use super::{debug_tool_message, ToolCommand};
 use crate::error::ErrorDetails;
 use crate::layout::volta_home;
-use crate::platform::PlatformSpec;
-use crate::platform::Source;
+use crate::platform::{BinaryPlatformSpec, PlatformSpec};
 use crate::session::{ActivityKind, Session};
 use crate::tool::bin_full_path;
 use crate::tool::{BinConfig, BinLoader};
@@ -42,14 +41,7 @@ where
             let path_to_bin = path_to_bin.as_os_str();
 
             if let Some(platform) = session.current_platform()? {
-                match platform.source() {
-                    Source::Project | Source::ProjectNodeDefaultYarn => {
-                        debug!("Using node@{} from project configuration", platform.node())
-                    }
-                    Source::Default => {
-                        debug!("Using node@{} from default configuration", platform.node())
-                    }
-                };
+                debug_tool_message("node", &platform.node());
 
                 let image = platform.checkout(session)?;
                 let path = image.path()?;
@@ -70,10 +62,7 @@ where
             exe.to_string_lossy(),
             default_tool.bin_path.display()
         );
-        debug!(
-            "Using node@{} from binary configuration",
-            image.node.runtime
-        );
+        debug_tool_message("node", &image.node);
 
         let path = image.path()?;
         let tool_path = default_tool.bin_path.into_os_string();
@@ -114,7 +103,7 @@ where
 /// when the user is outside of a project that has the given bin as a dependency.
 pub struct DefaultBinary {
     pub bin_path: PathBuf,
-    pub platform: PlatformSpec,
+    pub platform: BinaryPlatformSpec,
     pub loader: Option<BinLoader>,
 }
 
@@ -135,7 +124,7 @@ impl DefaultBinary {
                 let yarn = session
                     .default_platform()?
                     .and_then(|ref plat| plat.yarn.clone());
-                PlatformSpec {
+                BinaryPlatformSpec {
                     yarn,
                     ..bin_config.platform
                 }

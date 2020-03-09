@@ -1,12 +1,10 @@
-use crate::platform::PlatformSpec;
-
 use crate::error::ErrorDetails;
+use crate::platform::{BinaryPlatformSpec, DefaultPlatformSpec};
 use crate::version::{option_version_serde, version_serde};
-use volta_fail::{Fallible, ResultExt};
-
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use serde_json;
+use volta_fail::{Fallible, ResultExt};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct NodeVersion {
@@ -26,13 +24,22 @@ pub struct Platform {
 }
 
 impl Platform {
-    pub fn into_platform(self) -> Fallible<Option<PlatformSpec>> {
+    pub fn into_binary_platform(self) -> Option<BinaryPlatformSpec> {
         let yarn = self.yarn;
-        Ok(self.node.map(|node_version| PlatformSpec {
-            node_runtime: node_version.runtime,
+        self.node.map(|node_version| BinaryPlatformSpec {
+            node: node_version.runtime,
             npm: node_version.npm,
             yarn,
-        }))
+        })
+    }
+
+    pub fn into_default_platform(self) -> Option<DefaultPlatformSpec> {
+        let yarn = self.yarn;
+        self.node.map(|node_version| DefaultPlatformSpec {
+            node: node_version.runtime,
+            npm: node_version.npm,
+            yarn,
+        })
     }
 
     /// Deserialize the input JSON String into a Platform
@@ -52,11 +59,23 @@ impl Platform {
     }
 }
 
-impl PlatformSpec {
+impl DefaultPlatformSpec {
     pub fn to_serial(&self) -> Platform {
         Platform {
             node: Some(NodeVersion {
-                runtime: self.node_runtime.clone(),
+                runtime: self.node.clone(),
+                npm: self.npm.clone(),
+            }),
+            yarn: self.yarn.clone(),
+        }
+    }
+}
+
+impl BinaryPlatformSpec {
+    pub fn to_serial(&self) -> Platform {
+        Platform {
+            node: Some(NodeVersion {
+                runtime: self.node.clone(),
                 npm: self.npm.clone(),
             }),
             yarn: self.yarn.clone(),
@@ -109,9 +128,9 @@ pub mod tests {
 
     #[test]
     fn test_into_json() {
-        let platform = platform::PlatformSpec {
+        let platform = platform::DefaultPlatformSpec {
             yarn: Some(Version::parse("1.2.3").expect("could not parse version")),
-            node_runtime: Version::parse("4.5.6").expect("could not parse version"),
+            node: Version::parse("4.5.6").expect("could not parse version"),
             npm: Some(Version::parse("7.8.9").expect("could not parse version")),
         };
         let json_str = platform

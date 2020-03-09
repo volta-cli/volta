@@ -3,13 +3,13 @@
 use std::fs::{read_to_string, rename, write, File};
 use std::path::{Path, PathBuf};
 
-use super::super::download_tool_error;
+use super::NodeVersion;
 use crate::error::ErrorDetails;
 use crate::fs::{create_staging_dir, create_staging_file};
 use crate::hook::ToolHooks;
 use crate::layout::volta_home;
 use crate::style::{progress_bar, tool_version};
-use crate::tool::{self, Node, NodeVersion};
+use crate::tool::{self, download_tool_error, Node};
 use crate::version::{parse_version, VersionSpec};
 use archive::{self, Archive};
 use cfg_if::cfg_if;
