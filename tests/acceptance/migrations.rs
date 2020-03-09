@@ -71,7 +71,8 @@ fn legacy_v0_volta_home_is_upgraded() {
     assert!(Sandbox::path_exists(".volta/tools/inventory/packages"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
 
-    // Layout file should now exist
+    // V2 layout file should now exist, V1 layout file should not exist
+    assert!(!Sandbox::path_exists(".volta/layout.v1"));
     assert!(Sandbox::path_exists(".volta/layout.v2"));
 
     // shims should all be created
@@ -83,6 +84,131 @@ fn legacy_v0_volta_home_is_upgraded() {
         assert!(Sandbox::shim_exists("npm"));
         assert!(Sandbox::shim_exists("npx"));
     }
+}
+
+#[test]
+fn tagged_v1_volta_home_is_upgraded() {
+    let s = sandbox()
+        .layout_file("v1")
+        .file(
+            ".volta/tools/image/node/10.6.0/6.1.0/README.md",
+            "Irrelevant Contents",
+        )
+        .node_npm_version_file("10.6.0", "6.1.0")
+        .platform(
+            r#"{
+            "node": {
+                "runtime": "10.6.0",
+                "npm": "6.1.0"
+            },
+            "yarn": null
+        }"#,
+        )
+        .build();
+
+    // directories that are already created by the test framework
+    assert!(Sandbox::path_exists(".volta"));
+    assert!(Sandbox::path_exists(".volta/layout.v1"));
+    assert!(Sandbox::path_exists(".volta/cache/node"));
+    assert!(Sandbox::path_exists(".volta/tmp"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/node"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/packages"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
+
+    // Node image directory exists
+    assert!(Sandbox::path_exists(
+        ".volta/tools/image/node/10.6.0/6.1.0/README.md"
+    ));
+    assert!(Sandbox::path_exists(
+        ".volta/tools/inventory/node/node-v10.6.0-npm"
+    ));
+
+    // Default platform includes npm version
+    assert!(Sandbox::read_default_platform().contains(r#""npm": "6.1.0""#));
+
+    // running volta should run the migration
+    assert_that!(s.volta("--version"), execs().with_status(0));
+
+    // Default platform should not include an npm version
+    assert!(Sandbox::read_default_platform().contains(r#""npm": null"#));
+
+    // Node image directory should be moved up and no longer contain the npm version
+    assert!(Sandbox::path_exists(
+        ".volta/tools/image/node/10.6.0/README.md"
+    ));
+
+    // Other directories should be the same as before running the command
+    assert!(Sandbox::path_exists(".volta"));
+    assert!(Sandbox::path_exists(".volta/cache/node"));
+    assert!(Sandbox::path_exists(".volta/tmp"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/node"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/packages"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
+
+    // V2 layout file should now exist, V1 layout file should not exist
+    assert!(!Sandbox::path_exists(".volta/layout.v1"));
+    assert!(Sandbox::path_exists(".volta/layout.v2"));
+
+    // shims should all be created
+    // NOTE: this doesn't work in Windows, because the default shims are stored separately
+    #[cfg(unix)]
+    {
+        assert!(Sandbox::shim_exists("node"));
+        assert!(Sandbox::shim_exists("yarn"));
+        assert!(Sandbox::shim_exists("npm"));
+        assert!(Sandbox::shim_exists("npx"));
+    }
+}
+
+#[test]
+fn tagged_v1_to_v2_keeps_custom_npm() {
+    let s = sandbox()
+        .layout_file("v1")
+        .node_npm_version_file("10.6.0", "6.1.0")
+        .platform(
+            r#"{
+            "node": {
+                "runtime": "10.6.0",
+                "npm": "6.3.0"
+            },
+            "yarn": null
+        }"#,
+        )
+        .build();
+
+    // Default platform includes npm version
+    assert!(Sandbox::read_default_platform().contains(r#""npm": "6.3.0""#));
+
+    // running volta should run the migration
+    assert_that!(s.volta("--version"), execs().with_status(0));
+
+    // Default platform still includes custom npm version
+    assert!(Sandbox::read_default_platform().contains(r#""npm": "6.3.0""#));
+}
+
+#[test]
+fn tagged_v1_to_v2_keeps_migrated_node_images() {
+    let s = sandbox()
+        .layout_file("v1")
+        .file(
+            ".volta/tools/image/node/10.6.0/README.md",
+            "Irrelevant Contents",
+        )
+        .node_npm_version_file("10.6.0", "6.1.0")
+        .build();
+
+    // Migrated Node image directory exists
+    assert!(Sandbox::path_exists(
+        ".volta/tools/image/node/10.6.0/README.md"
+    ));
+
+    // running volta should run the migration
+    assert_that!(s.volta("--version"), execs().with_status(0));
+
+    // Migrated Node image directory is unchanged
+    assert!(Sandbox::path_exists(
+        ".volta/tools/image/node/10.6.0/README.md"
+    ));
 }
 
 #[test]
