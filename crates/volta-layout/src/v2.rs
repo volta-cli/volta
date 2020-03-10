@@ -18,11 +18,13 @@ layout! {
         "tools": tools_dir {
             "inventory": inventory_dir {
                 "node": node_inventory_dir {}
+                "npm": npm_inventory_dir {}
                 "packages": package_inventory_dir {}
                 "yarn": yarn_inventory_dir {}
             }
             "image": image_dir {
                 "node": node_image_root_dir {}
+                "npm": npm_image_root_dir {}
                 "yarn": yarn_image_root_dir {}
                 "packages": package_image_root_dir {}
             }
@@ -55,6 +57,14 @@ impl VoltaHome {
 
     pub fn node_image_dir(&self, node: &str) -> PathBuf {
         path_buf!(self.node_image_root_dir.clone(), node)
+    }
+
+    pub fn npm_image_dir(&self, npm: &str) -> PathBuf {
+        path_buf!(self.npm_image_root_dir.clone(), npm)
+    }
+
+    pub fn npm_image_bin_dir(&self, npm: &str) -> PathBuf {
+        path_buf!(self.npm_image_dir(npm), "bin")
     }
 
     pub fn yarn_image_dir(&self, version: &str) -> PathBuf {
