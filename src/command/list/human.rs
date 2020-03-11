@@ -41,13 +41,41 @@ pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
 /// Accepts the components *from* the toolchain rather than the item itself so
 /// that
 fn display_active(
-    node: &Option<Node>,
-    package_manager: &Option<PackageManager>,
+    node: &Option<Box<Node>>,
+    package_manager: &Option<Box<PackageManager>>,
     packages: &[Package],
 ) -> String {
     match (node, package_manager, packages) {
         (None, _, _) => NO_RUNTIME.to_string(),
-        (Some(node), Some(package_manager), packages) => unimplemented!(),
+        (Some(node), Some(package_manager), packages) => {
+            let width = text_width().unwrap_or(0);
+            let node_version: String = Wrapper::new(width)
+                .initial_indent(INDENTATION)
+                .subsequent_indent(INDENTATION)
+                .fill(&format!("Node: {} {}", node.version, node.source));
+            let package_manager_version: String = Wrapper::new(width)
+                .initial_indent(INDENTATION)
+                .subsequent_indent(INDENTATION)
+                .fill(&format!(
+                    "{}: {} {}",
+                    package_manager.kind, package_manager.version, package_manager.source
+                ));
+            let package_versions = Wrapper::new(width)
+                .initial_indent(INDENTATION)
+                .subsequent_indent(INDENTATION)
+                .fill(
+                    &packages
+                        .iter()
+                        .map(|package| format!("v{}{}", package., package))
+                        .collect::<Vec<String>>()
+                        .join("\n"),
+                );
+
+            format!(
+                "⚡️ Currently active tools:\n\n{}\n{}\n{}",
+                node_version, package_manager_version, package_versions
+            )
+        }
         _ => unimplemented!(),
     }
 }

@@ -1,4 +1,4 @@
-// mod human;
+mod human;
 mod plain;
 mod toolchain;
 
@@ -294,7 +294,7 @@ impl Command for List {
         let project = session.project()?;
         let default_platform = session.default_platform()?;
         let format = match self.output_format() {
-            Format::Human => human_fallback,
+            Format::Human => human::format,
             Format::Plain => plain::format,
         };
 
@@ -324,7 +324,7 @@ impl Command for List {
             // TODO: #523 -- just `println!("{}", string)` once `human` implemented
             match self.output_format() {
                 Format::Plain => println!("{}", string),
-                Format::Human => warn!("{}", string),
+                Format::Human => println!("{}", string),
             }
         };
 
