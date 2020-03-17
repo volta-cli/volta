@@ -217,8 +217,12 @@ create_tree() {
   # .volta/
   #     bin/
 
-  mkdir -p "$install_dir"
-  mkdir -p "$install_dir"/bin
+  mkdir -p "$install_dir" && mkdir -p "$install_dir"/bin
+  if [ "$?" != 0 ]
+  then
+    error "Could not create directory layout. Please make sure the target directory is writeable: $install_dir"
+    exit 1
+  fi
 }
 
 install_version() {
