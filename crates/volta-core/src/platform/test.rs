@@ -62,9 +62,9 @@ fn test_image_path() {
     );
 
     let with_yarn_image = Image {
-        node: Sourced::with_default(v123.clone()),
-        npm: Sourced::with_default(v643.clone()),
-        yarn: Some(Sourced::with_default(v457.clone())),
+        node: Sourced::with_default(v123),
+        npm: Sourced::with_default(v643),
+        yarn: Some(Sourced::with_default(v457)),
     };
 
     assert_eq!(
