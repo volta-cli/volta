@@ -10,12 +10,10 @@ use structopt::StructOpt;
 
 use crate::command::Command;
 use toolchain::Toolchain;
-use volta_core::inventory::Inventory;
+use volta_core::inventory::package_configs;
 use volta_core::project::Project;
-use volta_core::{
-    session::{ActivityKind, Session},
-    tool::PackageConfig,
-};
+use volta_core::session::{ActivityKind, Session};
+use volta_core::tool::PackageConfig;
 use volta_fail::{ExitCode, Fallible};
 
 #[derive(Copy, Clone, PartialEq)]
@@ -132,18 +130,16 @@ impl Package {
         }
     }
 
-    fn from_inventory_and_project(
-        inventory: &Inventory,
-        project: Option<&Project>,
-    ) -> Vec<Package> {
-        inventory
-            .packages
-            .iter()
-            .map(|config| {
-                let source = Self::source(&config.name, &config.version, project);
-                Package::new(&config, &source)
-            })
-            .collect()
+    fn from_inventory_and_project(project: Option<&Project>) -> Fallible<Vec<Package>> {
+        package_configs().map(|configs| {
+            configs
+                .iter()
+                .map(|config| {
+                    let source = Self::source(&config.name, &config.version, project);
+                    Package::new(&config, &source)
+                })
+                .collect()
+        })
     }
 
     fn source(name: &str, version: &Version, project: Option<&Project>) -> Source {
@@ -290,7 +286,6 @@ impl Command for List {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::List);
 
-        let inventory = session.inventory()?;
         let project = session.project()?;
         let default_platform = session.default_platform()?;
         let format = match self.output_format() {
@@ -307,16 +302,12 @@ impl Command for List {
 
         let toolchain = match self.subcommand() {
             // For no subcommand, show the user's current toolchain
-            None => Toolchain::active(project, &default_platform, inventory)?,
-            Some(Subcommand::All) => Toolchain::all(project, &default_platform, inventory)?,
-            Some(Subcommand::Node) => {
-                Toolchain::node(inventory, project, &default_platform, &filter)
-            }
-            Some(Subcommand::Yarn) => {
-                Toolchain::yarn(inventory, project, &default_platform, &filter)
-            }
+            None => Toolchain::active(project, &default_platform)?,
+            Some(Subcommand::All) => Toolchain::all(project, &default_platform)?,
+            Some(Subcommand::Node) => Toolchain::node(project, &default_platform, &filter)?,
+            Some(Subcommand::Yarn) => Toolchain::yarn(project, &default_platform, &filter)?,
             Some(Subcommand::PackageOrTool { name }) => {
-                Toolchain::package_or_tool(&name, inventory, project, &filter)?
+                Toolchain::package_or_tool(&name, project, &filter)?
             }
         };
 

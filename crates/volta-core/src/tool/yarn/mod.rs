@@ -4,6 +4,7 @@ use super::{
     debug_already_fetched, info_fetched, info_installed, info_pinned, info_project_version, Tool,
 };
 use crate::error::ErrorDetails;
+use crate::inventory::yarn_available;
 use crate::session::Session;
 use crate::style::tool_version;
 use semver::Version;
@@ -34,33 +35,25 @@ impl Yarn {
         format!("{}.tar.gz", Yarn::archive_basename(version))
     }
 
-    pub(crate) fn fetch_internal(&self, session: &mut Session) -> Fallible<()> {
-        let inventory = session.inventory()?;
-        if inventory.yarn.versions.contains(&self.version) {
+    pub(crate) fn ensure_fetched(&self, session: &mut Session) -> Fallible<()> {
+        if yarn_available(&self.version)? {
             debug_already_fetched(self);
-            return Ok(());
+            Ok(())
+        } else {
+            fetch::fetch(&self.version, session.hooks()?.yarn())
         }
-
-        fetch::fetch(&self.version, session.hooks()?.yarn())?;
-        session
-            .inventory_mut()?
-            .yarn
-            .versions
-            .insert(self.version.clone());
-
-        Ok(())
     }
 }
 
 impl Tool for Yarn {
     fn fetch(self: Box<Self>, session: &mut Session) -> Fallible<()> {
-        self.fetch_internal(session)?;
+        self.ensure_fetched(session)?;
 
         info_fetched(self);
         Ok(())
     }
     fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {
-        self.fetch_internal(session)?;
+        self.ensure_fetched(session)?;
 
         session
             .toolchain_mut()?
@@ -77,7 +70,7 @@ impl Tool for Yarn {
     }
     fn pin(self: Box<Self>, session: &mut Session) -> Fallible<()> {
         if session.project()?.is_some() {
-            self.fetch_internal(session)?;
+            self.ensure_fetched(session)?;
 
             // Note: We know this will succeed, since we checked above
             let project = session.project_mut()?.unwrap();

@@ -98,10 +98,10 @@ pub trait PlatformSpec {
     fn checkout(&self, session: &mut Session) -> Fallible<Image> {
         let node = self.node();
         let yarn = self.yarn();
-        ensure_node(node.value, session)?;
+        Node::new(node.value.clone()).ensure_fetched(session)?;
 
         if let Some(Sourced { value: version, .. }) = yarn {
-            ensure_yarn(version, session)?;
+            Yarn::new(version.clone()).ensure_fetched(session)?;
         }
 
         let npm = match self.npm() {
@@ -210,28 +210,6 @@ impl PlatformSpec for MergedPlatformSpec {
     fn yarn(&self) -> Option<Sourced<&Version>> {
         self.project.yarn().or_else(|| self.default.yarn())
     }
-}
-
-/// Ensures that a specific Node version has been fetched and unpacked
-fn ensure_node(version: &Version, session: &mut Session) -> Fallible<()> {
-    let inventory = session.inventory()?;
-
-    if !inventory.node.versions.contains(version) {
-        Node::new(version.clone()).fetch_internal(session)?;
-    }
-
-    Ok(())
-}
-
-/// Ensures that a specific Yarn version has been fetched and unpacked
-fn ensure_yarn(version: &Version, session: &mut Session) -> Fallible<()> {
-    let inventory = session.inventory()?;
-
-    if !inventory.yarn.versions.contains(version) {
-        Yarn::new(version.clone()).fetch_internal(session)?;
-    }
-
-    Ok(())
 }
 
 fn build_path_error(_err: &JoinPathsError) -> ErrorDetails {
