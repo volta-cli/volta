@@ -80,8 +80,7 @@ else
 fi || exit 1
 
 # then package the binaries and shell scripts together
-shell_script_dir="shell/unix"
-info 'Packaging' "the compiled binaries and shell scripts"
+info 'Packaging' "the compiled binaries"
 cd "$target_dir"
 # using COPYFILE_DISABLE to avoid storing extended attribute files when run on OSX
 # (see https://superuser.com/q/61185)
