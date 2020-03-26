@@ -119,7 +119,7 @@
                     Id='npmCMD'
                     Name='npm.cmd'
                     DiskId='1'
-                    Source='shell\windows\shim.cmd'
+                    Source='wix\shim.cmd'
                     KeyPath='yes'/>
             </Component>
             <Component Id='npxBinary' Guid='*' Win64='$(var.Win64)'>
@@ -135,7 +135,7 @@
                     Id='npxCMD'
                     Name='npx.cmd'
                     DiskId='1'
-                    Source='shell\windows\shim.cmd'
+                    Source='wix\shim.cmd'
                     KeyPath='yes'/>
             </Component>
             <Component Id='yarnBinary' Guid='*' Win64='$(var.Win64)'>
@@ -151,7 +151,7 @@
                     Id='yarnCMD'
                     Name='yarn.cmd'
                     DiskId='1'
-                    Source='shell\windows\shim.cmd'
+                    Source='wix\shim.cmd'
                     KeyPath='yes'/>
             </Component>
         </ComponentGroup>
