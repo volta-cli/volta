@@ -166,6 +166,15 @@ fn node_image_dir(node: &str, root: PathBuf) -> PathBuf {
 fn node_image_bin_dir(node: &str, root: PathBuf) -> PathBuf {
     node_image_dir(node, root).join("bin")
 }
+fn npm_image_root_dir(root: PathBuf) -> PathBuf {
+    image_dir(root).join("npm")
+}
+fn npm_image_dir(version: &str, root: PathBuf) -> PathBuf {
+    npm_image_root_dir(root).join(version)
+}
+fn npm_image_bin_dir(version: &str, root: PathBuf) -> PathBuf {
+    npm_image_dir(version, root).join("bin")
+}
 fn yarn_image_root_dir(root: PathBuf) -> PathBuf {
     image_dir(root).join("yarn")
 }
@@ -177,6 +186,9 @@ fn package_image_root_dir(root: PathBuf) -> PathBuf {
 }
 fn node_inventory_dir(root: PathBuf) -> PathBuf {
     inventory_dir(root).join("node")
+}
+fn npm_inventory_dir(root: PathBuf) -> PathBuf {
+    inventory_dir(root).join("npm")
 }
 fn yarn_inventory_dir(root: PathBuf) -> PathBuf {
     inventory_dir(root).join("yarn")
@@ -214,6 +226,9 @@ pub fn node_distro_file_name(version: &str) -> String {
         "node-v{}-{}-{}.tar.gz",
         version, NODE_DISTRO_OS, NODE_DISTRO_ARCH
     )
+}
+fn npm_distro_file_name(version: &str) -> String {
+    package_distro_file_name("npm", version)
 }
 fn yarn_distro_file_name(version: &str) -> String {
     format!("yarn-v{}.tar.gz", version)
@@ -353,17 +368,14 @@ impl TempProject {
 
     /// Verify that the input Npm version has been fetched.
     pub fn npm_version_is_fetched(&self, version: &str) -> bool {
-        // ISSUE(#292): This is maybe the wrong place to put npm?
-        let package_file = package_distro_file("npm", version, self.root());
-        let shasum_file = package_distro_shasum("npm", version, self.root());
-        package_file.exists() && shasum_file.exists()
+        let distro_file_name = npm_distro_file_name(version);
+        let inventory_dir = npm_inventory_dir(self.root());
+        inventory_dir.join(distro_file_name).exists()
     }
 
     /// Verify that the input Npm version has been unpacked.
     pub fn npm_version_is_unpacked(&self, version: &str) -> bool {
-        // ISSUE(#292): This is maybe the wrong place to unpack npm?
-        let unpack_dir = package_image_dir("npm", version, self.root());
-        unpack_dir.exists()
+        npm_image_bin_dir(version, self.root()).exists()
     }
 
     /// Verify that the input Npm version has been installed.

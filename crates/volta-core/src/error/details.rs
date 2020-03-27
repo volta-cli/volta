@@ -208,7 +208,9 @@ pub enum ErrorDetails {
     NoPackageExecutables,
 
     /// Thrown when a user tries to pin a Yarn version before pinning a Node version.
-    NoPinnedNodeVersion,
+    NoPinnedNodeVersion {
+        tool: String,
+    },
 
     /// Thrown when the platform (Node version) could not be determined
     NoPlatform,
@@ -845,11 +847,12 @@ Please ensure the directory is available."
 
 Please verify the requested package name."
             ),
-            ErrorDetails::NoPinnedNodeVersion => write!(
+            ErrorDetails::NoPinnedNodeVersion { tool } => write!(
                 f,
-                "Cannot pin Yarn because the Node version is not pinned in this project.
+                "Cannot pin {} because the Node version is not pinned in this project.
 
-Use `volta pin node` to pin Node first, then pin a Yarn version."
+Use `volta pin node` to pin Node first, then pin a {0} version.",
+                tool
             ),
             ErrorDetails::NoPlatform => write!(
                 f,
@@ -1426,7 +1429,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::NoInstallDir => ExitCode::EnvironmentError,
             ErrorDetails::NoLocalDataDir => ExitCode::EnvironmentError,
             ErrorDetails::NoPackageExecutables { .. } => ExitCode::InvalidArguments,
-            ErrorDetails::NoPinnedNodeVersion => ExitCode::ConfigurationError,
+            ErrorDetails::NoPinnedNodeVersion { .. } => ExitCode::ConfigurationError,
             ErrorDetails::NoPlatform => ExitCode::ConfigurationError,
             ErrorDetails::NoProjectYarn => ExitCode::ConfigurationError,
             ErrorDetails::NoShellProfile { .. } => ExitCode::EnvironmentError,

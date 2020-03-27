@@ -4,60 +4,61 @@ use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
 
-// ISSUE(#208) - explicitly including the npm version will not be necessary after that
-fn package_json_with_pinned_node_npm(version: &str, npm_version: &str) -> String {
-    format!(
-        r#"{{
-  "name": "test-package",
-  "volta": {{
-    "node": "{}",
-    "npm": "{}"
-  }}
-}}"#,
-        version, npm_version
-    )
-}
+static PACKAGE_JSON_WITH_PINNED_NODE: &str = r#"{
+    "name": "test-package",
+    "volta": {
+        "node": "12.13.0"
+    }
+}"#;
 
-fn package_json_with_pinned_node_npm_yarn(
-    node_version: &str,
-    npm_version: &str,
-    yarn_version: &str,
-) -> String {
-    format!(
-        r#"{{
-  "name": "test-package",
-  "volta": {{
-    "node": "{}",
-    "npm": "{}",
-    "yarn": "{}"
-  }}
-}}"#,
-        node_version, npm_version, yarn_version
-    )
-}
+static PACKAGE_JSON_WITH_PINNED_NODE_NPM: &str = r#"{
+    "name": "test-package",
+    "volta": {
+        "node": "12.13.0",
+        "npm": "6.13.4"
+    }
+}"#;
+
+static PACKAGE_JSON_WITH_PINNED_NODE_YARN: &str = r#"{
+    "name": "test-package",
+    "volta": {
+        "node": "12.13.0",
+        "yarn": "1.22.0"
+    }
+}"#;
 
 #[test]
 fn autodownload_node() {
     let p = temp_project()
-        .package_json(&package_json_with_pinned_node_npm("10.11.0", "6.4.1"))
+        .package_json(PACKAGE_JSON_WITH_PINNED_NODE)
         .build();
 
     assert_that!(
         p.node("--version"),
-        execs().with_status(0).with_stdout_contains("v10.11.0")
+        execs().with_status(0).with_stdout_contains("v12.13.0")
+    );
+}
+
+#[test]
+fn autodownload_npm() {
+    let p = temp_project()
+        .package_json(PACKAGE_JSON_WITH_PINNED_NODE_NPM)
+        .build();
+
+    assert_that!(
+        p.npm("--version"),
+        execs().with_status(0).with_stdout_contains("6.13.4")
     );
 }
 
 #[test]
 fn autodownload_yarn() {
     let p = temp_project()
-        .package_json(&package_json_with_pinned_node_npm_yarn(
-            "10.11.0", "6.4.1", "1.10.1",
-        ))
+        .package_json(PACKAGE_JSON_WITH_PINNED_NODE_YARN)
         .build();
 
     assert_that!(
         p.yarn("--version"),
-        execs().with_status(0).with_stdout_contains("1.10.1")
+        execs().with_status(0).with_stdout_contains("1.22.0")
     );
 }
