@@ -17,8 +17,8 @@ use volta_fail::{Fallible, ResultExt};
 
 mod fetch;
 mod install;
-mod resolve;
-mod serial;
+pub(crate) mod resolve;
+pub(crate) mod serial;
 
 pub use install::{BinConfig, BinLoader, PackageConfig};
 pub use resolve::resolve;

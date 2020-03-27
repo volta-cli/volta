@@ -43,7 +43,6 @@ where
 pub struct Manifest {
     pub name: Option<String>,
     pub version: Option<String>,
-    pub description: Option<String>,
 
     #[serde(default)]
     pub dependencies: HashMap<String, String>,
@@ -285,7 +284,6 @@ pub mod tests {
         let package_all = r#"{
             "name": "some_package",
             "version": "3.5.2",
-            "description": "This is a description",
             "dependencies": { "something": "1.2.3" },
             "devDependencies": { "somethingElse": "1.2.3" },
             "volta": {
@@ -299,10 +297,6 @@ pub mod tests {
 
         assert_eq!(manifest_all.name, Some("some_package".to_string()));
         assert_eq!(manifest_all.version, Some("3.5.2".to_string()));
-        assert_eq!(
-            manifest_all.description,
-            Some("This is a description".to_string())
-        );
         // (checking the rest of the fields in other tests)
     }
 

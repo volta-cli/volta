@@ -230,6 +230,11 @@ pub enum ErrorDetails {
 
     NoVersionsFound,
 
+    /// Thrown when there is no npm version matching the requested Semver/Tag
+    NpmVersionNotFound {
+        matching: String,
+    },
+
     /// Thrown when there is an error running `npm view`
     NpmViewMetadataFetchError {
         package: String,
@@ -889,6 +894,13 @@ Please verify your internet connection and ensure the correct version is specifi
 {}",
                 package, PERMISSIONS_CTA
             ),
+            ErrorDetails::NpmVersionNotFound { matching } => write!(
+                f,
+                r#"Could not find Node version matching "{}" in the version registry.
+
+Please verify that the version is correct."#,
+                matching
+            ),
             ErrorDetails::NpmViewMetadataFetchError { package } => write!(
                 f,
                 "Could not download package metadata for '{}'
@@ -1411,6 +1423,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::NoVersionsFound => ExitCode::NoVersionMatch,
             ErrorDetails::NpmPackFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::NpmPackUnpackError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::NpmVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NpmViewMetadataFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::NpmViewMetadataParseError { .. } => ExitCode::UnknownError,
             ErrorDetails::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
