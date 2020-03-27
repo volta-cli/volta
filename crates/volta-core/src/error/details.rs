@@ -230,6 +230,16 @@ pub enum ErrorDetails {
 
     NoVersionsFound,
 
+    /// Thrown when there is an error running `npm pack`
+    NpmPackFetchError {
+        package: String,
+    },
+
+    /// Thrown when there is issue finding, loading, or unpacking the file downloaded via `npm pack`
+    NpmPackUnpackError {
+        package: String,
+    },
+
     /// Thrown when there is no npm version matching the requested Semver/Tag
     NpmVersionNotFound {
         matching: String,
@@ -242,16 +252,6 @@ pub enum ErrorDetails {
 
     /// Thrown when there is an parsing the metadata from `npm view`
     NpmViewMetadataParseError {
-        package: String,
-    },
-
-    /// Thrown when there is an error running `npm pack`
-    NpmPackFetchError {
-        package: String,
-    },
-
-    /// Thrown when there is issue finding, loading, or unpacking the file downloaded via `npm pack`
-    NpmPackUnpackError {
         package: String,
     },
 
@@ -479,6 +479,11 @@ pub enum ErrorDetails {
     /// Thrown when there was an error writing the default npm to file
     WriteDefaultNpmError {
         file: PathBuf,
+    },
+
+    /// Thrown when there was an error writing the npm launcher
+    WriteLauncherError {
+        tool: String,
     },
 
     /// Thrown when there was an error writing the node index cache
@@ -1295,6 +1300,13 @@ to {}
                 file.display(),
                 PERMISSIONS_CTA
             ),
+            ErrorDetails::WriteLauncherError { tool } => write!(
+                f,
+                "Could not set up launcher for {}
+
+This is most likely an intermittent failure, please try again.",
+                tool
+            ),
             ErrorDetails::WriteNodeIndexCacheError { file } => write!(
                 f,
                 "Could not write Node index cache
@@ -1479,6 +1491,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::VersionParseError { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::WriteBinConfigError { .. } => ExitCode::FileSystemError,
             ErrorDetails::WriteDefaultNpmError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::WriteLauncherError { .. } => ExitCode::FileSystemError,
             ErrorDetails::WriteNodeIndexCacheError { .. } => ExitCode::FileSystemError,
             ErrorDetails::WriteNodeIndexExpiryError { .. } => ExitCode::FileSystemError,
             ErrorDetails::WritePackageConfigError { .. } => ExitCode::FileSystemError,
