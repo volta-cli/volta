@@ -17,7 +17,6 @@ mod serial;
 pub use resolve::resolve;
 
 /// The Tool implementation for fetching and installing Yarn
-#[derive(Debug)]
 pub struct Yarn {
     pub(super) version: Version,
 }

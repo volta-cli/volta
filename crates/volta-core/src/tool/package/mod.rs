@@ -51,7 +51,6 @@ pub struct PackageDetails {
 }
 
 /// The Tool implementation for fetching and installing 3rd-party packages
-#[derive(Debug)]
 pub struct Package {
     pub(crate) name: String,
     pub(crate) details: PackageDetails,

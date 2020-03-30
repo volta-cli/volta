@@ -18,7 +18,6 @@ mod resolve;
 pub use resolve::resolve;
 
 /// The Tool implementation for fetching and installing npm
-#[derive(Debug)]
 pub struct Npm {
     pub(super) version: Version,
 }
@@ -92,7 +91,6 @@ impl Display for Npm {
 }
 
 /// The Tool implementation for setting npm to the version bundled with Node
-#[derive(Debug)]
 pub struct BundledNpm;
 
 impl Tool for BundledNpm {
