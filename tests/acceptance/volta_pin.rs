@@ -290,6 +290,41 @@ fn pin_node_no_version() {
 }
 
 #[test]
+fn pin_node_informs_newer_npm() {
+    let s = sandbox()
+        .package_json(&package_json_with_pinned_node_npm("8.9.10", "5.6.17"))
+        .node_available_versions(NODE_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .env("VOLTA_LOGLEVEL", "info")
+        .build();
+
+    assert_that!(
+        s.volta("pin node@10.99.1040"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stdout_contains("[..]this version of Node includes npm@6.2.26, which is higher than your pinned version (5.6.17).")
+            .with_stdout_contains("[..]`volta pin npm@bundled`[..]")
+    );
+}
+
+#[test]
+fn pin_node_with_npm_hides_bundled_version() {
+    let s = sandbox()
+        .package_json(&package_json_with_pinned_node_npm("8.9.10", "6.2.26"))
+        .node_available_versions(NODE_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .env("VOLTA_LOGLEVEL", "info")
+        .build();
+
+    assert_that!(
+        s.volta("pin node@9.27.6"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stdout_does_not_contain("[..](with npm@5.6.17)[..]")
+    );
+}
+
+#[test]
 fn pin_yarn_no_node() {
     let s = sandbox()
         .package_json(BASIC_PACKAGE_JSON)
