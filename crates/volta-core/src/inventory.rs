@@ -29,6 +29,16 @@ pub fn node_versions() -> Fallible<BTreeSet<Version>> {
     volta_home().and_then(|home| read_versions(home.node_image_root_dir()))
 }
 
+/// Checks if a given npm version image is available on the local machine
+pub fn npm_available(version: &Version) -> Fallible<bool> {
+    volta_home().map(|home| home.npm_image_dir(&version.to_string()).exists())
+}
+
+/// Collects a set of all npm versions fetched on the local machine
+pub fn npm_versions() -> Fallible<BTreeSet<Version>> {
+    volta_home().and_then(|home| read_versions(home.npm_image_root_dir()))
+}
+
 /// Checks if a given Yarn version image is available on the local machine
 pub fn yarn_available(version: &Version) -> Fallible<bool> {
     volta_home().map(|home| home.yarn_image_dir(&version.to_string()).exists())

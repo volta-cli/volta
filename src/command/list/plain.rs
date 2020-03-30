@@ -19,15 +19,13 @@ pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
         } => (None, None, Some(describe_tool_set(name, host_packages))),
         Toolchain::Active {
             runtime,
-            package_manager,
+            package_managers,
             packages,
         } => (
             runtime
                 .as_ref()
                 .and_then(|r| describe_runtimes(&[(**r).clone()])),
-            package_manager
-                .as_ref()
-                .and_then(|p| describe_package_managers(&[(**p).clone()])),
+            describe_package_managers(&package_managers),
             describe_packages(&packages),
         ),
         Toolchain::All {
@@ -196,6 +194,7 @@ mod tests {
     lazy_static! {
         static ref NODE_VERSION: Version = Version::from((12, 4, 0));
         static ref TYPESCRIPT_VERSION: Version = Version::from((3, 4, 1));
+        static ref NPM_VERSION: Version = Version::from((6, 13, 4));
         static ref YARN_VERSION: Version = Version::from((1, 16, 0));
         static ref PROJECT_PATH: PathBuf = PathBuf::from("/a/b/c");
     }
@@ -228,6 +227,51 @@ mod tests {
             assert_eq!(
                 display_node(&source, &NODE_VERSION).as_str(),
                 "runtime node@12.4.0"
+            );
+        }
+    }
+
+    mod npm {
+        use super::super::*;
+        use super::*;
+        use crate::command::list::*;
+
+        #[test]
+        fn default() {
+            assert_eq!(
+                display_package_manager(&PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source: Source::Default,
+                    version: NPM_VERSION.clone(),
+                })
+                .as_str(),
+                "package-manager npm@6.13.4 (default)"
+            );
+        }
+
+        #[test]
+        fn project() {
+            assert_eq!(
+                display_package_manager(&PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source: Source::Project(PROJECT_PATH.clone()),
+                    version: NPM_VERSION.clone(),
+                })
+                .as_str(),
+                "package-manager npm@6.13.4 (current @ /a/b/c)"
+            );
+        }
+
+        #[test]
+        fn installed_not_set() {
+            assert_eq!(
+                display_package_manager(&PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source: Source::None,
+                    version: NPM_VERSION.clone(),
+                })
+                .as_str(),
+                "package-manager npm@6.13.4"
             );
         }
     }
@@ -445,6 +489,16 @@ mod tests {
                     ],
                     package_managers: vec![
                         PackageManager {
+                            kind: PackageManagerKind::Npm,
+                            source: Source::Project(PROJECT_PATH.clone()),
+                            version: NPM_VERSION.clone(),
+                        },
+                        PackageManager {
+                            kind: PackageManagerKind::Npm,
+                            source: Source::Default,
+                            version: Version::from((5, 10, 0))
+                        },
+                        PackageManager {
                             kind: PackageManagerKind::Yarn,
                             source: Source::Project(PROJECT_PATH.clone()),
                             version: YARN_VERSION.clone()
@@ -487,6 +541,8 @@ mod tests {
                 .as_str(),
                 "runtime node@12.4.0 (default)\n\
                  runtime node@8.2.4\n\
+                 package-manager npm@6.13.4 (current @ /a/b/c)\n\
+                 package-manager npm@5.10.0 (default)\n\
                  package-manager yarn@1.16.0 (current @ /a/b/c)\n\
                  package-manager yarn@1.17.0 (default)\n\
                  package ember-cli@3.10.2 / ember / node@12.4.0 npm@built-in (default)\n\
