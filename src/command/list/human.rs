@@ -16,10 +16,7 @@ pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
     // Formatting here depends on the toolchain: we do different degrees of
     // indentation
     Some(match toolchain {
-        Toolchain::Node(runtimes) => format!(
-            "⚡️ Node runtimes in your toolchain:\n\n{}",
-            display_runtimes(&runtimes)
-        ),
+        Toolchain::Node(runtimes) => display_node(&runtimes),
         Toolchain::Active {
             runtime,
             package_manager,
@@ -30,12 +27,23 @@ pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
             package_managers,
             packages,
         } => display_all(runtimes, package_managers, packages),
-        Toolchain::PackageManagers(package_managers) => display_package_managers(package_managers),
-        Toolchain::Packages(packages) => display_packages(packages, true),
+        Toolchain::PackageManagers(package_managers) => {
+            let header_message = if package_managers.is_empty() {
+                ""
+            } else {
+                "⚡️ Yarn versions in your toolchain:"
+            };
+            format!(
+                "{}\n{}",
+                header_message,
+                &display_package_managers(package_managers)
+            )
+        }
+        Toolchain::Packages(packages) => display_packages(packages),
         Toolchain::Tool {
             name,
             host_packages,
-        } => display_tools(name, host_packages),
+        } => display_tool(name, host_packages),
     })
 }
 
@@ -57,7 +65,10 @@ fn display_active(
                 .fill(&format!("node: v{}{}", runtime.version, runtime.source));
             let package_manager_version: String = Wrapper::new(width)
                 .initial_indent(INDENTATION)
-                .fill(&display_package_manager(package_manager));
+                .fill(&format!(
+                    "yarn: {}",
+                    display_package_manager(package_manager)
+                ));
             let package_versions = if packages.is_empty() {
                 Wrapper::new(width)
                     .initial_indent(INDENTATION)
@@ -68,7 +79,7 @@ fn display_active(
                     .subsequent_indent(INDENTATION)
                     .fill(&format!(
                         "Tool binaries available:\n{}",
-                        display_packages(packages, false)
+                        display_tool_sets(packages)
                     ))
             };
 
@@ -95,7 +106,7 @@ fn display_active(
                     .subsequent_indent(INDENTATION)
                     .fill(&format!(
                         "Tool binaries available:\n{}",
-                        display_packages(packages, false)
+                        display_packages(packages)
                     ))
             };
 
@@ -115,26 +126,40 @@ fn display_all(
     package_managers: &[PackageManager],
     packages: &[Package],
 ) -> String {
-    let width = text_width().unwrap_or(0);
-    let runtime_versions: String = Wrapper::new(width)
-        .initial_indent(INDENTATION)
-        .subsequent_indent(INDENTATION)
-        .fill(&format!("node runtimes:\n {}", display_runtimes(runtimes)));
-    let package_manager_versions: String = Wrapper::new(width)
-        .initial_indent(INDENTATION)
-        .subsequent_indent(INDENTATION)
-        .fill(&format!(
-            "Package managers: \n{}",
-            display_package_managers(package_managers)
-        ));
-    let package_versions = Wrapper::new(width)
-        .initial_indent(INDENTATION)
-        .subsequent_indent(INDENTATION)
-        .fill(&format!("Packages:\n{}", display_packages(packages, true)));
-    format!(
-        "⚡️ User toolchain:\n\n{}\n\n{}\n\n{}",
-        runtime_versions, package_manager_versions, package_versions
-    )
+    if runtimes.is_empty() {
+        NO_RUNTIME.to_string()
+    } else {
+        let width = text_width().unwrap_or(0);
+        let runtime_versions: String = Wrapper::new(width)
+            .initial_indent(INDENTATION)
+            .subsequent_indent(INDENTATION)
+            .fill(&format!("Node runtimes:\n {}", display_runtimes(runtimes)));
+        let package_manager_versions: String = Wrapper::new(width)
+            .initial_indent(INDENTATION)
+            .subsequent_indent(INDENTATION)
+            .fill(&format!(
+                "⚡️ Package managers: \n{}",
+                display_package_managers(package_managers)
+            ));
+        let package_versions = Wrapper::new(width)
+            .initial_indent(INDENTATION)
+            .subsequent_indent(INDENTATION)
+            .fill(&format!("Packages:\n{}", display_packages(packages)));
+        format!(
+            "⚡️ User toolchain:\n{}\n\n{}\n\n{}",
+            runtime_versions, package_manager_versions, package_versions
+        )
+    }
+}
+
+/// Format a set of `Toolchain::Node`s.
+fn display_node(runtimes: &[Node]) -> String {
+    let header_message = if runtimes.is_empty() {
+        ""
+    } else {
+        "⚡️ Node runtimes in your toolchain:\n"
+    };
+    format!("{}{}", header_message, display_runtimes(&runtimes))
 }
 
 /// Format a set of `Toolchain::Node`s.
@@ -164,10 +189,17 @@ fn display_runtime(runtime: &Node) -> String {
 /// Format a set of `Toolchain::PackageManager`s.
 fn display_package_managers(package_managers: &[PackageManager]) -> String {
     if package_managers.is_empty() {
-        String::from("")
+        String::from(
+            "⚡️ No <npm|Yarn> versions installed.
+
+You can install a Yarn version by running `volta install yarn`.
+See `volta help install` for details and more options.",
+        )
     } else {
         let width = text_width().unwrap_or(0);
-        Wrapper::new(width)
+        // let header_message = "⚡️ Yarn versions in your toolchain:";
+        let header_message = "";
+        let versions = Wrapper::new(width)
             .initial_indent(INDENTATION)
             .subsequent_indent(INDENTATION)
             .fill(
@@ -176,39 +208,44 @@ fn display_package_managers(package_managers: &[PackageManager]) -> String {
                     .map(display_package_manager)
                     .collect::<Vec<String>>()
                     .join("\n"),
-            )
+            );
+        format!("{}\n{}", header_message, versions)
     }
 }
 
 /// Format a single `Toolchain::PackageManager`.
 fn display_package_manager(package_manager: &PackageManager) -> String {
-    format!(
-        "{}: v{}{}",
-        package_manager.kind, package_manager.version, package_manager.source
-    )
+    format!("v{}{}", package_manager.version, package_manager.source)
 }
 
 /// Format a set of `Toolchain::Package`s and their associated tools.
-fn display_packages(packages: &[Package], show_detail: bool) -> String {
+fn display_packages(packages: &[Package]) -> String {
     if packages.is_empty() {
-        String::from("")
+        String::from(
+            "⚡️ No tools or packages installed.
+
+You can safely install packages by running `volta install <package name>`.
+See `volta help install` for details and more options.",
+        )
     } else {
         let width = text_width().unwrap_or(0);
-        Wrapper::new(width)
+        let header_message = "⚡️ Package versions in your toolchain:";
+        let versions = Wrapper::new(width)
             .initial_indent(INDENTATION)
             .subsequent_indent(INDENTATION)
             .fill(
                 &packages
                     .iter()
-                    .map(|p| display_package(p, show_detail))
+                    .map(display_package)
                     .collect::<Vec<String>>()
                     .join("\n"),
-            )
+            );
+        format!("{}\n\n{}", header_message, versions)
     }
 }
 
 /// Format a single `Toolchain::Package` and its associated tools.
-fn display_package(package: &Package, show_detail: bool) -> String {
+fn display_package(package: &Package) -> String {
     match package {
         Package::Default {
             details,
@@ -227,48 +264,106 @@ fn display_package(package: &Package, show_detail: bool) -> String {
                 _ => format!("{}", tools.join(", ")),
             };
             let width = text_width().unwrap_or(0);
-            if !show_detail {
-                format!("{}{}", tools, package_source(package))
-            } else {
-                // println!("{}\n{}\n{}\n{}", details.name, details.version, node, tools);
-                let version = Wrapper::new(width)
-                    .initial_indent(INDENTATION)
-                    .subsequent_indent(INDENTATION)
-                    .fill(&format!("v{}{}", details.version, package_source(package)));
-                let binaries = Wrapper::new(width)
-                    .initial_indent(INDENTATION)
-                    .subsequent_indent(INDENTATION)
-                    .fill(&format!("binaries: {}", tools));
-                let platform = Wrapper::new(width)
-                    .initial_indent(INDENTATION)
-                    .subsequent_indent(INDENTATION)
-                    .fill(&format!(
-                        "platform: \n\truntime: {}\n\tpackage manager: {}",
-                        tool_version("node", &node),
-                        // TODO: Should be updated when we support installing with custom package_managers,
-                        // whether Yarn or non-built-in versions of npm
-                        "npm@built-in"
-                    ));
-                format!("{}:\n{}\n{}\n{}", details.name, version, binaries, platform)
-            }
+
+            // println!("{}\n{}\n{}\n{}", details.name, details.version, node, tools);
+            let version = format!("{}{}", details.version, package_source(package));
+            let binaries = Wrapper::new(width)
+                .initial_indent(INDENTATION)
+                .subsequent_indent(INDENTATION)
+                .fill(&format!("binary tools: {}", tools));
+            let platform_detail = Wrapper::new(width)
+                .initial_indent(INDENTATION)
+                .subsequent_indent(INDENTATION)
+                .fill(&format!(
+                    "runtime: {}\npackage manager: {}",
+                    tool_version("node", &node),
+                    // TODO: Should be updated when we support installing with custom package_managers,
+                    // whether Yarn or non-built-in versions of npm
+                    "npm@built-in"
+                ));
+            let platform = Wrapper::new(width)
+                .initial_indent(INDENTATION)
+                .subsequent_indent(INDENTATION)
+                .fill(&format!("platform:\n{}", platform_detail));
+            format!("{}@{}\n{}\n{}", details.name, version, binaries, platform)
         }
-        Package::Fetched(details) => format!(""),
+        Package::Fetched(details) => {
+            let package_info = format!("{}@{}", details.name, details.version);
+            let footer_message = format!(
+                "To make it available to execute, run `volta install {}`.",
+                package_info
+            );
+            format!("{}\n\n{}", package_info, footer_message)
+        }
     }
 }
 
-/// Format a set of `Toolchain::Package`s.
-/// AKA executable
-fn display_tools(tool: &str, host_packages: &[Package]) -> String {
-    format!("display_tools")
+/// Format a set of `Toolchain::Tool`s with detailed information
+
+fn display_tool(tool: &str, host_packages: &[Package]) -> String {
+    if host_packages.is_empty() {
+        format!(
+            "⚡️ No tools or packages named `{}` installed.
+
+You can safely install packages by running `volta install <package name>`.
+See `volta help install` for details and more options.",
+            tool
+        )
+    } else {
+        let width = text_width().unwrap_or(0);
+        let header_message = format!("⚡️ Tool `{}` available from:", tool);
+        let versions = Wrapper::new(width)
+            .initial_indent(INDENTATION)
+            .subsequent_indent(INDENTATION)
+            .fill(
+                &host_packages
+                    .iter()
+                    .map(display_package)
+                    .collect::<Vec<String>>()
+                    .join("\n"),
+            );
+        format!("{}\n\n{}", header_message, versions)
+    }
 }
 
-/// Format a single `Toolchain::Package`.
-fn display_tool(tool: &str, host_package: &Package) -> String {
-    match host_package {
-        Package::Default { details, node, .. } | Package::Project { details, node, .. } => {
-            format!("{}", tool)
+/// Format a sets binaries inside `Toolchain::Package`s without detail information
+fn display_tool_sets(packages: &[Package]) -> String {
+    format!(
+        "{}",
+        &packages
+            .iter()
+            .map(display_tool_set)
+            .collect::<Vec<String>>()
+            .join("\n")
+    )
+}
+/// Format a set binaries inside a single `Toolchain::Package` without detail information
+fn display_tool_set(package: &Package) -> String {
+    match package {
+        Package::Default {
+            details,
+            node,
+            tools,
+            ..
         }
-        Package::Fetched(..) => String::from(""),
+        | Package::Project {
+            details,
+            node,
+            tools,
+            ..
+        } => {
+            let tools = match tools.len() {
+                0 => String::from(""),
+                _ => format!("{}", tools.join(", ")),
+            };
+            let width = text_width().unwrap_or(0);
+
+            Wrapper::new(width)
+                .initial_indent(INDENTATION)
+                .subsequent_indent(INDENTATION)
+                .fill(&format!("{}{}", tools, package_source(package)))
+        }
+        Package::Fetched(details) => String::new(),
     }
 }
 
@@ -449,7 +544,8 @@ See options for more detailed reports by running `volta list --help`.";
     node: v12.2.0 (current @ ~/path/to/project.json)
     yarn: v1.16.0 (current @ ~/path/to/project.json)
     Tool binaries available:
-        create-react-app, tsc, tsserver (default)
+        create-react-app (default)
+        tsc, tsserver (default)
 
 See options for more detailed reports by running `volta list --help`.";
 
@@ -533,642 +629,606 @@ See options for more detailed reports by running `volta list --help`.";
                 expected
             );
         }
-        // }
-
-        //     mod node {
-        //         use std::path::PathBuf;
-
-        //         use semver::Version;
-
-        //         use super::super::*;
-        //         use super::*;
-
-        //         #[test]
-        //         fn no_runtimes() {
-        //             let expected = NO_RUNTIME;
-
-        //             let runtimes = [];
-        //             assert_eq!(display_node(&runtimes).as_str(), expected);
-        //         }
-
-        //         #[test]
-        //         fn single_default() {
-        //             let expected = "⚡️ Node runtimes in your toolchain:
-        //     v10.15.3 (default)";
-        //             let runtimes = [Node {
-        //                 source: Source::Default,
-        //                 version: NODE_10.clone(),
-        //             }];
-
-        //             assert_eq!(display_node(&runtimes).as_str(), expected);
-        //         }
-
-        //         #[test]
-        //         fn single_project() {
-        //             let expected = "⚡️ Node runtimes in your toolchain:
-        //     v12.2.0 (current @ ~/path/to/project.json)";
-
-        //             let runtimes = [Node {
-        //                 source: Source::Project(PROJECT_PATH.clone()),
-        //                 version: NODE_12.clone(),
-        //             }];
-
-        //             assert_eq!(display_node(&runtimes).as_str(), expected);
-        //         }
-
-        //         #[test]
-        //         fn single_installed() {
-        //             let expected = "⚡️ Node runtimes in your toolchain:
-        //     v11.9.0";
-
-        //             let runtimes = [Node {
-        //                 source: Source::None,
-        //                 version: NODE_11.clone(),
-        //             }];
-
-        //             assert_eq!(display_node(&runtimes).as_str(), expected);
-        //         }
-
-        //         #[test]
-        //         fn multi() {
-        //             let expected = "⚡️ Node runtimes in your toolchain:
-        //     v12.2.0 (current @ ~/path/to/project.json)
-        //     v11.9.0
-        //     v10.15.3 (default)";
-
-        //             let runtimes = [
-        //                 Node {
-        //                     source: Source::Project(PROJECT_PATH.clone()),
-        //                     version: NODE_12.clone(),
-        //                 },
-        //                 Node {
-        //                     source: Source::None,
-        //                     version: NODE_11.clone(),
-        //                 },
-        //                 Node {
-        //                     source: Source::Default,
-        //                     version: NODE_10.clone(),
-        //                 },
-        //             ];
-
-        //             assert_eq!(display_node(&runtimes), expected);
-        //         }
-        //     }
-
-        //     mod package_managers {
-        //         use super::*;
-        //         use crate::command::list::Subcommand;
-        //         use crate::command::list::{PackageManager, PackageManagerKind, Source};
-
-        //         #[test]
-        //         fn none_installed() {
-        //             let expected = "⚡️ No <npm|Yarn> versions installed.
-        // You can install a Yarn version by running `volta install yarn`.
-        // See `volta help install` for details and more options.";
-
-        //             assert_eq!(display_package_managers(&[]), expected);
-        //         }
-
-        //         #[test]
-        //         fn single_default() {
-        //             let expected = "⚡️ Yarn versions in your toolchain:
-        //     v1.16.0 (default)";
-
-        //             let package_managers = [PackageManager {
-        //                 kind: PackageManagerKind::Yarn,
-        //                 source: Source::Default,
-        //                 version: YARN_VERSION.clone(),
-        //             }];
-
-        //             assert_eq!(display_package_managers(&package_managers), expected);
-        //         }
-
-        //         #[test]
-        //         fn single_project() {
-        //             let expected = "⚡️ Yarn versions in your toolchain:
-        //     v1.16.0 (current @ ~/path/to/project.json)";
-
-        //             let package_managers = [PackageManager {
-        //                 kind: PackageManagerKind::Yarn,
-        //                 source: Source::Project(PROJECT_PATH.clone()),
-        //                 version: YARN_VERSION.clone(),
-        //             }];
-
-        //             assert_eq!(display_package_managers(&package_managers), expected);
-        //         }
-
-        //         #[test]
-        //         fn single_installed() {
-        //             let expected = "⚡️ Yarn versions in your toolchain:
-        //     v1.16.0";
-
-        //             let yarns = [PackageManager {
-        //                 kind: PackageManagerKind::Yarn,
-        //                 source: Source::None,
-        //                 version: YARN_VERSION.clone(),
-        //             }];
-
-        //             assert_eq!(display_package_managers(&yarns), expected);
-        //         }
-
-        //         #[test]
-        //         fn multi() {
-        //             let expected = "⚡️ Yarn versions in your toolchain:
-        //     v1.17.0 (current @ ~/path/to/project.json)
-        //     v1.16.0 (default)
-        //     v1.3.0";
-
-        //             let yarns = [
-        //                 PackageManager {
-        //                     kind: PackageManagerKind::Yarn,
-        //                     source: Source::None,
-        //                     version: Version::from((1, 3, 0)),
-        //                 },
-        //                 PackageManager {
-        //                     kind: PackageManagerKind::Yarn,
-        //                     source: Source::Default,
-        //                     version: YARN_VERSION.clone(),
-        //                 },
-        //                 PackageManager {
-        //                     kind: PackageManagerKind::Yarn,
-        //                     source: Source::Project(PROJECT_PATH.clone()),
-        //                     version: Version::from((1, 17, 0)),
-        //                 },
-        //             ];
-
-        //             assert_eq!(display_package_managers(&yarns), expected);
-        //         }
-        //     }
-
-        //     mod packages {
-        //         use super::*;
-        //         use crate::command::list::{Package, Source};
-        //         use semver::{Identifier, Version};
-
-        //         #[test]
-        //         fn none() {
-        //             let expected = "⚡️ No tools or packages named `ember` installed.
-
-        // You can safely install packages by running `volta install <package name>`.
-        // See `volta help install` for details and more options.";
-
-        //             assert_eq!(display_packages(&[]), expected);
-        //         }
-
-        //         #[test]
-        //         fn single_default() {
-        //             let expected = "⚡️ `ember` package versions in your toolchain:
-
-        //     ember-cli@3.10.1 (default)
-        //         binary tools: ember
-        //         platform:
-        //             runtime: node@v12.2.0
-        //             package manager: built-in npm";
-
-        //             let packages = [Package {
-        //                 name: "ember-cli".to_string(),
-        //                 version: Version::from((3, 10, 1)),
-        //                 source: Source::Default,
-        //                 node: NODE_12.clone(),
-        //                 tools: vec!["ember".to_string()],
-        //             }];
-
-        //             assert_eq!(display_packages(&packages), expected);
-        //         }
-
-        //         #[test]
-        //         fn single_project() {
-        //             let expected = "⚡️ `ember` package versions in your toolchain:
-
-        //     ember-cli@3.10.1 (current @ ~/path/to/project.json)
-        //         binary tools: ember
-        //         platform:
-        //             runtime: node@v12.2.0
-        //             package manager: built-in npm";
-
-        //             let packages = [Package {
-        //                 name: "ember-cli".to_string(),
-        //                 version: Version::from((3, 10, 1)),
-        //                 source: Source::Project(PROJECT_PATH.clone()),
-        //                 node: NODE_12.clone(),
-        //                 tools: vec!["ember".to_string()],
-        //             }];
-
-        //             assert_eq!(display_packages(&packages), expected);
-        //         }
-
-        //         #[test]
-        //         fn single_fetched() {
-        //             let expected = "⚡️ tool `ember` exists in one package on your system:
-
-        //     ember-cli@3.10.1
-        //         binary tools: ember
-        //         platform:
-        //             runtime: node@v12.2.0
-        //             package manager: built-in npm
-        // To make it available to execute, run `volta install ember-cli@3.10.1`.
-        // See `volta help install` for details and more options.";
-
-        //             let packages = [Package {
-        //                 name: "ember-cli".to_string(),
-        //                 version: Version::from((3, 10, 1)),
-        //                 source: Source::None,
-        //                 node: NODE_12.clone(),
-        //                 tools: vec!["ember".to_string()],
-        //             }];
-
-        //             assert_eq!(display_packages(&packages), expected);
-        //         }
-
-        //         #[test]
-        //         fn multi_fetched() {
-        //             let expected = "⚡️ tool `ember` exists in the following packages on your system:
-
-        //     ember-cli@3.10.1
-        //         binary tools: ember
-        //         platform:
-        //             runtime: node@v12.2.0
-        //             package manager: built-in npm
-        //     ember-cli@3.8.2
-        //         binary tools: ember
-        //         platform:
-        //             runtime: node@v12.2.0
-        //             package manager: built-in npm
-        // To make it available to execute, run `volta install ember-cli@<version>`.
-        // See `volta help install` for details and more options.";
-
-        //             let packages = [
-        //                 Package {
-        //                     name: "ember-cli".to_string(),
-        //                     version: Version::from((3, 10, 1)),
-        //                     source: Source::None,
-        //                     node: NODE_12.clone(),
-        //                     tools: vec!["ember".to_string()],
-        //                 },
-        //                 Package {
-        //                     name: "ember-cli".to_string(),
-        //                     version: Version::from((3, 8, 2)),
-        //                     source: Source::None,
-        //                     node: NODE_12.clone(),
-        //                     tools: vec!["ember".to_string()],
-        //                 },
-        //             ];
-
-        //             assert_eq!(display_packages(&packages), expected);
-        //         }
-
-        //         #[test]
-        //         fn multi() {
-        //             let expected = "⚡️ `ember` package versions in your toolchain:
-        //     ember-cli@3.11.0-beta.3 (current @ ~/path/to/project.json)
-        //         binary tools: ember
-        //         platform:
-        //             runtime: node@v12.2.0
-        //             package manager: built-in npm
-
-        //     ember-cli@3.10.1
-        //         binary tools: ember
-        //         platform:
-        //             runtime: node@v12.2.0
-        //             package manager: built-in npm
-        //     ember-cli@3.8.2 (default)
-        //         binary tools: ember
-        //         platform:
-        //             runtime: node@v12.2.0
-        //             package manager: built-in npm";
-
-        //             let packages = [
-        //                 Package {
-        //                     name: "ember-cli".to_string(),
-        //                     version: Version::from((3, 10, 1)),
-        //                     source: Source::None,
-        //                     node: NODE_12.clone(),
-        //                     tools: vec!["ember".to_string()],
-        //                 },
-        //                 Package {
-        //                     name: "ember-cli".to_string(),
-        //                     version: Version::from((3, 8, 2)),
-        //                     source: Source::Default,
-        //                     node: NODE_12.clone(),
-        //                     tools: vec!["ember".to_string()],
-        //                 },
-        //                 Package {
-        //                     name: "ember-cli".to_string(),
-        //                     version: Version {
-        //                         major: 3,
-        //                         minor: 11,
-        //                         patch: 0,
-        //                         pre: vec![Identifier::AlphaNumeric("-beta.3".to_string())],
-        //                         build: vec![],
-        //                     },
-        //                     source: Source::Project(PROJECT_PATH.clone()),
-        //                     node: NODE_12.clone(),
-        //                     tools: vec!["ember".to_string()],
-        //                 },
-        //             ];
-
-        //             assert_eq!(display_packages(&packages), expected);
-        //         }
-        //     }
-
-        //     mod tools {
-        //         use super::*;
-        //         use crate::command::list::{Package, Source};
-        //         use semver::{Identifier, Version};
-
-        //         #[test]
-        //         fn none() {
-        //             let expected = "⚡️ No tools or packages named `ember` installed.
-
-        // You can safely install packages by running `volta install <package name>`.
-        // See `volta help install` for details and more options.";
-
-        //             assert_eq!(display_tool("ember", &[]), expected);
-        //         }
-
-        //         #[test]
-        //         fn single_default() {
-        //             let expected = "⚡️ tool `ember` available from:
-
-        //     ember-cli@3.10.1 (default)
-        //         platform:
-        //             runtime: node@v12.2.0
-        //             package manager: built-in npm";
-
-        //             let packages = [Package {
-        //                 name: "ember-cli".to_string(),
-        //                 version: Version::from((3, 10, 1)),
-        //                 source: Source::Default,
-        //                 node: NODE_12.clone(),
-        //                 tools: vec!["ember".to_string()],
-        //             }];
-
-        //             assert_eq!(display_tool("ember", &packages), expected);
-        //         }
-
-        //         #[test]
-        //         fn single_project() {
-        //             let expected = "⚡️ tool `ember` available from:
-
-        //     ember-cli@3.10.1 (current @ ~/path/to/project.json)
-        //         platform:
-        //             runtime: node@v12.2.0
-        //             package manager: built-in npm";
-
-        //             let packages = [Package {
-        //                 name: "ember-cli".to_string(),
-        //                 version: Version::from((3, 10, 1)),
-        //                 source: Source::Project(PROJECT_PATH.clone()),
-        //                 node: NODE_12.clone(),
-        //                 tools: vec!["ember".to_string()],
-        //             }];
-
-        //             assert_eq!(display_tool("ember", &packages), expected);
-        //         }
-
-        //         #[test]
-        //         fn single_fetched() {
-        //             let expected = "⚡️ tool `ember` available from:
-
-        //     ember-cli@3.10.1
-        //         platform:
-        //             runtime: node@v12.2.0
-        //             package manager: built-in npm
-        // To make it available to execute, run `volta install ember-cli@3.10.1`.
-        // See `volta help install` for details and more options.";
-
-        //             let packages = [Package {
-        //                 name: "ember-cli".to_string(),
-        //                 version: Version::from((3, 10, 1)),
-        //                 source: Source::None,
-        //                 node: NODE_12.clone(),
-        //                 tools: vec!["ember".to_string()],
-        //             }];
-
-        //             assert_eq!(display_tool("ember", &packages), expected);
-        //         }
-
-        //         #[test]
-        //         fn multi_fetched() {
-        //             let expected = "⚡️ tool `ember` available from:
-
-        //     ember-cli@3.10.1
-        //         platform:
-        //             runtime: node@v12.2.0
-        //             package manager: built-in npm
-        //     ember-cli@3.8.2
-        //         platform:
-        //             runtime: node@v12.2.0
-        //             package manager: built-in npm
-        // To make it available to execute, run `volta install ember-cli@<version>`.
-        // See `volta help install` for details and more options.";
-
-        //             let packages = [
-        //                 Package {
-        //                     name: "ember-cli".to_string(),
-        //                     version: Version::from((3, 10, 1)),
-        //                     source: Source::None,
-        //                     node: NODE_12.clone(),
-        //                     tools: vec!["ember".to_string()],
-        //                 },
-        //                 Package {
-        //                     name: "ember-cli".to_string(),
-        //                     version: Version::from((3, 8, 2)),
-        //                     source: Source::None,
-        //                     node: NODE_12.clone(),
-        //                     tools: vec!["ember".to_string()],
-        //                 },
-        //             ];
-
-        //             assert_eq!(display_tool("ember", &packages), expected);
-        //         }
-
-        //         #[test]
-        //         fn multi() {
-        //             let expected = "⚡️ tool `ember` available from:
-        //     ember-cli@3.11.0-beta.3 (current @ ~/path/to/project.json)
-        //         platform:
-        //             runtime: node@v12.2.0
-        //             package manager: built-in npm
-
-        //     ember-cli@3.10.1
-        //         platform:
-        //             runtime: node@v12.2.0
-        //             package manager: built-in npm
-        //     ember-cli@3.8.2 (default)
-        //         platform:
-        //             runtime: node@v12.2.0
-        //             package manager: built-in npm";
-
-        //             let packages = [
-        //                 Package {
-        //                     name: "ember-cli".to_string(),
-        //                     version: Version::from((3, 10, 1)),
-        //                     source: Source::None,
-        //                     node: NODE_12.clone(),
-        //                     tools: vec!["ember".to_string()],
-        //                 },
-        //                 Package {
-        //                     name: "ember-cli".to_string(),
-        //                     version: Version::from((3, 8, 2)),
-        //                     source: Source::Default,
-        //                     node: NODE_12.clone(),
-        //                     tools: vec!["ember".to_string()],
-        //                 },
-        //                 Package {
-        //                     name: "ember-cli".to_string(),
-        //                     version: Version {
-        //                         major: 3,
-        //                         minor: 11,
-        //                         patch: 0,
-        //                         pre: vec![Identifier::AlphaNumeric("-beta.3".to_string())],
-        //                         build: vec![],
-        //                     },
-        //                     source: Source::Project(PROJECT_PATH.clone()),
-        //                     node: NODE_12.clone(),
-        //                     tools: vec!["ember".to_string()],
-        //                 },
-        //             ];
-
-        //             assert_eq!(display_tool("ember", &packages), expected);
-        //         }
-        //     }
-
-        //     mod all {
-        //         use super::*;
-        //         use crate::command::list::PackageManagerKind;
-        //         use semver::Identifier;
-
-        //         #[test]
-        //         fn empty() {
-        //             let runtimes = [];
-        //             let package_managers = [];
-        //             let packages = [];
-
-        //             assert_eq!(
-        //                 display_all(&runtimes, &package_managers, &packages),
-        //                 NO_RUNTIME
-        //             );
-        //         }
-
-        //         #[test]
-        //         fn full() {
-        //             let expected = "⚡️ Default toolchain:
-        //     Node runtimes:
-        //         v12.2.0 (current @ ~/path/to/project.json)
-        //         v11.9.0
-        //         v10.15.3 (default)
-        //     Package managers:
-        //         Yarn:
-        //             v1.17.0 (current @ ~/path/to/project.json)
-        //             v1.16.0 (default)
-        //             v1.4.0
-        //     Tools:
-        //         ember-cli:
-        //             v3.11.0-beta.3
-        //                 binaries: ember
-        //                 platform:
-        //                     runtime: node@12.2.0
-        //                     package manager: built-in npm
-        //             v3.10.1 (current @ ~/path/to/project.json):
-        //                 binaries: ember
-        //                 platform:
-        //                     runtime: node@12.2.0
-        //                     package manager: built-in npm
-        //             v3.8.2 (default):
-        //                 binaries: ember
-        //                 platform:
-        //                     runtime: node@12.2.0
-        //                     package manager: built-in npm
-        //         typescript:
-        //             v3.5.1 (current @ ~/path/to/project.json):
-        //                 binaries:
-        //                 platform:
-        //                     runtime: node@12.2.0
-        //                     package manager: built-in npm
-        //             v3.4.3 (default):
-        //                 binaries:
-        //                 platform:
-        //                     runtime: node@12.2.0
-        //                     package manager: built-in npm
-        //             ";
-
-        //             let runtimes = [
-        //                 Node {
-        //                     source: Source::Project(PROJECT_PATH.clone()),
-        //                     version: NODE_12.clone(),
-        //                 },
-        //                 Node {
-        //                     source: Source::None,
-        //                     version: NODE_11.clone(),
-        //                 },
-        //                 Node {
-        //                     source: Source::Default,
-        //                     version: NODE_10.clone(),
-        //                 },
-        //             ];
-
-        //             let package_managers = [
-        //                 PackageManager {
-        //                     kind: PackageManagerKind::Yarn,
-        //                     source: Source::Default,
-        //                     version: YARN_VERSION.clone(),
-        //                 },
-        //                 PackageManager {
-        //                     kind: PackageManagerKind::Yarn,
-        //                     source: Source::Project(PROJECT_PATH.clone()),
-        //                     version: Version::from((1, 17, 0)),
-        //                 },
-        //                 PackageManager {
-        //                     kind: PackageManagerKind::Npm,
-        //                     source: Source::None,
-        //                     version: Version::from((1, 4, 0)),
-        //                 },
-        //             ];
-
-        //             let packages = [
-        //                 Package {
-        //                     name: "typescript".to_string(),
-        //                     source: Source::Default,
-        //                     version: Version::from((3, 4, 3)),
-        //                     node: NODE_12.clone(),
-        //                     tools: vec!["tsc".to_string(), "tsserver".to_string()],
-        //                 },
-        //                 Package {
-        //                     name: "typescript".to_string(),
-        //                     source: Source::Project(PROJECT_PATH.clone()),
-        //                     version: Version::from((3, 5, 1)),
-        //                     node: NODE_12.clone(),
-        //                     tools: vec!["tsc".to_string(), "tsserver".to_string()],
-        //                 },
-        //                 Package {
-        //                     name: "ember".to_string(),
-        //                     source: Source::None,
-        //                     version: Version {
-        //                         major: 3,
-        //                         minor: 11,
-        //                         patch: 0,
-        //                         pre: vec![Identifier::AlphaNumeric("-beta.3".to_string())],
-        //                         build: vec![],
-        //                     },
-        //                     node: NODE_12.clone(),
-        //                     tools: vec!["tsc".to_string(), "tsserver".to_string()],
-        //                 },
-        //                 Package {
-        //                     name: "ember".to_string(),
-        //                     source: Source::Project(PROJECT_PATH.clone()),
-        //                     version: Version::from((3, 10, 1)),
-        //                     node: NODE_12.clone(),
-        //                     tools: vec!["tsc".to_string(), "tsserver".to_string()],
-        //                 },
-        //                 Package {
-        //                     name: "ember".to_string(),
-        //                     source: Source::Default,
-        //                     version: Version::from((3, 8, 2)),
-        //                     node: NODE_12.clone(),
-        //                     tools: vec!["tsc".to_string(), "tsserver".to_string()],
-        //                 },
-        //             ];
-        // }
+    }
+
+    mod node {
+        use std::path::PathBuf;
+
+        use semver::Version;
+
+        use super::super::*;
+        use super::*;
+
+        #[test]
+        fn no_runtimes() {
+            let expected = NO_RUNTIME;
+
+            let runtimes = [];
+            assert_eq!(display_node(&runtimes).as_str(), expected);
+        }
+
+        #[test]
+        fn single_default() {
+            let expected = "⚡️ Node runtimes in your toolchain:
+    v10.15.3 (default)";
+            let runtimes = [Node {
+                source: Source::Default,
+                version: NODE_10.clone(),
+            }];
+
+            assert_eq!(display_node(&runtimes).as_str(), expected);
+        }
+
+        #[test]
+        fn single_project() {
+            let expected = "⚡️ Node runtimes in your toolchain:
+    v12.2.0 (current @ ~/path/to/project.json)";
+
+            let runtimes = [Node {
+                source: Source::Project(PROJECT_PATH.clone()),
+                version: NODE_12.clone(),
+            }];
+
+            assert_eq!(display_node(&runtimes).as_str(), expected);
+        }
+
+        #[test]
+        fn single_installed() {
+            let expected = "⚡️ Node runtimes in your toolchain:
+    v11.9.0";
+
+            let runtimes = [Node {
+                source: Source::None,
+                version: NODE_11.clone(),
+            }];
+
+            assert_eq!(display_node(&runtimes).as_str(), expected);
+        }
+
+        #[test]
+        fn multi() {
+            let expected = "⚡️ Node runtimes in your toolchain:
+    v12.2.0 (current @ ~/path/to/project.json)
+    v11.9.0
+    v10.15.3 (default)";
+
+            let runtimes = [
+                Node {
+                    source: Source::Project(PROJECT_PATH.clone()),
+                    version: NODE_12.clone(),
+                },
+                Node {
+                    source: Source::None,
+                    version: NODE_11.clone(),
+                },
+                Node {
+                    source: Source::Default,
+                    version: NODE_10.clone(),
+                },
+            ];
+
+            assert_eq!(display_node(&runtimes), expected);
+        }
+    }
+
+    mod package_managers {
+        use super::*;
+        use crate::command::list::Subcommand;
+        use crate::command::list::{PackageManager, PackageManagerKind, Source};
+
+        #[test]
+        fn none_installed() {
+            let expected = "⚡️ No <npm|Yarn> versions installed.
+
+You can install a Yarn version by running `volta install yarn`.
+See `volta help install` for details and more options.";
+
+            assert_eq!(display_package_managers(&[]), expected);
+        }
+
+        #[test]
+        fn single_default() {
+            let expected = "⚡️ Yarn versions in your toolchain:
+    v1.16.0 (default)";
+
+            let package_managers = [PackageManager {
+                kind: PackageManagerKind::Yarn,
+                source: Source::Default,
+                version: YARN_VERSION.clone(),
+            }];
+
+            assert_eq!(display_package_managers(&package_managers), expected);
+        }
+
+        #[test]
+        fn single_project() {
+            let expected = "⚡️ Yarn versions in your toolchain:
+    v1.16.0 (current @ ~/path/to/project.json)";
+
+            let package_managers = [PackageManager {
+                kind: PackageManagerKind::Yarn,
+                source: Source::Project(PROJECT_PATH.clone()),
+                version: YARN_VERSION.clone(),
+            }];
+
+            assert_eq!(display_package_managers(&package_managers), expected);
+        }
+
+        #[test]
+        fn single_installed() {
+            let expected = "⚡️ Yarn versions in your toolchain:
+    v1.16.0";
+
+            let yarns = [PackageManager {
+                kind: PackageManagerKind::Yarn,
+                source: Source::None,
+                version: YARN_VERSION.clone(),
+            }];
+
+            assert_eq!(display_package_managers(&yarns), expected);
+        }
+
+        #[test]
+        fn multi() {
+            let expected = "⚡️ Yarn versions in your toolchain:
+    v1.3.0
+    v1.16.0 (default)
+    v1.17.0 (current @ ~/path/to/project.json)";
+
+            let yarns = [
+                PackageManager {
+                    kind: PackageManagerKind::Yarn,
+                    source: Source::None,
+                    version: Version::from((1, 3, 0)),
+                },
+                PackageManager {
+                    kind: PackageManagerKind::Yarn,
+                    source: Source::Default,
+                    version: YARN_VERSION.clone(),
+                },
+                PackageManager {
+                    kind: PackageManagerKind::Yarn,
+                    source: Source::Project(PROJECT_PATH.clone()),
+                    version: Version::from((1, 17, 0)),
+                },
+            ];
+
+            assert_eq!(display_package_managers(&yarns), expected);
+        }
+    }
+
+    mod packages {
+        use super::*;
+        use crate::command::list::{Package, PackageDetails, Source};
+        use semver::{Identifier, Version};
+
+        #[test]
+        fn none() {
+            let expected = "⚡️ No tools or packages installed.
+
+You can safely install packages by running `volta install <package name>`.
+See `volta help install` for details and more options.";
+
+            assert_eq!(display_packages(&[]), expected);
+        }
+
+        #[test]
+        fn single_default() {
+            let expected = "⚡️ Package versions in your toolchain:
+
+    ember-cli@3.10.1 (default)
+        binary tools: ember
+        platform:
+            runtime: node@12.2.0
+            package manager: npm@built-in";
+
+            let packages = [Package::Default {
+                details: PackageDetails {
+                    name: "ember-cli".to_string(),
+                    version: Version::from((3, 10, 1)),
+                },
+                node: NODE_12.clone(),
+                tools: vec!["ember".to_string()],
+            }];
+
+            assert_eq!(display_packages(&packages), expected);
+        }
+
+        #[test]
+        fn single_project() {
+            let expected = "⚡️ Package versions in your toolchain:
+
+    ember-cli@3.10.1 (current @ ~/path/to/project.json)
+        binary tools: ember
+        platform:
+            runtime: node@12.2.0
+            package manager: npm@built-in";
+
+            let packages = [Package::Project {
+                details: PackageDetails {
+                    name: "ember-cli".to_string(),
+                    version: Version::from((3, 10, 1)),
+                },
+                path: PROJECT_PATH.clone(),
+                node: NODE_12.clone(),
+                tools: vec!["ember".to_string()],
+            }];
+
+            assert_eq!(display_packages(&packages), expected);
+        }
+
+        #[test]
+        fn single_fetched() {
+            let expected = "⚡️ Package versions in your toolchain:
+
+    ember-cli@3.10.1
+    
+    To make it available to execute, run `volta install ember-cli@3.10.1`.";
+
+            let packages = [Package::Fetched(PackageDetails {
+                name: "ember-cli".to_string(),
+                version: Version::from((3, 10, 1)),
+            })];
+
+            assert_eq!(display_packages(&packages), expected);
+        }
+
+        #[test]
+        fn multi_fetched() {
+            let expected = "⚡️ Package versions in your toolchain:
+
+    ember-cli@3.10.1
+    
+    To make it available to execute, run `volta install ember-cli@3.10.1`.
+    ember-cli@3.8.2
+    
+    To make it available to execute, run `volta install ember-cli@3.8.2`.";
+
+            let packages = [
+                Package::Fetched(PackageDetails {
+                    name: "ember-cli".to_string(),
+                    version: Version::from((3, 10, 1)),
+                }),
+                Package::Fetched(PackageDetails {
+                    name: "ember-cli".to_string(),
+                    version: Version::from((3, 8, 2)),
+                }),
+            ];
+
+            assert_eq!(display_packages(&packages), expected);
+        }
+
+        #[test]
+        fn multi() {
+            let expected = "⚡️ Package versions in your toolchain:
+
+    ember-cli@3.10.1 (default)
+        binary tools: ember
+        platform:
+            runtime: node@12.2.0
+            package manager: npm@built-in
+    ember-cli@3.11.0--beta.3 (current @ ~/path/to/project.json)
+        binary tools: ember
+        platform:
+            runtime: node@12.2.0
+            package manager: npm@built-in";
+
+            let packages = [
+                Package::Default {
+                    details: PackageDetails {
+                        name: "ember-cli".to_string(),
+                        version: Version::from((3, 10, 1)),
+                    },
+                    node: NODE_12.clone(),
+                    tools: vec!["ember".to_string()],
+                },
+                Package::Project {
+                    details: PackageDetails {
+                        name: "ember-cli".to_string(),
+                        version: Version {
+                            major: 3,
+                            minor: 11,
+                            patch: 0,
+                            pre: vec![Identifier::AlphaNumeric("-beta.3".to_string())],
+                            build: vec![],
+                        },
+                    },
+                    node: NODE_12.clone(),
+                    path: PROJECT_PATH.clone(),
+                    tools: vec!["ember".to_string()],
+                },
+            ];
+
+            assert_eq!(display_packages(&packages), expected);
+        }
+    }
+
+    mod tools {
+        use super::*;
+        use crate::command::list::{Package, PackageDetails, Source};
+        use semver::{Identifier, Version};
+
+        #[test]
+        fn none() {
+            let expected = "⚡️ No tools or packages named `ember` installed.
+
+You can safely install packages by running `volta install <package name>`.
+See `volta help install` for details and more options.";
+
+            assert_eq!(display_tool("ember", &[]), expected);
+        }
+
+        #[test]
+        fn single_default() {
+            let expected = "⚡️ Tool `ember` available from:
+
+    ember-cli@3.10.1 (default)
+        binary tools: ember
+        platform:
+            runtime: node@12.2.0
+            package manager: npm@built-in";
+
+            let packages = [Package::Default {
+                details: PackageDetails {
+                    name: "ember-cli".to_string(),
+                    version: Version::from((3, 10, 1)),
+                },
+                node: NODE_12.clone(),
+                tools: vec!["ember".to_string()],
+            }];
+
+            assert_eq!(display_tool("ember", &packages), expected);
+        }
+
+        #[test]
+        fn single_project() {
+            let expected = "⚡️ Tool `ember` available from:
+
+    ember-cli@3.10.1 (current @ ~/path/to/project.json)
+        binary tools: ember
+        platform:
+            runtime: node@12.2.0
+            package manager: npm@built-in";
+
+            let packages = [Package::Project {
+                details: PackageDetails {
+                    name: "ember-cli".to_string(),
+                    version: Version::from((3, 10, 1)),
+                },
+                path: PROJECT_PATH.clone(),
+                node: NODE_12.clone(),
+                tools: vec!["ember".to_string()],
+            }];
+
+            assert_eq!(display_tool("ember", &packages), expected);
+        }
+
+        #[test]
+        fn single_fetched() {
+            let expected = "⚡️ Tool `ember` available from:
+
+    ember-cli@3.10.1
+    
+    To make it available to execute, run `volta install ember-cli@3.10.1`.";
+
+            let packages = [Package::Fetched(PackageDetails {
+                name: "ember-cli".to_string(),
+                version: Version::from((3, 10, 1)),
+            })];
+
+            assert_eq!(display_tool("ember", &packages), expected);
+        }
+
+        #[test]
+        fn multi_fetched() {
+            let expected = "⚡️ Tool `ember` available from:
+
+    ember-cli@3.10.1
+    
+    To make it available to execute, run `volta install ember-cli@3.10.1`.
+    ember-cli@3.8.2
+    
+    To make it available to execute, run `volta install ember-cli@3.8.2`.";
+
+            let packages = [
+                Package::Fetched(PackageDetails {
+                    name: "ember-cli".to_string(),
+                    version: Version::from((3, 10, 1)),
+                }),
+                Package::Fetched(PackageDetails {
+                    name: "ember-cli".to_string(),
+                    version: Version::from((3, 8, 2)),
+                }),
+            ];
+
+            assert_eq!(display_tool("ember", &packages), expected);
+        }
+
+        #[test]
+        fn multi() {
+            let expected = "⚡️ Tool `ember` available from:
+
+    ember-cli@3.10.1 (default)
+        binary tools: ember
+        platform:
+            runtime: node@12.2.0
+            package manager: npm@built-in
+    ember-cli@3.11.0--beta.3 (current @ ~/path/to/project.json)
+        binary tools: ember
+        platform:
+            runtime: node@12.2.0
+            package manager: npm@built-in";
+
+            let packages = [
+                Package::Default {
+                    details: PackageDetails {
+                        name: "ember-cli".to_string(),
+                        version: Version::from((3, 10, 1)),
+                    },
+                    node: NODE_12.clone(),
+                    tools: vec!["ember".to_string()],
+                },
+                Package::Project {
+                    details: PackageDetails {
+                        name: "ember-cli".to_string(),
+                        version: Version {
+                            major: 3,
+                            minor: 11,
+                            patch: 0,
+                            pre: vec![Identifier::AlphaNumeric("-beta.3".to_string())],
+                            build: vec![],
+                        },
+                    },
+                    node: NODE_12.clone(),
+                    path: PROJECT_PATH.clone(),
+                    tools: vec!["ember".to_string()],
+                },
+            ];
+
+            assert_eq!(display_tool("ember", &packages), expected);
+        }
+    }
+
+    mod all {
+        use super::*;
+        use crate::command::list::{PackageDetails, PackageManagerKind};
+        use semver::Identifier;
+
+        #[test]
+        fn empty() {
+            let runtimes = [];
+            let package_managers = [];
+            let packages = [];
+
+            assert_eq!(
+                display_all(&runtimes, &package_managers, &packages),
+                NO_RUNTIME
+            );
+        }
+
+        #[test]
+        fn full() {
+            let expected = "⚡️ User toolchain:
+    Node runtimes:
+        v12.2.0 (current @ ~/path/to/project.json)
+        v11.9.0
+        v10.15.3 (default)
+    Package managers:
+        Yarn versions in your toolchain:
+            v1.17.0 (current @ ~/path/to/project.json)
+            v1.16.0 (default)
+            v1.4.0
+    Tools:
+        ember-cli:
+            v3.10.1 (current @ ~/path/to/project.json):
+                binaries: ember
+                platform:
+                    runtime: node@12.2.0
+                    package manager: built-in npm
+            v3.8.2 (default):
+                binaries: ember
+                platform:
+                    runtime: node@12.2.0
+                    package manager: built-in npm
+        typescript:
+            v3.5.1 (current @ ~/path/to/project.json):
+                binaries:
+                platform:
+                    runtime: node@12.2.0
+                    package manager: built-in npm
+            v3.4.3 (default):
+                binaries:
+                platform:
+                    runtime: node@12.2.0
+                    package manager: built-in npm";
+
+            let runtimes = [
+                Node {
+                    source: Source::Project(PROJECT_PATH.clone()),
+                    version: NODE_12.clone(),
+                },
+                Node {
+                    source: Source::None,
+                    version: NODE_11.clone(),
+                },
+                Node {
+                    source: Source::Default,
+                    version: NODE_10.clone(),
+                },
+            ];
+
+            let package_managers = [
+                PackageManager {
+                    kind: PackageManagerKind::Yarn,
+                    source: Source::Default,
+                    version: YARN_VERSION.clone(),
+                },
+                PackageManager {
+                    kind: PackageManagerKind::Yarn,
+                    source: Source::Project(PROJECT_PATH.clone()),
+                    version: Version::from((1, 17, 0)),
+                },
+                PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source: Source::None,
+                    version: Version::from((1, 4, 0)),
+                },
+            ];
+
+            let packages = [
+                Package::Default {
+                    details: PackageDetails {
+                        name: "typescript".to_string(),
+                        version: Version::from((3, 4, 3)),
+                    },
+                    node: NODE_12.clone(),
+                    tools: vec!["tsc".to_string(), "tsserver".to_string()],
+                },
+                Package::Project {
+                    details: PackageDetails {
+                        name: "typescript".to_string(),
+                        version: Version::from((3, 5, 1)),
+                    },
+                    path: PROJECT_PATH.clone(),
+                    node: NODE_12.clone(),
+                    tools: vec!["tsc".to_string(), "tsserver".to_string()],
+                },
+                Package::Default {
+                    details: PackageDetails {
+                        name: "ember".to_string(),
+                        version: Version {
+                            major: 3,
+                            minor: 11,
+                            patch: 0,
+                            pre: vec![Identifier::AlphaNumeric("-beta.3".to_string())],
+                            build: vec![],
+                        },
+                    },
+                    node: NODE_12.clone(),
+                    tools: vec!["tsc".to_string(), "tsserver".to_string()],
+                },
+                Package::Project {
+                    details: PackageDetails {
+                        name: "ember".to_string(),
+                        version: Version::from((3, 10, 1)),
+                    },
+                    path: PROJECT_PATH.clone(),
+                    node: NODE_12.clone(),
+                    tools: vec!["tsc".to_string(), "tsserver".to_string()],
+                },
+                Package::Default {
+                    details: PackageDetails {
+                        name: "ember".to_string(),
+                        version: Version::from((3, 8, 2)),
+                    },
+                    node: NODE_12.clone(),
+                    tools: vec!["tsc".to_string(), "tsserver".to_string()],
+                },
+            ];
+            assert_eq!(
+                display_all(&runtimes, &package_managers, &packages),
+                expected
+            );
+        }
     }
 }
