@@ -572,6 +572,38 @@ fn pin_npm_missing_release() {
 }
 
 #[test]
+fn pin_npm_bundled_removes_npm() {
+    let s = sandbox()
+        .package_json(&package_json_with_pinned_node_npm("1.2.3", "4.5.6"))
+        .build();
+
+    assert_that!(
+        s.volta("pin npm@bundled"),
+        execs().with_status(ExitCode::Success as i32)
+    );
+
+    assert_eq!(
+        s.read_package_json(),
+        package_json_with_pinned_node("1.2.3"),
+    );
+}
+
+#[test]
+fn pin_npm_bundled_reports_info() {
+    let s = sandbox()
+        .package_json(&package_json_with_pinned_node_npm("1.2.3", "4.5.6"))
+        .env("VOLTA_LOGLEVEL", "info")
+        .build();
+
+    assert_that!(
+        s.volta("pin npm@bundled"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stdout_contains("[..]set package.json to use bundled npm[..]")
+    );
+}
+
+#[test]
 fn pin_node_and_yarn() {
     let s = sandbox()
         .package_json(BASIC_PACKAGE_JSON)

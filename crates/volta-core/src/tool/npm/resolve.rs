@@ -32,13 +32,16 @@ cfg_if! {
     }
 }
 
-pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Version> {
+pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Option<Version>> {
     let hooks = session.hooks()?.npm();
     match matching {
-        VersionSpec::Semver(requirement) => resolve_semver(requirement, hooks),
-        VersionSpec::Exact(version) => Ok(version),
-        VersionSpec::None | VersionSpec::Tag(VersionTag::Latest) => resolve_tag("latest", hooks),
-        VersionSpec::Tag(tag) => resolve_tag(&tag.to_string(), hooks),
+        VersionSpec::Semver(requirement) => resolve_semver(requirement, hooks).map(Some),
+        VersionSpec::Exact(version) => Ok(Some(version)),
+        VersionSpec::None | VersionSpec::Tag(VersionTag::Latest) => {
+            resolve_tag("latest", hooks).map(Some)
+        }
+        VersionSpec::Tag(VersionTag::Custom(tag)) if tag == "bundled" => Ok(None),
+        VersionSpec::Tag(tag) => resolve_tag(&tag.to_string(), hooks).map(Some),
     }
 }
 

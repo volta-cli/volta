@@ -145,7 +145,7 @@ pub fn install(
 
 fn determine_engine(package_dir: &Path, display: &str) -> Fallible<VersionSpec> {
     let manifest = BinManifest::for_dir(package_dir)?;
-    // if nothing specified, use the latest version of Node
+    // if nothing specified, use the LTS version of Node
     match manifest.engine {
         Some(engine) => {
             debug!(

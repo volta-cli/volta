@@ -16,7 +16,7 @@ mod yarn;
 pub use node::{
     load_default_npm_version, Node, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION, NODE_DISTRO_OS,
 };
-pub use npm::Npm;
+pub use npm::{BundledNpm, Npm};
 pub use package::{bin_full_path, BinConfig, BinLoader, Package, PackageConfig, PackageDetails};
 pub use yarn::Yarn;
 
@@ -77,10 +77,10 @@ impl Spec {
                 let version = node::resolve(version, session)?;
                 Ok(Box::new(Node::new(version)))
             }
-            Spec::Npm(version) => {
-                let version = npm::resolve(version, session)?;
-                Ok(Box::new(Npm::new(version)))
-            }
+            Spec::Npm(version) => match npm::resolve(version, session)? {
+                Some(version) => Ok(Box::new(Npm::new(version))),
+                None => Ok(Box::new(BundledNpm)),
+            },
             Spec::Yarn(version) => {
                 let version = yarn::resolve(version, session)?;
                 Ok(Box::new(Yarn::new(version)))

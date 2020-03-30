@@ -1,17 +1,31 @@
-use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture};
+use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, Sandbox};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
 
 use volta_fail::ExitCode;
 
+fn platform_with_node(node: &str) -> String {
+    format!(
+        r#"{{
+  "node": {{
+    "runtime": "{}",
+    "npm": null
+  }},
+  "yarn": null
+}}"#,
+        node
+    )
+}
+
 fn platform_with_node_npm(node: &str, npm: &str) -> String {
     format!(
         r#"{{
-    "node": {{
-        "runtime": "{}",
-        "npm": "{}"
-    }}
+  "node": {{
+    "runtime": "{}",
+    "npm": "{}"
+  }},
+  "yarn": null
 }}"#,
         node, npm
     )
@@ -132,5 +146,37 @@ fn install_node_with_npm_hides_bundled_version() {
         execs()
             .with_status(ExitCode::Success as i32)
             .with_stdout_does_not_contain("[..](with npm@5.6.17)[..]")
+    );
+}
+
+#[test]
+fn install_npm_bundled_clears_npm() {
+    let s = sandbox()
+        .platform(&platform_with_node_npm("8.9.10", "6.2.26"))
+        .build();
+
+    assert_that!(
+        s.volta("install npm@bundled"),
+        execs().with_status(ExitCode::Success as i32)
+    );
+
+    assert_eq!(
+        Sandbox::read_default_platform(),
+        platform_with_node("8.9.10")
+    );
+}
+
+#[test]
+fn install_npm_bundled_reports_info() {
+    let s = sandbox()
+        .platform(&platform_with_node_npm("8.9.10", "6.2.26"))
+        .env("VOLTA_LOGLEVEL", "info")
+        .build();
+
+    assert_that!(
+        s.volta("install npm@bundled"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stdout_contains("[..]set bundled npm[..]")
     );
 }
