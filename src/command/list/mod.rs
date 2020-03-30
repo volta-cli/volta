@@ -4,7 +4,6 @@ mod toolchain;
 
 use std::{fmt, path::PathBuf, str::FromStr};
 
-use log::warn;
 use semver::Version;
 use structopt::StructOpt;
 
@@ -276,14 +275,6 @@ impl List {
     fn subcommand(&self) -> Option<Subcommand> {
         self.subcommand.as_ref().map(|s| s.as_str().into())
     }
-}
-
-fn human_fallback(_toolchain: &Toolchain) -> Option<String> {
-    Some(String::from(
-        "The `--format=human` printer is not yet implemented. For now, you can \
-         use `volta list --format=plain`.\n\n\
-         To track progress on this task, see https://github.com/volta-cli/volta/issues/523",
-    ))
 }
 
 impl Command for List {

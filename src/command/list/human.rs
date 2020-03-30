@@ -28,16 +28,7 @@ pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
             packages,
         } => display_all(runtimes, package_managers, packages),
         Toolchain::PackageManagers(package_managers) => {
-            let header_message = if package_managers.is_empty() {
-                ""
-            } else {
-                "⚡️ Yarn versions in your toolchain:"
-            };
-            format!(
-                "{}\n{}",
-                header_message,
-                &display_package_managers(package_managers)
-            )
+            format!("{}", &display_package_managers(package_managers))
         }
         Toolchain::Packages(packages) => display_packages(packages),
         Toolchain::Tool {
@@ -62,13 +53,10 @@ fn display_active(
             let width = text_width().unwrap_or(0);
             let runtime_version: String = Wrapper::new(width)
                 .initial_indent(INDENTATION)
-                .fill(&format!("node: v{}{}", runtime.version, runtime.source));
+                .fill(&format!("Node: {}", list_runtime(runtime)));
             let package_manager_version: String = Wrapper::new(width)
                 .initial_indent(INDENTATION)
-                .fill(&format!(
-                    "yarn: {}",
-                    display_package_manager(package_manager)
-                ));
+                .fill(&format!("Yarn: {}", list_package_manager(package_manager)));
             let package_versions = if packages.is_empty() {
                 Wrapper::new(width)
                     .initial_indent(INDENTATION)
@@ -95,7 +83,7 @@ fn display_active(
             let width = text_width().unwrap_or(0);
             let runtime_version: String = Wrapper::new(width)
                 .initial_indent(INDENTATION)
-                .fill(&format!("node: {}", display_runtime(runtime)));
+                .fill(&format!("node: {}", list_runtime(runtime)));
             let package_versions = if packages.is_empty() {
                 Wrapper::new(width)
                     .initial_indent(INDENTATION)
@@ -133,20 +121,21 @@ fn display_all(
         let runtime_versions: String = Wrapper::new(width)
             .initial_indent(INDENTATION)
             .subsequent_indent(INDENTATION)
-            .fill(&format!("Node runtimes:\n {}", display_runtimes(runtimes)));
+            .fill(&format!("Node runtimes:\n{}", list_runtimes(runtimes)));
         let package_manager_versions: String = Wrapper::new(width)
             .initial_indent(INDENTATION)
-            .subsequent_indent(INDENTATION)
+            .subsequent_indent(&INDENTATION.repeat(2))
             .fill(&format!(
-                "⚡️ Package managers: \n{}",
-                display_package_managers(package_managers)
+                "Package managers:\n{}\n{}",
+                "Yarn:",
+                list_package_managers(package_managers)
             ));
         let package_versions = Wrapper::new(width)
             .initial_indent(INDENTATION)
             .subsequent_indent(INDENTATION)
-            .fill(&format!("Packages:\n{}", display_packages(packages)));
+            .fill(&format!("Packages:\n{}", list_packages(packages)));
         format!(
-            "⚡️ User toolchain:\n{}\n\n{}\n\n{}",
+            "⚡️ User toolchain:\n\n{}\n\n{}\n\n{}",
             runtime_versions, package_manager_versions, package_versions
         )
     }
@@ -154,36 +143,14 @@ fn display_all(
 
 /// Format a set of `Toolchain::Node`s.
 fn display_node(runtimes: &[Node]) -> String {
-    let header_message = if runtimes.is_empty() {
-        ""
-    } else {
-        "⚡️ Node runtimes in your toolchain:\n"
-    };
-    format!("{}{}", header_message, display_runtimes(&runtimes))
-}
-
-/// Format a set of `Toolchain::Node`s.
-fn display_runtimes(runtimes: &[Node]) -> String {
     if runtimes.is_empty() {
         NO_RUNTIME.to_string()
     } else {
-        let width = text_width().unwrap_or(0);
-        Wrapper::new(width)
-            .initial_indent(INDENTATION)
-            .subsequent_indent(INDENTATION)
-            .fill(
-                &runtimes
-                    .iter()
-                    .map(|runtime| display_runtime(&runtime))
-                    .collect::<Vec<String>>()
-                    .join("\n"),
-            )
+        format!(
+            "⚡️ Node runtimes in your toolchain:\n\n{}",
+            list_runtimes(&runtimes)
+        )
     }
-}
-
-/// Format a single `Toolchain::Node`.
-fn display_runtime(runtime: &Node) -> String {
-    format!("v{}{}", runtime.version, runtime.source)
 }
 
 /// Format a set of `Toolchain::PackageManager`s.
@@ -197,25 +164,18 @@ See `volta help install` for details and more options.",
         )
     } else {
         let width = text_width().unwrap_or(0);
-        // let header_message = "⚡️ Yarn versions in your toolchain:";
-        let header_message = "";
         let versions = Wrapper::new(width)
             .initial_indent(INDENTATION)
             .subsequent_indent(INDENTATION)
             .fill(
                 &package_managers
                     .iter()
-                    .map(display_package_manager)
+                    .map(list_package_manager)
                     .collect::<Vec<String>>()
                     .join("\n"),
             );
-        format!("{}\n{}", header_message, versions)
+        format!("⚡️ Yarn versions in your toolchain:\n\n{}", versions)
     }
-}
-
-/// Format a single `Toolchain::PackageManager`.
-fn display_package_manager(package_manager: &PackageManager) -> String {
-    format!("v{}{}", package_manager.version, package_manager.source)
 }
 
 /// Format a set of `Toolchain::Package`s and their associated tools.
@@ -228,24 +188,139 @@ You can safely install packages by running `volta install <package name>`.
 See `volta help install` for details and more options.",
         )
     } else {
+        format!(
+            "⚡️ Package versions in your toolchain:\n\n{}",
+            list_packages(packages)
+        )
+    }
+}
+
+/// Format a single `Toolchain::Tool` with associated `Toolchain::Package`
+
+fn display_tool(tool: &str, host_packages: &[Package]) -> String {
+    if host_packages.is_empty() {
+        format!(
+            "⚡️ No tools or packages named `{}` installed.
+
+You can safely install packages by running `volta install <package name>`.
+See `volta help install` for details and more options.",
+            tool
+        )
+    } else {
         let width = text_width().unwrap_or(0);
-        let header_message = "⚡️ Package versions in your toolchain:";
         let versions = Wrapper::new(width)
+            .initial_indent(INDENTATION)
+            .subsequent_indent(INDENTATION)
+            .fill(
+                &host_packages
+                    .iter()
+                    .map(list_package)
+                    .collect::<Vec<String>>()
+                    .join("\n"),
+            );
+        format!("⚡️ Tool `{}` available from:\n\n{}", tool, versions)
+    }
+}
+
+/// Format a sets binaries inside `Toolchain::Package`s without detail information
+fn display_tool_sets(packages: &[Package]) -> String {
+    format!(
+        "{}",
+        &packages
+            .iter()
+            .map(display_tool_set)
+            .collect::<Vec<String>>()
+            .join("\n")
+    )
+}
+/// Format a set binaries inside a single `Toolchain::Package` without detail information
+fn display_tool_set(package: &Package) -> String {
+    match package {
+        Package::Default { tools, .. } | Package::Project { tools, .. } => {
+            let tools = match tools.len() {
+                0 => String::from(""),
+                _ => format!("{}", tools.join(", ")),
+            };
+            let width = text_width().unwrap_or(0);
+
+            Wrapper::new(width)
+                .initial_indent(INDENTATION)
+                .subsequent_indent(INDENTATION)
+                .fill(&format!("{}{}", tools, list_package_source(package)))
+        }
+        Package::Fetched(..) => String::new(),
+    }
+}
+
+/// List a set versions of `Toolchain::Node`s.
+fn list_runtimes(runtimes: &[Node]) -> String {
+    if runtimes.is_empty() {
+        String::new()
+    } else {
+        let width = text_width().unwrap_or(0);
+        Wrapper::new(width)
+            .initial_indent(INDENTATION)
+            .subsequent_indent(INDENTATION)
+            .fill(
+                &runtimes
+                    .iter()
+                    .map(|runtime| list_runtime(&runtime))
+                    .collect::<Vec<String>>()
+                    .join("\n"),
+            )
+    }
+}
+
+/// List a single version of `Toolchain::Node`.
+fn list_runtime(runtime: &Node) -> String {
+    format!("v{}{}", runtime.version, runtime.source)
+}
+
+/// List all the versions of `Toolchain::PackageManager`s.
+fn list_package_managers(package_managers: &[PackageManager]) -> String {
+    if package_managers.is_empty() {
+        String::new()
+    } else {
+        let width = text_width().unwrap_or(0);
+        Wrapper::new(width)
+            .initial_indent(INDENTATION)
+            .subsequent_indent(INDENTATION)
+            .fill(
+                &package_managers
+                    .iter()
+                    .map(list_package_manager)
+                    .collect::<Vec<String>>()
+                    .join("\n"),
+            )
+    }
+}
+
+/// List a the version of `Toolchain::PackageManager`.
+fn list_package_manager(package_manager: &PackageManager) -> String {
+    format!("v{}{}", package_manager.version, package_manager.source)
+}
+
+/// List a set of `Toolchain::Package`s and their associated tools.
+fn list_packages(packages: &[Package]) -> String {
+    if packages.is_empty() {
+        String::new()
+    } else {
+        let width = text_width().unwrap_or(0);
+        Wrapper::new(width)
             .initial_indent(INDENTATION)
             .subsequent_indent(INDENTATION)
             .fill(
                 &packages
                     .iter()
-                    .map(display_package)
+                    .map(list_package)
                     .collect::<Vec<String>>()
                     .join("\n"),
-            );
-        format!("{}\n\n{}", header_message, versions)
+            )
     }
 }
 
-/// Format a single `Toolchain::Package` and its associated tools.
-fn display_package(package: &Package) -> String {
+/// List a single `Toolchain::Package` and its associated tools.
+fn list_package(package: &Package) -> String {
     match package {
         Package::Default {
             details,
@@ -266,7 +341,7 @@ fn display_package(package: &Package) -> String {
             let width = text_width().unwrap_or(0);
 
             // println!("{}\n{}\n{}\n{}", details.name, details.version, node, tools);
-            let version = format!("{}{}", details.version, package_source(package));
+            let version = format!("{}{}", details.version, list_package_source(package));
             let binaries = Wrapper::new(width)
                 .initial_indent(INDENTATION)
                 .subsequent_indent(INDENTATION)
@@ -298,76 +373,8 @@ fn display_package(package: &Package) -> String {
     }
 }
 
-/// Format a set of `Toolchain::Tool`s with detailed information
-
-fn display_tool(tool: &str, host_packages: &[Package]) -> String {
-    if host_packages.is_empty() {
-        format!(
-            "⚡️ No tools or packages named `{}` installed.
-
-You can safely install packages by running `volta install <package name>`.
-See `volta help install` for details and more options.",
-            tool
-        )
-    } else {
-        let width = text_width().unwrap_or(0);
-        let header_message = format!("⚡️ Tool `{}` available from:", tool);
-        let versions = Wrapper::new(width)
-            .initial_indent(INDENTATION)
-            .subsequent_indent(INDENTATION)
-            .fill(
-                &host_packages
-                    .iter()
-                    .map(display_package)
-                    .collect::<Vec<String>>()
-                    .join("\n"),
-            );
-        format!("{}\n\n{}", header_message, versions)
-    }
-}
-
-/// Format a sets binaries inside `Toolchain::Package`s without detail information
-fn display_tool_sets(packages: &[Package]) -> String {
-    format!(
-        "{}",
-        &packages
-            .iter()
-            .map(display_tool_set)
-            .collect::<Vec<String>>()
-            .join("\n")
-    )
-}
-/// Format a set binaries inside a single `Toolchain::Package` without detail information
-fn display_tool_set(package: &Package) -> String {
-    match package {
-        Package::Default {
-            details,
-            node,
-            tools,
-            ..
-        }
-        | Package::Project {
-            details,
-            node,
-            tools,
-            ..
-        } => {
-            let tools = match tools.len() {
-                0 => String::from(""),
-                _ => format!("{}", tools.join(", ")),
-            };
-            let width = text_width().unwrap_or(0);
-
-            Wrapper::new(width)
-                .initial_indent(INDENTATION)
-                .subsequent_indent(INDENTATION)
-                .fill(&format!("{}{}", tools, package_source(package)))
-        }
-        Package::Fetched(details) => String::new(),
-    }
-}
-
-fn package_source(package: &Package) -> String {
+/// List a the source from a `Toolchain::Package`.
+fn list_package_source(package: &Package) -> String {
     match package {
         Package::Default { .. } => String::from(" (default)"),
         Package::Project { path, .. } => format!(" (current @ {})", path.display()),
@@ -416,7 +423,7 @@ mod tests {
         fn runtime_only_default() {
             let expected = "⚡️ Currently active tools:
 
-    node: v12.2.0 (default)
+    Node: v12.2.0 (default)
     Tool binaries available: NONE
 
 See options for more detailed reports by running `volta list --help`.";
@@ -438,7 +445,7 @@ See options for more detailed reports by running `volta list --help`.";
         fn runtime_only_project() {
             let expected = "⚡️ Currently active tools:
 
-    node: v12.2.0 (current @ ~/path/to/project.json)
+    Node: v12.2.0 (current @ ~/path/to/project.json)
     Tool binaries available: NONE
 
 See options for more detailed reports by running `volta list --help`.";
@@ -460,8 +467,8 @@ See options for more detailed reports by running `volta list --help`.";
         fn runtime_and_yarn_default() {
             let expected = "⚡️ Currently active tools:
 
-    node: v12.2.0 (default)
-    yarn: v1.16.0 (default)
+    Node: v12.2.0 (default)
+    Yarn: v1.16.0 (default)
     Tool binaries available: NONE
 
 See options for more detailed reports by running `volta list --help`.";
@@ -487,8 +494,8 @@ See options for more detailed reports by running `volta list --help`.";
         fn runtime_and_yarn_mixed() {
             let expected = "⚡️ Currently active tools:
 
-    node: v12.2.0 (default)
-    yarn: v1.16.0 (current @ ~/path/to/project.json)
+    Node: v12.2.0 (default)
+    Yarn: v1.16.0 (current @ ~/path/to/project.json)
     Tool binaries available: NONE
 
 See options for more detailed reports by running `volta list --help`.";
@@ -514,8 +521,8 @@ See options for more detailed reports by running `volta list --help`.";
         fn runtime_and_yarn_project() {
             let expected = "⚡️ Currently active tools:
 
-    node: v12.2.0 (current @ ~/path/to/project.json)
-    yarn: v1.16.0 (current @ ~/path/to/project.json)
+    Node: v12.2.0 (current @ ~/path/to/project.json)
+    Yarn: v1.16.0 (current @ ~/path/to/project.json)
     Tool binaries available: NONE
 
 See options for more detailed reports by running `volta list --help`.";
@@ -541,8 +548,8 @@ See options for more detailed reports by running `volta list --help`.";
         fn with_default_tools() {
             let expected = "⚡️ Currently active tools:
 
-    node: v12.2.0 (current @ ~/path/to/project.json)
-    yarn: v1.16.0 (current @ ~/path/to/project.json)
+    Node: v12.2.0 (current @ ~/path/to/project.json)
+    Yarn: v1.16.0 (current @ ~/path/to/project.json)
     Tool binaries available:
         create-react-app (default)
         tsc, tsserver (default)
@@ -587,8 +594,8 @@ See options for more detailed reports by running `volta list --help`.";
         fn with_project_tools() {
             let expected = "⚡️ Currently active tools:
 
-    node: v12.2.0 (current @ ~/path/to/project.json)
-    yarn: v1.16.0 (current @ ~/path/to/project.json)
+    Node: v12.2.0 (current @ ~/path/to/project.json)
+    Yarn: v1.16.0 (current @ ~/path/to/project.json)
     Tool binaries available:
         create-react-app (current @ ~/path/to/project.json)
         tsc, tsserver (default)
@@ -632,10 +639,6 @@ See options for more detailed reports by running `volta list --help`.";
     }
 
     mod node {
-        use std::path::PathBuf;
-
-        use semver::Version;
-
         use super::super::*;
         use super::*;
 
@@ -650,6 +653,7 @@ See options for more detailed reports by running `volta list --help`.";
         #[test]
         fn single_default() {
             let expected = "⚡️ Node runtimes in your toolchain:
+
     v10.15.3 (default)";
             let runtimes = [Node {
                 source: Source::Default,
@@ -662,6 +666,7 @@ See options for more detailed reports by running `volta list --help`.";
         #[test]
         fn single_project() {
             let expected = "⚡️ Node runtimes in your toolchain:
+
     v12.2.0 (current @ ~/path/to/project.json)";
 
             let runtimes = [Node {
@@ -675,6 +680,7 @@ See options for more detailed reports by running `volta list --help`.";
         #[test]
         fn single_installed() {
             let expected = "⚡️ Node runtimes in your toolchain:
+
     v11.9.0";
 
             let runtimes = [Node {
@@ -688,6 +694,7 @@ See options for more detailed reports by running `volta list --help`.";
         #[test]
         fn multi() {
             let expected = "⚡️ Node runtimes in your toolchain:
+
     v12.2.0 (current @ ~/path/to/project.json)
     v11.9.0
     v10.15.3 (default)";
@@ -729,6 +736,7 @@ See `volta help install` for details and more options.";
         #[test]
         fn single_default() {
             let expected = "⚡️ Yarn versions in your toolchain:
+
     v1.16.0 (default)";
 
             let package_managers = [PackageManager {
@@ -743,6 +751,7 @@ See `volta help install` for details and more options.";
         #[test]
         fn single_project() {
             let expected = "⚡️ Yarn versions in your toolchain:
+
     v1.16.0 (current @ ~/path/to/project.json)";
 
             let package_managers = [PackageManager {
@@ -757,6 +766,7 @@ See `volta help install` for details and more options.";
         #[test]
         fn single_installed() {
             let expected = "⚡️ Yarn versions in your toolchain:
+
     v1.16.0";
 
             let yarns = [PackageManager {
@@ -771,6 +781,7 @@ See `volta help install` for details and more options.";
         #[test]
         fn multi() {
             let expected = "⚡️ Yarn versions in your toolchain:
+
     v1.3.0
     v1.16.0 (default)
     v1.17.0 (current @ ~/path/to/project.json)";
@@ -1109,38 +1120,39 @@ See `volta help install` for details and more options.";
         #[test]
         fn full() {
             let expected = "⚡️ User toolchain:
+
     Node runtimes:
         v12.2.0 (current @ ~/path/to/project.json)
         v11.9.0
         v10.15.3 (default)
+
     Package managers:
-        Yarn versions in your toolchain:
-            v1.17.0 (current @ ~/path/to/project.json)
+        Yarn:
             v1.16.0 (default)
+            v1.17.0 (current @ ~/path/to/project.json)
             v1.4.0
-    Tools:
-        ember-cli:
-            v3.10.1 (current @ ~/path/to/project.json):
-                binaries: ember
-                platform:
-                    runtime: node@12.2.0
-                    package manager: built-in npm
-            v3.8.2 (default):
-                binaries: ember
-                platform:
-                    runtime: node@12.2.0
-                    package manager: built-in npm
-        typescript:
-            v3.5.1 (current @ ~/path/to/project.json):
-                binaries:
-                platform:
-                    runtime: node@12.2.0
-                    package manager: built-in npm
-            v3.4.3 (default):
-                binaries:
-                platform:
-                    runtime: node@12.2.0
-                    package manager: built-in npm";
+
+    Packages:
+        typescript@3.4.3 (default)
+            binary tools: tsc, tsserver
+            platform:
+                runtime: node@12.2.0
+                package manager: npm@built-in
+        typescript@3.5.1 (current @ ~/path/to/project.json)
+            binary tools: tsc, tsserver
+            platform:
+                runtime: node@12.2.0
+                package manager: npm@built-in
+        ember-cli@3.10.1 (current @ ~/path/to/project.json)
+            binary tools: ember
+            platform:
+                runtime: node@12.2.0
+                package manager: npm@built-in
+        ember-cli@3.8.2 (default)
+            binary tools: ember
+            platform:
+                runtime: node@12.2.0
+                package manager: npm@built-in";
 
             let runtimes = [
                 Node {
@@ -1193,36 +1205,22 @@ See `volta help install` for details and more options.";
                     node: NODE_12.clone(),
                     tools: vec!["tsc".to_string(), "tsserver".to_string()],
                 },
-                Package::Default {
-                    details: PackageDetails {
-                        name: "ember".to_string(),
-                        version: Version {
-                            major: 3,
-                            minor: 11,
-                            patch: 0,
-                            pre: vec![Identifier::AlphaNumeric("-beta.3".to_string())],
-                            build: vec![],
-                        },
-                    },
-                    node: NODE_12.clone(),
-                    tools: vec!["tsc".to_string(), "tsserver".to_string()],
-                },
                 Package::Project {
                     details: PackageDetails {
-                        name: "ember".to_string(),
+                        name: "ember-cli".to_string(),
                         version: Version::from((3, 10, 1)),
                     },
                     path: PROJECT_PATH.clone(),
                     node: NODE_12.clone(),
-                    tools: vec!["tsc".to_string(), "tsserver".to_string()],
+                    tools: vec!["ember".to_string()],
                 },
                 Package::Default {
                     details: PackageDetails {
-                        name: "ember".to_string(),
+                        name: "ember-cli".to_string(),
                         version: Version::from((3, 8, 2)),
                     },
                     node: NODE_12.clone(),
-                    tools: vec!["tsc".to_string(), "tsserver".to_string()],
+                    tools: vec!["ember".to_string()],
                 },
             ];
             assert_eq!(
