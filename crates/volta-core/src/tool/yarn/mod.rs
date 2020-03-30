@@ -62,7 +62,9 @@ impl Tool for Yarn {
     fn install(self, session: &mut Session) -> Fallible<()> {
         self.fetch_internal(session)?;
 
-        session.toolchain_mut()?.set_active_yarn(&self.version)?;
+        session
+            .toolchain_mut()?
+            .set_active_yarn(Some(self.version.clone()))?;
 
         info_installed(self);
 
@@ -79,7 +81,7 @@ impl Tool for Yarn {
 
             // Note: We know this will succeed, since we checked above
             let project = session.project_mut()?.unwrap();
-            project.pin_yarn(&self.version)?;
+            project.pin_yarn(Some(self.version.clone()))?;
 
             info_pinned(self);
             Ok(())

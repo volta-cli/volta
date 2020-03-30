@@ -191,12 +191,12 @@ impl Project {
     }
 
     /// Writes the specified version of Yarn to the `volta.yarn` key in package.json.
-    pub fn pin_yarn(&mut self, yarn_version: &Version) -> Fallible<()> {
+    pub fn pin_yarn(&mut self, yarn: Option<Version>) -> Fallible<()> {
         if let Some(platform) = self.manifest.platform() {
             let updated_platform = ProjectPlatformSpec {
                 node: platform.node.clone(),
                 npm: platform.npm.clone(),
-                yarn: Some(yarn_version.clone()),
+                yarn,
             };
 
             self.manifest.update_platform(updated_platform);
@@ -207,11 +207,11 @@ impl Project {
     }
 
     /// Writes the specified version of Npm to the `volta.npm` key in package.json.
-    pub fn pin_npm(&mut self, npm_version: &Version) -> Fallible<()> {
+    pub fn pin_npm(&mut self, npm: Option<Version>) -> Fallible<()> {
         if let Some(platform) = self.manifest.platform() {
             let updated_platform = ProjectPlatformSpec {
                 node: platform.node.clone(),
-                npm: Some(npm_version.clone()),
+                npm,
                 yarn: platform.yarn.clone(),
             };
 
