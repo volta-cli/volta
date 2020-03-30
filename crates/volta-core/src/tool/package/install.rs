@@ -8,7 +8,7 @@ use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::process::Command;
 
-use super::super::Spec;
+use super::super::node;
 use super::bin_full_path;
 use crate::command::create_command;
 use crate::error::ErrorDetails;
@@ -130,7 +130,7 @@ pub fn install(
 
     let engine = determine_engine(&package_dir, &display)?;
     let platform = BinaryPlatformSpec {
-        node: Spec::Node(engine).resolve(session)?.into(),
+        node: node::resolve(engine, session)?,
         npm: None,
         yarn: None,
     };

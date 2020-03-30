@@ -126,13 +126,13 @@ impl Node {
 }
 
 impl Tool for Node {
-    fn fetch(self, session: &mut Session) -> Fallible<()> {
+    fn fetch(self: Box<Self>, session: &mut Session) -> Fallible<()> {
         let node_version = self.fetch_internal(session)?;
 
         info_fetched(node_version);
         Ok(())
     }
-    fn install(self, session: &mut Session) -> Fallible<()> {
+    fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {
         let node_version = self.fetch_internal(session)?;
 
         session.toolchain_mut()?.set_active_node(&self.version)?;
@@ -144,7 +144,7 @@ impl Tool for Node {
         }
         Ok(())
     }
-    fn pin(self, session: &mut Session) -> Fallible<()> {
+    fn pin(self: Box<Self>, session: &mut Session) -> Fallible<()> {
         if session.project()?.is_some() {
             let node_version = self.fetch_internal(session)?;
 

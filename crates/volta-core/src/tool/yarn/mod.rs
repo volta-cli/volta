@@ -53,13 +53,13 @@ impl Yarn {
 }
 
 impl Tool for Yarn {
-    fn fetch(self, session: &mut Session) -> Fallible<()> {
+    fn fetch(self: Box<Self>, session: &mut Session) -> Fallible<()> {
         self.fetch_internal(session)?;
 
         info_fetched(self);
         Ok(())
     }
-    fn install(self, session: &mut Session) -> Fallible<()> {
+    fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {
         self.fetch_internal(session)?;
 
         session
@@ -75,7 +75,7 @@ impl Tool for Yarn {
         }
         Ok(())
     }
-    fn pin(self, session: &mut Session) -> Fallible<()> {
+    fn pin(self: Box<Self>, session: &mut Session) -> Fallible<()> {
         if session.project()?.is_some() {
             self.fetch_internal(session)?;
 

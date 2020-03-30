@@ -90,13 +90,13 @@ impl Package {
 }
 
 impl Tool for Package {
-    fn fetch(self, session: &mut Session) -> Fallible<()> {
+    fn fetch(self: Box<Self>, session: &mut Session) -> Fallible<()> {
         self.fetch_internal(session)?;
 
         info_fetched(self);
         Ok(())
     }
-    fn install(self, session: &mut Session) -> Fallible<()> {
+    fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {
         if self.is_installed() {
             info!("Package {} is already installed", self);
             Ok(())
@@ -119,7 +119,7 @@ impl Tool for Package {
             Ok(())
         }
     }
-    fn pin(self, _session: &mut Session) -> Fallible<()> {
+    fn pin(self: Box<Self>, _session: &mut Session) -> Fallible<()> {
         Err(ErrorDetails::CannotPinPackage { package: self.name }.into())
     }
 }
