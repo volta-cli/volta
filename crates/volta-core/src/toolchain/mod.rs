@@ -93,13 +93,13 @@ impl Toolchain {
     }
 
     /// Set the active Yarn version in the default platform file.
-    pub fn set_active_yarn(&mut self, yarn_version: &Version) -> Fallible<()> {
+    pub fn set_active_yarn(&mut self, yarn: Option<Version>) -> Fallible<()> {
         if let Some(platform) = &self.platform {
-            if platform.yarn.as_ref() != Some(yarn_version) {
+            if platform.yarn != yarn {
                 self.platform = Some(Rc::new(DefaultPlatformSpec {
                     node: platform.node.clone(),
                     npm: platform.npm.clone(),
-                    yarn: Some(yarn_version.clone()),
+                    yarn,
                 }));
                 self.save()?;
             }
@@ -109,12 +109,12 @@ impl Toolchain {
     }
 
     /// Set the active Npm version in the default platform file.
-    pub fn set_active_npm(&mut self, npm_version: &Version) -> Fallible<()> {
+    pub fn set_active_npm(&mut self, npm: Option<Version>) -> Fallible<()> {
         if let Some(platform) = &self.platform {
-            if platform.npm.as_ref() != Some(npm_version) {
+            if platform.npm != npm {
                 self.platform = Some(Rc::new(DefaultPlatformSpec {
                     node: platform.node.clone(),
-                    npm: Some(npm_version.clone()),
+                    npm,
                     yarn: platform.yarn.clone(),
                 }));
                 self.save()?;
