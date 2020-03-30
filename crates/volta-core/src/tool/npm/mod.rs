@@ -21,19 +21,19 @@ impl Npm {
 
 impl Tool for Npm {
     // ISSUE(#292) Implement actions for npm
-    fn fetch(self, _session: &mut Session) -> Fallible<()> {
+    fn fetch(self: Box<Self>, _session: &mut Session) -> Fallible<()> {
         Err(ErrorDetails::Unimplemented {
             feature: "Fetching npm".into(),
         }
         .into())
     }
-    fn install(self, _session: &mut Session) -> Fallible<()> {
+    fn install(self: Box<Self>, _session: &mut Session) -> Fallible<()> {
         Err(ErrorDetails::Unimplemented {
             feature: "Installing npm".into(),
         }
         .into())
     }
-    fn pin(self, _session: &mut Session) -> Fallible<()> {
+    fn pin(self: Box<Self>, _session: &mut Session) -> Fallible<()> {
         Err(ErrorDetails::Unimplemented {
             feature: "Pinning npm".into(),
         }
