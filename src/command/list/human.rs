@@ -83,7 +83,7 @@ fn display_active(
             let width = text_width().unwrap_or(0);
             let runtime_version: String = Wrapper::new(width)
                 .initial_indent(INDENTATION)
-                .fill(&format!("node: {}", list_runtime(runtime)));
+                .fill(&format!("Node: {}", list_runtime(runtime)));
             let package_versions = if packages.is_empty() {
                 Wrapper::new(width)
                     .initial_indent(INDENTATION)
@@ -720,7 +720,6 @@ See options for more detailed reports by running `volta list --help`.";
 
     mod package_managers {
         use super::*;
-        use crate::command::list::Subcommand;
         use crate::command::list::{PackageManager, PackageManagerKind, Source};
 
         #[test]
@@ -1103,7 +1102,6 @@ See `volta help install` for details and more options.";
     mod all {
         use super::*;
         use crate::command::list::{PackageDetails, PackageManagerKind};
-        use semver::Identifier;
 
         #[test]
         fn empty() {
