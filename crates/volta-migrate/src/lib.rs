@@ -38,13 +38,15 @@ enum MigrationState {
 
 /// Macro to simplify the boilerplate associated with detecting a tagged state.
 ///
-/// Should be passed a series of tuples, each of which contains:
+/// Should be passed a series of tuples, each of which contains (in this order):
 ///
 /// * The layout version (module name from `volta_layout` crate, e.g. `v1`)
 /// * The `MigrationState` variant name (e.g. `V1`)
-/// * The migration object itself (e.g. `V1` from the v1 module)
+/// * The migration object itself (e.g. `V1` from the v1 module in _this_ crate)
 ///
-/// The tuples should be in reverse chronological order, so that the newest is first
+/// The tuples should be in reverse chronological order, so that the newest is first, e.g.:
+///
+/// detect_tagged!((v3, V3, V3), (v2, V2, V2), (v1, V1, V1));
 macro_rules! detect_tagged {
     ($(($layout:ident, $variant:ident, $migration:ident)),*) => {
         impl MigrationState {
