@@ -8,7 +8,7 @@ use std::path::Path;
 use crate::error::ErrorDetails;
 use crate::layout::volta_home;
 use crate::project::Project;
-use crate::tool::{Node, Package, Tool, Yarn};
+use crate::tool::{Node, Npm, Package, Tool, Yarn};
 use lazycell::LazyCell;
 use log::debug;
 use volta_fail::{Fallible, ResultExt};
@@ -48,6 +48,7 @@ impl LazyHookConfig {
 /// Volta hook configuration
 pub struct HookConfig {
     node: Option<ToolHooks<Node>>,
+    npm: Option<ToolHooks<Npm>>,
     yarn: Option<ToolHooks<Yarn>>,
     package: Option<ToolHooks<Package>>,
     events: Option<EventHooks>,
@@ -93,6 +94,10 @@ impl HookConfig {
         self.node.as_ref()
     }
 
+    pub fn npm(&self) -> Option<&ToolHooks<Npm>> {
+        self.npm.as_ref()
+    }
+
     pub fn yarn(&self) -> Option<&ToolHooks<Yarn>> {
         self.yarn.as_ref()
     }
@@ -122,6 +127,7 @@ impl HookConfig {
                 debug!("No custom hooks found");
                 Self {
                     node: None,
+                    npm: None,
                     yarn: None,
                     package: None,
                     events: None,
@@ -189,6 +195,7 @@ impl HookConfig {
     fn merge(left: Self, right: Self) -> Self {
         Self {
             node: merge_hook_config_field!(left, right, node, ToolHooks),
+            npm: merge_hook_config_field!(left, right, npm, ToolHooks),
             yarn: merge_hook_config_field!(left, right, yarn, ToolHooks),
             package: merge_hook_config_field!(left, right, package, ToolHooks),
             events: merge_hook_config_field!(left, right, events, EventHooks),
