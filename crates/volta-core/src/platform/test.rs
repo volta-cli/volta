@@ -32,7 +32,6 @@ fn test_image_path() {
         .join("image")
         .join("node")
         .join("1.2.3")
-        .join("6.4.3")
         .join("bin");
     let expected_node_bin = node_bin.as_path().to_str().unwrap();
 
@@ -97,8 +96,7 @@ fn test_image_path() {
         .join("tools")
         .join("image")
         .join("node")
-        .join("1.2.3")
-        .join("6.4.3");
+        .join("1.2.3");
     let expected_node_bin = node_bin.as_path().to_str().unwrap();
 
     let yarn_bin = volta_home()

@@ -13,7 +13,7 @@ use volta_core::fs::read_dir_eager;
 use volta_fail::{Fallible, ResultExt, VoltaError};
 use volta_layout::v1;
 
-/// Represents a V1 Volta Layout (from v0.7.0)
+/// Represents a V1 Volta Layout (used by Volta v0.7.0 - v0.7.2)
 ///
 /// Holds a reference to the V1 layout struct to support potential future migrations
 pub struct V1 {

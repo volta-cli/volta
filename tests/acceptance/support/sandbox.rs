@@ -338,6 +338,13 @@ impl SandboxBuilder {
         this
     }
 
+    /// Add an arbitrary file to the sandbox (chainable)
+    pub fn file(mut self, path: &str, contents: &str) -> Self {
+        let file_name = sandbox_path(path);
+        self.files.push(FileBuilder::new(file_name, contents));
+        self
+    }
+
     /// Set a package config file for the sandbox (chainable)
     pub fn package_config(mut self, name: &str, contents: &str) -> Self {
         let package_cfg_file = package_config_file(name);
@@ -381,6 +388,13 @@ impl SandboxBuilder {
         let package_shasum = pkg_inventory_dir.join(format!("{}-{}.shasum", name, version));
         self.files
             .push(FileBuilder::new(package_shasum, "shasum contents"));
+        self
+    }
+
+    /// Write the "default npm" file for a node version (chainable)
+    pub fn node_npm_version_file(mut self, node_version: &str, npm_version: &str) -> Self {
+        let npm_file = node_npm_version_file(node_version);
+        self.files.push(FileBuilder::new(npm_file, npm_version));
         self
     }
 
@@ -501,6 +515,9 @@ fn default_platform_file() -> PathBuf {
 }
 fn layout_file(version: &str) -> PathBuf {
     volta_home().join(format!("layout.{}", version))
+}
+fn node_npm_version_file(node_version: &str) -> PathBuf {
+    node_inventory_dir().join(format!("node-v{}-npm", node_version))
 }
 
 fn sandbox_path(path: &str) -> PathBuf {
@@ -642,6 +659,9 @@ impl Sandbox {
         pkg_inventory_dir
             .join(format!("{}-{}.shasum", name, version))
             .exists()
+    }
+    pub fn read_default_platform() -> String {
+        read_file_to_string(default_platform_file())
     }
 }
 

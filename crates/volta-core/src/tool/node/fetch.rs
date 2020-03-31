@@ -112,7 +112,7 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<Node
     let npm = Manifest::version(&npm_package_json)?;
     save_default_npm_version(&version, &npm)?;
 
-    let dest = volta_home()?.node_image_dir(&version_string, &npm.to_string());
+    let dest = volta_home()?.node_image_dir(&version_string);
     ensure_containing_dir_exists(&dest)
         .with_context(|_| ErrorDetails::ContainingDirError { path: dest.clone() })?;
 

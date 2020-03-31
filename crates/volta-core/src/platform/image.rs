@@ -20,9 +20,8 @@ impl Image {
     fn bins(&self) -> Fallible<Vec<PathBuf>> {
         let home = volta_home()?;
         let node_str = self.node.value.to_string();
-        let npm_str = self.npm.value.to_string();
         // ISSUE(#292): Install npm, and handle using that
-        let mut bins = vec![home.node_image_bin_dir(&node_str, &npm_str)];
+        let mut bins = vec![home.node_image_bin_dir(&node_str)];
         if let Some(yarn) = &self.yarn {
             let yarn_str = yarn.value.to_string();
             bins.push(home.yarn_image_bin_dir(&yarn_str));

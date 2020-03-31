@@ -9,3 +9,5 @@ volta-core = { path = "../volta-core" }
 volta-fail = { path = "../volta-fail" }
 volta-layout = { path = "../volta-layout" }
 log = { version = "0.4", features = ["std"] }
+tempfile = "3.0.2"
+semver = { git = "https://github.com/mikrostew/semver", branch = "new-parser" }

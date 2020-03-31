@@ -15,9 +15,8 @@ fn install_node() {
         execs().with_status(0).with_stdout_contains("v10.2.1")
     );
 
-    // node 10.2.1 comes with npm 5.6.0
     assert!(p.node_version_is_fetched("10.2.1"));
-    assert!(p.node_version_is_unpacked("10.2.1", "5.6.0"));
+    assert!(p.node_version_is_unpacked("10.2.1"));
     p.assert_node_version_is_installed("10.2.1");
 }
 

@@ -9,19 +9,21 @@
 //! able to re-start gracefully from an interrupted migration
 
 use std::convert::TryInto;
+use std::path::Path;
 
 mod empty;
 mod v0;
 mod v1;
+mod v2;
 
 use v0::V0;
 use v1::V1;
+use v2::V2;
 
 use volta_core::layout::volta_home;
 #[cfg(unix)]
 use volta_core::layout::volta_install;
 use volta_fail::Fallible;
-use volta_layout::v1::VoltaHome;
 
 /// Represents the state of the Volta directory at every point in the migration process
 ///
@@ -31,7 +33,47 @@ enum MigrationState {
     Empty(empty::Empty),
     V0(Box<V0>),
     V1(Box<V1>),
+    V2(Box<V2>),
 }
+
+/// Macro to simplify the boilerplate associated with detecting a tagged state.
+///
+/// Should be passed a series of tuples, each of which contains (in this order):
+///
+/// * The layout version (module name from `volta_layout` crate, e.g. `v1`)
+/// * The `MigrationState` variant name (e.g. `V1`)
+/// * The migration object itself (e.g. `V1` from the v1 module in _this_ crate)
+///
+/// The tuples should be in reverse chronological order, so that the newest is first, e.g.:
+///
+/// detect_tagged!((v3, V3, V3), (v2, V2, V2), (v1, V1, V1));
+macro_rules! detect_tagged {
+    ($(($layout:ident, $variant:ident, $migration:ident)),*) => {
+        impl MigrationState {
+            fn detect_tagged_state(home: &::std::path::Path) -> Option<Self> {
+                None
+                $(
+                    .or_else(|| detect::$layout(home))
+                )*
+            }
+        }
+
+        mod detect {
+            $(
+                pub(super) fn $layout(home: &::std::path::Path) -> Option<super::MigrationState> {
+                    let volta_home = volta_layout::$layout::VoltaHome::new(home.to_owned());
+                    if volta_home.layout_file().exists() {
+                        Some(super::MigrationState::$variant(Box::new(super::$migration::new(home.to_owned()))))
+                    } else {
+                        None
+                    }
+                }
+            )*
+        }
+    }
+}
+
+detect_tagged!((v2, V2, V2), (v1, V1, V1));
 
 impl MigrationState {
     fn current() -> Fallible<Self> {
@@ -40,24 +82,13 @@ impl MigrationState {
 
         let home = volta_home()?;
 
-        match MigrationState::detect_tagged_state(home) {
+        match MigrationState::detect_tagged_state(home.root()) {
             Some(state) => Ok(state),
-            None => MigrationState::detect_legacy_state(home),
+            None => MigrationState::detect_legacy_state(home.root()),
         }
     }
 
-    fn detect_tagged_state(home: &VoltaHome) -> Option<Self> {
-        // Detect a layout at or above V1, which will always have an associated layout file to use as a discriminant
-        if home.layout_file().exists() {
-            Some(MigrationState::V1(Box::new(V1::new(
-                home.root().to_owned(),
-            ))))
-        } else {
-            None
-        }
-    }
-
-    fn detect_legacy_state(home: &VoltaHome) -> Fallible<Self> {
+    fn detect_legacy_state(home: &Path) -> Fallible<Self> {
         /*
         Triage for determining the legacy layout version:
         - Does Volta Home exist?
@@ -73,7 +104,7 @@ impl MigrationState {
         previous, V0 installation.
         */
 
-        let volta_home = home.root().to_owned();
+        let volta_home = home.to_owned();
 
         if volta_home.exists() {
             #[cfg(windows)]
@@ -108,7 +139,8 @@ pub fn run_migration() -> Fallible<()> {
         state = match state {
             MigrationState::Empty(e) => MigrationState::V1(Box::new(e.try_into()?)),
             MigrationState::V0(zero) => MigrationState::V1(Box::new((*zero).try_into()?)),
-            MigrationState::V1(_) => {
+            MigrationState::V1(one) => MigrationState::V2(Box::new((*one).try_into()?)),
+            MigrationState::V2(_) => {
                 break;
             }
         };
