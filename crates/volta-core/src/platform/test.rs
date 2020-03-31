@@ -25,52 +25,69 @@ fn test_image_path() {
         ),
     );
 
-    let node_bin = volta_home()
-        .unwrap()
-        .root()
-        .join("tools")
-        .join("image")
-        .join("node")
-        .join("1.2.3")
-        .join("bin");
-    let expected_node_bin = node_bin.as_path().to_str().unwrap();
+    let node_bin = volta_home().unwrap().node_image_bin_dir("1.2.3");
+    let expected_node_bin = node_bin.to_str().unwrap();
 
-    let yarn_bin = volta_home()
-        .unwrap()
-        .root()
-        .join("tools")
-        .join("image")
-        .join("yarn")
-        .join("4.5.7")
-        .join("bin");
-    let expected_yarn_bin = yarn_bin.as_path().to_str().unwrap();
+    let npm_bin = volta_home().unwrap().npm_image_bin_dir("6.4.3");
+    let expected_npm_bin = npm_bin.to_str().unwrap();
+
+    let yarn_bin = volta_home().unwrap().yarn_image_bin_dir("4.5.7");
+    let expected_yarn_bin = yarn_bin.to_str().unwrap();
 
     let v123 = Version::parse("1.2.3").unwrap();
     let v457 = Version::parse("4.5.7").unwrap();
     let v643 = Version::parse("6.4.3").unwrap();
 
-    let no_yarn_image = Image {
+    let only_node = Image {
         node: Sourced::with_default(v123.clone()),
-        npm: Sourced::with_default(v643.clone()),
+        npm: None,
         yarn: None,
     };
 
     assert_eq!(
-        no_yarn_image.path().unwrap().into_string().unwrap(),
+        only_node.path().unwrap().into_string().unwrap(),
         format!("{}:/usr/bin:/blah:/doesnt/matter/bin", expected_node_bin),
     );
 
-    let with_yarn_image = Image {
+    let node_npm = Image {
+        node: Sourced::with_default(v123.clone()),
+        npm: Some(Sourced::with_default(v643.clone())),
+        yarn: None,
+    };
+
+    assert_eq!(
+        node_npm.path().unwrap().into_string().unwrap(),
+        format!(
+            "{}:{}:/usr/bin:/blah:/doesnt/matter/bin",
+            expected_npm_bin, expected_node_bin
+        ),
+    );
+
+    let node_yarn = Image {
+        node: Sourced::with_default(v123.clone()),
+        npm: None,
+        yarn: Some(Sourced::with_default(v457.clone())),
+    };
+
+    assert_eq!(
+        node_yarn.path().unwrap().into_string().unwrap(),
+        format!(
+            "{}:{}:/usr/bin:/blah:/doesnt/matter/bin",
+            expected_yarn_bin, expected_node_bin
+        ),
+    );
+
+    let node_npm_yarn = Image {
         node: Sourced::with_default(v123),
-        npm: Sourced::with_default(v643),
+        npm: Some(Sourced::with_default(v643)),
         yarn: Some(Sourced::with_default(v457)),
     };
 
     assert_eq!(
-        with_yarn_image.path().unwrap().into_string().unwrap(),
+        node_npm_yarn.path().unwrap().into_string().unwrap(),
         format!(
-            "{}:{}:/usr/bin:/blah:/doesnt/matter/bin",
-            expected_node_bin, expected_yarn_bin
+            "{}:{}:{}:/usr/bin:/blah:/doesnt/matter/bin",
+            expected_npm_bin, expected_yarn_bin, expected_node_bin
         ),
     );
 }
@@ -90,51 +107,69 @@ fn test_image_path() {
 
     std::env::set_var("PATH", path_with_shims);
 
-    let node_bin = volta_home()
-        .unwrap()
-        .root()
-        .join("tools")
-        .join("image")
-        .join("node")
-        .join("1.2.3");
-    let expected_node_bin = node_bin.as_path().to_str().unwrap();
+    let node_bin = volta_home().unwrap().node_image_bin_dir("1.2.3");
+    let expected_node_bin = node_bin.to_str().unwrap();
 
-    let yarn_bin = volta_home()
-        .unwrap()
-        .root()
-        .join("tools")
-        .join("image")
-        .join("yarn")
-        .join("4.5.7")
-        .join("bin");
-    let expected_yarn_bin = yarn_bin.as_path().to_str().unwrap();
+    let npm_bin = volta_home().unwrap().npm_image_bin_dir("6.4.3");
+    let expected_npm_bin = npm_bin.to_str().unwrap();
+
+    let yarn_bin = volta_home().unwrap().yarn_image_bin_dir("4.5.7");
+    let expected_yarn_bin = yarn_bin.to_str().unwrap();
 
     let v123 = Version::parse("1.2.3").unwrap();
     let v457 = Version::parse("4.5.7").unwrap();
     let v643 = Version::parse("6.4.3").unwrap();
 
-    let no_yarn_image = Image {
+    let only_node = Image {
         node: Sourced::with_default(v123.clone()),
-        npm: Sourced::with_default(v643.clone()),
+        npm: None,
         yarn: None,
     };
 
     assert_eq!(
-        no_yarn_image.path().unwrap().into_string().unwrap(),
+        only_node.path().unwrap().into_string().unwrap(),
         format!("{};C:\\\\somebin;D:\\\\ProbramFlies", expected_node_bin),
     );
 
-    let with_yarn_image = Image {
+    let node_npm = Image {
+        node: Sourced::with_default(v123.clone()),
+        npm: Some(Sourced::with_default(v643.clone())),
+        yarn: None,
+    };
+
+    assert_eq!(
+        node_npm.path().unwrap().into_string().unwrap(),
+        format!(
+            "{};{};C:\\\\somebin;D:\\\\ProbramFlies",
+            expected_npm_bin, expected_node_bin
+        ),
+    );
+
+    let node_yarn = Image {
+        node: Sourced::with_default(v123.clone()),
+        npm: None,
+        yarn: Some(Sourced::with_default(v457.clone())),
+    };
+
+    assert_eq!(
+        node_yarn.path().unwrap().into_string().unwrap(),
+        format!(
+            "{};{};C:\\\\somebin;D:\\\\ProbramFlies",
+            expected_yarn_bin, expected_node_bin
+        ),
+    );
+
+    let node_npm_yarn = Image {
         node: Sourced::with_default(v123),
-        npm: Sourced::with_default(v643),
+        npm: Some(Sourced::with_default(v643)),
         yarn: Some(Sourced::with_default(v457)),
     };
 
     assert_eq!(
-        with_yarn_image.path().unwrap().into_string().unwrap(),
+        node_npm_yarn.path().unwrap().into_string().unwrap(),
         format!(
-            "{};{};C:\\\\somebin;D:\\\\ProbramFlies",
-            expected_node_bin, expected_yarn_bin
+            "{};{};{};C:\\\\somebin;D:\\\\ProbramFlies",
+            expected_npm_bin, expected_yarn_bin, expected_node_bin
         ),
     );
 }

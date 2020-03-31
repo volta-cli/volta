@@ -21,7 +21,7 @@ pub(crate) fn command(session: &mut Session) -> Fallible<ToolCommand> {
             let image = platform.checkout(session)?;
             let path = image.path()?;
 
-            debug_tool_message("npm", &image.npm);
+            debug_tool_message("npm", &image.resolve_npm()?);
 
             Ok(ToolCommand::direct(OsStr::new("npm"), &path))
         }

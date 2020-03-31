@@ -18,14 +18,15 @@ pub(crate) fn command(session: &mut Session) -> Fallible<ToolCommand> {
             // npx was only included with npm 5.2.0 and higher. If the npm version is less than that, we
             // should include a helpful error message
             let required_npm = parse_version("5.2.0")?;
-            if image.npm.value >= required_npm {
+            let active_npm = image.resolve_npm()?;
+            if active_npm.value >= required_npm {
                 let path = image.path()?;
 
-                debug_tool_message("npx", &image.npm);
+                debug_tool_message("npx", &active_npm);
                 Ok(ToolCommand::direct(OsStr::new("npx"), &path))
             } else {
                 Err(ErrorDetails::NpxNotAvailable {
-                    version: image.npm.value.to_string(),
+                    version: active_npm.value.to_string(),
                 }
                 .into())
             }

@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use super::{build_path_error, Sourced};
 use crate::layout::{env_paths, volta_home};
+use crate::tool::load_default_npm_version;
 use semver::Version;
 use volta_fail::{Fallible, ResultExt};
 
@@ -10,8 +11,8 @@ use volta_fail::{Fallible, ResultExt};
 pub struct Image {
     /// The pinned version of Node.
     pub node: Sourced<Version>,
-    /// The resolved version of npm.
-    pub npm: Sourced<Version>,
+    /// The custom version of npm, if any. `None` represents using the npm that is bundled with Node
+    pub npm: Option<Sourced<Version>>,
     /// The pinned version of Yarn, if any.
     pub yarn: Option<Sourced<Version>>,
 }
@@ -19,13 +20,21 @@ pub struct Image {
 impl Image {
     fn bins(&self) -> Fallible<Vec<PathBuf>> {
         let home = volta_home()?;
-        let node_str = self.node.value.to_string();
-        // ISSUE(#292): Install npm, and handle using that
-        let mut bins = vec![home.node_image_bin_dir(&node_str)];
+        let mut bins = Vec::with_capacity(3);
+
+        if let Some(npm) = &self.npm {
+            let npm_str = npm.value.to_string();
+            bins.push(home.npm_image_bin_dir(&npm_str));
+        }
+
         if let Some(yarn) = &self.yarn {
             let yarn_str = yarn.value.to_string();
             bins.push(home.yarn_image_bin_dir(&yarn_str));
         }
+
+        // Add Node path to the bins last, so that any custom version of npm will be earlier in the PATH
+        let node_str = self.node.value.to_string();
+        bins.push(home.node_image_bin_dir(&node_str));
         Ok(bins)
     }
 
@@ -44,5 +53,16 @@ impl Image {
             .prefix(self.bins()?)
             .join()
             .with_context(build_path_error)
+    }
+
+    /// Determines the sourced version of npm that will be available, resolving the version bundled with Node, if needed
+    pub fn resolve_npm(&self) -> Fallible<Sourced<Version>> {
+        match &self.npm {
+            Some(npm) => Ok(npm.clone()),
+            None => load_default_npm_version(&self.node.value).map(|npm| Sourced {
+                value: npm,
+                source: self.node.source,
+            }),
+        }
     }
 }
