@@ -5,8 +5,10 @@ use semver::Version;
 
 use super::{Filter, Node, Package, PackageManager, Source};
 use crate::command::list::PackageManagerKind;
+use volta_core::inventory::{node_versions, package_configs, yarn_versions};
 use volta_core::platform::{DefaultPlatformSpec, PlatformSpec};
-use volta_core::{inventory::Inventory, project::Project, tool::PackageConfig};
+use volta_core::project::Project;
+use volta_core::tool::PackageConfig;
 use volta_fail::Fallible;
 
 pub(super) enum Toolchain {
@@ -120,7 +122,6 @@ impl Toolchain {
     pub(super) fn active(
         project: Option<&Project>,
         default_platform: &Option<Rc<DefaultPlatformSpec>>,
-        inventory: &Inventory,
     ) -> Fallible<Toolchain> {
         let runtime = Lookup::Runtime
             .active_tool(project, default_platform)
@@ -137,7 +138,7 @@ impl Toolchain {
                     })
                 });
 
-        let packages = Package::from_inventory_and_project(inventory, project);
+        let packages = Package::from_inventory_and_project(project)?;
 
         Ok(Toolchain::Active {
             runtime,
@@ -149,11 +150,8 @@ impl Toolchain {
     pub(super) fn all(
         project: Option<&Project>,
         default_platform: &Option<Rc<DefaultPlatformSpec>>,
-        inventory: &Inventory,
     ) -> Fallible<Toolchain> {
-        let runtimes = inventory
-            .node
-            .versions
+        let runtimes = node_versions()?
             .iter()
             .map(|version| Node {
                 source: Lookup::Runtime.version_source(project, default_platform, version),
@@ -161,9 +159,7 @@ impl Toolchain {
             })
             .collect();
 
-        let package_managers = inventory
-            .yarn
-            .versions
+        let package_managers = yarn_versions()?
             .iter()
             .map(|version| PackageManager {
                 kind: PackageManagerKind::Yarn,
@@ -172,7 +168,7 @@ impl Toolchain {
             })
             .collect();
 
-        let packages = Package::from_inventory_and_project(inventory, project);
+        let packages = Package::from_inventory_and_project(project)?;
 
         Ok(Toolchain::All {
             runtimes,
@@ -182,14 +178,11 @@ impl Toolchain {
     }
 
     pub(super) fn node(
-        inventory: &Inventory,
         project: Option<&Project>,
         default_platform: &Option<Rc<DefaultPlatformSpec>>,
         filter: &Filter,
-    ) -> Toolchain {
-        let runtimes = inventory
-            .node
-            .versions
+    ) -> Fallible<Toolchain> {
+        let runtimes = node_versions()?
             .iter()
             .filter_map(|version| {
                 let source = Lookup::Runtime.version_source(project, default_platform, version);
@@ -202,18 +195,15 @@ impl Toolchain {
             })
             .collect();
 
-        Toolchain::Node(runtimes)
+        Ok(Toolchain::Node(runtimes))
     }
 
     pub(super) fn yarn(
-        inventory: &Inventory,
         project: Option<&Project>,
         default_platform: &Option<Rc<DefaultPlatformSpec>>,
         filter: &Filter,
-    ) -> Toolchain {
-        let yarns = inventory
-            .yarn
-            .versions
+    ) -> Fallible<Toolchain> {
+        let yarns = yarn_versions()?
             .iter()
             .filter_map(|version| {
                 let source = Lookup::Yarn.version_source(project, default_platform, version);
@@ -229,12 +219,11 @@ impl Toolchain {
             })
             .collect();
 
-        Toolchain::PackageManagers(yarns)
+        Ok(Toolchain::PackageManagers(yarns))
     }
 
     pub(super) fn package_or_tool(
         name: &str,
-        inventory: &Inventory,
         project: Option<&Project>,
         filter: &Filter,
     ) -> Fallible<Toolchain> {
@@ -250,8 +239,8 @@ impl Toolchain {
         /// spots below.
         type Triple<'p> = (Kind, &'p PackageConfig, Source);
 
-        let packages_and_tools = inventory
-            .packages
+        let configs = package_configs()?;
+        let packages_and_tools = configs
             .iter()
             .filter_map(|config| {
                 // Start with the package itself, since tools often match

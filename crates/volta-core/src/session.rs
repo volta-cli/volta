@@ -8,7 +8,6 @@ use std::rc::Rc;
 
 use crate::event::EventLog;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
-use crate::inventory::{Inventory, LazyInventory};
 use crate::platform::{DefaultPlatformSpec, PlatformSpec, ProjectPlatformSpec};
 use crate::project::{LazyProject, Project};
 use crate::toolchain::{LazyToolchain, Toolchain};
@@ -78,7 +77,6 @@ impl Display for ActivityKind {
 /// - the inventory of locally-fetched Volta tools
 pub struct Session {
     hooks: LazyHookConfig,
-    inventory: LazyInventory,
     toolchain: LazyToolchain,
     project: LazyProject,
     event_log: EventLog,
@@ -89,7 +87,6 @@ impl Session {
     pub fn init() -> Session {
         Session {
             hooks: LazyHookConfig::init(),
-            inventory: LazyInventory::init(),
             toolchain: LazyToolchain::init(),
             project: LazyProject::init(),
             event_log: EventLog::init(),
@@ -142,16 +139,6 @@ impl Session {
             return Ok(project.platform());
         }
         Ok(None)
-    }
-
-    /// Produces a reference to the current inventory.
-    pub fn inventory(&self) -> Fallible<&Inventory> {
-        self.inventory.get()
-    }
-
-    /// Produces a mutable reference to the current inventory.
-    pub fn inventory_mut(&mut self) -> Fallible<&mut Inventory> {
-        self.inventory.get_mut()
     }
 
     /// Produces a reference to the current toolchain (default platform specification)

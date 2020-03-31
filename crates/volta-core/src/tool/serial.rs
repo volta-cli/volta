@@ -357,7 +357,7 @@ mod tests {
         use super::super::*;
         use std::str::FromStr;
 
-        static PIN: &'static str = "pin";
+        static PIN: &str = "pin";
 
         #[test]
         fn special_cases_tool_space_number() {
@@ -399,7 +399,7 @@ mod tests {
 
             let two_but_unmistakable = ["12".to_owned(), "node".to_owned()];
             assert_eq!(
-                Spec::from_strings(&two_but_unmistakable, PIN.into())
+                Spec::from_strings(&two_but_unmistakable, PIN)
                     .expect("is ok")
                     .len(),
                 two_but_unmistakable.len(),
@@ -408,7 +408,7 @@ mod tests {
 
             let two_but_valid_first = ["node@lts".to_owned(), "12".to_owned()];
             assert_eq!(
-                Spec::from_strings(&two_but_valid_first, PIN.into())
+                Spec::from_strings(&two_but_valid_first, PIN)
                     .expect("is ok")
                     .len(),
                 two_but_valid_first.len(),
@@ -417,7 +417,7 @@ mod tests {
 
             let more_than_two_tools = ["node".to_owned(), "12".to_owned(), "yarn".to_owned()];
             assert_eq!(
-                Spec::from_strings(&more_than_two_tools, PIN.into())
+                Spec::from_strings(&more_than_two_tools, PIN)
                     .expect("is ok")
                     .len(),
                 more_than_two_tools.len(),
@@ -442,10 +442,7 @@ mod tests {
                     VersionSpec::from_str("3").expect("requirement is valid"),
                 ),
             ];
-            assert_eq!(
-                Spec::from_strings(&multiple, PIN.into()).expect("is ok"),
-                expected
-            );
+            assert_eq!(Spec::from_strings(&multiple, PIN).expect("is ok"), expected);
         }
 
         #[test]
@@ -465,7 +462,7 @@ mod tests {
             ];
 
             assert_eq!(
-                Spec::from_strings(&packages_with_node, PIN.into()).expect("is ok"),
+                Spec::from_strings(&packages_with_node, PIN).expect("is ok"),
                 expected
             );
         }

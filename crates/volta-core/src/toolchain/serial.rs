@@ -93,7 +93,7 @@ pub mod tests {
     // NOTE: serde_json is required with the "preserve_order" feature in Cargo.toml,
     // so these tests will serialized/deserialize in a predictable order
 
-    const BASIC_JSON_STR: &'static str = r#"{
+    const BASIC_JSON_STR: &str = r#"{
   "node": {
     "runtime": "4.5.6",
     "npm": "7.8.9"

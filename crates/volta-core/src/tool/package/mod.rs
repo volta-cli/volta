@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use super::{debug_already_fetched, info_fetched, Tool};
 use crate::error::ErrorDetails;
 use crate::fs::{delete_dir_error, delete_file_error, dir_entry_match};
+use crate::inventory::package_available;
 use crate::layout::volta_home;
 use crate::session::Session;
 use crate::shim;
@@ -61,14 +62,8 @@ impl Package {
         Package { name, details }
     }
 
-    fn fetch_internal(&self, session: &mut Session) -> Fallible<()> {
-        // ISSUE(#288) - Once we have a valid Collection, we can check that in the same way as node/yarn
-        // Until then, we use the existence of the image directory as the indicator that the package is
-        // already fetched
-        if volta_home()?
-            .package_image_dir(&self.name, &self.details.version.to_string())
-            .exists()
-        {
+    fn ensure_fetched(&self, session: &mut Session) -> Fallible<()> {
+        if package_available(&self.name, &self.details.version)? {
             debug_already_fetched(self);
             Ok(())
         } else {
@@ -91,7 +86,7 @@ impl Package {
 
 impl Tool for Package {
     fn fetch(self: Box<Self>, session: &mut Session) -> Fallible<()> {
-        self.fetch_internal(session)?;
+        self.ensure_fetched(session)?;
 
         info_fetched(self);
         Ok(())
@@ -101,7 +96,7 @@ impl Tool for Package {
             info!("Package {} is already installed", self);
             Ok(())
         } else {
-            self.fetch_internal(session)?;
+            self.ensure_fetched(session)?;
 
             let bin_map = install::install(&self.name, &self.details.version, session)?;
 

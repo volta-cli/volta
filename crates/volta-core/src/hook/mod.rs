@@ -283,7 +283,7 @@ pub mod tests {
             yarn.index,
             Some(tool::MetadataHook::Bin {
                 bin: "/bin/to/yarn/index".to_string(),
-                base_path: fixture_dir.clone(),
+                base_path: fixture_dir,
             })
         );
         assert_eq!(
@@ -410,7 +410,7 @@ pub mod tests {
             node.index,
             Some(tool::MetadataHook::Bin {
                 bin: "/some/bin/for/node/index".to_string(),
-                base_path: hooks_dir.clone(),
+                base_path: hooks_dir,
             })
         );
         assert_eq!(
@@ -452,7 +452,7 @@ pub mod tests {
             node.index,
             Some(tool::MetadataHook::Bin {
                 bin: "/some/bin/for/node/index".to_string(),
-                base_path: project_hooks_dir.clone(),
+                base_path: project_hooks_dir,
             })
         );
         assert_eq!(

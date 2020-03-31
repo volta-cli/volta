@@ -4,6 +4,7 @@ use super::{
     debug_already_fetched, info_fetched, info_installed, info_pinned, info_project_version, Tool,
 };
 use crate::error::ErrorDetails;
+use crate::inventory::node_available;
 use crate::session::Session;
 use crate::style::tool_version;
 use cfg_if::cfg_if;
@@ -102,38 +103,30 @@ impl Node {
         )
     }
 
-    pub(crate) fn fetch_internal(&self, session: &mut Session) -> Fallible<NodeVersion> {
-        let inventory = session.inventory()?;
-        if inventory.node.versions.contains(&self.version) {
+    pub(crate) fn ensure_fetched(&self, session: &mut Session) -> Fallible<NodeVersion> {
+        if node_available(&self.version)? {
             debug_already_fetched(self);
             let npm = fetch::load_default_npm_version(&self.version)?;
 
-            return Ok(NodeVersion {
+            Ok(NodeVersion {
                 runtime: self.version.clone(),
                 npm,
-            });
+            })
+        } else {
+            fetch::fetch(&self.version, session.hooks()?.node())
         }
-
-        let node_version = fetch::fetch(&self.version, session.hooks()?.node())?;
-        session
-            .inventory_mut()?
-            .node
-            .versions
-            .insert(self.version.clone());
-
-        Ok(node_version)
     }
 }
 
 impl Tool for Node {
     fn fetch(self: Box<Self>, session: &mut Session) -> Fallible<()> {
-        let node_version = self.fetch_internal(session)?;
+        let node_version = self.ensure_fetched(session)?;
 
         info_fetched(node_version);
         Ok(())
     }
     fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {
-        let node_version = self.fetch_internal(session)?;
+        let node_version = self.ensure_fetched(session)?;
 
         session.toolchain_mut()?.set_active_node(&self.version)?;
 
@@ -146,7 +139,7 @@ impl Tool for Node {
     }
     fn pin(self: Box<Self>, session: &mut Session) -> Fallible<()> {
         if session.project()?.is_some() {
-            let node_version = self.fetch_internal(session)?;
+            let node_version = self.ensure_fetched(session)?;
 
             // Note: We know this will succeed, since we checked above
             let project = session.project_mut()?.unwrap();
