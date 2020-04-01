@@ -49,7 +49,7 @@ pub fn package_configs() -> Fallible<BTreeSet<PackageConfig>> {
     let package_dir = volta_home()?.default_package_dir();
 
     WalkDir::new(&package_dir)
-        .max_depth(1)
+        .max_depth(2)
         .into_iter()
         // Ignore any items which didn't resolve as `DirEntry` correctly.
         // There is no point trying to do anything with those, and no error
