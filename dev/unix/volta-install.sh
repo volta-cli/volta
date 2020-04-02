@@ -23,7 +23,7 @@ download_release_from_repo() {
   local download_file="$tmpdir/$filename"
   local archive_url="$(release_url)/download/v$version/$filename"
 
-  curl --progress-bar --show-error --location --fail "$archive_url" --output "$download_file" && echo "$download_file"
+  curl --progress-bar --show-error --location --fail "$archive_url" --output "$download_file" --write-out '%{filename_effective}'
 }
 
 usage() {
