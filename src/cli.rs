@@ -14,7 +14,7 @@ use volta_fail::{ExitCode, Fallible};
     To install a tool in your toolchain, use `volta install`.
     To pin your project's runtime or package manager, use `volta pin`.",
     raw(global_setting = "structopt::clap::AppSettings::ColoredHelp"),
-    raw(global_setting = "structopt::clap::AppSettings::ColorAlways"),
+    raw(global_setting = "structopt::clap::AppSettings::ColorAuto"),
     raw(global_setting = "structopt::clap::AppSettings::DeriveDisplayOrder"),
     raw(global_setting = "structopt::clap::AppSettings::DisableVersion"),
     raw(global_setting = "structopt::clap::AppSettings::DontCollapseArgsInUsage"),
