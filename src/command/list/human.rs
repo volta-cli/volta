@@ -1,16 +1,25 @@
 //! Define the "human" format style for list commands.
 
-use textwrap::Wrapper;
+use textwrap::{HyphenSplitter, Wrapper};
 
-use volta_core::style::{text_width, tool_version};
+use volta_core::style::{text_width, tool_version, MAX_WIDTH};
 
 use super::{Node, Package, PackageManager, Source, Toolchain};
+
+use lazy_static::lazy_static;
 
 static INDENTATION: &'static str = "    ";
 static NO_RUNTIME: &'static str = "⚡️ No Node runtimes installed!
 
-You can install a runtime by running `volta install node`. See `volta help install` for
-details and more options.";
+    You can install a runtime by running `volta install node`. See `volta help install` for
+    details and more options.";
+
+lazy_static! {
+    static ref WRAPPER: Wrapper<'static, HyphenSplitter> =
+        Wrapper::new(text_width().unwrap_or(MAX_WIDTH))
+            .initial_indent(INDENTATION)
+            .subsequent_indent(INDENTATION);
+}
 
 pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
     // Formatting here depends on the toolchain: we do different degrees of
@@ -27,9 +36,7 @@ pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
             package_managers,
             packages,
         } => display_all(runtimes, package_managers, packages),
-        Toolchain::PackageManagers(package_managers) => {
-            format!("{}", &display_package_managers(package_managers))
-        }
+        Toolchain::PackageManagers(package_managers) => display_package_managers(package_managers),
         Toolchain::Packages(packages) => display_packages(packages),
         Toolchain::Tool {
             name,
@@ -47,28 +54,19 @@ fn display_active(
     package_manager: &Option<Box<PackageManager>>,
     packages: &[Package],
 ) -> String {
-    match (runtime, package_manager, packages) {
-        (None, _, _) => NO_RUNTIME.to_string(),
-        (Some(runtime), Some(package_manager), packages) => {
-            let width = text_width().unwrap_or(0);
-            let runtime_version: String = Wrapper::new(width)
-                .initial_indent(INDENTATION)
-                .fill(&format!("Node: {}", list_runtime(runtime)));
-            let package_manager_version: String = Wrapper::new(width)
-                .initial_indent(INDENTATION)
-                .fill(&format!("Yarn: {}", list_package_manager(package_manager)));
+    match (runtime, package_manager) {
+        (None, _) => NO_RUNTIME.to_string(),
+        (Some(runtime), Some(package_manager)) => {
+            let runtime_version: String = WRAPPER.fill(&format!("Node: {}", list_runtime(runtime)));
+            let package_manager_version: String =
+                WRAPPER.fill(&format!("Yarn: {}", list_package_manager(package_manager)));
             let package_versions = if packages.is_empty() {
-                Wrapper::new(width)
-                    .initial_indent(INDENTATION)
-                    .fill(&format!("Tool binaries available: NONE"))
+                WRAPPER.fill(&format!("Tool binaries available: NONE"))
             } else {
-                Wrapper::new(width)
-                    .initial_indent(INDENTATION)
-                    .subsequent_indent(INDENTATION)
-                    .fill(&format!(
-                        "Tool binaries available:\n{}",
-                        display_tool_sets(packages)
-                    ))
+                WRAPPER.fill(&format!(
+                    "Tool binaries available:\n{}",
+                    display_tool_sets(packages)
+                ))
             };
 
             format!(
@@ -79,23 +77,15 @@ fn display_active(
                 "See options for more detailed reports by running `volta list --help`."
             )
         }
-        (Some(runtime), None, packages) => {
-            let width = text_width().unwrap_or(0);
-            let runtime_version: String = Wrapper::new(width)
-                .initial_indent(INDENTATION)
-                .fill(&format!("Node: {}", list_runtime(runtime)));
+        (Some(runtime), None) => {
+            let runtime_version: String = WRAPPER.fill(&format!("Node: {}", list_runtime(runtime)));
             let package_versions = if packages.is_empty() {
-                Wrapper::new(width)
-                    .initial_indent(INDENTATION)
-                    .fill(&format!("Tool binaries available: NONE"))
+                WRAPPER.fill(&format!("Tool binaries available: NONE"))
             } else {
-                Wrapper::new(width)
-                    .initial_indent(INDENTATION)
-                    .subsequent_indent(INDENTATION)
-                    .fill(&format!(
-                        "Tool binaries available:\n{}",
-                        display_packages(packages)
-                    ))
+                WRAPPER.fill(&format!(
+                    "Tool binaries available:\n{}",
+                    display_packages(packages)
+                ))
             };
 
             format!(
@@ -117,23 +107,14 @@ fn display_all(
     if runtimes.is_empty() {
         NO_RUNTIME.to_string()
     } else {
-        let width = text_width().unwrap_or(0);
-        let runtime_versions: String = Wrapper::new(width)
-            .initial_indent(INDENTATION)
-            .subsequent_indent(INDENTATION)
-            .fill(&format!("Node runtimes:\n{}", list_runtimes(runtimes)));
-        let package_manager_versions: String = Wrapper::new(width)
-            .initial_indent(INDENTATION)
-            .subsequent_indent(&INDENTATION.repeat(2))
-            .fill(&format!(
-                "Package managers:\n{}\n{}",
-                "Yarn:",
-                list_package_managers(package_managers)
-            ));
-        let package_versions = Wrapper::new(width)
-            .initial_indent(INDENTATION)
-            .subsequent_indent(INDENTATION)
-            .fill(&format!("Packages:\n{}", list_packages(packages)));
+        let runtime_versions: String =
+            WRAPPER.fill(&format!("Node runtimes:\n{}", list_runtimes(runtimes)));
+        let package_manager_versions: String = WRAPPER.fill(&format!(
+            "Package managers:\n{}\n{}",
+            "Yarn:",
+            list_package_managers(package_managers)
+        ));
+        let package_versions = WRAPPER.fill(&format!("Packages:\n{}", list_packages(packages)));
         format!(
             "⚡️ User toolchain:\n\n{}\n\n{}\n\n{}",
             runtime_versions, package_manager_versions, package_versions
@@ -163,17 +144,13 @@ You can install a Yarn version by running `volta install yarn`.
 See `volta help install` for details and more options.",
         )
     } else {
-        let width = text_width().unwrap_or(0);
-        let versions = Wrapper::new(width)
-            .initial_indent(INDENTATION)
-            .subsequent_indent(INDENTATION)
-            .fill(
-                &package_managers
-                    .iter()
-                    .map(list_package_manager)
-                    .collect::<Vec<String>>()
-                    .join("\n"),
-            );
+        let versions = WRAPPER.fill(
+            &package_managers
+                .iter()
+                .map(list_package_manager)
+                .collect::<Vec<String>>()
+                .join("\n"),
+        );
         format!("⚡️ Yarn versions in your toolchain:\n\n{}", versions)
     }
 }
@@ -207,31 +184,24 @@ See `volta help install` for details and more options.",
             tool
         )
     } else {
-        let width = text_width().unwrap_or(0);
-        let versions = Wrapper::new(width)
-            .initial_indent(INDENTATION)
-            .subsequent_indent(INDENTATION)
-            .fill(
-                &host_packages
-                    .iter()
-                    .map(list_package)
-                    .collect::<Vec<String>>()
-                    .join("\n"),
-            );
+        let versions = WRAPPER.fill(
+            &host_packages
+                .iter()
+                .map(list_package)
+                .collect::<Vec<String>>()
+                .join("\n"),
+        );
         format!("⚡️ Tool `{}` available from:\n\n{}", tool, versions)
     }
 }
 
 /// Format a sets binaries inside `Toolchain::Package`s without detail information
 fn display_tool_sets(packages: &[Package]) -> String {
-    format!(
-        "{}",
-        &packages
-            .iter()
-            .map(display_tool_set)
-            .collect::<Vec<String>>()
-            .join("\n")
-    )
+    packages
+        .iter()
+        .map(display_tool_set)
+        .collect::<Vec<String>>()
+        .join("\n")
 }
 /// Format a set binaries inside a single `Toolchain::Package` without detail information
 fn display_tool_set(package: &Package) -> String {
@@ -239,14 +209,9 @@ fn display_tool_set(package: &Package) -> String {
         Package::Default { tools, .. } | Package::Project { tools, .. } => {
             let tools = match tools.len() {
                 0 => String::from(""),
-                _ => format!("{}", tools.join(", ")),
+                _ => tools.join(", "),
             };
-            let width = text_width().unwrap_or(0);
-
-            Wrapper::new(width)
-                .initial_indent(INDENTATION)
-                .subsequent_indent(INDENTATION)
-                .fill(&format!("{}{}", tools, list_package_source(package)))
+            WRAPPER.fill(&format!("{}{}", tools, list_package_source(package)))
         }
         Package::Fetched(..) => String::new(),
     }
@@ -257,17 +222,13 @@ fn list_runtimes(runtimes: &[Node]) -> String {
     if runtimes.is_empty() {
         String::new()
     } else {
-        let width = text_width().unwrap_or(0);
-        Wrapper::new(width)
-            .initial_indent(INDENTATION)
-            .subsequent_indent(INDENTATION)
-            .fill(
-                &runtimes
-                    .iter()
-                    .map(|runtime| list_runtime(&runtime))
-                    .collect::<Vec<String>>()
-                    .join("\n"),
-            )
+        WRAPPER.fill(
+            &runtimes
+                .iter()
+                .map(|runtime| list_runtime(&runtime))
+                .collect::<Vec<String>>()
+                .join("\n"),
+        )
     }
 }
 
@@ -281,17 +242,13 @@ fn list_package_managers(package_managers: &[PackageManager]) -> String {
     if package_managers.is_empty() {
         String::new()
     } else {
-        let width = text_width().unwrap_or(0);
-        Wrapper::new(width)
-            .initial_indent(INDENTATION)
-            .subsequent_indent(INDENTATION)
-            .fill(
-                &package_managers
-                    .iter()
-                    .map(list_package_manager)
-                    .collect::<Vec<String>>()
-                    .join("\n"),
-            )
+        WRAPPER.fill(
+            &package_managers
+                .iter()
+                .map(list_package_manager)
+                .collect::<Vec<String>>()
+                .join("\n"),
+        )
     }
 }
 
@@ -305,17 +262,13 @@ fn list_packages(packages: &[Package]) -> String {
     if packages.is_empty() {
         String::new()
     } else {
-        let width = text_width().unwrap_or(0);
-        Wrapper::new(width)
-            .initial_indent(INDENTATION)
-            .subsequent_indent(INDENTATION)
-            .fill(
-                &packages
-                    .iter()
-                    .map(list_package)
-                    .collect::<Vec<String>>()
-                    .join("\n"),
-            )
+        WRAPPER.fill(
+            &packages
+                .iter()
+                .map(list_package)
+                .collect::<Vec<String>>()
+                .join("\n"),
+        )
     }
 }
 
@@ -338,28 +291,17 @@ fn list_package(package: &Package) -> String {
                 0 => String::from(""),
                 _ => format!("{}", tools.join(", ")),
             };
-            let width = text_width().unwrap_or(0);
 
-            // println!("{}\n{}\n{}\n{}", details.name, details.version, node, tools);
             let version = format!("{}{}", details.version, list_package_source(package));
-            let binaries = Wrapper::new(width)
-                .initial_indent(INDENTATION)
-                .subsequent_indent(INDENTATION)
-                .fill(&format!("binary tools: {}", tools));
-            let platform_detail = Wrapper::new(width)
-                .initial_indent(INDENTATION)
-                .subsequent_indent(INDENTATION)
-                .fill(&format!(
-                    "runtime: {}\npackage manager: {}",
-                    tool_version("node", &node),
-                    // TODO: Should be updated when we support installing with custom package_managers,
-                    // whether Yarn or non-built-in versions of npm
-                    "npm@built-in"
-                ));
-            let platform = Wrapper::new(width)
-                .initial_indent(INDENTATION)
-                .subsequent_indent(INDENTATION)
-                .fill(&format!("platform:\n{}", platform_detail));
+            let binaries = WRAPPER.fill(&format!("binary tools: {}", tools));
+            let platform_detail = WRAPPER.fill(&format!(
+                "runtime: {}\npackage manager: {}",
+                tool_version("node", &node),
+                // TODO: Should be updated when we support installing with custom package_managers,
+                // whether Yarn or non-built-in versions of npm
+                "npm@built-in"
+            ));
+            let platform = WRAPPER.fill(&format!("platform:\n{}", platform_detail));
             format!("{}@{}\n{}\n{}", details.name, version, binaries, platform)
         }
         Package::Fetched(details) => {
@@ -1125,10 +1067,10 @@ See `volta help install` for details and more options.";
         v10.15.3 (default)
 
     Package managers:
-        Yarn:
-            v1.16.0 (default)
-            v1.17.0 (current @ ~/path/to/project.json)
-            v1.4.0
+    Yarn:
+        v1.16.0 (default)
+        v1.17.0 (current @ ~/path/to/project.json)
+        v1.4.0
 
     Packages:
         typescript@3.4.3 (default)

@@ -312,11 +312,7 @@ impl Command for List {
         };
 
         if let Some(string) = format(&toolchain) {
-            // TODO: #523 -- just `println!("{}", string)` once `human` implemented
-            match self.output_format() {
-                Format::Plain => println!("{}", string),
-                Format::Human => println!("{}", string),
-            }
+            println!("{}", string)
         };
 
         session.add_event_end(ActivityKind::List, ExitCode::Success);
