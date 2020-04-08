@@ -1,6 +1,5 @@
 //! Provides fetcher for 3rd-party packages
 
-use std::ffi::OsString;
 use std::fs::{rename, write, File};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
@@ -164,12 +163,10 @@ fn npm_pack_command_for(
     session: &mut Session,
     current_dir: &Path,
 ) -> Fallible<ToolCommand> {
-    let args = vec![
-        OsString::from("pack"),
-        OsString::from("--no-update-notifier"),
-        OsString::from(format!("{}@{}", name, version)),
-    ];
-    let mut command = run::npm::command(args, session)?;
+    let mut command = run::npm::command(session)?;
+    command.arg("pack");
+    command.arg("--no-update-notifier");
+    command.arg(format!("{}@{}", name, version));
     command.current_dir(current_dir);
     Ok(command)
 }
