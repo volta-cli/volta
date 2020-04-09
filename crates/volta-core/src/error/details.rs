@@ -871,7 +871,7 @@ Use `volta install` to select a default version of a tool."
                 f,
                 "Yarn is not available.
 
-Use `volta install yarn` to select a default version (see `volta help install for more info)."
+Use `volta install yarn` to select a default version (see `volta help install` for more info)."
             ),
             // No CTA as this error is purely informational
             ErrorDetails::NoVersionsFound => write!(f, "No tool versions found"),
