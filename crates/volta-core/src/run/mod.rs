@@ -81,7 +81,7 @@ impl ToolCommand {
     /// Build a ToolCommand that is directly calling a tool in the Volta directory
     fn direct(exe: &OsStr, path_var: &OsStr) -> Self {
         ToolCommand {
-            command: command_in(exe, path_var),
+            command: command_with_path(exe, path_var),
             on_failure: ErrorDetails::BinaryExecError,
         }
     }
@@ -89,7 +89,7 @@ impl ToolCommand {
     /// Build a ToolCommand that is calling a binary in the current project's `node_modules/bin`
     fn project_local(exe: &OsStr, path_var: &OsStr) -> Self {
         ToolCommand {
-            command: command_in(exe, path_var),
+            command: command_with_path(exe, path_var),
             on_failure: ErrorDetails::ProjectLocalBinaryExecError {
                 command: exe.to_string_lossy().to_string(),
             },
@@ -104,16 +104,22 @@ impl ToolCommand {
     fn passthrough(exe: &OsStr, default_error: ErrorDetails) -> Fallible<Self> {
         let path = System::path()?;
         Ok(ToolCommand {
-            command: command_in(exe, &path),
+            command: command_with_path(exe, &path),
             on_failure: default_error,
         })
     }
 
+    /// Add a single argument to the Command.
+    ///
+    /// The new argument will be added to the end of the current argument list
     pub(crate) fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut ToolCommand {
         self.command.arg(arg);
         self
     }
 
+    /// Add multiple arguments to the Command.
+    ///
+    /// New arguments will be added at the end of the current argument list
     pub(crate) fn args<I, S>(&mut self, args: I) -> &mut ToolCommand
     where
         S: AsRef<OsStr>,
@@ -123,15 +129,22 @@ impl ToolCommand {
         self
     }
 
+    /// Set the current working directory for the Command
     pub(crate) fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut ToolCommand {
         self.command.current_dir(dir);
         self
     }
 
+    /// Execute the command, returning its status
+    ///
+    /// Any failures will be wrapped with the Error value in `on_failure`
     pub(crate) fn status(mut self) -> Fallible<ExitStatus> {
         self.command.status().with_context(|_| self.on_failure)
     }
 
+    /// Execute the command, returning all of its output to the caller
+    ///
+    /// Any failures will be wrapped with the Error value in `on_failure`
     pub(crate) fn output(mut self) -> Fallible<Output> {
         self.command.output().with_context(|_| self.on_failure)
     }
@@ -164,7 +177,8 @@ fn tool_name_from_file_name(file_name: &OsStr) -> OsString {
     }
 }
 
-fn command_in(exe: &OsStr, path_var: &OsStr) -> Command {
+/// Create a command in the given context by setting the `PATH` environment variable
+fn command_with_path(exe: &OsStr, path_var: &OsStr) -> Command {
     let mut command = create_command(exe);
     command.env("PATH", path_var);
     command
