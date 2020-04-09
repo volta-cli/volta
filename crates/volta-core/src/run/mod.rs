@@ -36,43 +36,38 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
     let mut args = args_os();
     let exe = get_tool_name(&mut args)?;
 
-    let command = if env::var_os(VOLTA_BYPASS).is_some() {
+    let mut command = if env::var_os(VOLTA_BYPASS).is_some() {
         ToolCommand::passthrough(
             &exe,
-            args,
             ErrorDetails::BypassError {
                 command: exe.to_string_lossy().to_string(),
             },
         )?
     } else {
-        match &exe.to_str() {
+        match exe.to_str() {
             Some("volta-shim") => throw!(ErrorDetails::RunShimDirectly),
-            Some("node") => node::command(args, session)?,
-            Some("npm") => npm::command(args, session)?,
-            Some("npx") => npx::command(args, session)?,
-            Some("yarn") => yarn::command(args, session)?,
-            _ => binary::command(exe, args, session)?,
+            Some("node") => node::command(session)?,
+            Some("npm") => npm::command(session)?,
+            Some("npx") => npx::command(session)?,
+            Some("yarn") => yarn::command(session)?,
+            _ => binary::command(&exe, session)?,
         }
     };
+
+    command.args(args);
 
     pass_control_to_shim();
     command.status()
 }
 
-fn debug_tool_message<T>(tool: &str, version: &Sourced<T>)
-where
-    T: std::fmt::Display + Sized,
-{
-    debug!(
-        "Using {} from {} configuration",
-        tool_version(tool, &version.value),
-        version.source,
-    )
-}
-
-/// Represents the command to execute a tool
+/// Process builder for launching a Volta-managed tool
+///
+/// This is a thin wrapper around std::process::Command, providing a few QoL improvements:
+///
+/// * `ErrorDetails` error type on `status` and `output` methods, determined based on the context
+/// * Helper methods for constructing a type with the appropriate context
 pub(crate) struct ToolCommand {
-    /// The command that will execute a tool with the right PATH context
+    /// The wrapped Command
     command: Command,
 
     /// The Volta error with which to wrap any failure.
@@ -84,23 +79,17 @@ pub(crate) struct ToolCommand {
 
 impl ToolCommand {
     /// Build a ToolCommand that is directly calling a tool in the Volta directory
-    fn direct<A>(exe: &OsStr, args: A, path_var: &OsStr) -> Self
-    where
-        A: IntoIterator<Item = OsString>,
-    {
+    fn direct(exe: &OsStr, path_var: &OsStr) -> Self {
         ToolCommand {
-            command: command_for(exe, args, path_var),
+            command: command_with_path(exe, path_var),
             on_failure: ErrorDetails::BinaryExecError,
         }
     }
 
     /// Build a ToolCommand that is calling a binary in the current project's `node_modules/bin`
-    fn project_local<A>(exe: &OsStr, args: A, path_var: &OsStr) -> Self
-    where
-        A: IntoIterator<Item = OsString>,
-    {
+    fn project_local(exe: &OsStr, path_var: &OsStr) -> Self {
         ToolCommand {
-            command: command_for(exe, args, path_var),
+            command: command_with_path(exe, path_var),
             on_failure: ErrorDetails::ProjectLocalBinaryExecError {
                 command: exe.to_string_lossy().to_string(),
             },
@@ -112,26 +101,50 @@ impl ToolCommand {
     /// This will allow the existing system to resolve the tool, if possible. If that still fails,
     /// then we show `default_error` as the friendly error to the user, directing them how to
     /// resolve the issue (e.g. run `volta install node` to enable `node`)
-    fn passthrough<A>(exe: &OsStr, args: A, default_error: ErrorDetails) -> Fallible<Self>
-    where
-        A: IntoIterator<Item = OsString>,
-    {
+    fn passthrough(exe: &OsStr, default_error: ErrorDetails) -> Fallible<Self> {
         let path = System::path()?;
         Ok(ToolCommand {
-            command: command_for(exe, args, &path),
+            command: command_with_path(exe, &path),
             on_failure: default_error,
         })
     }
 
+    /// Add a single argument to the Command.
+    ///
+    /// The new argument will be added to the end of the current argument list
+    pub(crate) fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut ToolCommand {
+        self.command.arg(arg);
+        self
+    }
+
+    /// Add multiple arguments to the Command.
+    ///
+    /// New arguments will be added at the end of the current argument list
+    pub(crate) fn args<I, S>(&mut self, args: I) -> &mut ToolCommand
+    where
+        S: AsRef<OsStr>,
+        I: IntoIterator<Item = S>,
+    {
+        self.command.args(args);
+        self
+    }
+
+    /// Set the current working directory for the Command
     pub(crate) fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut ToolCommand {
         self.command.current_dir(dir);
         self
     }
 
+    /// Execute the command, returning its status
+    ///
+    /// Any failures will be wrapped with the Error value in `on_failure`
     pub(crate) fn status(mut self) -> Fallible<ExitStatus> {
         self.command.status().with_context(|_| self.on_failure)
     }
 
+    /// Execute the command, returning all of its output to the caller
+    ///
+    /// Any failures will be wrapped with the Error value in `on_failure`
     pub(crate) fn output(mut self) -> Fallible<Output> {
         self.command.output().with_context(|_| self.on_failure)
     }
@@ -164,17 +177,28 @@ fn tool_name_from_file_name(file_name: &OsStr) -> OsString {
     }
 }
 
-fn command_for<A>(exe: &OsStr, args: A, path_var: &OsStr) -> Command
-where
-    A: IntoIterator<Item = OsString>,
-{
+/// Create a command in the given context by setting the `PATH` environment variable
+fn command_with_path(exe: &OsStr, path_var: &OsStr) -> Command {
     let mut command = create_command(exe);
-    command.args(args);
     command.env("PATH", path_var);
     command
 }
 
+/// Determine if we should intercept global installs or not
+///
+/// Setting the VOLTA_UNSAFE_GLOBAL environment variable will disable interception of global installs
 fn intercept_global_installs() -> bool {
-    // We should only intercept global installs if the VOLTA_UNSAFE_GLOBAL variable is not set
     env::var_os(UNSAFE_GLOBAL).is_none()
+}
+
+/// Write the tool version and source to the debug log
+fn debug_tool_message<T>(tool: &str, version: &Sourced<T>)
+where
+    T: std::fmt::Display + Sized,
+{
+    debug!(
+        "Using {} from {} configuration",
+        tool_version(tool, &version.value),
+        version.source,
+    )
 }

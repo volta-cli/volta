@@ -1,5 +1,4 @@
-use std::ffi::{OsStr, OsString};
-use std::iter::once;
+use std::ffi::OsStr;
 use std::path::PathBuf;
 
 use super::{debug_tool_message, ToolCommand};
@@ -13,10 +12,7 @@ use crate::tool::{BinConfig, BinLoader};
 use log::debug;
 use volta_fail::{throw, Fallible};
 
-pub(crate) fn command<A>(exe: OsString, args: A, session: &mut Session) -> Fallible<ToolCommand>
-where
-    A: IntoIterator<Item = OsString>,
-{
+pub(crate) fn command(exe: &OsStr, session: &mut Session) -> Fallible<ToolCommand> {
     session.add_event_start(ActivityKind::Binary);
 
     // first try to use the project toolchain
@@ -45,12 +41,12 @@ where
 
                 let image = platform.checkout(session)?;
                 let path = image.path()?;
-                return Ok(ToolCommand::project_local(&path_to_bin, args, &path));
+                return Ok(ToolCommand::project_local(&path_to_bin, &path));
             }
 
             // if there's no platform available, pass through to existing PATH.
             debug!("Could not find Volta configuration, delegating to system");
-            return ToolCommand::passthrough(&path_to_bin, args, ErrorDetails::NoPlatform);
+            return ToolCommand::passthrough(&path_to_bin, ErrorDetails::NoPlatform);
         }
     }
 
@@ -67,17 +63,13 @@ where
         let path = image.path()?;
         let tool_path = default_tool.bin_path.into_os_string();
         let cmd = match default_tool.loader {
-            Some(loader) => ToolCommand::direct(
-                loader.command.as_ref(),
-                loader
-                    .args
-                    .iter()
-                    .map(OsString::from)
-                    .chain(once(tool_path))
-                    .chain(args),
-                &path,
-            ),
-            None => ToolCommand::direct(&tool_path, args, &path),
+            Some(loader) => {
+                let mut command = ToolCommand::direct(loader.command.as_ref(), &path);
+                command.args(loader.args);
+                command.arg(tool_path);
+                command
+            }
+            None => ToolCommand::direct(&tool_path, &path),
         };
         return Ok(cmd);
     }
@@ -90,7 +82,6 @@ where
     );
     ToolCommand::passthrough(
         &exe,
-        args,
         ErrorDetails::BinaryNotFound {
             name: exe.to_string_lossy().to_string(),
         },
