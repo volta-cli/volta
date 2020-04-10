@@ -57,9 +57,8 @@ fn display_active(
     match (runtime, package_manager) {
         (None, _) => NO_RUNTIME.to_string(),
         (Some(runtime), Some(package_manager)) => {
-            let runtime_version: String =
-                WRAPPER.fill(&format!("Node: {}", format_runtime(runtime)));
-            let package_manager_version: String = WRAPPER.fill(&format!(
+            let runtime_version = WRAPPER.fill(&format!("Node: {}", format_runtime(runtime)));
+            let package_manager_version = WRAPPER.fill(&format!(
                 "Yarn: {}",
                 format_package_manager(package_manager)
             ));
@@ -88,7 +87,7 @@ fn display_active(
             } else {
                 WRAPPER.fill(&format!(
                     "Tool binaries available:\n{}",
-                    display_packages(packages)
+                    format_tool_list(packages)
                 ))
             };
 
@@ -144,8 +143,9 @@ fn display_node(runtimes: &[Node]) -> String {
 /// Format a set of `Toolchain::PackageManager`s.
 fn display_package_managers(package_managers: &[PackageManager]) -> String {
     if package_managers.is_empty() {
+        //TODO: adding npm support https://github.com/volta-cli/volta/pull/694
         String::from(
-            "⚡️ No <npm|Yarn> versions installed.
+            "⚡️ No Yarn versions installed.
 
 You can install a Yarn version by running `volta install yarn`.
 See `volta help install` for details and more options.",
@@ -229,7 +229,7 @@ fn format_runtime_list(runtimes: &[Node]) -> String {
     WRAPPER.fill(
         &runtimes
             .iter()
-            .map(|runtime| format_runtime(&runtime))
+            .map(format_runtime)
             .collect::<Vec<String>>()
             .join("\n"),
     )
@@ -662,7 +662,7 @@ See options for more detailed reports by running `volta list --help`.";
 
         #[test]
         fn none_installed() {
-            let expected = "⚡️ No <npm|Yarn> versions installed.
+            let expected = "⚡️ No Yarn versions installed.
 
 You can install a Yarn version by running `volta install yarn`.
 See `volta help install` for details and more options.";
