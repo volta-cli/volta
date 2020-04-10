@@ -8,8 +8,8 @@ use super::{Node, Package, PackageManager, Toolchain};
 
 use lazy_static::lazy_static;
 
-static INDENTATION: &'static str = "    ";
-static NO_RUNTIME: &'static str = "⚡️ No Node runtimes installed!
+static INDENTATION: &str = "    ";
+static NO_RUNTIME: &str = "⚡️ No Node runtimes installed!
 
     You can install a runtime by running `volta install node`. See `volta help install` for
     details and more options.";
