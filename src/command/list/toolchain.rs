@@ -52,9 +52,9 @@ impl Lookup {
         }
     }
 
-    fn version_source<'p>(
+    fn version_source(
         self,
-        project: Option<&'p Project>,
+        project: Option<&Project>,
         default_platform: Option<&PlatformSpec>,
         version: &Version,
     ) -> Source {
