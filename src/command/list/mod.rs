@@ -296,11 +296,11 @@ impl Command for List {
 
         let toolchain = match self.subcommand() {
             // For no subcommand, show the user's current toolchain
-            None => Toolchain::active(project, &default_platform)?,
-            Some(Subcommand::All) => Toolchain::all(project, &default_platform)?,
-            Some(Subcommand::Node) => Toolchain::node(project, &default_platform, &filter)?,
-            Some(Subcommand::Npm) => Toolchain::npm(project, &default_platform, &filter)?,
-            Some(Subcommand::Yarn) => Toolchain::yarn(project, &default_platform, &filter)?,
+            None => Toolchain::active(project, default_platform)?,
+            Some(Subcommand::All) => Toolchain::all(project, default_platform)?,
+            Some(Subcommand::Node) => Toolchain::node(project, default_platform, &filter)?,
+            Some(Subcommand::Npm) => Toolchain::npm(project, default_platform, &filter)?,
+            Some(Subcommand::Yarn) => Toolchain::yarn(project, default_platform, &filter)?,
             Some(Subcommand::PackageOrTool { name }) => {
                 Toolchain::package_or_tool(&name, project, &filter)?
             }

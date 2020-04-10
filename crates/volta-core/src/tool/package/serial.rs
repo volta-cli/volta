@@ -149,7 +149,7 @@ impl TryFrom<RawPackageConfig> for PackageConfig {
     fn try_from(raw: RawPackageConfig) -> Fallible<PackageConfig> {
         let platform = raw
             .platform
-            .into_binary_platform()
+            .into_platform()
             .ok_or(ErrorDetails::NoBinPlatform {
                 binary: raw.name.clone(),
             })?;
@@ -177,7 +177,7 @@ impl From<PackageConfig> for RawPackageConfig {
         RawPackageConfig {
             name: full.name,
             version: full.version,
-            platform: full.platform.to_serial(),
+            platform: toolchain::serial::Platform::of(&full.platform),
             bins: full.bins,
         }
     }
@@ -239,7 +239,7 @@ impl TryFrom<RawBinConfig> for BinConfig {
     fn try_from(raw: RawBinConfig) -> Fallible<BinConfig> {
         let platform = raw
             .platform
-            .into_binary_platform()
+            .into_platform()
             .ok_or(ErrorDetails::NoBinPlatform {
                 binary: raw.name.clone(),
             })?;
@@ -261,7 +261,7 @@ impl From<BinConfig> for RawBinConfig {
             package: full.package,
             version: full.version,
             path: full.path,
-            platform: full.platform.to_serial(),
+            platform: toolchain::serial::Platform::of(&full.platform),
             loader: full.loader.map(Into::into),
         }
     }

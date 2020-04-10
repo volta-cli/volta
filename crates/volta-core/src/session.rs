@@ -4,11 +4,10 @@
 
 use std::fmt::{self, Display, Formatter};
 use std::process::exit;
-use std::rc::Rc;
 
 use crate::event::EventLog;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
-use crate::platform::{DefaultPlatformSpec, PlatformSpec, ProjectPlatformSpec};
+use crate::platform::PlatformSpec;
 use crate::project::{LazyProject, Project};
 use crate::toolchain::{LazyToolchain, Toolchain};
 
@@ -103,38 +102,13 @@ impl Session {
         self.project.get_mut()
     }
 
-    /// Returns the user's currently active platform, if any
-    ///
-    /// Active platform is determined by first looking at the Project Platform
-    ///
-    /// - If it exists and has a Yarn version, then we use the project platform
-    /// - If it exists but doesn't have a Yarn version, then we merge the two,
-    ///   pulling Yarn from the user default platform, if available
-    /// - If there is no Project platform, then we use the user Default Platform
-    pub fn current_platform(&self) -> Fallible<Option<Rc<dyn PlatformSpec>>> {
-        match self.project_platform()? {
-            Some(platform) => {
-                if platform.yarn.is_none() {
-                    if let Some(default) = self.default_platform()? {
-                        return Ok(Some(platform.merge(default)));
-                    }
-                }
-                Ok(Some(platform))
-            }
-            None => match self.default_platform()? {
-                Some(platform) => Ok(Some(platform)),
-                None => Ok(None),
-            },
-        }
-    }
-
     /// Returns the user's default platform, if any
-    pub fn default_platform(&self) -> Fallible<Option<Rc<DefaultPlatformSpec>>> {
+    pub fn default_platform(&self) -> Fallible<Option<&PlatformSpec>> {
         self.toolchain.get().map(Toolchain::platform)
     }
 
     /// Returns the current project's pinned platform image, if any.
-    pub fn project_platform(&self) -> Fallible<Option<Rc<ProjectPlatformSpec>>> {
+    pub fn project_platform(&self) -> Fallible<Option<&PlatformSpec>> {
         if let Some(ref project) = self.project()? {
             return Ok(project.platform());
         }

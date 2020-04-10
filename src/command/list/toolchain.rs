@@ -1,12 +1,11 @@
 use std::ffi::OsString;
-use std::rc::Rc;
 
 use semver::Version;
 
 use super::{Filter, Node, Package, PackageManager, Source};
 use crate::command::list::PackageManagerKind;
 use volta_core::inventory::{node_versions, npm_versions, package_configs, yarn_versions};
-use volta_core::platform::{DefaultPlatformSpec, PlatformSpec};
+use volta_core::platform::PlatformSpec;
 use volta_core::project::Project;
 use volta_core::tool::PackageConfig;
 use volta_fail::Fallible;
@@ -45,21 +44,18 @@ enum Lookup {
 }
 
 impl Lookup {
-    fn version_from_spec<S>(self) -> impl Fn(Rc<S>) -> Option<Version>
-    where
-        S: PlatformSpec,
-    {
+    fn version_from_spec(self) -> impl Fn(&PlatformSpec) -> Option<Version> {
         move |spec| match self {
-            Lookup::Runtime => Some(spec.node().value.clone()),
-            Lookup::Npm => spec.npm().map(|n| n.value.clone()),
-            Lookup::Yarn => spec.yarn().map(|y| y.value.clone()),
+            Lookup::Runtime => Some(spec.node.clone()),
+            Lookup::Npm => spec.npm.clone(),
+            Lookup::Yarn => spec.yarn.clone(),
         }
     }
 
     fn version_source<'p>(
         self,
         project: Option<&'p Project>,
-        default_platform: &Option<Rc<DefaultPlatformSpec>>,
+        default_platform: Option<&PlatformSpec>,
         version: &Version,
     ) -> Source {
         match project {
@@ -91,7 +87,7 @@ impl Lookup {
     fn active_tool(
         self,
         project: Option<&Project>,
-        default: &Option<Rc<DefaultPlatformSpec>>,
+        default: Option<&PlatformSpec>,
     ) -> Option<(Source, Version)> {
         match project {
             Some(project) => project
@@ -127,7 +123,7 @@ fn tool_source(name: &str, version: &Version, project: Option<&Project>) -> Fall
 impl Toolchain {
     pub(super) fn active(
         project: Option<&Project>,
-        default_platform: &Option<Rc<DefaultPlatformSpec>>,
+        default_platform: Option<&PlatformSpec>,
     ) -> Fallible<Toolchain> {
         let runtime = Lookup::Runtime
             .active_tool(project, default_platform)
@@ -162,7 +158,7 @@ impl Toolchain {
 
     pub(super) fn all(
         project: Option<&Project>,
-        default_platform: &Option<Rc<DefaultPlatformSpec>>,
+        default_platform: Option<&PlatformSpec>,
     ) -> Fallible<Toolchain> {
         let runtimes = node_versions()?
             .iter()
@@ -197,7 +193,7 @@ impl Toolchain {
 
     pub(super) fn node(
         project: Option<&Project>,
-        default_platform: &Option<Rc<DefaultPlatformSpec>>,
+        default_platform: Option<&PlatformSpec>,
         filter: &Filter,
     ) -> Fallible<Toolchain> {
         let runtimes = node_versions()?
@@ -218,7 +214,7 @@ impl Toolchain {
 
     pub(super) fn npm(
         project: Option<&Project>,
-        default_platform: &Option<Rc<DefaultPlatformSpec>>,
+        default_platform: Option<&PlatformSpec>,
         filter: &Filter,
     ) -> Fallible<Toolchain> {
         let managers = npm_versions()?
@@ -245,7 +241,7 @@ impl Toolchain {
 
     pub(super) fn yarn(
         project: Option<&Project>,
-        default_platform: &Option<Rc<DefaultPlatformSpec>>,
+        default_platform: Option<&PlatformSpec>,
         filter: &Filter,
     ) -> Fallible<Toolchain> {
         let managers = yarn_versions()?

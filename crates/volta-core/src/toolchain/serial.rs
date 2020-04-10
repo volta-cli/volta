@@ -1,5 +1,5 @@
 use crate::error::ErrorDetails;
-use crate::platform::{BinaryPlatformSpec, DefaultPlatformSpec};
+use crate::platform::PlatformSpec;
 use crate::version::{option_version_serde, version_serde};
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -24,18 +24,19 @@ pub struct Platform {
 }
 
 impl Platform {
-    pub fn into_binary_platform(self) -> Option<BinaryPlatformSpec> {
-        let yarn = self.yarn;
-        self.node.map(|node_version| BinaryPlatformSpec {
-            node: node_version.runtime,
-            npm: node_version.npm,
-            yarn,
-        })
+    pub fn of(source: &PlatformSpec) -> Self {
+        Platform {
+            node: Some(NodeVersion {
+                runtime: source.node.clone(),
+                npm: source.npm.clone(),
+            }),
+            yarn: source.yarn.clone(),
+        }
     }
 
-    pub fn into_default_platform(self) -> Option<DefaultPlatformSpec> {
+    pub fn into_platform(self) -> Option<PlatformSpec> {
         let yarn = self.yarn;
-        self.node.map(|node_version| DefaultPlatformSpec {
+        self.node.map(|node_version| PlatformSpec {
             node: node_version.runtime,
             npm: node_version.npm,
             yarn,
@@ -56,30 +57,6 @@ impl Platform {
     /// Serialize the Platform to a JSON String
     pub fn into_json(self) -> Fallible<String> {
         serde_json::to_string_pretty(&self).with_context(|_| ErrorDetails::StringifyPlatformError)
-    }
-}
-
-impl DefaultPlatformSpec {
-    pub fn to_serial(&self) -> Platform {
-        Platform {
-            node: Some(NodeVersion {
-                runtime: self.node.clone(),
-                npm: self.npm.clone(),
-            }),
-            yarn: self.yarn.clone(),
-        }
-    }
-}
-
-impl BinaryPlatformSpec {
-    pub fn to_serial(&self) -> Platform {
-        Platform {
-            node: Some(NodeVersion {
-                runtime: self.node.clone(),
-                npm: self.npm.clone(),
-            }),
-            yarn: self.yarn.clone(),
-        }
     }
 }
 
@@ -128,13 +105,12 @@ pub mod tests {
 
     #[test]
     fn test_into_json() {
-        let platform = platform::DefaultPlatformSpec {
+        let platform_spec = platform::PlatformSpec {
             yarn: Some(Version::parse("1.2.3").expect("could not parse version")),
             node: Version::parse("4.5.6").expect("could not parse version"),
             npm: Some(Version::parse("7.8.9").expect("could not parse version")),
         };
-        let json_str = platform
-            .to_serial()
+        let json_str = Platform::of(&platform_spec)
             .into_json()
             .expect("could not serialize platform to JSON");
         let expected_json_str = BASIC_JSON_STR.to_string();

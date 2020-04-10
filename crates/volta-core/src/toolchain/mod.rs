@@ -1,10 +1,9 @@
 use std::fs::write;
-use std::rc::Rc;
 
 use crate::error::ErrorDetails;
 use crate::fs::touch;
 use crate::layout::volta_home;
-use crate::platform::DefaultPlatformSpec;
+use crate::platform::PlatformSpec;
 use lazycell::LazyCell;
 use log::debug;
 use readext::ReadExt;
@@ -38,7 +37,7 @@ impl LazyToolchain {
 }
 
 pub struct Toolchain {
-    platform: Option<Rc<DefaultPlatformSpec>>,
+    platform: Option<PlatformSpec>,
 }
 
 impl Toolchain {
@@ -50,39 +49,36 @@ impl Toolchain {
                 file: path.to_owned(),
             })?;
 
-        let platform = serial::Platform::from_json(src)?
-            .into_default_platform()
-            .map(Rc::new);
+        let platform = serial::Platform::from_json(src)?.into_platform();
         if platform.is_some() {
             debug!("Found default configuration at '{}'", path.display());
         }
         Ok(Toolchain { platform })
     }
 
-    pub fn platform(&self) -> Option<Rc<DefaultPlatformSpec>> {
-        self.platform.clone()
+    pub fn platform(&self) -> Option<&PlatformSpec> {
+        self.platform.as_ref()
     }
 
     /// Set the active Node version in the default platform file.
     pub fn set_active_node(&mut self, node_version: &Version) -> Fallible<()> {
         let mut dirty = false;
 
-        if let Some(platform) = &self.platform {
-            if platform.node != *node_version {
-                self.platform = Some(Rc::new(DefaultPlatformSpec {
+        match self.platform.as_mut() {
+            Some(platform) => {
+                if platform.node != *node_version {
+                    platform.node = node_version.clone();
+                    dirty = true;
+                }
+            }
+            None => {
+                self.platform = Some(PlatformSpec {
                     node: node_version.clone(),
-                    npm: platform.npm.clone(),
-                    yarn: platform.yarn.clone(),
-                }));
+                    npm: None,
+                    yarn: None,
+                });
                 dirty = true;
             }
-        } else {
-            self.platform = Some(Rc::new(DefaultPlatformSpec {
-                node: node_version.clone(),
-                npm: None,
-                yarn: None,
-            }));
-            dirty = true;
         }
 
         if dirty {
@@ -94,13 +90,9 @@ impl Toolchain {
 
     /// Set the active Yarn version in the default platform file.
     pub fn set_active_yarn(&mut self, yarn: Option<Version>) -> Fallible<()> {
-        if let Some(platform) = &self.platform {
+        if let Some(platform) = self.platform.as_mut() {
             if platform.yarn != yarn {
-                self.platform = Some(Rc::new(DefaultPlatformSpec {
-                    node: platform.node.clone(),
-                    npm: platform.npm.clone(),
-                    yarn,
-                }));
+                platform.yarn = yarn;
                 self.save()?;
             }
         }
@@ -110,13 +102,9 @@ impl Toolchain {
 
     /// Set the active Npm version in the default platform file.
     pub fn set_active_npm(&mut self, npm: Option<Version>) -> Fallible<()> {
-        if let Some(platform) = &self.platform {
+        if let Some(platform) = self.platform.as_mut() {
             if platform.npm != npm {
-                self.platform = Some(Rc::new(DefaultPlatformSpec {
-                    node: platform.node.clone(),
-                    npm,
-                    yarn: platform.yarn.clone(),
-                }));
+                platform.npm = npm;
                 self.save()?;
             }
         }
@@ -128,7 +116,7 @@ impl Toolchain {
         let path = volta_home()?.default_platform_file();
         let result = match &self.platform {
             Some(platform) => {
-                let src = platform.to_serial().into_json()?;
+                let src = serial::Platform::of(platform).into_json()?;
                 write(&path, src)
             }
             None => write(&path, "{}"),

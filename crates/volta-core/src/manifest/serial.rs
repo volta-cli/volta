@@ -4,11 +4,11 @@ use std::hash::Hash;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::path::Path;
-use std::rc::Rc;
 
 use super::super::{manifest, platform};
 use crate::version::parse_version;
 use log::warn;
+use semver::Version;
 use serde;
 use serde::de::{Deserialize, Deserializer, Error, MapAccess, Visitor};
 use serde_json::value::Value;
@@ -116,16 +116,13 @@ impl Engines {
 impl Manifest {
     pub fn into_manifest(self, package_path: &Path) -> Fallible<manifest::Manifest> {
         Ok(manifest::Manifest {
-            platform: self.to_platform(package_path)?.map(Rc::new),
+            platform: self.to_platform(package_path)?,
             dependencies: self.dependencies,
             dev_dependencies: self.dev_dependencies,
         })
     }
 
-    pub fn to_platform(
-        &self,
-        package_path: &Path,
-    ) -> Fallible<Option<platform::ProjectPlatformSpec>> {
+    pub fn to_platform(&self, package_path: &Path) -> Fallible<Option<platform::PlatformSpec>> {
         // Backwards compatibility to allow users to upgrade to using the
         // `volta` key simultaneously with the `toolchain` key, but with
         // deprecation warnings about the use of `toolchain`. Prefer the `volta`
@@ -151,7 +148,7 @@ impl Manifest {
         };
 
         if let Some(toolchain) = &toolchain {
-            return Ok(Some(platform::ProjectPlatformSpec {
+            return Ok(Some(platform::PlatformSpec {
                 node: parse_version(&toolchain.node)?,
                 npm: if let Some(npm) = &toolchain.npm {
                     Some(parse_version(&npm)?)
@@ -191,12 +188,12 @@ impl From<RawBinManifest> for super::BinManifest {
     }
 }
 
-impl From<Rc<platform::ProjectPlatformSpec>> for ToolchainSpec {
-    fn from(source: Rc<platform::ProjectPlatformSpec>) -> Self {
+impl ToolchainSpec {
+    pub fn of(source: &platform::PlatformSpec) -> Self {
         ToolchainSpec {
             node: source.node.to_string(),
-            npm: source.npm.as_ref().map(|v| v.to_string()),
-            yarn: source.yarn.as_ref().map(|v| v.to_string()),
+            npm: source.npm.as_ref().map(Version::to_string),
+            yarn: source.yarn.as_ref().map(Version::to_string),
         }
     }
 }

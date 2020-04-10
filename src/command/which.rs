@@ -5,7 +5,7 @@ use structopt::StructOpt;
 use which::which_in;
 
 use volta_core::error::ErrorDetails;
-use volta_core::platform::System;
+use volta_core::platform::{Platform, System};
 use volta_core::run::binary::DefaultBinary;
 use volta_core::session::{ActivityKind, Session};
 use volta_fail::{ExitCode, Fallible, ResultExt};
@@ -54,8 +54,7 @@ impl Command for Which {
         // Treat any error with obtaining the current platform image as if the image doesn't exist
         // However, errors in obtaining the current working directory or the System path should
         // still be treated as errors.
-        let path = match session
-            .current_platform()
+        let path = match Platform::current(session)
             .unwrap_or(None)
             .and_then(|platform| platform.checkout(session).ok())
             .and_then(|image| image.path().ok())

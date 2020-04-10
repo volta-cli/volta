@@ -15,7 +15,7 @@ use crate::error::ErrorDetails;
 use crate::fs::set_executable;
 use crate::layout::volta_home;
 use crate::manifest::BinManifest;
-use crate::platform::{BinaryPlatformSpec, Image, PlatformSpec};
+use crate::platform::{Image, PlatformSpec};
 use crate::session::Session;
 use crate::shim;
 use crate::style::{progress_spinner, tool_version};
@@ -66,7 +66,7 @@ pub struct PackageConfig {
     /// The package version
     pub version: Version,
     /// The platform used to install this package
-    pub platform: BinaryPlatformSpec,
+    pub platform: PlatformSpec,
     /// The binaries installed by this package
     pub bins: Vec<String>,
 }
@@ -104,7 +104,7 @@ pub struct BinConfig {
     /// The relative path of the binary in the installed package
     pub path: String,
     /// The platform used to install this binary
-    pub platform: BinaryPlatformSpec,
+    pub platform: PlatformSpec,
     /// The loader information for the script, if any
     pub loader: Option<BinLoader>,
 }
@@ -130,12 +130,12 @@ pub fn install(
     let display = tool_version(name, version);
 
     let engine = determine_engine(&package_dir, &display)?;
-    let platform = BinaryPlatformSpec {
+    let platform = PlatformSpec {
         node: node::resolve(engine, session)?,
         npm: None,
         yarn: None,
     };
-    let image = platform.checkout(session)?;
+    let image = platform.as_binary().checkout(session)?;
 
     install_dependencies(&package_dir, image, &display)?;
     write_configs(name, version, &platform, &bin_map)?;
@@ -165,7 +165,7 @@ fn determine_engine(package_dir: &Path, display: &str) -> Fallible<VersionSpec> 
 fn write_configs(
     name: &str,
     version: &Version,
-    platform: &BinaryPlatformSpec,
+    platform: &PlatformSpec,
     bins: &HashMap<String, String>,
 ) -> Fallible<()> {
     super::serial::RawPackageConfig::from(PackageConfig {

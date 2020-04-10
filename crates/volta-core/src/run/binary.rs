@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use super::{debug_tool_message, ToolCommand};
 use crate::error::ErrorDetails;
 use crate::layout::volta_home;
-use crate::platform::{BinaryPlatformSpec, PlatformSpec};
+use crate::platform::{Platform, Sourced};
 use crate::session::{ActivityKind, Session};
 use crate::tool::bin_full_path;
 use crate::tool::{BinConfig, BinLoader};
@@ -36,8 +36,8 @@ pub(crate) fn command(exe: &OsStr, session: &mut Session) -> Fallible<ToolComman
             );
             let path_to_bin = path_to_bin.as_os_str();
 
-            if let Some(platform) = session.current_platform()? {
-                debug_tool_message("node", &platform.node());
+            if let Some(platform) = Platform::current(session)? {
+                debug_tool_message("node", &platform.node);
 
                 let image = platform.checkout(session)?;
                 let path = image.path()?;
@@ -94,7 +94,7 @@ pub(crate) fn command(exe: &OsStr, session: &mut Session) -> Fallible<ToolComman
 /// when the user is outside of a project that has the given bin as a dependency.
 pub struct DefaultBinary {
     pub bin_path: PathBuf,
-    pub platform: BinaryPlatformSpec,
+    pub platform: Platform,
     pub loader: Option<BinLoader>,
 }
 
@@ -109,17 +109,16 @@ impl DefaultBinary {
 
         // If the user does not have yarn set in the platform for this binary, use the default
         // This is necessary because some tools (e.g. ember-cli with the `--yarn` option) invoke `yarn`
-        let platform = match bin_config.platform.yarn {
-            Some(_) => bin_config.platform,
-            None => {
-                let yarn = session
-                    .default_platform()?
-                    .and_then(|ref plat| plat.yarn.clone());
-                BinaryPlatformSpec {
-                    yarn,
-                    ..bin_config.platform
-                }
-            }
+        let yarn = match bin_config.platform.yarn {
+            Some(yarn) => Some(yarn),
+            None => session
+                .default_platform()?
+                .and_then(|ref plat| plat.yarn.clone()),
+        };
+        let platform = Platform {
+            node: Sourced::with_binary(bin_config.platform.node),
+            npm: bin_config.platform.npm.map(Sourced::with_binary),
+            yarn: yarn.map(Sourced::with_binary),
         };
 
         Ok(DefaultBinary {
