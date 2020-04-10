@@ -4,7 +4,7 @@ use textwrap::{HyphenSplitter, Wrapper};
 
 use volta_core::style::{text_width, tool_version, MAX_WIDTH};
 
-use super::{Node, Package, PackageManager, Source, Toolchain};
+use super::{Node, Package, PackageManager, Toolchain};
 
 use lazy_static::lazy_static;
 
@@ -57,15 +57,18 @@ fn display_active(
     match (runtime, package_manager) {
         (None, _) => NO_RUNTIME.to_string(),
         (Some(runtime), Some(package_manager)) => {
-            let runtime_version: String = WRAPPER.fill(&format!("Node: {}", list_runtime(runtime)));
-            let package_manager_version: String =
-                WRAPPER.fill(&format!("Yarn: {}", list_package_manager(package_manager)));
+            let runtime_version: String =
+                WRAPPER.fill(&format!("Node: {}", format_runtime(runtime)));
+            let package_manager_version: String = WRAPPER.fill(&format!(
+                "Yarn: {}",
+                format_package_manager(package_manager)
+            ));
             let package_versions = if packages.is_empty() {
                 WRAPPER.fill(&format!("Tool binaries available: NONE"))
             } else {
                 WRAPPER.fill(&format!(
                     "Tool binaries available:\n{}",
-                    display_tool_sets(packages)
+                    format_tool_list(packages)
                 ))
             };
 
@@ -78,7 +81,8 @@ fn display_active(
             )
         }
         (Some(runtime), None) => {
-            let runtime_version: String = WRAPPER.fill(&format!("Node: {}", list_runtime(runtime)));
+            let runtime_version: String =
+                WRAPPER.fill(&format!("Node: {}", format_runtime(runtime)));
             let package_versions = if packages.is_empty() {
                 WRAPPER.fill(&format!("Tool binaries available: NONE"))
             } else {
@@ -107,14 +111,17 @@ fn display_all(
     if runtimes.is_empty() {
         NO_RUNTIME.to_string()
     } else {
-        let runtime_versions: String =
-            WRAPPER.fill(&format!("Node runtimes:\n{}", list_runtimes(runtimes)));
+        let runtime_versions: String = WRAPPER.fill(&format!(
+            "Node runtimes:\n{}",
+            format_runtime_list(runtimes)
+        ));
         let package_manager_versions: String = WRAPPER.fill(&format!(
             "Package managers:\n{}\n{}",
-            "Yarn:",
-            list_package_managers(package_managers)
+            WRAPPER.fill("Yarn:"),
+            WRAPPER.fill(&format_package_manager_list(package_managers))
         ));
-        let package_versions = WRAPPER.fill(&format!("Packages:\n{}", list_packages(packages)));
+        let package_versions =
+            WRAPPER.fill(&format!("Packages:\n{}", format_package_list(packages)));
         format!(
             "⚡️ User toolchain:\n\n{}\n\n{}\n\n{}",
             runtime_versions, package_manager_versions, package_versions
@@ -129,7 +136,7 @@ fn display_node(runtimes: &[Node]) -> String {
     } else {
         format!(
             "⚡️ Node runtimes in your toolchain:\n\n{}",
-            list_runtimes(&runtimes)
+            format_runtime_list(&runtimes)
         )
     }
 }
@@ -147,7 +154,7 @@ See `volta help install` for details and more options.",
         let versions = WRAPPER.fill(
             &package_managers
                 .iter()
-                .map(list_package_manager)
+                .map(format_package_manager)
                 .collect::<Vec<String>>()
                 .join("\n"),
         );
@@ -167,7 +174,7 @@ See `volta help install` for details and more options.",
     } else {
         format!(
             "⚡️ Package versions in your toolchain:\n\n{}",
-            list_packages(packages)
+            format_package_list(packages)
         )
     }
 }
@@ -187,7 +194,7 @@ See `volta help install` for details and more options.",
         let versions = WRAPPER.fill(
             &host_packages
                 .iter()
-                .map(list_package)
+                .map(format_package)
                 .collect::<Vec<String>>()
                 .join("\n"),
         );
@@ -195,16 +202,16 @@ See `volta help install` for details and more options.",
     }
 }
 
-/// Format a sets binaries inside `Toolchain::Package`s without detail information
-fn display_tool_sets(packages: &[Package]) -> String {
+/// Format a list of `Toolchain::Package`s without detail information
+fn format_tool_list(packages: &[Package]) -> String {
     packages
         .iter()
-        .map(display_tool_set)
+        .map(format_tool)
         .collect::<Vec<String>>()
         .join("\n")
 }
-/// Format a set binaries inside a single `Toolchain::Package` without detail information
-fn display_tool_set(package: &Package) -> String {
+/// Format a single `Toolchain::Package` without detail information
+fn format_tool(package: &Package) -> String {
     match package {
         Package::Default { tools, .. } | Package::Project { tools, .. } => {
             let tools = match tools.len() {
@@ -217,63 +224,51 @@ fn display_tool_set(package: &Package) -> String {
     }
 }
 
-/// List a set versions of `Toolchain::Node`s.
-fn list_runtimes(runtimes: &[Node]) -> String {
-    if runtimes.is_empty() {
-        String::new()
-    } else {
-        WRAPPER.fill(
-            &runtimes
-                .iter()
-                .map(|runtime| list_runtime(&runtime))
-                .collect::<Vec<String>>()
-                .join("\n"),
-        )
-    }
+/// format a list of `Toolchain::Node`s.
+fn format_runtime_list(runtimes: &[Node]) -> String {
+    WRAPPER.fill(
+        &runtimes
+            .iter()
+            .map(|runtime| format_runtime(&runtime))
+            .collect::<Vec<String>>()
+            .join("\n"),
+    )
 }
 
-/// List a single version of `Toolchain::Node`.
-fn list_runtime(runtime: &Node) -> String {
+/// format a single version of `Toolchain::Node`.
+fn format_runtime(runtime: &Node) -> String {
     format!("v{}{}", runtime.version, runtime.source)
 }
 
-/// List all the versions of `Toolchain::PackageManager`s.
-fn list_package_managers(package_managers: &[PackageManager]) -> String {
-    if package_managers.is_empty() {
-        String::new()
-    } else {
-        WRAPPER.fill(
-            &package_managers
-                .iter()
-                .map(list_package_manager)
-                .collect::<Vec<String>>()
-                .join("\n"),
-        )
-    }
+/// format a list of `Toolchain::PackageManager`s.
+fn format_package_manager_list(package_managers: &[PackageManager]) -> String {
+    WRAPPER.fill(
+        &package_managers
+            .iter()
+            .map(format_package_manager)
+            .collect::<Vec<String>>()
+            .join("\n"),
+    )
 }
 
-/// List a the version of `Toolchain::PackageManager`.
-fn list_package_manager(package_manager: &PackageManager) -> String {
+/// format a single `Toolchain::PackageManager`.
+fn format_package_manager(package_manager: &PackageManager) -> String {
     format!("v{}{}", package_manager.version, package_manager.source)
 }
 
-/// List a set of `Toolchain::Package`s and their associated tools.
-fn list_packages(packages: &[Package]) -> String {
-    if packages.is_empty() {
-        String::new()
-    } else {
-        WRAPPER.fill(
-            &packages
-                .iter()
-                .map(list_package)
-                .collect::<Vec<String>>()
-                .join("\n"),
-        )
-    }
+/// format a list of `Toolchain::Package`s and their associated tools.
+fn format_package_list(packages: &[Package]) -> String {
+    WRAPPER.fill(
+        &packages
+            .iter()
+            .map(format_package)
+            .collect::<Vec<String>>()
+            .join("\n"),
+    )
 }
 
-/// List a single `Toolchain::Package` and its associated tools.
-fn list_package(package: &Package) -> String {
+/// Format a single `Toolchain::Package` and its associated tools.
+fn format_package(package: &Package) -> String {
     match package {
         Package::Default {
             details,
@@ -583,6 +578,7 @@ See options for more detailed reports by running `volta list --help`.";
     mod node {
         use super::super::*;
         use super::*;
+        use crate::command::list::Source;
 
         #[test]
         fn no_runtimes() {
@@ -751,7 +747,7 @@ See `volta help install` for details and more options.";
 
     mod packages {
         use super::*;
-        use crate::command::list::{Package, PackageDetails, Source};
+        use crate::command::list::{Package, PackageDetails};
         use semver::{Identifier, Version};
 
         #[test]
@@ -897,7 +893,7 @@ See `volta help install` for details and more options.";
 
     mod tools {
         use super::*;
-        use crate::command::list::{Package, PackageDetails, Source};
+        use crate::command::list::{Package, PackageDetails};
         use semver::{Identifier, Version};
 
         #[test]
@@ -1043,7 +1039,7 @@ See `volta help install` for details and more options.";
 
     mod all {
         use super::*;
-        use crate::command::list::{PackageDetails, PackageManagerKind};
+        use crate::command::list::{PackageDetails, PackageManagerKind, Source};
 
         #[test]
         fn empty() {
@@ -1067,10 +1063,10 @@ See `volta help install` for details and more options.";
         v10.15.3 (default)
 
     Package managers:
-    Yarn:
-        v1.16.0 (default)
-        v1.17.0 (current @ ~/path/to/project.json)
-        v1.4.0
+        Yarn:
+            v1.16.0 (default)
+            v1.17.0 (current @ ~/path/to/project.json)
+            v1.4.0
 
     Packages:
         typescript@3.4.3 (default)
