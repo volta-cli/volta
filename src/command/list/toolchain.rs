@@ -13,7 +13,10 @@ use volta_fail::Fallible;
 
 pub(super) enum Toolchain {
     Node(Vec<Node>),
-    PackageManagers(Vec<PackageManager>),
+    PackageManagers {
+        kind: PackageManagerKind,
+        managers: Vec<PackageManager>,
+    },
     Packages(Vec<Package>),
     Tool {
         name: String,
@@ -218,7 +221,7 @@ impl Toolchain {
         default_platform: &Option<Rc<DefaultPlatformSpec>>,
         filter: &Filter,
     ) -> Fallible<Toolchain> {
-        let npms = npm_versions()?
+        let managers = npm_versions()?
             .iter()
             .filter_map(|version| {
                 let source = Lookup::Npm.version_source(project, default_platform, version);
@@ -234,7 +237,10 @@ impl Toolchain {
             })
             .collect();
 
-        Ok(Toolchain::PackageManagers(npms))
+        Ok(Toolchain::PackageManagers {
+            kind: PackageManagerKind::Npm,
+            managers,
+        })
     }
 
     pub(super) fn yarn(
@@ -242,7 +248,7 @@ impl Toolchain {
         default_platform: &Option<Rc<DefaultPlatformSpec>>,
         filter: &Filter,
     ) -> Fallible<Toolchain> {
-        let yarns = yarn_versions()?
+        let managers = yarn_versions()?
             .iter()
             .filter_map(|version| {
                 let source = Lookup::Yarn.version_source(project, default_platform, version);
@@ -258,7 +264,10 @@ impl Toolchain {
             })
             .collect();
 
-        Ok(Toolchain::PackageManagers(yarns))
+        Ok(Toolchain::PackageManagers {
+            kind: PackageManagerKind::Yarn,
+            managers,
+        })
     }
 
     pub(super) fn package_or_tool(

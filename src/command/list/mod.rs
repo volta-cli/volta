@@ -157,11 +157,10 @@ struct Node {
     pub version: Version,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum PackageManagerKind {
-    Yarn,
-    #[allow(dead_code)]
     Npm,
+    Yarn,
 }
 
 impl fmt::Display for PackageManagerKind {

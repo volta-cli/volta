@@ -9,8 +9,8 @@ use super::{Node, Package, PackageManager, Source, Toolchain};
 pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
     let (runtimes, package_managers, packages) = match toolchain {
         Toolchain::Node(runtimes) => (describe_runtimes(&runtimes), None, None),
-        Toolchain::PackageManagers(package_managers) => {
-            (None, describe_package_managers(&package_managers), None)
+        Toolchain::PackageManagers { managers, .. } => {
+            (None, describe_package_managers(managers), None)
         }
         Toolchain::Packages(packages) => (None, None, describe_packages(&packages)),
         Toolchain::Tool {
