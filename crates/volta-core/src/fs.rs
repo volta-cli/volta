@@ -2,6 +2,8 @@
 
 use std::fs::{self, create_dir_all, read_dir, DirEntry, File, Metadata};
 use std::io::{self, ErrorKind};
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 
 use crate::error::ErrorDetails;
@@ -115,4 +117,26 @@ where
 
     #[cfg(unix)]
     return std::os::unix::fs::symlink(src, dest);
+}
+
+/// Ensure that a given file has 'executable' permissions, otherwise we won't be able to call it
+#[cfg(unix)]
+pub fn set_executable(bin: &Path) -> io::Result<()> {
+    let mut permissions = fs::metadata(bin)?.permissions();
+    let mode = permissions.mode();
+
+    if mode & 0o111 != 0o111 {
+        permissions.set_mode(mode | 0o111);
+        fs::set_permissions(bin, permissions)
+    } else {
+        Ok(())
+    }
+}
+
+/// Ensure that a given file has 'executable' permissions, otherwise we won't be able to call it
+///
+/// Note: This is a no-op on Windows, which has no concept of 'executable' permissions
+#[cfg(windows)]
+pub fn set_executable(_bin: &Path) -> io::Result<()> {
+    Ok(())
 }

@@ -12,6 +12,7 @@ use super::super::node;
 use super::bin_full_path;
 use crate::command::create_command;
 use crate::error::ErrorDetails;
+use crate::fs::set_executable;
 use crate::layout::volta_home;
 use crate::manifest::BinManifest;
 use crate::platform::{BinaryPlatformSpec, Image, PlatformSpec};
@@ -191,10 +192,8 @@ fn write_configs(
         // create a link to the shim executable
         shim::create(&bin_name)?;
 
-        os::set_executable_permissions(&full_path).with_context(|_| {
-            ErrorDetails::ExecutablePermissionsError {
-                bin: bin_name.clone(),
-            }
+        set_executable(&full_path).with_context(|_| ErrorDetails::ExecutablePermissionsError {
+            bin: bin_name.clone(),
         })?;
     }
 
@@ -306,35 +305,4 @@ fn determine_script_loader(bin_name: &str, full_path: &Path) -> Fallible<Option<
     }
 
     Ok(None)
-}
-
-mod os {
-    use cfg_if::cfg_if;
-    use std::io;
-    use std::path::Path;
-
-    cfg_if! {
-        if #[cfg(windows)] {
-            /// On Windows, this isn't a concern as there is no concept of 'executable' permissions
-            pub fn set_executable_permissions(_bin: &Path) -> io::Result<()> {
-                Ok(())
-            }
-        } else if #[cfg(unix)] {
-            use std::fs;
-            use std::os::unix::fs::PermissionsExt;
-
-            /// Ensure that a given binary has 'executable' permissions on Unix, otherwise we won't be able to call it
-            pub fn set_executable_permissions(bin: &Path) -> io::Result<()> {
-                let mut permissions = fs::metadata(bin)?.permissions();
-                let mode = permissions.mode();
-
-                if mode & 0o111 != 0o111 {
-                    permissions.set_mode(mode | 0o111);
-                    fs::set_permissions(bin, permissions)
-                } else {
-                    Ok(())
-                }
-            }
-        }
-    }
 }
