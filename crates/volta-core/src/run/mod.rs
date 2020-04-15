@@ -157,7 +157,7 @@ impl fmt::Debug for ToolCommand {
 }
 
 fn get_tool_name(args: &mut ArgsOs) -> Fallible<OsString> {
-    args.nth(0)
+    args.next()
         .and_then(|arg0| Path::new(&arg0).file_name().map(tool_name_from_file_name))
         .ok_or_else(|| ErrorDetails::CouldNotDetermineTool.into())
 }
