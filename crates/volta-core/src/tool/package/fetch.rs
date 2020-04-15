@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use crate::error::ErrorDetails;
 use crate::fs::{create_staging_dir, ensure_dir_does_not_exist, read_dir_eager, read_file};
 use crate::layout::volta_home;
+use crate::platform::CliPlatform;
 use crate::run::{self, ToolCommand};
 use crate::session::Session;
 use crate::style::{progress_bar, progress_spinner, tool_version};
@@ -163,7 +164,7 @@ fn npm_pack_command_for(
     session: &mut Session,
     current_dir: &Path,
 ) -> Fallible<ToolCommand> {
-    let mut command = run::npm::command(session)?;
+    let mut command = run::npm::command(CliPlatform::default(), session)?;
     command.arg("pack");
     command.arg("--no-update-notifier");
     command.arg(format!("{}@{}", name, version));

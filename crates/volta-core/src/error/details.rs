@@ -193,6 +193,9 @@ pub enum ErrorDetails {
         command: String,
     },
 
+    /// Thrown when Yarn is not set at the command-line
+    NoCommandLineYarn,
+
     /// Thrown when there is no Node version matching a requested semver specifier.
     NodeVersionNotFound {
         matching: String,
@@ -818,6 +821,12 @@ Please uninstall and re-install the package that provides that executable.",
 Please ensure you have a Node version selected with `volta {} node` (see `volta help {0}` for more info).",
                 command
             ),
+            ErrorDetails::NoCommandLineYarn => write!(
+                f,
+                "No Yarn version specified.
+
+Use `volta run --yarn` to select a version (see `volta help run` for more info)."
+            ),
             ErrorDetails::NodeVersionNotFound { matching } => write!(
                 f,
                 r#"Could not find Node version matching "{}" in the version registry.
@@ -1436,6 +1445,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::InvalidToolName { .. } => ExitCode::InvalidArguments,
             ErrorDetails::NoBinPlatform { .. } => ExitCode::ExecutionFailure,
             ErrorDetails::NoBundledNpm { .. } => ExitCode::ConfigurationError,
+            ErrorDetails::NoCommandLineYarn => ExitCode::ConfigurationError,
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NoGlobalInstalls { .. } => ExitCode::InvalidArguments,
             ErrorDetails::NoHomeEnvironmentVar => ExitCode::EnvironmentError,

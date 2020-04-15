@@ -3,16 +3,16 @@ use std::ffi::OsStr;
 
 use super::{debug_tool_message, intercept_global_installs, CommandArg, ToolCommand};
 use crate::error::ErrorDetails;
-use crate::platform::Platform;
+use crate::platform::{CliPlatform, Platform};
 use crate::session::{ActivityKind, Session};
 
 use log::debug;
 use volta_fail::{throw, Fallible};
 
-pub(crate) fn command(session: &mut Session) -> Fallible<ToolCommand> {
+pub(crate) fn command(cli: CliPlatform, session: &mut Session) -> Fallible<ToolCommand> {
     session.add_event_start(ActivityKind::Npm);
 
-    match Platform::current(session)? {
+    match Platform::with_cli(cli, session)? {
         Some(platform) => {
             if intercept_global_installs() {
                 if let CommandArg::GlobalAdd(package) = check_npm_install() {

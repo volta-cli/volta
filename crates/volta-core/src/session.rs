@@ -36,6 +36,7 @@ pub enum ActivityKind {
     Completions,
     Which,
     Setup,
+    Run,
 }
 
 impl Display for ActivityKind {
@@ -61,6 +62,7 @@ impl Display for ActivityKind {
             ActivityKind::Shim => "shim",
             ActivityKind::Completions => "completions",
             ActivityKind::Which => "which",
+            ActivityKind::Run => "run",
         };
         f.write_str(s)
     }

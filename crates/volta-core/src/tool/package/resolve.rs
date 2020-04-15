@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use crate::error::ErrorDetails;
 use crate::hook::ToolHooks;
+use crate::platform::CliPlatform;
 use crate::run::{self, ToolCommand};
 use crate::session::Session;
 use crate::style::{progress_spinner, tool_version};
@@ -177,7 +178,7 @@ fn npm_view_query(name: &str, version: &str, session: &mut Session) -> Fallible<
 
 // build a command to run `npm view` with json output
 fn npm_view_command_for(name: &str, version: &str, session: &mut Session) -> Fallible<ToolCommand> {
-    let mut command = run::npm::command(session)?;
+    let mut command = run::npm::command(CliPlatform::default(), session)?;
     command.arg("view");
     command.arg("--json");
     command.arg(format!("{}@{}", name, version));

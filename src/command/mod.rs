@@ -3,6 +3,7 @@ pub(crate) mod fetch;
 pub(crate) mod install;
 pub(crate) mod list;
 pub(crate) mod pin;
+pub(crate) mod run;
 pub(crate) mod setup;
 pub(crate) mod uninstall;
 pub(crate) mod r#use;
@@ -15,6 +16,7 @@ pub(crate) use install::Install;
 pub(crate) use list::List;
 pub(crate) use pin::Pin;
 pub(crate) use r#use::Use;
+pub(crate) use run::Run;
 pub(crate) use setup::Setup;
 pub(crate) use uninstall::Uninstall;
 
