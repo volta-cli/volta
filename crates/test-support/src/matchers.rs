@@ -592,7 +592,7 @@ fn find_mismatch<'a>(expected: &'a Value, actual: &'a Value) -> Option<(&'a Valu
             l.values()
                 .zip(r.values())
                 .filter_map(|(l, r)| find_mismatch(l, r))
-                .nth(0)
+                .next()
         }
         (&Null, &Null) => None,
         // magic string literal "{...}" acts as wildcard for any sub-JSON
