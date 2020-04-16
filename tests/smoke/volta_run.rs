@@ -54,3 +54,13 @@ fn run_yarn_disabled() {
             .with_stderr_contains("[..]No Yarn version found[..]")
     );
 }
+
+#[test]
+fn run_environment() {
+    let p = temp_project().build();
+
+    assert_that!(
+        p.volta("run --node 12.16.0 --env VOLTA_SMOKE_1234=hello node -e console.log(process.env.VOLTA_SMOKE_1234)"),
+        execs().with_status(0).with_stdout_contains("hello")
+    );
+}

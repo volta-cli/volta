@@ -69,18 +69,18 @@ impl Command for Run {
 /// We ignore any setting that doesn't have a value associated with it
 /// We also ignore the PATH environment variable as that is set when running a command
 fn parse_envs(cli_values: Vec<String>) -> impl IntoIterator<Item = (String, String)> {
-    cli_values.into_iter().filter_map(|mut entry| {
-        entry.find('=').and_then(|index| {
-            // After `split_off`, entry will contain only the key
-            let value = entry.split_off(index);
+    cli_values.into_iter().filter_map(|entry| {
+        let mut key_value = entry.splitn(2, '=');
 
-            if entry.eq_ignore_ascii_case("PATH") {
+        match (key_value.next(), key_value.next()) {
+            (None, _) => None,
+            (Some(_), None) => None,
+            (Some(key), _) if key.eq_ignore_ascii_case("PATH") => {
                 debug!("Skipping PATH environment variable as it will be overwritten to execute the command");
                 None
-            } else {
-                Some((entry, value))
             }
-        })
+            (Some(key), Some(value)) => Some((key.into(), value.into())),
+        }
     })
 }
 
