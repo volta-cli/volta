@@ -19,6 +19,7 @@ pub use system::System;
 
 /// The source with which a version is associated
 #[derive(Clone, Copy)]
+#[cfg_attr(test, derive(Eq, PartialEq, Debug))]
 pub enum Source {
     /// Represents a version from the user default platform
     Default,
@@ -113,6 +114,7 @@ where
 }
 
 /// Represents 3 possible states: Having a value, not having a value, and inheriting a value
+#[cfg_attr(test, derive(Eq, PartialEq, Debug))]
 pub enum InheritOption<T> {
     Some(T),
     None,

@@ -16,6 +16,7 @@ cfg_if::cfg_if! {
         mod support;
         mod volta_fetch;
         mod volta_install;
+        mod volta_run;
         mod autodownload;
     }
 }
