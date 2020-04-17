@@ -1,6 +1,0 @@
-steps:
-  - script: |
-      rustup component add rustfmt
-      cargo fmt --all --quiet -- --check
-    condition: eq(variables['Agent.OS'], 'Darwin')
-    displayName: Check formatting
