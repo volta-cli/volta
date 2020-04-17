@@ -125,32 +125,57 @@ fn display_node(runtimes: &[Node]) -> String {
     }
 }
 
-/// Format a set of `Toolchain::PackageManager`s.
-fn display_package_managers(kind: PackageManagerKind, managers: &[PackageManager]) -> String {
+/// Format a set of `Toolchain::PackageManager`s for `volta list npm`
+fn display_npms(managers: &[PackageManager]) -> String {
     if managers.is_empty() {
-        // Note: Using `format_package_manager_kind` to get the properly capitalized version of the tool
-        // Then using the `Display` impl on the kind to get the version to show in the command
-        format!(
-            "⚡️ No {} versions installed.
+        "⚡️ No custom npm versions installed (npm is still available bundled with Node).
 
-You can install a {0} version by running `volta install {}`.
-See `volta help install` for details and more options.",
-            format_package_manager_kind(kind),
-            kind
-        )
+You can install an npm version by running `volta install npm`.
+See `volta help install` for details and more options."
+            .into()
     } else {
         let versions = WRAPPER.fill(
             &managers
                 .iter()
                 .map(format_package_manager)
-                .collect::<Vec<String>>()
+                .collect::<Vec<_>>()
                 .join("\n"),
         );
-        format!(
-            "⚡️ {} versions in your toolchain:\n\n{}",
-            format_package_manager_kind(kind),
-            versions
-        )
+        format!("⚡️ Custom npm versions in your toolchain:\n\n{}", versions)
+    }
+}
+
+/// Format a set of `Toolchain::PackageManager`s.
+fn display_package_managers(kind: PackageManagerKind, managers: &[PackageManager]) -> String {
+    match kind {
+        PackageManagerKind::Npm => display_npms(managers),
+        _ => {
+            if managers.is_empty() {
+                // Note: Using `format_package_manager_kind` to get the properly capitalized version of the tool
+                // Then using the `Display` impl on the kind to get the version to show in the command
+                format!(
+                    "⚡️ No {} versions installed.
+
+You can install a {0} version by running `volta install {}`.
+See `volta help install` for details and more options.",
+                    format_package_manager_kind(kind),
+                    kind
+                )
+            } else {
+                let versions = WRAPPER.fill(
+                    &managers
+                        .iter()
+                        .map(format_package_manager)
+                        .collect::<Vec<String>>()
+                        .join("\n"),
+                );
+                format!(
+                    "⚡️ {} versions in your toolchain:\n\n{}",
+                    format_package_manager_kind(kind),
+                    versions
+                )
+            }
+        }
     }
 }
 
@@ -899,9 +924,10 @@ See options for more detailed reports by running `volta list --help`.";
 
         #[test]
         fn none_installed_npm() {
-            let expected = "⚡️ No npm versions installed.
+            let expected =
+                "⚡️ No custom npm versions installed (npm is still available bundled with Node).
 
-You can install a npm version by running `volta install npm`.
+You can install an npm version by running `volta install npm`.
 See `volta help install` for details and more options.";
 
             assert_eq!(
@@ -925,7 +951,7 @@ See `volta help install` for details and more options.";
 
         #[test]
         fn single_default_npm() {
-            let expected = "⚡️ npm versions in your toolchain:
+            let expected = "⚡️ Custom npm versions in your toolchain:
 
     v6.13.1 (default)";
 
@@ -961,7 +987,7 @@ See `volta help install` for details and more options.";
 
         #[test]
         fn single_project_npm() {
-            let expected = "⚡️ npm versions in your toolchain:
+            let expected = "⚡️ Custom npm versions in your toolchain:
 
     v6.13.1 (current @ ~/path/to/project.json)";
 
@@ -997,7 +1023,7 @@ See `volta help install` for details and more options.";
 
         #[test]
         fn single_installed_npm() {
-            let expected = "⚡️ npm versions in your toolchain:
+            let expected = "⚡️ Custom npm versions in your toolchain:
 
     v6.13.1";
 
@@ -1033,7 +1059,7 @@ See `volta help install` for details and more options.";
 
         #[test]
         fn multi_npm() {
-            let expected = "⚡️ npm versions in your toolchain:
+            let expected = "⚡️ Custom npm versions in your toolchain:
 
     v5.6.0
     v6.13.1 (default)
