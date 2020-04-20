@@ -157,11 +157,10 @@ struct Node {
     pub version: Version,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum PackageManagerKind {
-    Yarn,
-    #[allow(dead_code)]
     Npm,
+    Yarn,
 }
 
 impl fmt::Display for PackageManagerKind {
@@ -237,6 +236,9 @@ enum Subcommand {
     /// Show locally cached Node versions.
     Node,
 
+    /// Show locally cached npm versions.
+    Npm,
+
     /// Show locally cached Yarn versions.
     Yarn,
 
@@ -249,6 +251,7 @@ impl From<&str> for Subcommand {
         match s {
             "all" => Subcommand::All,
             "node" => Subcommand::Node,
+            "npm" => Subcommand::Npm,
             "yarn" => Subcommand::Yarn,
             s => Subcommand::PackageOrTool { name: s.into() },
         }
@@ -296,6 +299,7 @@ impl Command for List {
             None => Toolchain::active(project, &default_platform)?,
             Some(Subcommand::All) => Toolchain::all(project, &default_platform)?,
             Some(Subcommand::Node) => Toolchain::node(project, &default_platform, &filter)?,
+            Some(Subcommand::Npm) => Toolchain::npm(project, &default_platform, &filter)?,
             Some(Subcommand::Yarn) => Toolchain::yarn(project, &default_platform, &filter)?,
             Some(Subcommand::PackageOrTool { name }) => {
                 Toolchain::package_or_tool(&name, project, &filter)?

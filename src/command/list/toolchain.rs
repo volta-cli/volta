@@ -5,7 +5,7 @@ use semver::Version;
 
 use super::{Filter, Node, Package, PackageManager, Source};
 use crate::command::list::PackageManagerKind;
-use volta_core::inventory::{node_versions, package_configs, yarn_versions};
+use volta_core::inventory::{node_versions, npm_versions, package_configs, yarn_versions};
 use volta_core::platform::{DefaultPlatformSpec, PlatformSpec};
 use volta_core::project::Project;
 use volta_core::tool::PackageConfig;
@@ -13,7 +13,10 @@ use volta_fail::Fallible;
 
 pub(super) enum Toolchain {
     Node(Vec<Node>),
-    PackageManagers(Vec<PackageManager>),
+    PackageManagers {
+        kind: PackageManagerKind,
+        managers: Vec<PackageManager>,
+    },
     Packages(Vec<Package>),
     Tool {
         name: String,
@@ -21,7 +24,7 @@ pub(super) enum Toolchain {
     },
     Active {
         runtime: Option<Box<Node>>,
-        package_manager: Option<Box<PackageManager>>,
+        package_managers: Vec<PackageManager>,
         packages: Vec<Package>,
     },
     All {
@@ -35,6 +38,8 @@ pub(super) enum Toolchain {
 enum Lookup {
     /// Look up the Node runtime
     Runtime,
+    /// Look up the npm package manager
+    Npm,
     /// Look up the Yarn package manager
     Yarn,
 }
@@ -46,6 +51,7 @@ impl Lookup {
     {
         move |spec| match self {
             Lookup::Runtime => Some(spec.node().value.clone()),
+            Lookup::Npm => spec.npm().map(|n| n.value.clone()),
             Lookup::Yarn => spec.yarn().map(|y| y.value.clone()),
         }
     }
@@ -127,22 +133,29 @@ impl Toolchain {
             .active_tool(project, default_platform)
             .map(|(source, version)| Box::new(Node { source, version }));
 
-        let package_manager =
-            Lookup::Yarn
+        let package_managers =
+            Lookup::Npm
                 .active_tool(project, default_platform)
-                .map(|(source, version)| {
-                    Box::new(PackageManager {
+                .map(|(source, version)| PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source,
+                    version,
+                })
+                .into_iter()
+                .chain(Lookup::Yarn.active_tool(project, default_platform).map(
+                    |(source, version)| PackageManager {
                         kind: PackageManagerKind::Yarn,
                         source,
                         version,
-                    })
-                });
+                    },
+                ))
+                .collect();
 
         let packages = Package::from_inventory_and_project(project)?;
 
         Ok(Toolchain::Active {
             runtime,
-            package_manager,
+            package_managers,
             packages,
         })
     }
@@ -159,13 +172,18 @@ impl Toolchain {
             })
             .collect();
 
-        let package_managers = yarn_versions()?
+        let package_managers = npm_versions()?
             .iter()
             .map(|version| PackageManager {
+                kind: PackageManagerKind::Npm,
+                source: Lookup::Npm.version_source(project, default_platform, version),
+                version: version.clone(),
+            })
+            .chain(yarn_versions()?.iter().map(|version| PackageManager {
                 kind: PackageManagerKind::Yarn,
                 source: Lookup::Yarn.version_source(project, default_platform, version),
                 version: version.clone(),
-            })
+            }))
             .collect();
 
         let packages = Package::from_inventory_and_project(project)?;
@@ -198,12 +216,39 @@ impl Toolchain {
         Ok(Toolchain::Node(runtimes))
     }
 
+    pub(super) fn npm(
+        project: Option<&Project>,
+        default_platform: &Option<Rc<DefaultPlatformSpec>>,
+        filter: &Filter,
+    ) -> Fallible<Toolchain> {
+        let managers = npm_versions()?
+            .iter()
+            .filter_map(|version| {
+                let source = Lookup::Npm.version_source(project, default_platform, version);
+                if source.allowed_with(filter) {
+                    Some(PackageManager {
+                        kind: PackageManagerKind::Npm,
+                        source,
+                        version: version.clone(),
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        Ok(Toolchain::PackageManagers {
+            kind: PackageManagerKind::Npm,
+            managers,
+        })
+    }
+
     pub(super) fn yarn(
         project: Option<&Project>,
         default_platform: &Option<Rc<DefaultPlatformSpec>>,
         filter: &Filter,
     ) -> Fallible<Toolchain> {
-        let yarns = yarn_versions()?
+        let managers = yarn_versions()?
             .iter()
             .filter_map(|version| {
                 let source = Lookup::Yarn.version_source(project, default_platform, version);
@@ -219,7 +264,10 @@ impl Toolchain {
             })
             .collect();
 
-        Ok(Toolchain::PackageManagers(yarns))
+        Ok(Toolchain::PackageManagers {
+            kind: PackageManagerKind::Yarn,
+            managers,
+        })
     }
 
     pub(super) fn package_or_tool(

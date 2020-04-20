@@ -1,12 +1,11 @@
 //! Define the "human" format style for list commands.
 
-use textwrap::{HyphenSplitter, Wrapper};
+use std::collections::BTreeMap;
 
-use volta_core::style::{text_width, tool_version, MAX_WIDTH};
-
-use super::{Node, Package, PackageManager, Toolchain};
-
+use super::{Node, Package, PackageManager, PackageManagerKind, Toolchain};
 use lazy_static::lazy_static;
+use textwrap::{HyphenSplitter, Wrapper};
+use volta_core::style::{text_width, tool_version, MAX_WIDTH};
 
 static INDENTATION: &str = "    ";
 static NO_RUNTIME: &str = "⚡️ No Node runtimes installed!
@@ -28,15 +27,15 @@ pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
         Toolchain::Node(runtimes) => display_node(&runtimes),
         Toolchain::Active {
             runtime,
-            package_manager,
+            package_managers,
             packages,
-        } => display_active(runtime, package_manager, packages),
+        } => display_active(runtime, package_managers, packages),
         Toolchain::All {
             runtimes,
             package_managers,
             packages,
         } => display_all(runtimes, package_managers, packages),
-        Toolchain::PackageManagers(package_managers) => display_package_managers(package_managers),
+        Toolchain::PackageManagers { kind, managers } => display_package_managers(*kind, managers),
         Toolchain::Packages(packages) => display_packages(packages),
         Toolchain::Tool {
             name,
@@ -51,19 +50,25 @@ pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
 /// that
 fn display_active(
     runtime: &Option<Box<Node>>,
-    package_manager: &Option<Box<PackageManager>>,
+    package_managers: &[PackageManager],
     packages: &[Package],
 ) -> String {
-    match (runtime, package_manager) {
-        (None, _) => NO_RUNTIME.to_string(),
-        (Some(runtime), Some(package_manager)) => {
-            let runtime_version = WRAPPER.fill(&format!("Node: {}", format_runtime(runtime)));
-            let package_manager_version = WRAPPER.fill(&format!(
-                "Yarn: {}",
-                format_package_manager(package_manager)
-            ));
+    match runtime {
+        None => NO_RUNTIME.to_string(),
+        Some(node) => {
+            let runtime_version = WRAPPER.fill(&format!("Node: {}", format_runtime(node)));
+
+            let package_manager_versions = if package_managers.is_empty() {
+                String::new()
+            } else {
+                format!(
+                    "\n{}",
+                    format_package_manager_list_condensed(package_managers)
+                )
+            };
+
             let package_versions = if packages.is_empty() {
-                WRAPPER.fill(&format!("Tool binaries available: NONE"))
+                WRAPPER.fill("Tool binaries available: NONE")
             } else {
                 WRAPPER.fill(&format!(
                     "Tool binaries available:\n{}",
@@ -72,28 +77,9 @@ fn display_active(
             };
 
             format!(
-                "⚡️ Currently active tools:\n\n{}\n{}\n{}\n\n{}",
+                "⚡️ Currently active tools:\n\n{}{}\n{}\n\n{}",
                 runtime_version,
-                package_manager_version,
-                package_versions,
-                "See options for more detailed reports by running `volta list --help`."
-            )
-        }
-        (Some(runtime), None) => {
-            let runtime_version: String =
-                WRAPPER.fill(&format!("Node: {}", format_runtime(runtime)));
-            let package_versions = if packages.is_empty() {
-                WRAPPER.fill(&format!("Tool binaries available: NONE"))
-            } else {
-                WRAPPER.fill(&format!(
-                    "Tool binaries available:\n{}",
-                    format_tool_list(packages)
-                ))
-            };
-
-            format!(
-                "⚡️ Currently active tools:\n\n{}\n{}\n\n{}",
-                runtime_version,
+                package_manager_versions,
                 package_versions,
                 "See options for more detailed reports by running `volta list --help`."
             )
@@ -115,9 +101,8 @@ fn display_all(
             format_runtime_list(runtimes)
         ));
         let package_manager_versions: String = WRAPPER.fill(&format!(
-            "Package managers:\n{}\n{}",
-            WRAPPER.fill("Yarn:"),
-            WRAPPER.fill(&format_package_manager_list(package_managers))
+            "Package managers:\n{}",
+            format_package_manager_list_verbose(package_managers)
         ));
         let package_versions =
             WRAPPER.fill(&format!("Packages:\n{}", format_package_list(packages)));
@@ -140,25 +125,57 @@ fn display_node(runtimes: &[Node]) -> String {
     }
 }
 
-/// Format a set of `Toolchain::PackageManager`s.
-fn display_package_managers(package_managers: &[PackageManager]) -> String {
-    if package_managers.is_empty() {
-        //TODO: adding npm support https://github.com/volta-cli/volta/pull/694
-        String::from(
-            "⚡️ No Yarn versions installed.
+/// Format a set of `Toolchain::PackageManager`s for `volta list npm`
+fn display_npms(managers: &[PackageManager]) -> String {
+    if managers.is_empty() {
+        "⚡️ No custom npm versions installed (npm is still available bundled with Node).
 
-You can install a Yarn version by running `volta install yarn`.
-See `volta help install` for details and more options.",
-        )
+You can install an npm version by running `volta install npm`.
+See `volta help install` for details and more options."
+            .into()
     } else {
         let versions = WRAPPER.fill(
-            &package_managers
+            &managers
                 .iter()
                 .map(format_package_manager)
-                .collect::<Vec<String>>()
+                .collect::<Vec<_>>()
                 .join("\n"),
         );
-        format!("⚡️ Yarn versions in your toolchain:\n\n{}", versions)
+        format!("⚡️ Custom npm versions in your toolchain:\n\n{}", versions)
+    }
+}
+
+/// Format a set of `Toolchain::PackageManager`s.
+fn display_package_managers(kind: PackageManagerKind, managers: &[PackageManager]) -> String {
+    match kind {
+        PackageManagerKind::Npm => display_npms(managers),
+        _ => {
+            if managers.is_empty() {
+                // Note: Using `format_package_manager_kind` to get the properly capitalized version of the tool
+                // Then using the `Display` impl on the kind to get the version to show in the command
+                format!(
+                    "⚡️ No {} versions installed.
+
+You can install a {0} version by running `volta install {}`.
+See `volta help install` for details and more options.",
+                    format_package_manager_kind(kind),
+                    kind
+                )
+            } else {
+                let versions = WRAPPER.fill(
+                    &managers
+                        .iter()
+                        .map(format_package_manager)
+                        .collect::<Vec<String>>()
+                        .join("\n"),
+                );
+                format!(
+                    "⚡️ {} versions in your toolchain:\n\n{}",
+                    format_package_manager_kind(kind),
+                    versions
+                )
+            }
+        }
     }
 }
 
@@ -240,13 +257,45 @@ fn format_runtime(runtime: &Node) -> String {
     format!("v{}{}", runtime.version, runtime.source)
 }
 
-/// format a list of `Toolchain::PackageManager`s.
-fn format_package_manager_list(package_managers: &[PackageManager]) -> String {
+/// format a list of `Toolchain::PackageManager`s in condensed form
+fn format_package_manager_list_condensed(package_managers: &[PackageManager]) -> String {
     WRAPPER.fill(
         &package_managers
             .iter()
-            .map(format_package_manager)
-            .collect::<Vec<String>>()
+            .map(|manager| {
+                format!(
+                    "{}: {}",
+                    format_package_manager_kind(manager.kind),
+                    format_package_manager(manager)
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n"),
+    )
+}
+
+/// format a list of `Toolchain::PackageManager`s in verbose form
+fn format_package_manager_list_verbose(package_managers: &[PackageManager]) -> String {
+    let mut manager_lists = BTreeMap::new();
+
+    for manager in package_managers {
+        manager_lists
+            .entry(manager.kind)
+            .or_insert_with(Vec::new)
+            .push(format_package_manager(manager));
+    }
+
+    WRAPPER.fill(
+        &manager_lists
+            .iter()
+            .map(|(kind, list)| {
+                format!(
+                    "{}:\n{}",
+                    format_package_manager_kind(*kind),
+                    WRAPPER.fill(&list.join("\n"))
+                )
+            })
+            .collect::<Vec<_>>()
             .join("\n"),
     )
 }
@@ -254,6 +303,16 @@ fn format_package_manager_list(package_managers: &[PackageManager]) -> String {
 /// format a single `Toolchain::PackageManager`.
 fn format_package_manager(package_manager: &PackageManager) -> String {
     format!("v{}{}", package_manager.version, package_manager.source)
+}
+
+/// format the title for a kind of package manager
+///
+/// This is distinct from the `Display` impl, because we need 'Yarn' to be capitalized for human output
+fn format_package_manager_kind(kind: PackageManagerKind) -> String {
+    match kind {
+        PackageManagerKind::Npm => "npm".into(),
+        PackageManagerKind::Yarn => "Yarn".into(),
+    }
 }
 
 /// format a list of `Toolchain::Package`s and their associated tools.
@@ -284,7 +343,7 @@ fn format_package(package: &Package) -> String {
         } => {
             let tools = match tools.len() {
                 0 => String::from(""),
-                _ => format!("{}", tools.join(", ")),
+                _ => tools.join(", "),
             };
 
             let version = format!("{}{}", details.version, list_package_source(package));
@@ -336,6 +395,7 @@ mod tests {
         static ref NODE_11: Version = Version::from((11, 9, 0));
         static ref NODE_10: Version = Version::from((10, 15, 3));
         static ref YARN_VERSION: Version = Version::from((1, 16, 0));
+        static ref NPM_VERSION: Version = Version::from((6, 13, 1));
         static ref PROJECT_PATH: PathBuf = PathBuf::from("~/path/to/project.json");
     }
 
@@ -348,10 +408,10 @@ mod tests {
         #[test]
         fn no_runtimes() {
             let runtime = None;
-            let package_manager = None;
+            let package_managers = vec![];
             let packages = vec![];
             assert_eq!(
-                display_active(&runtime, &package_manager, &packages).as_str(),
+                display_active(&runtime, &package_managers, &packages),
                 NO_RUNTIME
             );
         }
@@ -369,11 +429,11 @@ See options for more detailed reports by running `volta list --help`.";
                 source: Source::Default,
                 version: NODE_12.clone(),
             }));
-            let package_manager = None;
+            let package_managers = vec![];
             let packages = vec![];
 
             assert_eq!(
-                display_active(&runtime, &package_manager, &packages),
+                display_active(&runtime, &package_managers, &packages),
                 expected
             );
         }
@@ -391,11 +451,38 @@ See options for more detailed reports by running `volta list --help`.";
                 source: Source::Project(PROJECT_PATH.clone()),
                 version: NODE_12.clone(),
             }));
-            let package_manager = None;
+            let package_managers = vec![];
             let packages = vec![];
 
             assert_eq!(
-                display_active(&runtime, &package_manager, &packages),
+                display_active(&runtime, &package_managers, &packages),
+                expected
+            );
+        }
+
+        #[test]
+        fn runtime_and_npm_default() {
+            let expected = "⚡️ Currently active tools:
+
+    Node: v12.2.0 (default)
+    npm: v6.13.1 (default)
+    Tool binaries available: NONE
+
+See options for more detailed reports by running `volta list --help`.";
+
+            let runtime = Some(Box::new(Node {
+                source: Source::Default,
+                version: NODE_12.clone(),
+            }));
+            let package_managers = vec![PackageManager {
+                kind: PackageManagerKind::Npm,
+                source: Source::Default,
+                version: NPM_VERSION.clone(),
+            }];
+            let packages = vec![];
+
+            assert_eq!(
+                display_active(&runtime, &package_managers, &packages),
                 expected
             );
         }
@@ -414,15 +501,42 @@ See options for more detailed reports by running `volta list --help`.";
                 source: Source::Default,
                 version: NODE_12.clone(),
             }));
-            let package_manager = Some(Box::new(PackageManager {
+            let package_managers = vec![PackageManager {
                 kind: PackageManagerKind::Yarn,
                 source: Source::Default,
                 version: YARN_VERSION.clone(),
-            }));
+            }];
             let packages = vec![];
 
             assert_eq!(
-                display_active(&runtime, &package_manager, &packages),
+                display_active(&runtime, &package_managers, &packages),
+                expected
+            );
+        }
+
+        #[test]
+        fn runtime_and_npm_mixed() {
+            let expected = "⚡️ Currently active tools:
+
+    Node: v12.2.0 (default)
+    npm: v6.13.1 (current @ ~/path/to/project.json)
+    Tool binaries available: NONE
+
+See options for more detailed reports by running `volta list --help`.";
+
+            let runtime = Some(Box::new(Node {
+                source: Source::Default,
+                version: NODE_12.clone(),
+            }));
+            let package_managers = vec![PackageManager {
+                kind: PackageManagerKind::Npm,
+                source: Source::Project(PROJECT_PATH.clone()),
+                version: NPM_VERSION.clone(),
+            }];
+            let packages = vec![];
+
+            assert_eq!(
+                display_active(&runtime, &package_managers, &packages),
                 expected
             );
         }
@@ -441,15 +555,42 @@ See options for more detailed reports by running `volta list --help`.";
                 source: Source::Default,
                 version: NODE_12.clone(),
             }));
-            let package_manager = Some(Box::new(PackageManager {
+            let package_managers = vec![PackageManager {
                 kind: PackageManagerKind::Yarn,
                 source: Source::Project(PROJECT_PATH.clone()),
                 version: YARN_VERSION.clone(),
-            }));
+            }];
             let packages = vec![];
 
             assert_eq!(
-                display_active(&runtime, &package_manager, &packages),
+                display_active(&runtime, &package_managers, &packages),
+                expected
+            );
+        }
+
+        #[test]
+        fn runtime_and_npm_project() {
+            let expected = "⚡️ Currently active tools:
+
+    Node: v12.2.0 (current @ ~/path/to/project.json)
+    npm: v6.13.1 (current @ ~/path/to/project.json)
+    Tool binaries available: NONE
+
+See options for more detailed reports by running `volta list --help`.";
+
+            let runtime = Some(Box::new(Node {
+                source: Source::Project(PROJECT_PATH.clone()),
+                version: NODE_12.clone(),
+            }));
+            let package_managers = vec![PackageManager {
+                kind: PackageManagerKind::Npm,
+                source: Source::Project(PROJECT_PATH.clone()),
+                version: NPM_VERSION.clone(),
+            }];
+            let packages = vec![];
+
+            assert_eq!(
+                display_active(&runtime, &package_managers, &packages),
                 expected
             );
         }
@@ -468,15 +609,120 @@ See options for more detailed reports by running `volta list --help`.";
                 source: Source::Project(PROJECT_PATH.clone()),
                 version: NODE_12.clone(),
             }));
-            let package_manager = Some(Box::new(PackageManager {
+            let package_managers = vec![PackageManager {
                 kind: PackageManagerKind::Yarn,
                 source: Source::Project(PROJECT_PATH.clone()),
                 version: YARN_VERSION.clone(),
-            }));
+            }];
             let packages = vec![];
 
             assert_eq!(
-                display_active(&runtime, &package_manager, &packages),
+                display_active(&runtime, &package_managers, &packages),
+                expected
+            );
+        }
+
+        #[test]
+        fn runtime_npm_and_yarn_default() {
+            let expected = "⚡️ Currently active tools:
+
+    Node: v12.2.0 (default)
+    npm: v6.13.1 (default)
+    Yarn: v1.16.0 (default)
+    Tool binaries available: NONE
+
+See options for more detailed reports by running `volta list --help`.";
+
+            let runtime = Some(Box::new(Node {
+                source: Source::Default,
+                version: NODE_12.clone(),
+            }));
+            let package_managers = vec![
+                PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source: Source::Default,
+                    version: NPM_VERSION.clone(),
+                },
+                PackageManager {
+                    kind: PackageManagerKind::Yarn,
+                    source: Source::Default,
+                    version: YARN_VERSION.clone(),
+                },
+            ];
+            let packages = vec![];
+
+            assert_eq!(
+                display_active(&runtime, &package_managers, &packages),
+                expected
+            );
+        }
+
+        #[test]
+        fn runtime_npm_and_yarn_project() {
+            let expected = "⚡️ Currently active tools:
+
+    Node: v12.2.0 (current @ ~/path/to/project.json)
+    npm: v6.13.1 (current @ ~/path/to/project.json)
+    Yarn: v1.16.0 (current @ ~/path/to/project.json)
+    Tool binaries available: NONE
+
+See options for more detailed reports by running `volta list --help`.";
+
+            let runtime = Some(Box::new(Node {
+                source: Source::Project(PROJECT_PATH.clone()),
+                version: NODE_12.clone(),
+            }));
+            let package_managers = vec![
+                PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source: Source::Project(PROJECT_PATH.clone()),
+                    version: NPM_VERSION.clone(),
+                },
+                PackageManager {
+                    kind: PackageManagerKind::Yarn,
+                    source: Source::Project(PROJECT_PATH.clone()),
+                    version: YARN_VERSION.clone(),
+                },
+            ];
+            let packages = vec![];
+
+            assert_eq!(
+                display_active(&runtime, &package_managers, &packages),
+                expected
+            );
+        }
+
+        #[test]
+        fn runtime_npm_and_yarn_mixed() {
+            let expected = "⚡️ Currently active tools:
+
+    Node: v12.2.0 (default)
+    npm: v6.13.1 (current @ ~/path/to/project.json)
+    Yarn: v1.16.0 (default)
+    Tool binaries available: NONE
+
+See options for more detailed reports by running `volta list --help`.";
+
+            let runtime = Some(Box::new(Node {
+                source: Source::Default,
+                version: NODE_12.clone(),
+            }));
+            let package_managers = vec![
+                PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source: Source::Project(PROJECT_PATH.clone()),
+                    version: NPM_VERSION.clone(),
+                },
+                PackageManager {
+                    kind: PackageManagerKind::Yarn,
+                    source: Source::Default,
+                    version: YARN_VERSION.clone(),
+                },
+            ];
+            let packages = vec![];
+
+            assert_eq!(
+                display_active(&runtime, &package_managers, &packages),
                 expected
             );
         }
@@ -486,6 +732,7 @@ See options for more detailed reports by running `volta list --help`.";
             let expected = "⚡️ Currently active tools:
 
     Node: v12.2.0 (current @ ~/path/to/project.json)
+    npm: v6.13.1 (current @ ~/path/to/project.json)
     Yarn: v1.16.0 (current @ ~/path/to/project.json)
     Tool binaries available:
         create-react-app (default)
@@ -497,11 +744,18 @@ See options for more detailed reports by running `volta list --help`.";
                 source: Source::Project(PROJECT_PATH.clone()),
                 version: NODE_12.clone(),
             }));
-            let package_manager = Some(Box::new(PackageManager {
-                kind: PackageManagerKind::Yarn,
-                source: Source::Project(PROJECT_PATH.clone()),
-                version: YARN_VERSION.clone(),
-            }));
+            let package_managers = vec![
+                PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source: Source::Project(PROJECT_PATH.clone()),
+                    version: NPM_VERSION.clone(),
+                },
+                PackageManager {
+                    kind: PackageManagerKind::Yarn,
+                    source: Source::Project(PROJECT_PATH.clone()),
+                    version: YARN_VERSION.clone(),
+                },
+            ];
             let packages = vec![
                 Package::Default {
                     details: PackageDetails {
@@ -522,7 +776,7 @@ See options for more detailed reports by running `volta list --help`.";
             ];
 
             assert_eq!(
-                display_active(&runtime, &package_manager, &packages),
+                display_active(&runtime, &package_managers, &packages),
                 expected
             );
         }
@@ -532,6 +786,7 @@ See options for more detailed reports by running `volta list --help`.";
             let expected = "⚡️ Currently active tools:
 
     Node: v12.2.0 (current @ ~/path/to/project.json)
+    npm: v6.13.1 (current @ ~/path/to/project.json)
     Yarn: v1.16.0 (current @ ~/path/to/project.json)
     Tool binaries available:
         create-react-app (current @ ~/path/to/project.json)
@@ -543,11 +798,18 @@ See options for more detailed reports by running `volta list --help`.";
                 source: Source::Project(PROJECT_PATH.clone()),
                 version: NODE_12.clone(),
             }));
-            let package_manager = Some(Box::new(PackageManager {
-                kind: PackageManagerKind::Yarn,
-                source: Source::Project(PROJECT_PATH.clone()),
-                version: YARN_VERSION.clone(),
-            }));
+            let package_managers = vec![
+                PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source: Source::Project(PROJECT_PATH.clone()),
+                    version: NPM_VERSION.clone(),
+                },
+                PackageManager {
+                    kind: PackageManagerKind::Yarn,
+                    source: Source::Project(PROJECT_PATH.clone()),
+                    version: YARN_VERSION.clone(),
+                },
+            ];
             let packages = vec![
                 Package::Project {
                     details: PackageDetails {
@@ -569,7 +831,7 @@ See options for more detailed reports by running `volta list --help`.";
             ];
 
             assert_eq!(
-                display_active(&runtime, &package_manager, &packages),
+                display_active(&runtime, &package_managers, &packages),
                 expected
             );
         }
@@ -661,17 +923,52 @@ See options for more detailed reports by running `volta list --help`.";
         use crate::command::list::{PackageManager, PackageManagerKind, Source};
 
         #[test]
-        fn none_installed() {
+        fn none_installed_npm() {
+            let expected =
+                "⚡️ No custom npm versions installed (npm is still available bundled with Node).
+
+You can install an npm version by running `volta install npm`.
+See `volta help install` for details and more options.";
+
+            assert_eq!(
+                display_package_managers(PackageManagerKind::Npm, &[]),
+                expected
+            );
+        }
+
+        #[test]
+        fn none_installed_yarn() {
             let expected = "⚡️ No Yarn versions installed.
 
 You can install a Yarn version by running `volta install yarn`.
 See `volta help install` for details and more options.";
 
-            assert_eq!(display_package_managers(&[]), expected);
+            assert_eq!(
+                display_package_managers(PackageManagerKind::Yarn, &[]),
+                expected
+            );
         }
 
         #[test]
-        fn single_default() {
+        fn single_default_npm() {
+            let expected = "⚡️ Custom npm versions in your toolchain:
+
+    v6.13.1 (default)";
+
+            let package_managers = [PackageManager {
+                kind: PackageManagerKind::Npm,
+                source: Source::Default,
+                version: NPM_VERSION.clone(),
+            }];
+
+            assert_eq!(
+                display_package_managers(PackageManagerKind::Npm, &package_managers),
+                expected
+            );
+        }
+
+        #[test]
+        fn single_default_yarn() {
             let expected = "⚡️ Yarn versions in your toolchain:
 
     v1.16.0 (default)";
@@ -682,11 +979,32 @@ See `volta help install` for details and more options.";
                 version: YARN_VERSION.clone(),
             }];
 
-            assert_eq!(display_package_managers(&package_managers), expected);
+            assert_eq!(
+                display_package_managers(PackageManagerKind::Yarn, &package_managers),
+                expected
+            );
         }
 
         #[test]
-        fn single_project() {
+        fn single_project_npm() {
+            let expected = "⚡️ Custom npm versions in your toolchain:
+
+    v6.13.1 (current @ ~/path/to/project.json)";
+
+            let package_managers = [PackageManager {
+                kind: PackageManagerKind::Npm,
+                source: Source::Project(PROJECT_PATH.clone()),
+                version: NPM_VERSION.clone(),
+            }];
+
+            assert_eq!(
+                display_package_managers(PackageManagerKind::Npm, &package_managers),
+                expected
+            );
+        }
+
+        #[test]
+        fn single_project_yarn() {
             let expected = "⚡️ Yarn versions in your toolchain:
 
     v1.16.0 (current @ ~/path/to/project.json)";
@@ -697,33 +1015,89 @@ See `volta help install` for details and more options.";
                 version: YARN_VERSION.clone(),
             }];
 
-            assert_eq!(display_package_managers(&package_managers), expected);
+            assert_eq!(
+                display_package_managers(PackageManagerKind::Yarn, &package_managers),
+                expected
+            );
         }
 
         #[test]
-        fn single_installed() {
+        fn single_installed_npm() {
+            let expected = "⚡️ Custom npm versions in your toolchain:
+
+    v6.13.1";
+
+            let package_managers = [PackageManager {
+                kind: PackageManagerKind::Npm,
+                source: Source::None,
+                version: NPM_VERSION.clone(),
+            }];
+
+            assert_eq!(
+                display_package_managers(PackageManagerKind::Npm, &package_managers),
+                expected
+            );
+        }
+
+        #[test]
+        fn single_installed_yarn() {
             let expected = "⚡️ Yarn versions in your toolchain:
 
     v1.16.0";
 
-            let yarns = [PackageManager {
+            let package_managers = [PackageManager {
                 kind: PackageManagerKind::Yarn,
                 source: Source::None,
                 version: YARN_VERSION.clone(),
             }];
 
-            assert_eq!(display_package_managers(&yarns), expected);
+            assert_eq!(
+                display_package_managers(PackageManagerKind::Yarn, &package_managers),
+                expected
+            );
         }
 
         #[test]
-        fn multi() {
+        fn multi_npm() {
+            let expected = "⚡️ Custom npm versions in your toolchain:
+
+    v5.6.0
+    v6.13.1 (default)
+    v6.14.2 (current @ ~/path/to/project.json)";
+
+            let package_managers = [
+                PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source: Source::None,
+                    version: Version::from((5, 6, 0)),
+                },
+                PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source: Source::Default,
+                    version: NPM_VERSION.clone(),
+                },
+                PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source: Source::Project(PROJECT_PATH.clone()),
+                    version: Version::from((6, 14, 2)),
+                },
+            ];
+
+            assert_eq!(
+                display_package_managers(PackageManagerKind::Npm, &package_managers),
+                expected
+            );
+        }
+
+        #[test]
+        fn multi_yarn() {
             let expected = "⚡️ Yarn versions in your toolchain:
 
     v1.3.0
     v1.16.0 (default)
     v1.17.0 (current @ ~/path/to/project.json)";
 
-            let yarns = [
+            let package_managers = [
                 PackageManager {
                     kind: PackageManagerKind::Yarn,
                     source: Source::None,
@@ -741,7 +1115,10 @@ See `volta help install` for details and more options.";
                 },
             ];
 
-            assert_eq!(display_package_managers(&yarns), expected);
+            assert_eq!(
+                display_package_managers(PackageManagerKind::Yarn, &package_managers),
+                expected
+            );
         }
     }
 
@@ -1054,6 +1431,122 @@ See `volta help install` for details and more options.";
         }
 
         #[test]
+        fn runtime_and_npm() {
+            let expected = "⚡️ User toolchain:
+
+    Node runtimes:
+        v12.2.0 (current @ ~/path/to/project.json)
+        v11.9.0
+        v10.15.3 (default)
+
+    Package managers:
+        npm:
+            v6.13.1 (default)
+            v6.12.0 (current @ ~/path/to/project.json)
+            v5.6.0
+
+    Packages:
+";
+
+            let runtimes = [
+                Node {
+                    source: Source::Project(PROJECT_PATH.clone()),
+                    version: NODE_12.clone(),
+                },
+                Node {
+                    source: Source::None,
+                    version: NODE_11.clone(),
+                },
+                Node {
+                    source: Source::Default,
+                    version: NODE_10.clone(),
+                },
+            ];
+
+            let package_managers = [
+                PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source: Source::Default,
+                    version: NPM_VERSION.clone(),
+                },
+                PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source: Source::Project(PROJECT_PATH.clone()),
+                    version: Version::from((6, 12, 0)),
+                },
+                PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source: Source::None,
+                    version: Version::from((5, 6, 0)),
+                },
+            ];
+
+            let packages = vec![];
+            assert_eq!(
+                display_all(&runtimes, &package_managers, &packages),
+                expected
+            );
+        }
+
+        #[test]
+        fn runtime_and_yarn() {
+            let expected = "⚡️ User toolchain:
+
+    Node runtimes:
+        v12.2.0 (current @ ~/path/to/project.json)
+        v11.9.0
+        v10.15.3 (default)
+
+    Package managers:
+        Yarn:
+            v1.16.0 (default)
+            v1.17.0 (current @ ~/path/to/project.json)
+            v1.4.0
+
+    Packages:
+";
+
+            let runtimes = [
+                Node {
+                    source: Source::Project(PROJECT_PATH.clone()),
+                    version: NODE_12.clone(),
+                },
+                Node {
+                    source: Source::None,
+                    version: NODE_11.clone(),
+                },
+                Node {
+                    source: Source::Default,
+                    version: NODE_10.clone(),
+                },
+            ];
+
+            let package_managers = [
+                PackageManager {
+                    kind: PackageManagerKind::Yarn,
+                    source: Source::Default,
+                    version: YARN_VERSION.clone(),
+                },
+                PackageManager {
+                    kind: PackageManagerKind::Yarn,
+                    source: Source::Project(PROJECT_PATH.clone()),
+                    version: Version::from((1, 17, 0)),
+                },
+                PackageManager {
+                    kind: PackageManagerKind::Yarn,
+                    source: Source::None,
+                    version: Version::from((1, 4, 0)),
+                },
+            ];
+
+            let packages = vec![];
+            assert_eq!(
+                display_all(&runtimes, &package_managers, &packages),
+                expected
+            );
+        }
+
+        #[test]
         fn full() {
             let expected = "⚡️ User toolchain:
 
@@ -1063,6 +1556,10 @@ See `volta help install` for details and more options.";
         v10.15.3 (default)
 
     Package managers:
+        npm:
+            v6.13.1 (default)
+            v6.12.0 (current @ ~/path/to/project.json)
+            v5.6.0
         Yarn:
             v1.16.0 (default)
             v1.17.0 (current @ ~/path/to/project.json)
@@ -1107,6 +1604,21 @@ See `volta help install` for details and more options.";
 
             let package_managers = [
                 PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source: Source::Default,
+                    version: NPM_VERSION.clone(),
+                },
+                PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source: Source::Project(PROJECT_PATH.clone()),
+                    version: Version::from((6, 12, 0)),
+                },
+                PackageManager {
+                    kind: PackageManagerKind::Npm,
+                    source: Source::None,
+                    version: Version::from((5, 6, 0)),
+                },
+                PackageManager {
                     kind: PackageManagerKind::Yarn,
                     source: Source::Default,
                     version: YARN_VERSION.clone(),
@@ -1117,7 +1629,7 @@ See `volta help install` for details and more options.";
                     version: Version::from((1, 17, 0)),
                 },
                 PackageManager {
-                    kind: PackageManagerKind::Npm,
+                    kind: PackageManagerKind::Yarn,
                     source: Source::None,
                     version: Version::from((1, 4, 0)),
                 },
