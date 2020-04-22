@@ -6,7 +6,7 @@ on:
     branches:
       - master
 
-name: Build and Release
+name: Production
 
 jobs:
   centos:
