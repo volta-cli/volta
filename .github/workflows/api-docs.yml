@@ -3,11 +3,11 @@ on:
     branches:
       - master
 
-name: Publish API Docs
+name: API Docs
 
 jobs:
   publish:
-    name: Build and publish docs
+    name: Build and publish
     runs-on: ubuntu-latest
     steps:
       - name: Check out code

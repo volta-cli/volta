@@ -6,7 +6,7 @@ on:
     branches:
       - master
 
-name: CI Checks
+name: Test
 
 jobs:
   tests:
@@ -16,7 +16,7 @@ jobs:
           - ubuntu
           - macos
           - windows
-    name: Build and Test (${{ matrix.os }})
+    name: Acceptance Tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}-latest
     env:
       RUST_BACKTRACE: full
@@ -29,11 +29,7 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
-          components: rustfmt, clippy
-      - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
+          components: clippy
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
