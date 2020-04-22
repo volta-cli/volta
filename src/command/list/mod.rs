@@ -1,10 +1,9 @@
-// mod human;
+mod human;
 mod plain;
 mod toolchain;
 
 use std::{fmt, path::PathBuf, str::FromStr};
 
-use log::warn;
 use semver::Version;
 use structopt::StructOpt;
 
@@ -158,11 +157,10 @@ struct Node {
     pub version: Version,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum PackageManagerKind {
-    Yarn,
-    #[allow(dead_code)]
     Npm,
+    Yarn,
 }
 
 impl fmt::Display for PackageManagerKind {
@@ -238,6 +236,9 @@ enum Subcommand {
     /// Show locally cached Node versions.
     Node,
 
+    /// Show locally cached npm versions.
+    Npm,
+
     /// Show locally cached Yarn versions.
     Yarn,
 
@@ -250,6 +251,7 @@ impl From<&str> for Subcommand {
         match s {
             "all" => Subcommand::All,
             "node" => Subcommand::Node,
+            "npm" => Subcommand::Npm,
             "yarn" => Subcommand::Yarn,
             s => Subcommand::PackageOrTool { name: s.into() },
         }
@@ -274,14 +276,6 @@ impl List {
     }
 }
 
-fn human_fallback(_toolchain: &Toolchain) -> Option<String> {
-    Some(String::from(
-        "The `--format=human` printer is not yet implemented. For now, you can \
-         use `volta list --format=plain`.\n\n\
-         To track progress on this task, see https://github.com/volta-cli/volta/issues/523",
-    ))
-}
-
 impl Command for List {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::List);
@@ -289,7 +283,7 @@ impl Command for List {
         let project = session.project()?;
         let default_platform = session.default_platform()?;
         let format = match self.output_format() {
-            Format::Human => human_fallback,
+            Format::Human => human::format,
             Format::Plain => plain::format,
         };
 
@@ -305,6 +299,7 @@ impl Command for List {
             None => Toolchain::active(project, &default_platform)?,
             Some(Subcommand::All) => Toolchain::all(project, &default_platform)?,
             Some(Subcommand::Node) => Toolchain::node(project, &default_platform, &filter)?,
+            Some(Subcommand::Npm) => Toolchain::npm(project, &default_platform, &filter)?,
             Some(Subcommand::Yarn) => Toolchain::yarn(project, &default_platform, &filter)?,
             Some(Subcommand::PackageOrTool { name }) => {
                 Toolchain::package_or_tool(&name, project, &filter)?
@@ -312,11 +307,7 @@ impl Command for List {
         };
 
         if let Some(string) = format(&toolchain) {
-            // TODO: #523 -- just `println!("{}", string)` once `human` implemented
-            match self.output_format() {
-                Format::Plain => println!("{}", string),
-                Format::Human => warn!("{}", string),
-            }
+            println!("{}", string)
         };
 
         session.add_event_end(ActivityKind::List, ExitCode::Success);

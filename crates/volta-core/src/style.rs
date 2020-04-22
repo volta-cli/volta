@@ -6,7 +6,7 @@ use failure::Fail;
 use indicatif::{ProgressBar, ProgressStyle};
 use term_size;
 
-const MAX_WIDTH: usize = 100;
+pub const MAX_WIDTH: usize = 100;
 const MAX_PROGRESS_WIDTH: usize = 40;
 
 /// Generate the styled prefix for a success message

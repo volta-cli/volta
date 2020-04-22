@@ -1,4 +1,5 @@
 use crate::support::sandbox::sandbox;
+use ci_info::types::{CiInfo, Vendor};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
@@ -17,6 +18,9 @@ const NODE_VERSION_INFO: &str = r#"[
 fn no_cause_shown_if_no_verbose_flag() {
     let s = sandbox().node_available_versions(NODE_VERSION_INFO).build();
 
+    // Mock `is_ci` to false so that this works even when running in Volta's CI Test Suite
+    ci_info::mock_ci(&CiInfo::new());
+
     assert_that!(
         s.volta("install node@10"),
         execs()
@@ -28,6 +32,9 @@ fn no_cause_shown_if_no_verbose_flag() {
 #[test]
 fn cause_shown_if_verbose_flag() {
     let s = sandbox().node_available_versions(NODE_VERSION_INFO).build();
+
+    // Mock `is_ci` to false so that this correctly tests the verbose flag
+    ci_info::mock_ci(&CiInfo::new());
 
     assert_that!(
         s.volta("install node@10 --verbose"),
@@ -53,6 +60,9 @@ fn no_cause_if_no_underlying_error() {
 fn error_log_if_underlying_cause() {
     let s = sandbox().node_available_versions(NODE_VERSION_INFO).build();
 
+    // Mock `is_ci` to false so that this works even when running Volta's CI Test Suite
+    ci_info::mock_ci(&CiInfo::new());
+
     assert_that!(
         s.volta("install node@10"),
         execs()
@@ -72,6 +82,50 @@ fn no_error_log_if_no_underlying_cause() {
         s.volta("use"),
         execs()
             .with_status(ExitCode::InvalidArguments as i32)
+            .with_stderr_does_not_contain("Error details written to[..]")
+    );
+
+    // The log directory may not exist at all. If so, we know we didn't write to it
+    if let Some(mut log_dir_contents) = s.read_log_dir() {
+        assert_that!(log_dir_contents.next(), none());
+    }
+}
+
+#[test]
+fn cause_shown_in_ci() {
+    let s = sandbox()
+        .node_available_versions(NODE_VERSION_INFO)
+        .env("VOLTA_LOGLEVEL", "error")
+        .build();
+
+    // Mock a CI environment so this works even when running locally
+    let mut ci_mock = CiInfo::new();
+    ci_mock.vendor = Some(Vendor::GitHubActions);
+    ci_mock.ci = true;
+    ci_info::mock_ci(&ci_mock);
+
+    assert_that!(
+        s.volta("install node@10"),
+        execs()
+            .with_status(ExitCode::NetworkError as i32)
+            .with_stderr_contains("[..]Error cause[..]")
+    );
+}
+
+#[test]
+fn no_error_log_in_ci() {
+    let s = sandbox().node_available_versions(NODE_VERSION_INFO).build();
+
+    // Mock a CI environment so this works even when running locally
+    let mut ci_mock = CiInfo::new();
+    ci_mock.vendor = Some(Vendor::GitHubActions);
+    ci_mock.ci = true;
+    ci_info::mock_ci(&ci_mock);
+
+    assert_that!(
+        s.volta("install node@10"),
+        execs()
+            .with_status(ExitCode::NetworkError as i32)
             .with_stderr_does_not_contain("Error details written to[..]")
     );
 

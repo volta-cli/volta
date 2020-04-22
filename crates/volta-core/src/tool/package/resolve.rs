@@ -1,7 +1,6 @@
 //! Provides resolution of 3rd-party packages into specific versions, using the npm repository
 
 use std::collections::HashMap;
-use std::ffi::OsString;
 
 use crate::error::ErrorDetails;
 use crate::hook::ToolHooks;
@@ -178,12 +177,11 @@ fn npm_view_query(name: &str, version: &str, session: &mut Session) -> Fallible<
 
 // build a command to run `npm view` with json output
 fn npm_view_command_for(name: &str, version: &str, session: &mut Session) -> Fallible<ToolCommand> {
-    let args = vec![
-        OsString::from("view"),
-        OsString::from("--json"),
-        OsString::from(format!("{}@{}", name, version)),
-    ];
-    run::npm::command(args, session)
+    let mut command = run::npm::command(session)?;
+    command.arg("view");
+    command.arg("--json");
+    command.arg(format!("{}@{}", name, version));
+    Ok(command)
 }
 
 // fetch metadata for the input url

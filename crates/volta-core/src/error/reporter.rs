@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use crate::layout::volta_home;
 use crate::style::format_error_cause;
 use chrono::Local;
+use ci_info::is_ci;
 use console::strip_ansi_codes;
 use failure::Error;
 use fs_utils::ensure_containing_dir_exists;
@@ -19,17 +20,25 @@ pub fn report_error(volta_version: &str, err: &VoltaError) {
     error!("{}", message);
 
     if let Some(details) = compose_error_details(err) {
-        debug!("{}", details);
+        if is_ci() {
+            // In CI, we write the error details to the log so that they are available in the CI logs
+            // A log file may not even exist by the time the user is reviewing a failure
+            error!("{}", details);
+        } else {
+            // Outside of CI, we write the error details as Debug (Verbose) information
+            // And we write an actual error log that the user can review
+            debug!("{}", details);
 
-        // Note: Writing the error log info directly to stderr as it is a message for the user
-        // Any custom logs will have all of the details already, so showing a message about writing
-        // the error log would be redundant
-        match write_error_log(volta_version, message, details) {
-            Ok(log_file) => {
-                eprintln!("Error details written to {}", log_file.to_string_lossy());
-            }
-            Err(_) => {
-                eprintln!("Unable to write error log!");
+            // Note: Writing the error log info directly to stderr as it is a message for the user
+            // Any custom logs will have all of the details already, so showing a message about writing
+            // the error log would be redundant
+            match write_error_log(volta_version, message, details) {
+                Ok(log_file) => {
+                    eprintln!("Error details written to {}", log_file.to_string_lossy());
+                }
+                Err(_) => {
+                    eprintln!("Unable to write error log!");
+                }
             }
         }
     }
