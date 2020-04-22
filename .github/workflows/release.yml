@@ -99,16 +99,24 @@ jobs:
         with:
           command: install
           args: cargo-wix
-      - name: Compile and package Volta
+      - name: Compile and package installer
         uses: actions-rs/cargo@v1
         with:
           command: wix
           args: --nocapture --output target\wix\volta-windows.msi
-      - name: Upload release artifact
+      - name: Create zip of binaries
+        run: powershell Compress-Archive volta*.exe volta-windows.zip
+        working-directory: ./target/release
+      - name: Upload installer
         uses: actions/upload-artifact@v2-preview
         with:
-          name: windows
+          name: windows-installer
           path: target/wix/volta-windows.msi
+      - name: Upload zip
+        uses: actions/upload-artifact@v2-preview
+        with:
+          name: windows-zip
+          path: target/release/volta-windows.zip
 
   release:
     name: Publish release
@@ -147,10 +155,15 @@ jobs:
         with:
           name: macos
           path: release
-      - name: Fetch Windows artifact
+      - name: Fetch Windows installer
         uses: actions/download-artifact@v1
         with:
-          name: windows
+          name: windows-installer
+          path: release
+      - name: Fetch Windows zip
+        uses: actions/download-artifact@v1
+        with:
+          name: windows-zip
           path: release
       - name: Show release artifacts
         run: ls -la release
@@ -200,7 +213,7 @@ jobs:
           asset_path: ./release/volta-macos.tar.gz
           asset_name: volta-${{ steps.release_info.outputs.version }}-macos.tar.gz
           asset_content_type: applictaion/gzip
-      - name: Upload Windows artifact
+      - name: Upload Windows installer
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -209,6 +222,15 @@ jobs:
           asset_path: ./release/volta-windows.msi
           asset_name: volta-${{ steps.release_info.outputs.version }}-windows-x86_64.msi
           asset_content_type: applictaion/x-msi
+      - name: Upload Windows zip
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/volta-windows.zip
+          asset_name: volta-${{ steps.release_info.outputs.version }}-windows.zip
+          asset_content_type: application/zip
       - name: Upload manifest file
         uses: actions/upload-release-asset@v1
         env:
