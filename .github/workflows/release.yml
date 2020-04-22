@@ -2,6 +2,9 @@ on:
   push:
     tags:
       - v*
+  pull_request:
+    branches:
+      - master
 
 name: Build and Release
 
@@ -115,6 +118,7 @@ jobs:
       - linux
       - macos
       - windows
+    if: github.event_name == 'push' && startsWith(github.ref, 'v')
     steps:
       - name: Check out code
         uses: actions/checkout@v2
