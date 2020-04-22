@@ -8,6 +8,7 @@ use crate::layout::volta_home;
 use crate::style::format_error_cause;
 use chrono::Local;
 use ci_info::is_ci;
+use console::strip_ansi_codes;
 use failure::Error;
 use fs_utils::ensure_containing_dir_exists;
 use log::{debug, error};
@@ -60,9 +61,9 @@ fn write_error_log(
     writeln!(log_file, "{}", collect_arguments())?;
     writeln!(log_file, "Volta v{}", volta_version)?;
     writeln!(log_file)?;
-    writeln!(log_file, "{}", message)?;
+    writeln!(log_file, "{}", strip_ansi_codes(&message))?;
     writeln!(log_file)?;
-    writeln!(log_file, "{}", details)?;
+    writeln!(log_file, "{}", strip_ansi_codes(&details))?;
 
     Ok(log_file_path)
 }
