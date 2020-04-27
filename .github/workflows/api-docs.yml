@@ -1,0 +1,41 @@
+on:
+  push:
+    branches:
+      - master
+
+name: API Docs
+
+jobs:
+  publish:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+      - name: Set up cargo
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+      - name: Build docs
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+          args: --all --features cross-platform-docs --no-deps --document-private-items
+      - name: Prepare docs for publication
+        run: |
+          mkdir -p publish
+          mv target/doc publish/master
+          echo '<!doctype html><a href="volta">volta</a>' > publish/master/index.html
+          echo '<!doctype html><a href="master">master</a>' > publish/index.html
+      - name: Publish docs to GitHub pages
+        uses: JamesIves/github-pages-deploy-action@releases/v3
+        with:
+          COMMIT_MESSAGE: Publishing GitHub Pages
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages
+          FOLDER: publish
+          SINGLE_COMMIT: true

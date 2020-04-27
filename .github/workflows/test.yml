@@ -1,0 +1,96 @@
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+name: Test
+
+jobs:
+  tests:
+    strategy:
+      matrix:
+        os:
+          - ubuntu
+          - macos
+          - windows
+    name: Acceptance Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}-latest
+    env:
+      RUST_BACKTRACE: full
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Set up cargo
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: clippy
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all --features mock-network
+      - name: Lint with clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+      - name: Lint tests with clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --tests --features mock-network
+
+  smoke-tests:
+    name: Smoke Tests
+    runs-on: macos-latest
+    env:
+      RUST_BACKTRACE: full
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Set up cargo
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --test smoke --features smoke-tests
+
+  shell-tests:
+    name: Shell Script Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup BATS
+        run: sudo npm install -g bats
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Run tests
+        run: bats dev/unix/tests/
+
+  check-formatting:
+    name: Check code formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Set up cargo
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: rustfmt
+      - name: Run check
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all --quiet -- --check
