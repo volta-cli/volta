@@ -25,7 +25,7 @@ jobs:
           objdump -p target/release/volta
           readelf -d target/release/volta
       - name: Upload release artifact
-        uses: actions/upload-artifact@v2-preview
+        uses: actions/upload-artifact@v2
         with:
           name: linux-centos
           path: target/release/volta-centos.tar.gz
@@ -57,7 +57,7 @@ jobs:
           objdump -p target/release/volta
           readelf -d target/release/volta
       - name: Upload release artifact
-        uses: actions/upload-artifact@v2-preview
+        uses: actions/upload-artifact@v2
         with:
           name: linux-openssl-${{ matrix.openssl }}
           path: target/release/volta-openssl-${{ matrix.openssl }}.tar.gz
@@ -77,7 +77,7 @@ jobs:
       - name: Compile and package Volta
         run: ./ci/build-and-package.sh volta-macos
       - name: Upload release artifact
-        uses: actions/upload-artifact@v2-preview
+        uses: actions/upload-artifact@v2
         with:
           name: macos
           path: target/release/volta-macos.tar.gz
@@ -108,12 +108,12 @@ jobs:
         run: powershell Compress-Archive volta*.exe volta-windows.zip
         working-directory: ./target/release
       - name: Upload installer
-        uses: actions/upload-artifact@v2-preview
+        uses: actions/upload-artifact@v2
         with:
           name: windows-installer
           path: target/wix/volta-windows.msi
       - name: Upload zip
-        uses: actions/upload-artifact@v2-preview
+        uses: actions/upload-artifact@v2
         with:
           name: windows-zip
           path: target/release/volta-windows.zip
@@ -136,32 +136,32 @@ jobs:
           TAG: ${{ github.ref }}
         run: echo "::set-output name=version::${TAG:1}"
       - name: Fetch CentOS artifact
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v2
         with:
           name: linux-centos
           path: release
       - name: Fetch OpenSSL 1.0.* artifact
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v2
         with:
           name: linux-openssl-1_0_1
           path: release
       - name: Fetch OpenSSL 1.1.* artifact
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v2
         with:
           name: linux-openssl-1_1_0
           path: release
       - name: Fetch MacOS artifact
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v2
         with:
           name: macos
           path: release
       - name: Fetch Windows installer
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v2
         with:
           name: windows-installer
           path: release
       - name: Fetch Windows zip
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v2
         with:
           name: windows-zip
           path: release
