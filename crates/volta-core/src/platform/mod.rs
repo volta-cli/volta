@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use crate::error::ErrorDetails;
 use crate::session::Session;
-use crate::tool::{load_default_npm_version, Node, Yarn};
+use crate::tool::{Node, Yarn};
 use semver::Version;
 use volta_fail::Fallible;
 
@@ -90,6 +90,18 @@ where
     }
 }
 
+impl<T> Clone for Sourced<T>
+where
+    T: Clone,
+{
+    fn clone(&self) -> Sourced<T> {
+        Sourced {
+            value: self.value.clone(),
+            source: self.source,
+        }
+    }
+}
+
 pub trait PlatformSpec {
     fn node(&self) -> Sourced<&Version>;
     fn npm(&self) -> Option<Sourced<&Version>>;
@@ -97,6 +109,7 @@ pub trait PlatformSpec {
 
     fn checkout(&self, session: &mut Session) -> Fallible<Image> {
         let node = self.node();
+        let npm = self.npm();
         let yarn = self.yarn();
         Node::new(node.value.clone()).ensure_fetched(session)?;
 
@@ -104,18 +117,10 @@ pub trait PlatformSpec {
             Yarn::new(version.clone()).ensure_fetched(session)?;
         }
 
-        let npm = match self.npm() {
-            Some(n) => n.cloned(),
-            None => Sourced {
-                value: load_default_npm_version(&node.value)?,
-                source: node.source,
-            },
-        };
-
         Ok(Image {
             node: node.cloned(),
-            npm,
-            yarn: yarn.map(|y| y.cloned()),
+            npm: npm.map(Sourced::cloned),
+            yarn: yarn.map(Sourced::cloned),
         })
     }
 }
