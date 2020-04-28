@@ -106,14 +106,8 @@ fn tagged_v1_volta_home_is_upgraded() {
         )
         .build();
 
-    // directories that are already created by the test framework
-    assert!(Sandbox::path_exists(".volta"));
+    // We are already tagged as a v1 layout
     assert!(Sandbox::path_exists(".volta/layout.v1"));
-    assert!(Sandbox::path_exists(".volta/cache/node"));
-    assert!(Sandbox::path_exists(".volta/tmp"));
-    assert!(Sandbox::path_exists(".volta/tools/inventory/node"));
-    assert!(Sandbox::path_exists(".volta/tools/inventory/packages"));
-    assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
 
     // Node image directory exists
     assert!(Sandbox::path_exists(
@@ -137,7 +131,7 @@ fn tagged_v1_volta_home_is_upgraded() {
         ".volta/tools/image/node/10.6.0/README.md"
     ));
 
-    // Other directories should be the same as before running the command
+    // Directory structure should exist
     assert!(Sandbox::path_exists(".volta"));
     assert!(Sandbox::path_exists(".volta/cache/node"));
     assert!(Sandbox::path_exists(".volta/tmp"));
