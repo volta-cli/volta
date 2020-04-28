@@ -4,7 +4,6 @@ use cfg_if::cfg_if;
 use console::{style, StyledObject};
 use failure::Fail;
 use indicatif::{ProgressBar, ProgressStyle};
-use term_size;
 
 pub const MAX_WIDTH: usize = 100;
 const MAX_PROGRESS_WIDTH: usize = 40;

@@ -1,4 +1,3 @@
-use reqwest;
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::hyper_011::header::Header;
 

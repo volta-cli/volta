@@ -3,7 +3,6 @@ use crate::platform::PlatformSpec;
 use crate::version::{option_version_serde, version_serde};
 use semver::Version;
 use serde::{Deserialize, Serialize};
-use serde_json;
 use volta_fail::{Fallible, ResultExt};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]

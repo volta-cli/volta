@@ -10,10 +10,8 @@ use flate2::read::GzDecoder;
 use fs_utils::ensure_containing_dir_exists;
 use headers_011::Headers011;
 use progress_read::ProgressRead;
-use reqwest;
 use reqwest::hyper_011::header::{AcceptRanges, ByteRangeSpec, ContentLength, Range, RangeUnit};
 use reqwest::Response;
-use tar;
 use tee::TeeReader;
 
 use super::Archive;

@@ -7,9 +7,7 @@ use std::path::{Path, PathBuf};
 
 use crate::error::ErrorDetails;
 use crate::platform::PlatformSpec;
-use detect_indent;
 use serde::Serialize;
-use serde_json;
 use volta_fail::{Fallible, ResultExt};
 
 pub(crate) mod serial;

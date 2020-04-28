@@ -9,7 +9,6 @@ use super::super::{manifest, platform};
 use crate::version::parse_version;
 use log::warn;
 use semver::Version;
-use serde;
 use serde::de::{Deserialize, Deserializer, Error, MapAccess, Visitor};
 use serde_json::value::Value;
 use volta_fail::Fallible;
@@ -270,7 +269,6 @@ where
 pub mod tests {
 
     use super::{BinMap, Engines, Manifest, RawBinManifest};
-    use serde_json;
     use std::collections::HashMap;
 
     #[test]

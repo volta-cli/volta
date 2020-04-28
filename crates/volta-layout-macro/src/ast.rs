@@ -1,7 +1,6 @@
 use crate::ir::{Entry, Ir};
 use proc_macro2::TokenStream;
 use std::collections::HashMap;
-use syn;
 use syn::parse::{self, Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::{braced, Attribute, Ident, LitStr, Token, Visibility};

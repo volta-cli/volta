@@ -6,11 +6,8 @@ use std::io::copy;
 use std::path::Path;
 
 use progress_read::ProgressRead;
-use reqwest;
 use verbatim::PathExt;
 use zip_rs::ZipArchive;
-
-use failure;
 
 use super::Archive;
 use super::Origin;

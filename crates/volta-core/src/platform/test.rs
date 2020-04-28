@@ -3,7 +3,6 @@ use crate::layout::volta_home;
 #[cfg(windows)]
 use crate::layout::volta_install;
 use semver::Version;
-use std;
 #[cfg(windows)]
 use std::path::PathBuf;
 
