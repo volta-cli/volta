@@ -157,7 +157,7 @@ impl Platform {
     pub fn current(session: &mut Session) -> Fallible<Option<Self>> {
         match session.project_platform()? {
             Some(platform) => {
-                if platform.yarn.is_none() {
+                if platform.yarn.is_none() || platform.npm.is_none() {
                     if let Some(default) = session.default_platform()? {
                         let npm = platform
                             .npm
