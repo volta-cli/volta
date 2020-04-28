@@ -2,6 +2,7 @@ use std::ffi::OsStr;
 
 use super::{debug_tool_message, ToolCommand};
 use crate::error::ErrorDetails;
+use crate::platform::Platform;
 use crate::session::{ActivityKind, Session};
 
 use log::debug;
@@ -10,9 +11,9 @@ use volta_fail::Fallible;
 pub(crate) fn command(session: &mut Session) -> Fallible<ToolCommand> {
     session.add_event_start(ActivityKind::Node);
 
-    match session.current_platform()? {
+    match Platform::current(session)? {
         Some(platform) => {
-            debug_tool_message("node", &platform.node());
+            debug_tool_message("node", &platform.node);
 
             let image = platform.checkout(session)?;
             let path = image.path()?;

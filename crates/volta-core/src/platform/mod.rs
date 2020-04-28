@@ -1,6 +1,5 @@
 use std::env::JoinPathsError;
 use std::fmt;
-use std::rc::Rc;
 
 use crate::error::ErrorDetails;
 use crate::session::Session;
@@ -102,118 +101,106 @@ where
     }
 }
 
-pub trait PlatformSpec {
-    fn node(&self) -> Sourced<&Version>;
-    fn npm(&self) -> Option<Sourced<&Version>>;
-    fn yarn(&self) -> Option<Sourced<&Version>>;
+#[derive(Clone, PartialOrd, Ord, PartialEq, Eq)]
+/// Represents the specification of a single Platform, regardless of the source
+pub struct PlatformSpec {
+    pub node: Version,
+    pub npm: Option<Version>,
+    pub yarn: Option<Version>,
+}
 
-    fn checkout(&self, session: &mut Session) -> Fallible<Image> {
-        let node = self.node();
-        let npm = self.npm();
-        let yarn = self.yarn();
-        Node::new(node.value.clone()).ensure_fetched(session)?;
+impl PlatformSpec {
+    /// Convert this PlatformSpec into a Platform with all sources set to `Default`
+    pub fn as_default(&self) -> Platform {
+        Platform {
+            node: Sourced::with_default(self.node.clone()),
+            npm: self.npm.clone().map(Sourced::with_default),
+            yarn: self.yarn.clone().map(Sourced::with_default),
+        }
+    }
 
-        if let Some(Sourced { value: version, .. }) = yarn {
+    /// Convert this PlatformSpec into a Platform with all sources set to `Project`
+    pub fn as_project(&self) -> Platform {
+        Platform {
+            node: Sourced::with_project(self.node.clone()),
+            npm: self.npm.clone().map(Sourced::with_project),
+            yarn: self.yarn.clone().map(Sourced::with_project),
+        }
+    }
+
+    /// Convert this PlatformSpec into a Platform with all sources set to `Binary`
+    pub fn as_binary(&self) -> Platform {
+        Platform {
+            node: Sourced::with_binary(self.node.clone()),
+            npm: self.npm.clone().map(Sourced::with_binary),
+            yarn: self.yarn.clone().map(Sourced::with_binary),
+        }
+    }
+}
+
+/// Represents a real Platform, with Versions pulled from one or more `PlatformSpec`s
+pub struct Platform {
+    pub node: Sourced<Version>,
+    pub npm: Option<Sourced<Version>>,
+    pub yarn: Option<Sourced<Version>>,
+}
+
+impl Platform {
+    /// Returns the user's currently active platform, if any
+    ///
+    /// Active platform is determined by first looking at the Project Platform
+    ///
+    /// - If it exists and has a Yarn version, then we use the project platform
+    /// - If it exists but doesn't have a Yarn version, then we merge the two,
+    ///   pulling Yarn from the user default platform, if available
+    /// - If there is no Project platform, then we use the user Default Platform
+    pub fn current(session: &mut Session) -> Fallible<Option<Self>> {
+        match session.project_platform()? {
+            Some(platform) => {
+                if platform.yarn.is_none() {
+                    if let Some(default) = session.default_platform()? {
+                        let npm = platform
+                            .npm
+                            .clone()
+                            .map(Sourced::with_project)
+                            .or_else(|| default.npm.clone().map(Sourced::with_default));
+                        let yarn = platform
+                            .yarn
+                            .clone()
+                            .map(Sourced::with_project)
+                            .or_else(|| default.yarn.clone().map(Sourced::with_default));
+
+                        return Ok(Some(Platform {
+                            node: Sourced::with_project(platform.node.clone()),
+                            npm,
+                            yarn,
+                        }));
+                    }
+                }
+                Ok(Some(platform.as_project()))
+            }
+            None => match session.default_platform()? {
+                Some(platform) => Ok(Some(platform.as_default())),
+                None => Ok(None),
+            },
+        }
+    }
+
+    /// Check out a `Platform` into a fully-realized `Image`
+    ///
+    /// This will ensure that all necessary tools are fetched and available for execution
+    pub fn checkout(self, session: &mut Session) -> Fallible<Image> {
+        Node::new(self.node.value.clone()).ensure_fetched(session)?;
+
+        if let Some(Sourced { value: version, .. }) = &self.yarn {
             Yarn::new(version.clone()).ensure_fetched(session)?;
         }
 
         Ok(Image {
-            node: node.cloned(),
-            npm: npm.map(Sourced::cloned),
-            yarn: yarn.map(Sourced::cloned),
+            node: self.node,
+            npm: self.npm,
+            yarn: self.yarn,
         })
-    }
-}
-
-pub struct DefaultPlatformSpec {
-    pub node: Version,
-    pub npm: Option<Version>,
-    pub yarn: Option<Version>,
-}
-
-impl PlatformSpec for DefaultPlatformSpec {
-    fn node(&self) -> Sourced<&Version> {
-        Sourced::with_default(&self.node)
-    }
-
-    fn npm(&self) -> Option<Sourced<&Version>> {
-        self.npm.as_ref().map(Sourced::with_default)
-    }
-
-    fn yarn(&self) -> Option<Sourced<&Version>> {
-        self.yarn.as_ref().map(Sourced::with_default)
-    }
-}
-
-pub struct ProjectPlatformSpec {
-    pub node: Version,
-    pub npm: Option<Version>,
-    pub yarn: Option<Version>,
-}
-
-impl ProjectPlatformSpec {
-    pub fn merge(
-        self: Rc<ProjectPlatformSpec>,
-        default: Rc<DefaultPlatformSpec>,
-    ) -> Rc<MergedPlatformSpec> {
-        Rc::new(MergedPlatformSpec {
-            project: self,
-            default,
-        })
-    }
-}
-
-impl PlatformSpec for ProjectPlatformSpec {
-    fn node(&self) -> Sourced<&Version> {
-        Sourced::with_project(&self.node)
-    }
-
-    fn npm(&self) -> Option<Sourced<&Version>> {
-        self.npm.as_ref().map(Sourced::with_project)
-    }
-
-    fn yarn(&self) -> Option<Sourced<&Version>> {
-        self.yarn.as_ref().map(Sourced::with_project)
-    }
-}
-
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct BinaryPlatformSpec {
-    pub node: Version,
-    pub npm: Option<Version>,
-    pub yarn: Option<Version>,
-}
-
-impl PlatformSpec for BinaryPlatformSpec {
-    fn node(&self) -> Sourced<&Version> {
-        Sourced::with_binary(&self.node)
-    }
-
-    fn npm(&self) -> Option<Sourced<&Version>> {
-        self.npm.as_ref().map(Sourced::with_binary)
-    }
-
-    fn yarn(&self) -> Option<Sourced<&Version>> {
-        self.yarn.as_ref().map(Sourced::with_binary)
-    }
-}
-
-pub struct MergedPlatformSpec {
-    project: Rc<ProjectPlatformSpec>,
-    default: Rc<DefaultPlatformSpec>,
-}
-
-impl PlatformSpec for MergedPlatformSpec {
-    fn node(&self) -> Sourced<&Version> {
-        self.project.node()
-    }
-
-    fn npm(&self) -> Option<Sourced<&Version>> {
-        self.project.npm().or_else(|| self.default.npm())
-    }
-
-    fn yarn(&self) -> Option<Sourced<&Version>> {
-        self.project.yarn().or_else(|| self.default.yarn())
     }
 }
 

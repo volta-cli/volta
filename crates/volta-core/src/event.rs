@@ -1,7 +1,5 @@
 //! Events for the sessions in executables and shims and everything
 
-use os_info;
-
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 

@@ -2,7 +2,6 @@ use std::io::Write;
 use std::process::{Child, Stdio};
 
 use log::error;
-use serde_json;
 
 use crate::command::create_command;
 use crate::event::Event;

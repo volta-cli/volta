@@ -4,13 +4,10 @@ use std::collections::{HashMap, HashSet};
 use std::fs::{read_to_string, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
 
 use crate::error::ErrorDetails;
-use crate::platform::ProjectPlatformSpec;
-use detect_indent;
+use crate::platform::PlatformSpec;
 use serde::Serialize;
-use serde_json;
 use volta_fail::{Fallible, ResultExt};
 
 pub(crate) mod serial;
@@ -18,7 +15,7 @@ pub(crate) mod serial;
 /// A Node manifest file.
 pub struct Manifest {
     /// The platform image specified by the `volta` section.
-    pub platform: Option<Rc<ProjectPlatformSpec>>,
+    pub platform: Option<PlatformSpec>,
     /// The `dependencies` section.
     pub dependencies: HashMap<String, String>,
     /// The `devDependencies` section.
@@ -42,8 +39,8 @@ impl Manifest {
     }
 
     /// Returns a reference to the platform image specified by manifest, if any.
-    pub fn platform(&self) -> Option<Rc<ProjectPlatformSpec>> {
-        self.platform.as_ref().cloned()
+    pub fn platform(&self) -> Option<&PlatformSpec> {
+        self.platform.as_ref()
     }
 
     /// Gets the names of all the direct dependencies in the manifest.
@@ -56,8 +53,8 @@ impl Manifest {
     }
 
     /// Updates the pinned platform information
-    pub fn update_platform(&mut self, platform: ProjectPlatformSpec) {
-        self.platform = Some(Rc::new(platform));
+    pub fn update_platform(&mut self, platform: PlatformSpec) {
+        self.platform = Some(platform);
     }
 
     /// Updates the `volta` key in the specified `package.json` to match the current Manifest
@@ -81,7 +78,7 @@ impl Manifest {
 
             // update the "volta" key
             if let Some(platform) = self.platform() {
-                let volta_value = serde_json::to_value(serial::ToolchainSpec::from(platform))
+                let volta_value = serde_json::to_value(serial::ToolchainSpec::of(platform))
                     .with_context(|_| ErrorDetails::StringifyToolchainError)?;
                 map.insert("volta".to_string(), volta_value);
             } else {

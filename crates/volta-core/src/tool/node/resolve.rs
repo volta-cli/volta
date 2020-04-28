@@ -20,7 +20,6 @@ use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
 use headers_011::Headers011;
 use log::debug;
-use reqwest;
 use reqwest::hyper_011::header::{CacheControl, CacheDirective, Expires, HttpDate};
 use semver::{Version, VersionReq};
 use volta_fail::{Fallible, ResultExt};

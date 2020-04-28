@@ -5,7 +5,6 @@ use std::collections::HashMap;
 use std::env;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
 use std::str::FromStr;
 
 use lazycell::LazyCell;
@@ -14,7 +13,7 @@ use semver::Version;
 use crate::error::ErrorDetails;
 use crate::layout::volta_home;
 use crate::manifest::Manifest;
-use crate::platform::ProjectPlatformSpec;
+use crate::platform::PlatformSpec;
 use crate::tool::BinConfig;
 use log::debug;
 use volta_fail::{Fallible, ResultExt};
@@ -103,7 +102,7 @@ impl Project {
     }
 
     /// Returns the pinned platform image, if any.
-    pub fn platform(&self) -> Option<Rc<ProjectPlatformSpec>> {
+    pub fn platform(&self) -> Option<&PlatformSpec> {
         self.manifest.platform()
     }
 
@@ -180,7 +179,7 @@ impl Project {
 
     /// Writes the specified version of Node to the `volta.node` key in package.json.
     pub fn pin_node(&mut self, version: &Version) -> Fallible<()> {
-        let updated_platform = ProjectPlatformSpec {
+        let updated_platform = PlatformSpec {
             node: version.clone(),
             npm: self.manifest.platform().and_then(|p| p.npm.clone()),
             yarn: self.manifest.platform().and_then(|p| p.yarn.clone()),
@@ -193,7 +192,7 @@ impl Project {
     /// Writes the specified version of Yarn to the `volta.yarn` key in package.json.
     pub fn pin_yarn(&mut self, yarn: Option<Version>) -> Fallible<()> {
         if let Some(platform) = self.manifest.platform() {
-            let updated_platform = ProjectPlatformSpec {
+            let updated_platform = PlatformSpec {
                 node: platform.node.clone(),
                 npm: platform.npm.clone(),
                 yarn,
@@ -209,7 +208,7 @@ impl Project {
     /// Writes the specified version of Npm to the `volta.npm` key in package.json.
     pub fn pin_npm(&mut self, npm: Option<Version>) -> Fallible<()> {
         if let Some(platform) = self.manifest.platform() {
-            let updated_platform = ProjectPlatformSpec {
+            let updated_platform = PlatformSpec {
                 node: platform.node.clone(),
                 npm,
                 yarn: platform.yarn.clone(),
