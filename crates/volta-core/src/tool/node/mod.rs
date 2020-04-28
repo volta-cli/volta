@@ -135,7 +135,7 @@ impl Tool for Node {
         default_toolchain.set_active_node(&self.version)?;
 
         // If the user has a default version of `npm`, we shouldn't show the "(with npm@X.Y.ZZZ)" text in the success message
-        // Instead we should chec kfi the bundled version is higher than the default and inform the user
+        // Instead we should check if the bundled version is higher than the default and inform the user
         // Note: The previous line ensures that there will be a default platform
         if let Some(default_npm) = &default_toolchain.platform().unwrap().npm {
             info_installed(self); // success: installed and set node@version as default
