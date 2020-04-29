@@ -207,7 +207,7 @@ pub enum ErrorDetails {
     /// Thrown when a user tries to install or fetch a package with no executables.
     NoPackageExecutables,
 
-    /// Thrown when a user tries to pin a Yarn version before pinning a Node version.
+    /// Thrown when a user tries to pin a Yarn or npm version before pinning a Node version.
     NoPinnedNodeVersion {
         tool: String,
     },
@@ -252,7 +252,7 @@ pub enum ErrorDetails {
         package: String,
     },
 
-    /// Thrown when there is an parsing the metadata from `npm view`
+    /// Thrown when there is an error parsing the metadata from `npm view`
     NpmViewMetadataParseError {
         package: String,
     },

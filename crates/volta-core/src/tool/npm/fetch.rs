@@ -186,7 +186,7 @@ node "$basedir/{}-cli.js" "$@"
             tool
         ),
     )
-    .and_then(|()| set_executable(&path))
+    .and_then(|_| set_executable(&path))
     .with_context(|_| ErrorDetails::WriteLauncherError { tool: tool.into() })
 }
 

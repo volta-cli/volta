@@ -138,7 +138,7 @@ impl Tool for Node {
         // Instead we should check if the bundled version is higher than the default and inform the user
         // Note: The previous line ensures that there will be a default platform
         if let Some(default_npm) = &default_toolchain.platform().unwrap().npm {
-            info_installed(self); // success: installed and set node@version as default
+            info_installed(self); // includes node version
 
             if node_version.npm > *default_npm {
                 info!("{} this version of Node includes {}, which is higher than your default version ({}).
@@ -149,7 +149,7 @@ impl Tool for Node {
                 );
             }
         } else {
-            info_installed(node_version); // success: installed and set node@version (with npm@version) as default
+            info_installed(node_version); // includes node and npm version
         }
 
         if let Ok(Some(project)) = session.project_platform() {
@@ -170,7 +170,7 @@ impl Tool for Node {
             // Instead we should check if the bundled version is higher than the pinned and inform the user
             // Note: The pin operation guarantees there will be a platform
             if let Some(pinned_npm) = &project.platform().unwrap().npm {
-                info_pinned(self); // success: pinned node@version in package.json
+                info_pinned(self); // includes node version
 
                 if node_version.npm > *pinned_npm {
                     info!("{} this version of Node includes {}, which is higher than your pinned version ({}).
@@ -181,7 +181,7 @@ impl Tool for Node {
                     );
                 }
             } else {
-                info_pinned(node_version); // success: pinned node@version (with npm@version) in package.json
+                info_pinned(node_version); // includes node and npm version
             }
 
             Ok(())
