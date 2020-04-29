@@ -153,6 +153,7 @@ fn install_node_with_npm_hides_bundled_version() {
 fn install_npm_bundled_clears_npm() {
     let s = sandbox()
         .platform(&platform_with_node_npm("8.9.10", "6.2.26"))
+        .node_npm_version_file("8.9.10", "5.6.7")
         .build();
 
     assert_that!(
@@ -170,6 +171,7 @@ fn install_npm_bundled_clears_npm() {
 fn install_npm_bundled_reports_info() {
     let s = sandbox()
         .platform(&platform_with_node_npm("8.9.10", "6.2.26"))
+        .node_npm_version_file("8.9.10", "5.6.7")
         .env("VOLTA_LOGLEVEL", "info")
         .build();
 
@@ -177,6 +179,6 @@ fn install_npm_bundled_reports_info() {
         s.volta("install npm@bundled"),
         execs()
             .with_status(ExitCode::Success as i32)
-            .with_stdout_contains("[..]set bundled npm[..]")
+            .with_stdout_contains("[..]set bundled npm (currently 5.6.7)[..]")
     );
 }

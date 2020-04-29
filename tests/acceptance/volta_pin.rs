@@ -575,6 +575,7 @@ fn pin_npm_missing_release() {
 fn pin_npm_bundled_removes_npm() {
     let s = sandbox()
         .package_json(&package_json_with_pinned_node_npm("1.2.3", "4.5.6"))
+        .node_npm_version_file("1.2.3", "3.2.1")
         .build();
 
     assert_that!(
@@ -592,6 +593,7 @@ fn pin_npm_bundled_removes_npm() {
 fn pin_npm_bundled_reports_info() {
     let s = sandbox()
         .package_json(&package_json_with_pinned_node_npm("1.2.3", "4.5.6"))
+        .node_npm_version_file("1.2.3", "3.2.1")
         .env("VOLTA_LOGLEVEL", "info")
         .build();
 
@@ -599,7 +601,7 @@ fn pin_npm_bundled_reports_info() {
         s.volta("pin npm@bundled"),
         execs()
             .with_status(ExitCode::Success as i32)
-            .with_stdout_contains("[..]set package.json to use bundled npm[..]")
+            .with_stdout_contains("[..]set package.json to use bundled npm (currently 3.2.1)[..]")
     );
 }
 
