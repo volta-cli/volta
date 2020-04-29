@@ -3,7 +3,6 @@ use crate::support::temp_project::temp_project;
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
-use volta_fail::ExitCode;
 
 // Note: Node 12.15.0 is bundled with npm 6.13.4
 const PACKAGE_JSON: &str = r#"{
@@ -31,7 +30,7 @@ fn run_npm() {
 
     assert_that!(
         p.volta("run --node 12.14.1 --npm 6.14.4 npm --version"),
-        execs().with_status(0).with_stdout_contains("6.14.4"),
+        execs().with_status(0).with_stdout_contains("6.14.4")
     )
 }
 
