@@ -14,6 +14,7 @@ cfg_if! {
         mod volta_bypass;
         mod volta_install;
         mod volta_pin;
+        mod volta_run;
         mod volta_uninstall;
     }
 }

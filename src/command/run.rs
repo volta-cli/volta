@@ -8,7 +8,7 @@ use volta_core::error::report_error;
 use volta_core::platform::{CliPlatform, InheritOption};
 use volta_core::run::execute_tool;
 use volta_core::session::{ActivityKind, Session};
-use volta_core::tool::{node, yarn};
+use volta_core::tool::{node, npm, yarn};
 use volta_fail::{ExitCode, Fallible};
 
 #[derive(Debug, StructOpt)]
@@ -16,6 +16,14 @@ pub(crate) struct Run {
     /// Set the custom Node version
     #[structopt(long = "node", value_name = "version")]
     node: Option<String>,
+
+    /// Set the custom npm version
+    #[structopt(long = "npm", value_name = "version", conflicts_with = "no_npm")]
+    npm: Option<String>,
+
+    /// Forces npm to be the version bundled with Node
+    #[structopt(long = "bundled-npm", conflicts_with = "npm")]
+    bundled_npm: bool,
 
     /// Set the custom Yarn version
     #[structopt(long = "yarn", value_name = "version", conflicts_with = "no_yarn")]
@@ -42,10 +50,10 @@ impl Command for Run {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Run);
 
-        let envs = parse_envs(self.envs);
-        let platform = parse_platform(self.node, self.yarn, self.no_yarn, session)?;
+        let envs = self.parse_envs();
+        let platform = self.parse_platform(session)?;
 
-        match execute_tool(&self.command, self.args, envs, platform, session).into_result() {
+        match execute_tool(&self.command, &self.args, envs, platform, session).into_result() {
             Ok(()) => {
                 session.add_event_end(ActivityKind::Run, ExitCode::Success);
                 Ok(ExitCode::Success)
@@ -64,48 +72,54 @@ impl Command for Run {
     }
 }
 
-/// Convert the environment variable settings passed to the command line into (Key, Value) pairs
-///
-/// We ignore any setting that doesn't have a value associated with it
-/// We also ignore the PATH environment variable as that is set when running a command
-fn parse_envs(cli_values: Vec<String>) -> impl IntoIterator<Item = (String, String)> {
-    cli_values.into_iter().filter_map(|entry| {
-        let mut key_value = entry.splitn(2, '=');
+impl Run {
+    /// Builds a CliPlatform from the provided cli options
+    ///
+    /// Will resolve a semver / tag version if necessary
+    fn parse_platform(&self, session: &mut Session) -> Fallible<CliPlatform> {
+        let node = self
+            .node
+            .as_ref()
+            .map(|version| node::resolve(version.parse()?, session))
+            .transpose()?;
 
-        match (key_value.next(), key_value.next()) {
-            (None, _) => None,
-            (Some(_), None) => None,
-            (Some(key), _) if key.eq_ignore_ascii_case("PATH") => {
-                debug!("Skipping PATH environment variable as it will be overwritten to execute the command");
-                None
+        let npm = match (self.bundled_npm, &self.npm) {
+            (true, _) => InheritOption::None,
+            (false, None) => InheritOption::Inherit,
+            (false, Some(version)) => match npm::resolve(version.parse()?, session)? {
+                None => InheritOption::Inherit,
+                Some(npm) => InheritOption::Some(npm),
+            },
+        };
+
+        let yarn = match (self.no_yarn, &self.yarn) {
+            (true, _) => InheritOption::None,
+            (false, None) => InheritOption::Inherit,
+            (false, Some(version)) => {
+                InheritOption::Some(yarn::resolve(version.parse()?, session)?)
             }
-            (Some(key), Some(value)) => Some((key.into(), value.into())),
-        }
-    })
-}
+        };
 
-/// Builds a CliPlatform from the provided cli options
-///
-/// Will resolve a semver / tag version if necessary
-fn parse_platform(
-    node: Option<String>,
-    yarn: Option<String>,
-    no_yarn: bool,
-    session: &mut Session,
-) -> Fallible<CliPlatform> {
-    let node = node
-        .map(|version| node::resolve(version.parse()?, session))
-        .transpose()?;
+        Ok(CliPlatform { node, npm, yarn })
+    }
 
-    let yarn = match (no_yarn, yarn) {
-        (true, _) => InheritOption::None,
-        (false, None) => InheritOption::Inherit,
-        (false, Some(version)) => InheritOption::Some(yarn::resolve(version.parse()?, session)?),
-    };
+    /// Convert the environment variable settings passed to the command line into (Key, Value) pairs
+    ///
+    /// We ignore any setting that doesn't have a value associated with it
+    /// We also ignore the PATH environment variable as that is set when running a command
+    fn parse_envs(&self) -> impl IntoIterator<Item = (&str, &str)> {
+        self.envs.iter().filter_map(|entry| {
+            let mut key_value = entry.splitn(2, '=');
 
-    Ok(CliPlatform {
-        node,
-        npm: InheritOption::Inherit,
-        yarn,
-    })
+            match (key_value.next(), key_value.next()) {
+                (None, _) => None,
+                (Some(_), None) => None,
+                (Some(key), _) if key.eq_ignore_ascii_case("PATH") => {
+                    debug!("Skipping PATH environment variable as it will be overwritten to execute the command");
+                    None
+                }
+                (Some(key), Some(value)) => Some((key, value)),
+            }
+        })
+    }
 }

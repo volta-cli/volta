@@ -3,6 +3,7 @@
 use std::env::{self, args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
 use std::fmt;
+use std::iter::empty;
 use std::path::Path;
 use std::process::{Command, ExitStatus, Output};
 
@@ -27,7 +28,7 @@ const UNSAFE_GLOBAL: &str = "VOLTA_UNSAFE_GLOBAL";
 pub fn execute_shim(session: &mut Session) -> Fallible<ExitStatus> {
     let mut args = args_os();
     let exe = get_tool_name(&mut args)?;
-    let envs: Vec<(String, String)> = Vec::new();
+    let envs = empty::<(String, String)>();
 
     execute_tool(&exe, args, envs, CliPlatform::default(), session)
 }

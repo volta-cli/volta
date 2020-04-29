@@ -5,10 +5,12 @@ use hamcrest2::prelude::*;
 use test_support::matchers::execs;
 use volta_fail::ExitCode;
 
+// Note: Node 12.15.0 is bundled with npm 6.13.4
 const PACKAGE_JSON: &str = r#"{
     "name": "test-package",
     "volta": {
         "node": "12.15.0",
+        "npm": "6.14.2",
         "yarn": "1.17.1"
     }
 }"#;
@@ -21,6 +23,16 @@ fn run_node() {
         p.volta("run --node 12.16.0 node --version"),
         execs().with_status(0).with_stdout_contains("v12.16.0")
     );
+}
+
+#[test]
+fn run_npm() {
+    let p = temp_project().build();
+
+    assert_that!(
+        p.volta("run --node 12.14.1 --npm 6.14.4 npm --version"),
+        execs().with_status(0).with_stdout_contains("6.14.4"),
+    )
 }
 
 #[test]
@@ -40,18 +52,6 @@ fn inherits_project_platform() {
     assert_that!(
         p.volta("run --yarn 1.21.0 yarn --version"),
         execs().with_status(0).with_stdout_contains("1.21.0")
-    );
-}
-
-#[test]
-fn run_yarn_disabled() {
-    let p = temp_project().package_json(PACKAGE_JSON).build();
-
-    assert_that!(
-        p.volta("run --no-yarn yarn --version"),
-        execs()
-            .with_status(ExitCode::ConfigurationError as i32)
-            .with_stderr_contains("[..]No Yarn version found[..]")
     );
 }
 
