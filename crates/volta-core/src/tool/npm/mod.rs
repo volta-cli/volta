@@ -10,7 +10,7 @@ use crate::session::Session;
 use crate::style::{success_prefix, tool_version};
 use log::info;
 use semver::Version;
-use volta_fail::{throw, Fallible, ResultExt};
+use volta_fail::Fallible;
 
 mod fetch;
 mod resolve;
@@ -104,27 +104,22 @@ impl Tool for BundledNpm {
 
         toolchain.set_active_npm(None)?;
 
-        let bundled_version = match toolchain.platform() {
-            Some(platform) => {
-                let version = load_default_npm_version(&platform.node).with_context(|_| {
-                    ErrorDetails::NoBundledNpm {
-                        command: "install".into(),
-                    }
-                })?;
-                version.to_string()
-            }
-            None => {
-                throw!(ErrorDetails::NoBundledNpm {
-                    command: "install".into(),
-                });
-            }
-        };
+        let bundled_version = toolchain.platform().and_then(|platform| {
+            // If we can't load the default Npm version, treat that as no npm being available
+            let version = load_default_npm_version(&platform.node).ok()?;
+            Some(version.to_string())
+        });
 
-        info!(
-            "{} set bundled npm (currently {}) as default",
-            success_prefix(),
-            bundled_version
-        );
+        match bundled_version {
+            Some(version) => {
+                info!(
+                    "{} set bundled npm (currently {}) as default",
+                    success_prefix(),
+                    version
+                );
+            }
+            None => info!("{} set bundled npm as default", success_prefix()),
+        }
 
         Ok(())
     }
@@ -134,28 +129,22 @@ impl Tool for BundledNpm {
             Some(project) => {
                 project.pin_npm(None)?;
 
-                let bundled_version = match project.platform() {
-                    Some(platform) => {
-                        let version =
-                            load_default_npm_version(&platform.node).with_context(|_| {
-                                ErrorDetails::NoBundledNpm {
-                                    command: "pin".into(),
-                                }
-                            })?;
-                        version.to_string()
-                    }
-                    None => {
-                        throw!(ErrorDetails::NoBundledNpm {
-                            command: "pin".into()
-                        });
-                    }
-                };
+                let bundled_version = project.platform().and_then(|platform| {
+                    // If we can't load the default Npm version, treat that as no npm being available
+                    let version = load_default_npm_version(&platform.node).ok()?;
+                    Some(version.to_string())
+                });
 
-                info!(
-                    "{} set package.json to use bundled npm (currently {})",
-                    success_prefix(),
-                    bundled_version
-                );
+                match bundled_version {
+                    Some(version) => {
+                        info!(
+                            "{} set package.json to use bundled npm (currently {})",
+                            success_prefix(),
+                            version
+                        );
+                    }
+                    None => info!("{} set package.json to use bundled npm", success_prefix()),
+                }
 
                 Ok(())
             }

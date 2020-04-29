@@ -188,11 +188,6 @@ pub enum ErrorDetails {
         binary: String,
     },
 
-    /// Thrown when pinning or installing npm@bundled and couldn't detect the bundled version
-    NoBundledNpm {
-        command: String,
-    },
-
     /// Thrown when there is no Node version matching a requested semver specifier.
     NodeVersionNotFound {
         matching: String,
@@ -811,13 +806,6 @@ To {action} the packages '{name}' and '{version}', please {action} them in separ
 Please uninstall and re-install the package that provides that executable.",
                 binary
             ),
-            ErrorDetails::NoBundledNpm { command } => write!(
-                f,
-                "Could not detect bundled npm version.
-
-Please ensure you have a Node version selected with `volta {} node` (see `volta help {0}` for more info).",
-                command
-            ),
             ErrorDetails::NodeVersionNotFound { matching } => write!(
                 f,
                 r#"Could not find Node version matching "{}" in the version registry.
@@ -1435,7 +1423,6 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::InvalidInvocation { .. } => ExitCode::InvalidArguments,
             ErrorDetails::InvalidToolName { .. } => ExitCode::InvalidArguments,
             ErrorDetails::NoBinPlatform { .. } => ExitCode::ExecutionFailure,
-            ErrorDetails::NoBundledNpm { .. } => ExitCode::ConfigurationError,
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NoGlobalInstalls { .. } => ExitCode::InvalidArguments,
             ErrorDetails::NoHomeEnvironmentVar => ExitCode::EnvironmentError,
