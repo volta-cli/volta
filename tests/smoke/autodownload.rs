@@ -14,7 +14,7 @@ static PACKAGE_JSON_WITH_PINNED_NODE: &str = r#"{
 static PACKAGE_JSON_WITH_PINNED_NODE_NPM: &str = r#"{
     "name": "test-package",
     "volta": {
-        "node": "12.13.0",
+        "node": "13.0.1",
         "npm": "6.13.4"
     }
 }"#;
@@ -22,7 +22,7 @@ static PACKAGE_JSON_WITH_PINNED_NODE_NPM: &str = r#"{
 static PACKAGE_JSON_WITH_PINNED_NODE_YARN: &str = r#"{
     "name": "test-package",
     "volta": {
-        "node": "12.13.0",
+        "node": "12.10.0",
         "yarn": "1.22.0"
     }
 }"#;
