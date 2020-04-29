@@ -223,21 +223,6 @@ fn inherited_node() {
 }
 
 #[test]
-fn no_node() {
-    let s = sandbox()
-        .node_available_versions(NODE_VERSION_INFO)
-        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .build();
-
-    assert_that!(
-        s.volta("run node --version"),
-        execs()
-            .with_status(ExitCode::ConfigurationError as i32)
-            .with_stderr_contains("[..]Node is not available.")
-    );
-}
-
-#[test]
 fn command_line_npm() {
     let s = sandbox()
         .node_available_versions(NODE_VERSION_INFO)
