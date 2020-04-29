@@ -201,7 +201,10 @@ impl Project {
             self.manifest.update_platform(updated_platform);
             self.manifest.write(self.package_file())
         } else {
-            Err(ErrorDetails::NoPinnedNodeVersion.into())
+            Err(ErrorDetails::NoPinnedNodeVersion {
+                tool: "Yarn".into(),
+            }
+            .into())
         }
     }
 
@@ -217,7 +220,7 @@ impl Project {
             self.manifest.update_platform(updated_platform);
             self.manifest.write(self.package_file())
         } else {
-            Err(ErrorDetails::NoPinnedNodeVersion.into())
+            Err(ErrorDetails::NoPinnedNodeVersion { tool: "npm".into() }.into())
         }
     }
 }

@@ -17,8 +17,8 @@ use volta_fail::{Fallible, ResultExt};
 
 mod fetch;
 mod install;
-mod resolve;
-mod serial;
+pub(crate) mod resolve;
+pub(crate) mod serial;
 
 pub use install::{BinConfig, BinLoader, PackageConfig};
 pub use resolve::resolve;
@@ -51,7 +51,6 @@ pub struct PackageDetails {
 }
 
 /// The Tool implementation for fetching and installing 3rd-party packages
-#[derive(Debug)]
 pub struct Package {
     pub(crate) name: String,
     pub(crate) details: PackageDetails,

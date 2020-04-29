@@ -47,9 +47,7 @@ fn install_yarn() {
 }
 
 #[test]
-#[ignore]
 fn install_npm() {
-    // ISSUE(#292): Get this test working for npm install
     let p = temp_project().build();
 
     // node 11.10.0 is bundled with npm 6.7.0

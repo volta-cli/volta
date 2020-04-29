@@ -3,7 +3,7 @@ use std::fmt;
 
 use crate::error::ErrorDetails;
 use crate::session::Session;
-use crate::tool::{Node, Yarn};
+use crate::tool::{Node, Npm, Yarn};
 use semver::Version;
 use volta_fail::Fallible;
 
@@ -157,7 +157,7 @@ impl Platform {
     pub fn current(session: &mut Session) -> Fallible<Option<Self>> {
         match session.project_platform()? {
             Some(platform) => {
-                if platform.yarn.is_none() {
+                if platform.yarn.is_none() || platform.npm.is_none() {
                     if let Some(default) = session.default_platform()? {
                         let npm = platform
                             .npm
@@ -191,6 +191,10 @@ impl Platform {
     /// This will ensure that all necessary tools are fetched and available for execution
     pub fn checkout(self, session: &mut Session) -> Fallible<Image> {
         Node::new(self.node.value.clone()).ensure_fetched(session)?;
+
+        if let Some(Sourced { value: version, .. }) = &self.npm {
+            Npm::new(version.clone()).ensure_fetched(session)?;
+        }
 
         if let Some(Sourced { value: version, .. }) = &self.yarn {
             Yarn::new(version.clone()).ensure_fetched(session)?;

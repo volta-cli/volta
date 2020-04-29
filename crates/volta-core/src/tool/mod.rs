@@ -3,7 +3,7 @@ use std::fmt::{self, Display};
 use crate::error::ErrorDetails;
 use crate::session::Session;
 use crate::style::{note_prefix, success_prefix, tool_version};
-use crate::version::{parse_version, VersionSpec};
+use crate::version::VersionSpec;
 use log::{debug, info};
 use volta_fail::Fallible;
 
@@ -16,7 +16,7 @@ mod yarn;
 pub use node::{
     load_default_npm_version, Node, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION, NODE_DISTRO_OS,
 };
-pub use npm::Npm;
+pub use npm::{BundledNpm, Npm};
 pub use package::{bin_full_path, BinConfig, BinLoader, Package, PackageConfig, PackageDetails};
 pub use yarn::Yarn;
 
@@ -77,6 +77,10 @@ impl Spec {
                 let version = node::resolve(version, session)?;
                 Ok(Box::new(Node::new(version)))
             }
+            Spec::Npm(version) => match npm::resolve(version, session)? {
+                Some(version) => Ok(Box::new(Npm::new(version))),
+                None => Ok(Box::new(BundledNpm)),
+            },
             Spec::Yarn(version) => {
                 let version = yarn::resolve(version, session)?;
                 Ok(Box::new(Yarn::new(version)))
@@ -84,13 +88,6 @@ impl Spec {
             Spec::Package(name, version) => {
                 let details = package::resolve(&name, version, session)?;
                 Ok(Box::new(Package::new(name, details)))
-            }
-            // ISSUE (#292): To preserve error message context, we always resolve Npm to Version 0.0.0
-            // This will allow us to show the correct error message based on the user's command
-            // e.g. `volta install npm` vs `volta pin npm`
-            Spec::Npm(_) => {
-                let version = parse_version("0.0.0")?;
-                Ok(Box::new(Npm::new(version)))
             }
         }
     }

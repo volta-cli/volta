@@ -22,7 +22,6 @@ use volta_fail::{Fallible, ResultExt, VoltaError};
 #[derive(Deserialize, Debug)]
 pub struct RawPackageMetadata {
     pub name: String,
-    pub description: Option<String>,
     pub versions: HashMap<String, RawPackageVersionInfo>,
     #[serde(
         rename = "dist-tags",

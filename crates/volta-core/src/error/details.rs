@@ -188,6 +188,11 @@ pub enum ErrorDetails {
         binary: String,
     },
 
+    /// Thrown when pinning or installing npm@bundled and couldn't detect the bundled version
+    NoBundledNpm {
+        command: String,
+    },
+
     /// Thrown when there is no Node version matching a requested semver specifier.
     NodeVersionNotFound {
         matching: String,
@@ -207,8 +212,10 @@ pub enum ErrorDetails {
     /// Thrown when a user tries to install or fetch a package with no executables.
     NoPackageExecutables,
 
-    /// Thrown when a user tries to pin a Yarn version before pinning a Node version.
-    NoPinnedNodeVersion,
+    /// Thrown when a user tries to pin a Yarn or npm version before pinning a Node version.
+    NoPinnedNodeVersion {
+        tool: String,
+    },
 
     /// Thrown when the platform (Node version) could not be determined
     NoPlatform,
@@ -230,16 +237,6 @@ pub enum ErrorDetails {
 
     NoVersionsFound,
 
-    /// Thrown when there is an error running `npm view`
-    NpmViewMetadataFetchError {
-        package: String,
-    },
-
-    /// Thrown when there is an parsing the metadata from `npm view`
-    NpmViewMetadataParseError {
-        package: String,
-    },
-
     /// Thrown when there is an error running `npm pack`
     NpmPackFetchError {
         package: String,
@@ -247,6 +244,21 @@ pub enum ErrorDetails {
 
     /// Thrown when there is issue finding, loading, or unpacking the file downloaded via `npm pack`
     NpmPackUnpackError {
+        package: String,
+    },
+
+    /// Thrown when there is no npm version matching the requested Semver/Tag
+    NpmVersionNotFound {
+        matching: String,
+    },
+
+    /// Thrown when there is an error running `npm view`
+    NpmViewMetadataFetchError {
+        package: String,
+    },
+
+    /// Thrown when there is an error parsing the metadata from `npm view`
+    NpmViewMetadataParseError {
         package: String,
     },
 
@@ -474,6 +486,11 @@ pub enum ErrorDetails {
     /// Thrown when there was an error writing the default npm to file
     WriteDefaultNpmError {
         file: PathBuf,
+    },
+
+    /// Thrown when there was an error writing the npm launcher
+    WriteLauncherError {
+        tool: String,
     },
 
     /// Thrown when there was an error writing the node index cache
@@ -794,6 +811,13 @@ To {action} the packages '{name}' and '{version}', please {action} them in separ
 Please uninstall and re-install the package that provides that executable.",
                 binary
             ),
+            ErrorDetails::NoBundledNpm { command } => write!(
+                f,
+                "Could not detect bundled npm version.
+
+Please ensure you have a Node version selected with `volta {} node` (see `volta help {0}` for more info).",
+                command
+            ),
             ErrorDetails::NodeVersionNotFound { matching } => write!(
                 f,
                 r#"Could not find Node version matching "{}" in the version registry.
@@ -835,11 +859,12 @@ Please ensure the directory is available."
 
 Please verify the requested package name."
             ),
-            ErrorDetails::NoPinnedNodeVersion => write!(
+            ErrorDetails::NoPinnedNodeVersion { tool } => write!(
                 f,
-                "Cannot pin Yarn because the Node version is not pinned in this project.
+                "Cannot pin {} because the Node version is not pinned in this project.
 
-Use `volta pin node` to pin Node first, then pin a Yarn version."
+Use `volta pin node` to pin Node first, then pin a {0} version.",
+                tool
             ),
             ErrorDetails::NoPlatform => write!(
                 f,
@@ -888,6 +913,13 @@ Please verify your internet connection and ensure the correct version is specifi
 
 {}",
                 package, PERMISSIONS_CTA
+            ),
+            ErrorDetails::NpmVersionNotFound { matching } => write!(
+                f,
+                r#"Could not find Node version matching "{}" in the version registry.
+
+Please verify that the version is correct."#,
+                matching
             ),
             ErrorDetails::NpmViewMetadataFetchError { package } => write!(
                 f,
@@ -1283,6 +1315,13 @@ to {}
                 file.display(),
                 PERMISSIONS_CTA
             ),
+            ErrorDetails::WriteLauncherError { tool } => write!(
+                f,
+                "Could not set up launcher for {}
+
+This is most likely an intermittent failure, please try again.",
+                tool
+            ),
             ErrorDetails::WriteNodeIndexCacheError { file } => write!(
                 f,
                 "Could not write Node index cache
@@ -1396,13 +1435,14 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::InvalidInvocation { .. } => ExitCode::InvalidArguments,
             ErrorDetails::InvalidToolName { .. } => ExitCode::InvalidArguments,
             ErrorDetails::NoBinPlatform { .. } => ExitCode::ExecutionFailure,
+            ErrorDetails::NoBundledNpm { .. } => ExitCode::ConfigurationError,
             ErrorDetails::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NoGlobalInstalls { .. } => ExitCode::InvalidArguments,
             ErrorDetails::NoHomeEnvironmentVar => ExitCode::EnvironmentError,
             ErrorDetails::NoInstallDir => ExitCode::EnvironmentError,
             ErrorDetails::NoLocalDataDir => ExitCode::EnvironmentError,
             ErrorDetails::NoPackageExecutables { .. } => ExitCode::InvalidArguments,
-            ErrorDetails::NoPinnedNodeVersion => ExitCode::ConfigurationError,
+            ErrorDetails::NoPinnedNodeVersion { .. } => ExitCode::ConfigurationError,
             ErrorDetails::NoPlatform => ExitCode::ConfigurationError,
             ErrorDetails::NoProjectYarn => ExitCode::ConfigurationError,
             ErrorDetails::NoShellProfile { .. } => ExitCode::EnvironmentError,
@@ -1411,6 +1451,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::NoVersionsFound => ExitCode::NoVersionMatch,
             ErrorDetails::NpmPackFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::NpmPackUnpackError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::NpmVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::NpmViewMetadataFetchError { .. } => ExitCode::NetworkError,
             ErrorDetails::NpmViewMetadataParseError { .. } => ExitCode::UnknownError,
             ErrorDetails::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
@@ -1466,6 +1507,7 @@ impl VoltaFail for ErrorDetails {
             ErrorDetails::VersionParseError { .. } => ExitCode::NoVersionMatch,
             ErrorDetails::WriteBinConfigError { .. } => ExitCode::FileSystemError,
             ErrorDetails::WriteDefaultNpmError { .. } => ExitCode::FileSystemError,
+            ErrorDetails::WriteLauncherError { .. } => ExitCode::FileSystemError,
             ErrorDetails::WriteNodeIndexCacheError { .. } => ExitCode::FileSystemError,
             ErrorDetails::WriteNodeIndexExpiryError { .. } => ExitCode::FileSystemError,
             ErrorDetails::WritePackageConfigError { .. } => ExitCode::FileSystemError,

@@ -131,11 +131,21 @@ pub struct NodeFixture {
     pub metadata: DistroMetadata,
 }
 
+pub struct NpmFixture {
+    pub metadata: DistroMetadata,
+}
+
 pub struct YarnFixture {
     pub metadata: DistroMetadata,
 }
 
 impl From<DistroMetadata> for NodeFixture {
+    fn from(metadata: DistroMetadata) -> Self {
+        Self { metadata }
+    }
+}
+
+impl From<DistroMetadata> for NpmFixture {
     fn from(metadata: DistroMetadata) -> Self {
         Self { metadata }
     }
@@ -162,6 +172,20 @@ impl DistroFixture for NodeFixture {
             "tests/fixtures/node-v{}-{}-{}.{}",
             version, NODE_DISTRO_OS, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION
         )
+    }
+
+    fn metadata(&self) -> &DistroMetadata {
+        &self.metadata
+    }
+}
+
+impl DistroFixture for NpmFixture {
+    fn server_path(&self) -> String {
+        format!("/npm/-/npm-{}.tgz", self.metadata.version)
+    }
+
+    fn fixture_path(&self) -> String {
+        format!("tests/fixtures/npm-{}.tgz", self.metadata.version)
     }
 
     fn metadata(&self) -> &DistroMetadata {
@@ -277,7 +301,7 @@ impl SandboxBuilder {
 
     /// Setup mock to return the available npm versions (chainable)
     pub fn npm_available_versions(mut self, body: &str) -> Self {
-        let mock = mock("GET", "/registry/npm")
+        let mock = mock("GET", "/npm")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(body)

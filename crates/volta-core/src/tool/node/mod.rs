@@ -6,8 +6,9 @@ use super::{
 use crate::error::ErrorDetails;
 use crate::inventory::node_available;
 use crate::session::Session;
-use crate::style::tool_version;
+use crate::style::{note_prefix, tool_version};
 use cfg_if::cfg_if;
+use log::info;
 use semver::Version;
 use volta_fail::Fallible;
 
@@ -84,7 +85,6 @@ impl Display for NodeVersion {
 }
 
 /// The Tool implementation for fetching and installing Node
-#[derive(Debug)]
 pub struct Node {
     pub(super) version: Version,
 }
@@ -131,13 +131,31 @@ impl Tool for Node {
     fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {
         let node_version = self.ensure_fetched(session)?;
 
-        session.toolchain_mut()?.set_active_node(&self.version)?;
+        let default_toolchain = session.toolchain_mut()?;
+        default_toolchain.set_active_node(&self.version)?;
 
-        info_installed(node_version);
+        // If the user has a default version of `npm`, we shouldn't show the "(with npm@X.Y.ZZZ)" text in the success message
+        // Instead we should check if the bundled version is higher than the default and inform the user
+        // Note: The previous line ensures that there will be a default platform
+        if let Some(default_npm) = &default_toolchain.platform().unwrap().npm {
+            info_installed(self); // includes node version
+
+            if node_version.npm > *default_npm {
+                info!("{} this version of Node includes {}, which is higher than your default version ({}).
+      To use the version included with Node, run `volta install npm@bundled`",
+                    note_prefix(),
+                    tool_version("npm", node_version.npm),
+                    default_npm.to_string()
+                );
+            }
+        } else {
+            info_installed(node_version); // includes node and npm version
+        }
 
         if let Ok(Some(project)) = session.project_platform() {
             info_project_version(tool_version("node", &project.node));
         }
+
         Ok(())
     }
     fn pin(self: Box<Self>, session: &mut Session) -> Fallible<()> {
@@ -148,7 +166,24 @@ impl Tool for Node {
             let project = session.project_mut()?.unwrap();
             project.pin_node(&self.version)?;
 
-            info_pinned(node_version);
+            // If the user has a pinned version of `npm`, we shouldn't show the "(with npm@X.Y.ZZZ)" text in the success message
+            // Instead we should check if the bundled version is higher than the pinned and inform the user
+            // Note: The pin operation guarantees there will be a platform
+            if let Some(pinned_npm) = &project.platform().unwrap().npm {
+                info_pinned(self); // includes node version
+
+                if node_version.npm > *pinned_npm {
+                    info!("{} this version of Node includes {}, which is higher than your pinned version ({}).
+      To use the version included with Node, run `volta pin npm@bundled`",
+                        note_prefix(),
+                        tool_version("npm", node_version.npm),
+                        pinned_npm.to_string()
+                    );
+                }
+            } else {
+                info_pinned(node_version); // includes node and npm version
+            }
+
             Ok(())
         } else {
             Err(ErrorDetails::NotInPackage.into())

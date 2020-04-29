@@ -31,10 +31,10 @@ pub fn resolve(
 fn resolve_tag(name: &str, tag: &str, session: &mut Session) -> Fallible<PackageDetails> {
     let package_index = match session.hooks()?.package() {
         Some(&ToolHooks {
-            latest: Some(ref hook),
+            index: Some(ref hook),
             ..
         }) => {
-            debug!("Using packages.latest hook to determine package metadata URL");
+            debug!("Using packages.index hook to determine package metadata URL");
             let url = hook.resolve(&name)?;
             resolve_package_metadata(name, &url)?.into()
         }
