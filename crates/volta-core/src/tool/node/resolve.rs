@@ -216,16 +216,16 @@ pub struct NodeDistroFiles {
 }
 
 /// Reads a public index from the Node cache, if it exists and hasn't expired.
-fn read_cached_opt() -> Fallible<Option<serial::RawNodeIndex>> {
+fn read_cached_opt(url: &str) -> Fallible<Option<serial::RawNodeIndex>> {
     let expiry_file = volta_home()?.node_index_expiry_file();
     let expiry =
         read_file(&expiry_file).with_context(|_| ErrorDetails::ReadNodeIndexExpiryError {
             file: expiry_file.to_owned(),
         })?;
 
-    if let Some(string) = expiry {
-        let expiry_date = HttpDate::from_str(&string)
-            .with_context(|_| ErrorDetails::ParseNodeIndexExpiryError)?;
+    if let Some(date) = expiry {
+        let expiry_date =
+            HttpDate::from_str(&date).with_context(|_| ErrorDetails::ParseNodeIndexExpiryError)?;
         let current_date = HttpDate::from(SystemTime::now());
 
         if current_date < expiry_date {
@@ -235,9 +235,11 @@ fn read_cached_opt() -> Fallible<Option<serial::RawNodeIndex>> {
                     file: index_file.to_owned(),
                 })?;
 
-            if let Some(string) = cached {
-                return serde_json::de::from_str(&string)
-                    .with_context(|_| ErrorDetails::ParseNodeIndexCacheError);
+            if let Some(content) = cached {
+                if content.starts_with(url) {
+                    return serde_json::de::from_str(&content[url.len()..])
+                        .with_context(|_| ErrorDetails::ParseNodeIndexCacheError);
+                }
             }
         }
     }
@@ -260,9 +262,13 @@ fn max_age(response: &reqwest::Response) -> u32 {
 }
 
 fn resolve_node_versions(url: &str) -> Fallible<serial::RawNodeIndex> {
-    match read_cached_opt()? {
-        Some(serial) => Ok(serial),
+    match read_cached_opt(url)? {
+        Some(serial) => {
+            debug!("Found valid cache of Node version index");
+            Ok(serial)
+        }
         None => {
+            debug!("Node index cache was not found or was invalid");
             let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
 
             let mut response: reqwest::Response =
@@ -278,8 +284,8 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::RawNodeIndex> {
             let cached = create_staging_file()?;
 
             let mut cached_file: &File = cached.as_file();
-            cached_file
-                .write(response_text.as_bytes())
+            writeln!(cached_file, "{}", url)
+                .and_then(|_| cached_file.write(response_text.as_bytes()))
                 .with_context(|_| ErrorDetails::WriteNodeIndexCacheError {
                     file: cached.path().to_path_buf(),
                 })?;
