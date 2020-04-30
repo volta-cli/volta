@@ -33,60 +33,39 @@ mod os {
     use std::env;
     use std::fs::File;
     use std::io::{self, BufRead, BufReader, Write};
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
 
     use log::{debug, warn};
     use volta_core::error::ErrorDetails;
     use volta_core::layout::volta_home;
     use volta_fail::Fallible;
 
-    const PROFILES: [&str; 5] = [
-        ".profile",
-        ".bash_profile",
-        ".bashrc",
-        ".zshrc",
-        ".config/fish/config.fish",
-    ];
-
     pub fn setup_environment() -> Fallible<()> {
-        let user_home_dir = dirs::home_dir().ok_or(ErrorDetails::NoHomeEnvironmentVar)?;
         let home = volta_home()?;
 
         debug!("Searching for profiles to update");
-        let env_profile = env::var("PROFILE");
+        let profiles = determine_profiles()?;
 
-        let found_profile = PROFILES
-            .iter()
-            .chain(&env_profile.as_ref().map(String::as_str))
-            .fold(false, |prev, path| {
-                let profile = user_home_dir.join(path);
-                match read_profile_without_volta(&profile) {
-                    Some(contents) => {
-                        debug!("Profile script found: {}", profile.display());
+        let found_profile = profiles.into_iter().fold(false, |prev, profile| {
+            let contents = read_profile_without_volta(&profile).unwrap_or_else(String::new);
 
-                        let write_profile = match profile.extension() {
-                            Some(ext) if ext == "fish" => write_profile_fish,
-                            _ => write_profile_sh,
-                        };
+            let write_profile = match profile.extension() {
+                Some(ext) if ext == "fish" => write_profile_fish,
+                _ => write_profile_sh,
+            };
 
-                        match write_profile(&profile, contents, home.root()) {
-                            Ok(()) => true,
-                            Err(err) => {
-                                warn!(
-                                    "Found profile script, but could not modify it: {}",
-                                    profile.display()
-                                );
-                                debug!("Profile modification error: {}", err);
-                                prev
-                            }
-                        }
-                    }
-                    None => {
-                        debug!("Profile script not found: {}", profile.display());
-                        prev
-                    }
+            match write_profile(&profile, contents, home.root()) {
+                Ok(()) => true,
+                Err(err) => {
+                    warn!(
+                        "Found profile script, but could not modify it: {}",
+                        profile.display()
+                    );
+                    debug!("Profile modification error: {}", err);
+                    prev
                 }
-            });
+            }
+        });
 
         if found_profile {
             Ok(())
@@ -96,6 +75,83 @@ mod os {
                 bin_dir: home.shim_dir().to_owned(),
             }
             .into())
+        }
+    }
+
+    /// Returns a list of profile files to modify / create.
+    ///
+    /// Any file in the list should be created if it doesn't already exist
+    fn determine_profiles() -> Fallible<Vec<PathBuf>> {
+        let home_dir = dirs::home_dir().ok_or(ErrorDetails::NoHomeEnvironmentVar)?;
+        let shell = env::var("SHELL").unwrap_or_else(|_| String::new());
+        let mut profiles = Vec::new();
+
+        // Always include `~/.profile`
+        profiles.push(home_dir.join(".profile"));
+
+        // PROFILE environment variable, if set
+        if let Ok(profile_env) = env::var("PROFILE") {
+            if !profile_env.is_empty() {
+                profiles.push(profile_env.into());
+            }
+        }
+
+        add_zsh_profile(&home_dir, &shell, &mut profiles);
+        add_bash_profiles(&home_dir, &shell, &mut profiles);
+        add_fish_profile(&home_dir, &shell, &mut profiles);
+
+        Ok(profiles)
+    }
+
+    /// Add zsh profile script, if necessary
+    fn add_zsh_profile(home_dir: &Path, shell: &str, profiles: &mut Vec<PathBuf>) {
+        let zshrc = home_dir.join(".zshrc");
+
+        if shell.contains("zsh") || zshrc.exists() {
+            profiles.push(zshrc);
+        }
+    }
+
+    /// Add bash profile scripts, if necessary
+    ///
+    /// Note: We only add the bash scripts if they already exist, as creating new files can impact
+    /// the processing of existing files in bash (e.g. preventing ~/.profile from being loaded)
+    fn add_bash_profiles(home_dir: &Path, shell: &str, profiles: &mut Vec<PathBuf>) {
+        let mut bash_added = false;
+
+        let bashrc = home_dir.join(".bashrc");
+        if bashrc.exists() {
+            bash_added = true;
+            profiles.push(bashrc);
+        }
+
+        let bash_profile = home_dir.join(".bash_profile");
+        if bash_profile.exists() {
+            bash_added = true;
+            profiles.push(bash_profile);
+        }
+
+        if shell.contains("bash") && !bash_added {
+            let suggested_bash_profile = if cfg!(target_os = "macos") {
+                "~/.bash_profile"
+            } else {
+                "~/.bashrc"
+            };
+
+            warn!(
+                "We detected that you are using bash, however we couldn't find any bash profile scripts.
+If you run into problems running Volta, create {} and run `volta setup` again.",
+                suggested_bash_profile
+            );
+        }
+    }
+
+    /// Add fish profile scripts, if necessary
+    fn add_fish_profile(home_dir: &Path, shell: &str, profiles: &mut Vec<PathBuf>) {
+        let fish_config = home_dir.join(".config/fish/config.fish");
+
+        if shell.contains("fish") || fish_config.exists() {
+            profiles.push(fish_config);
         }
     }
 
