@@ -2,7 +2,7 @@ use std::ffi::OsString;
 
 use crate::command::Command;
 use crate::common::{Error, IntoResult};
-use log::debug;
+use log::warn;
 use structopt::StructOpt;
 use volta_core::error::report_error;
 use volta_core::platform::{CliPlatform, InheritOption};
@@ -115,7 +115,7 @@ impl Run {
                 (None, _) => None,
                 (Some(_), None) => None,
                 (Some(key), _) if key.eq_ignore_ascii_case("PATH") => {
-                    debug!("Skipping PATH environment variable as it will be overwritten to execute the command");
+                    warn!("Ignoring {} environment variable as it will be overwritten when executing the command", key);
                     None
                 }
                 (Some(key), Some(value)) => Some((key, value)),
