@@ -213,3 +213,348 @@ fn test_system_path() {
         expected_path
     );
 }
+
+mod inherit_option {
+    mod map {
+        use super::super::super::*;
+
+        #[test]
+        fn converts_some_value() {
+            let opt = InheritOption::Some(1);
+
+            assert_eq!(opt.map(|n| n + 1), InheritOption::Some(2));
+        }
+
+        #[test]
+        fn leaves_none() {
+            let opt: InheritOption<i32> = InheritOption::None;
+
+            assert_eq!(opt.map(|n| n + 1), InheritOption::None);
+        }
+
+        #[test]
+        fn leaves_inherit() {
+            let opt: InheritOption<i32> = InheritOption::Inherit;
+
+            assert_eq!(opt.map(|n| n + 1), InheritOption::Inherit);
+        }
+    }
+
+    mod inherit {
+        use super::super::super::*;
+
+        #[test]
+        fn keeps_some_value() {
+            let opt = InheritOption::Some(1);
+
+            assert_eq!(opt.inherit(Some(2)), Some(1));
+        }
+
+        #[test]
+        fn leaves_none() {
+            let opt = InheritOption::None;
+
+            assert_eq!(opt.inherit(Some(2)), None);
+        }
+
+        #[test]
+        fn inherits_from_base() {
+            let opt = InheritOption::Inherit;
+
+            assert_eq!(opt.inherit(Some(2)), Some(2));
+        }
+    }
+}
+
+mod cli_platform {
+    use lazy_static::lazy_static;
+    use semver::Version;
+
+    lazy_static! {
+        static ref NODE_VERSION: Version = Version::from((12, 14, 1));
+        static ref NPM_VERSION: Version = Version::from((6, 13, 2));
+        static ref YARN_VERSION: Version = Version::from((1, 17, 0));
+    }
+
+    mod merge {
+        use super::super::super::*;
+        use super::*;
+
+        #[test]
+        fn uses_node() {
+            let test = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::default(),
+                yarn: InheritOption::default(),
+            };
+
+            let base = Platform {
+                node: Sourced::with_default(Version::from((10, 10, 10))),
+                npm: None,
+                yarn: None,
+            };
+
+            let merged = test.merge(base);
+
+            assert_eq!(merged.node.value, NODE_VERSION.clone());
+            assert_eq!(merged.node.source, Source::CommandLine);
+        }
+
+        #[test]
+        fn inherits_node() {
+            let test = CliPlatform {
+                node: None,
+                npm: InheritOption::default(),
+                yarn: InheritOption::default(),
+            };
+
+            let base = Platform {
+                node: Sourced::with_default(NODE_VERSION.clone()),
+                npm: None,
+                yarn: None,
+            };
+
+            let merged = test.merge(base);
+
+            assert_eq!(merged.node.value, NODE_VERSION.clone());
+            assert_eq!(merged.node.source, Source::Default);
+        }
+
+        #[test]
+        fn uses_npm() {
+            let test = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::Some(NPM_VERSION.clone()),
+                yarn: InheritOption::default(),
+            };
+
+            let base = Platform {
+                node: Sourced::with_default(Version::from((10, 10, 10))),
+                npm: Some(Sourced::with_default(Version::from((5, 6, 3)))),
+                yarn: None,
+            };
+
+            let merged = test.merge(base);
+
+            let merged_npm = merged.npm.unwrap();
+            assert_eq!(merged_npm.value, NPM_VERSION.clone());
+            assert_eq!(merged_npm.source, Source::CommandLine);
+        }
+
+        #[test]
+        fn inherits_npm() {
+            let test = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::Inherit,
+                yarn: InheritOption::default(),
+            };
+
+            let base = Platform {
+                node: Sourced::with_default(Version::from((10, 10, 10))),
+                npm: Some(Sourced::with_default(NPM_VERSION.clone())),
+                yarn: None,
+            };
+
+            let merged = test.merge(base);
+
+            let merged_npm = merged.npm.unwrap();
+            assert_eq!(merged_npm.value, NPM_VERSION.clone());
+            assert_eq!(merged_npm.source, Source::Default);
+        }
+
+        #[test]
+        fn none_does_not_inherit_npm() {
+            let test = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::None,
+                yarn: InheritOption::default(),
+            };
+
+            let base = Platform {
+                node: Sourced::with_default(Version::from((10, 10, 10))),
+                npm: Some(Sourced::with_default(NPM_VERSION.clone())),
+                yarn: None,
+            };
+
+            let merged = test.merge(base);
+
+            assert!(merged.npm.is_none());
+        }
+
+        #[test]
+        fn uses_yarn() {
+            let test = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::default(),
+                yarn: InheritOption::Some(YARN_VERSION.clone()),
+            };
+
+            let base = Platform {
+                node: Sourced::with_default(Version::from((10, 10, 10))),
+                npm: None,
+                yarn: Some(Sourced::with_default(Version::from((1, 10, 3)))),
+            };
+
+            let merged = test.merge(base);
+
+            let merged_yarn = merged.yarn.unwrap();
+            assert_eq!(merged_yarn.value, YARN_VERSION.clone());
+            assert_eq!(merged_yarn.source, Source::CommandLine);
+        }
+
+        #[test]
+        fn inherits_yarn() {
+            let test = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::default(),
+                yarn: InheritOption::Inherit,
+            };
+
+            let base = Platform {
+                node: Sourced::with_default(Version::from((10, 10, 10))),
+                npm: None,
+                yarn: Some(Sourced::with_default(YARN_VERSION.clone())),
+            };
+
+            let merged = test.merge(base);
+
+            let merged_yarn = merged.yarn.unwrap();
+            assert_eq!(merged_yarn.value, YARN_VERSION.clone());
+            assert_eq!(merged_yarn.source, Source::Default);
+        }
+
+        #[test]
+        fn none_does_not_inherit_yarn() {
+            let test = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::default(),
+                yarn: InheritOption::None,
+            };
+
+            let base = Platform {
+                node: Sourced::with_default(Version::from((10, 10, 10))),
+                npm: None,
+                yarn: Some(Sourced::with_default(YARN_VERSION.clone())),
+            };
+
+            let merged = test.merge(base);
+
+            assert!(merged.yarn.is_none());
+        }
+    }
+
+    mod into_platform {
+        use super::super::super::*;
+        use super::*;
+
+        #[test]
+        fn none_if_no_node() {
+            let cli = CliPlatform {
+                node: None,
+                npm: InheritOption::default(),
+                yarn: InheritOption::default(),
+            };
+
+            let transformed: Option<Platform> = cli.into();
+
+            assert!(transformed.is_none());
+        }
+
+        #[test]
+        fn uses_cli_node() {
+            let cli = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::default(),
+                yarn: InheritOption::default(),
+            };
+
+            let transformed: Option<Platform> = cli.into();
+
+            let node = transformed.unwrap().node;
+            assert_eq!(node.value, NODE_VERSION.clone());
+            assert_eq!(node.source, Source::CommandLine);
+        }
+
+        #[test]
+        fn uses_cli_npm() {
+            let cli = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::Some(NPM_VERSION.clone()),
+                yarn: InheritOption::default(),
+            };
+
+            let transformed: Option<Platform> = cli.into();
+
+            let npm = transformed.unwrap().npm.unwrap();
+            assert_eq!(npm.value, NPM_VERSION.clone());
+            assert_eq!(npm.source, Source::CommandLine);
+        }
+
+        #[test]
+        fn no_npm() {
+            let cli = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::None,
+                yarn: InheritOption::default(),
+            };
+
+            let transformed: Option<Platform> = cli.into();
+
+            assert!(transformed.unwrap().npm.is_none());
+        }
+
+        #[test]
+        fn inherit_npm_becomes_none() {
+            let cli = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::Inherit,
+                yarn: InheritOption::default(),
+            };
+
+            let transformed: Option<Platform> = cli.into();
+
+            assert!(transformed.unwrap().npm.is_none());
+        }
+
+        #[test]
+        fn uses_cli_yarn() {
+            let cli = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::default(),
+                yarn: InheritOption::Some(YARN_VERSION.clone()),
+            };
+
+            let transformed: Option<Platform> = cli.into();
+
+            let yarn = transformed.unwrap().yarn.unwrap();
+            assert_eq!(yarn.value, YARN_VERSION.clone());
+            assert_eq!(yarn.source, Source::CommandLine);
+        }
+
+        #[test]
+        fn no_yarn() {
+            let cli = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::default(),
+                yarn: InheritOption::None,
+            };
+
+            let transformed: Option<Platform> = cli.into();
+
+            assert!(transformed.unwrap().yarn.is_none());
+        }
+
+        #[test]
+        fn inherit_yarn_becomes_none() {
+            let cli = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::default(),
+                yarn: InheritOption::Inherit,
+            };
+
+            let transformed: Option<Platform> = cli.into();
+
+            assert!(transformed.unwrap().yarn.is_none());
+        }
+    }
+}

@@ -7,11 +7,11 @@ use crate::version::VersionSpec;
 use log::{debug, info};
 use volta_fail::Fallible;
 
-mod node;
-mod npm;
-mod package;
+pub mod node;
+pub mod npm;
+pub mod package;
 mod serial;
-mod yarn;
+pub mod yarn;
 
 pub use node::{
     load_default_npm_version, Node, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION, NODE_DISTRO_OS,

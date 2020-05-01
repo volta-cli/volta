@@ -121,6 +121,12 @@ otherwise, they will be written to `stdout`.
     /// Enables Volta for the current user / shell
     #[structopt(name = "setup", author = "", version = "")]
     Setup(command::Setup),
+
+    /// Run a command with custom Node and/or Yarn versions
+    #[structopt(name = "run", author = "", version = "")]
+    #[structopt(raw(setting = "structopt::clap::AppSettings::AllowLeadingHyphen"))]
+    #[structopt(raw(setting = "structopt::clap::AppSettings::TrailingVarArg"))]
+    Run(command::Run),
 }
 
 impl Subcommand {
@@ -135,6 +141,7 @@ impl Subcommand {
             Subcommand::Which(which) => which.run(session),
             Subcommand::Use(r#use) => r#use.run(session),
             Subcommand::Setup(setup) => setup.run(session),
+            Subcommand::Run(run) => run.run(session),
         }
     }
 }

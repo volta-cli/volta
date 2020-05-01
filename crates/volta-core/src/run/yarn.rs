@@ -3,16 +3,16 @@ use std::ffi::OsStr;
 
 use super::{debug_tool_message, intercept_global_installs, CommandArg, ToolCommand};
 use crate::error::ErrorDetails;
-use crate::platform::{Platform, Source};
+use crate::platform::{CliPlatform, Platform, Source};
 use crate::session::{ActivityKind, Session};
 
 use log::debug;
 use volta_fail::{throw, Fallible};
 
-pub(crate) fn command(session: &mut Session) -> Fallible<ToolCommand> {
+pub(crate) fn command(cli: CliPlatform, session: &mut Session) -> Fallible<ToolCommand> {
     session.add_event_start(ActivityKind::Yarn);
 
-    match get_yarn_platform(session)? {
+    match get_yarn_platform(cli, session)? {
         Some(platform) => {
             if intercept_global_installs() {
                 if let CommandArg::GlobalAdd(package) = check_yarn_add() {
@@ -35,13 +35,14 @@ pub(crate) fn command(session: &mut Session) -> Fallible<ToolCommand> {
 }
 
 /// Determine the correct platform (project or default) and check if yarn is set for that platform
-fn get_yarn_platform(session: &mut Session) -> Fallible<Option<Platform>> {
-    match Platform::current(session)? {
+fn get_yarn_platform(cli: CliPlatform, session: &mut Session) -> Fallible<Option<Platform>> {
+    match Platform::with_cli(cli, session)? {
         Some(platform) => match &platform.yarn {
             Some(_) => Ok(Some(platform)),
             None => match platform.node.source {
                 Source::Project => Err(ErrorDetails::NoProjectYarn.into()),
                 Source::Default | Source::Binary => Err(ErrorDetails::NoDefaultYarn.into()),
+                Source::CommandLine => Err(ErrorDetails::NoCommandLineYarn.into()),
             },
         },
         None => Ok(None),

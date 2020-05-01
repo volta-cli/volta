@@ -3,12 +3,13 @@
 use std::env::{self, args_os, ArgsOs};
 use std::ffi::{OsStr, OsString};
 use std::fmt;
+use std::iter::empty;
 use std::path::Path;
 use std::process::{Command, ExitStatus, Output};
 
 use crate::command::create_command;
 use crate::error::ErrorDetails;
-use crate::platform::{Sourced, System};
+use crate::platform::{CliPlatform, Sourced, System};
 use crate::session::Session;
 use crate::signal::pass_control_to_shim;
 use crate::style::tool_version;
@@ -24,18 +25,28 @@ pub mod yarn;
 const VOLTA_BYPASS: &str = "VOLTA_BYPASS";
 const UNSAFE_GLOBAL: &str = "VOLTA_UNSAFE_GLOBAL";
 
-/// Distinguish global `add` commands in npm or yarn from all others.
-enum CommandArg {
-    /// The command is a *global* add command.
-    GlobalAdd(Option<OsString>),
-    /// The command is a local, i.e. non-global, add command.
-    NotGlobalAdd,
-}
-
-pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
+pub fn execute_shim(session: &mut Session) -> Fallible<ExitStatus> {
     let mut args = args_os();
     let exe = get_tool_name(&mut args)?;
+    let envs = empty::<(String, String)>();
 
+    execute_tool(&exe, args, envs, CliPlatform::default(), session)
+}
+
+pub fn execute_tool<A, S, E, K, V>(
+    exe: &OsStr,
+    args: A,
+    envs: E,
+    cli: CliPlatform,
+    session: &mut Session,
+) -> Fallible<ExitStatus>
+where
+    A: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+    E: IntoIterator<Item = (K, V)>,
+    K: AsRef<OsStr>,
+    V: AsRef<OsStr>,
+{
     let mut command = if env::var_os(VOLTA_BYPASS).is_some() {
         ToolCommand::passthrough(
             &exe,
@@ -46,15 +57,16 @@ pub fn execute_tool(session: &mut Session) -> Fallible<ExitStatus> {
     } else {
         match exe.to_str() {
             Some("volta-shim") => throw!(ErrorDetails::RunShimDirectly),
-            Some("node") => node::command(session)?,
-            Some("npm") => npm::command(session)?,
-            Some("npx") => npx::command(session)?,
-            Some("yarn") => yarn::command(session)?,
-            _ => binary::command(&exe, session)?,
+            Some("node") => node::command(cli, session)?,
+            Some("npm") => npm::command(cli, session)?,
+            Some("npx") => npx::command(cli, session)?,
+            Some("yarn") => yarn::command(cli, session)?,
+            _ => binary::command(exe, cli, session)?,
         }
     };
 
     command.args(args);
+    command.envs(envs);
 
     pass_control_to_shim();
     command.status()
@@ -129,6 +141,17 @@ impl ToolCommand {
         self
     }
 
+    /// Adds or updates multiple environment variables for the Command
+    pub(crate) fn envs<E, K, V>(&mut self, envs: E) -> &mut ToolCommand
+    where
+        E: IntoIterator<Item = (K, V)>,
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>,
+    {
+        self.command.envs(envs);
+        self
+    }
+
     /// Set the current working directory for the Command
     pub(crate) fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut ToolCommand {
         self.command.current_dir(dir);
@@ -189,6 +212,14 @@ fn command_with_path(exe: &OsStr, path_var: &OsStr) -> Command {
 /// Setting the VOLTA_UNSAFE_GLOBAL environment variable will disable interception of global installs
 fn intercept_global_installs() -> bool {
     env::var_os(UNSAFE_GLOBAL).is_none()
+}
+
+/// Distinguish global `add` commands in npm or yarn from all others.
+enum CommandArg {
+    /// The command is a *global* add command.
+    GlobalAdd(Option<OsString>),
+    /// The command is a local, i.e. non-global, add command.
+    NotGlobalAdd,
 }
 
 /// Write the tool version and source to the debug log

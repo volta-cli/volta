@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use super::{debug_tool_message, ToolCommand};
 use crate::error::ErrorDetails;
 use crate::layout::volta_home;
-use crate::platform::{Platform, Sourced};
+use crate::platform::{CliPlatform, Platform, Sourced};
 use crate::session::{ActivityKind, Session};
 use crate::tool::bin_full_path;
 use crate::tool::{BinConfig, BinLoader};
@@ -12,7 +12,11 @@ use crate::tool::{BinConfig, BinLoader};
 use log::debug;
 use volta_fail::{throw, Fallible};
 
-pub(crate) fn command(exe: &OsStr, session: &mut Session) -> Fallible<ToolCommand> {
+pub(crate) fn command(
+    exe: &OsStr,
+    cli: CliPlatform,
+    session: &mut Session,
+) -> Fallible<ToolCommand> {
     session.add_event_start(ActivityKind::Binary);
 
     // first try to use the project toolchain
@@ -36,7 +40,7 @@ pub(crate) fn command(exe: &OsStr, session: &mut Session) -> Fallible<ToolComman
             );
             let path_to_bin = path_to_bin.as_os_str();
 
-            if let Some(platform) = Platform::current(session)? {
+            if let Some(platform) = Platform::with_cli(cli, session)? {
                 debug_tool_message("node", &platform.node);
 
                 let image = platform.checkout(session)?;
@@ -52,7 +56,7 @@ pub(crate) fn command(exe: &OsStr, session: &mut Session) -> Fallible<ToolComman
 
     // try to use the default toolchain
     if let Some(default_tool) = DefaultBinary::from_name(&exe, session)? {
-        let image = default_tool.platform.checkout(session)?;
+        let image = cli.merge(default_tool.platform).checkout(session)?;
         debug!(
             "Found default {} in '{}'",
             exe.to_string_lossy(),

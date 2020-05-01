@@ -2,17 +2,17 @@ use std::ffi::OsStr;
 
 use super::{debug_tool_message, ToolCommand};
 use crate::error::ErrorDetails;
-use crate::platform::Platform;
+use crate::platform::{CliPlatform, Platform};
 use crate::session::{ActivityKind, Session};
 use crate::version::parse_version;
 
 use log::debug;
 use volta_fail::Fallible;
 
-pub(crate) fn command(session: &mut Session) -> Fallible<ToolCommand> {
+pub(crate) fn command(cli: CliPlatform, session: &mut Session) -> Fallible<ToolCommand> {
     session.add_event_start(ActivityKind::Npx);
 
-    match Platform::current(session)? {
+    match Platform::with_cli(cli, session)? {
         Some(platform) => {
             let image = platform.checkout(session)?;
 

@@ -18,7 +18,8 @@ pub use image::Image;
 pub use system::System;
 
 /// The source with which a version is associated
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy)]
+#[cfg_attr(test, derive(Eq, PartialEq, Debug))]
 pub enum Source {
     /// Represents a version from the user default platform
     Default,
@@ -28,6 +29,9 @@ pub enum Source {
 
     /// Represents a version from a pinned Binary platform
     Binary,
+
+    /// Represents a version from the command line (via `volta run`)
+    CommandLine,
 }
 
 impl fmt::Display for Source {
@@ -36,6 +40,7 @@ impl fmt::Display for Source {
             Source::Default => write!(f, "default"),
             Source::Project => write!(f, "project"),
             Source::Binary => write!(f, "binary"),
+            Source::CommandLine => write!(f, "command-line"),
         }
     }
 }
@@ -64,6 +69,13 @@ impl<T> Sourced<T> {
         Sourced {
             value,
             source: Source::Binary,
+        }
+    }
+
+    pub fn with_command_line(value: T) -> Self {
+        Sourced {
+            value,
+            source: Source::CommandLine,
         }
     }
 }
@@ -101,6 +113,49 @@ where
     }
 }
 
+/// Represents 3 possible states: Having a value, not having a value, and inheriting a value
+#[cfg_attr(test, derive(Eq, PartialEq, Debug))]
+pub enum InheritOption<T> {
+    Some(T),
+    None,
+    Inherit,
+}
+
+impl<T> InheritOption<T> {
+    /// Applies a function to the contained value (if any)
+    pub fn map<U, F>(self, f: F) -> InheritOption<U>
+    where
+        F: FnOnce(T) -> U,
+    {
+        match self {
+            InheritOption::Some(value) => InheritOption::Some(f(value)),
+            InheritOption::None => InheritOption::None,
+            InheritOption::Inherit => InheritOption::Inherit,
+        }
+    }
+
+    /// Converts the `InheritOption` into a regular `Option` by inheriting from the provided value if needed
+    pub fn inherit(self, other: Option<T>) -> Option<T> {
+        match self {
+            InheritOption::Some(value) => Some(value),
+            InheritOption::None => None,
+            InheritOption::Inherit => other,
+        }
+    }
+}
+
+impl<T> From<InheritOption<T>> for Option<T> {
+    fn from(base: InheritOption<T>) -> Option<T> {
+        base.inherit(None)
+    }
+}
+
+impl<T> Default for InheritOption<T> {
+    fn default() -> Self {
+        InheritOption::Inherit
+    }
+}
+
 #[derive(Clone, PartialOrd, Ord, PartialEq, Eq)]
 /// Represents the specification of a single Platform, regardless of the source
 pub struct PlatformSpec {
@@ -134,6 +189,39 @@ impl PlatformSpec {
             node: Sourced::with_binary(self.node.clone()),
             npm: self.npm.clone().map(Sourced::with_binary),
             yarn: self.yarn.clone().map(Sourced::with_binary),
+        }
+    }
+}
+
+/// Represents a (maybe) platform with values from the command line
+#[derive(Default)]
+pub struct CliPlatform {
+    pub node: Option<Version>,
+    pub npm: InheritOption<Version>,
+    pub yarn: InheritOption<Version>,
+}
+
+impl CliPlatform {
+    /// Merges the `CliPlatform` with a `Platform`, inheriting from the base where needed
+    pub fn merge(self, base: Platform) -> Platform {
+        Platform {
+            node: self.node.map_or(base.node, Sourced::with_command_line),
+            npm: self.npm.map(Sourced::with_command_line).inherit(base.npm),
+            yarn: self.yarn.map(Sourced::with_command_line).inherit(base.yarn),
+        }
+    }
+}
+
+impl From<CliPlatform> for Option<Platform> {
+    /// Converts the `CliPlatform` into a possible Platform without a base from which to inherit
+    fn from(base: CliPlatform) -> Option<Platform> {
+        match base.node {
+            None => None,
+            Some(node) => Some(Platform {
+                node: Sourced::with_command_line(node),
+                npm: base.npm.map(Sourced::with_command_line).into(),
+                yarn: base.yarn.map(Sourced::with_command_line).into(),
+            }),
         }
     }
 }
@@ -183,6 +271,14 @@ impl Platform {
                 Some(platform) => Ok(Some(platform.as_default())),
                 None => Ok(None),
             },
+        }
+    }
+
+    /// Returns the platform created by merging a `CliPartialPlatform` with the currently active platform
+    pub fn with_cli(cli: CliPlatform, session: &mut Session) -> Fallible<Option<Self>> {
+        match Self::current(session)? {
+            Some(current) => Ok(Some(cli.merge(current))),
+            None => Ok(cli.into()),
         }
     }
 
