@@ -63,7 +63,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --test smoke --features smoke-tests
+          args: --test smoke --features smoke-tests -- --test-threads 1
 
   shell-tests:
     name: Shell Script Tests
