@@ -1,3 +1,11 @@
+# Version 0.8.0
+
+- Support for pinning / installing custom versions of `npm` (#691)
+- New command: `volta run` which will let you run one-off commands using custom versions of Node / Yarn / npm (#713)
+- Added default pretty formatter for `volta list` (#697)
+- Improved setup of Volta environment to make it work in more scenarios (#666, #725)
+- Bug fixes and performance improvements (#683, #701, #703, #704, #707, #717)
+
 # Version 0.7.2
 
 - Added `npm.cmd`, `npx.cmd`, and `yarn.cmd` on Windows to support tools that look for CMD files specifically (#663)
