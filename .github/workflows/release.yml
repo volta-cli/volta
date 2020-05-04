@@ -126,7 +126,7 @@ jobs:
       - linux
       - macos
       - windows
-    if: github.event_name == 'push' && startsWith(github.ref, 'v')
+    if: github.event_name == 'push'
     steps:
       - name: Check out code
         uses: actions/checkout@v2
