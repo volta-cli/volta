@@ -10,6 +10,7 @@ use crate::session::Session;
 use crate::style::{progress_spinner, tool_version};
 use crate::tool::PackageDetails;
 use crate::version::{VersionSpec, VersionTag};
+use attohttpc::{ErrorKind, Response, StatusCode};
 use log::debug;
 use semver::{Version, VersionReq};
 use volta_fail::{throw, Fallible, ResultExt};
@@ -191,11 +192,12 @@ fn resolve_package_metadata(
     package_info_url: &str,
 ) -> Fallible<super::serial::RawPackageMetadata> {
     let spinner = progress_spinner(&format!("Fetching package metadata: {}", package_info_url));
-    let response_text = reqwest::get(package_info_url)
-        .and_then(|resp| resp.error_for_status())
-        .and_then(|mut resp| resp.text())
-        .with_context(|err| match err.status() {
-            Some(reqwest::StatusCode::NOT_FOUND) => ErrorDetails::PackageNotFound {
+    let response_text = attohttpc::get(package_info_url)
+        .send()
+        .and_then(Response::error_for_status)
+        .and_then(Response::text)
+        .with_context(|err| match err.kind() {
+            ErrorKind::StatusCode(StatusCode::NOT_FOUND) => ErrorDetails::PackageNotFound {
                 package: package_name.into(),
             },
             _ => ErrorDetails::PackageMetadataFetchError {

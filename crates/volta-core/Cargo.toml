@@ -28,7 +28,6 @@ lazycell = "1.2.0"
 lazy_static = "1.3.0"
 semver = { git = "https://github.com/mikrostew/semver", branch = "new-parser" }
 cmdline_words_parser = "0.0.2"
-reqwest = "0.9.9"
 fs-utils = { path = "../fs-utils" }
 cfg-if = "0.1"
 winfolder = "0.1"
@@ -52,7 +51,8 @@ volta-layout = { path = "../volta-layout" }
 double-checked-cell = "2.0.2"
 dunce = "1.0.0"
 ci_info = "0.10.0"
-hyperx = "0.15.2"
+hyperx = "1.0.0"
+attohttpc = { version = "0.13.0", features = ["json"] }
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.6.0"

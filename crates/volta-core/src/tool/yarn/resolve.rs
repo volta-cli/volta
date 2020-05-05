@@ -10,6 +10,7 @@ use crate::session::Session;
 use crate::style::progress_spinner;
 use crate::tool::Yarn;
 use crate::version::{parse_version, VersionSpec, VersionTag};
+use attohttpc::Response;
 use cfg_if::cfg_if;
 use log::debug;
 use semver::{Version, VersionReq};
@@ -60,8 +61,10 @@ fn resolve_latest(hooks: Option<&ToolHooks<Yarn>>) -> Fallible<Version> {
         }
         _ => public_yarn_latest_version(),
     };
-    let response_text = reqwest::get(&url)
-        .and_then(|mut resp| resp.text())
+    let response_text = attohttpc::get(&url)
+        .send()
+        .and_then(Response::error_for_status)
+        .and_then(Response::text)
         .with_context(|_| ErrorDetails::YarnLatestFetchError {
             from_url: url.clone(),
         })?;
@@ -83,8 +86,10 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Yarn>>) -> Fall
     };
 
     let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
-    let releases: serial::RawYarnIndex = reqwest::get(&url)
-        .and_then(|mut resp| resp.json())
+    let releases: serial::RawYarnIndex = attohttpc::get(&url)
+        .send()
+        .and_then(Response::error_for_status)
+        .and_then(Response::json)
         .with_context(registry_fetch_error("Yarn", &url))?;
     let index = YarnIndex::from(releases);
     let releases = index.entries;

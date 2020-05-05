@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
+use attohttpc::header::HeaderMap;
 use failure::{self, Fail};
 use flate2::read::GzDecoder;
 use fs_utils::ensure_containing_dir_exists;
@@ -12,7 +13,6 @@ use hyperx::header::{
     AcceptRanges, ByteRangeSpec, ContentLength, Header, Range, RangeUnit, TypedHeaders,
 };
 use progress_read::ProgressRead;
-use reqwest::Response;
 use tee::TeeReader;
 
 use super::Archive;
@@ -38,9 +38,8 @@ struct MissingHeaderError {
 
 /// Determines the length of an HTTP response's content in bytes, using
 /// the HTTP `"Content-Length"` header.
-fn content_length(response: &Response) -> Result<u64, failure::Error> {
-    response
-        .headers()
+fn content_length(headers: &HeaderMap) -> Result<u64, failure::Error> {
+    headers
         .decode::<ContentLength>()
         .ok()
         .map(|v| v.0)
@@ -69,17 +68,14 @@ impl Tarball {
     /// tarball that can be streamed (and that tees its data to a local
     /// file as it streams).
     pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, failure::Error> {
-        let response = reqwest::get(url)?;
+        let (status, headers, response) = attohttpc::get(url).send()?.split();
 
-        if !response.status().is_success() {
-            return Err(super::HttpError {
-                code: response.status(),
-            }
-            .into());
+        if !status.is_success() {
+            return Err(super::HttpError { code: status }.into());
         }
 
-        let compressed_size = content_length(&response)?;
-        let uncompressed_size = if accepts_byte_ranges(&response) {
+        let compressed_size = content_length(&headers)?;
+        let uncompressed_size = if accepts_byte_ranges(&headers) {
             fetch_uncompressed_size(url, compressed_size)
         } else {
             None
@@ -151,21 +147,17 @@ struct UnexpectedContentLengthError {
 /// downloading the entire gzip file. For very small files it's unlikely to be
 /// more efficient than simply downloading the entire file up front.
 fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], failure::Error> {
-    let client = reqwest::Client::new();
     let range_header = Range::Bytes(vec![ByteRangeSpec::FromTo(len - 4, len - 1)]);
-    let mut response = client
-        .get(url)
+    let (status, headers, mut response) = attohttpc::get(url)
         .header(Range::header_name(), range_header.to_string())
-        .send()?;
+        .send()?
+        .split();
 
-    if !response.status().is_success() {
-        return Err(super::HttpError {
-            code: response.status(),
-        }
-        .into());
+    if !status.is_success() {
+        return Err(super::HttpError { code: status }.into());
     }
 
-    let actual_length = content_length(&response)?;
+    let actual_length = content_length(&headers)?;
 
     if actual_length != 4 {
         return Err(UnexpectedContentLengthError {
@@ -189,9 +181,8 @@ fn load_isize(file: &mut File) -> Result<[u8; 4], failure::Error> {
     Ok(buf)
 }
 
-fn accepts_byte_ranges(response: &Response) -> bool {
-    response
-        .headers()
+fn accepts_byte_ranges(headers: &HeaderMap) -> bool {
+    headers
         .decode::<AcceptRanges>()
         .ok()
         .map(|v| v.iter().any(|unit| *unit == RangeUnit::Bytes))

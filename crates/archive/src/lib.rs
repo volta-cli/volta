@@ -9,7 +9,7 @@ use failure::Fail;
 #[derive(Fail, Debug)]
 #[fail(display = "HTTP failure ({})", code)]
 pub struct HttpError {
-    pub code: ::reqwest::StatusCode,
+    pub code: ::attohttpc::StatusCode,
 }
 
 pub use crate::tarball::Tarball;
