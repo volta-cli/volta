@@ -18,9 +18,8 @@ use crate::tool::Node;
 use crate::version::{VersionSpec, VersionTag};
 use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
-use headers_011::Headers011;
+use hyperx::header::{CacheControl, CacheDirective, Expires, HttpDate, TypedHeaders};
 use log::debug;
-use reqwest::hyper_011::header::{CacheControl, CacheDirective, Expires, HttpDate};
 use semver::{Version, VersionReq};
 use volta_fail::{Fallible, ResultExt};
 
@@ -249,7 +248,7 @@ fn read_cached_opt(url: &str) -> Fallible<Option<serial::RawNodeIndex>> {
 
 /// Get the cache max-age of an HTTP reponse.
 fn max_age(response: &reqwest::Response) -> u32 {
-    if let Some(cache_control_header) = response.headers().get_011::<CacheControl>() {
+    if let Ok(cache_control_header) = response.headers().decode::<CacheControl>() {
         for cache_directive in cache_control_header.iter() {
             if let CacheDirective::MaxAge(max_age) = cache_directive {
                 return *max_age;
@@ -305,7 +304,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::RawNodeIndex> {
             let expiry = create_staging_file()?;
             let mut expiry_file: &File = expiry.as_file();
 
-            let result = if let Some(expires_header) = response.headers().get_011::<Expires>() {
+            let result = if let Ok(expires_header) = response.headers().decode::<Expires>() {
                 write!(expiry_file, "{}", expires_header)
             } else {
                 let expiry_date =

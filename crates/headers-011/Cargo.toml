@@ -1,8 +1,0 @@
-[package]
-name = "headers-011"
-version = "0.1.0"
-authors = ["David Herman <david.herman@gmail.com>"]
-edition = "2018"
-
-[dependencies]
-reqwest = { version = "0.9.9", features = ["hyper-011"] }
