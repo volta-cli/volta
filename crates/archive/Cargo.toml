@@ -8,11 +8,11 @@ edition = "2018"
 flate2 = "1.0"
 tar = "0.4.13"
 zip_rs = { version = "0.2.6", package = "zip" }
-reqwest = "0.9.9"
 tee = "0.1.0"
 fs-utils = { path = "../fs-utils" }
 progress-read = { path = "../progress-read" }
 verbatim = "0.1"
 cfg-if = "0.1"
-hyperx = "0.15.2"
+hyperx = "1.0.0"
 thiserror = "1.0.16"
+attohttpc = { version = "0.13.0", features = ["json"] }
