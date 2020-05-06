@@ -5,7 +5,7 @@ use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
-use failure::{self, Fail};
+use super::{Archive, ArchiveError, Origin};
 use flate2::read::GzDecoder;
 use fs_utils::ensure_containing_dir_exists;
 use hyperx::header::{
@@ -14,9 +14,6 @@ use hyperx::header::{
 use progress_read::ProgressRead;
 use reqwest::Response;
 use tee::TeeReader;
-
-use super::Archive;
-use super::Origin;
 
 /// A Node installation tarball.
 pub struct Tarball {
@@ -30,31 +27,20 @@ pub struct Tarball {
     origin: Origin,
 }
 
-#[derive(Fail, Debug)]
-#[fail(display = "HTTP header '{}' not found", header)]
-struct MissingHeaderError {
-    header: String,
-}
-
 /// Determines the length of an HTTP response's content in bytes, using
 /// the HTTP `"Content-Length"` header.
-fn content_length(response: &Response) -> Result<u64, failure::Error> {
+fn content_length(response: &Response) -> Result<u64, ArchiveError> {
     response
         .headers()
         .decode::<ContentLength>()
         .ok()
         .map(|v| v.0)
-        .ok_or_else(|| {
-            MissingHeaderError {
-                header: String::from("Content-Length"),
-            }
-            .into()
-        })
+        .ok_or_else(|| ArchiveError::MissingHeaderError(String::from("Content-Length")))
 }
 
 impl Tarball {
     /// Loads a tarball from the specified file.
-    pub fn load(mut source: File) -> Result<Box<dyn Archive>, failure::Error> {
+    pub fn load(mut source: File) -> Result<Box<dyn Archive>, ArchiveError> {
         let uncompressed_size = load_uncompressed_size(&mut source);
         let compressed_size = source.metadata()?.len();
         Ok(Box::new(Tarball {
@@ -68,14 +54,11 @@ impl Tarball {
     /// Initiate fetching of a tarball from the given URL, returning a
     /// tarball that can be streamed (and that tees its data to a local
     /// file as it streams).
-    pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, failure::Error> {
+    pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, ArchiveError> {
         let response = reqwest::get(url)?;
 
         if !response.status().is_success() {
-            return Err(super::HttpError {
-                code: response.status(),
-            }
-            .into());
+            return Err(ArchiveError::HttpError(response.status()));
         }
 
         let compressed_size = content_length(&response)?;
@@ -109,7 +92,7 @@ impl Archive for Tarball {
         self: Box<Self>,
         dest: &Path,
         progress: &mut dyn FnMut(&(), usize),
-    ) -> Result<(), failure::Error> {
+    ) -> Result<(), ArchiveError> {
         let decoded = GzDecoder::new(self.data);
         let mut tarball = tar::Archive::new(ProgressRead::new(decoded, (), progress));
         tarball.unpack(dest)?;
@@ -140,17 +123,11 @@ fn unpack_isize(packed: [u8; 4]) -> u64 {
     unpacked32 as u64
 }
 
-#[derive(Fail, Debug)]
-#[fail(display = "unexpected content length in HTTP response: {}", length)]
-struct UnexpectedContentLengthError {
-    length: u64,
-}
-
 /// Fetches just the `isize` field (the field that indicates the uncompressed size)
 /// of a gzip file from a URL. This makes two round-trips to the server but avoids
 /// downloading the entire gzip file. For very small files it's unlikely to be
 /// more efficient than simply downloading the entire file up front.
-fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], failure::Error> {
+fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], ArchiveError> {
     let client = reqwest::Client::new();
     let range_header = Range::Bytes(vec![ByteRangeSpec::FromTo(len - 4, len - 1)]);
     let mut response = client
@@ -159,19 +136,13 @@ fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], failure::Error> {
         .send()?;
 
     if !response.status().is_success() {
-        return Err(super::HttpError {
-            code: response.status(),
-        }
-        .into());
+        return Err(ArchiveError::HttpError(response.status()));
     }
 
     let actual_length = content_length(&response)?;
 
     if actual_length != 4 {
-        return Err(UnexpectedContentLengthError {
-            length: actual_length,
-        }
-        .into());
+        return Err(ArchiveError::UnexpectedContentLengthError(actual_length));
     }
 
     let mut buf = [0; 4];
@@ -181,7 +152,7 @@ fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], failure::Error> {
 
 /// Loads the `isize` field (the field that indicates the uncompressed size)
 /// of a gzip file from disk.
-fn load_isize(file: &mut File) -> Result<[u8; 4], failure::Error> {
+fn load_isize(file: &mut File) -> Result<[u8; 4], ArchiveError> {
     file.seek(SeekFrom::End(-4))?;
     let mut buf = [0; 4];
     file.read_exact(&mut buf)?;

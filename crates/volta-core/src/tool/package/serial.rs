@@ -6,14 +6,13 @@ use std::path::{Path, PathBuf};
 use super::install::{BinConfig, BinLoader, PackageConfig};
 use super::resolve::PackageIndex;
 use super::PackageDetails;
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible, VoltaError};
 use crate::layout::volta_home;
 use crate::toolchain;
 use crate::version::{hashmap_version_serde, version_serde};
 use fs_utils::ensure_containing_dir_exists;
 use semver::Version;
 use serde::{Deserialize, Serialize};
-use volta_fail::{Fallible, ResultExt, VoltaError};
 
 /// Package Metadata Response
 ///
@@ -119,24 +118,23 @@ pub struct RawPackageConfig {
 
 impl RawPackageConfig {
     pub fn into_json(self) -> Fallible<String> {
-        serde_json::to_string_pretty(&self)
-            .with_context(|_| ErrorDetails::StringifyPackageConfigError)
+        serde_json::to_string_pretty(&self).with_context(|| ErrorKind::StringifyPackageConfigError)
     }
 
     pub fn from_json(src: String) -> Fallible<Self> {
-        serde_json::de::from_str(&src).with_context(|_| ErrorDetails::ParsePackageConfigError)
+        serde_json::de::from_str(&src).with_context(|| ErrorKind::ParsePackageConfigError)
     }
 
     // Write the package config info to disk
     pub fn write(self) -> Fallible<()> {
         let config_file_path = volta_home()?.default_package_config_file(&self.name);
         let src = self.into_json()?;
-        ensure_containing_dir_exists(&config_file_path).with_context(|_| {
-            ErrorDetails::ContainingDirError {
+        ensure_containing_dir_exists(&config_file_path).with_context(|| {
+            ErrorKind::ContainingDirError {
                 path: config_file_path.clone(),
             }
         })?;
-        write(&config_file_path, src).with_context(|_| ErrorDetails::WritePackageConfigError {
+        write(&config_file_path, src).with_context(|| ErrorKind::WritePackageConfigError {
             file: config_file_path,
         })
     }
@@ -149,7 +147,7 @@ impl TryFrom<RawPackageConfig> for PackageConfig {
         let platform = raw
             .platform
             .into_platform()
-            .ok_or(ErrorDetails::NoBinPlatform {
+            .ok_or(ErrorKind::NoBinPlatform {
                 binary: raw.name.clone(),
             })?;
         Ok(PackageConfig {
@@ -164,7 +162,7 @@ impl TryFrom<RawPackageConfig> for PackageConfig {
 impl PackageConfig {
     pub fn from_file(file: &Path) -> Fallible<Self> {
         let config_src =
-            read_to_string(file).with_context(|_| ErrorDetails::ReadPackageConfigError {
+            read_to_string(file).with_context(|| ErrorKind::ReadPackageConfigError {
                 file: file.to_path_buf(),
             })?;
         RawPackageConfig::from_json(config_src)?.try_into()
@@ -202,23 +200,23 @@ pub struct RawBinLoader {
 
 impl RawBinConfig {
     pub fn into_json(self) -> Fallible<String> {
-        serde_json::to_string_pretty(&self).with_context(|_| ErrorDetails::StringifyBinConfigError)
+        serde_json::to_string_pretty(&self).with_context(|| ErrorKind::StringifyBinConfigError)
     }
 
     pub fn from_json(src: String) -> Fallible<Self> {
-        serde_json::de::from_str(&src).with_context(|_| ErrorDetails::ParseBinConfigError)
+        serde_json::de::from_str(&src).with_context(|| ErrorKind::ParseBinConfigError)
     }
 
     /// Write the config to disk
     pub fn write(self) -> Fallible<()> {
         let bin_config_path = volta_home()?.default_tool_bin_config(&self.name);
         let src = self.into_json()?;
-        ensure_containing_dir_exists(&bin_config_path).with_context(|_| {
-            ErrorDetails::ContainingDirError {
+        ensure_containing_dir_exists(&bin_config_path).with_context(|| {
+            ErrorKind::ContainingDirError {
                 path: bin_config_path.clone(),
             }
         })?;
-        write(&bin_config_path, src).with_context(|_| ErrorDetails::WriteBinConfigError {
+        write(&bin_config_path, src).with_context(|| ErrorKind::WriteBinConfigError {
             file: bin_config_path,
         })
     }
@@ -227,7 +225,7 @@ impl RawBinConfig {
 impl BinConfig {
     pub fn from_file(file: PathBuf) -> Fallible<Self> {
         let config_src =
-            read_to_string(&file).with_context(|_| ErrorDetails::ReadBinConfigError { file })?;
+            read_to_string(&file).with_context(|| ErrorKind::ReadBinConfigError { file })?;
         RawBinConfig::from_json(config_src)?.try_into()
     }
 }
@@ -239,7 +237,7 @@ impl TryFrom<RawBinConfig> for BinConfig {
         let platform = raw
             .platform
             .into_platform()
-            .ok_or(ErrorDetails::NoBinPlatform {
+            .ok_or(ErrorKind::NoBinPlatform {
                 binary: raw.name.clone(),
             })?;
         Ok(BinConfig {

@@ -2,15 +2,13 @@ use std::ffi::OsStr;
 use std::path::PathBuf;
 
 use super::{debug_tool_message, ToolCommand};
-use crate::error::ErrorDetails;
+use crate::error::{ErrorKind, Fallible};
 use crate::layout::volta_home;
 use crate::platform::{CliPlatform, Platform, Sourced};
 use crate::session::{ActivityKind, Session};
 use crate::tool::bin_full_path;
 use crate::tool::{BinConfig, BinLoader};
-
 use log::debug;
-use volta_fail::{throw, Fallible};
 
 pub(crate) fn command(
     exe: &OsStr,
@@ -28,9 +26,10 @@ pub(crate) fn command(
             path_to_bin.push(&exe);
 
             if !path_to_bin.is_file() {
-                throw!(ErrorDetails::ProjectLocalBinaryNotFound {
+                return Err(ErrorKind::ProjectLocalBinaryNotFound {
                     command: path_to_bin.to_string_lossy().to_string(),
-                });
+                }
+                .into());
             }
 
             debug!(
@@ -50,7 +49,7 @@ pub(crate) fn command(
 
             // if there's no platform available, pass through to existing PATH.
             debug!("Could not find Volta configuration, delegating to system");
-            return ToolCommand::passthrough(&path_to_bin, ErrorDetails::NoPlatform);
+            return ToolCommand::passthrough(&path_to_bin, ErrorKind::NoPlatform);
         }
     }
 
@@ -86,7 +85,7 @@ pub(crate) fn command(
     );
     ToolCommand::passthrough(
         &exe,
-        ErrorDetails::BinaryNotFound {
+        ErrorKind::BinaryNotFound {
             name: exe.to_string_lossy().to_string(),
         },
     )

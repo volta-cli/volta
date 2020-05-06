@@ -10,13 +10,12 @@ use std::str::FromStr;
 use lazycell::LazyCell;
 use semver::Version;
 
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible};
 use crate::layout::volta_home;
 use crate::manifest::Manifest;
 use crate::platform::PlatformSpec;
 use crate::tool::BinConfig;
 use log::debug;
-use volta_fail::{Fallible, ResultExt};
 
 /// A lazily loaded Project
 pub struct LazyProject {
@@ -67,8 +66,7 @@ impl Project {
     /// Returns the Node project containing the current working directory,
     /// if any.
     fn for_current_dir() -> Fallible<Option<Project>> {
-        let current_dir: &Path =
-            &env::current_dir().with_context(|_| ErrorDetails::CurrentDirError)?;
+        let current_dir: &Path = &env::current_dir().with_context(|| ErrorKind::CurrentDirError)?;
         Self::for_dir(&current_dir)
     }
 
@@ -201,7 +199,7 @@ impl Project {
             self.manifest.update_platform(updated_platform);
             self.manifest.write(self.package_file())
         } else {
-            Err(ErrorDetails::NoPinnedNodeVersion {
+            Err(ErrorKind::NoPinnedNodeVersion {
                 tool: "Yarn".into(),
             }
             .into())
@@ -220,7 +218,7 @@ impl Project {
             self.manifest.update_platform(updated_platform);
             self.manifest.write(self.package_file())
         } else {
-            Err(ErrorDetails::NoPinnedNodeVersion { tool: "npm".into() }.into())
+            Err(ErrorKind::NoPinnedNodeVersion { tool: "npm".into() }.into())
         }
     }
 }

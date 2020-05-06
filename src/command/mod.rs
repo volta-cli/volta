@@ -20,8 +20,8 @@ pub(crate) use run::Run;
 pub(crate) use setup::Setup;
 pub(crate) use uninstall::Uninstall;
 
+use volta_core::error::{ExitCode, Fallible};
 use volta_core::session::Session;
-use volta_fail::{ExitCode, Fallible};
 
 /// A Volta command.
 pub(crate) trait Command: Sized {

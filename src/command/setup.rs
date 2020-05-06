@@ -1,10 +1,10 @@
 use log::info;
 use structopt::StructOpt;
+use volta_core::error::{ExitCode, Fallible};
 use volta_core::layout::volta_home;
 use volta_core::session::{ActivityKind, Session};
 use volta_core::shim::regenerate_shims_for_dir;
 use volta_core::style::success_prefix;
-use volta_fail::{ExitCode, Fallible};
 
 use crate::command::Command;
 
@@ -36,9 +36,8 @@ mod os {
     use std::path::{Path, PathBuf};
 
     use log::{debug, warn};
-    use volta_core::error::ErrorDetails;
+    use volta_core::error::{ErrorKind, Fallible};
     use volta_core::layout::volta_home;
-    use volta_fail::Fallible;
 
     pub fn setup_environment() -> Fallible<()> {
         let home = volta_home()?;
@@ -70,7 +69,7 @@ mod os {
         if found_profile {
             Ok(())
         } else {
-            Err(ErrorDetails::NoShellProfile {
+            Err(ErrorKind::NoShellProfile {
                 env_profile: String::new(),
                 bin_dir: home.shim_dir().to_owned(),
             }
@@ -82,7 +81,7 @@ mod os {
     ///
     /// Any file in the list should be created if it doesn't already exist
     fn determine_profiles() -> Fallible<Vec<PathBuf>> {
-        let home_dir = dirs::home_dir().ok_or(ErrorDetails::NoHomeEnvironmentVar)?;
+        let home_dir = dirs::home_dir().ok_or(ErrorKind::NoHomeEnvironmentVar)?;
         let shell = env::var("SHELL").unwrap_or_else(|_| String::new());
         let mut profiles = Vec::new();
 
@@ -197,9 +196,8 @@ mod os {
     use std::process::Command;
 
     use log::debug;
-    use volta_core::error::ErrorDetails;
+    use volta_core::error::{Context, ErrorKind, Fallible};
     use volta_core::layout::volta_home;
-    use volta_fail::{Fallible, ResultExt};
     use winreg::enums::HKEY_CURRENT_USER;
     use winreg::RegKey;
 
@@ -208,10 +206,10 @@ mod os {
         let hkcu = RegKey::predef(HKEY_CURRENT_USER);
         let env = hkcu
             .open_subkey("Environment")
-            .with_context(|_| ErrorDetails::ReadUserPathError)?;
+            .with_context(|| ErrorKind::ReadUserPathError)?;
         let path: String = env
             .get_value("Path")
-            .with_context(|_| ErrorDetails::ReadUserPathError)?;
+            .with_context(|| ErrorKind::ReadUserPathError)?;
 
         if !path.contains(&shim_dir) {
             // Use `setx` command to edit the user Path environment variable
@@ -222,12 +220,12 @@ mod os {
             debug!("Modifying User Path with command: {:?}", command);
             let output = command
                 .output()
-                .with_context(|_| ErrorDetails::WriteUserPathError)?;
+                .with_context(|| ErrorKind::WriteUserPathError)?;
 
             if !output.status.success() {
                 debug!("[setx stderr]\n{}", String::from_utf8_lossy(&output.stderr));
                 debug!("[setx stdout]\n{}", String::from_utf8_lossy(&output.stdout));
-                return Err(ErrorDetails::WriteUserPathError.into());
+                return Err(ErrorKind::WriteUserPathError.into());
             }
         }
 

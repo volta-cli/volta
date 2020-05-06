@@ -5,10 +5,9 @@ use std::fs::{read_to_string, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible};
 use crate::platform::PlatformSpec;
 use serde::Serialize;
-use volta_fail::{Fallible, ResultExt};
 
 pub(crate) mod serial;
 
@@ -26,15 +25,14 @@ impl Manifest {
     /// Loads and parses a Node manifest for the project rooted at the specified path.
     pub fn for_dir(project_root: &Path) -> Fallible<Manifest> {
         let package_file = project_root.join("package.json");
-        let file = File::open(&package_file).with_context(|_| ErrorDetails::PackageReadError {
+        let file = File::open(&package_file).with_context(|| ErrorKind::PackageReadError {
             file: package_file.to_path_buf(),
         })?;
 
-        let serial: serial::Manifest = serde_json::de::from_reader(file).with_context(|_| {
-            ErrorDetails::PackageParseError {
+        let serial: serial::Manifest =
+            serde_json::de::from_reader(file).with_context(|| ErrorKind::PackageParseError {
                 file: package_file.to_path_buf(),
-            }
-        })?;
+            })?;
         serial.into_manifest(&package_file)
     }
 
@@ -65,12 +63,12 @@ impl Manifest {
 
         // parse the entire package.json file into a Value
         let contents = read_to_string(&package_file)
-            .with_context(|_| ErrorDetails::PackageReadError { file: get_file() })?;
+            .with_context(|| ErrorKind::PackageReadError { file: get_file() })?;
 
         let is_end_with_newline = contents.ends_with('\n');
 
         let mut v: serde_json::Value = serde_json::from_str(&contents)
-            .with_context(|_| ErrorDetails::PackageParseError { file: get_file() })?;
+            .with_context(|| ErrorKind::PackageParseError { file: get_file() })?;
 
         if let Some(map) = v.as_object_mut() {
             // detect indentation in package.json
@@ -79,7 +77,7 @@ impl Manifest {
             // update the "volta" key
             if let Some(platform) = self.platform() {
                 let volta_value = serde_json::to_value(serial::ToolchainSpec::of(platform))
-                    .with_context(|_| ErrorDetails::StringifyToolchainError)?;
+                    .with_context(|| ErrorKind::StringifyToolchainError)?;
                 map.insert("volta".to_string(), volta_value);
             } else {
                 map.remove("volta");
@@ -87,16 +85,16 @@ impl Manifest {
 
             // serialize the updated contents back to package.json
             let mut file = File::create(&package_file)
-                .with_context(|_| ErrorDetails::PackageWriteError { file: get_file() })?;
+                .with_context(|| ErrorKind::PackageWriteError { file: get_file() })?;
             let formatter =
                 serde_json::ser::PrettyFormatter::with_indent(indent.indent().as_bytes());
             let mut ser = serde_json::Serializer::with_formatter(&file, formatter);
             map.serialize(&mut ser)
-                .with_context(|_| ErrorDetails::PackageWriteError { file: get_file() })?;
+                .with_context(|| ErrorKind::PackageWriteError { file: get_file() })?;
             // append the empty line if the original package.json has one
             if is_end_with_newline {
                 writeln!(file)
-                    .with_context(|_| ErrorDetails::PackageWriteError { file: get_file() })?;
+                    .with_context(|| ErrorKind::PackageWriteError { file: get_file() })?;
             }
         }
         Ok(())
@@ -113,12 +111,12 @@ pub struct BinManifest {
 impl BinManifest {
     pub fn for_dir(project_root: &Path) -> Fallible<Self> {
         let package_file = project_root.join("package.json");
-        let file = File::open(&package_file).with_context(|_| ErrorDetails::PackageReadError {
+        let file = File::open(&package_file).with_context(|| ErrorKind::PackageReadError {
             file: package_file.to_path_buf(),
         })?;
 
         serde_json::de::from_reader::<File, serial::RawBinManifest>(file)
-            .with_context(|_| ErrorDetails::PackageParseError {
+            .with_context(|| ErrorKind::PackageParseError {
                 file: package_file.to_path_buf(),
             })
             .map(BinManifest::from)

@@ -4,7 +4,7 @@ use std::fs::{read_to_string, rename, write, File};
 use std::path::{Path, PathBuf};
 
 use super::NodeVersion;
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::{create_staging_dir, create_staging_file};
 use crate::hook::ToolHooks;
 use crate::layout::volta_home;
@@ -17,7 +17,6 @@ use fs_utils::ensure_containing_dir_exists;
 use log::debug;
 use semver::Version;
 use serde::Deserialize;
-use volta_fail::{Fallible, ResultExt};
 
 cfg_if! {
     if #[cfg(feature = "mock-network")] {
@@ -69,14 +68,14 @@ pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Node>>) -> Fallible<Nod
     let node_version = unpack_archive(archive, version)?;
 
     if let Some(staging_file) = staging {
-        ensure_containing_dir_exists(&cache_file).with_context(|_| {
-            ErrorDetails::ContainingDirError {
+        ensure_containing_dir_exists(&cache_file).with_context(|| {
+            ErrorKind::ContainingDirError {
                 path: cache_file.clone(),
             }
         })?;
         staging_file
             .persist(cache_file)
-            .with_context(|_| ErrorDetails::PersistInventoryError {
+            .with_context(|| ErrorKind::PersistInventoryError {
                 tool: "Node".into(),
             })?;
     }
@@ -102,7 +101,7 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<Node
         .unpack(temp.path(), &mut |_, read| {
             progress.inc(read as u64);
         })
-        .with_context(|_| ErrorDetails::UnpackArchiveError {
+        .with_context(|| ErrorKind::UnpackArchiveError {
             tool: "Node".into(),
             version: version_string.clone(),
         })?;
@@ -114,13 +113,13 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<Node
 
     let dest = volta_home()?.node_image_dir(&version_string);
     ensure_containing_dir_exists(&dest)
-        .with_context(|_| ErrorDetails::ContainingDirError { path: dest.clone() })?;
+        .with_context(|| ErrorKind::ContainingDirError { path: dest.clone() })?;
 
     rename(
         temp.path().join(Node::archive_basename(&version_string)),
         &dest,
     )
-    .with_context(|_| ErrorDetails::SetupToolImageError {
+    .with_context(|| ErrorKind::SetupToolImageError {
         tool: "Node".into(),
         version: version_string,
         dir: dest.clone(),
@@ -193,9 +192,9 @@ struct Manifest {
 impl Manifest {
     /// Parse the version out of a package.json file
     fn version(path: &Path) -> Fallible<Version> {
-        let file = File::open(path).with_context(|_| ErrorDetails::ReadNpmManifestError)?;
-        let manifest: Manifest = serde_json::de::from_reader(file)
-            .with_context(|_| ErrorDetails::ParseNpmManifestError)?;
+        let file = File::open(path).with_context(|| ErrorKind::ReadNpmManifestError)?;
+        let manifest: Manifest =
+            serde_json::de::from_reader(file).with_context(|| ErrorKind::ParseNpmManifestError)?;
         parse_version(manifest.version)
     }
 }
@@ -203,19 +202,18 @@ impl Manifest {
 /// Load the local npm version file to determine the default npm version for a given version of Node
 pub fn load_default_npm_version(node: &Version) -> Fallible<Version> {
     let npm_version_file_path = volta_home()?.node_npm_version_file(&node.to_string());
-    let npm_version = read_to_string(&npm_version_file_path).with_context(|_| {
-        ErrorDetails::ReadDefaultNpmError {
+    let npm_version =
+        read_to_string(&npm_version_file_path).with_context(|| ErrorKind::ReadDefaultNpmError {
             file: npm_version_file_path,
-        }
-    })?;
+        })?;
     parse_version(npm_version)
 }
 
 /// Save the default npm version to the filesystem for a given version of Node
 fn save_default_npm_version(node: &Version, npm: &Version) -> Fallible<()> {
     let npm_version_file_path = volta_home()?.node_npm_version_file(&node.to_string());
-    write(&npm_version_file_path, npm.to_string().as_bytes()).with_context(|_| {
-        ErrorDetails::WriteDefaultNpmError {
+    write(&npm_version_file_path, npm.to_string().as_bytes()).with_context(|| {
+        ErrorKind::WriteDefaultNpmError {
             file: npm_version_file_path,
         }
     })

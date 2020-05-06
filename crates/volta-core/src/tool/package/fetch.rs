@@ -4,7 +4,7 @@ use std::fs::{rename, write, File};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::{create_staging_dir, ensure_dir_does_not_exist, read_dir_eager, read_file};
 use crate::layout::volta_home;
 use crate::platform::CliPlatform;
@@ -17,7 +17,6 @@ use fs_utils::ensure_containing_dir_exists;
 use log::debug;
 use semver::Version;
 use sha1::{Digest, Sha1};
-use volta_fail::{throw, Fallible, ResultExt};
 
 pub fn fetch(name: &str, details: &PackageDetails, session: &mut Session) -> Fallible<()> {
     let version_string = details.version.to_string();
@@ -46,8 +45,8 @@ pub fn fetch(name: &str, details: &PackageDetails, session: &mut Session) -> Fal
         Ok(())
     } else {
         // Save the shasum in a file
-        write(&shasum_file, details.shasum.as_bytes()).with_context(|_| {
-            ErrorDetails::WritePackageShasumError {
+        write(&shasum_file, details.shasum.as_bytes()).with_context(|| {
+            ErrorKind::WritePackageShasumError {
                 package: name.into(),
                 version: version_string,
                 file: shasum_file,
@@ -83,7 +82,7 @@ fn fetch_remote_distro(
     details: &PackageDetails,
     session: &mut Session,
 ) -> Fallible<Box<dyn Archive>> {
-    ensure_containing_dir_exists(&path).with_context(|_| ErrorDetails::ContainingDirError {
+    ensure_containing_dir_exists(&path).with_context(|| ErrorKind::ContainingDirError {
         path: path.to_path_buf(),
     })?;
 
@@ -112,9 +111,10 @@ fn fetch_remote_distro(
             String::from_utf8_lossy(&output.stderr).to_string()
         );
         debug!("Exit code is {:?}", output.status.code());
-        throw!(ErrorDetails::NpmPackFetchError {
+        return Err(ErrorKind::NpmPackFetchError {
             package: tool_version(name, details.version.to_string()),
-        });
+        }
+        .into());
     }
 
     let filename = String::from_utf8_lossy(&output.stdout);
@@ -122,17 +122,19 @@ fn fetch_remote_distro(
     let trimmed_filename = filename.trim();
 
     if trimmed_filename.is_empty() {
-        throw!(ErrorDetails::NpmPackUnpackError {
-            package: tool_version(name, details.version.to_string())
-        });
+        return Err(ErrorKind::NpmPackUnpackError {
+            package: tool_version(name, details.version.to_string()),
+        }
+        .into());
     }
 
     let tarball_from_npm_pack = dir.join(trimmed_filename.to_string());
 
     if !tarball_from_npm_pack.exists() {
-        throw!(ErrorDetails::NpmPackUnpackError {
-            package: tool_version(name, details.version.to_string())
-        });
+        return Err(ErrorKind::NpmPackUnpackError {
+            package: tool_version(name, details.version.to_string()),
+        }
+        .into());
     }
 
     // If `npm pack` didn't name the tarball what we expect (usually because of scoped packages),
@@ -142,17 +144,17 @@ fn fetch_remote_distro(
             "Moving the tarball from {:?} to the expected path {:?}",
             tarball_from_npm_pack, path
         );
-        rename(tarball_from_npm_pack, path).with_context(|_| ErrorDetails::NpmPackUnpackError {
+        rename(tarball_from_npm_pack, path).with_context(|| ErrorKind::NpmPackUnpackError {
             package: tool_version(name, details.version.to_string()),
         })?;
     }
 
     debug!("Attempting to load {:?}", path);
-    let distro = File::open(path).with_context(|_| ErrorDetails::NpmPackUnpackError {
+    let distro = File::open(path).with_context(|| ErrorKind::NpmPackUnpackError {
         package: tool_version(name, details.version.to_string()),
     })?;
 
-    Tarball::load(distro).with_context(|_| ErrorDetails::NpmPackUnpackError {
+    Tarball::load(distro).with_context(|| ErrorKind::NpmPackUnpackError {
         package: tool_version(name, details.version.to_string()),
     })
 }
@@ -188,23 +190,21 @@ fn unpack_archive(archive: Box<dyn Archive>, name: &str, version: &Version) -> F
         .unpack(temp.path(), &mut |_, read| {
             progress.inc(read as u64);
         })
-        .with_context(|_| ErrorDetails::UnpackArchiveError {
+        .with_context(|| ErrorKind::UnpackArchiveError {
             tool: name.into(),
             version: version.to_string(),
         })?;
 
     let image_dir = volta_home()?.package_image_dir(&name, &version.to_string());
     // ensure that the dir where this will be unpacked exists
-    ensure_containing_dir_exists(&image_dir).with_context(|_| {
-        ErrorDetails::ContainingDirError {
-            path: image_dir.clone(),
-        }
+    ensure_containing_dir_exists(&image_dir).with_context(|| ErrorKind::ContainingDirError {
+        path: image_dir.clone(),
     })?;
     // and ensure that the target directory does not exist
     ensure_dir_does_not_exist(&image_dir)?;
 
     let unpack_dir = find_unpack_dir(temp.path())?;
-    rename(unpack_dir, &image_dir).with_context(|_| ErrorDetails::SetupToolImageError {
+    rename(unpack_dir, &image_dir).with_context(|| ErrorKind::SetupToolImageError {
         tool: name.into(),
         version: version.to_string(),
         dir: image_dir.clone(),
@@ -223,7 +223,7 @@ fn unpack_archive(archive: Box<dyn Archive>, name: &str, version: &Version) -> F
 /// Packages typically extract to a "package" directory, but not always
 fn find_unpack_dir(in_dir: &Path) -> Fallible<PathBuf> {
     let dirs: Vec<_> = read_dir_eager(in_dir)
-        .with_context(|_| ErrorDetails::PackageUnpackError)?
+        .with_context(|| ErrorKind::PackageUnpackError)?
         .collect();
 
     // if there is only one directory, return that
@@ -233,5 +233,5 @@ fn find_unpack_dir(in_dir: &Path) -> Fallible<PathBuf> {
         }
     }
     // there is more than just a single directory here, something is wrong
-    Err(ErrorDetails::PackageUnpackError.into())
+    Err(ErrorKind::PackageUnpackError.into())
 }

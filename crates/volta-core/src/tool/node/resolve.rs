@@ -8,7 +8,7 @@ use std::time::{Duration, SystemTime};
 
 use super::super::registry_fetch_error;
 use super::serial;
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::{create_staging_file, read_file};
 use crate::hook::ToolHooks;
 use crate::layout::volta_home;
@@ -21,7 +21,6 @@ use fs_utils::ensure_containing_dir_exists;
 use hyperx::header::{CacheControl, CacheDirective, Expires, HttpDate, TypedHeaders};
 use log::debug;
 use semver::{Version, VersionReq};
-use volta_fail::{Fallible, ResultExt};
 
 // ISSUE (#86): Move public repository URLs to config file
 cfg_if! {
@@ -47,7 +46,7 @@ pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Version
         VersionSpec::Tag(VersionTag::LtsRequirement(req)) => resolve_lts_semver(req, hooks),
         // Node doesn't have "tagged" versions (apart from 'latest' and 'lts'), so custom tags will always be an error
         VersionSpec::Tag(VersionTag::Custom(tag)) => {
-            Err(ErrorDetails::NodeVersionNotFound { matching: tag }.into())
+            Err(ErrorKind::NodeVersionNotFound { matching: tag }.into())
         }
     }
 }
@@ -73,7 +72,7 @@ fn resolve_latest(hooks: Option<&ToolHooks<Node>>) -> Fallible<Version> {
             debug!("Found latest node version ({}) from {}", version, url);
             Ok(version)
         }
-        None => Err(ErrorDetails::NodeVersionNotFound {
+        None => Err(ErrorKind::NodeVersionNotFound {
             matching: "latest".into(),
         }
         .into()),
@@ -98,7 +97,7 @@ fn resolve_lts(hooks: Option<&ToolHooks<Node>>) -> Fallible<Version> {
             debug!("Found newest LTS node version ({}) from {}", version, url);
             Ok(version)
         }
-        None => Err(ErrorDetails::NodeVersionNotFound {
+        None => Err(ErrorKind::NodeVersionNotFound {
             matching: "lts".into(),
         }
         .into()),
@@ -128,7 +127,7 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Node>>) -> Fall
             );
             Ok(version)
         }
-        None => Err(ErrorDetails::NodeVersionNotFound {
+        None => Err(ErrorKind::NodeVersionNotFound {
             matching: matching.to_string(),
         }
         .into()),
@@ -177,7 +176,7 @@ fn resolve_lts_semver(matching: VersionReq, hooks: Option<&ToolHooks<Node>>) -> 
             );
             Ok(version)
         }
-        None => Err(ErrorDetails::NodeVersionNotFound {
+        None => Err(ErrorKind::NodeVersionNotFound {
             matching: matching.to_string(),
         }
         .into()),
@@ -217,27 +216,26 @@ pub struct NodeDistroFiles {
 /// Reads a public index from the Node cache, if it exists and hasn't expired.
 fn read_cached_opt(url: &str) -> Fallible<Option<serial::RawNodeIndex>> {
     let expiry_file = volta_home()?.node_index_expiry_file();
-    let expiry =
-        read_file(&expiry_file).with_context(|_| ErrorDetails::ReadNodeIndexExpiryError {
-            file: expiry_file.to_owned(),
-        })?;
+    let expiry = read_file(&expiry_file).with_context(|| ErrorKind::ReadNodeIndexExpiryError {
+        file: expiry_file.to_owned(),
+    })?;
 
     if let Some(date) = expiry {
         let expiry_date =
-            HttpDate::from_str(&date).with_context(|_| ErrorDetails::ParseNodeIndexExpiryError)?;
+            HttpDate::from_str(&date).with_context(|| ErrorKind::ParseNodeIndexExpiryError)?;
         let current_date = HttpDate::from(SystemTime::now());
 
         if current_date < expiry_date {
             let index_file = volta_home()?.node_index_file();
             let cached =
-                read_file(&index_file).with_context(|_| ErrorDetails::ReadNodeIndexCacheError {
+                read_file(&index_file).with_context(|| ErrorKind::ReadNodeIndexCacheError {
                     file: index_file.to_owned(),
                 })?;
 
             if let Some(content) = cached {
                 if content.starts_with(url) {
                     return serde_json::de::from_str(&content[url.len()..])
-                        .with_context(|_| ErrorDetails::ParseNodeIndexCacheError);
+                        .with_context(|| ErrorKind::ParseNodeIndexCacheError);
                 }
             }
         }
@@ -276,7 +274,7 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::RawNodeIndex> {
                 .text()
                 .with_context(registry_fetch_error("Node", url))?;
             let index: serial::RawNodeIndex = serde_json::de::from_str(&response_text)
-                .with_context(|_| ErrorDetails::ParseNodeIndexError {
+                .with_context(|| ErrorKind::ParseNodeIndexError {
                     from_url: url.to_string(),
                 })?;
 
@@ -285,18 +283,18 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::RawNodeIndex> {
             let mut cached_file: &File = cached.as_file();
             writeln!(cached_file, "{}", url)
                 .and_then(|_| cached_file.write(response_text.as_bytes()))
-                .with_context(|_| ErrorDetails::WriteNodeIndexCacheError {
+                .with_context(|| ErrorKind::WriteNodeIndexCacheError {
                     file: cached.path().to_path_buf(),
                 })?;
 
             let index_cache_file = volta_home()?.node_index_file();
-            ensure_containing_dir_exists(&index_cache_file).with_context(|_| {
-                ErrorDetails::ContainingDirError {
+            ensure_containing_dir_exists(&index_cache_file).with_context(|| {
+                ErrorKind::ContainingDirError {
                     path: index_cache_file.to_owned(),
                 }
             })?;
-            cached.persist(&index_cache_file).with_context(|_| {
-                ErrorDetails::WriteNodeIndexCacheError {
+            cached.persist(&index_cache_file).with_context(|| {
+                ErrorKind::WriteNodeIndexCacheError {
                     file: index_cache_file.to_owned(),
                 }
             })?;
@@ -313,18 +311,18 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::RawNodeIndex> {
                 write!(expiry_file, "{}", HttpDate::from(expiry_date))
             };
 
-            result.with_context(|_| ErrorDetails::WriteNodeIndexExpiryError {
+            result.with_context(|| ErrorKind::WriteNodeIndexExpiryError {
                 file: expiry.path().to_path_buf(),
             })?;
 
             let index_expiry_file = volta_home()?.node_index_expiry_file();
-            ensure_containing_dir_exists(&index_expiry_file).with_context(|_| {
-                ErrorDetails::ContainingDirError {
+            ensure_containing_dir_exists(&index_expiry_file).with_context(|| {
+                ErrorKind::ContainingDirError {
                     path: index_expiry_file.to_owned(),
                 }
             })?;
-            expiry.persist(&index_expiry_file).with_context(|_| {
-                ErrorDetails::WriteNodeIndexExpiryError {
+            expiry.persist(&index_expiry_file).with_context(|| {
+                ErrorKind::WriteNodeIndexExpiryError {
                     file: index_expiry_file.to_owned(),
                 }
             })?;

@@ -1,6 +1,6 @@
 use std::fs::write;
 
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::touch;
 use crate::layout::volta_home;
 use crate::platform::PlatformSpec;
@@ -8,7 +8,6 @@ use lazycell::LazyCell;
 use log::debug;
 use readext::ReadExt;
 use semver::Version;
-use volta_fail::{Fallible, ResultExt};
 
 pub mod serial;
 
@@ -45,7 +44,7 @@ impl Toolchain {
         let path = volta_home()?.default_platform_file();
         let src = touch(&path)
             .and_then(|mut file| file.read_into_string())
-            .with_context(|_| ErrorDetails::ReadPlatformError {
+            .with_context(|| ErrorKind::ReadPlatformError {
                 file: path.to_owned(),
             })?;
 
@@ -121,7 +120,7 @@ impl Toolchain {
             }
             None => write(&path, "{}"),
         };
-        result.with_context(|_| ErrorDetails::WritePlatformError {
+        result.with_context(|| ErrorKind::WritePlatformError {
             file: path.to_owned(),
         })
     }

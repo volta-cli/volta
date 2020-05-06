@@ -1,12 +1,11 @@
 use std::env;
 use std::path::PathBuf;
 
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible};
 use cfg_if::cfg_if;
 use double_checked_cell::DoubleCheckedCell;
 use dunce::canonicalize;
 use lazy_static::lazy_static;
-use volta_fail::{Fallible, ResultExt};
 use volta_layout::v2::{VoltaHome, VoltaInstall};
 
 cfg_if! {
@@ -59,5 +58,5 @@ fn default_install_dir() -> Fallible<PathBuf> {
             path
         })
         .and_then(canonicalize)
-        .with_context(|_| ErrorDetails::NoInstallDir)
+        .with_context(|| ErrorKind::NoInstallDir)
 }

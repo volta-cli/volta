@@ -7,10 +7,9 @@ use std::path::PathBuf;
 use super::empty::Empty;
 use super::v0::V0;
 use log::debug;
-use volta_core::error::ErrorDetails;
+use volta_core::error::{Context, ErrorKind, Fallible, VoltaError};
 #[cfg(unix)]
 use volta_core::fs::read_dir_eager;
-use volta_fail::{Fallible, ResultExt, VoltaError};
 use volta_layout::v1;
 
 /// Represents a V1 Volta Layout (used by Volta v0.7.0 - v0.7.2)
@@ -33,7 +32,7 @@ impl V1 {
     /// accidentally mark an incomplete migration as completed
     fn complete_migration(home: v1::VoltaHome) -> Fallible<Self> {
         debug!("Writing layout marker file");
-        File::create(home.layout_file()).with_context(|_| ErrorDetails::CreateLayoutFileError {
+        File::create(home.layout_file()).with_context(|| ErrorKind::CreateLayoutFileError {
             file: home.layout_file().to_owned(),
         })?;
 
@@ -48,10 +47,9 @@ impl TryFrom<Empty> for V1 {
         debug!("New Volta installation detected, creating fresh layout");
 
         let home = v1::VoltaHome::new(old.home);
-        home.create()
-            .with_context(|_| ErrorDetails::CreateDirError {
-                dir: home.root().to_owned(),
-            })?;
+        home.create().with_context(|| ErrorKind::CreateDirError {
+            dir: home.root().to_owned(),
+        })?;
 
         V1::complete_migration(home)
     }
@@ -66,7 +64,7 @@ impl TryFrom<V0> for V1 {
         let new_home = v1::VoltaHome::new(old.home.root().to_owned());
         new_home
             .create()
-            .with_context(|_| ErrorDetails::CreateDirError {
+            .with_context(|| ErrorKind::CreateDirError {
                 dir: new_home.root().to_owned(),
             })?;
 
@@ -74,7 +72,7 @@ impl TryFrom<V0> for V1 {
         {
             debug!("Removing unnecessary 'load.*' files");
             let root_contents =
-                read_dir_eager(new_home.root()).with_context(|_| ErrorDetails::ReadDirError {
+                read_dir_eager(new_home.root()).with_context(|| ErrorKind::ReadDirError {
                     dir: new_home.root().to_owned(),
                 })?;
             for (entry, _) in root_contents {
@@ -82,7 +80,7 @@ impl TryFrom<V0> for V1 {
                 if let Some(stem) = path.file_stem() {
                     if stem == "load" && path.is_file() {
                         remove_file(&path)
-                            .with_context(|_| ErrorDetails::DeleteFileError { file: path })?;
+                            .with_context(|| ErrorKind::DeleteFileError { file: path })?;
                     }
                 }
             }
@@ -90,7 +88,7 @@ impl TryFrom<V0> for V1 {
             debug!("Removing old Volta binaries");
             let old_volta_bin = new_home.root().join("volta");
             if old_volta_bin.exists() {
-                remove_file(&old_volta_bin).with_context(|_| ErrorDetails::DeleteFileError {
+                remove_file(&old_volta_bin).with_context(|| ErrorKind::DeleteFileError {
                     file: old_volta_bin,
                 })?;
             }
@@ -98,7 +96,7 @@ impl TryFrom<V0> for V1 {
             let old_shim_bin = new_home.root().join("shim");
             if old_shim_bin.exists() {
                 remove_file(&old_shim_bin)
-                    .with_context(|_| ErrorDetails::DeleteFileError { file: old_shim_bin })?;
+                    .with_context(|| ErrorKind::DeleteFileError { file: old_shim_bin })?;
             }
         }
 

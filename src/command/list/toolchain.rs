@@ -4,11 +4,11 @@ use semver::Version;
 
 use super::{Filter, Node, Package, PackageManager, Source};
 use crate::command::list::PackageManagerKind;
+use volta_core::error::Fallible;
 use volta_core::inventory::{node_versions, npm_versions, package_configs, yarn_versions};
 use volta_core::platform::PlatformSpec;
 use volta_core::project::Project;
 use volta_core::tool::PackageConfig;
-use volta_fail::Fallible;
 
 pub(super) enum Toolchain {
     Node(Vec<Node>),

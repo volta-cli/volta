@@ -1,12 +1,11 @@
 use std::cmp::Ordering;
 
 use super::Spec;
-use crate::error::ErrorDetails;
+use crate::error::{ErrorKind, Fallible};
 use crate::version::{VersionSpec, VersionTag};
 use lazy_static::lazy_static;
 use regex::Regex;
 use validate_npm_package_name::{validate, Validity};
-use volta_fail::Fallible;
 
 lazy_static! {
     static ref TOOL_SPEC_PATTERN: Regex =
@@ -31,14 +30,14 @@ impl Spec {
         let captures =
             TOOL_SPEC_PATTERN
                 .captures(tool_spec)
-                .ok_or(ErrorDetails::ParseToolSpecError {
+                .ok_or_else(|| ErrorKind::ParseToolSpecError {
                     tool_spec: tool_spec.into(),
                 })?;
 
         // Validate that the captured name is a valid NPM package name.
         let name = &captures["name"];
         if let Validity::Invalid { errors, .. } = validate(name) {
-            return Err(ErrorDetails::InvalidToolName {
+            return Err(ErrorKind::InvalidToolName {
                 name: name.into(),
                 errors,
             }
@@ -101,7 +100,7 @@ impl Spec {
         // - `volta install node latest yarn` is allowed.
         if let (Some(name), Some(maybe_version), None) = (args.next(), args.next(), args.next()) {
             if !HAS_VERSION.is_match(name.as_ref()) && is_version_like(maybe_version.as_ref()) {
-                return Err(ErrorDetails::InvalidInvocation {
+                return Err(ErrorKind::InvalidInvocation {
                     action: action.to_string(),
                     name: name.as_ref().to_string(),
                     version: maybe_version.as_ref().to_string(),
@@ -366,13 +365,10 @@ mod tests {
             let args: Vec<String> = vec![name.into(), version.into()];
 
             let err = Spec::from_strings(&args, PIN).unwrap_err();
-            let inner_err = err
-                .downcast_ref::<ErrorDetails>()
-                .expect("should be an ErrorDetails");
 
             assert_eq!(
-                inner_err,
-                &ErrorDetails::InvalidInvocation {
+                err.kind(),
+                &ErrorKind::InvalidInvocation {
                     action: PIN.into(),
                     name: name.into(),
                     version: version.into()

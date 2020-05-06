@@ -4,7 +4,7 @@ use std::collections::BTreeSet;
 
 use super::super::registry_fetch_error;
 use super::serial;
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible};
 use crate::hook::ToolHooks;
 use crate::session::Session;
 use crate::style::progress_spinner;
@@ -13,7 +13,6 @@ use crate::version::{parse_version, VersionSpec, VersionTag};
 use cfg_if::cfg_if;
 use log::debug;
 use semver::{Version, VersionReq};
-use volta_fail::{Fallible, ResultExt};
 
 // ISSUE (#86): Move public repository URLs to config file
 cfg_if! {
@@ -42,7 +41,7 @@ pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Version
         VersionSpec::Semver(requirement) => resolve_semver(requirement, hooks),
         VersionSpec::Exact(version) => Ok(version),
         VersionSpec::None | VersionSpec::Tag(VersionTag::Latest) => resolve_latest(hooks),
-        VersionSpec::Tag(tag) => Err(ErrorDetails::YarnVersionNotFound {
+        VersionSpec::Tag(tag) => Err(ErrorKind::YarnVersionNotFound {
             matching: tag.to_string(),
         }
         .into()),
@@ -62,7 +61,7 @@ fn resolve_latest(hooks: Option<&ToolHooks<Yarn>>) -> Fallible<Version> {
     };
     let response_text = reqwest::get(&url)
         .and_then(|mut resp| resp.text())
-        .with_context(|_| ErrorDetails::YarnLatestFetchError {
+        .with_context(|| ErrorKind::YarnLatestFetchError {
             from_url: url.clone(),
         })?;
 
@@ -99,7 +98,7 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Yarn>>) -> Fall
             );
             Ok(version)
         }
-        None => Err(ErrorDetails::YarnVersionNotFound {
+        None => Err(ErrorKind::YarnVersionNotFound {
             matching: matching.to_string(),
         }
         .into()),

@@ -2,12 +2,10 @@ use std::env::args_os;
 use std::ffi::OsStr;
 
 use super::{debug_tool_message, intercept_global_installs, CommandArg, ToolCommand};
-use crate::error::ErrorDetails;
+use crate::error::{ErrorKind, Fallible};
 use crate::platform::{CliPlatform, Platform};
 use crate::session::{ActivityKind, Session};
-
 use log::debug;
-use volta_fail::{throw, Fallible};
 
 pub(crate) fn command(cli: CliPlatform, session: &mut Session) -> Fallible<ToolCommand> {
     session.add_event_start(ActivityKind::Npm);
@@ -16,7 +14,7 @@ pub(crate) fn command(cli: CliPlatform, session: &mut Session) -> Fallible<ToolC
         Some(platform) => {
             if intercept_global_installs() {
                 if let CommandArg::GlobalAdd(package) = check_npm_install() {
-                    throw!(ErrorDetails::NoGlobalInstalls { package });
+                    return Err(ErrorKind::NoGlobalInstalls { package }.into());
                 }
             }
             let image = platform.checkout(session)?;
@@ -28,7 +26,7 @@ pub(crate) fn command(cli: CliPlatform, session: &mut Session) -> Fallible<ToolC
         }
         None => {
             debug!("Could not find Volta-managed npm, delegating to system");
-            ToolCommand::passthrough(OsStr::new("npm"), ErrorDetails::NoPlatform)
+            ToolCommand::passthrough(OsStr::new("npm"), ErrorKind::NoPlatform)
         }
     }
 }

@@ -5,10 +5,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 
+use crate::error::{ExitCode, VoltaError};
 use crate::hook::Publish;
 use crate::monitor::Monitor;
 use crate::session::ActivityKind;
-use volta_fail::{ExitCode, VoltaError};
 
 // the Event data that is serialized to JSON and sent the plugin
 #[derive(Serialize)]
@@ -32,10 +32,10 @@ pub struct ErrorEnv {
 enum EventKind {
     Start,
     End {
-        exit_code: ExitCode,
+        exit_code: i32,
     },
     Error {
-        exit_code: ExitCode,
+        exit_code: i32,
         error: String,
         env: ErrorEnv,
     },
@@ -102,16 +102,20 @@ impl EventLog {
         self.add_event(EventKind::Start, activity_kind)
     }
     pub fn add_event_end(&mut self, activity_kind: ActivityKind, exit_code: ExitCode) {
-        self.add_event(EventKind::End { exit_code }, activity_kind)
+        self.add_event(
+            EventKind::End {
+                exit_code: exit_code as i32,
+            },
+            activity_kind,
+        )
     }
     pub fn add_event_tool_end(&mut self, activity_kind: ActivityKind, exit_code: i32) {
         self.add_event(EventKind::ToolEnd { exit_code }, activity_kind)
     }
     pub fn add_event_error(&mut self, activity_kind: ActivityKind, error: &VoltaError) {
-        let exit_code = error.exit_code();
         self.add_event(
             EventKind::Error {
-                exit_code,
+                exit_code: error.exit_code() as i32,
                 error: error.to_string(),
                 env: get_error_env(),
             },
@@ -141,9 +145,8 @@ impl EventLog {
 pub mod tests {
 
     use super::EventLog;
-    use crate::error::ErrorDetails;
+    use crate::error::{ErrorKind, ExitCode};
     use crate::session::ActivityKind;
-    use volta_fail::ExitCode;
 
     #[test]
     fn test_adding_events() {
@@ -162,7 +165,7 @@ pub mod tests {
         assert_eq!(event_log.events.len(), 3);
         assert_eq!(event_log.events[2].name, "version");
 
-        let error = ErrorDetails::NoGlobalInstalls { package: None }.into();
+        let error = ErrorKind::NoGlobalInstalls { package: None }.into();
         event_log.add_event_error(ActivityKind::Install, &error);
         assert_eq!(event_log.events.len(), 4);
         assert_eq!(event_log.events[3].name, "install");

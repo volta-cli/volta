@@ -1,8 +1,9 @@
 //! The view layer of Volta, with utilities for styling command-line output.
+use std::error::Error;
+
 use archive::Origin;
 use cfg_if::cfg_if;
 use console::{style, StyledObject};
-use failure::Fail;
 use indicatif::{ProgressBar, ProgressStyle};
 
 pub const MAX_WIDTH: usize = 100;
@@ -19,7 +20,7 @@ pub fn note_prefix() -> StyledObject<&'static str> {
 }
 
 /// Format the underlying cause of an error
-pub(crate) fn format_error_cause(inner: &dyn Fail) -> String {
+pub(crate) fn format_error_cause(inner: &dyn Error) -> String {
     format!(
         "{}{} {}",
         style("Error cause").underlined().bold(),

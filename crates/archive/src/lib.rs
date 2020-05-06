@@ -1,22 +1,37 @@
 //! This crate provides types for fetching and unpacking compressed
 //! archives in tarball or zip format.
+use std::fs::File;
+use std::path::Path;
+
+use thiserror::Error;
 
 mod tarball;
 mod zip;
 
-use failure::Fail;
-
-#[derive(Fail, Debug)]
-#[fail(display = "HTTP failure ({})", code)]
-pub struct HttpError {
-    pub code: ::reqwest::StatusCode,
-}
-
 pub use crate::tarball::Tarball;
 pub use crate::zip::Zip;
 
-use std::fs::File;
-use std::path::Path;
+/// Error type for this crate
+#[derive(Error, Debug)]
+pub enum ArchiveError {
+    #[error("HTTP failure ({0})")]
+    HttpError(::reqwest::StatusCode),
+
+    #[error("HTTP header '{0}' not found")]
+    MissingHeaderError(String),
+
+    #[error("unexpected content length in HTTP response: {0}")]
+    UnexpectedContentLengthError(u64),
+
+    #[error("{0}")]
+    IoError(#[from] std::io::Error),
+
+    #[error("{0}")]
+    ReqwestError(#[from] reqwest::Error),
+
+    #[error("{0}")]
+    ZipError(#[from] zip_rs::result::ZipError),
+}
 
 /// Metadata describing whether an archive comes from a local or remote origin.
 #[derive(Copy, Clone)]
@@ -34,7 +49,7 @@ pub trait Archive {
         self: Box<Self>,
         dest: &Path,
         progress: &mut dyn FnMut(&(), usize),
-    ) -> Result<(), failure::Error>;
+    ) -> Result<(), ArchiveError>;
 
     fn origin(&self) -> Origin;
 }
@@ -45,7 +60,7 @@ cfg_if::cfg_if! {
         ///
         /// On Windows, the preferred format is zip. On Unixes, the preferred format
         /// is tarball.
-        pub fn load_native(source: File) -> Result<Box<dyn Archive>, failure::Error> {
+        pub fn load_native(source: File) -> Result<Box<dyn Archive>, ArchiveError> {
             Tarball::load(source)
         }
 
@@ -54,7 +69,7 @@ cfg_if::cfg_if! {
         ///
         /// On Windows, the preferred format is zip. On Unixes, the preferred format
         /// is tarball.
-        pub fn fetch_native(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, failure::Error> {
+        pub fn fetch_native(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, ArchiveError> {
             Tarball::fetch(url, cache_file)
         }
     } else if #[cfg(windows)] {
@@ -62,7 +77,7 @@ cfg_if::cfg_if! {
         ///
         /// On Windows, the preferred format is zip. On Unixes, the preferred format
         /// is tarball.
-        pub fn load_native(source: File) -> Result<Box<dyn Archive>, failure::Error> {
+        pub fn load_native(source: File) -> Result<Box<dyn Archive>, ArchiveError> {
             Zip::load(source)
         }
 
@@ -71,7 +86,7 @@ cfg_if::cfg_if! {
         ///
         /// On Windows, the preferred format is zip. On Unixes, the preferred format
         /// is tarball.
-        pub fn fetch_native(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, failure::Error> {
+        pub fn fetch_native(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, ArchiveError> {
             Zip::fetch(url, cache_file)
         }
     } else {

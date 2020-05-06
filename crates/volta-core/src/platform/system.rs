@@ -1,8 +1,8 @@
 use std::ffi::OsString;
 
 use super::build_path_error;
+use crate::error::{Context, Fallible};
 use crate::layout::env_paths;
-use volta_fail::{Fallible, ResultExt};
 
 /// A lightweight namespace type representing the system environment, i.e. the environment
 /// with Volta removed.

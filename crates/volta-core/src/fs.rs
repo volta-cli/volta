@@ -1,15 +1,14 @@
 //! Provides utilities for operating on the filesystem.
 
 use std::fs::{self, create_dir_all, read_dir, DirEntry, File, Metadata};
-use std::io::{self, ErrorKind};
+use std::io;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible};
 use crate::layout::volta_home;
 use tempfile::{tempdir_in, NamedTempFile, TempDir};
-use volta_fail::{Fallible, ResultExt};
 
 /// Opens a file, creating it if it doesn't exist
 pub fn touch(path: &Path) -> io::Result<File> {
@@ -31,14 +30,14 @@ pub fn ensure_dir_does_not_exist<P: AsRef<Path>>(path: &P) -> Fallible<()> {
     Ok(())
 }
 
-pub fn delete_dir_error<P: AsRef<Path>>(directory: &P) -> impl FnOnce(&io::Error) -> ErrorDetails {
+pub fn delete_dir_error<P: AsRef<Path>>(directory: &P) -> impl FnOnce() -> ErrorKind {
     let directory = directory.as_ref().to_path_buf();
-    |_| ErrorDetails::DeleteDirectoryError { directory }
+    || ErrorKind::DeleteDirectoryError { directory }
 }
 
-pub fn delete_file_error<P: AsRef<Path>>(file: &P) -> impl FnOnce(&io::Error) -> ErrorDetails {
+pub fn delete_file_error<P: AsRef<Path>>(file: &P) -> impl FnOnce() -> ErrorKind {
     let file = file.as_ref().to_path_buf();
-    |_| ErrorDetails::DeleteFileError { file }
+    || ErrorKind::DeleteFileError { file }
 }
 
 /// Reads a file, if it exists.
@@ -48,7 +47,7 @@ pub fn read_file<P: AsRef<Path>>(path: P) -> io::Result<Option<String>> {
     match result {
         Ok(string) => Ok(Some(string)),
         Err(error) => match error.kind() {
-            ErrorKind::NotFound => Ok(None),
+            io::ErrorKind::NotFound => Ok(None),
             _ => Err(error),
         },
     }
@@ -93,7 +92,7 @@ where
 /// Creates a NamedTempFile in the Volta tmp directory
 pub fn create_staging_file() -> Fallible<NamedTempFile> {
     let tmp_dir = volta_home()?.tmp_dir();
-    NamedTempFile::new_in(&tmp_dir).with_context(|_| ErrorDetails::CreateTempFileError {
+    NamedTempFile::new_in(&tmp_dir).with_context(|| ErrorKind::CreateTempFileError {
         in_dir: tmp_dir.to_owned(),
     })
 }
@@ -101,7 +100,7 @@ pub fn create_staging_file() -> Fallible<NamedTempFile> {
 /// Creates a staging directory in the Volta tmp directory
 pub fn create_staging_dir() -> Fallible<TempDir> {
     let tmp_root = volta_home()?.tmp_dir();
-    tempdir_in(&tmp_root).with_context(|_| ErrorDetails::CreateTempDirError {
+    tempdir_in(&tmp_root).with_context(|| ErrorKind::CreateTempDirError {
         in_dir: tmp_root.to_owned(),
     })
 }

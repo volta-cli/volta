@@ -1,9 +1,9 @@
 use structopt::StructOpt;
 
+use volta_core::error::{ExitCode, Fallible};
 use volta_core::session::{ActivityKind, Session};
 use volta_core::tool;
 use volta_core::version::VersionSpec;
-use volta_fail::{ExitCode, Fallible};
 
 use crate::command::Command;
 

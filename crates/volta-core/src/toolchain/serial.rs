@@ -1,9 +1,8 @@
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible};
 use crate::platform::PlatformSpec;
 use crate::version::{option_version_serde, version_serde};
 use semver::Version;
 use serde::{Deserialize, Serialize};
-use volta_fail::{Fallible, ResultExt};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct NodeVersion {
@@ -50,12 +49,12 @@ impl Platform {
             serde_json::de::from_str(&src)
         };
 
-        result.with_context(|_| ErrorDetails::ParsePlatformError)
+        result.with_context(|| ErrorKind::ParsePlatformError)
     }
 
     /// Serialize the Platform to a JSON String
     pub fn into_json(self) -> Fallible<String> {
-        serde_json::to_string_pretty(&self).with_context(|_| ErrorDetails::StringifyPlatformError)
+        serde_json::to_string_pretty(&self).with_context(|| ErrorKind::StringifyPlatformError)
     }
 }
 

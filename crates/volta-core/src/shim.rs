@@ -5,11 +5,10 @@ use std::fs::{self, DirEntry, Metadata};
 use std::io;
 use std::path::Path;
 
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible, VoltaError};
 use crate::fs::{read_dir_eager, symlink_file};
 use crate::layout::{volta_home, volta_install};
 use log::debug;
-use volta_fail::{throw, FailExt, Fallible, ResultExt};
 
 pub fn regenerate_shims_for_dir(dir: &Path) -> Fallible<()> {
     debug!("Rebuilding shims for directory: {}", dir.display());
@@ -22,7 +21,7 @@ pub fn regenerate_shims_for_dir(dir: &Path) -> Fallible<()> {
 }
 
 fn get_shim_list_deduped(dir: &Path) -> Fallible<HashSet<String>> {
-    let contents = read_dir_eager(dir).with_context(|_| ErrorDetails::ReadDirError {
+    let contents = read_dir_eager(dir).with_context(|| ErrorKind::ReadDirError {
         dir: dir.to_owned(),
     })?;
 
@@ -76,9 +75,12 @@ pub fn create(shim_name: &str) -> Fallible<ShimResult> {
             if err.kind() == io::ErrorKind::AlreadyExists {
                 Ok(ShimResult::AlreadyExists)
             } else {
-                throw!(err.with_context(|_| ErrorDetails::ShimCreateError {
-                    name: shim_name.to_string(),
-                }));
+                Err(VoltaError::from_source(
+                    err,
+                    ErrorKind::ShimCreateError {
+                        name: shim_name.to_string(),
+                    },
+                ))
             }
         }
     }
@@ -96,9 +98,12 @@ pub fn delete(shim_name: &str) -> Fallible<ShimResult> {
             if err.kind() == io::ErrorKind::NotFound {
                 Ok(ShimResult::DoesntExist)
             } else {
-                throw!(err.with_context(|_| ErrorDetails::ShimRemoveError {
-                    name: shim_name.to_string(),
-                }));
+                Err(VoltaError::from_source(
+                    err,
+                    ErrorKind::ShimRemoveError {
+                        name: shim_name.to_string(),
+                    },
+                ))
             }
         }
     }

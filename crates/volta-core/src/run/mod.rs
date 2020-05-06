@@ -8,13 +8,12 @@ use std::path::Path;
 use std::process::{Command, ExitStatus, Output};
 
 use crate::command::create_command;
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible};
 use crate::platform::{CliPlatform, Sourced, System};
 use crate::session::Session;
 use crate::signal::pass_control_to_shim;
 use crate::style::tool_version;
 use log::debug;
-use volta_fail::{throw, Fallible, ResultExt};
 
 pub mod binary;
 pub mod node;
@@ -50,13 +49,13 @@ where
     let mut command = if env::var_os(VOLTA_BYPASS).is_some() {
         ToolCommand::passthrough(
             &exe,
-            ErrorDetails::BypassError {
+            ErrorKind::BypassError {
                 command: exe.to_string_lossy().to_string(),
             },
         )?
     } else {
         match exe.to_str() {
-            Some("volta-shim") => throw!(ErrorDetails::RunShimDirectly),
+            Some("volta-shim") => return Err(ErrorKind::RunShimDirectly.into()),
             Some("node") => node::command(cli, session)?,
             Some("npm") => npm::command(cli, session)?,
             Some("npx") => npx::command(cli, session)?,
@@ -86,7 +85,7 @@ pub(crate) struct ToolCommand {
     ///
     /// This allows us to call out to the system for the pass-through behavior, but still
     /// show a friendly error message for cases where the user needs to select a Node version
-    on_failure: ErrorDetails,
+    on_failure: ErrorKind,
 }
 
 impl ToolCommand {
@@ -94,7 +93,7 @@ impl ToolCommand {
     fn direct(exe: &OsStr, path_var: &OsStr) -> Self {
         ToolCommand {
             command: command_with_path(exe, path_var),
-            on_failure: ErrorDetails::BinaryExecError,
+            on_failure: ErrorKind::BinaryExecError,
         }
     }
 
@@ -102,7 +101,7 @@ impl ToolCommand {
     fn project_local(exe: &OsStr, path_var: &OsStr) -> Self {
         ToolCommand {
             command: command_with_path(exe, path_var),
-            on_failure: ErrorDetails::ProjectLocalBinaryExecError {
+            on_failure: ErrorKind::ProjectLocalBinaryExecError {
                 command: exe.to_string_lossy().to_string(),
             },
         }
@@ -113,7 +112,7 @@ impl ToolCommand {
     /// This will allow the existing system to resolve the tool, if possible. If that still fails,
     /// then we show `default_error` as the friendly error to the user, directing them how to
     /// resolve the issue (e.g. run `volta install node` to enable `node`)
-    fn passthrough(exe: &OsStr, default_error: ErrorDetails) -> Fallible<Self> {
+    fn passthrough(exe: &OsStr, default_error: ErrorKind) -> Fallible<Self> {
         let path = System::path()?;
         Ok(ToolCommand {
             command: command_with_path(exe, &path),
@@ -162,14 +161,14 @@ impl ToolCommand {
     ///
     /// Any failures will be wrapped with the Error value in `on_failure`
     pub(crate) fn status(mut self) -> Fallible<ExitStatus> {
-        self.command.status().with_context(|_| self.on_failure)
+        self.command.status().with_context(|| self.on_failure)
     }
 
     /// Execute the command, returning all of its output to the caller
     ///
     /// Any failures will be wrapped with the Error value in `on_failure`
     pub(crate) fn output(mut self) -> Fallible<Output> {
-        self.command.output().with_context(|_| self.on_failure)
+        self.command.output().with_context(|| self.on_failure)
     }
 }
 
@@ -182,7 +181,7 @@ impl fmt::Debug for ToolCommand {
 fn get_tool_name(args: &mut ArgsOs) -> Fallible<OsString> {
     args.next()
         .and_then(|arg0| Path::new(&arg0).file_name().map(tool_name_from_file_name))
-        .ok_or_else(|| ErrorDetails::CouldNotDetermineTool.into())
+        .ok_or_else(|| ErrorKind::CouldNotDetermineTool.into())
 }
 
 #[cfg(unix)]

@@ -2,12 +2,10 @@ use std::env::args_os;
 use std::ffi::OsStr;
 
 use super::{debug_tool_message, intercept_global_installs, CommandArg, ToolCommand};
-use crate::error::ErrorDetails;
+use crate::error::{ErrorKind, Fallible};
 use crate::platform::{CliPlatform, Platform, Source};
 use crate::session::{ActivityKind, Session};
-
 use log::debug;
-use volta_fail::{throw, Fallible};
 
 pub(crate) fn command(cli: CliPlatform, session: &mut Session) -> Fallible<ToolCommand> {
     session.add_event_start(ActivityKind::Yarn);
@@ -16,7 +14,7 @@ pub(crate) fn command(cli: CliPlatform, session: &mut Session) -> Fallible<ToolC
         Some(platform) => {
             if intercept_global_installs() {
                 if let CommandArg::GlobalAdd(package) = check_yarn_add() {
-                    throw!(ErrorDetails::NoGlobalInstalls { package });
+                    return Err(ErrorKind::NoGlobalInstalls { package }.into());
                 }
             }
 
@@ -29,7 +27,7 @@ pub(crate) fn command(cli: CliPlatform, session: &mut Session) -> Fallible<ToolC
         }
         None => {
             debug!("Could not find Volta-managed yarn, delegating to system");
-            ToolCommand::passthrough(OsStr::new("yarn"), ErrorDetails::NoPlatform)
+            ToolCommand::passthrough(OsStr::new("yarn"), ErrorKind::NoPlatform)
         }
     }
 }
@@ -40,9 +38,9 @@ fn get_yarn_platform(cli: CliPlatform, session: &mut Session) -> Fallible<Option
         Some(platform) => match &platform.yarn {
             Some(_) => Ok(Some(platform)),
             None => match platform.node.source {
-                Source::Project => Err(ErrorDetails::NoProjectYarn.into()),
-                Source::Default | Source::Binary => Err(ErrorDetails::NoDefaultYarn.into()),
-                Source::CommandLine => Err(ErrorDetails::NoCommandLineYarn.into()),
+                Source::Project => Err(ErrorKind::NoProjectYarn.into()),
+                Source::Default | Source::Binary => Err(ErrorKind::NoDefaultYarn.into()),
+                Source::CommandLine => Err(ErrorKind::NoCommandLineYarn.into()),
             },
         },
         None => Ok(None),
