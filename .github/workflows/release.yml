@@ -134,7 +134,7 @@ jobs:
         id: release_info
         env:
           TAG: ${{ github.ref }}
-        run: echo "::set-output name=version::${TAG:1}"
+        run: echo "::set-output name=version::${TAG:11}"
       - name: Fetch CentOS artifact
         uses: actions/download-artifact@v2
         with:
