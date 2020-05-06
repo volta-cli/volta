@@ -8,9 +8,10 @@ use std::path::Path;
 use failure::{self, Fail};
 use flate2::read::GzDecoder;
 use fs_utils::ensure_containing_dir_exists;
-use headers_011::Headers011;
+use hyperx::header::{
+    AcceptRanges, ByteRangeSpec, ContentLength, Header, Range, RangeUnit, TypedHeaders,
+};
 use progress_read::ProgressRead;
-use reqwest::hyper_011::header::{AcceptRanges, ByteRangeSpec, ContentLength, Range, RangeUnit};
 use reqwest::Response;
 use tee::TeeReader;
 
@@ -40,7 +41,8 @@ struct MissingHeaderError {
 fn content_length(response: &Response) -> Result<u64, failure::Error> {
     response
         .headers()
-        .get_011::<ContentLength>()
+        .decode::<ContentLength>()
+        .ok()
         .map(|v| v.0)
         .ok_or_else(|| {
             MissingHeaderError {
@@ -150,9 +152,10 @@ struct UnexpectedContentLengthError {
 /// more efficient than simply downloading the entire file up front.
 fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], failure::Error> {
     let client = reqwest::Client::new();
+    let range_header = Range::Bytes(vec![ByteRangeSpec::FromTo(len - 4, len - 1)]);
     let mut response = client
         .get(url)
-        .header_011(Range::Bytes(vec![ByteRangeSpec::FromTo(len - 4, len - 1)]))
+        .header(Range::header_name(), range_header.to_string())
         .send()?;
 
     if !response.status().is_success() {
@@ -189,7 +192,8 @@ fn load_isize(file: &mut File) -> Result<[u8; 4], failure::Error> {
 fn accepts_byte_ranges(response: &Response) -> bool {
     response
         .headers()
-        .get_011::<AcceptRanges>()
+        .decode::<AcceptRanges>()
+        .ok()
         .map(|v| v.iter().any(|unit| *unit == RangeUnit::Bytes))
         .unwrap_or(false)
 }
