@@ -3,7 +3,7 @@ use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
 
-use volta_fail::ExitCode;
+use volta_core::error::ExitCode;
 
 fn package_json_with_pinned_node(node: &str) -> String {
     format!(

@@ -6,10 +6,7 @@ use std::path::Path;
 use std::process::{Command, ExitStatus, Output};
 use std::str;
 
-use failure::Fail;
-
-use volta_fail::{throw, ExitCode, Fallible, VoltaFail};
-use volta_fail_derive::*;
+use thiserror::Error;
 
 /// A builder object for an external process, similar to `std::process::Command`.
 #[derive(Clone, Debug)]
@@ -116,16 +113,16 @@ impl ProcessBuilder {
     }
 
     /// Run the process, waiting for completion, and mapping non-success exit codes to an error.
-    pub fn exec(&self) -> Fallible<()> {
+    pub fn exec(&self) -> Result<(), ProcessError> {
         let mut command = self.build_command();
 
         let exit = match command.status() {
             Ok(e) => e,
             Err(_) => {
-                throw!(process_error(
+                return Err(process_error(
                     &format!("could not execute process {}", self),
                     None,
-                    None
+                    None,
                 ));
             }
         };
@@ -137,22 +134,21 @@ impl ProcessBuilder {
                 &format!("process didn't exit successfully: {}", self),
                 Some(exit),
                 None,
-            )
-            .into())
+            ))
         }
     }
 
     /// Execute the process, returning the stdio output, or an error if non-zero exit status.
-    pub fn exec_with_output(&self) -> Fallible<Output> {
+    pub fn exec_with_output(&self) -> Result<Output, ProcessError> {
         let mut command = self.build_command();
 
         let output = match command.output() {
             Ok(o) => o,
             Err(_) => {
-                throw!(process_error(
+                return Err(process_error(
                     &format!("could not execute process {}", self),
                     None,
-                    None
+                    None,
                 ));
             }
         };
@@ -164,8 +160,7 @@ impl ProcessBuilder {
                 &format!("process didn't exit successfully: {}", self),
                 Some(output.status),
                 Some(&output),
-            )
-            .into())
+            ))
         }
     }
 
@@ -202,9 +197,8 @@ pub fn process<T: AsRef<OsStr>>(cmd: T) -> ProcessBuilder {
     }
 }
 
-#[derive(Debug, Fail, VoltaFail)]
-#[fail(display = "{}", desc)]
-#[volta_fail(code = "ExecutionFailure")]
+#[derive(Debug, Error)]
+#[error("{desc}")]
 pub struct ProcessError {
     pub desc: String,
     pub exit: Option<ExitStatus>,

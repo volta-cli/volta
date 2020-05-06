@@ -75,7 +75,7 @@ where
 ///
 /// This is a thin wrapper around std::process::Command, providing a few QoL improvements:
 ///
-/// * `ErrorDetails` error type on `status` and `output` methods, determined based on the context
+/// * `ErrorKind` error type on `status` and `output` methods, determined based on the context
 /// * Helper methods for constructing a type with the appropriate context
 pub(crate) struct ToolCommand {
     /// The wrapped Command

@@ -119,17 +119,16 @@ pub fn delete(shim_name: &str) -> Fallible<ShimResult> {
 /// This bash script simply calls the shim using `cmd.exe`, so that it is resolved correctly
 #[cfg(windows)]
 mod windows {
-    use crate::error::ErrorDetails;
+    use crate::error::{Context, ErrorKind, Fallible, VoltaError};
     use crate::layout::volta_home;
     use std::fs::{remove_file, write};
-    use std::io::ErrorKind;
-    use volta_fail::{FailExt, Fallible, ResultExt};
+    use std::io;
 
     const BASH_SCRIPT: &str = r#"cmd //C $0 "$@""#;
 
     pub fn create_git_bash_script(shim_name: &str) -> Fallible<()> {
         let script_path = volta_home()?.shim_git_bash_script_file(shim_name);
-        write(script_path, BASH_SCRIPT).with_context(|_| ErrorDetails::ShimCreateError {
+        write(script_path, BASH_SCRIPT).with_context(|| ErrorKind::ShimCreateError {
             name: shim_name.to_string(),
         })
     }
@@ -137,12 +136,15 @@ mod windows {
     pub fn delete_git_bash_script(shim_name: &str) -> Fallible<()> {
         let script_path = volta_home()?.shim_git_bash_script_file(shim_name);
         remove_file(script_path).or_else(|e| {
-            if e.kind() == ErrorKind::NotFound {
+            if e.kind() == io::ErrorKind::NotFound {
                 Ok(())
             } else {
-                Err(e.with_context(|_| ErrorDetails::ShimRemoveError {
-                    name: shim_name.to_string(),
-                }))
+                Err(VoltaError::from_source(
+                    e,
+                    ErrorKind::ShimRemoveError {
+                        name: shim_name.to_string(),
+                    },
+                ))
             }
         })
     }
