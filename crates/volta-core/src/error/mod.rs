@@ -10,6 +10,7 @@ pub use reporter::report_error;
 
 pub type Fallible<T> = Result<T, VoltaError>;
 
+/// Error type for Volta
 #[derive(Debug)]
 pub struct VoltaError {
     inner: Box<Inner>,
@@ -22,10 +23,12 @@ struct Inner {
 }
 
 impl VoltaError {
+    /// The exit code Volta should use when this error stops execution
     pub fn exit_code(&self) -> ExitCode {
         self.inner.kind.exit_code()
     }
 
+    /// Create a new VoltaError instance including a source error
     pub fn from_source<E>(source: E, kind: ErrorKind) -> Self
     where
         E: Into<Box<dyn Error>>,
@@ -38,6 +41,7 @@ impl VoltaError {
         }
     }
 
+    /// Get a reference to the ErrorKind for this error
     pub fn kind(&self) -> &ErrorKind {
         &self.inner.kind
     }
@@ -63,6 +67,7 @@ impl From<ErrorKind> for VoltaError {
     }
 }
 
+/// Trait providing the with_context method to easily convert any Result error into a VoltaError
 pub trait Context<T> {
     fn with_context<F>(self, f: F) -> Fallible<T>
     where
