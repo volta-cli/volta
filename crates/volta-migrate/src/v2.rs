@@ -7,12 +7,11 @@ use super::v1::V1;
 use log::debug;
 use semver::Version;
 use tempfile::tempdir_in;
-use volta_core::error::ErrorDetails;
+use volta_core::error::{Context, ErrorKind, Fallible, VoltaError};
 use volta_core::fs::{ensure_dir_does_not_exist, read_dir_eager};
 use volta_core::tool::load_default_npm_version;
 use volta_core::toolchain::serial::Platform;
 use volta_core::version::parse_version;
-use volta_fail::{Fallible, ResultExt, VoltaError};
 use volta_layout::{v1, v2};
 
 /// Represents a V2 Volta Layout (used by Volta v0.7.3 and above)
@@ -35,7 +34,7 @@ impl V2 {
     /// accidentally mark an incomplete migration as completed
     fn complete_migration(home: v2::VoltaHome) -> Fallible<Self> {
         debug!("Writing layout marker file");
-        File::create(home.layout_file()).with_context(|_| ErrorDetails::CreateLayoutFileError {
+        File::create(home.layout_file()).with_context(|| ErrorKind::CreateLayoutFileError {
             file: home.layout_file().to_owned(),
         })?;
 
@@ -50,10 +49,9 @@ impl TryFrom<Empty> for V2 {
         debug!("New Volta installation detected, creating fresh layout");
 
         let home = v2::VoltaHome::new(old.home);
-        home.create()
-            .with_context(|_| ErrorDetails::CreateDirError {
-                dir: home.root().to_owned(),
-            })?;
+        home.create().with_context(|| ErrorKind::CreateDirError {
+            dir: home.root().to_owned(),
+        })?;
 
         V2::complete_migration(home)
     }
@@ -68,7 +66,7 @@ impl TryFrom<V1> for V2 {
         let new_home = v2::VoltaHome::new(old.home.root().to_owned());
         new_home
             .create()
-            .with_context(|_| ErrorDetails::CreateDirError {
+            .with_context(|| ErrorKind::CreateDirError {
                 dir: new_home.root().to_owned(),
             })?;
 
@@ -82,7 +80,7 @@ impl TryFrom<V1> for V2 {
         // Remove the V1 layout file, since we're now on V2 (do this after writing the V2 so that we know the migration succeeded)
         let old_layout_file = old.home.layout_file();
         if old_layout_file.exists() {
-            remove_file(old_layout_file).with_context(|_| ErrorDetails::DeleteFileError {
+            remove_file(old_layout_file).with_context(|| ErrorKind::DeleteFileError {
                 file: old_layout_file.to_owned(),
             })?;
         }
@@ -98,7 +96,7 @@ impl TryFrom<V1> for V2 {
 fn clear_default_npm(platform_file: &Path) -> Fallible<()> {
     if platform_file.exists() {
         let platform_json =
-            read_to_string(platform_file).with_context(|_| ErrorDetails::ReadPlatformError {
+            read_to_string(platform_file).with_context(|| ErrorKind::ReadPlatformError {
                 file: platform_file.to_owned(),
             })?;
         let mut existing_platform = Platform::from_json(platform_json)?;
@@ -109,7 +107,7 @@ fn clear_default_npm(platform_file: &Path) -> Fallible<()> {
                     if *npm == default_npm {
                         node_version.npm = None;
                         write(platform_file, existing_platform.into_json()?).with_context(
-                            |_| ErrorDetails::WritePlatformError {
+                            || ErrorKind::WritePlatformError {
                                 file: platform_file.to_owned(),
                             },
                         )?;
@@ -130,11 +128,11 @@ fn clear_default_npm(platform_file: &Path) -> Fallible<()> {
 /// the Node image, as we no longer will need to look up the bundled npm version every time.
 fn shift_node_images(old_home: &v1::VoltaHome, new_home: &v2::VoltaHome) -> Fallible<()> {
     let temp_dir =
-        tempdir_in(new_home.tmp_dir()).with_context(|_| ErrorDetails::CreateTempDirError {
+        tempdir_in(new_home.tmp_dir()).with_context(|| ErrorKind::CreateTempDirError {
             in_dir: new_home.tmp_dir().to_owned(),
         })?;
     let node_installs = read_dir_eager(old_home.node_image_root_dir())
-        .with_context(|_| ErrorDetails::ReadDirError {
+        .with_context(|| ErrorKind::ReadDirError {
             dir: old_home.node_image_root_dir().to_owned(),
         })?
         .filter_map(|(entry, metadata)| {
@@ -166,13 +164,13 @@ fn remove_npm_version_from_node_image_dir(
     if old_install.exists() {
         let temp_image = temp_dir.join(&node_string);
         let new_install = new_home.node_image_dir(&node_string);
-        rename(&old_install, &temp_image).with_context(|_| ErrorDetails::SetupToolImageError {
+        rename(&old_install, &temp_image).with_context(|| ErrorKind::SetupToolImageError {
             tool: "Node".into(),
             version: node_string.clone(),
             dir: temp_image.clone(),
         })?;
         ensure_dir_does_not_exist(&new_install)?;
-        rename(&temp_image, &new_install).with_context(|_| ErrorDetails::SetupToolImageError {
+        rename(&temp_image, &new_install).with_context(|| ErrorKind::SetupToolImageError {
             tool: "Node".into(),
             version: node_string,
             dir: temp_image,

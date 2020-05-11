@@ -3,7 +3,7 @@ use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
 
-use volta_fail::ExitCode;
+use volta_core::error::ExitCode;
 
 const NODE_VERSION_INFO: &str = r#"[
 {"version":"v10.99.1040","npm":"6.2.26","lts": "Dubnium","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip", "linux-arm64"]},

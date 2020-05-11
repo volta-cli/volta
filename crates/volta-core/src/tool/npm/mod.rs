@@ -4,13 +4,12 @@ use super::node::load_default_npm_version;
 use super::{
     debug_already_fetched, info_fetched, info_installed, info_pinned, info_project_version, Tool,
 };
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible};
 use crate::inventory::npm_available;
 use crate::session::Session;
 use crate::style::{success_prefix, tool_version};
 use log::info;
 use semver::Version;
-use volta_fail::{throw, Fallible, ResultExt};
 
 mod fetch;
 mod resolve;
@@ -79,7 +78,7 @@ impl Tool for Npm {
             info_pinned(self);
             Ok(())
         } else {
-            Err(ErrorDetails::NotInPackage.into())
+            Err(ErrorKind::NotInPackage.into())
         }
     }
 }
@@ -106,17 +105,18 @@ impl Tool for BundledNpm {
 
         let bundled_version = match toolchain.platform() {
             Some(platform) => {
-                let version = load_default_npm_version(&platform.node).with_context(|_| {
-                    ErrorDetails::NoBundledNpm {
+                let version = load_default_npm_version(&platform.node).with_context(|| {
+                    ErrorKind::NoBundledNpm {
                         command: "install".into(),
                     }
                 })?;
                 version.to_string()
             }
             None => {
-                throw!(ErrorDetails::NoBundledNpm {
+                return Err(ErrorKind::NoBundledNpm {
                     command: "install".into(),
-                });
+                }
+                .into());
             }
         };
 
@@ -137,17 +137,18 @@ impl Tool for BundledNpm {
                 let bundled_version = match project.platform() {
                     Some(platform) => {
                         let version =
-                            load_default_npm_version(&platform.node).with_context(|_| {
-                                ErrorDetails::NoBundledNpm {
+                            load_default_npm_version(&platform.node).with_context(|| {
+                                ErrorKind::NoBundledNpm {
                                     command: "pin".into(),
                                 }
                             })?;
                         version.to_string()
                     }
                     None => {
-                        throw!(ErrorDetails::NoBundledNpm {
-                            command: "pin".into()
-                        });
+                        return Err(ErrorKind::NoBundledNpm {
+                            command: "pin".into(),
+                        }
+                        .into());
                     }
                 };
 
@@ -159,7 +160,7 @@ impl Tool for BundledNpm {
 
                 Ok(())
             }
-            None => Err(ErrorDetails::NotInPackage.into()),
+            None => Err(ErrorKind::NotInPackage.into()),
         }
     }
 }

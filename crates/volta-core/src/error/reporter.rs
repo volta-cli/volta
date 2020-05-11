@@ -1,18 +1,17 @@
-use std::env::{self, args_os};
-use std::fmt::Write as FmtWrite;
+use std::env::args_os;
+use std::error::Error;
 use std::fs::File;
-use std::io::Write as IoWrite;
+use std::io::Write;
 use std::path::PathBuf;
 
+use super::VoltaError;
 use crate::layout::volta_home;
 use crate::style::format_error_cause;
 use chrono::Local;
 use ci_info::is_ci;
 use console::strip_ansi_codes;
-use failure::Error;
 use fs_utils::ensure_containing_dir_exists;
 use log::{debug, error};
-use volta_fail::VoltaError;
 
 /// Report an error, both to the console and to error logs
 pub fn report_error(volta_version: &str, err: &VoltaError) {
@@ -49,7 +48,7 @@ fn write_error_log(
     volta_version: &str,
     message: String,
     details: String,
-) -> Result<PathBuf, Error> {
+) -> Result<PathBuf, Box<dyn Error>> {
     let file_name = Local::now()
         .format("volta-error-%Y-%m-%d_%H_%M_%S%.3f.log")
         .to_string();
@@ -70,19 +69,14 @@ fn write_error_log(
 
 fn compose_error_details(err: &VoltaError) -> Option<String> {
     // Only compose details if there is an underlying cause for the error
-    let mut current = match err.as_fail().cause() {
-        Some(cause) => cause,
-        None => {
-            return None;
-        }
-    };
+    let mut current = err.source()?;
     let mut details = String::new();
 
     // Walk up the tree of causes and include all of them
     loop {
         details.push_str(&format_error_cause(current));
 
-        match current.cause() {
+        match current.source() {
             Some(cause) => {
                 details.push_str("\n\n");
                 current = cause;
@@ -91,13 +85,6 @@ fn compose_error_details(err: &VoltaError) -> Option<String> {
                 break;
             }
         };
-    }
-
-    // ISSUE #75 - Once we have a way to determine backtraces without RUST_BACKTRACE, we can make this always available
-    // Until then, we know that if the env var is not set, the backtrace will be empty
-    if env::var("RUST_BACKTRACE").is_ok() {
-        // Note: The implementation of `Display` for Backtrace includes a 'stack backtrace:' prefix
-        write!(details, "\n\n{}", err.backtrace()).expect("write! to a String doesn't fail");
     }
 
     Some(details)

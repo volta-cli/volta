@@ -1,13 +1,11 @@
 use std::ffi::OsStr;
 
 use super::{debug_tool_message, ToolCommand};
-use crate::error::ErrorDetails;
+use crate::error::{ErrorKind, Fallible};
 use crate::platform::{CliPlatform, Platform};
 use crate::session::{ActivityKind, Session};
 use crate::version::parse_version;
-
 use log::debug;
-use volta_fail::Fallible;
 
 pub(crate) fn command(cli: CliPlatform, session: &mut Session) -> Fallible<ToolCommand> {
     session.add_event_start(ActivityKind::Npx);
@@ -26,7 +24,7 @@ pub(crate) fn command(cli: CliPlatform, session: &mut Session) -> Fallible<ToolC
                 debug_tool_message("npx", &active_npm);
                 Ok(ToolCommand::direct(OsStr::new("npx"), &path))
             } else {
-                Err(ErrorDetails::NpxNotAvailable {
+                Err(ErrorKind::NpxNotAvailable {
                     version: active_npm.value.to_string(),
                 }
                 .into())
@@ -34,7 +32,7 @@ pub(crate) fn command(cli: CliPlatform, session: &mut Session) -> Fallible<ToolC
         }
         None => {
             debug!("Could not find Volta-managed npx, delegating to system");
-            ToolCommand::passthrough(OsStr::new("npx"), ErrorDetails::NoPlatform)
+            ToolCommand::passthrough(OsStr::new("npx"), ErrorKind::NoPlatform)
         }
     }
 }

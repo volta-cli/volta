@@ -1,11 +1,10 @@
 use std::path::PathBuf;
 
 use super::volta_home;
-use crate::error::ErrorDetails;
-use volta_fail::Fallible;
+use crate::error::{ErrorKind, Fallible};
 
 pub(super) fn default_home_dir() -> Fallible<PathBuf> {
-    let mut home = dirs::home_dir().ok_or(ErrorDetails::NoHomeEnvironmentVar)?;
+    let mut home = dirs::home_dir().ok_or(ErrorKind::NoHomeEnvironmentVar)?;
     home.push(".volta");
     Ok(home)
 }

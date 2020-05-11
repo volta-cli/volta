@@ -1,6 +1,5 @@
-use volta_core::error::report_error;
+use volta_core::error::{report_error, ExitCode};
 use volta_core::log::{LogContext, LogVerbosity, Logger};
-use volta_fail::ExitCode;
 use volta_migrate::run_migration;
 
 pub fn main() {

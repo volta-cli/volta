@@ -5,10 +5,7 @@ authors = ["David Herman <david.herman@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-failure = "0.1.1"
-failure_derive = "0.1.1"
 hamcrest2 = "0.3.0"
 archive = { path = "../archive" }
-volta-fail = { path = "../volta-fail" }
-volta-fail-derive = { path = "../volta-fail-derive" }
 serde_json = { version = "1.0.37" }
+thiserror = "1.0.16"

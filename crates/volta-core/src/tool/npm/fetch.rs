@@ -4,7 +4,7 @@ use std::fs::{rename, write, File};
 use std::path::{Path, PathBuf};
 
 use super::super::download_tool_error;
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::{create_staging_dir, create_staging_file, set_executable};
 use crate::hook::ToolHooks;
 use crate::layout::volta_home;
@@ -16,7 +16,6 @@ use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
 use log::debug;
 use semver::Version;
-use volta_fail::{Fallible, ResultExt};
 
 cfg_if! {
     if #[cfg(feature = "mock-network")] {
@@ -54,14 +53,14 @@ pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Npm>>) -> Fallible<()> 
     unpack_archive(archive, version)?;
 
     if let Some(staging_file) = staging {
-        ensure_containing_dir_exists(&cache_file).with_context(|_| {
-            ErrorDetails::ContainingDirError {
+        ensure_containing_dir_exists(&cache_file).with_context(|| {
+            ErrorKind::ContainingDirError {
                 path: cache_file.clone(),
             }
         })?;
         staging_file
             .persist(cache_file)
-            .with_context(|_| ErrorDetails::PersistInventoryError { tool: "npm".into() })?;
+            .with_context(|| ErrorKind::PersistInventoryError { tool: "npm".into() })?;
     }
 
     Ok(())
@@ -85,7 +84,7 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<()> 
         .unpack(temp.path(), &mut |_, read| {
             progress.inc(read as u64);
         })
-        .with_context(|_| ErrorDetails::UnpackArchiveError {
+        .with_context(|| ErrorKind::UnpackArchiveError {
             tool: "npm".into(),
             version: version_string.clone(),
         })?;
@@ -102,14 +101,12 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<()> 
 
     let dest = volta_home()?.npm_image_dir(&version_string);
     ensure_containing_dir_exists(&dest)
-        .with_context(|_| ErrorDetails::ContainingDirError { path: dest.clone() })?;
+        .with_context(|| ErrorKind::ContainingDirError { path: dest.clone() })?;
 
-    rename(temp.path().join("package"), &dest).with_context(|_| {
-        ErrorDetails::SetupToolImageError {
-            tool: "npm".into(),
-            version: version_string.clone(),
-            dir: dest.clone(),
-        }
+    rename(temp.path().join("package"), &dest).with_context(|| ErrorKind::SetupToolImageError {
+        tool: "npm".into(),
+        version: version_string.clone(),
+        dir: dest.clone(),
     })?;
 
     progress.finish_and_clear();
@@ -187,7 +184,7 @@ node "$basedir/{}-cli.js" "$@"
         ),
     )
     .and_then(|_| set_executable(&path))
-    .with_context(|_| ErrorDetails::WriteLauncherError { tool: tool.into() })
+    .with_context(|| ErrorKind::WriteLauncherError { tool: tool.into() })
 }
 
 /// Overwrite the CMD launcher
@@ -204,5 +201,5 @@ node "%~dp0\{}-cli.js" %*
             tool
         ),
     )
-    .with_context(|_| ErrorDetails::WriteLauncherError { tool: tool.into() })
+    .with_context(|| ErrorKind::WriteLauncherError { tool: tool.into() })
 }

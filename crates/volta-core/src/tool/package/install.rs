@@ -11,7 +11,7 @@ use std::process::Command;
 use super::super::node;
 use super::bin_full_path;
 use crate::command::create_command;
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::set_executable;
 use crate::layout::volta_home;
 use crate::manifest::BinManifest;
@@ -26,7 +26,6 @@ use lazy_static::lazy_static;
 use log::debug;
 use regex::Regex;
 use semver::Version;
-use volta_fail::{throw, Fallible, ResultExt};
 
 lazy_static! {
     // Note: Regex adapted from @zkochan/cmd-shim package used by Yarn
@@ -192,7 +191,7 @@ fn write_configs(
         // create a link to the shim executable
         shim::create(&bin_name)?;
 
-        set_executable(&full_path).with_context(|_| ErrorDetails::ExecutablePermissionsError {
+        set_executable(&full_path).with_context(|| ErrorKind::ExecutablePermissionsError {
             bin: bin_name.clone(),
         })?;
     }
@@ -207,7 +206,7 @@ fn install_dependencies(package_dir: &Path, image: Image, display: &str) -> Fall
     let spinner = progress_spinner(&format!("Installing dependencies for {}", display));
     let output = command
         .output()
-        .with_context(|_| ErrorDetails::PackageInstallFailed)?;
+        .with_context(|| ErrorKind::PackageInstallFailed)?;
     spinner.finish_and_clear();
 
     debug!(
@@ -222,7 +221,7 @@ fn install_dependencies(package_dir: &Path, image: Image, display: &str) -> Fall
     if output.status.success() {
         Ok(())
     } else {
-        Err(ErrorDetails::PackageInstallFailed.into())
+        Err(ErrorKind::PackageInstallFailed.into())
     }
 }
 
@@ -253,7 +252,7 @@ fn read_bins(name: &str, version: &Version) -> Fallible<HashMap<String, String>>
     let pkg_info = BinManifest::for_dir(&image_dir)?;
     let bin_map = pkg_info.bin;
     if bin_map.is_empty() {
-        throw!(ErrorDetails::NoPackageExecutables);
+        return Err(ErrorKind::NoPackageExecutables.into());
     }
 
     for (bin_name, _bin_path) in bin_map.iter() {
@@ -265,11 +264,12 @@ fn read_bins(name: &str, version: &Version) -> Fallible<HashMap<String, String>>
             // if the bin was installed by the package that is currently being installed,
             // that's ok - otherwise it's an error
             if name != bin_config.package {
-                throw!(ErrorDetails::BinaryAlreadyInstalled {
+                return Err(ErrorKind::BinaryAlreadyInstalled {
                     bin_name: bin_name.clone(),
                     existing_package: bin_config.package,
                     new_package: name.to_string(),
-                });
+                }
+                .into());
             }
         }
     }
@@ -283,10 +283,9 @@ fn read_bins(name: &str, version: &Version) -> Fallible<HashMap<String, String>>
 /// On Unix, we need to do this to remove any potential erroneous \r characters that may
 /// have accidentally been published in the script.
 fn determine_script_loader(bin_name: &str, full_path: &Path) -> Fallible<Option<BinLoader>> {
-    let script =
-        File::open(full_path).with_context(|_| ErrorDetails::DetermineBinaryLoaderError {
-            bin: bin_name.into(),
-        })?;
+    let script = File::open(full_path).with_context(|| ErrorKind::DetermineBinaryLoaderError {
+        bin: bin_name.into(),
+    })?;
     if let Some(Ok(first_line)) = BufReader::new(script).lines().next() {
         if let Some(caps) = SHEBANG.captures(&first_line) {
             // Note: `caps["args"]` will never panic, since "args" is a non-optional part of the match

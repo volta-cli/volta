@@ -4,15 +4,13 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::read_dir_eager;
 use crate::layout::volta_home;
 use crate::tool::PackageConfig;
 use crate::version::parse_version;
-use failure::ResultExt;
 use log::debug;
 use semver::Version;
-use volta_fail::Fallible;
 use walkdir::WalkDir;
 
 /// Checks if a given Node version image is available on the local machine
@@ -86,7 +84,7 @@ pub fn package_configs() -> Fallible<BTreeSet<PackageConfig>> {
 /// Reads the contents of a directory and returns the set of all versions found
 /// in the directory's listing by parsing the directory names as semantic versions
 fn read_versions(dir: &Path) -> Fallible<BTreeSet<Version>> {
-    let contents = read_dir_eager(dir).with_context(|_| ErrorDetails::ReadDirError {
+    let contents = read_dir_eager(dir).with_context(|| ErrorKind::ReadDirError {
         dir: dir.to_owned(),
     })?;
 

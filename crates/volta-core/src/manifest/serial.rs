@@ -5,13 +5,13 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::path::Path;
 
-use super::super::{manifest, platform};
+use crate::error::Fallible;
 use crate::version::parse_version;
+use crate::{manifest, platform};
 use log::warn;
 use semver::Version;
 use serde::de::{Deserialize, Deserializer, Error, MapAccess, Visitor};
 use serde_json::value::Value;
-use volta_fail::Fallible;
 
 // wrapper for HashMap to use with deserialization
 #[derive(Debug, PartialEq)]

@@ -3,10 +3,9 @@ use std::marker::PhantomData;
 use std::path::Path;
 
 use super::tool;
-use crate::error::ErrorDetails;
+use crate::error::{ErrorKind, Fallible, VoltaError};
 use crate::tool::{Node, Npm, Package, Tool, Yarn};
 use serde::{Deserialize, Serialize};
-use volta_fail::{Fallible, VoltaError};
 
 #[derive(Serialize, Deserialize)]
 pub struct RawResolveHook {
@@ -48,8 +47,8 @@ impl RawResolveHook {
                 prefix: None,
                 template: None,
                 bin: None,
-            } => Err(ErrorDetails::HookNoFieldsSpecified.into()),
-            _ => Err(ErrorDetails::HookMultipleFieldsSpecified.into()),
+            } => Err(ErrorKind::HookNoFieldsSpecified.into()),
+            _ => Err(ErrorKind::HookMultipleFieldsSpecified.into()),
         }
     }
 
@@ -92,8 +91,8 @@ impl TryFrom<RawPublishHook> for super::Publish {
             RawPublishHook {
                 url: None,
                 bin: None,
-            } => Err(ErrorDetails::PublishHookNeitherUrlNorBin.into()),
-            _ => Err(ErrorDetails::PublishHookBothUrlAndBin.into()),
+            } => Err(ErrorKind::PublishHookNeitherUrlNorBin.into()),
+            _ => Err(ErrorKind::PublishHookBothUrlAndBin.into()),
         }
     }
 }

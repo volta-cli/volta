@@ -1,7 +1,7 @@
 //! Provides resolution of npm Version requirements into specific versions
 
 use super::super::registry_fetch_error;
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible};
 use crate::hook::ToolHooks;
 use crate::session::Session;
 use crate::style::progress_spinner;
@@ -13,7 +13,6 @@ use log::debug;
 use reqwest::header::ACCEPT;
 use reqwest::Client;
 use semver::{Version, VersionReq};
-use volta_fail::{Fallible, ResultExt};
 
 // Accept header needed to request the abbreviated metadata from the npm registry
 // See https://github.com/npm/registry/blob/master/docs/responses/package-metadata.md
@@ -80,7 +79,7 @@ fn resolve_tag(tag: &str, hooks: Option<&ToolHooks<Npm>>) -> Fallible<Version> {
             debug!("Found npm@{} matching tag '{}' from {}", version, tag, url);
             Ok(version)
         }
-        None => Err(ErrorDetails::NpmVersionNotFound {
+        None => Err(ErrorKind::NpmVersionNotFound {
             matching: tag.into(),
         }
         .into()),
@@ -103,7 +102,7 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Npm>>) -> Falli
             );
             Ok(details.version)
         }
-        None => Err(ErrorDetails::NpmVersionNotFound {
+        None => Err(ErrorKind::NpmVersionNotFound {
             matching: matching.to_string(),
         }
         .into()),
