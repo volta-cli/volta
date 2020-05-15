@@ -8,10 +8,10 @@ use crate::style::progress_spinner;
 use crate::tool::package;
 use crate::tool::Npm;
 use crate::version::{VersionSpec, VersionTag};
+use attohttpc::header::ACCEPT;
+use attohttpc::Response;
 use cfg_if::cfg_if;
 use log::debug;
-use reqwest::header::ACCEPT;
-use reqwest::Client;
 use semver::{Version, VersionReq};
 
 // Accept header needed to request the abbreviated metadata from the npm registry
@@ -59,12 +59,11 @@ fn fetch_npm_index(
     };
 
     let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
-    let http_client = Client::new();
-    let metadata: package::serial::RawPackageMetadata = http_client
-        .get(&url)
+    let metadata: package::serial::RawPackageMetadata = attohttpc::get(&url)
         .header(ACCEPT, NPM_ABBREVIATED_ACCEPT_HEADER)
         .send()
-        .and_then(|mut resp| resp.json())
+        .and_then(Response::error_for_status)
+        .and_then(Response::json)
         .with_context(registry_fetch_error("npm", &url))?;
 
     spinner.finish_and_clear();
