@@ -1,9 +1,8 @@
 use structopt::StructOpt;
 
 use crate::command::Command;
-use volta_core::error::ErrorDetails;
+use volta_core::error::{ErrorKind, ExitCode, Fallible};
 use volta_core::session::{ActivityKind, Session};
-use volta_fail::{ExitCode, Fallible};
 
 // NOTE: These use the same text as the `long_about` in crate::cli.
 //       It's hard to abstract since it's in an attribute string.
@@ -28,7 +27,7 @@ pub(crate) struct Use {
 impl Command for Use {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Help);
-        let result = Err(ErrorDetails::DeprecatedCommandError {
+        let result = Err(ErrorKind::DeprecatedCommandError {
             command: "use".to_string(),
             advice: ADVICE.to_string(),
         }

@@ -20,10 +20,10 @@ use v0::V0;
 use v1::V1;
 use v2::V2;
 
+use volta_core::error::Fallible;
 use volta_core::layout::volta_home;
 #[cfg(unix)]
 use volta_core::layout::volta_install;
-use volta_fail::Fallible;
 
 /// Represents the state of the Volta directory at every point in the migration process
 ///

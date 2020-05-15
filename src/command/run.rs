@@ -4,12 +4,11 @@ use crate::command::Command;
 use crate::common::{Error, IntoResult};
 use log::warn;
 use structopt::StructOpt;
-use volta_core::error::report_error;
+use volta_core::error::{report_error, ExitCode, Fallible};
 use volta_core::platform::{CliPlatform, InheritOption};
 use volta_core::run::execute_tool;
 use volta_core::session::{ActivityKind, Session};
 use volta_core::tool::{node, npm, yarn};
-use volta_fail::{ExitCode, Fallible};
 
 #[derive(Debug, StructOpt)]
 pub(crate) struct Run {

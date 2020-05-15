@@ -3,7 +3,7 @@ use std::process::Output;
 use std::str;
 use std::usize;
 
-use crate::process::{ProcessBuilder, ProcessError};
+use crate::process::ProcessBuilder;
 
 use hamcrest2::core::{MatchResult, Matcher};
 use serde_json::{self, Value};
@@ -651,20 +651,11 @@ impl<'a> Matcher<&'a mut ProcessBuilder> for Execs {
 
         match res {
             Ok(out) => self.match_output(&out),
-            Err(e) => {
-                let err = e.downcast_ref::<ProcessError>();
-                if let Some(&ProcessError {
-                    output: Some(ref out),
-                    ..
-                }) = err
-                {
+            Err(err) => {
+                if let Some(out) = &err.output {
                     return self.match_output(out);
                 }
-                let s = format!("could not exec process {}: {}", process, e);
-                // for cause in e.iter_causes() {
-                //     s.push_str(&format!("\ncaused by: {}", cause));
-                // }
-                Err(s)
+                Err(format!("could not exec process {}: {}", process, err))
             }
         }
     }

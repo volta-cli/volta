@@ -1,11 +1,9 @@
-use std::env::JoinPathsError;
 use std::fmt;
 
-use crate::error::ErrorDetails;
+use crate::error::{ErrorKind, Fallible};
 use crate::session::Session;
 use crate::tool::{Node, Npm, Yarn};
 use semver::Version;
-use volta_fail::Fallible;
 
 mod image;
 mod system;
@@ -304,6 +302,6 @@ impl Platform {
     }
 }
 
-fn build_path_error(_err: &JoinPathsError) -> ErrorDetails {
-    ErrorDetails::BuildPathError
+fn build_path_error() -> ErrorKind {
+    ErrorKind::BuildPathError
 }

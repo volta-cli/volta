@@ -5,6 +5,7 @@ use std::fs::{create_dir_all, File};
 use std::io::copy;
 use std::path::Path;
 
+use crate::ArchiveError;
 use progress_read::ProgressRead;
 use verbatim::PathExt;
 use zip_rs::ZipArchive;
@@ -20,7 +21,7 @@ pub struct Zip {
 
 impl Zip {
     /// Loads a cached Node zip archive from the specified file.
-    pub fn load(source: File) -> Result<Box<dyn Archive>, failure::Error> {
+    pub fn load(source: File) -> Result<Box<dyn Archive>, ArchiveError> {
         let compressed_size = source.metadata()?.len();
 
         Ok(Box::new(Zip {
@@ -32,11 +33,11 @@ impl Zip {
 
     /// Initiate fetching of a Node zip archive from the given URL, returning
     /// a `Remote` data source.
-    pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, failure::Error> {
+    pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, ArchiveError> {
         let (status, _, mut response) = attohttpc::get(url).send()?.split();
 
         if !status.is_success() {
-            return Err(super::HttpError { code: status }.into());
+            return Err(ArchiveError::HttpError(status));
         }
 
         {
@@ -66,7 +67,7 @@ impl Archive for Zip {
         self: Box<Self>,
         dest: &Path,
         progress: &mut dyn FnMut(&(), usize),
-    ) -> Result<(), failure::Error> {
+    ) -> Result<(), ArchiveError> {
         // Use a verbatim path to avoid the legacy Windows 260 byte path limit.
         let dest: &Path = &dest.to_verbatim();
 

@@ -1,11 +1,10 @@
 use std::fmt::{self, Display};
 
-use crate::error::ErrorDetails;
+use crate::error::{ErrorKind, Fallible};
 use crate::session::Session;
 use crate::style::{note_prefix, success_prefix, tool_version};
 use crate::version::VersionSpec;
 use log::{debug, info};
-use volta_fail::Fallible;
 
 pub mod node;
 pub mod npm;
@@ -98,15 +97,15 @@ impl Spec {
     /// resolve the specific version before uninstalling a tool.
     pub fn uninstall(self) -> Fallible<()> {
         match self {
-            Spec::Node(_) => Err(ErrorDetails::Unimplemented {
+            Spec::Node(_) => Err(ErrorKind::Unimplemented {
                 feature: "Uninstalling node".into(),
             }
             .into()),
-            Spec::Npm(_) => Err(ErrorDetails::Unimplemented {
+            Spec::Npm(_) => Err(ErrorKind::Unimplemented {
                 feature: "Uninstalling npm".into(),
             }
             .into()),
-            Spec::Yarn(_) => Err(ErrorDetails::Unimplemented {
+            Spec::Yarn(_) => Err(ErrorKind::Unimplemented {
                 feature: "Uninstalling yarn".into(),
             }
             .into()),
@@ -130,19 +129,16 @@ impl Display for Spec {
     }
 }
 
-fn download_tool_error(
-    tool: Spec,
-    from_url: impl AsRef<str>,
-) -> impl FnOnce(&failure::Error) -> ErrorDetails {
+fn download_tool_error(tool: Spec, from_url: impl AsRef<str>) -> impl FnOnce() -> ErrorKind {
     let from_url = from_url.as_ref().to_string();
-    |_| ErrorDetails::DownloadToolNetworkError { tool, from_url }
+    || ErrorKind::DownloadToolNetworkError { tool, from_url }
 }
 
 fn registry_fetch_error(
     tool: impl AsRef<str>,
     from_url: impl AsRef<str>,
-) -> impl FnOnce(&attohttpc::Error) -> ErrorDetails {
+) -> impl FnOnce() -> ErrorKind {
     let tool = tool.as_ref().to_string();
     let from_url = from_url.as_ref().to_string();
-    |_| ErrorDetails::RegistryFetchError { tool, from_url }
+    || ErrorKind::RegistryFetchError { tool, from_url }
 }

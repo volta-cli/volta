@@ -3,7 +3,7 @@ use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
 
-use volta_fail::ExitCode;
+use volta_core::error::ExitCode;
 
 #[test]
 fn shows_pretty_error_when_calling_shim_directly() {

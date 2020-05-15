@@ -3,14 +3,13 @@ use std::fmt::{self, Display};
 use super::{
     debug_already_fetched, info_fetched, info_installed, info_pinned, info_project_version, Tool,
 };
-use crate::error::ErrorDetails;
+use crate::error::{ErrorKind, Fallible};
 use crate::inventory::node_available;
 use crate::session::Session;
 use crate::style::{note_prefix, tool_version};
 use cfg_if::cfg_if;
 use log::info;
 use semver::Version;
-use volta_fail::Fallible;
 
 mod fetch;
 mod resolve;
@@ -186,7 +185,7 @@ impl Tool for Node {
 
             Ok(())
         } else {
-            Err(ErrorDetails::NotInPackage.into())
+            Err(ErrorKind::NotInPackage.into())
         }
     }
 }

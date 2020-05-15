@@ -2,10 +2,10 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 
 use super::{build_path_error, Sourced};
+use crate::error::{Context, Fallible};
 use crate::layout::{env_paths, volta_home};
 use crate::tool::load_default_npm_version;
 use semver::Version;
-use volta_fail::{Fallible, ResultExt};
 
 /// A platform image.
 pub struct Image {

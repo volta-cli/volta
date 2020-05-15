@@ -5,13 +5,12 @@ use std::fs::File;
 use std::marker::PhantomData;
 use std::path::Path;
 
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible};
 use crate::layout::volta_home;
 use crate::project::Project;
 use crate::tool::{Node, Npm, Package, Tool, Yarn};
 use lazycell::LazyCell;
 use log::debug;
-use volta_fail::{Fallible, ResultExt};
 
 pub(crate) mod serial;
 pub mod tool;
@@ -138,7 +137,7 @@ impl HookConfig {
 
     /// Returns the per-project hooks for the current directory.
     fn for_current_dir() -> Fallible<Option<Self>> {
-        Self::for_dir(&env::current_dir().with_context(|_| ErrorDetails::CurrentDirError)?)
+        Self::for_dir(&env::current_dir().with_context(|| ErrorKind::CurrentDirError)?)
     }
 
     /// Returns the per-project hooks for the specified directory.  If the
@@ -165,12 +164,12 @@ impl HookConfig {
             return Ok(None);
         }
 
-        let file = File::open(file_path).with_context(|_| ErrorDetails::ReadHooksError {
+        let file = File::open(file_path).with_context(|| ErrorKind::ReadHooksError {
             file: file_path.to_path_buf(),
         })?;
 
         let raw: serial::RawHookConfig =
-            serde_json::de::from_reader(file).with_context(|_| ErrorDetails::ParseHooksError {
+            serde_json::de::from_reader(file).with_context(|| ErrorKind::ParseHooksError {
                 file: file_path.to_path_buf(),
             })?;
 

@@ -3,12 +3,11 @@ use std::fmt::{self, Display};
 use super::{
     debug_already_fetched, info_fetched, info_installed, info_pinned, info_project_version, Tool,
 };
-use crate::error::ErrorDetails;
+use crate::error::{ErrorKind, Fallible};
 use crate::inventory::yarn_available;
 use crate::session::Session;
 use crate::style::tool_version;
 use semver::Version;
-use volta_fail::Fallible;
 
 mod fetch;
 mod resolve;
@@ -78,7 +77,7 @@ impl Tool for Yarn {
             info_pinned(self);
             Ok(())
         } else {
-            Err(ErrorDetails::NotInPackage.into())
+            Err(ErrorKind::NotInPackage.into())
         }
     }
 }

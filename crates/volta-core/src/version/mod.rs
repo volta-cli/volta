@@ -1,9 +1,8 @@
 use std::fmt;
 use std::str::FromStr;
 
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible, VoltaError};
 use semver::{Version, VersionReq};
-use volta_fail::{Fallible, ResultExt, VoltaError};
 
 mod serial;
 
@@ -98,13 +97,13 @@ impl FromStr for VersionTag {
 pub fn parse_requirements(s: impl AsRef<str>) -> Fallible<VersionReq> {
     let s = s.as_ref();
     serial::parse_requirements(s)
-        .with_context(|_| ErrorDetails::VersionParseError { version: s.into() })
+        .with_context(|| ErrorKind::VersionParseError { version: s.into() })
 }
 
 pub fn parse_version(s: impl AsRef<str>) -> Fallible<Version> {
     let s = s.as_ref();
     s.parse()
-        .with_context(|_| ErrorDetails::VersionParseError { version: s.into() })
+        .with_context(|| ErrorKind::VersionParseError { version: s.into() })
 }
 
 // remove the leading 'v' from the version string, if present

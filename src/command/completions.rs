@@ -4,11 +4,10 @@ use log::info;
 use structopt::{clap::Shell, StructOpt};
 
 use volta_core::{
-    error::ErrorDetails,
+    error::{Context, ErrorKind, ExitCode, Fallible},
     session::{ActivityKind, Session},
     style::{note_prefix, success_prefix},
 };
-use volta_fail::{throw, ExitCode, Fallible, ResultExt};
 
 use crate::command::Command;
 
@@ -40,7 +39,7 @@ impl Command for Completions {
         match self.out_file {
             Some(path) => {
                 if path.is_file() && !self.force {
-                    throw!(ErrorDetails::CompletionsOutFileError { path })
+                    return Err(ErrorKind::CompletionsOutFileError { path }.into());
                 }
 
                 // The user may have passed a path that does not yet exist. If
@@ -52,16 +51,16 @@ impl Command for Completions {
                             note_prefix(),
                             parent.display()
                         );
-                        std::fs::create_dir_all(parent).with_context(|_| {
-                            ErrorDetails::CreateDirError {
+                        std::fs::create_dir_all(parent).with_context(|| {
+                            ErrorKind::CreateDirError {
                                 dir: parent.to_path_buf(),
                             }
                         })?;
                     }
                 }
 
-                let mut file = &std::fs::File::create(&path).with_context(|_| {
-                    ErrorDetails::CompletionsOutFileError {
+                let mut file = &std::fs::File::create(&path).with_context(|| {
+                    ErrorKind::CompletionsOutFileError {
                         path: path.to_path_buf(),
                     }
                 })?;

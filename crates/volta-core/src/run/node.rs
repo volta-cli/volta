@@ -1,12 +1,10 @@
 use std::ffi::OsStr;
 
 use super::{debug_tool_message, ToolCommand};
-use crate::error::ErrorDetails;
+use crate::error::{ErrorKind, Fallible};
 use crate::platform::{CliPlatform, Platform};
 use crate::session::{ActivityKind, Session};
-
 use log::debug;
-use volta_fail::Fallible;
 
 pub(crate) fn command(cli: CliPlatform, session: &mut Session) -> Fallible<ToolCommand> {
     session.add_event_start(ActivityKind::Node);
@@ -21,7 +19,7 @@ pub(crate) fn command(cli: CliPlatform, session: &mut Session) -> Fallible<ToolC
         }
         None => {
             debug!("Could not find Volta-managed node, delegating to system");
-            ToolCommand::passthrough(OsStr::new("node"), ErrorDetails::NoPlatform)
+            ToolCommand::passthrough(OsStr::new("node"), ErrorKind::NoPlatform)
         }
     }
 }

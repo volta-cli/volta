@@ -5,14 +5,13 @@
 use std::fmt::{self, Display, Formatter};
 use std::process::exit;
 
+use crate::error::{ExitCode, Fallible, VoltaError};
 use crate::event::EventLog;
 use crate::hook::{HookConfig, LazyHookConfig, Publish};
 use crate::platform::PlatformSpec;
 use crate::project::{LazyProject, Project};
 use crate::toolchain::{LazyToolchain, Toolchain};
-
 use log::debug;
-use volta_fail::{ExitCode, Fallible, VoltaError};
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
 pub enum ActivityKind {

@@ -3,7 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use super::{debug_already_fetched, info_fetched, Tool};
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::{delete_dir_error, delete_file_error, dir_entry_match};
 use crate::inventory::package_available;
 use crate::layout::volta_home;
@@ -13,7 +13,6 @@ use crate::style::{success_prefix, tool_version};
 use dunce::canonicalize;
 use log::{info, warn};
 use semver::Version;
-use volta_fail::{Fallible, ResultExt};
 
 mod fetch;
 mod install;
@@ -37,7 +36,7 @@ where
         .join(bin_path);
 
     // canonicalize because path is relative, and sometimes uses '.' char
-    canonicalize(raw_path).with_context(|_| ErrorDetails::ExecutablePathError {
+    canonicalize(raw_path).with_context(|| ErrorKind::ExecutablePathError {
         command: bin_name.to_string(),
     })
 }
@@ -114,7 +113,7 @@ impl Tool for Package {
         }
     }
     fn pin(self: Box<Self>, _session: &mut Session) -> Fallible<()> {
-        Err(ErrorDetails::CannotPinPackage { package: self.name }.into())
+        Err(ErrorKind::CannotPinPackage { package: self.name }.into())
     }
 }
 
@@ -198,7 +197,7 @@ fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
             };
             None
         })
-        .with_context(|_| ErrorDetails::ReadBinConfigDirError {
+        .with_context(|| ErrorKind::ReadBinConfigDirError {
             dir: bin_config_dir.to_owned(),
         })
     } else {

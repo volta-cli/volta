@@ -9,11 +9,11 @@ use structopt::StructOpt;
 
 use crate::command::Command;
 use toolchain::Toolchain;
+use volta_core::error::{ExitCode, Fallible};
 use volta_core::inventory::package_configs;
 use volta_core::project::Project;
 use volta_core::session::{ActivityKind, Session};
 use volta_core::tool::PackageConfig;
-use volta_fail::{ExitCode, Fallible};
 
 #[derive(Copy, Clone, PartialEq)]
 enum Format {

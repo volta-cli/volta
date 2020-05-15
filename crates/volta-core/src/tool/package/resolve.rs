@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use crate::error::ErrorDetails;
+use crate::error::{Context, ErrorKind, Fallible, VoltaError};
 use crate::hook::ToolHooks;
 use crate::platform::CliPlatform;
 use crate::run::{self, ToolCommand};
@@ -10,10 +10,9 @@ use crate::session::Session;
 use crate::style::{progress_spinner, tool_version};
 use crate::tool::PackageDetails;
 use crate::version::{VersionSpec, VersionTag};
-use attohttpc::{ErrorKind, Response, StatusCode};
+use attohttpc::{Response, StatusCode};
 use log::debug;
 use semver::{Version, VersionReq};
-use volta_fail::{throw, Fallible, ResultExt};
 
 pub fn resolve(
     name: &str,
@@ -57,7 +56,7 @@ fn resolve_tag(name: &str, tag: &str, session: &mut Session) -> Fallible<Package
             );
             Ok(details)
         }
-        None => Err(ErrorDetails::PackageVersionNotFound {
+        None => Err(ErrorKind::PackageVersionNotFound {
             name: name.to_string(),
             matching: tag.into(),
         }
@@ -95,7 +94,7 @@ fn resolve_semver(
             );
             Ok(details)
         }
-        None => Err(ErrorDetails::PackageVersionNotFound {
+        None => Err(ErrorKind::PackageVersionNotFound {
             name: name.to_string(),
             matching: matching.to_string(),
         }
@@ -130,9 +129,10 @@ fn npm_view_query(name: &str, version: &str, session: &mut Session) -> Fallible<
             String::from_utf8_lossy(&output.stderr).to_string()
         );
         debug!("Exit code is {:?}", output.status.code());
-        throw!(ErrorDetails::NpmViewMetadataFetchError {
+        return Err(ErrorKind::NpmViewMetadataFetchError {
             package: name.to_string(),
-        });
+        }
+        .into());
     }
 
     let response_json = String::from_utf8_lossy(&output.stdout);
@@ -141,8 +141,8 @@ fn npm_view_query(name: &str, version: &str, session: &mut Session) -> Fallible<
     // Check if the first char is '[' and parse as an array if so
     if response_json.starts_with('[') {
         let metadatas: Vec<super::serial::NpmViewData> = serde_json::de::from_str(&response_json)
-            .with_context(|_| {
-            ErrorDetails::NpmViewMetadataParseError {
+            .with_context(|| {
+            ErrorKind::NpmViewMetadataParseError {
                 package: name.to_string(),
             }
         })?;
@@ -151,9 +151,12 @@ fn npm_view_query(name: &str, version: &str, session: &mut Session) -> Fallible<
         // get latest version, making sure the array is not empty
         let tags = match metadatas.iter().next() {
             Some(m) => m.dist_tags.clone(),
-            None => throw!(ErrorDetails::PackageNotFound {
-                package: name.to_string()
-            }),
+            None => {
+                return Err(ErrorKind::PackageNotFound {
+                    package: name.to_string(),
+                }
+                .into())
+            }
         };
 
         let mut entries: Vec<PackageDetails> = metadatas.into_iter().map(|e| e.into()).collect();
@@ -165,7 +168,7 @@ fn npm_view_query(name: &str, version: &str, session: &mut Session) -> Fallible<
         Ok(PackageIndex { tags, entries })
     } else {
         let metadata: super::serial::NpmViewData = serde_json::de::from_str(&response_json)
-            .with_context(|_| ErrorDetails::NpmViewMetadataParseError {
+            .with_context(|| ErrorKind::NpmViewMetadataParseError {
                 package: name.to_string(),
             })?;
         debug!("[parsed package metadata (single)]\n{:?}", metadata);
@@ -196,17 +199,23 @@ fn resolve_package_metadata(
         .send()
         .and_then(Response::error_for_status)
         .and_then(Response::text)
-        .with_context(|err| match err.kind() {
-            ErrorKind::StatusCode(StatusCode::NOT_FOUND) => ErrorDetails::PackageNotFound {
-                package: package_name.into(),
-            },
-            _ => ErrorDetails::PackageMetadataFetchError {
-                from_url: package_info_url.into(),
-            },
+        .map_err(|err| {
+            let kind = match err.kind() {
+                attohttpc::ErrorKind::StatusCode(StatusCode::NOT_FOUND) => {
+                    ErrorKind::PackageNotFound {
+                        package: package_name.into(),
+                    }
+                }
+                _ => ErrorKind::PackageMetadataFetchError {
+                    from_url: package_info_url.into(),
+                },
+            };
+
+            VoltaError::from_source(err, kind)
         })?;
 
     let metadata: super::serial::RawPackageMetadata = serde_json::de::from_str(&response_text)
-        .with_context(|_| ErrorDetails::ParsePackageMetadataError {
+        .with_context(|| ErrorKind::ParsePackageMetadataError {
             from_url: package_info_url.to_string(),
         })?;
 

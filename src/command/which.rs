@@ -4,11 +4,10 @@ use std::ffi::OsString;
 use structopt::StructOpt;
 use which::which_in;
 
-use volta_core::error::ErrorDetails;
+use volta_core::error::{Context, ErrorKind, ExitCode, Fallible};
 use volta_core::platform::{Platform, System};
 use volta_core::run::binary::DefaultBinary;
 use volta_core::session::{ActivityKind, Session};
-use volta_fail::{ExitCode, Fallible, ResultExt};
 
 use crate::command::Command;
 
@@ -63,7 +62,7 @@ impl Command for Which {
             None => System::path()?,
         };
 
-        let cwd = env::current_dir().with_context(|_| ErrorDetails::CurrentDirError)?;
+        let cwd = env::current_dir().with_context(|| ErrorKind::CurrentDirError)?;
         let exit_code = match which_in(&bin, Some(path), cwd) {
             Ok(result) => {
                 println!("{}", result.to_string_lossy());
