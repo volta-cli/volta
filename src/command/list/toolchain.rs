@@ -1,9 +1,6 @@
-use std::ffi::OsString;
-
-use semver::Version;
-
 use super::{Filter, Node, Package, PackageManager, Source};
 use crate::command::list::PackageManagerKind;
+use semver::Version;
 use volta_core::error::Fallible;
 use volta_core::inventory::{node_versions, npm_versions, package_configs, yarn_versions};
 use volta_core::platform::PlatformSpec;
@@ -103,14 +100,10 @@ impl Lookup {
 }
 
 /// Look up the `Source` for a tool with a given name.
-fn tool_source(name: &str, version: &Version, project: Option<&Project>) -> Fallible<Source> {
+fn tool_source(name: &str, project: Option<&Project>) -> Fallible<Source> {
     match project {
         Some(project) => {
-            let project_version_is_tool_version = project
-                .matching_bin(&OsString::from(name), version)?
-                .map_or(false, |bin| &bin.version == version);
-
-            if project_version_is_tool_version {
+            if project.has_direct_bin(name.as_ref())? {
                 Ok(Source::Project(project.package_file()))
             } else {
                 Ok(Source::Default)
@@ -290,7 +283,7 @@ impl Toolchain {
                 // Start with the package itself, since tools often match
                 // the package name and we prioritize packages.
                 if config.name == name {
-                    let source = Package::source(name, &config.version, project);
+                    let source = Package::source(name, project);
                     if source.allowed_with(filter) {
                         Some(Ok((Kind::Package, config, source)))
                     } else {
@@ -300,7 +293,7 @@ impl Toolchain {
                 // Then check if the passed name matches an installed package's
                 // binaries. If it does, we have a tool.
                 } else if config.bins.iter().any(|bin| bin.as_str() == name) {
-                    tool_source(name, &config.version, project)
+                    tool_source(name, project)
                         .map(|source| {
                             if source.allowed_with(filter) {
                                 Some((Kind::Tool, config, source))
