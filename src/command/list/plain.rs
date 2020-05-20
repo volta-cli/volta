@@ -157,7 +157,14 @@ fn display_package(package: &Package) -> String {
                 _ => format!(" {} ", tools.join(", ")),
             };
 
-            format!("package {} /{}/{}", name, tools, package_source(&package))
+            format!(
+                "package {} /{}/ {} {}{}",
+                tool_version(&name, "project"),
+                tools,
+                "node@project",
+                "npm@project",
+                package_source(&package)
+            )
         }
         Package::Fetched(details) => format!(
             "package {} (fetched)",
@@ -179,9 +186,11 @@ fn display_tool(name: &str, host: &Package) -> Option<String> {
         Package::Project {
             name: host_name, ..
         } => Some(format!(
-            "tool {} / {} /{}",
+            "tool {} / {} / {} {}{}",
             name,
-            host_name,
+            tool_version(&host_name, "project"),
+            "node@project",
+            "npm@project",
             package_source(&host)
         )),
         Package::Fetched(..) => None,
@@ -360,7 +369,7 @@ mod tests {
                 }])
                 .expect("Should always return a `String` if given a non-empty set")
                 .as_str(),
-                "package typescript / tsc, tsserver / (current @ /a/b/c)"
+                "package typescript@project / tsc, tsserver / node@project npm@project (current @ /a/b/c)"
             );
         }
 
@@ -388,7 +397,7 @@ mod tests {
                 ])
                 .expect("Should always return a `String` if given a non-empty set")
                 .as_str(),
-                "package typescript / tsc, tsserver / (current @ /a/b/c)\n\
+                "package typescript@project / tsc, tsserver / node@project npm@project (current @ /a/b/c)\n\
                  package ember-cli@3.10.0 / ember / node@12.4.0 npm@built-in (default)\n\
                  package create-react-app@1.0.0 (fetched)"
             );
@@ -445,7 +454,7 @@ mod tests {
                 )
                 .expect("should always return `Some` for `Project`")
                 .as_str(),
-                "tool tsc / typescript / (current @ /a/b/c)"
+                "tool tsc / typescript@project / node@project npm@project (current @ /a/b/c)"
             );
         }
 
@@ -538,7 +547,7 @@ mod tests {
                  package-manager yarn@1.16.0 (current @ /a/b/c)\n\
                  package-manager yarn@1.17.0 (default)\n\
                  package ember-cli@3.10.2 / ember / node@12.4.0 npm@built-in (default)\n\
-                 package ember-cli / ember / (current @ /a/b/c)\n\
+                 package ember-cli@project / ember / node@project npm@project (current @ /a/b/c)\n\
                  package typescript@3.4.1 / tsc, tsserver / node@12.4.0 npm@built-in (default)"
             )
         }
