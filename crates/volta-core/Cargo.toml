@@ -49,6 +49,7 @@ dunce = "1.0.0"
 ci_info = "0.10.0"
 hyperx = "1.0.0"
 attohttpc = { version = "0.13.0", features = ["json"] }
+chain-map = { path = "../chain-map" }
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.6.0"
