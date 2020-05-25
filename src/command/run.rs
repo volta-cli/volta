@@ -17,7 +17,7 @@ pub(crate) struct Run {
     node: Option<String>,
 
     /// Set the custom npm version
-    #[structopt(long = "npm", value_name = "version", conflicts_with = "no_npm")]
+    #[structopt(long = "npm", value_name = "version", conflicts_with = "bundled_npm")]
     npm: Option<String>,
 
     /// Forces npm to be the version bundled with Node
