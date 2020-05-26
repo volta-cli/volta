@@ -1,3 +1,8 @@
+# Version 0.8.1
+
+- Fix panic when running `volta completions zsh` (#746)
+- Improve startup latency by reducing binary size (#732, #733, #734, #735)
+
 # Version 0.8.0
 
 - Support for pinning / installing custom versions of `npm` (#691)
