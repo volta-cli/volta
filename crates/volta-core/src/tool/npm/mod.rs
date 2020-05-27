@@ -73,7 +73,7 @@ impl Tool for Npm {
 
             // Note: We know this will succeed, since we checked above
             let project = session.project_mut()?.unwrap();
-            project.pin_npm(Some(self.version.clone()))?;
+            project.pin_npm(Some(&self.version))?;
 
             info_pinned(self);
             Ok(())

@@ -21,16 +21,12 @@ pub(crate) fn command(
     if let Some(project) = session.project()? {
         // check if the executable is a direct dependency
         if project.has_direct_bin(&exe)? {
-            // use the full path to the file
-            let mut path_to_bin = project.local_bin_dir();
-            path_to_bin.push(&exe);
-
-            if !path_to_bin.is_file() {
-                return Err(ErrorKind::ProjectLocalBinaryNotFound {
-                    command: path_to_bin.to_string_lossy().to_string(),
-                }
-                .into());
-            }
+            let path_to_bin =
+                project
+                    .find_bin(&exe)
+                    .ok_or_else(|| ErrorKind::ProjectLocalBinaryNotFound {
+                        command: exe.to_string_lossy().to_string(),
+                    })?;
 
             debug!(
                 "Found {} in project at '{}'",

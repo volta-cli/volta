@@ -4,11 +4,11 @@ use std::borrow::Cow;
 use std::fs::File;
 use std::iter::once;
 use std::marker::PhantomData;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::layout::volta_home;
-use crate::project::Project;
+use crate::project::find_closest_root;
 use crate::tool::{Node, Npm, Package, Tool, Yarn};
 use lazycell::LazyCell;
 use log::debug;

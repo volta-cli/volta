@@ -121,6 +121,16 @@ pub enum ErrorKind {
         command: String,
     },
 
+    /// Thrown when `volta.extends` keys result in an infinite cycle
+    ExtensionCycleError {
+        file: PathBuf,
+    },
+
+    /// Thrown when determining the path to an extension manifest fails
+    ExtensionPathError {
+        path: PathBuf,
+    },
+
     /// Thrown when a hook command returns a non-zero exit code
     HookCommandFailed {
         command: String,
@@ -199,6 +209,9 @@ pub enum ErrorKind {
 
     /// Thrown when the platform (Node version) could not be determined
     NoPlatform,
+
+    /// Thrown when parsing the project manifest and there is a `"volta"` key without Node
+    NoProjectNodeInManifest,
 
     /// Thrown when Yarn is not set in a project
     NoProjectYarn,
@@ -685,6 +698,20 @@ Please verify your internet connection and ensure the correct version is specifi
 Please ensure that the correct command is specified.",
                 command
             ),
+            ErrorKind::ExtensionCycleError { file } => write!(
+                f,
+                "Detected project workspace cycle in '{}'.
+
+Please ensure that project workspaces do not depend on each other.",
+                file.display()
+            ),
+            ErrorKind::ExtensionPathError { path } => write!(
+                f,
+                "Could not determine path to project workspace: '{}'
+
+Please ensure that the file exists and is accessible.",
+                path.display(),
+            ),
             ErrorKind::HookCommandFailed { command } => write!(
                 f,
                 "Hook command '{}' indicated a failure.
@@ -849,6 +876,12 @@ Use `volta pin node` to pin Node first, then pin a {0} version.",
                 "Node is not available.
 
 To run any Node command, first set a default version using `volta install node`"
+            ),
+            ErrorKind::NoProjectNodeInManifest => write!(
+                f,
+                "No Node version found in this project.
+
+Use `volta pin node` to select a version (see `volta help pin` for more info)."
             ),
             ErrorKind::NoProjectYarn => write!(
                 f,
@@ -1068,7 +1101,7 @@ Please ensure you have correct permissions to access the file.",
             ),
             ErrorKind::ProjectLocalBinaryNotFound { command } => write!(
                 f,
-                "Could not execute `{}`, the file does not exist.
+                "Could not locate executable `{}` in your project.
 
 Please ensure that all project dependencies are installed with `npm install` or `yarn install`",
                 command
@@ -1403,6 +1436,8 @@ impl ErrorKind {
             ErrorKind::ExecutablePathError { .. } => ExitCode::UnknownError,
             ErrorKind::ExecutablePermissionsError { .. } => ExitCode::FileSystemError,
             ErrorKind::ExecuteHookError { .. } => ExitCode::ExecutionFailure,
+            ErrorKind::ExtensionCycleError { .. } => ExitCode::ConfigurationError,
+            ErrorKind::ExtensionPathError { .. } => ExitCode::FileSystemError,
             ErrorKind::HookCommandFailed { .. } => ExitCode::ConfigurationError,
             ErrorKind::HookMultipleFieldsSpecified => ExitCode::ConfigurationError,
             ErrorKind::HookNoFieldsSpecified => ExitCode::ConfigurationError,
@@ -1422,6 +1457,7 @@ impl ErrorKind {
             ErrorKind::NoPackageExecutables { .. } => ExitCode::InvalidArguments,
             ErrorKind::NoPinnedNodeVersion { .. } => ExitCode::ConfigurationError,
             ErrorKind::NoPlatform => ExitCode::ConfigurationError,
+            ErrorKind::NoProjectNodeInManifest => ExitCode::ConfigurationError,
             ErrorKind::NoProjectYarn => ExitCode::ConfigurationError,
             ErrorKind::NoShellProfile { .. } => ExitCode::EnvironmentError,
             ErrorKind::NotInPackage => ExitCode::ConfigurationError,
