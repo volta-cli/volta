@@ -10,7 +10,7 @@ mod system;
 // Note: The tests get their own module because we need them to run as a single unit to prevent
 // clobbering environment variable changes
 #[cfg(test)]
-mod test;
+mod tests;
 
 pub use image::Image;
 pub use system::System;
