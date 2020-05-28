@@ -56,14 +56,17 @@ impl Manifest {
     }
 }
 
+/// Update the `node` value in the `volta` hash of the specified manifest
 pub fn update_manifest_node(file: &Path, version: Option<&Version>) -> Fallible<()> {
     update_manifest(file, "node".into(), version.map(Version::to_string))
 }
 
+/// Update the `npm` value in the `volta` hash of the specified manifest
 pub fn update_manifest_npm(file: &Path, version: Option<&Version>) -> Fallible<()> {
     update_manifest(file, "npm".into(), version.map(Version::to_string))
 }
 
+/// Update the `yarn` value in the `volta` hash of the specified manifest
 pub fn update_manifest_yarn(file: &Path, version: Option<&Version>) -> Fallible<()> {
     update_manifest(file, "yarn".into(), version.map(Version::to_string))
 }

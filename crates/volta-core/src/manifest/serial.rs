@@ -3,13 +3,7 @@ use std::fmt;
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
-use std::path::Path;
 
-use crate::error::Fallible;
-use crate::version::parse_version;
-use crate::{manifest, platform};
-use log::warn;
-use semver::Version;
 use serde::de::{Deserialize, Deserializer, Error, MapAccess, Visitor};
 use serde_json::value::Value;
 
@@ -40,23 +34,6 @@ where
 }
 
 #[derive(serde::Deserialize)]
-pub struct Manifest {
-    pub name: Option<String>,
-    pub version: Option<String>,
-
-    #[serde(default)]
-    pub dependencies: HashMap<String, String>,
-
-    #[serde(default)]
-    #[serde(rename = "devDependencies")]
-    pub dev_dependencies: HashMap<String, String>,
-
-    pub toolchain: Option<ToolchainSpec>,
-
-    pub volta: Option<ToolchainSpec>,
-}
-
-#[derive(serde::Deserialize)]
 pub struct RawBinManifest {
     pub name: Option<String>,
 
@@ -70,15 +47,6 @@ pub struct RawBinManifest {
     // See https://github.com/volta-cli/volta/issues/388 for example.
     #[serde(default, deserialize_with = "Engines::deserialize")]
     pub engines: Option<Engines>,
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
-pub struct ToolchainSpec {
-    pub node: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub npm: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub yarn: Option<String>,
 }
 
 #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -111,59 +79,6 @@ impl Engines {
     }
 }
 
-impl Manifest {
-    pub fn into_manifest(self, package_path: &Path) -> Fallible<manifest::Manifest> {
-        Ok(manifest::Manifest {
-            platform: self.to_platform(package_path)?,
-            dependencies: self.dependencies,
-            dev_dependencies: self.dev_dependencies,
-        })
-    }
-
-    pub fn to_platform(&self, package_path: &Path) -> Fallible<Option<platform::PlatformSpec>> {
-        // Backwards compatibility to allow users to upgrade to using the
-        // `volta` key simultaneously with the `toolchain` key, but with
-        // deprecation warnings about the use of `toolchain`. Prefer the `volta`
-        // key if it is set, and provide a deprecation warning if the user is
-        // using the `toolchain` key.
-        let toolchain = match (&self.volta, &self.toolchain) {
-            (Some(volta), None) => Some(volta),
-            (Some(volta), Some(_toolchain)) => {
-                warn!(
-                    "this project (`{}`) is configured with both the deprecated `toolchain` key and the `volta` key; using the versions specified in `volta`.",
-                    package_path.display()
-                );
-                Some(volta)
-            }
-            (None, Some(toolchain)) => {
-                warn!(
-                    "this project (`{}`) is configured with the `toolchain` key, which is deprecated and will be removed in a future version. Please switch to `volta` instead.",
-                    package_path.display()
-                );
-                Some(toolchain)
-            }
-            (None, None) => None,
-        };
-
-        if let Some(toolchain) = &toolchain {
-            return Ok(Some(platform::PlatformSpec {
-                node: parse_version(&toolchain.node)?,
-                npm: if let Some(npm) = &toolchain.npm {
-                    Some(parse_version(&npm)?)
-                } else {
-                    None
-                },
-                yarn: if let Some(yarn) = &toolchain.yarn {
-                    Some(parse_version(&yarn)?)
-                } else {
-                    None
-                },
-            }));
-        }
-        Ok(None)
-    }
-}
-
 impl From<RawBinManifest> for super::BinManifest {
     fn from(raw: RawBinManifest) -> Self {
         let mut map = HashMap::new();
@@ -182,16 +97,6 @@ impl From<RawBinManifest> for super::BinManifest {
         super::BinManifest {
             bin: map,
             engine: raw.engines.map(|e| e.node),
-        }
-    }
-}
-
-impl ToolchainSpec {
-    pub fn of(source: &platform::PlatformSpec) -> Self {
-        ToolchainSpec {
-            node: source.node.to_string(),
-            npm: source.npm.as_ref().map(Version::to_string),
-            yarn: source.yarn.as_ref().map(Version::to_string),
         }
     }
 }
@@ -267,206 +172,8 @@ where
 #[cfg(test)]
 pub mod tests {
 
-    use super::{BinMap, Engines, Manifest, RawBinManifest};
+    use super::{BinMap, Engines, RawBinManifest};
     use std::collections::HashMap;
-
-    #[test]
-    fn test_empty_package() {
-        let package_empty = "{}";
-        // deserializing should not fail
-        let _manifest: Manifest =
-            serde_json::de::from_str(package_empty).expect("Could not deserialize string");
-    }
-
-    #[test]
-    fn test_full_package() {
-        // all fields populated
-        let package_all = r#"{
-            "name": "some_package",
-            "version": "3.5.2",
-            "dependencies": { "something": "1.2.3" },
-            "devDependencies": { "somethingElse": "1.2.3" },
-            "volta": {
-                "node": "0.10.5",
-                "npm": "1.2.18",
-                "yarn": "1.2.1"
-            }
-        }"#;
-        let manifest_all: Manifest =
-            serde_json::de::from_str(package_all).expect("Could not deserialize string");
-
-        assert_eq!(manifest_all.name, Some("some_package".to_string()));
-        assert_eq!(manifest_all.version, Some("3.5.2".to_string()));
-        // (checking the rest of the fields in other tests)
-    }
-
-    #[test]
-    fn test_package_dependencies() {
-        let package_no_deps = r#"{
-            "dependencies": {}
-        }"#;
-        let manifest_no_deps: Manifest =
-            serde_json::de::from_str(package_no_deps).expect("Could not deserialize string");
-        assert_eq!(manifest_no_deps.dependencies, HashMap::new());
-
-        let package_with_deps = r#"{
-            "dependencies": {
-                "somedep": "1.3.7"
-            }
-        }"#;
-        let manifest_with_deps: Manifest =
-            serde_json::de::from_str(package_with_deps).expect("Could not deserialize string");
-        let mut expected_map = HashMap::new();
-        expected_map.insert("somedep".to_string(), "1.3.7".to_string());
-        assert_eq!(manifest_with_deps.dependencies, expected_map);
-    }
-
-    #[test]
-    fn test_package_dev_dependencies() {
-        let package_no_dev_deps = r#"{
-            "devDependencies": {}
-        }"#;
-        let manifest_no_dev_deps: Manifest =
-            serde_json::de::from_str(package_no_dev_deps).expect("Could not deserialize string");
-        assert_eq!(manifest_no_dev_deps.dev_dependencies, HashMap::new());
-
-        let package_dev_deps = r#"{
-            "devDependencies": {
-                "somethingElse": "1.2.3"
-            }
-        }"#;
-        let manifest_dev_deps: Manifest =
-            serde_json::de::from_str(package_dev_deps).expect("Could not deserialize string");
-        let mut expected_map = HashMap::new();
-        expected_map.insert("somethingElse".to_string(), "1.2.3".to_string());
-        assert_eq!(manifest_dev_deps.dev_dependencies, expected_map);
-    }
-
-    #[test]
-    fn test_package_toolchain_with_volta_key() {
-        let package_empty_toolchain = r#"{
-            "volta": {
-            }
-        }"#;
-        let manifest_empty_toolchain =
-            serde_json::de::from_str::<Manifest>(package_empty_toolchain);
-        assert!(
-            manifest_empty_toolchain.is_err(),
-            "Node must be defined under the 'volta' key"
-        );
-
-        let package_node_only = r#"{
-            "volta": {
-                "node": "0.11.4"
-            }
-        }"#;
-        let manifest_node_only: Manifest =
-            serde_json::de::from_str(package_node_only).expect("Could not deserialize string");
-        assert_eq!(manifest_node_only.volta.unwrap().node, "0.11.4");
-
-        let package_node_npm = r#"{
-            "volta": {
-                "node": "0.10.5",
-                "npm": "1.2.18"
-            }
-        }"#;
-        let manifest_node_npm: Manifest =
-            serde_json::de::from_str(package_node_npm).expect("Could not deserialize string");
-        let toolchain_node_npm = manifest_node_npm
-            .volta
-            .expect("Did not parse toolchain correctly");
-        assert_eq!(toolchain_node_npm.node, "0.10.5");
-        assert_eq!(toolchain_node_npm.npm.unwrap(), "1.2.18");
-
-        let package_yarn_only = r#"{
-            "volta": {
-                "yarn": "1.2.1"
-            }
-        }"#;
-        let manifest_yarn_only = serde_json::de::from_str::<Manifest>(package_yarn_only);
-        assert!(
-            manifest_yarn_only.is_err(),
-            "Node must be defined under the 'volta' key"
-        );
-
-        let package_node_and_yarn = r#"{
-            "volta": {
-                "node": "0.10.5",
-                "npm": "1.2.18",
-                "yarn": "1.2.1"
-            }
-        }"#;
-        let manifest_node_and_yarn: Manifest =
-            serde_json::de::from_str(package_node_and_yarn).expect("Could not deserialize string");
-        let toolchain_node_and_yarn = manifest_node_and_yarn
-            .volta
-            .expect("Did not parse toolchain correctly");
-        assert_eq!(toolchain_node_and_yarn.node, "0.10.5");
-        assert_eq!(toolchain_node_and_yarn.yarn.unwrap(), "1.2.1");
-    }
-
-    #[test]
-    fn test_package_toolchain_with_toolchain_key() {
-        let package_empty_toolchain = r#"{
-            "toolchain": {
-            }
-        }"#;
-        let manifest_empty_toolchain =
-            serde_json::de::from_str::<Manifest>(package_empty_toolchain);
-        assert!(
-            manifest_empty_toolchain.is_err(),
-            "Node must be defined under the 'toolchain' key"
-        );
-
-        let package_node_only = r#"{
-            "toolchain": {
-                "node": "0.11.4"
-            }
-        }"#;
-        let manifest_node_only: Manifest =
-            serde_json::de::from_str(package_node_only).expect("Could not deserialize string");
-        assert_eq!(manifest_node_only.toolchain.unwrap().node, "0.11.4");
-
-        let package_node_npm = r#"{
-            "toolchain": {
-                "node": "0.10.5",
-                "npm": "1.2.18"
-            }
-        }"#;
-        let manifest_node_npm: Manifest =
-            serde_json::de::from_str(package_node_npm).expect("Could not deserialize string");
-        let toolchain_node_npm = manifest_node_npm
-            .toolchain
-            .expect("Did not parse toolchain correctly");
-        assert_eq!(toolchain_node_npm.node, "0.10.5");
-        assert_eq!(toolchain_node_npm.npm.unwrap(), "1.2.18");
-
-        let package_yarn_only = r#"{
-            "toolchain": {
-                "yarn": "1.2.1"
-            }
-        }"#;
-        let manifest_yarn_only = serde_json::de::from_str::<Manifest>(package_yarn_only);
-        assert!(
-            manifest_yarn_only.is_err(),
-            "Node must be defined under the 'toolchain' key"
-        );
-
-        let package_node_and_yarn = r#"{
-            "toolchain": {
-                "node": "0.10.5",
-                "npm": "1.2.18",
-                "yarn": "1.2.1"
-            }
-        }"#;
-        let manifest_node_and_yarn: Manifest =
-            serde_json::de::from_str(package_node_and_yarn).expect("Could not deserialize string");
-        let toolchain_node_and_yarn = manifest_node_and_yarn
-            .toolchain
-            .expect("Did not parse toolchain correctly");
-        assert_eq!(toolchain_node_and_yarn.node, "0.10.5");
-        assert_eq!(toolchain_node_and_yarn.yarn.unwrap(), "1.2.1");
-    }
 
     #[test]
     fn test_package_bin() {
