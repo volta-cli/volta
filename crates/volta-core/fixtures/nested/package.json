@@ -1,0 +1,17 @@
+{
+  "name": "nested-project",
+  "version": "0.0.1",
+  "description": "Testing that project correctly detects a nested workspace",
+  "license": "To Kill",
+  "dependencies": {
+    "lodash": "*"
+  },
+  "devDependencies": {
+    "eslint": "*"
+  },
+  "volta": {
+    "yarn": "1.11.0",
+    "npm": "6.12.1",
+    "node": "12.14.0"
+  }
+}

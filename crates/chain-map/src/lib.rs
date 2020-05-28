@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use std::iter::FromIterator;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct ChainMap<K, V> {
     maps: Vec<HashMap<K, V>>,
 }

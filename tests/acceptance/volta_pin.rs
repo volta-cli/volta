@@ -12,6 +12,13 @@ const PACKAGE_JSON_WITH_EMPTY_LINE: &str = r#"{
   "name": "test-package"
 }
 "#;
+const PACKAGE_JSON_WITH_EXTENDS: &str = r#"{
+  "name": "test-package",
+  "volta": {
+    "node": "8.9.10",
+    "extends": "./basic.json"
+  }
+}"#;
 
 fn package_json_with_pinned_node(node: &str) -> String {
     format!(
@@ -627,7 +634,7 @@ fn pin_node_and_yarn() {
 }
 
 #[test]
-fn pin_node_does_not_remove_bottom_empty_line() {
+fn pin_node_does_not_remove_trailing_newline() {
     let s = sandbox()
         .package_json(PACKAGE_JSON_WITH_EMPTY_LINE)
         .node_available_versions(NODE_VERSION_INFO)
@@ -640,4 +647,25 @@ fn pin_node_does_not_remove_bottom_empty_line() {
     );
 
     assert!(s.read_package_json().ends_with('\n'))
+}
+
+#[test]
+fn pin_node_does_not_overwrite_extends() {
+    let s = sandbox();
+    let basic_path = s.root().join("basic.json");
+    let s = s
+        .package_json(PACKAGE_JSON_WITH_EXTENDS)
+        .node_available_versions(NODE_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .file(&basic_path.to_string_lossy(), BASIC_PACKAGE_JSON)
+        .build();
+
+    assert_that!(
+        s.volta("pin node@6"),
+        execs().with_status(ExitCode::Success as i32)
+    );
+
+    assert!(s
+        .read_package_json()
+        .contains(r#""extends": "./basic.json""#));
 }

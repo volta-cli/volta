@@ -18,6 +18,8 @@ use chain_map::ChainMap;
 use indexmap::IndexSet;
 
 mod serial;
+#[cfg(test)]
+mod tests;
 
 use serial::{update_manifest_node, update_manifest_npm, update_manifest_yarn, Manifest};
 
@@ -45,6 +47,7 @@ impl LazyProject {
 }
 
 /// A Node project workspace in the filesystem
+#[cfg_attr(test, derive(Debug))]
 pub struct Project {
     manifest_file: PathBuf,
     extensions: IndexSet<PathBuf>,
@@ -150,11 +153,11 @@ impl Project {
     }
 
     /// Searches the project roots to find the path to a project-local binary file
-    pub fn find_bin(&self, bin_name: &OsStr) -> Option<PathBuf> {
+    pub fn find_bin<P: AsRef<Path>>(&self, bin_name: P) -> Option<PathBuf> {
         self.workspace_roots().find_map(|root| {
             let mut bin_path = root.join("node_modules");
             bin_path.push(".bin");
-            bin_path.push(bin_name);
+            bin_path.push(&bin_name);
 
             if bin_path.is_file() {
                 Some(bin_path)
@@ -272,67 +275,5 @@ impl TryFrom<PartialPlatform> for PlatformSpec {
             npm: partial.npm,
             yarn: partial.yarn,
         })
-    }
-}
-
-#[cfg(test)]
-pub mod tests {
-    use std::path::PathBuf;
-
-    use super::*;
-
-    fn fixture_path(fixture_dirs: &[&str]) -> PathBuf {
-        let mut cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        cargo_manifest_dir.push("fixtures");
-
-        for fixture_dir in fixture_dirs.iter() {
-            cargo_manifest_dir.push(fixture_dir);
-        }
-
-        cargo_manifest_dir
-    }
-
-    #[test]
-    fn direct_dependency_true() {
-        let project_path = fixture_path(&["basic"]);
-        let test_project = Project::for_dir(project_path).unwrap().unwrap();
-        // eslint, rsvp, bin-1, and bin-2 are direct dependencies
-        assert!(test_project.has_direct_dependency("eslint"));
-        assert!(test_project.has_direct_dependency("rsvp"));
-        assert!(test_project.has_direct_dependency("@namespace/some-dep"));
-        assert!(test_project.has_direct_dependency("@namespaced/something-else"));
-    }
-
-    #[test]
-    fn direct_dependency_false() {
-        let project_path = fixture_path(&["basic"]);
-        let test_project = Project::for_dir(project_path).unwrap().unwrap();
-        // tsc and tsserver are installed, but not direct deps
-        assert!(!test_project.has_direct_dependency("typescript"));
-    }
-
-    #[test]
-    fn test_find_closest_root_direct() {
-        let base_dir = fixture_path(&["basic"]);
-        let project_dir =
-            find_closest_root(base_dir.clone()).expect("Failed to find project directory");
-
-        assert_eq!(project_dir, base_dir);
-    }
-
-    #[test]
-    fn test_find_closest_root_ancestor() {
-        let base_dir = fixture_path(&["basic", "subdir"]);
-        let project_dir = find_closest_root(base_dir).expect("Failed to find project directory");
-
-        assert_eq!(project_dir, fixture_path(&["basic"]));
-    }
-
-    #[test]
-    fn test_find_closest_root_dependency() {
-        let base_dir = fixture_path(&["basic", "node_modules", "eslint"]);
-        let project_dir = find_closest_root(base_dir).expect("Failed to find project directory");
-
-        assert_eq!(project_dir, fixture_path(&["basic"]));
     }
 }

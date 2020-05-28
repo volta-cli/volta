@@ -1,0 +1,17 @@
+{
+  "name": "subproject",
+  "version": "0.0.1",
+  "description": "Testing that project correctly detects a nested workspace",
+  "license": "To Kill",
+  "dependencies": {
+    "rsvp": "*"
+  },
+  "devDependencies": {
+    "glob": "*"
+  },
+  "volta": {
+    "yarn": "1.17.0",
+    "npm": "6.9.0",
+    "extends": "../package.json"
+  }
+}
