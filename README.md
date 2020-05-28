@@ -9,7 +9,8 @@
 </p>
 
 <p align="center">
-  <a href='https://dev.azure.com/volta-cli/volta/_build/latest?definitionId=2&branchName=master'><img alt="Azure Build Status" src="https://dev.azure.com/volta-cli/volta/_apis/build/status/volta-cli.volta?branchName=master" /></a>
+  <img alt="Production Build Status" src="https://github.com/volta-cli/volta/workflows/Production/badge.svg" />
+  <img alt="Test Status" src="https://github.com/volta-cli/volta/workflows/Test/badge.svg" />
 </p>
 
 **Fast:** Install and run any JS tool quickly and seamlessly! Volta is built in Rust and ships as a snappy static binary.
