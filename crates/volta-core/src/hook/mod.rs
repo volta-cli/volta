@@ -4,11 +4,11 @@ use std::borrow::Cow;
 use std::fs::File;
 use std::iter::once;
 use std::marker::PhantomData;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::layout::volta_home;
-use crate::project::find_closest_root;
+use crate::project::Project;
 use crate::tool::{Node, Npm, Package, Tool, Yarn};
 use lazycell::LazyCell;
 use log::debug;
@@ -119,12 +119,14 @@ impl HookConfig {
         // See the per-project configuration RFC for more details on the configuration precedence:
         // https://github.com/volta-cli/rfcs/blob/master/text/0033-per-project-config.md#configuration-precedence
         let paths = project
-            .map(|p| {
-                let mut path = p.project_root().join(".volta");
+            .into_iter()
+            .map(Project::workspace_roots)
+            .flatten()
+            .map(|root| {
+                let mut path = root.join(".volta");
                 path.push("hooks.json");
                 Cow::Owned(path)
             })
-            .into_iter()
             .chain(once(Cow::Borrowed(default_hooks_file)));
 
         Self::from_paths(paths)
