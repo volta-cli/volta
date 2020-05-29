@@ -7,7 +7,7 @@ use std::process::exit;
 
 use crate::error::{ExitCode, Fallible, VoltaError};
 use crate::event::EventLog;
-use crate::hook::{HookConfig, LazyHookConfig, Publish};
+use crate::hook::{HookConfig, LazyHookConfig};
 use crate::platform::PlatformSpec;
 use crate::project::{LazyProject, Project};
 use crate::toolchain::{LazyToolchain, Toolchain};
@@ -128,7 +128,7 @@ impl Session {
 
     /// Produces a reference to the hook configuration
     pub fn hooks(&self) -> Fallible<&HookConfig> {
-        self.hooks.get()
+        self.hooks.get(self.project()?)
     }
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
@@ -144,8 +144,11 @@ impl Session {
         self.event_log.add_event_error(activity_kind, error)
     }
 
-    fn publish_to_event_log(mut self) {
-        match publish_plugin(&self.hooks) {
+    fn publish_to_event_log(self) {
+        let plugin_res = self
+            .hooks()
+            .map(|hooks| hooks.events().and_then(|e| e.publish.as_ref()));
+        match plugin_res {
             Ok(plugin) => {
                 self.event_log.publish(plugin);
             }
@@ -164,12 +167,6 @@ impl Session {
         self.publish_to_event_log();
         exit(code);
     }
-}
-
-fn publish_plugin(hooks: &LazyHookConfig) -> Fallible<Option<&Publish>> {
-    let hooks = hooks.get()?;
-    let publish = hooks.events().and_then(|events| events.publish.as_ref());
-    Ok(publish)
 }
 
 #[cfg(test)]

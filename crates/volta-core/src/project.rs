@@ -119,6 +119,11 @@ impl Project {
         self.project_root.join("package.json")
     }
 
+    /// Returns the path to the project root
+    pub fn project_root(&self) -> &Path {
+        &self.project_root
+    }
+
     /// Returns the path to the local binary directory for this project.
     pub fn local_bin_dir(&self) -> PathBuf {
         let sub_dir: PathBuf = ["node_modules", ".bin"].iter().collect();
