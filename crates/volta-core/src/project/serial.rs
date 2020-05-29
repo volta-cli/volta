@@ -37,8 +37,11 @@ impl Manifest {
 
                 let next = extends
                     .map(|path| {
-                        // Invariant: Since we successfully parsed it, we know that `file` has a parent.
-                        let unresolved = file.parent().unwrap().join(&path);
+                        // Invariant: Since we successfully parsed it, we know we have a path to a file
+                        let unresolved = file
+                            .parent()
+                            .expect("File paths always have a parent")
+                            .join(&path);
                         canonicalize(unresolved)
                             .with_context(|| ErrorKind::ExtensionPathError { path })
                     })

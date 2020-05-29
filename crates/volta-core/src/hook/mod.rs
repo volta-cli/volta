@@ -115,7 +115,9 @@ impl HookConfig {
     fn current(project: Option<&Project>) -> Fallible<Self> {
         let default_hooks_file = volta_home()?.default_hooks_file();
 
-        // Since `from_paths` expects the paths to be sorted in descending precedence order, we include project hooks first
+        // Since `from_paths` expects the paths to be sorted in descending precedence order, we
+        // include all project hooks first (workspace_roots is already sorted in descending
+        // precedence order)
         // See the per-project configuration RFC for more details on the configuration precedence:
         // https://github.com/volta-cli/rfcs/blob/master/text/0033-per-project-config.md#configuration-precedence
         let paths = project

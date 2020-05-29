@@ -123,11 +123,10 @@ impl Project {
 
     /// Returns an iterator of paths to all of the workspace roots
     pub fn workspace_roots(&self) -> impl Iterator<Item = &Path> {
-        // Invariant: self.manifest_file and self.extensions will only contain paths to files
-        // So they will _always_ have a parent
+        // Invariant: self.manifest_file and self.extensions will only contain paths to files that we successfully loaded
         once(&self.manifest_file)
             .chain(self.extensions.iter())
-            .map(|file| file.parent().unwrap())
+            .map(|file| file.parent().expect("File paths always have a parent"))
     }
 
     /// Returns a reference to the Project's `PlatformSpec`, if available
