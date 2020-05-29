@@ -651,13 +651,11 @@ fn pin_node_does_not_remove_trailing_newline() {
 
 #[test]
 fn pin_node_does_not_overwrite_extends() {
-    let s = sandbox();
-    let basic_path = s.root().join("basic.json");
-    let s = s
+    let s = sandbox()
         .package_json(PACKAGE_JSON_WITH_EXTENDS)
         .node_available_versions(NODE_VERSION_INFO)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .file(&basic_path.to_string_lossy(), BASIC_PACKAGE_JSON)
+        .project_file("basic.json", BASIC_PACKAGE_JSON)
         .build();
 
     assert_that!(
