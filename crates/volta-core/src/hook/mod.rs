@@ -113,22 +113,50 @@ impl HookConfig {
     /// Returns the current hooks, which are a merge between the user hooks and
     /// the project hooks (if any).
     fn current(project: Option<&Project>) -> Fallible<Self> {
-        Self::paths(project)?
+        let default_hooks_file = volta_home()?.default_hooks_file();
+
+        // Since `from_paths` expects the paths to be sorted in descending precedence order, we include project hooks first
+        // See the per-project configuration RFC for more details on the configuration precedence:
+        // https://github.com/volta-cli/rfcs/blob/master/text/0033-per-project-config.md#configuration-precedence
+        let paths = project
+            .map(|p| {
+                let mut path = p.project_root().join(".volta");
+                path.push("hooks.json");
+                Cow::Owned(path)
+            })
+            .into_iter()
+            .chain(once(Cow::Borrowed(default_hooks_file)));
+
+        Self::from_paths(paths)
+    }
+
+    /// Returns the merged hooks loaded from an iterator of potential hook files
+    ///
+    /// `paths` should be sorted in order of descending precedence.
+    fn from_paths<P, I>(paths: I) -> Fallible<Self>
+    where
+        P: AsRef<Path>,
+        I: IntoIterator<Item = P>,
+    {
+        paths
+            .into_iter()
             .try_fold(None, |acc: Option<Self>, hooks_file| {
-                // Try to load the hooks and merge with any existing hooks
-                // Due to the iteration order, the existing hooks always have precedence
-                match Self::from_file(&hooks_file)? {
+                // Try to load the hooks and merge with any already loaded hooks
+                match Self::from_file(hooks_file.as_ref())? {
                     Some(hooks) => {
-                        debug!("Loaded custom hooks file: {}", hooks_file.display());
+                        debug!(
+                            "Loaded custom hooks file: {}",
+                            hooks_file.as_ref().display()
+                        );
                         Ok(Some(match acc {
-                            Some(existing) => existing.merge(hooks),
+                            Some(loaded) => loaded.merge(hooks),
                             None => hooks,
                         }))
                     }
                     None => Ok(acc),
                 }
             })
-            // If there were no hooks loaded, provide a default empty HookConfig
+            // If there were no hooks loaded at all, provide a default empty HookConfig
             .map(|maybe_config| {
                 maybe_config.unwrap_or_else(|| {
                     debug!("No custom hooks found");
@@ -141,22 +169,6 @@ impl HookConfig {
                     }
                 })
             })
-    }
-
-    /// Returns an iterator of all the possible locations for a hooks file, in precedence order
-    ///
-    /// Item type is Cow<Path> to support both owned and borrowed values
-    fn paths<'a>(project: Option<&'a Project>) -> Fallible<impl Iterator<Item = Cow<'a, Path>>> {
-        let default_hooks_file = volta_home()?.default_hooks_file();
-
-        Ok(project
-            .map(|p| {
-                let mut path = p.project_root().join(".volta");
-                path.push("hooks.json");
-                Cow::Owned(path)
-            })
-            .into_iter()
-            .chain(once(Cow::Borrowed(default_hooks_file))))
     }
 
     fn from_file(file_path: &Path) -> Fallible<Option<Self>> {
@@ -173,8 +185,8 @@ impl HookConfig {
                 file: file_path.to_path_buf(),
             })?;
 
-        // Invariant: Since we successfully loaded the file, file_path _must_ have a parent
-        let hooks_path = file_path.parent().unwrap();
+        // Invariant: Since we successfully loaded it, we know we have a valid file path
+        let hooks_path = file_path.parent().expect("File paths always have a parent");
 
         raw.into_hook_config(hooks_path).map(Some)
     }
@@ -390,6 +402,62 @@ pub mod tests {
             .expect("Could not read project hooks.json")
             .expect("Could not find project hooks.json");
         let merged_hooks = project_hooks.merge(default_hooks);
+        let node = merged_hooks.node.expect("No node config found");
+        let yarn = merged_hooks.yarn.expect("No yarn config found");
+
+        assert_eq!(
+            node.distro,
+            Some(tool::DistroHook::Bin {
+                bin: "/some/bin/for/node/distro".to_string(),
+                base_path: project_hooks_dir.clone(),
+            })
+        );
+        assert_eq!(
+            node.latest,
+            Some(tool::MetadataHook::Bin {
+                bin: "/some/bin/for/node/latest".to_string(),
+                base_path: project_hooks_dir.clone(),
+            })
+        );
+        assert_eq!(
+            node.index,
+            Some(tool::MetadataHook::Bin {
+                bin: "/some/bin/for/node/index".to_string(),
+                base_path: project_hooks_dir,
+            })
+        );
+        assert_eq!(
+            yarn.distro,
+            Some(tool::DistroHook::Template(
+                "http://localhost/yarn/distro/{{version}}/".to_string()
+            ))
+        );
+        assert_eq!(
+            yarn.latest,
+            Some(tool::MetadataHook::Template(
+                "http://localhost/yarn/latest/{{version}}/".to_string()
+            ))
+        );
+        assert_eq!(
+            yarn.index,
+            Some(tool::MetadataHook::Template(
+                "http://localhost/yarn/index/{{version}}/".to_string()
+            ))
+        );
+        assert_eq!(
+            merged_hooks.events.expect("No events config found").publish,
+            Some(Publish::Bin("/events/bin".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_from_paths() {
+        let project_hooks_dir = fixture_path("hooks/project/.volta");
+        let project_hooks_file = project_hooks_dir.join("hooks.json");
+        let default_hooks_file = fixture_path("hooks/templates.json");
+
+        let merged_hooks =
+            HookConfig::from_paths(&[project_hooks_file, default_hooks_file]).unwrap();
         let node = merged_hooks.node.expect("No node config found");
         let yarn = merged_hooks.yarn.expect("No yarn config found");
 

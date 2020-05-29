@@ -6,6 +6,7 @@ cfg_if! {
 
         // test files
         mod corrupted_download;
+        mod hooks;
         mod intercept_global_installs;
         mod merged_platform;
         mod migrations;
