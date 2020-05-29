@@ -167,37 +167,43 @@ impl Project {
     }
 
     /// Pins the Node version in this project's manifest file
-    pub fn pin_node(&mut self, version: &Version) -> Fallible<()> {
+    pub fn pin_node(&mut self, version: Version) -> Fallible<()> {
+        update_manifest_node(&self.manifest_file, Some(&version))?;
+
         if let Some(platform) = self.platform.as_mut() {
-            platform.node = version.clone();
+            platform.node = version;
         } else {
             self.platform = Some(PlatformSpec {
-                node: version.clone(),
+                node: version,
                 npm: None,
                 yarn: None,
             });
         }
 
-        update_manifest_node(&self.manifest_file, Some(version))
+        Ok(())
     }
 
     /// Pins the npm version in this project's manifest file
-    pub fn pin_npm(&mut self, version: Option<&Version>) -> Fallible<()> {
+    pub fn pin_npm(&mut self, version: Option<Version>) -> Fallible<()> {
         if let Some(platform) = self.platform.as_mut() {
-            platform.npm = version.cloned();
+            update_manifest_npm(&self.manifest_file, version.as_ref())?;
 
-            update_manifest_npm(&self.manifest_file, version)
+            platform.npm = version;
+
+            Ok(())
         } else {
             Err(ErrorKind::NoPinnedNodeVersion { tool: "npm".into() }.into())
         }
     }
 
     /// Pins the Yarn version in this project's manifest file
-    pub fn pin_yarn(&mut self, version: Option<&Version>) -> Fallible<()> {
+    pub fn pin_yarn(&mut self, version: Option<Version>) -> Fallible<()> {
         if let Some(platform) = self.platform.as_mut() {
-            platform.yarn = version.cloned();
+            update_manifest_yarn(&self.manifest_file, version.as_ref())?;
 
-            update_manifest_yarn(&self.manifest_file, version)
+            platform.yarn = version;
+
+            Ok(())
         } else {
             Err(ErrorKind::NoPinnedNodeVersion {
                 tool: "Yarn".into(),
