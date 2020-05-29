@@ -15,4 +15,8 @@ verbatim = "0.1"
 cfg-if = "0.1"
 hyperx = "1.0.0"
 thiserror = "1.0.16"
-attohttpc = { version = "0.13.0", features = ["json", "tls-rustls"] }
+
+[dependencies.attohttpc]
+version = "0.13.0"
+default-features = false
+features = ["json", "tls-rustls"]
