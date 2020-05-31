@@ -128,7 +128,7 @@ impl EventLog {
         self.events.push(event);
     }
 
-    pub fn publish(&mut self, plugin: Option<&Publish>) {
+    pub fn publish(&self, plugin: Option<&Publish>) {
         match plugin {
             // Note: This call to unimplemented is left in, as it's not a Fallible operation that can use ErrorKind::Unimplemented
             Some(&Publish::Url(_)) => unimplemented!(),

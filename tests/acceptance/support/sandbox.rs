@@ -255,6 +255,13 @@ impl SandboxBuilder {
         self
     }
 
+    /// Set the hooks.json for the sandbox
+    pub fn default_hooks(mut self, contents: &str) -> Self {
+        self.files
+            .push(FileBuilder::new(default_hooks_file(), contents));
+        self
+    }
+
     /// Set a layout version file for the sandbox (chainable)
     pub fn layout_file(mut self, version: &str) -> Self {
         self.files.push(FileBuilder::new(layout_file(version), ""));
@@ -365,6 +372,13 @@ impl SandboxBuilder {
     /// Add an arbitrary file to the sandbox (chainable)
     pub fn file(mut self, path: &str, contents: &str) -> Self {
         let file_name = sandbox_path(path);
+        self.files.push(FileBuilder::new(file_name, contents));
+        self
+    }
+
+    /// Add an arbitrary file to the test project within the sandbox (chainable)
+    pub fn project_file(mut self, path: &str, contents: &str) -> Self {
+        let file_name = self.root().join(path);
         self.files.push(FileBuilder::new(file_name, contents));
         self
     }
@@ -536,6 +550,9 @@ fn package_image_dir(name: &str, version: &str) -> PathBuf {
 }
 fn default_platform_file() -> PathBuf {
     user_dir().join("platform.json")
+}
+fn default_hooks_file() -> PathBuf {
+    volta_home().join("hooks.json")
 }
 fn layout_file(version: &str) -> PathBuf {
     volta_home().join(format!("layout.{}", version))
