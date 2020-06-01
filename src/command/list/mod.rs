@@ -96,9 +96,7 @@ enum Package {
         tools: Vec<String>,
     },
     Project {
-        details: PackageDetails,
-        /// The version of Node the package is installed against.
-        node: Version,
+        name: String,
         /// The names of the tools associated with the package.
         tools: Vec<String>,
         path: PathBuf,
@@ -120,8 +118,7 @@ impl Package {
                 tools: config.bins.clone(),
             },
             Source::Project(path) => Package::Project {
-                details,
-                node: config.platform.node.clone(),
+                name: details.name,
                 tools: config.bins.clone(),
                 path: path.clone(),
             },
@@ -134,16 +131,16 @@ impl Package {
             configs
                 .iter()
                 .map(|config| {
-                    let source = Self::source(&config.name, &config.version, project);
+                    let source = Self::source(&config.name, project);
                     Package::new(&config, &source)
                 })
                 .collect()
         })
     }
 
-    fn source(name: &str, version: &Version, project: Option<&Project>) -> Source {
+    fn source(name: &str, project: Option<&Project>) -> Source {
         match project {
-            Some(project) if project.has_dependency(name, version) => {
+            Some(project) if project.has_direct_dependency(name) => {
                 Source::Project(project.package_file())
             }
             _ => Source::Default,

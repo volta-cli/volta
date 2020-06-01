@@ -334,12 +334,6 @@ fn format_package(package: &Package) -> String {
             node,
             tools,
             ..
-        }
-        | Package::Project {
-            details,
-            node,
-            tools,
-            ..
         } => {
             let tools = match tools.len() {
                 0 => String::from(""),
@@ -357,6 +351,15 @@ fn format_package(package: &Package) -> String {
             ));
             let platform = WRAPPER.fill(&format!("platform:\n{}", platform_detail));
             format!("{}@{}\n{}\n{}", details.name, version, binaries, platform)
+        }
+        Package::Project { name, tools, .. } => {
+            let tools = match tools.len() {
+                0 => String::from(""),
+                _ => tools.join(", "),
+            };
+
+            let binaries = WRAPPER.fill(&format!("binary tools: {}", tools));
+            format!("{}{}\n{}", name, list_package_source(package), binaries)
         }
         Package::Fetched(details) => {
             let package_info = format!("{}@{}", details.name, details.version);
@@ -812,12 +815,8 @@ See options for more detailed reports by running `volta list --help`.";
             ];
             let packages = vec![
                 Package::Project {
-                    details: PackageDetails {
-                        name: "create-react-app".to_string(),
-                        version: Version::from((3, 0, 1)),
-                    },
+                    name: "create-react-app".to_string(),
                     path: PROJECT_PATH.clone(),
-                    node: NODE_12.clone(),
                     tools: vec!["create-react-app".to_string()],
                 },
                 Package::Default {
@@ -1125,7 +1124,7 @@ See `volta help install` for details and more options.";
     mod packages {
         use super::*;
         use crate::command::list::{Package, PackageDetails};
-        use semver::{Identifier, Version};
+        use semver::Version;
 
         #[test]
         fn none() {
@@ -1163,19 +1162,12 @@ See `volta help install` for details and more options.";
         fn single_project() {
             let expected = "⚡️ Package versions in your toolchain:
 
-    ember-cli@3.10.1 (current @ ~/path/to/project.json)
-        binary tools: ember
-        platform:
-            runtime: node@12.2.0
-            package manager: npm@built-in";
+    ember-cli (current @ ~/path/to/project.json)
+        binary tools: ember";
 
             let packages = [Package::Project {
-                details: PackageDetails {
-                    name: "ember-cli".to_string(),
-                    version: Version::from((3, 10, 1)),
-                },
+                name: "ember-cli".to_string(),
                 path: PROJECT_PATH.clone(),
-                node: NODE_12.clone(),
                 tools: vec!["ember".to_string()],
             }];
 
@@ -1232,11 +1224,8 @@ See `volta help install` for details and more options.";
         platform:
             runtime: node@12.2.0
             package manager: npm@built-in
-    ember-cli@3.11.0--beta.3 (current @ ~/path/to/project.json)
-        binary tools: ember
-        platform:
-            runtime: node@12.2.0
-            package manager: npm@built-in";
+    ember-cli (current @ ~/path/to/project.json)
+        binary tools: ember";
 
             let packages = [
                 Package::Default {
@@ -1248,17 +1237,7 @@ See `volta help install` for details and more options.";
                     tools: vec!["ember".to_string()],
                 },
                 Package::Project {
-                    details: PackageDetails {
-                        name: "ember-cli".to_string(),
-                        version: Version {
-                            major: 3,
-                            minor: 11,
-                            patch: 0,
-                            pre: vec![Identifier::AlphaNumeric("-beta.3".to_string())],
-                            build: vec![],
-                        },
-                    },
-                    node: NODE_12.clone(),
+                    name: "ember-cli".to_string(),
                     path: PROJECT_PATH.clone(),
                     tools: vec!["ember".to_string()],
                 },
@@ -1271,7 +1250,7 @@ See `volta help install` for details and more options.";
     mod tools {
         use super::*;
         use crate::command::list::{Package, PackageDetails};
-        use semver::{Identifier, Version};
+        use semver::Version;
 
         #[test]
         fn none() {
@@ -1309,19 +1288,12 @@ See `volta help install` for details and more options.";
         fn single_project() {
             let expected = "⚡️ Tool `ember` available from:
 
-    ember-cli@3.10.1 (current @ ~/path/to/project.json)
-        binary tools: ember
-        platform:
-            runtime: node@12.2.0
-            package manager: npm@built-in";
+    ember-cli (current @ ~/path/to/project.json)
+        binary tools: ember";
 
             let packages = [Package::Project {
-                details: PackageDetails {
-                    name: "ember-cli".to_string(),
-                    version: Version::from((3, 10, 1)),
-                },
+                name: "ember-cli".to_string(),
                 path: PROJECT_PATH.clone(),
-                node: NODE_12.clone(),
                 tools: vec!["ember".to_string()],
             }];
 
@@ -1378,11 +1350,8 @@ See `volta help install` for details and more options.";
         platform:
             runtime: node@12.2.0
             package manager: npm@built-in
-    ember-cli@3.11.0--beta.3 (current @ ~/path/to/project.json)
-        binary tools: ember
-        platform:
-            runtime: node@12.2.0
-            package manager: npm@built-in";
+    ember-cli (current @ ~/path/to/project.json)
+        binary tools: ember";
 
             let packages = [
                 Package::Default {
@@ -1394,17 +1363,7 @@ See `volta help install` for details and more options.";
                     tools: vec!["ember".to_string()],
                 },
                 Package::Project {
-                    details: PackageDetails {
-                        name: "ember-cli".to_string(),
-                        version: Version {
-                            major: 3,
-                            minor: 11,
-                            patch: 0,
-                            pre: vec![Identifier::AlphaNumeric("-beta.3".to_string())],
-                            build: vec![],
-                        },
-                    },
-                    node: NODE_12.clone(),
+                    name: "ember-cli".to_string(),
                     path: PROJECT_PATH.clone(),
                     tools: vec!["ember".to_string()],
                 },
@@ -1571,16 +1530,10 @@ See `volta help install` for details and more options.";
             platform:
                 runtime: node@12.2.0
                 package manager: npm@built-in
-        typescript@3.5.1 (current @ ~/path/to/project.json)
+        typescript (current @ ~/path/to/project.json)
             binary tools: tsc, tsserver
-            platform:
-                runtime: node@12.2.0
-                package manager: npm@built-in
-        ember-cli@3.10.1 (current @ ~/path/to/project.json)
+        ember-cli (current @ ~/path/to/project.json)
             binary tools: ember
-            platform:
-                runtime: node@12.2.0
-                package manager: npm@built-in
         ember-cli@3.8.2 (default)
             binary tools: ember
             platform:
@@ -1645,21 +1598,13 @@ See `volta help install` for details and more options.";
                     tools: vec!["tsc".to_string(), "tsserver".to_string()],
                 },
                 Package::Project {
-                    details: PackageDetails {
-                        name: "typescript".to_string(),
-                        version: Version::from((3, 5, 1)),
-                    },
+                    name: "typescript".to_string(),
                     path: PROJECT_PATH.clone(),
-                    node: NODE_12.clone(),
                     tools: vec!["tsc".to_string(), "tsserver".to_string()],
                 },
                 Package::Project {
-                    details: PackageDetails {
-                        name: "ember-cli".to_string(),
-                        version: Version::from((3, 10, 1)),
-                    },
+                    name: "ember-cli".to_string(),
                     path: PROJECT_PATH.clone(),
-                    node: NODE_12.clone(),
                     tools: vec!["ember".to_string()],
                 },
                 Package::Default {
