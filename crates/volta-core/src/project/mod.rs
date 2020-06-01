@@ -211,19 +211,6 @@ impl Project {
             .into())
         }
     }
-
-    // TODO: Remove these once the changes to `volta list` are merged
-    pub fn matching_bin(&self, _bin: &OsStr, _version: &Version) -> Fallible<Option<BinConfig>> {
-        Ok(None)
-    }
-
-    pub fn package_file(&self) -> PathBuf {
-        self.manifest_file.clone()
-    }
-
-    pub fn has_dependency(&self, _dep: &str, _version: &Version) -> bool {
-        false
-    }
 }
 
 fn is_node_root(dir: &Path) -> bool {

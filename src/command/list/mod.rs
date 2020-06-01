@@ -141,7 +141,7 @@ impl Package {
     fn source(name: &str, project: Option<&Project>) -> Source {
         match project {
             Some(project) if project.has_direct_dependency(name) => {
-                Source::Project(project.package_file())
+                Source::Project(project.manifest_file().to_owned())
             }
             _ => Source::Default,
         }
