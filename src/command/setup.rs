@@ -41,6 +41,7 @@ mod os {
 
     pub fn setup_environment() -> Fallible<()> {
         let home = volta_home()?;
+        let formatted_home = format_home(home.root());
 
         debug!("Searching for profiles to update");
         let profiles = determine_profiles()?;
@@ -53,7 +54,7 @@ mod os {
                 _ => write_profile_sh,
             };
 
-            match write_profile(&profile, contents, home.root()) {
+            match write_profile(&profile, contents, &formatted_home) {
                 Ok(()) => true,
                 Err(err) => {
                     warn!(
@@ -170,23 +171,33 @@ If you run into problems running Volta, create {} and run `volta setup` again.",
             .ok()
     }
 
-    fn write_profile_sh(path: &Path, contents: String, volta_home: &Path) -> io::Result<()> {
+    fn format_home(volta_home: &Path) -> String {
+        if let Some(home_dir) = env::var_os("HOME") {
+            if let Ok(suffix) = volta_home.strip_prefix(home_dir) {
+                // If the HOME environment variable is set _and_ the proposed VOLTA_HOME starts
+                // with that value, use $HOME when writing the profile scripts
+                return format!("$HOME/{}", suffix.display());
+            }
+        }
+
+        volta_home.display().to_string()
+    }
+
+    fn write_profile_sh(path: &Path, contents: String, volta_home: &str) -> io::Result<()> {
         let mut file = File::create(path)?;
         write!(
             file,
             "{}\nexport VOLTA_HOME=\"{}\"\nexport PATH=\"$VOLTA_HOME/bin:$PATH\"\n",
-            contents,
-            volta_home.display(),
+            contents, volta_home,
         )
     }
 
-    fn write_profile_fish(path: &Path, contents: String, volta_home: &Path) -> io::Result<()> {
+    fn write_profile_fish(path: &Path, contents: String, volta_home: &str) -> io::Result<()> {
         let mut file = File::create(path)?;
         write!(
             file,
             "{}\nset -gx VOLTA_HOME \"{}\"\nset -gx PATH \"$VOLTA_HOME/bin\" $PATH\n",
-            contents,
-            volta_home.display(),
+            contents, volta_home,
         )
     }
 }
