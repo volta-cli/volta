@@ -44,22 +44,6 @@ pub struct Project {
     project_root: PathBuf,
 }
 
-fn is_node_root(dir: &Path) -> bool {
-    dir.join("package.json").is_file()
-}
-
-fn is_node_modules(dir: &Path) -> bool {
-    dir.file_name() == Some(OsStr::new("node_modules"))
-}
-
-fn is_dependency(dir: &Path) -> bool {
-    dir.parent().map_or(false, |parent| is_node_modules(parent))
-}
-
-fn is_project_root(dir: &Path) -> bool {
-    is_node_root(dir) && !is_dependency(dir)
-}
-
 impl Project {
     /// Returns the Node project containing the current working directory,
     /// if any.
@@ -191,6 +175,22 @@ impl Project {
             Err(ErrorKind::NoPinnedNodeVersion { tool: "npm".into() }.into())
         }
     }
+}
+
+fn is_node_root(dir: &Path) -> bool {
+    dir.join("package.json").is_file()
+}
+
+fn is_node_modules(dir: &Path) -> bool {
+    dir.file_name() == Some(OsStr::new("node_modules"))
+}
+
+fn is_dependency(dir: &Path) -> bool {
+    dir.parent().map_or(false, |parent| is_node_modules(parent))
+}
+
+fn is_project_root(dir: &Path) -> bool {
+    is_node_root(dir) && !is_dependency(dir)
 }
 
 // unit tests
