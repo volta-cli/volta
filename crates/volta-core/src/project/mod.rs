@@ -87,7 +87,14 @@ impl Project {
         while let Some(path) = extends {
             // Detect cycles to prevent infinite looping
             if path == manifest_file || workspace_manifests.contains(&path) {
-                return Err(ErrorKind::ExtensionCycleError { file: path }.into());
+                let mut paths = vec![manifest_file];
+                paths.extend(workspace_manifests);
+
+                return Err(ErrorKind::ExtensionCycleError {
+                    paths,
+                    duplicate: path,
+                }
+                .into());
             }
 
             let manifest = Manifest::from_file(&path)?;

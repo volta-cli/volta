@@ -188,7 +188,14 @@ mod project {
         let project_error = Project::for_dir(cycle_path).unwrap_err();
 
         match project_error.kind() {
-            ErrorKind::ExtensionCycleError { .. } => {}
+            ErrorKind::ExtensionCycleError { paths, duplicate } => {
+                let expected_paths = vec![
+                    fixture_path(&["cycle-1", "package.json"]),
+                    fixture_path(&["cycle-1", "volta.json"]),
+                ];
+                assert_eq!(&expected_paths, paths);
+                assert_eq!(&expected_paths[0], duplicate);
+            }
             kind => panic!("Wrong error kind: {:?}", kind),
         }
 
@@ -197,7 +204,15 @@ mod project {
         let project_error = Project::for_dir(cycle_path).unwrap_err();
 
         match project_error.kind() {
-            ErrorKind::ExtensionCycleError { .. } => {}
+            ErrorKind::ExtensionCycleError { paths, duplicate } => {
+                let expected_paths = vec![
+                    fixture_path(&["cycle-2", "package.json"]),
+                    fixture_path(&["cycle-2", "workspace-1.json"]),
+                    fixture_path(&["cycle-2", "workspace-2.json"]),
+                ];
+                assert_eq!(&expected_paths, paths);
+                assert_eq!(&expected_paths[1], duplicate);
+            }
             kind => panic!("Wrong error kind: {:?}", kind),
         }
     }

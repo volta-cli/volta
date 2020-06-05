@@ -123,7 +123,8 @@ pub enum ErrorKind {
 
     /// Thrown when `volta.extends` keys result in an infinite cycle
     ExtensionCycleError {
-        file: PathBuf,
+        paths: Vec<PathBuf>,
+        duplicate: PathBuf,
     },
 
     /// Thrown when determining the path to an extension manifest fails
@@ -698,13 +699,31 @@ Please verify your internet connection and ensure the correct version is specifi
 Please ensure that the correct command is specified.",
                 command
             ),
-            ErrorKind::ExtensionCycleError { file } => write!(
-                f,
-                "Detected project workspace cycle in '{}'.
+            ErrorKind::ExtensionCycleError { paths, duplicate } => {
+                // Detected infinite loop in project workspace:
+                //
+                // --> /home/user/workspace/project/package.json
+                //     /home/user/workspace/package.json
+                // --> /home/user/workspace/project/package.json
+                //
+                // Please ensure that project workspaces do not depend on each other.
+                f.write_str("Detected infinite loop in project workspace:\n\n")?;
 
-Please ensure that project workspaces do not depend on each other.",
-                file.display()
-            ),
+                for path in paths {
+                    if path == duplicate {
+                        f.write_str("--> ")?;
+                    } else {
+                        f.write_str("    ")?;
+                    }
+
+                    writeln!(f, "{}", path.display())?;
+                }
+
+                writeln!(f, "--> {}", duplicate.display())?;
+                writeln!(f)?;
+
+                f.write_str("Please ensure that project workspaces do not depend on each other.")
+            }
             ErrorKind::ExtensionPathError { path } => write!(
                 f,
                 "Could not determine path to project workspace: '{}'
