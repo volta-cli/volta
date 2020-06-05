@@ -105,7 +105,7 @@ mod project {
         assert!(test_project.has_direct_dependency("@namespace/some-dep"));
         assert!(test_project.has_direct_dependency("@namespaced/something-else"));
 
-        // typescript is not as a direct dependency
+        // typescript is not a direct dependency
         assert!(!test_project.has_direct_dependency("typescript"));
     }
 
@@ -124,7 +124,7 @@ mod project {
         assert!(test_project.has_direct_dependency("lodash"));
         assert!(test_project.has_direct_dependency("eslint"));
 
-        // react is not as a direct dependency of any project
+        // react is not a direct dependency of any project
         assert!(!test_project.has_direct_dependency("react"));
     }
 
