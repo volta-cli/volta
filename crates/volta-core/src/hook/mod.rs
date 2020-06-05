@@ -122,8 +122,7 @@ impl HookConfig {
         // https://github.com/volta-cli/rfcs/blob/master/text/0033-per-project-config.md#configuration-precedence
         let paths = project
             .into_iter()
-            .map(Project::workspace_roots)
-            .flatten()
+            .flat_map(Project::workspace_roots)
             .map(|root| {
                 let mut path = root.join(".volta");
                 path.push("hooks.json");

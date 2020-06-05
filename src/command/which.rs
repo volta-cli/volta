@@ -32,7 +32,7 @@ impl Command for Which {
             .and_then(|project| project.find_bin(&self.binary));
 
         let tool_path = match (default_tool, project_bin_path) {
-            (Some(_), Some(project_bin_dir)) => Some(project_bin_dir),
+            (Some(_), Some(bin_path)) => Some(bin_path),
             (Some(tool), _) => Some(tool.bin_path),
             _ => None,
         };

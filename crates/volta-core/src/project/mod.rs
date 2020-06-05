@@ -21,7 +21,7 @@ mod serial;
 #[cfg(test)]
 mod tests;
 
-use serial::{update_manifest_node, update_manifest_npm, update_manifest_yarn, Manifest};
+use serial::{update_manifest, Manifest, ManifestKey};
 
 /// A lazily loaded Project
 pub struct LazyProject {
@@ -50,7 +50,7 @@ impl LazyProject {
 #[cfg_attr(test, derive(Debug))]
 pub struct Project {
     manifest_file: PathBuf,
-    extensions: IndexSet<PathBuf>,
+    workspace_manifests: IndexSet<PathBuf>,
     dependencies: ChainMap<String, String>,
     platform: Option<PlatformSpec>,
 }
@@ -79,19 +79,19 @@ impl Project {
     fn from_file(manifest_file: PathBuf) -> Fallible<Self> {
         let manifest = Manifest::from_file(&manifest_file)?;
         let mut dependencies: ChainMap<String, String> = manifest.dependency_maps.collect();
-        let mut extensions = IndexSet::new();
+        let mut workspace_manifests = IndexSet::new();
         let mut platform = manifest.platform;
         let mut extends = manifest.extends;
 
         // Iterate the `volta.extends` chain, parsing each file in turn
         while let Some(path) = extends {
             // Detect cycles to prevent infinite looping
-            if path == manifest_file || extensions.contains(&path) {
+            if path == manifest_file || workspace_manifests.contains(&path) {
                 return Err(ErrorKind::ExtensionCycleError { file: path }.into());
             }
 
             let manifest = Manifest::from_file(&path)?;
-            extensions.insert(path);
+            workspace_manifests.insert(path);
 
             for map in manifest.dependency_maps {
                 dependencies.push_map(map);
@@ -111,7 +111,7 @@ impl Project {
         Ok(Project {
             manifest_file,
             dependencies,
-            extensions,
+            workspace_manifests,
             platform,
         })
     }
@@ -125,7 +125,7 @@ impl Project {
     pub fn workspace_roots(&self) -> impl Iterator<Item = &Path> {
         // Invariant: self.manifest_file and self.extensions will only contain paths to files that we successfully loaded
         once(&self.manifest_file)
-            .chain(self.extensions.iter())
+            .chain(self.workspace_manifests.iter())
             .map(|file| file.parent().expect("File paths always have a parent"))
     }
 
@@ -168,7 +168,7 @@ impl Project {
 
     /// Pins the Node version in this project's manifest file
     pub fn pin_node(&mut self, version: Version) -> Fallible<()> {
-        update_manifest_node(&self.manifest_file, Some(&version))?;
+        update_manifest(&self.manifest_file, ManifestKey::Node, Some(&version))?;
 
         if let Some(platform) = self.platform.as_mut() {
             platform.node = version;
@@ -186,7 +186,7 @@ impl Project {
     /// Pins the npm version in this project's manifest file
     pub fn pin_npm(&mut self, version: Option<Version>) -> Fallible<()> {
         if let Some(platform) = self.platform.as_mut() {
-            update_manifest_npm(&self.manifest_file, version.as_ref())?;
+            update_manifest(&self.manifest_file, ManifestKey::Npm, version.as_ref())?;
 
             platform.npm = version;
 
@@ -199,7 +199,7 @@ impl Project {
     /// Pins the Yarn version in this project's manifest file
     pub fn pin_yarn(&mut self, version: Option<Version>) -> Fallible<()> {
         if let Some(platform) = self.platform.as_mut() {
-            update_manifest_yarn(&self.manifest_file, version.as_ref())?;
+            update_manifest(&self.manifest_file, ManifestKey::Yarn, version.as_ref())?;
 
             platform.yarn = version;
 

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt;
 use std::fs::{read_to_string, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -59,19 +60,20 @@ impl Manifest {
     }
 }
 
-/// Update the `node` value in the `volta` hash of the specified manifest
-pub fn update_manifest_node(file: &Path, version: Option<&Version>) -> Fallible<()> {
-    update_manifest(file, "node".into(), version.map(Version::to_string))
+pub(super) enum ManifestKey {
+    Node,
+    Npm,
+    Yarn,
 }
 
-/// Update the `npm` value in the `volta` hash of the specified manifest
-pub fn update_manifest_npm(file: &Path, version: Option<&Version>) -> Fallible<()> {
-    update_manifest(file, "npm".into(), version.map(Version::to_string))
-}
-
-/// Update the `yarn` value in the `volta` hash of the specified manifest
-pub fn update_manifest_yarn(file: &Path, version: Option<&Version>) -> Fallible<()> {
-    update_manifest(file, "yarn".into(), version.map(Version::to_string))
+impl fmt::Display for ManifestKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            ManifestKey::Node => "node",
+            ManifestKey::Npm => "npm",
+            ManifestKey::Yarn => "yarn",
+        })
+    }
 }
 
 /// Updates the `volta` hash in the specified manifest with the given key and value
@@ -79,7 +81,11 @@ pub fn update_manifest_yarn(file: &Path, version: Option<&Version>) -> Fallible<
 /// Will create the `volta` hash if it isn't already present
 ///
 /// If the value is `None`, will remove the key from the hash
-fn update_manifest(file: &Path, key: String, value: Option<String>) -> Fallible<()> {
+pub(super) fn update_manifest(
+    file: &Path,
+    key: ManifestKey,
+    value: Option<&Version>,
+) -> Fallible<()> {
     let contents = read_to_string(&file).with_context(|| ErrorKind::PackageReadError {
         file: file.to_owned(),
     })?;
@@ -95,16 +101,18 @@ fn update_manifest(file: &Path, key: String, value: Option<String>) -> Fallible<
             file: file.to_owned(),
         })?;
 
+    let key = key.to_string();
+
     match (value, root.get_mut("volta").and_then(|v| v.as_object_mut())) {
         (Some(v), Some(hash)) => {
-            hash.insert(key, Value::String(v));
+            hash.insert(key, Value::String(v.to_string()));
         }
         (None, Some(hash)) => {
             hash.remove(&key);
         }
         (Some(v), None) => {
             let mut map = Map::new();
-            map.insert(key, Value::String(v));
+            map.insert(key, Value::String(v.to_string()));
             root.insert("volta".into(), Value::Object(map));
         }
         (None, None) => {}
@@ -166,6 +174,7 @@ struct ToolchainSpec {
 }
 
 impl ToolchainSpec {
+    /// Moves the tool versions into a `PartialPlatform` and returns that along with the `extends` value
     fn parse_split(self) -> Fallible<(PartialPlatform, Option<PathBuf>)> {
         let node = self.node.map(parse_version).transpose()?;
         let npm = self.npm.map(parse_version).transpose()?;
