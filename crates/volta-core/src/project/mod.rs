@@ -99,10 +99,7 @@ impl Project {
 
             let manifest = Manifest::from_file(&path)?;
             workspace_manifests.insert(path);
-
-            for map in manifest.dependency_maps {
-                dependencies.push_map(map);
-            }
+            dependencies.extend(manifest.dependency_maps);
 
             platform = match (platform, manifest.platform) {
                 (Some(base), Some(ext)) => Some(base.merge(ext)),
