@@ -155,6 +155,7 @@ impl<T> Default for InheritOption<T> {
 }
 
 #[derive(Clone, PartialOrd, Ord, PartialEq, Eq)]
+#[cfg_attr(test, derive(Debug))]
 /// Represents the specification of a single Platform, regardless of the source
 pub struct PlatformSpec {
     pub node: Version,

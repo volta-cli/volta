@@ -1,0 +1,5 @@
+{
+  "volta": {
+    "extends": "./package.json"
+  }
+}

@@ -14,7 +14,8 @@ use crate::command::Command;
 #[derive(StructOpt)]
 pub(crate) struct Which {
     /// The binary to find, e.g. `node` or `npm`
-    binary: String,
+    #[structopt(parse(from_os_str))]
+    binary: OsString,
 }
 
 impl Command for Which {
@@ -25,19 +26,13 @@ impl Command for Which {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Which);
 
-        let bin = OsString::from(self.binary.as_str());
-
-        let default_tool = DefaultBinary::from_name(&bin, session)?;
-        let project_bin_path =
-            session
-                .project()?
-                .and_then(|project| match project.has_direct_bin(&bin) {
-                    Ok(true) => Some(project.local_bin_dir()),
-                    _ => None,
-                });
+        let default_tool = DefaultBinary::from_name(&self.binary, session)?;
+        let project_bin_path = session
+            .project()?
+            .and_then(|project| project.find_bin(&self.binary));
 
         let tool_path = match (default_tool, project_bin_path) {
-            (Some(_), Some(project_bin_dir)) => Some(project_bin_dir.join(&bin)),
+            (Some(_), Some(bin_path)) => Some(bin_path),
             (Some(tool), _) => Some(tool.bin_path),
             _ => None,
         };
@@ -63,7 +58,7 @@ impl Command for Which {
         };
 
         let cwd = env::current_dir().with_context(|| ErrorKind::CurrentDirError)?;
-        let exit_code = match which_in(&bin, Some(path), cwd) {
+        let exit_code = match which_in(&self.binary, Some(path), cwd) {
             Ok(result) => {
                 println!("{}", result.to_string_lossy());
                 ExitCode::Success

@@ -163,7 +163,7 @@ impl Tool for Node {
 
             // Note: We know this will succeed, since we checked above
             let project = session.project_mut()?.unwrap();
-            project.pin_node(&self.version)?;
+            project.pin_node(self.version.clone())?;
 
             // If the user has a pinned version of `npm`, we shouldn't show the "(with npm@X.Y.ZZZ)" text in the success message
             // Instead we should check if the bundled version is higher than the pinned and inform the user

@@ -1,0 +1,16 @@
+{
+  "name": "inner-project",
+  "version": "0.0.1",
+  "description": "Testing that project correctly detects a nested workspace",
+  "license": "To Kill",
+  "dependencies": {
+    "express": "*"
+  },
+  "devDependencies": {
+    "typescript": "*"
+  },
+  "volta": {
+    "yarn": "1.22.4",
+    "extends": "../package.json"
+  }
+}

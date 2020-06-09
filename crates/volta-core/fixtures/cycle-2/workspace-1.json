@@ -1,0 +1,5 @@
+{
+  "volta": {
+    "extends": "./workspace-2.json"
+  }
+}

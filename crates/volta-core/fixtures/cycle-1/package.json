@@ -1,0 +1,9 @@
+{
+  "name": "cycle-1-project",
+  "version": "0.0.1",
+  "description": "Testing that project correctly detects a cycle between this and volta.json",
+  "license": "To Kill",
+  "volta": {
+    "extends": "./volta.json"
+  }
+}

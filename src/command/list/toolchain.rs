@@ -61,7 +61,7 @@ impl Lookup {
                 .and_then(self.version_from_spec())
                 .and_then(|project_version| {
                     if &project_version == version {
-                        Some(Source::Project(project.package_file()))
+                        Some(Source::Project(project.manifest_file().to_owned()))
                     } else {
                         None
                     }
@@ -90,7 +90,7 @@ impl Lookup {
             Some(project) => project
                 .platform()
                 .and_then(self.version_from_spec())
-                .map(|version| (Source::Project(project.package_file()), version)),
+                .map(|version| (Source::Project(project.manifest_file().to_owned()), version)),
             None => default
                 .clone()
                 .and_then(self.version_from_spec())
@@ -104,7 +104,7 @@ fn tool_source(name: &str, project: Option<&Project>) -> Fallible<Source> {
     match project {
         Some(project) => {
             if project.has_direct_bin(name.as_ref())? {
-                Ok(Source::Project(project.package_file()))
+                Ok(Source::Project(project.manifest_file().to_owned()))
             } else {
                 Ok(Source::Default)
             }

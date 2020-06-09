@@ -115,16 +115,19 @@ impl HookConfig {
     fn current(project: Option<&Project>) -> Fallible<Self> {
         let default_hooks_file = volta_home()?.default_hooks_file();
 
-        // Since `from_paths` expects the paths to be sorted in descending precedence order, we include project hooks first
+        // Since `from_paths` expects the paths to be sorted in descending precedence order, we
+        // include all project hooks first (workspace_roots is already sorted in descending
+        // precedence order)
         // See the per-project configuration RFC for more details on the configuration precedence:
         // https://github.com/volta-cli/rfcs/blob/master/text/0033-per-project-config.md#configuration-precedence
         let paths = project
-            .map(|p| {
-                let mut path = p.project_root().join(".volta");
+            .into_iter()
+            .flat_map(Project::workspace_roots)
+            .map(|root| {
+                let mut path = root.join(".volta");
                 path.push("hooks.json");
                 Cow::Owned(path)
             })
-            .into_iter()
             .chain(once(Cow::Borrowed(default_hooks_file)));
 
         Self::from_paths(paths)
