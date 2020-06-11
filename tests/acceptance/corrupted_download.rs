@@ -92,6 +92,7 @@ fn install_corrupted_yarn_leaves_inventory_unchanged() {
 #[test]
 fn install_valid_yarn_saves_to_inventory() {
     let s = sandbox()
+        .platform(r#"{ "node": { "runtime": "1.2.3", "npm": null }, "yarn": null }"#)
         .node_available_versions(NODE_VERSION_INFO)
         .yarn_available_versions(YARN_VERSION_INFO)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
