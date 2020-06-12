@@ -1,9 +1,13 @@
 use std::collections::BTreeSet;
 
-use super::resolve::YarnIndex;
 use crate::version::version_serde;
 use semver::Version;
 use serde::Deserialize;
+
+/// The public Yarn index.
+pub struct YarnIndex {
+    pub(super) entries: BTreeSet<Version>,
+}
 
 #[derive(Deserialize)]
 pub struct RawYarnIndex(Vec<RawYarnEntry>);

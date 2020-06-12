@@ -10,8 +10,8 @@ use crate::style::tool_version;
 use semver::Version;
 
 mod fetch;
+mod metadata;
 mod resolve;
-mod serial;
 
 pub use resolve::resolve;
 
