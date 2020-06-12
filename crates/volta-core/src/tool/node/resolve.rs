@@ -1,13 +1,12 @@
 //! Provides resolution of Node requirements into specific versions, using the NodeJS index
 
-use std::collections::HashSet;
 use std::fs::File;
 use std::io::Write;
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 
 use super::super::registry_fetch_error;
-use super::serial;
+use super::metadata::{NodeEntry, NodeIndex, RawNodeIndex};
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::{create_staging_file, read_file};
 use crate::hook::ToolHooks;
@@ -195,27 +194,8 @@ fn match_node_version(
         .map(|NodeEntry { version, .. }| version))
 }
 
-/// The index of the public Node server.
-pub struct NodeIndex {
-    pub(super) entries: Vec<NodeEntry>,
-}
-
-#[derive(Debug)]
-pub struct NodeEntry {
-    pub version: Version,
-    pub npm: Version,
-    pub files: NodeDistroFiles,
-    pub lts: bool,
-}
-
-/// The set of available files on the public Node server for a given Node version.
-#[derive(Debug)]
-pub struct NodeDistroFiles {
-    pub files: HashSet<String>,
-}
-
 /// Reads a public index from the Node cache, if it exists and hasn't expired.
-fn read_cached_opt(url: &str) -> Fallible<Option<serial::RawNodeIndex>> {
+fn read_cached_opt(url: &str) -> Fallible<Option<RawNodeIndex>> {
     let expiry_file = volta_home()?.node_index_expiry_file();
     let expiry = read_file(&expiry_file).with_context(|| ErrorKind::ReadNodeIndexExpiryError {
         file: expiry_file.to_owned(),
@@ -259,7 +239,7 @@ fn max_age(headers: &attohttpc::header::HeaderMap) -> u32 {
     4 * 60 * 60
 }
 
-fn resolve_node_versions(url: &str) -> Fallible<serial::RawNodeIndex> {
+fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
     match read_cached_opt(url)? {
         Some(serial) => {
             debug!("Found valid cache of Node version index");
@@ -279,9 +259,11 @@ fn resolve_node_versions(url: &str) -> Fallible<serial::RawNodeIndex> {
                 .text()
                 .with_context(registry_fetch_error("Node", url))?;
 
-            let index: serial::RawNodeIndex = serde_json::de::from_str(&response_text)
-                .with_context(|| ErrorKind::ParseNodeIndexError {
-                    from_url: url.to_string(),
+            let index: RawNodeIndex =
+                serde_json::de::from_str(&response_text).with_context(|| {
+                    ErrorKind::ParseNodeIndexError {
+                        from_url: url.to_string(),
+                    }
                 })?;
 
             let cached = create_staging_file()?;

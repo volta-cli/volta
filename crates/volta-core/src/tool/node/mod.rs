@@ -12,8 +12,8 @@ use log::info;
 use semver::Version;
 
 mod fetch;
+mod metadata;
 mod resolve;
-mod serial;
 
 pub use fetch::load_default_npm_version;
 pub use resolve::resolve;

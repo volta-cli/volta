@@ -1,10 +1,28 @@
 use std::collections::HashSet;
 use std::iter::FromIterator;
 
-use super::resolve::{NodeDistroFiles, NodeEntry, NodeIndex};
 use crate::version::{option_version_serde, version_serde};
 use semver::Version;
 use serde::{Deserialize, Deserializer};
+
+/// The index of the public Node server.
+pub struct NodeIndex {
+    pub(super) entries: Vec<NodeEntry>,
+}
+
+#[derive(Debug)]
+pub struct NodeEntry {
+    pub version: Version,
+    pub npm: Version,
+    pub files: NodeDistroFiles,
+    pub lts: bool,
+}
+
+/// The set of available files on the public Node server for a given Node version.
+#[derive(Debug)]
+pub struct NodeDistroFiles {
+    pub files: HashSet<String>,
+}
 
 #[derive(Deserialize)]
 pub struct RawNodeIndex(Vec<RawNodeEntry>);
