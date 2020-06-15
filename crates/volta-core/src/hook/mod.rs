@@ -119,7 +119,7 @@ impl HookConfig {
         // include all project hooks first (workspace_roots is already sorted in descending
         // precedence order)
         // See the per-project configuration RFC for more details on the configuration precedence:
-        // https://github.com/volta-cli/rfcs/blob/master/text/0033-per-project-config.md#configuration-precedence
+        // https://github.com/volta-cli/rfcs/blob/main/text/0033-per-project-config.md#configuration-precedence
         let paths = project
             .into_iter()
             .flat_map(Project::workspace_roots)
