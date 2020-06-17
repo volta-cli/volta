@@ -1,8 +1,26 @@
 use std::collections::HashMap;
 
 use crate::version::{hashmap_version_serde, version_serde};
+use cfg_if::cfg_if;
 use semver::Version;
 use serde::Deserialize;
+
+// Accept header needed to request the abbreviated metadata from the npm registry
+// See https://github.com/npm/registry/blob/master/docs/responses/package-metadata.md
+pub const NPM_ABBREVIATED_ACCEPT_HEADER: &str =
+    "application/vnd.npm.install-v1+json; q=1.0, application/json; q=0.8, */*";
+
+cfg_if! {
+    if #[cfg(feature = "mock-network")] {
+        pub fn public_registry_index(package: &str) -> String {
+            format!("{}/{}", mockito::SERVER_URL, package)
+        }
+    } else {
+        pub fn public_registry_index(package: &str) -> String {
+            format!("https://registry.npmjs.org/{}", package)
+        }
+    }
+}
 
 /// Details about a package in the npm Registry
 #[derive(Debug)]

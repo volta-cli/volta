@@ -1,6 +1,9 @@
 //! Provides resolution of npm Version requirements into specific versions
 
-use super::super::registry::{PackageDetails, PackageIndex, RawPackageMetadata};
+use super::super::registry::{
+    public_registry_index, PackageDetails, PackageIndex, RawPackageMetadata,
+    NPM_ABBREVIATED_ACCEPT_HEADER,
+};
 use super::super::registry_fetch_error;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::hook::ToolHooks;
@@ -10,26 +13,8 @@ use crate::tool::Npm;
 use crate::version::{VersionSpec, VersionTag};
 use attohttpc::header::ACCEPT;
 use attohttpc::Response;
-use cfg_if::cfg_if;
 use log::debug;
 use semver::{Version, VersionReq};
-
-// Accept header needed to request the abbreviated metadata from the npm registry
-// See https://github.com/npm/registry/blob/master/docs/responses/package-metadata.md
-static NPM_ABBREVIATED_ACCEPT_HEADER: &str =
-    "application/vnd.npm.install-v1+json; q=1.0, application/json; q=0.8, */*";
-
-cfg_if! {
-    if #[cfg(feature = "mock-network")] {
-        fn public_npm_version_index() -> String {
-            format!("{}/npm", mockito::SERVER_URL)
-        }
-    } else {
-        fn public_npm_version_index() -> String {
-            "https://registry.npmjs.org/npm".to_string()
-        }
-    }
-}
 
 pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Option<Version>> {
     let hooks = session.hooks()?.npm();
@@ -53,7 +38,7 @@ fn fetch_npm_index(hooks: Option<&ToolHooks<Npm>>) -> Fallible<(String, PackageI
             debug!("Using npm.index hook to determine npm index URL");
             hook.resolve("npm")?
         }
-        _ => public_npm_version_index(),
+        _ => public_registry_index("npm"),
     };
 
     let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
