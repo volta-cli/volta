@@ -2,6 +2,7 @@ use std::fmt::{self, Display};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use super::registry::PackageDetails;
 use super::{debug_already_fetched, info_fetched, Tool};
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::{delete_dir_error, delete_file_error, dir_entry_match};
@@ -39,14 +40,6 @@ where
     canonicalize(raw_path).with_context(|| ErrorKind::ExecutablePathError {
         command: bin_name.to_string(),
     })
-}
-
-/// Details required for fetching a 3rd-party Package
-#[derive(Debug)]
-pub struct PackageDetails {
-    pub(crate) version: Version,
-    pub(crate) tarball_url: String,
-    pub(crate) shasum: String,
 }
 
 /// The Tool implementation for fetching and installing 3rd-party packages

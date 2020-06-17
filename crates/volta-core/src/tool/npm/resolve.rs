@@ -1,11 +1,11 @@
 //! Provides resolution of npm Version requirements into specific versions
 
+use super::super::registry::{PackageDetails, PackageIndex, RawPackageMetadata};
 use super::super::registry_fetch_error;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::hook::ToolHooks;
 use crate::session::Session;
 use crate::style::progress_spinner;
-use crate::tool::package;
 use crate::tool::Npm;
 use crate::version::{VersionSpec, VersionTag};
 use attohttpc::header::ACCEPT;
@@ -44,9 +44,7 @@ pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Option<
     }
 }
 
-fn fetch_npm_index(
-    hooks: Option<&ToolHooks<Npm>>,
-) -> Fallible<(String, package::metadata::PackageIndex)> {
+fn fetch_npm_index(hooks: Option<&ToolHooks<Npm>>) -> Fallible<(String, PackageIndex)> {
     let url = match hooks {
         Some(&ToolHooks {
             index: Some(ref hook),
@@ -59,7 +57,7 @@ fn fetch_npm_index(
     };
 
     let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
-    let metadata: package::metadata::RawPackageMetadata = attohttpc::get(&url)
+    let metadata: RawPackageMetadata = attohttpc::get(&url)
         .header(ACCEPT, NPM_ABBREVIATED_ACCEPT_HEADER)
         .send()
         .and_then(Response::error_for_status)
@@ -91,7 +89,7 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Npm>>) -> Falli
     let details_opt = index
         .entries
         .into_iter()
-        .find(|package::PackageDetails { version, .. }| matching.matches(&version));
+        .find(|PackageDetails { version, .. }| matching.matches(&version));
 
     match details_opt {
         Some(details) => {

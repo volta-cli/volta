@@ -1,6 +1,6 @@
 //! Provides resolution of 3rd-party packages into specific versions, using the npm repository
 
-use super::metadata::PackageIndex;
+use super::super::registry::{PackageIndex, RawPackageMetadata};
 use crate::error::{Context, ErrorKind, Fallible, VoltaError};
 use crate::hook::ToolHooks;
 use crate::platform::CliPlatform;
@@ -36,7 +36,7 @@ fn resolve_tag(name: &str, tag: &str, session: &mut Session) -> Fallible<Package
         }) => {
             debug!("Using packages.index hook to determine package metadata URL");
             let url = hook.resolve(&name)?;
-            resolve_package_metadata(name, &url)?.into()
+            resolve_package_metadata(name, &url)?
         }
         _ => npm_view_query(name, tag, session)?,
     };
@@ -75,7 +75,7 @@ fn resolve_semver(
         }) => {
             debug!("Using packages.index hook to determine package metadata URL");
             let url = hook.resolve(&name)?;
-            resolve_package_metadata(name, &url)?.into()
+            resolve_package_metadata(name, &url)?
         }
         _ => npm_view_query(name, &matching.to_string(), session)?,
     };
@@ -181,10 +181,7 @@ fn npm_view_command_for(name: &str, version: &str, session: &mut Session) -> Fal
 }
 
 // fetch metadata for the input url
-fn resolve_package_metadata(
-    package_name: &str,
-    package_info_url: &str,
-) -> Fallible<super::metadata::RawPackageMetadata> {
+fn resolve_package_metadata(package_name: &str, package_info_url: &str) -> Fallible<PackageIndex> {
     let spinner = progress_spinner(&format!("Fetching package metadata: {}", package_info_url));
     let response_text = attohttpc::get(package_info_url)
         .send()
@@ -205,11 +202,13 @@ fn resolve_package_metadata(
             VoltaError::from_source(err, kind)
         })?;
 
-    let metadata: super::metadata::RawPackageMetadata = serde_json::de::from_str(&response_text)
-        .with_context(|| ErrorKind::ParsePackageMetadataError {
-            from_url: package_info_url.to_string(),
+    let metadata: RawPackageMetadata =
+        serde_json::de::from_str(&response_text).with_context(|| {
+            ErrorKind::ParsePackageMetadataError {
+                from_url: package_info_url.to_string(),
+            }
         })?;
 
     spinner.finish_and_clear();
-    Ok(metadata)
+    Ok(metadata.into())
 }

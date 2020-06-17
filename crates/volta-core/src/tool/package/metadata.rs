@@ -3,6 +3,7 @@ use std::convert::{TryFrom, TryInto};
 use std::fs::{read_to_string, write};
 use std::path::{Path, PathBuf};
 
+use super::super::registry::RawDistInfo;
 use super::PackageDetails;
 use crate::error::{Context, ErrorKind, Fallible, VoltaError};
 use crate::layout::volta_home;
@@ -93,62 +94,6 @@ pub struct BinLoader {
     pub command: String,
     /// Any additional arguments specified for the loader
     pub args: Vec<String>,
-}
-
-/// Index of versions of a specific package.
-pub struct PackageIndex {
-    pub tags: HashMap<String, Version>,
-    pub entries: Vec<PackageDetails>,
-}
-
-/// Package Metadata Response
-///
-/// See npm registry API doc:
-/// https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md
-#[derive(Deserialize, Debug)]
-pub struct RawPackageMetadata {
-    pub name: String,
-    pub versions: HashMap<String, RawPackageVersionInfo>,
-    #[serde(
-        rename = "dist-tags",
-        deserialize_with = "hashmap_version_serde::deserialize"
-    )]
-    pub dist_tags: HashMap<String, Version>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct RawPackageVersionInfo {
-    // there's a lot more in there, but right now just care about the version
-    #[serde(with = "version_serde")]
-    pub version: Version,
-    pub dist: RawDistInfo,
-}
-
-#[derive(Deserialize, Clone, Debug)]
-pub struct RawDistInfo {
-    pub shasum: String,
-    pub tarball: String,
-}
-
-impl From<RawPackageMetadata> for PackageIndex {
-    fn from(serial: RawPackageMetadata) -> PackageIndex {
-        let mut entries: Vec<PackageDetails> = serial
-            .versions
-            .into_iter()
-            .map(|(_, version_info)| PackageDetails {
-                version: version_info.version,
-                tarball_url: version_info.dist.tarball,
-                shasum: version_info.dist.shasum,
-            })
-            .collect();
-
-        entries.sort_by(|a, b| b.version.cmp(&a.version));
-
-        PackageIndex {
-            tags: serial.dist_tags,
-            entries,
-        }
-    }
 }
 
 // Data structures for `npm view` data
