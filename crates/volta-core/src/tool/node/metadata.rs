@@ -1,10 +1,39 @@
 use std::collections::HashSet;
 use std::iter::FromIterator;
+use std::str::FromStr;
 
-use super::resolve::{NodeDistroFiles, NodeEntry, NodeIndex};
 use crate::version::{option_version_serde, version_serde};
 use semver::Version;
 use serde::{Deserialize, Deserializer};
+use serde_json::Error;
+
+/// The index of the public Node server.
+pub struct NodeIndex {
+    pub(super) entries: Vec<NodeEntry>,
+}
+
+impl FromStr for NodeIndex {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let raw: RawNodeIndex = serde_json::de::from_str(s)?;
+        Ok(raw.into())
+    }
+}
+
+#[derive(Debug)]
+pub struct NodeEntry {
+    pub version: Version,
+    pub npm: Version,
+    pub files: NodeDistroFiles,
+    pub lts: bool,
+}
+
+/// The set of available files on the public Node server for a given Node version.
+#[derive(Debug)]
+pub struct NodeDistroFiles {
+    pub files: HashSet<String>,
+}
 
 #[derive(Deserialize)]
 pub struct RawNodeIndex(Vec<RawNodeEntry>);
@@ -12,13 +41,13 @@ pub struct RawNodeIndex(Vec<RawNodeEntry>);
 #[derive(Deserialize)]
 pub struct RawNodeEntry {
     #[serde(with = "version_serde")]
-    pub version: Version,
+    version: Version,
     #[serde(default)] // handles Option
     #[serde(with = "option_version_serde")]
-    pub npm: Option<Version>,
-    pub files: Vec<String>,
+    npm: Option<Version>,
+    files: Vec<String>,
     #[serde(deserialize_with = "lts_version_serde")]
-    pub lts: bool,
+    lts: bool,
 }
 
 impl From<RawNodeIndex> for NodeIndex {
