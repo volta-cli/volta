@@ -16,10 +16,10 @@ use semver::Version;
 
 mod fetch;
 mod install;
+pub(crate) mod metadata;
 pub(crate) mod resolve;
-pub(crate) mod serial;
 
-pub use install::{BinConfig, BinLoader, PackageConfig};
+pub use metadata::{BinConfig, BinLoader, PackageConfig};
 pub use resolve::resolve;
 
 pub fn bin_full_path<P>(

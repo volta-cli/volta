@@ -1,7 +1,6 @@
 //! Provides resolution of 3rd-party packages into specific versions, using the npm repository
 
-use std::collections::HashMap;
-
+use super::metadata::PackageIndex;
 use crate::error::{Context, ErrorKind, Fallible, VoltaError};
 use crate::hook::ToolHooks;
 use crate::platform::CliPlatform;
@@ -12,7 +11,7 @@ use crate::tool::PackageDetails;
 use crate::version::{VersionSpec, VersionTag};
 use attohttpc::{Response, StatusCode};
 use log::debug;
-use semver::{Version, VersionReq};
+use semver::VersionReq;
 
 pub fn resolve(
     name: &str,
@@ -102,12 +101,6 @@ fn resolve_semver(
     }
 }
 
-/// Index of versions of a specific package.
-pub struct PackageIndex {
-    pub tags: HashMap<String, Version>,
-    pub entries: Vec<PackageDetails>,
-}
-
 /// Use `npm view` to get the info for the package. This supports:
 ///
 /// * normal package installation from the public npm repo
@@ -140,12 +133,10 @@ fn npm_view_query(name: &str, version: &str, session: &mut Session) -> Fallible<
     // Sometimes the returned JSON is an array (semver case), otherwise it's a single object.
     // Check if the first char is '[' and parse as an array if so
     if response_json.starts_with('[') {
-        let metadatas: Vec<super::serial::NpmViewData> = serde_json::de::from_str(&response_json)
-            .with_context(|| {
-            ErrorKind::NpmViewMetadataParseError {
+        let metadatas: Vec<super::metadata::NpmViewData> = serde_json::de::from_str(&response_json)
+            .with_context(|| ErrorKind::NpmViewMetadataParseError {
                 package: name.to_string(),
-            }
-        })?;
+            })?;
         debug!("[parsed package metadata (array)]\n{:?}", metadatas);
 
         // get latest version, making sure the array is not empty
@@ -167,7 +158,7 @@ fn npm_view_query(name: &str, version: &str, session: &mut Session) -> Fallible<
 
         Ok(PackageIndex { tags, entries })
     } else {
-        let metadata: super::serial::NpmViewData = serde_json::de::from_str(&response_json)
+        let metadata: super::metadata::NpmViewData = serde_json::de::from_str(&response_json)
             .with_context(|| ErrorKind::NpmViewMetadataParseError {
                 package: name.to_string(),
             })?;
@@ -193,7 +184,7 @@ fn npm_view_command_for(name: &str, version: &str, session: &mut Session) -> Fal
 fn resolve_package_metadata(
     package_name: &str,
     package_info_url: &str,
-) -> Fallible<super::serial::RawPackageMetadata> {
+) -> Fallible<super::metadata::RawPackageMetadata> {
     let spinner = progress_spinner(&format!("Fetching package metadata: {}", package_info_url));
     let response_text = attohttpc::get(package_info_url)
         .send()
@@ -214,7 +205,7 @@ fn resolve_package_metadata(
             VoltaError::from_source(err, kind)
         })?;
 
-    let metadata: super::serial::RawPackageMetadata = serde_json::de::from_str(&response_text)
+    let metadata: super::metadata::RawPackageMetadata = serde_json::de::from_str(&response_text)
         .with_context(|| ErrorKind::ParsePackageMetadataError {
             from_url: package_info_url.to_string(),
         })?;

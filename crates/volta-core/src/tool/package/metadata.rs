@@ -3,16 +3,103 @@ use std::convert::{TryFrom, TryInto};
 use std::fs::{read_to_string, write};
 use std::path::{Path, PathBuf};
 
-use super::install::{BinConfig, BinLoader, PackageConfig};
-use super::resolve::PackageIndex;
 use super::PackageDetails;
 use crate::error::{Context, ErrorKind, Fallible, VoltaError};
 use crate::layout::volta_home;
+use crate::platform::PlatformSpec;
 use crate::toolchain;
 use crate::version::{hashmap_version_serde, version_serde};
 use fs_utils::ensure_containing_dir_exists;
 use semver::Version;
 use serde::{Deserialize, Serialize};
+
+/// Configuration information about an installed package.
+///
+/// This information will be stored in ~/.volta/tools/user/packages/<package>.json.
+///
+/// For an example, this looks like:
+///
+/// {
+///   "name": "cowsay",
+///   "version": "1.4.0",
+///   "platform": {
+///     "node": {
+///       "runtime": "11.10.1",
+///       "npm": "6.7.0"
+///     },
+///     "yarn": null
+///   },
+///   "bins": [
+///     "cowsay",
+///     "cowthink"
+///   ]
+/// }
+#[derive(PartialOrd, Ord, PartialEq, Eq)]
+pub struct PackageConfig {
+    /// The package name
+    pub name: String,
+    /// The package version
+    pub version: Version,
+    /// The platform used to install this package
+    pub platform: PlatformSpec,
+    /// The binaries installed by this package
+    pub bins: Vec<String>,
+}
+
+/// Configuration information about an installed binary from a package.
+///
+/// This information will be stored in ~/.volta/tools/user/bins/<bin-name>.json.
+///
+/// For an example, this looks like:
+///
+/// {
+///   "name": "cowsay",
+///   "package": "cowsay",
+///   "version": "1.4.0",
+///   "path": "./cli.js",
+///   "platform": {
+///     "node": {
+///       "runtime": "11.10.1",
+///       "npm": "6.7.0"
+///     },
+///     "yarn": null,
+///     "loader": {
+///       "exe": "node",
+///       "args": []
+///     }
+///   }
+/// }
+pub struct BinConfig {
+    /// The binary name
+    pub name: String,
+    /// The package that installed this binary
+    pub package: String,
+    /// The package version
+    pub version: Version,
+    /// The relative path of the binary in the installed package
+    pub path: String,
+    /// The platform used to install this binary
+    pub platform: PlatformSpec,
+    /// The loader information for the script, if any
+    pub loader: Option<BinLoader>,
+}
+
+/// Information about the Shebang script loader (e.g. `#!/usr/bin/env node`)
+///
+/// Only important for Windows at the moment, as Windows does not natively understand script
+/// loaders, so we need to provide that behavior when calling a script that uses one
+pub struct BinLoader {
+    /// The command used to run a script
+    pub command: String,
+    /// Any additional arguments specified for the loader
+    pub args: Vec<String>,
+}
+
+/// Index of versions of a specific package.
+pub struct PackageIndex {
+    pub tags: HashMap<String, Version>,
+    pub entries: Vec<PackageDetails>,
+}
 
 /// Package Metadata Response
 ///

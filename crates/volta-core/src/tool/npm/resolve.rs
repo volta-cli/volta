@@ -46,7 +46,7 @@ pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Option<
 
 fn fetch_npm_index(
     hooks: Option<&ToolHooks<Npm>>,
-) -> Fallible<(String, package::resolve::PackageIndex)> {
+) -> Fallible<(String, package::metadata::PackageIndex)> {
     let url = match hooks {
         Some(&ToolHooks {
             index: Some(ref hook),
@@ -59,7 +59,7 @@ fn fetch_npm_index(
     };
 
     let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
-    let metadata: package::serial::RawPackageMetadata = attohttpc::get(&url)
+    let metadata: package::metadata::RawPackageMetadata = attohttpc::get(&url)
         .header(ACCEPT, NPM_ABBREVIATED_ACCEPT_HEADER)
         .send()
         .and_then(Response::error_for_status)
