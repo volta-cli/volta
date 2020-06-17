@@ -1,3 +1,8 @@
+# Version 0.8.2
+
+- Add support for workspaces through the `extends` key in `package.json` (#755)
+- Improve `volta setup` to make profile scripts more shareable across machines (#756)
+
 # Version 0.8.1
 
 - Fix panic when running `volta completions zsh` (#746)
