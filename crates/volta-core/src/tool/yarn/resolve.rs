@@ -1,9 +1,7 @@
 //! Provides resolution of Yarn requirements into specific versions
 
-use std::collections::BTreeSet;
-
 use super::super::registry_fetch_error;
-use super::serial;
+use super::metadata::{RawYarnIndex, YarnIndex};
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::hook::ToolHooks;
 use crate::session::Session;
@@ -85,7 +83,7 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Yarn>>) -> Fall
     };
 
     let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
-    let releases: serial::RawYarnIndex = attohttpc::get(&url)
+    let releases: RawYarnIndex = attohttpc::get(&url)
         .send()
         .and_then(Response::error_for_status)
         .and_then(Response::json)
@@ -108,9 +106,4 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Yarn>>) -> Fall
         }
         .into()),
     }
-}
-
-/// The public Yarn index.
-pub struct YarnIndex {
-    pub(super) entries: BTreeSet<Version>,
 }
