@@ -195,12 +195,11 @@ impl DistroFixture for NpmFixture {
 
 impl DistroFixture for YarnFixture {
     fn server_path(&self) -> String {
-        let version = &self.metadata.version;
-        format!("/v{}/yarn-v{}.tar.gz", version, version)
+        format!("/yarn/-/yarn-{}.tgz", self.metadata.version)
     }
 
     fn fixture_path(&self) -> String {
-        format!("tests/fixtures/yarn-v{}.tar.gz", self.metadata.version)
+        format!("tests/fixtures/yarn-{}.tgz", self.metadata.version)
     }
 
     fn metadata(&self) -> &DistroMetadata {
@@ -287,20 +286,10 @@ impl SandboxBuilder {
 
     /// Setup mock to return the available yarn versions (chainable)
     pub fn yarn_available_versions(mut self, body: &str) -> Self {
-        let mock = mock("GET", "/yarn-releases/index.json")
+        let mock = mock("GET", "/yarn")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(body)
-            .create();
-        self.root.mocks.push(mock);
-        self
-    }
-
-    /// Setup mock to return the latest version of yarn (chainable)
-    pub fn yarn_latest(mut self, version: &str) -> Self {
-        let mock = mock("GET", "/yarn-latest")
-            .with_status(200)
-            .with_body(version)
             .create();
         self.root.mocks.push(mock);
         self
