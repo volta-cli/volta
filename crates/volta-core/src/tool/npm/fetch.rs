@@ -4,6 +4,7 @@ use std::fs::{rename, write, File};
 use std::path::{Path, PathBuf};
 
 use super::super::download_tool_error;
+use super::super::registry::public_registry_package;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::{create_staging_dir, create_staging_file, set_executable};
 use crate::hook::ToolHooks;
@@ -12,22 +13,9 @@ use crate::style::{progress_bar, tool_version};
 use crate::tool::{self, Npm};
 use crate::version::VersionSpec;
 use archive::{Archive, Tarball};
-use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
 use log::debug;
 use semver::Version;
-
-cfg_if! {
-    if #[cfg(feature = "mock-network")] {
-        fn public_npm_server_root() -> String {
-            mockito::SERVER_URL.to_string()
-        }
-    } else {
-        fn public_npm_server_root() -> String {
-            "https://registry.npmjs.org".to_string()
-        }
-    }
-}
 
 pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Npm>>) -> Fallible<()> {
     let npm_dir = volta_home()?.npm_inventory_dir();
@@ -132,20 +120,16 @@ fn load_cached_distro(file: &PathBuf) -> Option<Box<dyn Archive>> {
 /// Determine the remote URL to download from, using the hooks if avaialble
 fn determine_remote_url(version: &Version, hooks: Option<&ToolHooks<Npm>>) -> Fallible<String> {
     let version_str = version.to_string();
-    let distro_file_name = Npm::archive_filename(&version_str);
     match hooks {
         Some(&ToolHooks {
             distro: Some(ref hook),
             ..
         }) => {
             debug!("Using npm.distro hook to determine download URL");
+            let distro_file_name = Npm::archive_filename(&version_str);
             hook.resolve(&version, &distro_file_name)
         }
-        _ => Ok(format!(
-            "{}/npm/-/{}",
-            public_npm_server_root(),
-            distro_file_name
-        )),
+        _ => Ok(public_registry_package("npm", &version_str)),
     }
 }
 

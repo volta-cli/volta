@@ -22,6 +22,15 @@ cfg_if! {
     }
 }
 
+pub fn public_registry_package(package: &str, version: &str) -> String {
+    format!(
+        "{}/-/{}-{}.tgz",
+        public_registry_index(package),
+        package,
+        version
+    )
+}
+
 /// Details about a package in the npm Registry
 #[derive(Debug)]
 pub struct PackageDetails {
