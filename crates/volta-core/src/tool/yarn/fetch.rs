@@ -4,7 +4,7 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 
 use super::super::download_tool_error;
-use super::super::registry::public_registry_package;
+use super::super::registry::{find_unpack_dir, public_registry_package};
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::{create_staging_dir, create_staging_file, rename};
 use crate::hook::ToolHooks;
@@ -83,11 +83,8 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<()> 
     ensure_containing_dir_exists(&dest)
         .with_context(|| ErrorKind::ContainingDirError { path: dest.clone() })?;
 
-    rename(
-        temp.path().join(Yarn::archive_basename(&version_string)),
-        &dest,
-    )
-    .with_context(|| ErrorKind::SetupToolImageError {
+    let unpack_dir = find_unpack_dir(temp.path())?;
+    rename(unpack_dir, &dest).with_context(|| ErrorKind::SetupToolImageError {
         tool: "Yarn".into(),
         version: version_string.clone(),
         dir: dest.clone(),

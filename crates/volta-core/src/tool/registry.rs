@@ -1,5 +1,8 @@
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
+use crate::error::{Context, ErrorKind, Fallible};
+use crate::fs::read_dir_eager;
 use crate::version::{hashmap_version_serde, version_serde};
 use cfg_if::cfg_if;
 use semver::Version;
@@ -29,6 +32,24 @@ pub fn public_registry_package(package: &str, version: &str) -> String {
         package,
         version
     )
+}
+
+/// Figure out the unpacked package directory name dynamically
+///
+/// Packages typically extract to a "package" directory, but not always
+pub fn find_unpack_dir(in_dir: &Path) -> Fallible<PathBuf> {
+    let dirs: Vec<_> = read_dir_eager(in_dir)
+        .with_context(|| ErrorKind::PackageUnpackError)?
+        .collect();
+
+    // if there is only one directory, return that
+    if let [(entry, metadata)] = dirs.as_slice() {
+        if metadata.is_dir() {
+            return Ok(entry.path());
+        }
+    }
+    // there is more than just a single directory here, something is wrong
+    Err(ErrorKind::PackageUnpackError.into())
 }
 
 /// Details about a package in the npm Registry
