@@ -1,5 +1,6 @@
-use crate::support::temp_project::temp_project;
+use std::thread;
 
+use crate::support::temp_project::temp_project;
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
@@ -30,6 +31,24 @@ fn install_node_lts() {
 }
 
 #[test]
+fn install_node_concurrent() {
+    let p = temp_project().build();
+
+    let install = p.volta("install node@12.14.0");
+    let run = p.node("--version");
+
+    let concurrent_thread = thread::spawn(move || {
+        assert_that!(install, execs().with_status(0));
+        assert_that!(run, execs().with_status(0));
+    });
+
+    assert_that!(p.volta("install node@12.14.0"), execs().with_status(0));
+    assert_that!(p.node("--version"), execs().with_status(0));
+
+    assert!(concurrent_thread.join().is_ok());
+}
+
+#[test]
 fn install_yarn() {
     let p = temp_project().build();
 
@@ -44,6 +63,26 @@ fn install_yarn() {
     assert!(p.yarn_version_is_fetched("1.22.2"));
     assert!(p.yarn_version_is_unpacked("1.22.2"));
     p.assert_yarn_version_is_installed("1.22.2");
+}
+
+#[test]
+fn install_yarn_concurrent() {
+    let p = temp_project().build();
+
+    assert_that!(p.volta("install node@12.14.0"), execs().with_status(0));
+
+    let install = p.volta("install yarn@1.17.0");
+    let run = p.yarn("--version");
+
+    let concurrent_thread = thread::spawn(move || {
+        assert_that!(install, execs().with_status(0));
+        assert_that!(run, execs().with_status(0));
+    });
+
+    assert_that!(p.volta("install yarn@1.17.0"), execs().with_status(0));
+    assert_that!(p.yarn("--version"), execs().with_status(0));
+
+    assert!(concurrent_thread.join().is_ok());
 }
 
 #[test]
@@ -67,6 +106,26 @@ fn install_npm() {
         p.npm("--version"),
         execs().with_status(0).with_stdout_contains("6.14.3")
     );
+}
+
+#[test]
+fn install_npm_concurrent() {
+    let p = temp_project().build();
+
+    assert_that!(p.volta("install node@12.14.0"), execs().with_status(0));
+
+    let install = p.volta("install npm@6.14.2");
+    let run = p.npm("--version");
+
+    let concurrent_thread = thread::spawn(move || {
+        assert_that!(install, execs().with_status(0));
+        assert_that!(run, execs().with_status(0));
+    });
+
+    assert_that!(p.volta("install npm@6.14.2"), execs().with_status(0));
+    assert_that!(p.npm("--version"), execs().with_status(0));
+
+    assert!(concurrent_thread.join().is_ok());
 }
 
 const COWSAY_HELLO: &'static str = r#" _______
@@ -95,6 +154,26 @@ fn install_package() {
         p.exec_shim("cowsay", "hello"),
         execs().with_status(0).with_stdout_contains(COWSAY_HELLO)
     );
+}
+
+#[test]
+fn install_package_concurrent() {
+    let p = temp_project().build();
+
+    assert_that!(p.volta("install node@12.14.0"), execs().with_status(0));
+
+    let install = p.volta("install cowsay@1.3.0");
+    let run = p.exec_shim("cowsay", "hello");
+
+    let concurrent_thread = thread::spawn(move || {
+        assert_that!(install, execs().with_status(0));
+        assert_that!(run, execs().with_status(0));
+    });
+
+    assert_that!(p.volta("install cowsay@1.3.0"), execs().with_status(0));
+    assert_that!(p.exec_shim("cowsay", "hello"), execs().with_status(0));
+
+    assert!(concurrent_thread.join().is_ok());
 }
 
 #[test]

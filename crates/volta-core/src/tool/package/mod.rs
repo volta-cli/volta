@@ -2,7 +2,7 @@ use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
 
 use super::registry::PackageDetails;
-use super::{debug_already_fetched, info_fetched, Tool};
+use super::{check_fetched, debug_already_fetched, info_fetched, FetchStatus, Tool};
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::{dir_entry_match, remove_dir_if_exists, remove_file_if_exists};
 use crate::inventory::package_available;
@@ -53,11 +53,12 @@ impl Package {
     }
 
     fn ensure_fetched(&self, session: &mut Session) -> Fallible<()> {
-        if package_available(&self.name, &self.details.version)? {
-            debug_already_fetched(self);
-            Ok(())
-        } else {
-            fetch::fetch(&self.name, &self.details, session)
+        match check_fetched(|| package_available(&self.name, &self.details.version))? {
+            FetchStatus::AlreadyFetched => {
+                debug_already_fetched(self);
+                Ok(())
+            }
+            FetchStatus::FetchNeeded(_lock) => fetch::fetch(&self.name, &self.details, session),
         }
     }
 

@@ -2,7 +2,8 @@ use std::fmt::{self, Display};
 
 use super::node::load_default_npm_version;
 use super::{
-    debug_already_fetched, info_fetched, info_installed, info_pinned, info_project_version, Tool,
+    check_fetched, debug_already_fetched, info_fetched, info_installed, info_pinned,
+    info_project_version, FetchStatus, Tool,
 };
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::inventory::npm_available;
@@ -35,11 +36,12 @@ impl Npm {
     }
 
     pub(crate) fn ensure_fetched(&self, session: &mut Session) -> Fallible<()> {
-        if npm_available(&self.version)? {
-            debug_already_fetched(self);
-            Ok(())
-        } else {
-            fetch::fetch(&self.version, session.hooks()?.npm())
+        match check_fetched(|| npm_available(&self.version))? {
+            FetchStatus::AlreadyFetched => {
+                debug_already_fetched(self);
+                Ok(())
+            }
+            FetchStatus::FetchNeeded(_lock) => fetch::fetch(&self.version, session.hooks()?.npm()),
         }
     }
 }

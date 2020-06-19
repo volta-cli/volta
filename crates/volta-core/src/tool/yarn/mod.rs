@@ -1,7 +1,8 @@
 use std::fmt::{self, Display};
 
 use super::{
-    debug_already_fetched, info_fetched, info_installed, info_pinned, info_project_version, Tool,
+    check_fetched, debug_already_fetched, info_fetched, info_installed, info_pinned,
+    info_project_version, FetchStatus, Tool,
 };
 use crate::error::{ErrorKind, Fallible};
 use crate::inventory::yarn_available;
@@ -34,11 +35,12 @@ impl Yarn {
     }
 
     pub(crate) fn ensure_fetched(&self, session: &mut Session) -> Fallible<()> {
-        if yarn_available(&self.version)? {
-            debug_already_fetched(self);
-            Ok(())
-        } else {
-            fetch::fetch(&self.version, session.hooks()?.yarn())
+        match check_fetched(|| yarn_available(&self.version))? {
+            FetchStatus::AlreadyFetched => {
+                debug_already_fetched(self);
+                Ok(())
+            }
+            FetchStatus::FetchNeeded(_lock) => fetch::fetch(&self.version, session.hooks()?.yarn()),
         }
     }
 }
