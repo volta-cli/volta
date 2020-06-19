@@ -21,6 +21,7 @@ pub mod session;
 pub mod shim;
 pub mod signal;
 pub mod style;
+pub mod sync;
 pub mod tool;
 pub mod toolchain;
 pub mod version;

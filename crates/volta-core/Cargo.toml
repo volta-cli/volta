@@ -52,6 +52,7 @@ attohttpc = { version = "0.13.0", features = ["json"] }
 chain-map = "0.1.0"
 indexmap = "1.3.2"
 retry = "1.0.0"
+fs2 = "0.4.3"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.6.0"
