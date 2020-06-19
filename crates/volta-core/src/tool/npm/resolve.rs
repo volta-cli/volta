@@ -1,35 +1,20 @@
 //! Provides resolution of npm Version requirements into specific versions
 
+use super::super::registry::{
+    public_registry_index, PackageDetails, PackageIndex, RawPackageMetadata,
+    NPM_ABBREVIATED_ACCEPT_HEADER,
+};
 use super::super::registry_fetch_error;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::hook::ToolHooks;
 use crate::session::Session;
 use crate::style::progress_spinner;
-use crate::tool::package;
 use crate::tool::Npm;
 use crate::version::{VersionSpec, VersionTag};
 use attohttpc::header::ACCEPT;
 use attohttpc::Response;
-use cfg_if::cfg_if;
 use log::debug;
 use semver::{Version, VersionReq};
-
-// Accept header needed to request the abbreviated metadata from the npm registry
-// See https://github.com/npm/registry/blob/master/docs/responses/package-metadata.md
-static NPM_ABBREVIATED_ACCEPT_HEADER: &str =
-    "application/vnd.npm.install-v1+json; q=1.0, application/json; q=0.8, */*";
-
-cfg_if! {
-    if #[cfg(feature = "mock-network")] {
-        fn public_npm_version_index() -> String {
-            format!("{}/npm", mockito::SERVER_URL)
-        }
-    } else {
-        fn public_npm_version_index() -> String {
-            "https://registry.npmjs.org/npm".to_string()
-        }
-    }
-}
 
 pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Option<Version>> {
     let hooks = session.hooks()?.npm();
@@ -44,9 +29,7 @@ pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Option<
     }
 }
 
-fn fetch_npm_index(
-    hooks: Option<&ToolHooks<Npm>>,
-) -> Fallible<(String, package::resolve::PackageIndex)> {
+fn fetch_npm_index(hooks: Option<&ToolHooks<Npm>>) -> Fallible<(String, PackageIndex)> {
     let url = match hooks {
         Some(&ToolHooks {
             index: Some(ref hook),
@@ -55,11 +38,11 @@ fn fetch_npm_index(
             debug!("Using npm.index hook to determine npm index URL");
             hook.resolve("npm")?
         }
-        _ => public_npm_version_index(),
+        _ => public_registry_index("npm"),
     };
 
     let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
-    let metadata: package::serial::RawPackageMetadata = attohttpc::get(&url)
+    let metadata: RawPackageMetadata = attohttpc::get(&url)
         .header(ACCEPT, NPM_ABBREVIATED_ACCEPT_HEADER)
         .send()
         .and_then(Response::error_for_status)
@@ -91,7 +74,7 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Npm>>) -> Falli
     let details_opt = index
         .entries
         .into_iter()
-        .find(|package::PackageDetails { version, .. }| matching.matches(&version));
+        .find(|PackageDetails { version, .. }| matching.matches(&version));
 
     match details_opt {
         Some(details) => {

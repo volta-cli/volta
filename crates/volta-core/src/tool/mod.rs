@@ -9,6 +9,7 @@ use log::{debug, info};
 pub mod node;
 pub mod npm;
 pub mod package;
+mod registry;
 mod serial;
 pub mod yarn;
 
@@ -16,7 +17,8 @@ pub use node::{
     load_default_npm_version, Node, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION, NODE_DISTRO_OS,
 };
 pub use npm::{BundledNpm, Npm};
-pub use package::{bin_full_path, BinConfig, BinLoader, Package, PackageConfig, PackageDetails};
+pub use package::{bin_full_path, BinConfig, BinLoader, Package, PackageConfig};
+pub use registry::PackageDetails;
 pub use yarn::Yarn;
 
 #[inline]

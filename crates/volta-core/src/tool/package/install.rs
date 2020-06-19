@@ -10,6 +10,7 @@ use std::process::Command;
 
 use super::super::node;
 use super::bin_full_path;
+use super::metadata::{BinConfig, BinLoader, PackageConfig, RawBinConfig, RawPackageConfig};
 use crate::command::create_command;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::set_executable;
@@ -32,91 +33,6 @@ lazy_static! {
     // https://github.com/pnpm/cmd-shim/blob/bac160cc554e5157e4c5f5e595af30740be3519a/index.js#L42
     static ref SHEBANG: Regex = Regex::new(r#"^#!\s*(?:/usr/bin/env)?\s*(?P<exe>[^ \t]+) ?(?P<args>.*)$"#)
         .expect("Regex is valid");
-}
-
-// TODO: (#526) this does not belong in the `install` module, since we now need
-//       to expose it *outside* this module for the sake of listing data about
-//       installed packages.
-/// Configuration information about an installed package.
-///
-/// This information will be stored in ~/.volta/tools/user/packages/<package>.json.
-///
-/// For an example, this looks like:
-///
-/// {
-///   "name": "cowsay",
-///   "version": "1.4.0",
-///   "platform": {
-///     "node": {
-///       "runtime": "11.10.1",
-///       "npm": "6.7.0"
-///     },
-///     "yarn": null
-///   },
-///   "bins": [
-///     "cowsay",
-///     "cowthink"
-///   ]
-/// }
-#[derive(PartialOrd, Ord, PartialEq, Eq)]
-pub struct PackageConfig {
-    /// The package name
-    pub name: String,
-    /// The package version
-    pub version: Version,
-    /// The platform used to install this package
-    pub platform: PlatformSpec,
-    /// The binaries installed by this package
-    pub bins: Vec<String>,
-}
-
-/// Configuration information about an installed binary from a package.
-///
-/// This information will be stored in ~/.volta/tools/user/bins/<bin-name>.json.
-///
-/// For an example, this looks like:
-///
-/// {
-///   "name": "cowsay",
-///   "package": "cowsay",
-///   "version": "1.4.0",
-///   "path": "./cli.js",
-///   "platform": {
-///     "node": {
-///       "runtime": "11.10.1",
-///       "npm": "6.7.0"
-///     },
-///     "yarn": null,
-///     "loader": {
-///       "exe": "node",
-///       "args": []
-///     }
-///   }
-/// }
-pub struct BinConfig {
-    /// The binary name
-    pub name: String,
-    /// The package that installed this binary
-    pub package: String,
-    /// The package version
-    pub version: Version,
-    /// The relative path of the binary in the installed package
-    pub path: String,
-    /// The platform used to install this binary
-    pub platform: PlatformSpec,
-    /// The loader information for the script, if any
-    pub loader: Option<BinLoader>,
-}
-
-/// Information about the Shebang script loader (e.g. `#!/usr/bin/env node`)
-///
-/// Only important for Windows at the moment, as Windows does not natively understand script
-/// loaders, so we need to provide that behavior when calling a script that uses one
-pub struct BinLoader {
-    /// The command used to run a script
-    pub command: String,
-    /// Any additional arguments specified for the loader
-    pub args: Vec<String>,
 }
 
 pub fn install(
@@ -167,7 +83,7 @@ fn write_configs(
     platform: &PlatformSpec,
     bins: &HashMap<String, String>,
 ) -> Fallible<()> {
-    super::serial::RawPackageConfig::from(PackageConfig {
+    RawPackageConfig::from(PackageConfig {
         name: name.to_string(),
         version: version.clone(),
         platform: platform.clone(),
@@ -178,7 +94,7 @@ fn write_configs(
     for (bin_name, bin_path) in bins.iter() {
         let full_path = bin_full_path(name, version, bin_name, bin_path)?;
         let loader = determine_script_loader(bin_name, &full_path)?;
-        super::serial::RawBinConfig::from(BinConfig {
+        RawBinConfig::from(BinConfig {
             name: bin_name.clone(),
             package: name.to_string(),
             version: version.clone(),
