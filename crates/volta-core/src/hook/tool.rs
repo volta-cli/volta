@@ -16,6 +16,8 @@ use semver::Version;
 const ARCH_TEMPLATE: &str = "{{arch}}";
 const OS_TEMPLATE: &str = "{{os}}";
 const VERSION_TEMPLATE: &str = "{{version}}";
+const EXTENSION_TEMPLATE: &str = "{{ext}}";
+const FILENAME_TEMPLATE: &str = "{{filename}}";
 
 lazy_static! {
     static ref REL_PATH: String = format!(".{}", std::path::MAIN_SEPARATOR);
@@ -31,19 +33,47 @@ pub enum DistroHook {
 }
 
 impl DistroHook {
-    /// Performs resolution of the distro URL based on the given
-    /// version and file name
+    /// Performs resolution of the distro URL based on the given version and file name
     pub fn resolve(&self, version: &Version, filename: &str) -> Fallible<String> {
+        let extension = calculate_extension(filename).unwrap_or("");
+
         match &self {
             DistroHook::Prefix(prefix) => Ok(format!("{}{}", prefix, filename)),
             DistroHook::Template(template) => Ok(template
                 .replace(ARCH_TEMPLATE, NODE_DISTRO_ARCH)
                 .replace(OS_TEMPLATE, NODE_DISTRO_OS)
+                .replace(EXTENSION_TEMPLATE, extension)
+                .replace(FILENAME_TEMPLATE, filename)
                 .replace(VERSION_TEMPLATE, &version.to_string())),
             DistroHook::Bin { bin, base_path } => {
                 execute_binary(bin, base_path, Some(version.to_string()))
             }
         }
+    }
+}
+
+/// Use the expected filename to determine the extension for this hook
+///
+/// This will include the multi-part `tar.gz` extension if it is present, otherwise it will use
+/// the standard extension.
+fn calculate_extension(filename: &str) -> Option<&str> {
+    let mut parts = filename.rsplit('.');
+    match (parts.next(), parts.next(), parts.next()) {
+        (Some(ext), Some("tar"), Some(_)) => {
+            // .tar.gz style extension, return both parts
+            //                          tar  .   gz
+            let index = filename.len() - 3 - 1 - ext.len();
+            filename.get(index..)
+        }
+        (Some(_), Some(""), None) => {
+            // Dotfile, e.g. `.npmrc`, where the `.` character is at the beginning - No extension
+            None
+        }
+        (Some(ext), Some(_), _) => {
+            // Standard File Extension
+            Some(ext)
+        }
+        _ => None,
     }
 }
 
@@ -62,7 +92,8 @@ impl MetadataHook {
             MetadataHook::Prefix(prefix) => Ok(format!("{}{}", prefix, filename)),
             MetadataHook::Template(template) => Ok(template
                 .replace(ARCH_TEMPLATE, NODE_DISTRO_ARCH)
-                .replace(OS_TEMPLATE, NODE_DISTRO_OS)),
+                .replace(OS_TEMPLATE, NODE_DISTRO_OS)
+                .replace(FILENAME_TEMPLATE, filename)),
             MetadataHook::Bin { bin, base_path } => execute_binary(bin, base_path, None),
         }
     }
@@ -127,7 +158,7 @@ fn execute_binary(bin: &str, base_path: &Path, extra_arg: Option<String>) -> Fal
 
 #[cfg(test)]
 pub mod tests {
-    use super::{DistroHook, MetadataHook};
+    use super::{calculate_extension, DistroHook, MetadataHook};
     use crate::tool::{NODE_DISTRO_ARCH, NODE_DISTRO_OS};
     use semver::Version;
 
@@ -148,18 +179,32 @@ pub mod tests {
     #[test]
     fn test_distro_template_resolve() {
         let hook = DistroHook::Template(
-            "http://localhost/node/{{os}}/{{arch}}/{{version}}/node.tar.gz".to_string(),
+            "http://localhost/node/{{os}}/{{arch}}/{{version}}/{{ext}}/{{filename}}".to_string(),
         );
         let version = Version::new(1, 0, 0);
+
+        // tar.gz format has extra handling, to support a multi-part extension
         let expected = format!(
-            "http://localhost/node/{}/{}/{}/node.tar.gz",
+            "http://localhost/node/{}/{}/{}/tar.gz/node-v1.0.0.tar.gz",
             NODE_DISTRO_OS,
             NODE_DISTRO_ARCH,
             version.to_string()
         );
-
         assert_eq!(
-            hook.resolve(&version, "node.tar.gz")
+            hook.resolve(&version, "node-v1.0.0.tar.gz")
+                .expect("Could not resolve URL"),
+            expected
+        );
+
+        // zip is a standard extension
+        let expected = format!(
+            "http://localhost/node/{}/{}/{}/zip/node-v1.0.0.zip",
+            NODE_DISTRO_OS,
+            NODE_DISTRO_ARCH,
+            version.to_string()
+        );
+        assert_eq!(
+            hook.resolve(&version, "node-v1.0.0.zip")
                 .expect("Could not resolve URL"),
             expected
         );
@@ -179,8 +224,9 @@ pub mod tests {
 
     #[test]
     fn test_metadata_template_resolve() {
-        let hook =
-            MetadataHook::Template("http://localhost/node/{{os}}/{{arch}}/index.json".to_string());
+        let hook = MetadataHook::Template(
+            "http://localhost/node/{{os}}/{{arch}}/{{filename}}".to_string(),
+        );
         let expected = format!(
             "http://localhost/node/{}/{}/index.json",
             NODE_DISTRO_OS, NODE_DISTRO_ARCH
@@ -190,5 +236,23 @@ pub mod tests {
             hook.resolve("index.json").expect("Could not resolve URL"),
             expected
         );
+    }
+
+    #[test]
+    fn test_calculate_extension() {
+        // Handles .tar.* files
+        assert_eq!(calculate_extension("file.tar.gz"), Some("tar.gz"));
+        assert_eq!(calculate_extension("file.tar.xz"), Some("tar.xz"));
+        assert_eq!(calculate_extension("file.tar.xyz"), Some("tar.xyz"));
+
+        // Handles dotfiles
+        assert_eq!(calculate_extension(".filerc"), None);
+
+        // Handles standard extensions
+        assert_eq!(calculate_extension("tar.gz"), Some("gz"));
+        assert_eq!(calculate_extension("file.zip"), Some("zip"));
+
+        // Handles files with no extension at all
+        assert_eq!(calculate_extension("bare_file"), None);
     }
 }
