@@ -175,7 +175,7 @@ node "$basedir/{}-cli.js" "$@"
 #[cfg(windows)]
 fn overwrite_cmd_launcher(base_path: &Path, tool: &str) -> Fallible<()> {
     write(
-        base_path.join(tool),
+        base_path.join(format!("{}.cmd", tool)),
         // Note: Adapted from the existing npm/npx cmd launcher, without unnecessary detection of Node location
         format!(
             r#"@ECHO OFF
