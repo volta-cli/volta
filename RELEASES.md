@@ -1,3 +1,8 @@
+# Version 0.8.3
+
+- Fix bug preventing custom `npm` versions from launching on Windows (#777)
+- Fix for completions in `zsh` for `volta list` (#772)
+
 # Version 0.8.2
 
 - Add support for workspaces through the `extends` key in `package.json` (#755)
