@@ -41,7 +41,7 @@ enum Lookup {
 }
 
 impl Lookup {
-    fn version_from_spec(self) -> impl Fn(&PlatformSpec) -> Option<Version> {
+    fn version_from_spec(&self) -> impl Fn(&PlatformSpec) -> Option<Version> + '_ {
         move |spec| match self {
             Lookup::Runtime => Some(spec.node.clone()),
             Lookup::Npm => spec.npm.clone(),
@@ -55,6 +55,16 @@ impl Lookup {
         default_platform: Option<&PlatformSpec>,
         version: &Version,
     ) -> Source {
+        let default_or_none = default_platform
+            .and_then(self.version_from_spec())
+            .and_then(|ref default_version| {
+                if default_version == version {
+                    Some(Source::Default)
+                } else {
+                    None
+                }
+            });
+
         match project {
             Some(project) => project
                 .platform()
@@ -63,19 +73,10 @@ impl Lookup {
                     if &project_version == version {
                         Some(Source::Project(project.manifest_file().to_owned()))
                     } else {
-                        None
+                        default_or_none
                     }
                 }),
-            None => default_platform
-                .clone()
-                .and_then(self.version_from_spec())
-                .and_then(|ref default_version| {
-                    if default_version == version {
-                        Some(Source::Default)
-                    } else {
-                        None
-                    }
-                }),
+            None => default_or_none,
         }
         .unwrap_or(Source::None)
     }
