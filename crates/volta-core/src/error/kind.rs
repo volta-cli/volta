@@ -184,6 +184,11 @@ pub enum ErrorKind {
     /// Thrown when Yarn is not set at the command-line
     NoCommandLineYarn,
 
+    /// Thrown when a user tries to install a Yarn or npm version before installing a Node version.
+    NoDefaultNodeVersion {
+        tool: String,
+    },
+
     /// Thrown when there is no Node version matching a requested semver specifier.
     NodeVersionNotFound {
         matching: String,
@@ -842,6 +847,13 @@ Please ensure you have a Node version selected with `volta {} node` (see `volta 
 
 Use `volta run --yarn` to select a version (see `volta help run` for more info)."
             ),
+            ErrorKind::NoDefaultNodeVersion { tool } => write!(
+                f,
+                "Cannot install {} because the default Node version is not set.
+
+Use `volta install node` to select a default Node first, then install a {0} version.",
+                                tool
+            ),
             ErrorKind::NodeVersionNotFound { matching } => write!(
                 f,
                 r#"Could not find Node version matching "{}" in the version registry.
@@ -1468,6 +1480,7 @@ impl ErrorKind {
             ErrorKind::NoBinPlatform { .. } => ExitCode::ExecutionFailure,
             ErrorKind::NoBundledNpm { .. } => ExitCode::ConfigurationError,
             ErrorKind::NoCommandLineYarn => ExitCode::ConfigurationError,
+            ErrorKind::NoDefaultNodeVersion { .. } => ExitCode::ConfigurationError,
             ErrorKind::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorKind::NoGlobalInstalls { .. } => ExitCode::InvalidArguments,
             ErrorKind::NoHomeEnvironmentVar => ExitCode::EnvironmentError,

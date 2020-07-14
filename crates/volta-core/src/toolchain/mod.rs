@@ -94,6 +94,11 @@ impl Toolchain {
                 platform.yarn = yarn;
                 self.save()?;
             }
+        } else if yarn.is_some() {
+            return Err(ErrorKind::NoDefaultNodeVersion {
+                tool: "Yarn".into(),
+            }
+            .into());
         }
 
         Ok(())
@@ -106,6 +111,8 @@ impl Toolchain {
                 platform.npm = npm;
                 self.save()?;
             }
+        } else if npm.is_some() {
+            return Err(ErrorKind::NoDefaultNodeVersion { tool: "npm".into() }.into());
         }
 
         Ok(())
