@@ -10,7 +10,9 @@
 
 <p align="center">
   <img alt="Production Build Status" src="https://github.com/volta-cli/volta/workflows/Production/badge.svg" />
-  <img alt="Test Status" src="https://github.com/volta-cli/volta/workflows/Test/badge.svg" />
+  <a href="https://github.com/volta-cli/volta/actions?query=workflow%3ATest"
+    <img alt="Test Status" src="https://github.com/volta-cli/volta/workflows/Test/badge.svg" />
+  </a>
 </p>
 
 **Fast:** Install and run any JS tool quickly and seamlessly! Volta is built in Rust and ships as a snappy static binary.
