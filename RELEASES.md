@@ -1,3 +1,8 @@
+# Version 0.8.4
+
+- Add `{{filename}}` and `{{ext}}` (extension) replacements for `template` hooks (#774)
+- Show better error when running `volta install yarn` without a Node version available (#763)
+
 # Version 0.8.3
 
 - Fix bug preventing custom `npm` versions from launching on Windows (#777)
