@@ -10,7 +10,7 @@
 
 <p align="center">
   <img alt="Production Build Status" src="https://github.com/volta-cli/volta/workflows/Production/badge.svg" />
-  <a href="https://github.com/volta-cli/volta/actions?query=workflow%3ATest"
+  <a href="https://github.com/volta-cli/volta/actions?query=workflow%3ATest">
     <img alt="Test Status" src="https://github.com/volta-cli/volta/workflows/Test/badge.svg" />
   </a>
 </p>
