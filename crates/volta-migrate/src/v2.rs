@@ -1,5 +1,5 @@
 use std::convert::TryFrom;
-use std::fs::{read_to_string, remove_file, rename, write, File};
+use std::fs::{read_to_string, remove_file, write, File};
 use std::path::{Path, PathBuf};
 
 use super::empty::Empty;
@@ -8,7 +8,7 @@ use log::debug;
 use semver::Version;
 use tempfile::tempdir_in;
 use volta_core::error::{Context, ErrorKind, Fallible, VoltaError};
-use volta_core::fs::{ensure_dir_does_not_exist, read_dir_eager};
+use volta_core::fs::{ensure_dir_does_not_exist, read_dir_eager, rename};
 use volta_core::tool::load_default_npm_version;
 use volta_core::toolchain::serial::Platform;
 use volta_core::version::parse_version;

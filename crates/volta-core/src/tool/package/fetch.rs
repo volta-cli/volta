@@ -1,11 +1,11 @@
 //! Provides fetcher for 3rd-party packages
 
-use std::fs::{rename, write, File};
+use std::fs::{write, File};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
 use crate::error::{Context, ErrorKind, Fallible};
-use crate::fs::{create_staging_dir, ensure_dir_does_not_exist, read_dir_eager, read_file};
+use crate::fs::{create_staging_dir, ensure_dir_does_not_exist, read_dir_eager, read_file, rename};
 use crate::layout::volta_home;
 use crate::platform::CliPlatform;
 use crate::run::{self, ToolCommand};
