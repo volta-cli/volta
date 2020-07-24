@@ -23,23 +23,34 @@ pub fn touch(path: &Path) -> io::Result<File> {
     File::open(path)
 }
 
-/// This deletes the input directory, if it exists
-pub fn ensure_dir_does_not_exist<P: AsRef<Path>>(path: &P) -> Fallible<()> {
-    if path.as_ref().exists() {
-        // remove the directory and all of its contents
-        fs::remove_dir_all(path).with_context(delete_dir_error(path))?;
+/// Removes the target directory, if it exists. If the directory doesn't exist, that is treated as
+/// success.
+pub fn remove_dir_if_exists<P: AsRef<Path>>(path: P) -> Fallible<()> {
+    fs::remove_dir_all(&path)
+        .or_else(ok_if_not_found)
+        .with_context(|| ErrorKind::DeleteDirectoryError {
+            directory: path.as_ref().to_owned(),
+        })
+}
+
+/// Removes the target file, if it exists. If the file doesn't exist, that is treated as success.
+pub fn remove_file_if_exists<P: AsRef<Path>>(path: P) -> Fallible<()> {
+    fs::remove_file(&path)
+        .or_else(ok_if_not_found)
+        .with_context(|| ErrorKind::DeleteFileError {
+            file: path.as_ref().to_owned(),
+        })
+}
+
+/// Converts a failure because of file not found into a success.
+///
+/// Handling the error is preferred over checking if a file exists before removing it, since
+/// that avoids a potential race condition between the check and the removal.
+fn ok_if_not_found(err: io::Error) -> io::Result<()> {
+    match err.kind() {
+        io::ErrorKind::NotFound => Ok(()),
+        _ => Err(err),
     }
-    Ok(())
-}
-
-pub fn delete_dir_error<P: AsRef<Path>>(directory: &P) -> impl FnOnce() -> ErrorKind {
-    let directory = directory.as_ref().to_path_buf();
-    || ErrorKind::DeleteDirectoryError { directory }
-}
-
-pub fn delete_file_error<P: AsRef<Path>>(file: &P) -> impl FnOnce() -> ErrorKind {
-    let file = file.as_ref().to_path_buf();
-    || ErrorKind::DeleteFileError { file }
 }
 
 /// Reads a file, if it exists.

@@ -8,7 +8,7 @@ use log::debug;
 use semver::Version;
 use tempfile::tempdir_in;
 use volta_core::error::{Context, ErrorKind, Fallible, VoltaError};
-use volta_core::fs::{ensure_dir_does_not_exist, read_dir_eager, rename};
+use volta_core::fs::{read_dir_eager, remove_dir_if_exists, rename};
 use volta_core::tool::load_default_npm_version;
 use volta_core::toolchain::serial::Platform;
 use volta_core::version::parse_version;
@@ -169,7 +169,7 @@ fn remove_npm_version_from_node_image_dir(
             version: node_string.clone(),
             dir: temp_image.clone(),
         })?;
-        ensure_dir_does_not_exist(&new_install)?;
+        remove_dir_if_exists(&new_install)?;
         rename(&temp_image, &new_install).with_context(|| ErrorKind::SetupToolImageError {
             tool: "Node".into(),
             version: node_string,

@@ -1,11 +1,10 @@
 use std::fmt::{self, Display};
-use std::fs;
 use std::path::{Path, PathBuf};
 
 use super::registry::PackageDetails;
 use super::{debug_already_fetched, info_fetched, Tool};
 use crate::error::{Context, ErrorKind, Fallible};
-use crate::fs::{delete_dir_error, delete_file_error, dir_entry_match};
+use crate::fs::{dir_entry_match, remove_dir_if_exists, remove_file_if_exists};
 use crate::inventory::package_available;
 use crate::layout::volta_home;
 use crate::session::Session;
@@ -133,8 +132,7 @@ pub fn uninstall(name: &str) -> Fallible<()> {
             remove_config_and_shim(&bin_name, name)?;
         }
 
-        fs::remove_file(&package_config_file)
-            .with_context(delete_file_error(&package_config_file))?;
+        remove_file_if_exists(package_config_file)?;
         true
     } else {
         // there is no package config - check for orphaned binaries
@@ -151,10 +149,7 @@ pub fn uninstall(name: &str) -> Fallible<()> {
 
     // if any unpacked and initialized packages exists, remove them
     let package_image_dir = home.package_image_root_dir().join(name);
-    if package_image_dir.exists() {
-        fs::remove_dir_all(&package_image_dir)
-            .with_context(delete_dir_error(&package_image_dir))?;
-    }
+    remove_dir_if_exists(package_image_dir)?;
 
     if package_found {
         info!("{} package '{}' uninstalled", success_prefix(), name);
@@ -168,7 +163,7 @@ pub fn uninstall(name: &str) -> Fallible<()> {
 fn remove_config_and_shim(bin_name: &str, pkg_name: &str) -> Fallible<()> {
     shim::delete(bin_name)?;
     let config_file = volta_home()?.default_tool_bin_config(&bin_name);
-    fs::remove_file(&config_file).with_context(delete_file_error(&config_file))?;
+    remove_file_if_exists(config_file)?;
     info!(
         "Removed executable '{}' installed by '{}'",
         bin_name, pkg_name

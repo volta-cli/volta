@@ -120,6 +120,7 @@ pub fn delete(shim_name: &str) -> Fallible<ShimResult> {
 #[cfg(windows)]
 mod windows {
     use crate::error::{Context, ErrorKind, Fallible, VoltaError};
+    use crate::fs::remove_file_if_exists;
     use crate::layout::volta_home;
     use std::fs::{remove_file, write};
     use std::io;
@@ -135,17 +136,8 @@ mod windows {
 
     pub fn delete_git_bash_script(shim_name: &str) -> Fallible<()> {
         let script_path = volta_home()?.shim_git_bash_script_file(shim_name);
-        remove_file(script_path).or_else(|e| {
-            if e.kind() == io::ErrorKind::NotFound {
-                Ok(())
-            } else {
-                Err(VoltaError::from_source(
-                    e,
-                    ErrorKind::ShimRemoveError {
-                        name: shim_name.to_string(),
-                    },
-                ))
-            }
+        remove_file_if_exists(script_path).with_context(|| ErrorKind::ShimRemoveError {
+            name: shim_name.to_string(),
         })
     }
 }
