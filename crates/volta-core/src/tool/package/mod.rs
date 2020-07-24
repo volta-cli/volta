@@ -10,6 +10,7 @@ use crate::layout::volta_home;
 use crate::session::Session;
 use crate::shim;
 use crate::style::{success_prefix, tool_version};
+use crate::sync::VoltaLock;
 use dunce::canonicalize;
 use log::{info, warn};
 use semver::Version;
@@ -124,6 +125,9 @@ impl Display for Package {
 /// * the unpacked and initialized package
 pub fn uninstall(name: &str) -> Fallible<()> {
     let home = volta_home()?;
+    // Acquire a lock on the Volta directory, if possible, to prevent concurrent changes
+    let _lock = VoltaLock::acquire(home.root()).ok();
+
     // if the package config file exists, use that to remove any installed bins and shims
     let package_config_file = home.default_package_config_file(name);
     let package_found = if package_config_file.exists() {
