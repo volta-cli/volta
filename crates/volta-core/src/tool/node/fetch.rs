@@ -1,11 +1,11 @@
 //! Provides fetcher for Node distributions
 
-use std::fs::{read_to_string, rename, write, File};
+use std::fs::{read_to_string, write, File};
 use std::path::{Path, PathBuf};
 
 use super::NodeVersion;
 use crate::error::{Context, ErrorKind, Fallible};
-use crate::fs::{create_staging_dir, create_staging_file};
+use crate::fs::{create_staging_dir, create_staging_file, rename};
 use crate::hook::ToolHooks;
 use crate::layout::volta_home;
 use crate::style::{progress_bar, tool_version};
