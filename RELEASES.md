@@ -1,3 +1,8 @@
+# Version 0.8.5
+
+- Improve the stability of installing tools on systems with virus scanning software (#784)
+- Make `volta uninstall` work correctly when the original install had an issue (#787)
+
 # Version 0.8.4
 
 - Add `{{filename}}` and `{{ext}}` (extension) replacements for `template` hooks (#774)
