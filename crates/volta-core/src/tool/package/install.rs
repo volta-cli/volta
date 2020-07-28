@@ -67,8 +67,16 @@ fn determine_engine(package_dir: &Path, display: &str) -> Fallible<VersionSpec> 
                 "Found 'engines.node' specification for {}: {}",
                 display, engine
             );
-            let req = parse_requirements(engine)?;
-            Ok(VersionSpec::Tag(VersionTag::LtsRequirement(req)))
+            match parse_requirements(engine) {
+                Ok(req) => Ok(VersionSpec::Tag(VersionTag::LtsRequirement(req))),
+                Err(_) => {
+                    debug!(
+                        "Fail to parse 'engines.node' found for {}, using LTS instead",
+                        display
+                    );
+                    Ok(VersionSpec::Tag(VersionTag::Lts))
+                }
+            }
         }
         None => {
             debug!("No 'engines.node' found for {}, using LTS", display);
