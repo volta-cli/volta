@@ -12,16 +12,9 @@ use semver::{Compat, ReqParseError, VersionReq};
 // then serializing them to pass to `npm view`, they need to be handled in
 // a Node-compatible way (or we get the wrong version info returned).
 pub fn parse_requirements(src: &str) -> Result<VersionReq, ReqParseError> {
-    let src = src.trim();
-    if !src.is_empty() && src.chars().next().unwrap().is_digit(10) {
-        let defaulted = format!("={}", src);
-        VersionReq::parse_compat(&defaulted, Compat::Node)
-    } else if !src.is_empty() && src.starts_with('v') {
-        let defaulted = src.replacen("v", "=", 1);
-        VersionReq::parse_compat(&defaulted, Compat::Node)
-    } else {
-        VersionReq::parse_compat(src, Compat::Node)
-    }
+    let src = src.trim().trim_start_matches('v');
+
+    VersionReq::parse_compat(src, Compat::Node)
 }
 
 #[cfg(test)]
@@ -51,6 +44,10 @@ pub mod tests {
         assert_eq!(
             parse_requirements(">=1.4").unwrap(),
             VersionReq::parse_compat(">=1.4", Compat::Node).unwrap()
+        );
+        assert_eq!(
+            parse_requirements("8.11 - 8.17 || 10.* || >= 12").unwrap(),
+            VersionReq::parse_compat("8.11 - 8.17 || 10.* || >= 12", Compat::Node).unwrap()
         );
     }
 }
