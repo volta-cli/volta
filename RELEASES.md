@@ -1,3 +1,7 @@
+# Version 0.8.6
+
+- Improve parsing of `engines` when installing a package (#791, #792)
+
 # Version 0.8.5
 
 - Improve the stability of installing tools on systems with virus scanning software (#784)
