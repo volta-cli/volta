@@ -5,7 +5,7 @@ use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
 use crate::error::{Context, ErrorKind, Fallible};
-use crate::fs::{create_staging_dir, read_dir_eager, read_file, remove_dir_if_exists, rename};
+use crate::fs::{create_staging_dir, read_dir_eager, read_file, rename};
 use crate::layout::volta_home;
 use crate::platform::CliPlatform;
 use crate::run::{self, ToolCommand};
@@ -200,8 +200,6 @@ fn unpack_archive(archive: Box<dyn Archive>, name: &str, version: &Version) -> F
     ensure_containing_dir_exists(&image_dir).with_context(|| ErrorKind::ContainingDirError {
         path: image_dir.clone(),
     })?;
-    // and ensure that the target directory does not exist
-    remove_dir_if_exists(&image_dir)?;
 
     let unpack_dir = find_unpack_dir(temp.path())?;
     rename(unpack_dir, &image_dir).with_context(|| ErrorKind::SetupToolImageError {

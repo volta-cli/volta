@@ -20,10 +20,12 @@ use v0::V0;
 use v1::V1;
 use v2::V2;
 
+use log::debug;
 use volta_core::error::Fallible;
 use volta_core::layout::volta_home;
 #[cfg(unix)]
 use volta_core::layout::volta_install;
+use volta_core::sync::VoltaLock;
 
 /// Represents the state of the Volta directory at every point in the migration process
 ///
@@ -130,6 +132,22 @@ impl MigrationState {
 }
 
 pub fn run_migration() -> Fallible<()> {
+    // Acquire an exclusive lock on the Volta directory, to ensure that no other migrations are running.
+    // If this fails, however, we still need to run the migration
+    let home = volta_home()?.root();
+    match VoltaLock::acquire(home) {
+        Ok(_lock) => {
+            // The lock was acquired, so we can be confident that no other migrations are running
+            detect_and_migrate()
+        }
+        Err(_) => {
+            debug!("Unable to acquire lock on Volta directory! Running migration anyway.");
+            detect_and_migrate()
+        }
+    }
+}
+
+fn detect_and_migrate() -> Fallible<()> {
     let mut state = MigrationState::current()?;
 
     // To keep the complexity of writing a new migration from continuously increasing, each new

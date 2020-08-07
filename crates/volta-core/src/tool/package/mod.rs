@@ -2,7 +2,7 @@ use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
 
 use super::registry::PackageDetails;
-use super::{debug_already_fetched, info_fetched, Tool};
+use super::{check_fetched, debug_already_fetched, info_fetched, FetchStatus, Tool};
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::{dir_entry_match, remove_dir_if_exists, remove_file_if_exists};
 use crate::inventory::package_available;
@@ -10,6 +10,7 @@ use crate::layout::volta_home;
 use crate::session::Session;
 use crate::shim;
 use crate::style::{success_prefix, tool_version};
+use crate::sync::VoltaLock;
 use dunce::canonicalize;
 use log::{info, warn};
 use semver::Version;
@@ -53,11 +54,12 @@ impl Package {
     }
 
     fn ensure_fetched(&self, session: &mut Session) -> Fallible<()> {
-        if package_available(&self.name, &self.details.version)? {
-            debug_already_fetched(self);
-            Ok(())
-        } else {
-            fetch::fetch(&self.name, &self.details, session)
+        match check_fetched(|| package_available(&self.name, &self.details.version))? {
+            FetchStatus::AlreadyFetched => {
+                debug_already_fetched(self);
+                Ok(())
+            }
+            FetchStatus::FetchNeeded(_lock) => fetch::fetch(&self.name, &self.details, session),
         }
     }
 
@@ -123,6 +125,9 @@ impl Display for Package {
 /// * the unpacked and initialized package
 pub fn uninstall(name: &str) -> Fallible<()> {
     let home = volta_home()?;
+    // Acquire a lock on the Volta directory, if possible, to prevent concurrent changes
+    let _lock = VoltaLock::acquire(home.root()).ok();
+
     // if the package config file exists, use that to remove any installed bins and shims
     let package_config_file = home.default_package_config_file(name);
     let package_found = if package_config_file.exists() {
