@@ -8,6 +8,7 @@ use crate::error::{ErrorKind, Fallible};
 use crate::inventory::yarn_available;
 use crate::session::Session;
 use crate::style::tool_version;
+use crate::sync::VoltaLock;
 use semver::Version;
 
 mod fetch;
@@ -34,13 +35,16 @@ impl Yarn {
         format!("{}.tar.gz", Yarn::archive_basename(version))
     }
 
-    pub(crate) fn ensure_fetched(&self, session: &mut Session) -> Fallible<()> {
+    pub(crate) fn ensure_fetched(&self, session: &mut Session) -> Fallible<Option<VoltaLock>> {
         match check_fetched(|| yarn_available(&self.version))? {
             FetchStatus::AlreadyFetched => {
                 debug_already_fetched(self);
-                Ok(())
+                Ok(None)
             }
-            FetchStatus::FetchNeeded(_lock) => fetch::fetch(&self.version, session.hooks()?.yarn()),
+            FetchStatus::FetchNeeded(lock) => {
+                fetch::fetch(&self.version, session.hooks()?.yarn())?;
+                Ok(lock)
+            }
         }
     }
 }
@@ -53,7 +57,7 @@ impl Tool for Yarn {
         Ok(())
     }
     fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {
-        self.ensure_fetched(session)?;
+        let _lock = self.ensure_fetched(session)?;
 
         session
             .toolchain_mut()?

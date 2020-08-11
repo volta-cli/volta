@@ -53,13 +53,16 @@ impl Package {
         Package { name, details }
     }
 
-    fn ensure_fetched(&self, session: &mut Session) -> Fallible<()> {
+    fn ensure_fetched(&self, session: &mut Session) -> Fallible<Option<VoltaLock>> {
         match check_fetched(|| package_available(&self.name, &self.details.version))? {
             FetchStatus::AlreadyFetched => {
                 debug_already_fetched(self);
-                Ok(())
+                Ok(None)
             }
-            FetchStatus::FetchNeeded(_lock) => fetch::fetch(&self.name, &self.details, session),
+            FetchStatus::FetchNeeded(lock) => {
+                fetch::fetch(&self.name, &self.details, session)?;
+                Ok(lock)
+            }
         }
     }
 
@@ -88,7 +91,7 @@ impl Tool for Package {
             info!("Package {} is already installed", self);
             Ok(())
         } else {
-            self.ensure_fetched(session)?;
+            let _lock = self.ensure_fetched(session)?;
 
             let bin_map = install::install(&self.name, &self.details.version, session)?;
 

@@ -8,6 +8,7 @@ use crate::error::{ErrorKind, Fallible};
 use crate::inventory::node_available;
 use crate::session::Session;
 use crate::style::{note_prefix, tool_version};
+use crate::sync::VoltaLock;
 use cfg_if::cfg_if;
 use log::info;
 use semver::Version;
@@ -106,31 +107,41 @@ impl Node {
         )
     }
 
-    pub(crate) fn ensure_fetched(&self, session: &mut Session) -> Fallible<NodeVersion> {
+    pub(crate) fn ensure_fetched(
+        &self,
+        session: &mut Session,
+    ) -> Fallible<(NodeVersion, Option<VoltaLock>)> {
         match check_fetched(|| node_available(&self.version))? {
             FetchStatus::AlreadyFetched => {
                 debug_already_fetched(self);
                 let npm = fetch::load_default_npm_version(&self.version)?;
 
-                Ok(NodeVersion {
-                    runtime: self.version.clone(),
-                    npm,
-                })
+                Ok((
+                    NodeVersion {
+                        runtime: self.version.clone(),
+                        npm,
+                    },
+                    None,
+                ))
             }
-            FetchStatus::FetchNeeded(_lock) => fetch::fetch(&self.version, session.hooks()?.node()),
+            FetchStatus::FetchNeeded(lock) => {
+                let version = fetch::fetch(&self.version, session.hooks()?.node())?;
+
+                Ok((version, lock))
+            }
         }
     }
 }
 
 impl Tool for Node {
     fn fetch(self: Box<Self>, session: &mut Session) -> Fallible<()> {
-        let node_version = self.ensure_fetched(session)?;
+        let (node_version, _) = self.ensure_fetched(session)?;
 
         info_fetched(node_version);
         Ok(())
     }
     fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {
-        let node_version = self.ensure_fetched(session)?;
+        let (node_version, _lock) = self.ensure_fetched(session)?;
 
         let default_toolchain = session.toolchain_mut()?;
         default_toolchain.set_active_node(&self.version)?;
@@ -161,7 +172,7 @@ impl Tool for Node {
     }
     fn pin(self: Box<Self>, session: &mut Session) -> Fallible<()> {
         if session.project()?.is_some() {
-            let node_version = self.ensure_fetched(session)?;
+            let (node_version, _) = self.ensure_fetched(session)?;
 
             // Note: We know this will succeed, since we checked above
             let project = session.project_mut()?.unwrap();

@@ -37,6 +37,7 @@ impl VoltaLock {
 impl Drop for VoltaLock {
     #[allow(unused_must_use)]
     fn drop(&mut self) {
+        debug!("Unlocking Volta Directory");
         self.inner.unlock();
     }
 }

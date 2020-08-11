@@ -9,6 +9,7 @@ use crate::error::{Context, ErrorKind, Fallible};
 use crate::inventory::npm_available;
 use crate::session::Session;
 use crate::style::{success_prefix, tool_version};
+use crate::sync::VoltaLock;
 use log::info;
 use semver::Version;
 
@@ -35,13 +36,16 @@ impl Npm {
         format!("{}.tgz", Npm::archive_basename(version))
     }
 
-    pub(crate) fn ensure_fetched(&self, session: &mut Session) -> Fallible<()> {
+    pub(crate) fn ensure_fetched(&self, session: &mut Session) -> Fallible<Option<VoltaLock>> {
         match check_fetched(|| npm_available(&self.version))? {
             FetchStatus::AlreadyFetched => {
                 debug_already_fetched(self);
-                Ok(())
+                Ok(None)
             }
-            FetchStatus::FetchNeeded(_lock) => fetch::fetch(&self.version, session.hooks()?.npm()),
+            FetchStatus::FetchNeeded(lock) => {
+                fetch::fetch(&self.version, session.hooks()?.npm())?;
+                Ok(lock)
+            }
         }
     }
 }
@@ -54,7 +58,7 @@ impl Tool for Npm {
         Ok(())
     }
     fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {
-        self.ensure_fetched(session)?;
+        let _lock = self.ensure_fetched(session)?;
 
         session
             .toolchain_mut()?
