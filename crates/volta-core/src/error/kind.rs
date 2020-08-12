@@ -171,6 +171,9 @@ pub enum ErrorKind {
         errors: Vec<String>,
     },
 
+    /// Thrown when unable to acquire a lock on the Volta directory
+    LockAcquireError,
+
     /// Thrown when BinConfig (read from file) does not contain Platform info.
     NoBinPlatform {
         binary: String,
@@ -826,7 +829,11 @@ To {action} the packages '{name}' and '{version}', please {action} them in separ
                     name, call_to_action, formatted_errs
                 )
             }
-
+            // Note: No CTA as this error is purely informational and shouldn't be exposed to the user
+            ErrorKind::LockAcquireError => write!(
+                f,
+                "Unable to acquire lock on Volta directory"
+            ),
             ErrorKind::NoBinPlatform { binary } => write!(
                 f,
                 "Platform info for executable `{}` is missing
@@ -1477,6 +1484,7 @@ impl ErrorKind {
             ErrorKind::InvalidHookOutput { .. } => ExitCode::ExecutionFailure,
             ErrorKind::InvalidInvocation { .. } => ExitCode::InvalidArguments,
             ErrorKind::InvalidToolName { .. } => ExitCode::InvalidArguments,
+            ErrorKind::LockAcquireError => ExitCode::FileSystemError,
             ErrorKind::NoBinPlatform { .. } => ExitCode::ExecutionFailure,
             ErrorKind::NoBundledNpm { .. } => ExitCode::ConfigurationError,
             ErrorKind::NoCommandLineYarn => ExitCode::ConfigurationError,

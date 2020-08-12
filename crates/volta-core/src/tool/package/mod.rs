@@ -126,7 +126,7 @@ impl Display for Package {
 pub fn uninstall(name: &str) -> Fallible<()> {
     let home = volta_home()?;
     // Acquire a lock on the Volta directory, if possible, to prevent concurrent changes
-    let _lock = VoltaLock::acquire(home.root()).ok();
+    let _lock = VoltaLock::acquire().ok();
 
     // if the package config file exists, use that to remove any installed bins and shims
     let package_config_file = home.default_package_config_file(name);

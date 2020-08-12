@@ -1,7 +1,6 @@
 use std::fmt::{self, Display};
 
 use crate::error::{ErrorKind, Fallible};
-use crate::layout::volta_home;
 use crate::session::Session;
 use crate::style::{note_prefix, success_prefix, tool_version};
 use crate::sync::VoltaLock;
@@ -153,8 +152,7 @@ where
     F: Fn() -> Fallible<bool>,
 {
     if !already_fetched()? {
-        let home = volta_home()?.root();
-        let lock = match VoltaLock::acquire(home) {
+        let lock = match VoltaLock::acquire() {
             Ok(l) => Some(l),
             Err(_) => {
                 debug!("Unable to acquire lock on Volta directory!");
