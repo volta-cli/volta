@@ -8,6 +8,7 @@ use crate::error::{ErrorKind, Fallible};
 use crate::inventory::yarn_available;
 use crate::session::Session;
 use crate::style::tool_version;
+use crate::sync::VoltaLock;
 use semver::Version;
 
 mod fetch;
@@ -53,6 +54,8 @@ impl Tool for Yarn {
         Ok(())
     }
     fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {
+        // Acquire a lock on the Volta directory, if possible, to prevent concurrent changes
+        let _lock = VoltaLock::acquire();
         self.ensure_fetched(session)?;
 
         session

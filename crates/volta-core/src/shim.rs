@@ -8,9 +8,12 @@ use std::path::Path;
 use crate::error::{Context, ErrorKind, Fallible, VoltaError};
 use crate::fs::{read_dir_eager, symlink_file};
 use crate::layout::{volta_home, volta_install};
+use crate::sync::VoltaLock;
 use log::debug;
 
 pub fn regenerate_shims_for_dir(dir: &Path) -> Fallible<()> {
+    // Acquire a lock on the Volta directory, if possible, to prevent concurrent changes
+    let _lock = VoltaLock::acquire();
     debug!("Rebuilding shims for directory: {}", dir.display());
     for shim_name in get_shim_list_deduped(dir)?.iter() {
         delete(shim_name)?;

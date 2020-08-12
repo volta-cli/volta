@@ -9,6 +9,7 @@ use crate::error::{Context, ErrorKind, Fallible};
 use crate::inventory::npm_available;
 use crate::session::Session;
 use crate::style::{success_prefix, tool_version};
+use crate::sync::VoltaLock;
 use log::info;
 use semver::Version;
 
@@ -54,6 +55,8 @@ impl Tool for Npm {
         Ok(())
     }
     fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {
+        // Acquire a lock on the Volta directory, if possible, to prevent concurrent changes
+        let _lock = VoltaLock::acquire();
         self.ensure_fetched(session)?;
 
         session

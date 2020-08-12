@@ -143,8 +143,9 @@ enum FetchStatus {
 /// Uses the supplied `already_fetched` predicate to determine if a tool is available or not.
 ///
 /// This uses double-checking logic, to correctly handle concurrent fetch requests:
-///     If `already_fetched` indicates that a fetch is needed, we acquire an exclusive lock on the Volta directory
-///     Then, we check _again_, to confirm that no other process completed the fetch while we waited for the lock
+///
+/// - If `already_fetched` indicates that a fetch is needed, we acquire an exclusive lock on the Volta directory
+/// - Then, we check _again_, to confirm that no other process completed the fetch while we waited for the lock
 ///
 /// Note: If acquiring the lock fails, we proceed anyway, since the fetch is still necessary.
 fn check_fetched<F>(already_fetched: F) -> Fallible<FetchStatus>
