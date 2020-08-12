@@ -53,16 +53,34 @@ fn install_yarn() {
     let p = temp_project().build();
 
     assert_that!(p.volta("install node@12.16.3"), execs().with_status(0));
-    assert_that!(p.volta("install yarn@1.22.2"), execs().with_status(0));
+    assert_that!(p.volta("install yarn@1.22.1"), execs().with_status(0));
 
     assert_that!(
         p.yarn("--version"),
-        execs().with_status(0).with_stdout_contains("1.22.2")
+        execs().with_status(0).with_stdout_contains("1.22.1")
     );
 
-    assert!(p.yarn_version_is_fetched("1.22.2"));
-    assert!(p.yarn_version_is_unpacked("1.22.2"));
-    p.assert_yarn_version_is_installed("1.22.2");
+    assert!(p.yarn_version_is_fetched("1.22.1"));
+    assert!(p.yarn_version_is_unpacked("1.22.1"));
+    p.assert_yarn_version_is_installed("1.22.1");
+}
+
+#[test]
+fn install_old_yarn() {
+    let p = temp_project().build();
+
+    assert_that!(p.volta("install node@10.21.0"), execs().with_status(0));
+    // Yarn 1.9.2 is old enough that it is no longer on the first page of results from the GitHub API
+    assert_that!(p.volta("install yarn@1.9.2"), execs().with_status(0));
+
+    assert_that!(
+        p.yarn("--version"),
+        execs().with_status(0).with_stdout_contains("1.9.2")
+    );
+
+    assert!(p.yarn_version_is_fetched("1.9.2"));
+    assert!(p.yarn_version_is_unpacked("1.9.2"));
+    p.assert_yarn_version_is_installed("1.9.2");
 }
 
 #[test]

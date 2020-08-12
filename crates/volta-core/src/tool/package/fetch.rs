@@ -2,10 +2,11 @@
 
 use std::fs::{write, File};
 use std::io::{Read, Seek, SeekFrom};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
+use super::super::registry::find_unpack_dir;
 use crate::error::{Context, ErrorKind, Fallible};
-use crate::fs::{create_staging_dir, read_dir_eager, read_file, rename};
+use crate::fs::{create_staging_dir, read_file, rename};
 use crate::layout::volta_home;
 use crate::platform::CliPlatform;
 use crate::run::{self, ToolCommand};
@@ -214,22 +215,4 @@ fn unpack_archive(archive: Box<dyn Archive>, name: &str, version: &Version) -> F
     debug!("Installing {} in '{}'", name, image_dir.display());
 
     Ok(())
-}
-
-/// Figure out the unpacked package directory name dynamically
-///
-/// Packages typically extract to a "package" directory, but not always
-fn find_unpack_dir(in_dir: &Path) -> Fallible<PathBuf> {
-    let dirs: Vec<_> = read_dir_eager(in_dir)
-        .with_context(|| ErrorKind::PackageUnpackError)?
-        .collect();
-
-    // if there is only one directory, return that
-    if let [(entry, metadata)] = dirs.as_slice() {
-        if metadata.is_dir() {
-            return Ok(entry.path());
-        }
-    }
-    // there is more than just a single directory here, something is wrong
-    Err(ErrorKind::PackageUnpackError.into())
 }

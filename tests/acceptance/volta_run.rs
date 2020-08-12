@@ -126,13 +126,16 @@ cfg_if::cfg_if! {
     }
 }
 
-const YARN_VERSION_INFO: &str = r#"[
-{"tag_name":"v1.2.42","assets":[{"name":"yarn-v1.2.42.tar.gz"}]},
-{"tag_name":"v1.3.1","assets":[{"name":"yarn-v1.3.1.msi"}]},
-{"tag_name":"v1.4.159","assets":[{"name":"yarn-v1.4.159.tar.gz"}]},
-{"tag_name":"v1.7.71","assets":[{"name":"yarn-v1.7.71.tar.gz"}]},
-{"tag_name":"v1.12.99","assets":[{"name":"yarn-v1.12.99.tar.gz"}]}
-]"#;
+const YARN_VERSION_INFO: &str = r#"{
+    "name":"yarn",
+    "dist-tags": { "latest":"1.12.99" },
+    "versions": {
+        "1.2.42": { "version":"1.2.42", "dist": { "shasum":"", "tarball":"" }},
+        "1.4.159": { "version":"1.4.159", "dist": { "shasum":"", "tarball":"" }},
+        "1.7.71": { "version":"1.7.71", "dist": { "shasum":"", "tarball":"" }},
+        "1.12.99": { "version":"1.12.99", "dist": { "shasum":"", "tarball":"" }}
+    }
+}"#;
 
 const YARN_VERSION_FIXTURES: [DistroMetadata; 4] = [
     DistroMetadata {
