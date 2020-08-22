@@ -39,6 +39,7 @@ FLAGS:
 OPTIONS:
         --dev                   Compile and install Volta locally, using the dev target
         --release               Compile and install Volta locally, using the release target
+        --skip-setup            Do not run 'volta setup' to modify startup scripts
         --version <version>     Install a specific release version of Volta
 END_USAGE
 }
