@@ -1,7 +1,6 @@
 use std::fmt::{self, Display};
 
 use crate::error::{ErrorKind, Fallible};
-use crate::layout::volta_home;
 use crate::session::Session;
 use crate::style::{note_prefix, success_prefix, tool_version};
 use crate::sync::VoltaLock;
@@ -144,8 +143,9 @@ enum FetchStatus {
 /// Uses the supplied `already_fetched` predicate to determine if a tool is available or not.
 ///
 /// This uses double-checking logic, to correctly handle concurrent fetch requests:
-///     If `already_fetched` indicates that a fetch is needed, we acquire an exclusive lock on the Volta directory
-///     Then, we check _again_, to confirm that no other process completed the fetch while we waited for the lock
+///
+/// - If `already_fetched` indicates that a fetch is needed, we acquire an exclusive lock on the Volta directory
+/// - Then, we check _again_, to confirm that no other process completed the fetch while we waited for the lock
 ///
 /// Note: If acquiring the lock fails, we proceed anyway, since the fetch is still necessary.
 fn check_fetched<F>(already_fetched: F) -> Fallible<FetchStatus>
@@ -153,8 +153,7 @@ where
     F: Fn() -> Fallible<bool>,
 {
     if !already_fetched()? {
-        let home = volta_home()?.root();
-        let lock = match VoltaLock::acquire(home) {
+        let lock = match VoltaLock::acquire() {
             Ok(l) => Some(l),
             Err(_) => {
                 debug!("Unable to acquire lock on Volta directory!");

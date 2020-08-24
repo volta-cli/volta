@@ -134,8 +134,7 @@ impl MigrationState {
 pub fn run_migration() -> Fallible<()> {
     // Acquire an exclusive lock on the Volta directory, to ensure that no other migrations are running.
     // If this fails, however, we still need to run the migration
-    let home = volta_home()?.root();
-    match VoltaLock::acquire(home) {
+    match VoltaLock::acquire() {
         Ok(_lock) => {
             // The lock was acquired, so we can be confident that no other migrations are running
             detect_and_migrate()

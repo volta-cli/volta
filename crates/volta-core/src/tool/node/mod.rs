@@ -8,6 +8,7 @@ use crate::error::{ErrorKind, Fallible};
 use crate::inventory::node_available;
 use crate::session::Session;
 use crate::style::{note_prefix, tool_version};
+use crate::sync::VoltaLock;
 use cfg_if::cfg_if;
 use log::info;
 use semver::Version;
@@ -130,6 +131,8 @@ impl Tool for Node {
         Ok(())
     }
     fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {
+        // Acquire a lock on the Volta directory, if possible, to prevent concurrent changes
+        let _lock = VoltaLock::acquire();
         let node_version = self.ensure_fetched(session)?;
 
         let default_toolchain = session.toolchain_mut()?;
