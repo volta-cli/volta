@@ -1,3 +1,9 @@
+# Version 0.8.7
+
+- Support fetching older versions of Yarn (#771)
+- Correctly detect `zsh` environment with `ZDOTDIR` variable (#799)
+- Prevent race conditions when installing tools (#684, #796)
+
 # Version 0.8.6
 
 - Improve parsing of `engines` when installing a package (#791, #792)
