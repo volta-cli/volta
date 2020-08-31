@@ -268,8 +268,14 @@ pub enum ErrorKind {
         version: String,
     },
 
-    /// Thrown when package install command is not successful.
-    PackageInstallFailed,
+    /// Thrown when the command to install package dependencies is not successful.
+    PackageDependenciesInstallFailed,
+
+    /// Thrown when the command to install a global package is not successful
+    #[cfg(feature = "package-global")]
+    PackageInstallFailed {
+        package: String,
+    },
 
     /// Thrown when there is an error fetching package metadata
     PackageMetadataFetchError {
@@ -992,12 +998,20 @@ This project is configured to use version {} of npm.",
                 version
             ),
             // Confirming permissions is a Weak CTA in this case, but it seems the most likely error vector
-            ErrorKind::PackageInstallFailed => write!(
+            ErrorKind::PackageDependenciesInstallFailed => write!(
                 f,
                 "Could not install package dependencies.
 
 {}",
                 PERMISSIONS_CTA
+            ),
+            #[cfg(feature = "package-global")]
+            ErrorKind::PackageInstallFailed { package } => write!(
+                f,
+                "Could not install package '{}'
+
+Please confirm the package is valid and run with `--verbose` for more diagnostics.",
+                package
             ),
             ErrorKind::PackageMetadataFetchError { from_url } => write!(
                 f,
@@ -1009,9 +1023,9 @@ Please verify your internet connection.",
             ),
             ErrorKind::PackageNotFound { package } => write!(
                 f,
-                "Could not find package '{}'
+                "Could not find '{}' in the package registry.
 
-Please verify the requested package name.",
+Please verify the requested package is correct.",
                 package
             ),
             ErrorKind::PackageParseError { file } => write!(
@@ -1509,7 +1523,9 @@ impl ErrorKind {
             ErrorKind::NpmViewMetadataFetchError { .. } => ExitCode::NetworkError,
             ErrorKind::NpmViewMetadataParseError { .. } => ExitCode::UnknownError,
             ErrorKind::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
-            ErrorKind::PackageInstallFailed => ExitCode::FileSystemError,
+            ErrorKind::PackageDependenciesInstallFailed => ExitCode::FileSystemError,
+            #[cfg(feature = "package-global")]
+            ErrorKind::PackageInstallFailed { .. } => ExitCode::UnknownError,
             ErrorKind::PackageMetadataFetchError { .. } => ExitCode::NetworkError,
             ErrorKind::PackageNotFound { .. } => ExitCode::InvalidArguments,
             ErrorKind::PackageParseError { .. } => ExitCode::ConfigurationError,

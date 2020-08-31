@@ -1,4 +1,5 @@
 use std::fmt::{self, Display};
+use std::path::PathBuf;
 
 use super::Tool;
 use crate::error::{ErrorKind, Fallible};
@@ -6,6 +7,9 @@ use crate::session::Session;
 use crate::style::tool_version;
 use crate::version::VersionSpec;
 
+mod install;
+
+/// The Tool implementation for installing 3rd-party global packages
 pub struct Package {
     pub(crate) name: String,
     pub(crate) version: VersionSpec,
@@ -22,8 +26,10 @@ impl Tool for Package {
         todo!("Implement Fetch using global install");
     }
 
-    fn install(self: Box<Self>, _session: &mut Session) -> Fallible<()> {
-        todo!("Implement install using global install");
+    fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {
+        self.global_install(session)?;
+
+        todo!("Parse package.json for version / bins and write configs");
     }
 
     fn pin(self: Box<Self>, _session: &mut Session) -> Fallible<()> {
@@ -38,4 +44,10 @@ impl Display for Package {
             _ => f.write_str(&tool_version(&self.name, &self.version)),
         }
     }
+}
+
+fn new_package_image_dir(home: &volta_layout::v2::VoltaHome, package_name: &str) -> PathBuf {
+    // TODO: An updated layout (and associated migration) will be added in a follow-up PR
+    // at which point this function can be removed
+    home.package_image_root_dir().join(package_name)
 }

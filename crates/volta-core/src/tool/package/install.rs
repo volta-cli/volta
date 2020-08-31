@@ -130,7 +130,7 @@ fn install_dependencies(package_dir: &Path, image: Image, display: &str) -> Fall
     let spinner = progress_spinner(&format!("Installing dependencies for {}", display));
     let output = command
         .output()
-        .with_context(|| ErrorKind::PackageInstallFailed)?;
+        .with_context(|| ErrorKind::PackageDependenciesInstallFailed)?;
     spinner.finish_and_clear();
 
     debug!(
@@ -145,7 +145,7 @@ fn install_dependencies(package_dir: &Path, image: Image, display: &str) -> Fall
     if output.status.success() {
         Ok(())
     } else {
-        Err(ErrorKind::PackageInstallFailed.into())
+        Err(ErrorKind::PackageDependenciesInstallFailed.into())
     }
 }
 
