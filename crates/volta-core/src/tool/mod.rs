@@ -10,6 +10,8 @@ use log::{debug, info};
 pub mod node;
 pub mod npm;
 pub mod package;
+#[cfg(feature = "package-global")]
+pub mod package_global;
 mod registry;
 mod serial;
 pub mod yarn;
@@ -18,7 +20,11 @@ pub use node::{
     load_default_npm_version, Node, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION, NODE_DISTRO_OS,
 };
 pub use npm::{BundledNpm, Npm};
-pub use package::{bin_full_path, BinConfig, BinLoader, Package, PackageConfig};
+#[cfg(not(feature = "package-global"))]
+pub use package::Package;
+pub use package::{bin_full_path, BinConfig, BinLoader, PackageConfig};
+#[cfg(feature = "package-global")]
+pub use package_global::Package;
 pub use registry::PackageDetails;
 pub use yarn::Yarn;
 
@@ -87,10 +93,14 @@ impl Spec {
                 let version = yarn::resolve(version, session)?;
                 Ok(Box::new(Yarn::new(version)))
             }
+            #[cfg(not(feature = "package-global"))]
             Spec::Package(name, version) => {
                 let details = package::resolve(&name, version, session)?;
                 Ok(Box::new(Package::new(name, details)))
             }
+            // When using global package install, we allow the package manager to perform the version resolution
+            #[cfg(feature = "package-global")]
+            Spec::Package(name, version) => Ok(Box::new(Package::new(name, version))),
         }
     }
 
