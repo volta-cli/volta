@@ -23,7 +23,10 @@ impl Package {
 
 impl Tool for Package {
     fn fetch(self: Box<Self>, _session: &mut Session) -> Fallible<()> {
-        todo!("Implement Fetch using global install");
+        Err(ErrorKind::CannotFetchPackage {
+            package: self.to_string(),
+        }
+        .into())
     }
 
     fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {

@@ -40,6 +40,12 @@ pub enum ErrorKind {
         command: String,
     },
 
+    /// Thrown when a user tries to `volta fetch` something other than node/yarn/npm.
+    #[cfg(feature = "package-global")]
+    CannotFetchPackage {
+        package: String,
+    },
+
     /// Thrown when a user tries to `volta pin` something other than node/yarn/npm.
     CannotPinPackage {
         package: String,
@@ -582,6 +588,14 @@ Please ensure your PATH is valid."
 
 VOLTA_BYPASS is enabled, please ensure that the command exists on your system or unset VOLTA_BYPASS",
                 command,
+            ),
+            #[cfg(feature = "package-global")]
+            ErrorKind::CannotFetchPackage { package } => write!(
+                f,
+                "Fetching packages without installing them is not supported.
+
+Use `volta install {}` to update the default version.",
+                package
             ),
             ErrorKind::CannotPinPackage { package } => write!(
                 f,
@@ -1470,6 +1484,8 @@ impl ErrorKind {
             ErrorKind::BinaryNotFound { .. } => ExitCode::ExecutableNotFound,
             ErrorKind::BuildPathError => ExitCode::EnvironmentError,
             ErrorKind::BypassError { .. } => ExitCode::ExecutionFailure,
+            #[cfg(feature = "package-global")]
+            ErrorKind::CannotFetchPackage { .. } => ExitCode::InvalidArguments,
             ErrorKind::CannotPinPackage { .. } => ExitCode::InvalidArguments,
             ErrorKind::CompletionsOutFileError { .. } => ExitCode::InvalidArguments,
             ErrorKind::ContainingDirError { .. } => ExitCode::FileSystemError,
