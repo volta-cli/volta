@@ -1,7 +1,6 @@
-use super::{new_package_image_dir, Package};
+use super::Package;
 use crate::command::create_command;
 use crate::error::{Context, ErrorKind, Fallible};
-use crate::layout::volta_home;
 use crate::platform::PlatformSpec;
 use crate::session::Session;
 use crate::style::progress_spinner;
@@ -20,7 +19,6 @@ impl Package {
             .map(PlatformSpec::as_default)
             .ok_or(ErrorKind::NoPlatform)?
             .checkout(session)?;
-        let home = volta_home()?;
 
         let mut command = create_command("npm");
         command.args(&[
@@ -32,7 +30,7 @@ impl Package {
         ]);
         command.arg(&package);
         command.env("PATH", default_image.path()?);
-        command.env("npm_config_prefix", new_package_image_dir(home, &self.name));
+        command.env("npm_config_prefix", self.staging.path());
 
         debug!("Installing {} with command: {:?}", package, command);
         let spinner = progress_spinner(&format!("Installing {}", package));
