@@ -11,9 +11,9 @@ use crate::session::Session;
 use crate::style::progress_spinner;
 use crate::tool::Npm;
 use crate::version::{VersionSpec, VersionTag};
-use attohttpc::header::ACCEPT;
-use attohttpc::Response;
 use log::debug;
+use reqwest::blocking::Client;
+use reqwest::header::ACCEPT;
 use semver::{Version, VersionReq};
 
 pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Option<Version>> {
@@ -42,11 +42,12 @@ fn fetch_npm_index(hooks: Option<&ToolHooks<Npm>>) -> Fallible<(String, PackageI
     };
 
     let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
-    let metadata: RawPackageMetadata = attohttpc::get(&url)
+    let http_client = Client::new();
+    let metadata: RawPackageMetadata = http_client
+        .get(&url)
         .header(ACCEPT, NPM_ABBREVIATED_ACCEPT_HEADER)
         .send()
-        .and_then(Response::error_for_status)
-        .and_then(Response::json)
+        .and_then(|resp| resp.json())
         .with_context(registry_fetch_error("npm", &url))?;
 
     spinner.finish_and_clear();

@@ -1,6 +1,7 @@
 //! Provides resolution of Node requirements into specific versions, using the NodeJS index
 
 use std::fs::File;
+use std::io::Read;
 use std::io::Write;
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
@@ -15,7 +16,6 @@ use crate::session::Session;
 use crate::style::progress_spinner;
 use crate::tool::Node;
 use crate::version::{VersionSpec, VersionTag};
-use attohttpc::Response;
 use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
 use hyperx::header::{CacheControl, CacheDirective, Expires, HttpDate, TypedHeaders};
@@ -226,8 +226,8 @@ fn read_cached_opt(url: &str) -> Fallible<Option<RawNodeIndex>> {
 }
 
 /// Get the cache max-age of an HTTP reponse.
-fn max_age(headers: &attohttpc::header::HeaderMap) -> u32 {
-    if let Ok(cache_control_header) = headers.decode::<CacheControl>() {
+fn max_age(response: &reqwest::blocking::Response) -> u32 {
+    if let Ok(cache_control_header) = response.headers().decode::<CacheControl>() {
         for cache_directive in cache_control_header.iter() {
             if let CacheDirective::MaxAge(max_age) = cache_directive {
                 return *max_age;
@@ -249,15 +249,11 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
             debug!("Node index cache was not found or was invalid");
             let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
 
-            let (_, headers, response) = attohttpc::get(url)
-                .send()
-                .and_then(Response::error_for_status)
-                .with_context(registry_fetch_error("Node", url))?
-                .split();
+            let mut response: reqwest::blocking::Response =
+                reqwest::blocking::get(url).with_context(registry_fetch_error("Node", url))?;
 
-            let response_text = response
-                .text()
-                .with_context(registry_fetch_error("Node", url))?;
+            let mut response_text = String::new();
+            response.read_to_string(&mut response_text).unwrap();
 
             let index: RawNodeIndex =
                 serde_json::de::from_str(&response_text).with_context(|| {
@@ -290,11 +286,11 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
             let expiry = create_staging_file()?;
             let mut expiry_file: &File = expiry.as_file();
 
-            let result = if let Ok(expires_header) = headers.decode::<Expires>() {
+            let result = if let Ok(expires_header) = response.headers().decode::<Expires>() {
                 write!(expiry_file, "{}", expires_header)
             } else {
-                let expiry_date = SystemTime::now() + Duration::from_secs(max_age(&headers).into());
-
+                let expiry_date =
+                    SystemTime::now() + Duration::from_secs(max_age(&response).into());
                 write!(expiry_file, "{}", HttpDate::from(expiry_date))
             };
 
