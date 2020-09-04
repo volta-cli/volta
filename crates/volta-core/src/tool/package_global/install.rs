@@ -34,12 +34,13 @@ impl Package {
 
         debug!("Installing {} with command: {:?}", package, command);
         let spinner = progress_spinner(&format!("Installing {}", package));
-        let output = command
+        let output_result = command
             .output()
             .with_context(|| ErrorKind::PackageInstallFailed {
                 package: package.clone(),
-            })?;
+            });
         spinner.finish_and_clear();
+        let output = output_result?;
 
         let stderr = String::from_utf8_lossy(&output.stderr);
         debug!("[install stderr]\n{}", stderr);
