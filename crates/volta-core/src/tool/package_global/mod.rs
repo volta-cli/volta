@@ -18,7 +18,7 @@ mod configure;
 mod install;
 mod metadata;
 
-use metadata::PackageManifest;
+pub use metadata::{BinConfig, PackageConfig, PackageManifest};
 
 /// The Tool implementation for installing 3rd-party global packages
 pub struct Package {
@@ -91,12 +91,7 @@ impl Tool for Package {
         self.global_install(&default_image)?;
         let manifest = self.complete_install(&default_image)?;
 
-        let bins = manifest
-            .bin
-            .keys()
-            .map(AsRef::as_ref)
-            .collect::<Vec<&str>>()
-            .join(", ");
+        let bins = manifest.bin.join(", ");
 
         info!(
             "{} installed {} with executables: {}",
