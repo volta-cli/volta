@@ -40,6 +40,12 @@ pub enum ErrorKind {
         command: String,
     },
 
+    /// Thrown when a user tries to `volta fetch` something other than node/yarn/npm.
+    #[cfg(feature = "package-global")]
+    CannotFetchPackage {
+        package: String,
+    },
+
     /// Thrown when a user tries to `volta pin` something other than node/yarn/npm.
     CannotPinPackage {
         package: String,
@@ -268,8 +274,14 @@ pub enum ErrorKind {
         version: String,
     },
 
-    /// Thrown when package install command is not successful.
-    PackageInstallFailed,
+    /// Thrown when the command to install package dependencies is not successful.
+    PackageDependenciesInstallFailed,
+
+    /// Thrown when the command to install a global package is not successful
+    #[cfg(feature = "package-global")]
+    PackageInstallFailed {
+        package: String,
+    },
 
     /// Thrown when there is an error fetching package metadata
     PackageMetadataFetchError {
@@ -576,6 +588,14 @@ Please ensure your PATH is valid."
 
 VOLTA_BYPASS is enabled, please ensure that the command exists on your system or unset VOLTA_BYPASS",
                 command,
+            ),
+            #[cfg(feature = "package-global")]
+            ErrorKind::CannotFetchPackage { package } => write!(
+                f,
+                "Fetching packages without installing them is not supported.
+
+Use `volta install {}` to update the default version.",
+                package
             ),
             ErrorKind::CannotPinPackage { package } => write!(
                 f,
@@ -992,12 +1012,20 @@ This project is configured to use version {} of npm.",
                 version
             ),
             // Confirming permissions is a Weak CTA in this case, but it seems the most likely error vector
-            ErrorKind::PackageInstallFailed => write!(
+            ErrorKind::PackageDependenciesInstallFailed => write!(
                 f,
                 "Could not install package dependencies.
 
 {}",
                 PERMISSIONS_CTA
+            ),
+            #[cfg(feature = "package-global")]
+            ErrorKind::PackageInstallFailed { package } => write!(
+                f,
+                "Could not install package '{}'
+
+Please confirm the package is valid and run with `--verbose` for more diagnostics.",
+                package
             ),
             ErrorKind::PackageMetadataFetchError { from_url } => write!(
                 f,
@@ -1009,9 +1037,9 @@ Please verify your internet connection.",
             ),
             ErrorKind::PackageNotFound { package } => write!(
                 f,
-                "Could not find package '{}'
+                "Could not find '{}' in the package registry.
 
-Please verify the requested package name.",
+Please verify the requested package is correct.",
                 package
             ),
             ErrorKind::PackageParseError { file } => write!(
@@ -1456,6 +1484,8 @@ impl ErrorKind {
             ErrorKind::BinaryNotFound { .. } => ExitCode::ExecutableNotFound,
             ErrorKind::BuildPathError => ExitCode::EnvironmentError,
             ErrorKind::BypassError { .. } => ExitCode::ExecutionFailure,
+            #[cfg(feature = "package-global")]
+            ErrorKind::CannotFetchPackage { .. } => ExitCode::InvalidArguments,
             ErrorKind::CannotPinPackage { .. } => ExitCode::InvalidArguments,
             ErrorKind::CompletionsOutFileError { .. } => ExitCode::InvalidArguments,
             ErrorKind::ContainingDirError { .. } => ExitCode::FileSystemError,
@@ -1509,7 +1539,9 @@ impl ErrorKind {
             ErrorKind::NpmViewMetadataFetchError { .. } => ExitCode::NetworkError,
             ErrorKind::NpmViewMetadataParseError { .. } => ExitCode::UnknownError,
             ErrorKind::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
-            ErrorKind::PackageInstallFailed => ExitCode::FileSystemError,
+            ErrorKind::PackageDependenciesInstallFailed => ExitCode::FileSystemError,
+            #[cfg(feature = "package-global")]
+            ErrorKind::PackageInstallFailed { .. } => ExitCode::UnknownError,
             ErrorKind::PackageMetadataFetchError { .. } => ExitCode::NetworkError,
             ErrorKind::PackageNotFound { .. } => ExitCode::InvalidArguments,
             ErrorKind::PackageParseError { .. } => ExitCode::ConfigurationError,

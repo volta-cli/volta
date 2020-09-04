@@ -100,7 +100,10 @@ impl Spec {
             }
             // When using global package install, we allow the package manager to perform the version resolution
             #[cfg(feature = "package-global")]
-            Spec::Package(name, version) => Ok(Box::new(Package::new(name, version))),
+            Spec::Package(name, version) => {
+                let package = Package::new(name, version)?;
+                Ok(Box::new(package))
+            }
         }
     }
 
