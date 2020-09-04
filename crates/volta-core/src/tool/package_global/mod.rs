@@ -5,14 +5,20 @@ use super::Tool;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::{create_staging_dir, remove_dir_if_exists, rename};
 use crate::layout::volta_home;
+use crate::platform::{Image, PlatformSpec};
 use crate::session::Session;
-use crate::style::tool_version;
+use crate::style::{success_prefix, tool_version};
 use crate::sync::VoltaLock;
 use crate::version::VersionSpec;
 use fs_utils::ensure_containing_dir_exists;
+use log::info;
 use tempfile::TempDir;
 
+mod configure;
 mod install;
+mod metadata;
+
+use metadata::PackageManifest;
 
 /// The Tool implementation for installing 3rd-party global packages
 pub struct Package {
@@ -31,7 +37,16 @@ impl Package {
         })
     }
 
-    pub fn persist_install(self) -> Fallible<()> {
+    pub fn complete_install(self, image: &Image) -> Fallible<PackageManifest> {
+        let manifest = self.parse_manifest()?;
+
+        self.write_config_and_shims(&manifest, &image)?;
+        self.persist_install()?;
+
+        Ok(manifest)
+    }
+
+    fn persist_install(self) -> Fallible<()> {
         let home = volta_home()?;
         let package_dir = new_package_image_dir(home, &self.name);
 
@@ -66,12 +81,31 @@ impl Tool for Package {
 
     fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {
         let _lock = VoltaLock::acquire()?;
-        self.global_install(session)?;
 
-        // TODO: Parse package.json for version / bins
-        // TODO: Write package config, bin configs, and shims
+        let default_image = session
+            .default_platform()?
+            .map(PlatformSpec::as_default)
+            .ok_or(ErrorKind::NoPlatform)?
+            .checkout(session)?;
 
-        self.persist_install()
+        self.global_install(&default_image)?;
+        let manifest = self.complete_install(&default_image)?;
+
+        let bins = manifest
+            .bin
+            .keys()
+            .map(AsRef::as_ref)
+            .collect::<Vec<&str>>()
+            .join(", ");
+
+        info!(
+            "{} installed {} with executables: {}",
+            success_prefix(),
+            tool_version(manifest.name, manifest.version),
+            bins
+        );
+
+        Ok(())
     }
 
     fn pin(self: Box<Self>, _session: &mut Session) -> Fallible<()> {
