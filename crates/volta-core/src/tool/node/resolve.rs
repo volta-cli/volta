@@ -265,6 +265,13 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
                 .text()
                 .with_context(registry_fetch_error("Node", url))?;
 
+            let index: RawNodeIndex =
+                serde_json::de::from_str(&response_text).with_context(|| {
+                    ErrorKind::ParseNodeIndexError {
+                        from_url: url.to_string(),
+                    }
+                })?;
+
             let cached = create_staging_file()?;
 
             let mut cached_file: &File = cached.as_file();
@@ -288,13 +295,6 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
 
             let expiry = create_staging_file()?;
             let mut expiry_file: &File = expiry.as_file();
-
-            let index: RawNodeIndex =
-                serde_json::de::from_str(&response_text).with_context(|| {
-                    ErrorKind::ParseNodeIndexError {
-                        from_url: url.to_string(),
-                    }
-                })?;
 
             write!(expiry_file, "{}", expires).with_context(|| {
                 ErrorKind::WriteNodeIndexExpiryError {
