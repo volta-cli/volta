@@ -6,7 +6,11 @@ use crate::error::{ErrorKind, Fallible};
 use crate::layout::volta_home;
 use crate::platform::{CliPlatform, Platform, Sourced};
 use crate::session::{ActivityKind, Session};
+#[cfg(not(feature = "package-global"))]
 use crate::tool::bin_full_path;
+#[cfg(feature = "package-global")]
+use crate::tool::package_global::{new_package_image_dir, BinConfig};
+#[cfg(not(feature = "package-global"))]
 use crate::tool::{BinConfig, BinLoader};
 use log::debug;
 
@@ -60,16 +64,21 @@ pub(crate) fn command(
         debug_tool_message("node", &image.node);
 
         let path = image.path()?;
-        let tool_path = default_tool.bin_path.into_os_string();
+
+        #[cfg(feature = "package-global")]
+        let cmd = ToolCommand::direct(default_tool.bin_path.as_ref(), &path);
+
+        #[cfg(not(feature = "package-global"))]
         let cmd = match default_tool.loader {
             Some(loader) => {
                 let mut command = ToolCommand::direct(loader.command.as_ref(), &path);
                 command.args(loader.args);
-                command.arg(tool_path);
+                command.arg(default_tool.bin_path);
                 command
             }
-            None => ToolCommand::direct(&tool_path, &path),
+            None => ToolCommand::direct(default_tool.bin_path.as_ref(), &path),
         };
+
         return Ok(cmd);
     }
 
@@ -94,10 +103,41 @@ pub(crate) fn command(
 pub struct DefaultBinary {
     pub bin_path: PathBuf,
     pub platform: Platform,
+    #[cfg(not(feature = "package-global"))]
     pub loader: Option<BinLoader>,
 }
 
 impl DefaultBinary {
+    #[cfg(feature = "package-global")]
+    pub fn from_config(bin_config: BinConfig, session: &mut Session) -> Fallible<Self> {
+        // Looking forward to supporting installs from all package managers, we will want this
+        // logic to support the various possible directory structures for each package manager
+        let mut bin_path = new_package_image_dir(volta_home()?, &bin_config.package);
+        // On Windows, the binaries are in the root of the `prefix` directory
+        // On other OSes, they are in a `bin` subdirectory
+        #[cfg(not(windows))]
+        bin_path.push("bin");
+
+        bin_path.push(&bin_config.name);
+
+        // If the user does not have yarn set in the platform for this binary, use the default
+        // This is necessary because some tools (e.g. ember-cli with the `--yarn` option) invoke `yarn`
+        let yarn = match bin_config.platform.yarn {
+            Some(yarn) => Some(yarn),
+            None => session
+                .default_platform()?
+                .and_then(|ref plat| plat.yarn.clone()),
+        };
+        let platform = Platform {
+            node: Sourced::with_binary(bin_config.platform.node),
+            npm: bin_config.platform.npm.map(Sourced::with_binary),
+            yarn: yarn.map(Sourced::with_binary),
+        };
+
+        Ok(DefaultBinary { bin_path, platform })
+    }
+
+    #[cfg(not(feature = "package-global"))]
     pub fn from_config(bin_config: BinConfig, session: &mut Session) -> Fallible<Self> {
         let bin_path = bin_full_path(
             &bin_config.package,

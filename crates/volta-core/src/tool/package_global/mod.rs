@@ -117,7 +117,7 @@ impl Display for Package {
     }
 }
 
-fn new_package_image_dir(home: &volta_layout::v2::VoltaHome, package_name: &str) -> PathBuf {
+pub fn new_package_image_dir(home: &volta_layout::v2::VoltaHome, package_name: &str) -> PathBuf {
     // TODO: An updated layout (and associated migration) will be added in a follow-up PR
     // at which point this function can be removed
     home.package_image_root_dir().join(package_name)
