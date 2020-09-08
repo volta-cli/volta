@@ -15,11 +15,11 @@ use crate::session::Session;
 use crate::style::progress_spinner;
 use crate::tool::Node;
 use crate::version::{VersionSpec, VersionTag};
-use attohttpc::Response;
 use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
 use hyperx::header::{CacheControl, CacheDirective, Expires, HttpDate, TypedHeaders};
 use log::debug;
+use reqwest::blocking::Response;
 use semver::{Version, VersionReq};
 
 // ISSUE (#86): Move public repository URLs to config file
@@ -226,8 +226,8 @@ fn read_cached_opt(url: &str) -> Fallible<Option<RawNodeIndex>> {
 }
 
 /// Get the cache max-age of an HTTP reponse.
-fn max_age(headers: &attohttpc::header::HeaderMap) -> u32 {
-    if let Ok(cache_control_header) = headers.decode::<CacheControl>() {
+fn max_age(response: &reqwest::blocking::Response) -> u32 {
+    if let Ok(cache_control_header) = response.headers().decode::<CacheControl>() {
         for cache_directive in cache_control_header.iter() {
             if let CacheDirective::MaxAge(max_age) = cache_directive {
                 return *max_age;
@@ -249,11 +249,17 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
             debug!("Node index cache was not found or was invalid");
             let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
 
-            let (_, headers, response) = attohttpc::get(url)
-                .send()
+            let response: Response = reqwest::blocking::get(url)
                 .and_then(Response::error_for_status)
-                .with_context(registry_fetch_error("Node", url))?
-                .split();
+                .with_context(registry_fetch_error("Node", url))?;
+
+            let expires = if let Ok(expires_header) = response.headers().decode::<Expires>() {
+                expires_header.to_string()
+            } else {
+                let expiry_date =
+                    SystemTime::now() + Duration::from_secs(max_age(&response).into());
+                HttpDate::from(expiry_date).to_string()
+            };
 
             let response_text = response
                 .text()
@@ -290,16 +296,10 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
             let expiry = create_staging_file()?;
             let mut expiry_file: &File = expiry.as_file();
 
-            let result = if let Ok(expires_header) = headers.decode::<Expires>() {
-                write!(expiry_file, "{}", expires_header)
-            } else {
-                let expiry_date = SystemTime::now() + Duration::from_secs(max_age(&headers).into());
-
-                write!(expiry_file, "{}", HttpDate::from(expiry_date))
-            };
-
-            result.with_context(|| ErrorKind::WriteNodeIndexExpiryError {
-                file: expiry.path().to_path_buf(),
+            write!(expiry_file, "{}", expires).with_context(|| {
+                ErrorKind::WriteNodeIndexExpiryError {
+                    file: expiry.path().to_path_buf(),
+                }
             })?;
 
             let index_expiry_file = volta_home()?.node_index_expiry_file();

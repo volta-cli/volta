@@ -6,13 +6,13 @@ use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
 use super::{Archive, ArchiveError, Origin};
-use attohttpc::header::HeaderMap;
 use flate2::read::GzDecoder;
 use fs_utils::ensure_containing_dir_exists;
 use hyperx::header::{
     AcceptRanges, ByteRangeSpec, ContentLength, Header, Range, RangeUnit, TypedHeaders,
 };
 use progress_read::ProgressRead;
+use reqwest::blocking::Response;
 use tee::TeeReader;
 
 /// A Node installation tarball.
@@ -29,8 +29,9 @@ pub struct Tarball {
 
 /// Determines the length of an HTTP response's content in bytes, using
 /// the HTTP `"Content-Length"` header.
-fn content_length(headers: &HeaderMap) -> Result<u64, ArchiveError> {
-    headers
+fn content_length(response: &Response) -> Result<u64, ArchiveError> {
+    response
+        .headers()
         .decode::<ContentLength>()
         .ok()
         .map(|v| v.0)
@@ -54,14 +55,14 @@ impl Tarball {
     /// tarball that can be streamed (and that tees its data to a local
     /// file as it streams).
     pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, ArchiveError> {
-        let (status, headers, response) = attohttpc::get(url).send()?.split();
+        let response = reqwest::blocking::get(url)?;
 
-        if !status.is_success() {
-            return Err(ArchiveError::HttpError(status));
+        if !response.status().is_success() {
+            return Err(ArchiveError::HttpError(response.status()));
         }
 
-        let compressed_size = content_length(&headers)?;
-        let uncompressed_size = if accepts_byte_ranges(&headers) {
+        let compressed_size = content_length(&response)?;
+        let uncompressed_size = if accepts_byte_ranges(&response) {
             fetch_uncompressed_size(url, compressed_size)
         } else {
             None
@@ -127,17 +128,18 @@ fn unpack_isize(packed: [u8; 4]) -> u64 {
 /// downloading the entire gzip file. For very small files it's unlikely to be
 /// more efficient than simply downloading the entire file up front.
 fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], ArchiveError> {
+    let client = reqwest::blocking::Client::new();
     let range_header = Range::Bytes(vec![ByteRangeSpec::FromTo(len - 4, len - 1)]);
-    let (status, headers, mut response) = attohttpc::get(url)
+    let mut response = client
+        .get(url)
         .header(Range::header_name(), range_header.to_string())
-        .send()?
-        .split();
+        .send()?;
 
-    if !status.is_success() {
-        return Err(ArchiveError::HttpError(status));
+    if !response.status().is_success() {
+        return Err(ArchiveError::HttpError(response.status()));
     }
 
-    let actual_length = content_length(&headers)?;
+    let actual_length = content_length(&response)?;
 
     if actual_length != 4 {
         return Err(ArchiveError::UnexpectedContentLengthError(actual_length));
@@ -158,8 +160,9 @@ fn load_isize(file: &mut File) -> Result<[u8; 4], ArchiveError> {
     Ok(buf)
 }
 
-fn accepts_byte_ranges(headers: &HeaderMap) -> bool {
-    headers
+fn accepts_byte_ranges(response: &Response) -> bool {
+    response
+        .headers()
         .decode::<AcceptRanges>()
         .ok()
         .map(|v| v.iter().any(|unit| *unit == RangeUnit::Bytes))
