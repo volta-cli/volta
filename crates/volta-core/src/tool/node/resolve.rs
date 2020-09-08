@@ -1,7 +1,6 @@
 //! Provides resolution of Node requirements into specific versions, using the NodeJS index
 
 use std::fs::File;
-use std::io::Read;
 use std::io::Write;
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
@@ -20,6 +19,7 @@ use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
 use hyperx::header::{CacheControl, CacheDirective, Expires, HttpDate, TypedHeaders};
 use log::debug;
+use reqwest::blocking::Response;
 use semver::{Version, VersionReq};
 
 // ISSUE (#86): Move public repository URLs to config file
@@ -249,18 +249,21 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
             debug!("Node index cache was not found or was invalid");
             let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
 
-            let mut response: reqwest::blocking::Response =
-                reqwest::blocking::get(url).with_context(registry_fetch_error("Node", url))?;
+            let response: Response = reqwest::blocking::get(url)
+                .and_then(Response::error_for_status)
+                .with_context(registry_fetch_error("Node", url))?;
 
-            let mut response_text = String::new();
-            response.read_to_string(&mut response_text).unwrap();
+            let expires = if let Ok(expires_header) = response.headers().decode::<Expires>() {
+                expires_header.to_string()
+            } else {
+                let expiry_date =
+                    SystemTime::now() + Duration::from_secs(max_age(&response).into());
+                HttpDate::from(expiry_date).to_string()
+            };
 
-            let index: RawNodeIndex =
-                serde_json::de::from_str(&response_text).with_context(|| {
-                    ErrorKind::ParseNodeIndexError {
-                        from_url: url.to_string(),
-                    }
-                })?;
+            let response_text = response
+                .text()
+                .with_context(registry_fetch_error("Node", url))?;
 
             let cached = create_staging_file()?;
 
@@ -286,16 +289,17 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
             let expiry = create_staging_file()?;
             let mut expiry_file: &File = expiry.as_file();
 
-            let result = if let Ok(expires_header) = response.headers().decode::<Expires>() {
-                write!(expiry_file, "{}", expires_header)
-            } else {
-                let expiry_date =
-                    SystemTime::now() + Duration::from_secs(max_age(&response).into());
-                write!(expiry_file, "{}", HttpDate::from(expiry_date))
-            };
+            let index: RawNodeIndex =
+                serde_json::de::from_str(&response_text).with_context(|| {
+                    ErrorKind::ParseNodeIndexError {
+                        from_url: url.to_string(),
+                    }
+                })?;
 
-            result.with_context(|| ErrorKind::WriteNodeIndexExpiryError {
-                file: expiry.path().to_path_buf(),
+            write!(expiry_file, "{}", expires).with_context(|| {
+                ErrorKind::WriteNodeIndexExpiryError {
+                    file: expiry.path().to_path_buf(),
+                }
             })?;
 
             let index_expiry_file = volta_home()?.node_index_expiry_file();

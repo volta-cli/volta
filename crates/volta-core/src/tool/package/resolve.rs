@@ -10,6 +10,7 @@ use crate::style::{progress_spinner, tool_version};
 use crate::tool::PackageDetails;
 use crate::version::{VersionSpec, VersionTag};
 use log::debug;
+use reqwest::blocking::Response;
 use semver::VersionReq;
 
 pub fn resolve(
@@ -183,8 +184,8 @@ fn npm_view_command_for(name: &str, version: &str, session: &mut Session) -> Fal
 fn resolve_package_metadata(package_name: &str, package_info_url: &str) -> Fallible<PackageIndex> {
     let spinner = progress_spinner(&format!("Fetching package metadata: {}", package_info_url));
     let response_text = reqwest::blocking::get(package_info_url)
-        .and_then(|resp| resp.error_for_status())
-        .and_then(|resp| resp.text())
+        .and_then(Response::error_for_status)
+        .and_then(Response::text)
         .map_err(|err| {
             let kind = match err.status() {
                 Some(reqwest::StatusCode::NOT_FOUND) => ErrorKind::PackageNotFound {

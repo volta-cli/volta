@@ -13,6 +13,7 @@ use crate::tool::Npm;
 use crate::version::{VersionSpec, VersionTag};
 use log::debug;
 use reqwest::blocking::Client;
+use reqwest::blocking::Response;
 use reqwest::header::ACCEPT;
 use semver::{Version, VersionReq};
 
@@ -47,7 +48,8 @@ fn fetch_npm_index(hooks: Option<&ToolHooks<Npm>>) -> Fallible<(String, PackageI
         .get(&url)
         .header(ACCEPT, NPM_ABBREVIATED_ACCEPT_HEADER)
         .send()
-        .and_then(|resp| resp.json())
+        .and_then(Response::error_for_status)
+        .and_then(Response::json)
         .with_context(registry_fetch_error("npm", &url))?;
 
     spinner.finish_and_clear();
