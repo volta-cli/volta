@@ -16,7 +16,7 @@ use volta_layout::{v1, v2};
 
 /// Represents a V2 Volta Layout (used by Volta v0.7.3 and above)
 ///
-/// Holds a reference to the V1 layout struct to support potential future migrations
+/// Holds a reference to the V2 layout struct to support potential future migrations
 pub struct V2 {
     pub home: v2::VoltaHome,
 }
@@ -28,7 +28,7 @@ impl V2 {
         }
     }
 
-    /// Write the layout file to mark migration to V1 as complete
+    /// Write the layout file to mark migration to V2 as complete
     ///
     /// Should only be called once all other migration steps are finished, so that we don't
     /// accidentally mark an incomplete migration as completed

@@ -15,10 +15,14 @@ mod empty;
 mod v0;
 mod v1;
 mod v2;
+#[cfg(feature = "package-global")]
+mod v3;
 
 use v0::V0;
 use v1::V1;
 use v2::V2;
+#[cfg(feature = "package-global")]
+use v3::V3;
 
 use log::debug;
 use volta_core::error::Fallible;
@@ -36,6 +40,8 @@ enum MigrationState {
     V0(Box<V0>),
     V1(Box<V1>),
     V2(Box<V2>),
+    #[cfg(feature = "package-global")]
+    V3(Box<V3>),
 }
 
 /// Macro to simplify the boilerplate associated with detecting a tagged state.
@@ -75,6 +81,10 @@ macro_rules! detect_tagged {
     }
 }
 
+#[cfg(feature = "package-global")]
+detect_tagged!((v3, V3, V3), (v2, V2, V2), (v1, V1, V1));
+
+#[cfg(not(feature = "package-global"))]
 detect_tagged!((v2, V2, V2), (v1, V1, V1));
 
 impl MigrationState {
@@ -154,10 +164,20 @@ fn detect_and_migrate() -> Fallible<()> {
     // latest version. We then apply the migrations sequentially here: V0 -> V1 -> ... -> VX
     loop {
         state = match state {
-            MigrationState::Empty(e) => MigrationState::V1(Box::new(e.try_into()?)),
+            #[cfg(feature = "package-global")]
+            MigrationState::Empty(e) => MigrationState::V3(Box::new(e.try_into()?)),
+            #[cfg(not(feature = "package-global"))]
+            MigrationState::Empty(e) => MigrationState::V2(Box::new(e.try_into()?)),
             MigrationState::V0(zero) => MigrationState::V1(Box::new((*zero).try_into()?)),
             MigrationState::V1(one) => MigrationState::V2(Box::new((*one).try_into()?)),
+            #[cfg(not(feature = "package-global"))]
             MigrationState::V2(_) => {
+                break;
+            }
+            #[cfg(feature = "package-global")]
+            MigrationState::V2(two) => MigrationState::V3(Box::new((*two).try_into()?)),
+            #[cfg(feature = "package-global")]
+            MigrationState::V3(_) => {
                 break;
             }
         };
