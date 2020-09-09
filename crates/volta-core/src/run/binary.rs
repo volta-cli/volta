@@ -9,7 +9,7 @@ use crate::session::{ActivityKind, Session};
 #[cfg(not(feature = "package-global"))]
 use crate::tool::bin_full_path;
 #[cfg(feature = "package-global")]
-use crate::tool::package::{new_package_image_dir, BinConfig};
+use crate::tool::package::BinConfig;
 #[cfg(not(feature = "package-global"))]
 use crate::tool::{BinConfig, BinLoader};
 use log::debug;
@@ -112,7 +112,7 @@ impl DefaultBinary {
     pub fn from_config(bin_config: BinConfig, session: &mut Session) -> Fallible<Self> {
         // Looking forward to supporting installs from all package managers, we will want this
         // logic to support the various possible directory structures for each package manager
-        let mut bin_path = new_package_image_dir(volta_home()?, &bin_config.package);
+        let mut bin_path = volta_home()?.package_image_dir(&bin_config.package);
         // On Windows, the binaries are in the root of the `prefix` directory
         // On other OSes, they are in a `bin` subdirectory
         #[cfg(not(windows))]

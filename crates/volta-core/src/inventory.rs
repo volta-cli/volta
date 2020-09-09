@@ -48,6 +48,7 @@ pub fn yarn_versions() -> Fallible<BTreeSet<Version>> {
 }
 
 /// Checks if a given package version image is available on the local machine
+#[cfg(not(feature = "package-global"))]
 pub fn package_available(name: &str, version: &Version) -> Fallible<bool> {
     volta_home().map(|home| home.package_image_dir(name, &version.to_string()).exists())
 }

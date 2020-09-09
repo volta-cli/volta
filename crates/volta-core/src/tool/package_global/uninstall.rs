@@ -1,5 +1,4 @@
 use super::metadata::{BinConfig, PackageConfig};
-use super::new_package_image_dir;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::{dir_entry_match, remove_dir_if_exists, remove_file_if_exists};
 use crate::layout::volta_home;
@@ -45,7 +44,7 @@ pub fn uninstall(name: &str) -> Fallible<()> {
     };
 
     // Remove the package directory itself
-    let package_image_dir = new_package_image_dir(home, name);
+    let package_image_dir = home.package_image_dir(name);
     remove_dir_if_exists(package_image_dir)?;
 
     if package_found {
