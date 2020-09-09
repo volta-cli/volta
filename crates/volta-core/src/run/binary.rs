@@ -9,7 +9,7 @@ use crate::session::{ActivityKind, Session};
 #[cfg(not(feature = "package-global"))]
 use crate::tool::bin_full_path;
 #[cfg(feature = "package-global")]
-use crate::tool::package_global::{new_package_image_dir, BinConfig};
+use crate::tool::package::{new_package_image_dir, BinConfig};
 #[cfg(not(feature = "package-global"))]
 use crate::tool::{BinConfig, BinLoader};
 use log::debug;

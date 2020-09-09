@@ -11,7 +11,7 @@ use semver::Version;
 /// Configuration information about an installed package
 ///
 /// Will be stored in <VOLTA_HOME>/tools/user/packages/<package>.json
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, PartialOrd, Ord, PartialEq, Eq)]
 pub struct PackageConfig {
     /// The package name
     pub name: String,

@@ -9,9 +9,11 @@ use log::{debug, info};
 
 pub mod node;
 pub mod npm;
+#[cfg(not(feature = "package-global"))]
 pub mod package;
 #[cfg(feature = "package-global")]
-pub mod package_global;
+#[path = "package_global/mod.rs"]
+pub mod package;
 mod registry;
 mod serial;
 pub mod yarn;
@@ -21,10 +23,9 @@ pub use node::{
 };
 pub use npm::{BundledNpm, Npm};
 #[cfg(not(feature = "package-global"))]
-pub use package::Package;
-pub use package::{bin_full_path, BinConfig, BinLoader, PackageConfig};
+pub use package::{bin_full_path, BinConfig, BinLoader, Package, PackageConfig};
 #[cfg(feature = "package-global")]
-pub use package_global::Package;
+pub use package::{BinConfig, Package, PackageConfig, PackageManifest};
 pub use registry::PackageDetails;
 pub use yarn::Yarn;
 
@@ -125,15 +126,7 @@ impl Spec {
                 feature: "Uninstalling yarn".into(),
             }
             .into()),
-            Spec::Package(name, _) => {
-                #[cfg(feature = "package-global")]
-                package_global::uninstall(&name)?;
-
-                #[cfg(not(feature = "package-global"))]
-                package::uninstall(&name)?;
-
-                Ok(())
-            }
+            Spec::Package(name, _) => package::uninstall(&name),
         }
     }
 }
