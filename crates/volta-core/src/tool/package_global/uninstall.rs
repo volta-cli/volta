@@ -1,0 +1,92 @@
+use super::metadata::{BinConfig, PackageConfig};
+use super::new_package_image_dir;
+use crate::error::{Context, ErrorKind, Fallible};
+use crate::fs::{dir_entry_match, remove_dir_if_exists, remove_file_if_exists};
+use crate::layout::volta_home;
+use crate::shim;
+use crate::style::success_prefix;
+use crate::sync::VoltaLock;
+use log::{info, warn};
+
+/// Uninstalls the specified package.
+///
+/// This removes:
+///
+/// - The JSON configuration files for both the package and its bins
+/// - The shims for the package bins
+/// - The package directory itself
+pub fn uninstall(name: &str) -> Fallible<()> {
+    let home = volta_home()?;
+    // Acquire a lock on the Volta directory, if possible, to prevent concurrent changes
+    let _lock = VoltaLock::acquire();
+
+    // If the package config file exists, use that to remove any installed bins and shims
+    let package_config_file = home.default_package_config_file(name);
+    let package_found = if package_config_file.exists() {
+        let package_config = PackageConfig::from_file(&package_config_file)?;
+
+        for bin_name in package_config.bins {
+            remove_config_and_shim(&bin_name, name)?;
+        }
+
+        remove_file_if_exists(package_config_file)?;
+        true
+    } else {
+        // There is no package config file - Check for orphaned binaries
+        let package_binary_list = binaries_from_package(name)?;
+        if !package_binary_list.is_empty() {
+            for bin_name in package_binary_list {
+                remove_config_and_shim(&bin_name, name)?;
+            }
+            true
+        } else {
+            false
+        }
+    };
+
+    // Remove the package directory itself
+    let package_image_dir = new_package_image_dir(home, name);
+    remove_dir_if_exists(package_image_dir)?;
+
+    if package_found {
+        info!("{} package '{}' uninstalled", success_prefix(), name);
+    } else {
+        warn!("No package '{}' found to uninstall", name);
+    }
+
+    Ok(())
+}
+
+/// Remove a shim and its associated configuration file
+fn remove_config_and_shim(bin_name: &str, pkg_name: &str) -> Fallible<()> {
+    shim::delete(bin_name)?;
+    let config_file = volta_home()?.default_tool_bin_config(bin_name);
+    remove_file_if_exists(config_file)?;
+    info!(
+        "Removed executable '{}' installed by '{}'",
+        bin_name, pkg_name
+    );
+    Ok(())
+}
+
+/// Reads the contents of a directory and returns a Vec containing the names of
+/// all the binaries installed by the given package.
+fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
+    let bin_config_dir = volta_home()?.default_bin_dir();
+    if bin_config_dir.exists() {
+        dir_entry_match(&bin_config_dir, |entry| {
+            let path = entry.path();
+            if let Ok(config) = BinConfig::from_file(path) {
+                if config.package == package {
+                    return Some(config.name);
+                }
+            }
+            None
+        })
+        .with_context(|| ErrorKind::ReadBinConfigDirError {
+            dir: bin_config_dir.to_owned(),
+        })
+    } else {
+        Ok(Vec::new())
+    }
+}

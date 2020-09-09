@@ -17,8 +17,10 @@ use tempfile::TempDir;
 mod configure;
 mod install;
 mod metadata;
+mod uninstall;
 
 pub use metadata::{BinConfig, PackageConfig, PackageManifest};
+pub use uninstall::uninstall;
 
 /// The Tool implementation for installing 3rd-party global packages
 pub struct Package {
