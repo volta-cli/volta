@@ -4,7 +4,9 @@ use std::path::Path;
 
 use super::tool;
 use crate::error::{ErrorKind, Fallible, VoltaError};
-use crate::tool::{Node, Npm, Package, Tool, Yarn};
+#[cfg(not(feature = "package-global"))]
+use crate::tool::Package;
+use crate::tool::{Node, Npm, Tool, Yarn};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -102,6 +104,7 @@ pub struct RawHookConfig {
     pub node: Option<RawToolHooks<Node>>,
     pub npm: Option<RawToolHooks<Npm>>,
     pub yarn: Option<RawToolHooks<Yarn>>,
+    #[cfg(not(feature = "package-global"))]
     pub packages: Option<RawToolHooks<Package>>,
     pub events: Option<RawEventHooks>,
 }
@@ -138,6 +141,7 @@ impl RawHookConfig {
         let node = self.node.map(|n| n.into_tool_hooks(base_dir)).transpose()?;
         let npm = self.npm.map(|n| n.into_tool_hooks(base_dir)).transpose()?;
         let yarn = self.yarn.map(|y| y.into_tool_hooks(base_dir)).transpose()?;
+        #[cfg(not(feature = "package-global"))]
         let package = self
             .packages
             .map(|p| p.into_tool_hooks(base_dir))
@@ -147,6 +151,7 @@ impl RawHookConfig {
             node,
             npm,
             yarn,
+            #[cfg(not(feature = "package-global"))]
             package,
             events,
         })
