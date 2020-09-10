@@ -69,6 +69,14 @@ impl TempProjectBuilder {
         self
     }
 
+    /// Create a file in the `volta_home` directory (chainable)
+    #[cfg(feature = "package-global")]
+    pub fn volta_home_file(mut self, path: &str, contents: &str) -> Self {
+        let path = volta_home(self.root()).join(path);
+        self.files.push(FileBuilder::new(path, contents));
+        self
+    }
+
     /// Create the project
     pub fn build(mut self) -> TempProject {
         // First, clean the temporary project directory if it already exists

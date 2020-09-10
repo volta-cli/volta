@@ -18,5 +18,7 @@ cfg_if::cfg_if! {
         mod volta_install;
         mod volta_run;
         mod autodownload;
+        #[cfg(feature = "package-global")]
+        mod package_migration;
     }
 }
