@@ -435,6 +435,7 @@ impl SandboxBuilder {
         self.root.root().mkdir_p();
 
         // make sure these directories exist
+        ok_or_panic! { fs::create_dir_all(volta_bin_dir()) };
         ok_or_panic! { fs::create_dir_all(node_cache_dir()) };
         ok_or_panic! { fs::create_dir_all(node_inventory_dir()) };
         ok_or_panic! { fs::create_dir_all(package_inventory_dir()) };
