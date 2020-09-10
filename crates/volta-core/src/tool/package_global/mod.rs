@@ -40,13 +40,13 @@ impl Package {
     pub fn complete_install(self, image: &Image) -> Fallible<PackageManifest> {
         let manifest = self.parse_manifest()?;
 
-        self.write_config_and_shims(&manifest, &image)?;
         self.persist_install()?;
+        self.write_config_and_shims(&manifest, &image)?;
 
         Ok(manifest)
     }
 
-    fn persist_install(self) -> Fallible<()> {
+    fn persist_install(&self) -> Fallible<()> {
         let home = volta_home()?;
         let package_dir = new_package_image_dir(home, &self.name);
 
@@ -61,7 +61,7 @@ impl Package {
 
         rename(self.staging.path(), &package_dir).with_context(|| {
             ErrorKind::SetupToolImageError {
-                tool: self.name,
+                tool: self.name.clone(),
                 version: self.version.to_string(),
                 dir: package_dir,
             }
