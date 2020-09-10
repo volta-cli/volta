@@ -283,6 +283,18 @@ pub enum ErrorKind {
         package: String,
     },
 
+    /// Thrown when parsing the package manifest fails
+    #[cfg(feature = "package-global")]
+    PackageManifestParseError {
+        package: String,
+    },
+
+    /// Thrown when reading the package manifest fails
+    #[cfg(feature = "package-global")]
+    PackageManifestReadError {
+        package: String,
+    },
+
     /// Thrown when there is an error fetching package metadata
     PackageMetadataFetchError {
         from_url: String,
@@ -1027,6 +1039,22 @@ This project is configured to use version {} of npm.",
 Please confirm the package is valid and run with `--verbose` for more diagnostics.",
                 package
             ),
+            #[cfg(feature = "package-global")]
+            ErrorKind::PackageManifestParseError { package } => write!(
+                f,
+                "Could not parse package.json manifest for {}
+
+Please ensure the package includes a valid manifest file.",
+                package
+            ),
+            #[cfg(feature = "package-global")]
+            ErrorKind::PackageManifestReadError { package } => write!(
+                f,
+                "Could not read package.json manifest for {}
+
+Please ensure the package includes a valid manifest file.",
+                package
+            ),
             ErrorKind::PackageMetadataFetchError { from_url } => write!(
                 f,
                 "Could not download package metadata
@@ -1542,6 +1570,10 @@ impl ErrorKind {
             ErrorKind::PackageDependenciesInstallFailed => ExitCode::FileSystemError,
             #[cfg(feature = "package-global")]
             ErrorKind::PackageInstallFailed { .. } => ExitCode::UnknownError,
+            #[cfg(feature = "package-global")]
+            ErrorKind::PackageManifestParseError { .. } => ExitCode::ConfigurationError,
+            #[cfg(feature = "package-global")]
+            ErrorKind::PackageManifestReadError { .. } => ExitCode::FileSystemError,
             ErrorKind::PackageMetadataFetchError { .. } => ExitCode::NetworkError,
             ErrorKind::PackageNotFound { .. } => ExitCode::InvalidArguments,
             ErrorKind::PackageParseError { .. } => ExitCode::ConfigurationError,
