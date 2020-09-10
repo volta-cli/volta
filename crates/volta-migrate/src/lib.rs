@@ -24,7 +24,7 @@ use v2::V2;
 #[cfg(feature = "package-global")]
 use v3::V3;
 
-use log::debug;
+use log::{debug, info};
 use volta_core::error::Fallible;
 use volta_core::layout::volta_home;
 #[cfg(unix)]
@@ -157,6 +157,9 @@ pub fn run_migration() -> Fallible<()> {
 }
 
 fn detect_and_migrate() -> Fallible<()> {
+    info!(
+        "Your Volta directory is out of date and will be updated. This may take a few moments..."
+    );
     let mut state = MigrationState::current()?;
 
     // To keep the complexity of writing a new migration from continuously increasing, each new

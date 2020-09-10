@@ -7,7 +7,16 @@ use crate::v2::V2;
 use log::debug;
 use volta_core::error::{Context, ErrorKind, Fallible, VoltaError};
 use volta_core::fs::remove_file_if_exists;
-use volta_layout::v3;
+use volta_core::platform::PlatformSpec;
+use volta_core::session::Session;
+use volta_core::tool::Package;
+use volta_core::version::VersionSpec;
+use volta_layout::{v2, v3};
+use walkdir::WalkDir;
+
+mod config;
+
+use config::LegacyPackageConfig;
 
 /// Represents a V3 Volta layout (used by Volta v0.9.0 and above)
 ///
@@ -65,7 +74,8 @@ impl TryFrom<V2> for V3 {
                 dir: new_home.root().to_owned(),
             })?;
 
-        // Perform the core of the migration
+        // Migrate installed packages to the new workflow
+        migrate_packages(&old.home)?;
 
         // Complete the migration, writing the V3 layout file
         let layout = V3::complete_migration(new_home)?;
@@ -75,4 +85,60 @@ impl TryFrom<V2> for V3 {
 
         Ok(layout)
     }
+}
+
+fn migrate_packages(old_home: &v2::VoltaHome) -> Fallible<()> {
+    let packages = get_installed_packages(old_home);
+    let mut session = Session::init();
+
+    for package in packages {
+        migrate_single_package(package, &mut session)?;
+    }
+
+    Ok(())
+}
+
+/// Determine a list of all installed packages that are using the legacy package config
+fn get_installed_packages(old_home: &v2::VoltaHome) -> Vec<LegacyPackageConfig> {
+    WalkDir::new(old_home.default_package_dir())
+        .max_depth(2)
+        .into_iter()
+        .filter_map(|res| match res {
+            Ok(entry) => {
+                if entry.file_type().is_file() {
+                    let config = LegacyPackageConfig::from_file(entry.path());
+
+                    if config.is_none() {
+                        debug!("Unable to parse config file: {}", entry.path().display());
+                    }
+
+                    config
+                } else {
+                    None
+                }
+            }
+            Err(error) => {
+                debug!("Error reading directory entry: {}", error);
+                None
+            }
+        })
+        .collect()
+}
+
+/// Migrate a single package to the new workflow
+///
+/// Note: This relies on the package install logic in `volta_core`. If that logic changes, then
+/// this migration may need to be updated to accommodate the new end result.
+fn migrate_single_package(config: LegacyPackageConfig, session: &mut Session) -> Fallible<()> {
+    let tool = Package::new(config.name, VersionSpec::Exact(config.version))?;
+
+    let platform: PlatformSpec = config.platform.into();
+    let image = platform.as_binary().checkout(session)?;
+
+    // Run the global install command
+    tool.global_install(&image)?;
+    // Overwrite the config files and image directory
+    tool.complete_install(&image)?;
+
+    Ok(())
 }
