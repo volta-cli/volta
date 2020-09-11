@@ -407,6 +407,7 @@ impl SandboxBuilder {
     }
 
     /// Set cached package tarballs for the sandbox (chainable)
+    #[cfg(not(feature = "package-global"))]
     pub fn package_inventory(mut self, name: &str, version: &str) -> Self {
         let pkg_inventory_dir = package_inventory_dir();
         let package_tarball = pkg_inventory_dir.join(format!("{}-{}.tgz", name, version));
@@ -678,12 +679,14 @@ impl Sandbox {
         let package_img_dir = package_image_dir(name, version);
         package_img_dir.join("package.json").exists()
     }
+    #[cfg(not(feature = "package-global"))]
     pub fn pkg_inventory_tarball_exists(name: &str, version: &str) -> bool {
         let pkg_inventory_dir = package_inventory_dir();
         pkg_inventory_dir
             .join(format!("{}-{}.tgz", name, version))
             .exists()
     }
+    #[cfg(not(feature = "package-global"))]
     pub fn pkg_inventory_shasum_exists(name: &str, version: &str) -> bool {
         let pkg_inventory_dir = package_inventory_dir();
         pkg_inventory_dir

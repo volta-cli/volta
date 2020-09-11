@@ -32,6 +32,7 @@ fn fetch_npm() {
 }
 
 #[test]
+#[cfg(not(feature = "package-global"))]
 fn fetch_package() {
     let p = temp_project().build();
 
