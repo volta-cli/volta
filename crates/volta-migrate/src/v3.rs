@@ -6,7 +6,7 @@ use crate::empty::Empty;
 use crate::v2::V2;
 use log::{debug, warn};
 use volta_core::error::{Context, ErrorKind, Fallible, VoltaError};
-use volta_core::fs::remove_file_if_exists;
+use volta_core::fs::{remove_dir_if_exists, remove_file_if_exists};
 use volta_core::platform::PlatformSpec;
 use volta_core::session::Session;
 use volta_core::tool::{Package, PackageConfig};
@@ -76,6 +76,9 @@ impl TryFrom<V2> for V3 {
 
         // Migrate installed packages to the new workflow
         migrate_packages(&old.home)?;
+
+        // Remove the package inventory directory, as we no longer cache package tarballs
+        remove_dir_if_exists(old.home.package_inventory_dir())?;
 
         // Complete the migration, writing the V3 layout file
         let layout = V3::complete_migration(new_home)?;

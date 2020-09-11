@@ -19,7 +19,6 @@ layout! {
             "inventory": inventory_dir {
                 "node": node_inventory_dir {}
                 "npm": npm_inventory_dir {}
-                "packages": package_inventory_dir {}
                 "yarn": yarn_inventory_dir {}
             }
             "image": image_dir {
@@ -41,20 +40,6 @@ layout! {
 }
 
 impl VoltaHome {
-    pub fn package_distro_file(&self, name: &str, version: &str) -> PathBuf {
-        path_buf!(
-            self.package_inventory_dir.clone(),
-            format!("{}-{}.tgz", name, version)
-        )
-    }
-
-    pub fn package_distro_shasum(&self, name: &str, version: &str) -> PathBuf {
-        path_buf!(
-            self.package_inventory_dir.clone(),
-            format!("{}-{}.shasum", name, version)
-        )
-    }
-
     pub fn node_image_dir(&self, node: &str) -> PathBuf {
         path_buf!(self.node_image_root_dir.clone(), node)
     }
