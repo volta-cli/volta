@@ -26,6 +26,7 @@ fn empty_volta_home_is_created() {
     assert!(Sandbox::path_exists(".volta/tools/image/node"));
     assert!(Sandbox::path_exists(".volta/tools/image/yarn"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/node"));
+    #[cfg(not(feature = "package-global"))]
     assert!(Sandbox::path_exists(".volta/tools/inventory/packages"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
     assert!(Sandbox::path_exists(".volta/tools/user"));
@@ -66,12 +67,15 @@ fn legacy_v0_volta_home_is_upgraded() {
     // running volta should not create anything else
     assert_that!(s.volta("--version"), execs().with_status(0));
 
-    // everything should be the same as before running the command
+    // Layout should be updated to the most recent
     assert!(Sandbox::path_exists(".volta"));
     assert!(Sandbox::path_exists(".volta/cache/node"));
     assert!(Sandbox::path_exists(".volta/tmp"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/node"));
+    #[cfg(not(feature = "package-global"))]
     assert!(Sandbox::path_exists(".volta/tools/inventory/packages"));
+    #[cfg(feature = "package-global")]
+    assert!(!Sandbox::path_exists(".volta/tools/inventory/packages"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
 
     // Most recent layout file should exist, others should not
@@ -145,6 +149,7 @@ fn tagged_v1_volta_home_is_upgraded() {
     assert!(Sandbox::path_exists(".volta/cache/node"));
     assert!(Sandbox::path_exists(".volta/tmp"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/node"));
+    #[cfg(not(feature = "package-global"))]
     assert!(Sandbox::path_exists(".volta/tools/inventory/packages"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
 
@@ -231,7 +236,6 @@ fn current_v3_volta_home_is_unchanged() {
     assert!(Sandbox::path_exists(".volta/cache/node"));
     assert!(Sandbox::path_exists(".volta/tmp"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/node"));
-    assert!(Sandbox::path_exists(".volta/tools/inventory/packages"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
 
     // running volta should not create anything else
@@ -243,7 +247,6 @@ fn current_v3_volta_home_is_unchanged() {
     assert!(Sandbox::path_exists(".volta/cache/node"));
     assert!(Sandbox::path_exists(".volta/tmp"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/node"));
-    assert!(Sandbox::path_exists(".volta/tools/inventory/packages"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
 }
 
