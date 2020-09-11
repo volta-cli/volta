@@ -1,4 +1,5 @@
 use std::fmt::{self, Display};
+use std::path::Path;
 
 use super::Tool;
 use crate::error::{Context, ErrorKind, Fallible};
@@ -38,36 +39,17 @@ impl Package {
         })
     }
 
-    pub fn complete_install(self, image: &Image) -> Fallible<PackageManifest> {
-        let manifest = self.parse_manifest()?;
-
-        self.persist_install()?;
-        self.write_config_and_shims(&manifest, &image)?;
-
-        Ok(manifest)
+    pub fn run_install(&self, platform_image: &Image) -> Fallible<()> {
+        install::run_global_install(self.to_string(), self.staging.path(), platform_image)
     }
 
-    fn persist_install(&self) -> Fallible<()> {
-        let package_dir = volta_home()?.package_image_dir(&self.name);
+    pub fn complete_install(self, image: &Image) -> Fallible<PackageManifest> {
+        let manifest = configure::parse_manifest(&self.name, self.staging.path().to_owned())?;
 
-        remove_dir_if_exists(&package_dir)?;
+        persist_install(&self.name, &self.version, self.staging.path())?;
+        configure::write_config_and_shims(&self.name, &manifest, image)?;
 
-        // Handle scoped packages (@vue/cli), which have an extra directory for the scope
-        ensure_containing_dir_exists(&package_dir).with_context(|| {
-            ErrorKind::ContainingDirError {
-                path: package_dir.to_owned(),
-            }
-        })?;
-
-        rename(self.staging.path(), &package_dir).with_context(|| {
-            ErrorKind::SetupToolImageError {
-                tool: self.name.clone(),
-                version: self.version.to_string(),
-                dir: package_dir,
-            }
-        })?;
-
-        Ok(())
+        Ok(manifest)
     }
 }
 
@@ -88,7 +70,7 @@ impl Tool for Package {
             .ok_or(ErrorKind::NoPlatform)?
             .checkout(session)?;
 
-        self.global_install(&default_image)?;
+        self.run_install(&default_image)?;
         let manifest = self.complete_install(&default_image)?;
 
         let bins = manifest.bin.join(", ");
@@ -115,4 +97,27 @@ impl Display for Package {
             _ => f.write_str(&tool_version(&self.name, &self.version)),
         }
     }
+}
+
+fn persist_install(
+    package_name: &str,
+    package_version: &VersionSpec,
+    staging_dir: &Path,
+) -> Fallible<()> {
+    let package_dir = volta_home()?.package_image_dir(package_name);
+
+    remove_dir_if_exists(&package_dir)?;
+
+    // Handle scoped packages (@vue/cli), which have an extra directory for the scope
+    ensure_containing_dir_exists(&package_dir).with_context(|| ErrorKind::ContainingDirError {
+        path: package_dir.to_owned(),
+    })?;
+
+    rename(staging_dir, &package_dir).with_context(|| ErrorKind::SetupToolImageError {
+        tool: package_name.into(),
+        version: package_version.to_string(),
+        dir: package_dir,
+    })?;
+
+    Ok(())
 }
