@@ -1,5 +1,4 @@
 use std::fmt::{self, Display};
-use std::path::PathBuf;
 
 use super::Tool;
 use crate::error::{Context, ErrorKind, Fallible};
@@ -49,8 +48,7 @@ impl Package {
     }
 
     fn persist_install(&self) -> Fallible<()> {
-        let home = volta_home()?;
-        let package_dir = new_package_image_dir(home, &self.name);
+        let package_dir = volta_home()?.package_image_dir(&self.name);
 
         remove_dir_if_exists(&package_dir)?;
 
@@ -117,10 +115,4 @@ impl Display for Package {
             _ => f.write_str(&tool_version(&self.name, &self.version)),
         }
     }
-}
-
-pub fn new_package_image_dir(home: &volta_layout::v2::VoltaHome, package_name: &str) -> PathBuf {
-    // TODO: An updated layout (and associated migration) will be added in a follow-up PR
-    // at which point this function can be removed
-    home.package_image_root_dir().join(package_name)
 }
