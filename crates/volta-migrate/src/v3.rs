@@ -1,15 +1,15 @@
 use std::convert::TryFrom;
 use std::fs::File;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::empty::Empty;
 use crate::v2::V2;
-use log::debug;
+use log::{debug, warn};
 use volta_core::error::{Context, ErrorKind, Fallible, VoltaError};
 use volta_core::fs::remove_file_if_exists;
 use volta_core::platform::PlatformSpec;
 use volta_core::session::Session;
-use volta_core::tool::Package;
+use volta_core::tool::{Package, PackageConfig};
 use volta_core::version::VersionSpec;
 use volta_layout::{v2, v3};
 use walkdir::WalkDir;
@@ -108,8 +108,17 @@ fn get_installed_packages(old_home: &v2::VoltaHome) -> Vec<LegacyPackageConfig> 
                 if entry.file_type().is_file() {
                     let config = LegacyPackageConfig::from_file(entry.path());
 
-                    if config.is_none() {
+                    // If unable to parse the config file and this isn't an already-migrated
+                    // package, then show debug information and a warning for the user.
+                    if config.is_none() && !is_migrated_config(entry.path()) {
                         debug!("Unable to parse config file: {}", entry.path().display());
+                        if let Some(name) = entry.path().file_stem() {
+                            let name = name.to_string_lossy();
+                            warn!(
+                                "Could not migrate {}. Please run `volta install {0}` to migrate the package manually.",
+                                name
+                            );
+                        }
                     }
 
                     config
@@ -125,10 +134,22 @@ fn get_installed_packages(old_home: &v2::VoltaHome) -> Vec<LegacyPackageConfig> 
         .collect()
 }
 
+/// Determine if a package has already been migrated by attempting to read the V3 PackageConfig
+fn is_migrated_config(config_path: &Path) -> bool {
+    PackageConfig::from_file(config_path).is_ok()
+}
+
 /// Migrate a single package to the new workflow
 ///
 /// Note: This relies on the package install logic in `volta_core`. If that logic changes, then
-/// this migration may need to be updated to accommodate the new end result.
+/// the end result may not be a valid V3 layout any more, and this migration will need to be
+/// updated. Specifically, the invariants we rely on are:
+///
+/// - Package image directory is in the same location
+/// - Package config files are in the same location and the same format
+/// - Binary config files are in the same location and the same format
+///
+/// If any of those are violated, this migration may be invalid and need to be reworked / scrapped
 fn migrate_single_package(config: LegacyPackageConfig, session: &mut Session) -> Fallible<()> {
     let tool = Package::new(config.name, VersionSpec::Exact(config.version))?;
 

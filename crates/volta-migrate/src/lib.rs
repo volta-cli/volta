@@ -157,9 +157,7 @@ pub fn run_migration() -> Fallible<()> {
 }
 
 fn detect_and_migrate() -> Fallible<()> {
-    info!(
-        "Your Volta directory is out of date and will be updated. This may take a few moments..."
-    );
+    info!("Updating your Volta directory. This may take a few moments...");
     let mut state = MigrationState::current()?;
 
     // To keep the complexity of writing a new migration from continuously increasing, each new
