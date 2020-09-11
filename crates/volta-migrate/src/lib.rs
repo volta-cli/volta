@@ -170,7 +170,7 @@ fn detect_and_migrate() -> Fallible<()> {
             #[cfg(feature = "package-global")]
             MigrationState::Empty(e) => MigrationState::V3(Box::new(e.try_into()?)),
             #[cfg(not(feature = "package-global"))]
-            MigrationState::Empty(e) => MigrationState::V2(Box::new(e.try_into()?)),
+            MigrationState::Empty(e) => MigrationState::V1(Box::new(e.try_into()?)),
             MigrationState::V0(zero) => MigrationState::V1(Box::new((*zero).try_into()?)),
             MigrationState::V1(one) => MigrationState::V2(Box::new((*one).try_into()?)),
             #[cfg(not(feature = "package-global"))]
