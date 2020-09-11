@@ -110,14 +110,8 @@ pub struct DefaultBinary {
 impl DefaultBinary {
     #[cfg(feature = "package-global")]
     pub fn from_config(bin_config: BinConfig, session: &mut Session) -> Fallible<Self> {
-        // Looking forward to supporting installs from all package managers, we will want this
-        // logic to support the various possible directory structures for each package manager
-        let mut bin_path = volta_home()?.package_image_dir(&bin_config.package);
-        // On Windows, the binaries are in the root of the `prefix` directory
-        // On other OSes, they are in a `bin` subdirectory
-        #[cfg(not(windows))]
-        bin_path.push("bin");
-
+        let package_dir = volta_home()?.package_image_dir(&bin_config.package);
+        let mut bin_path = bin_config.manager.binary_dir(package_dir);
         bin_path.push(&bin_config.name);
 
         // If the user does not have yarn set in the platform for this binary, use the default

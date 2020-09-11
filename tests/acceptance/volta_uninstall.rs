@@ -15,7 +15,8 @@ const PKG_CONFIG_BASIC: &str = r#"{
   "bins": [
     "cowsay",
     "cowthink"
-  ]
+  ],
+  "manager": "Npm"
 }"#;
 
 #[cfg(not(feature = "package-global"))]
@@ -44,7 +45,8 @@ const PKG_CONFIG_NO_BINS: &str = r#"{
     "npm": "6.7.0",
     "yarn": null
   },
-  "bins": []
+  "bins": [],
+  "manager": "Npm"
 }"#;
 
 #[cfg(not(feature = "package-global"))]
@@ -72,7 +74,8 @@ fn bin_config(name: &str) -> String {
     "node": "11.10.1",
     "npm": "6.7.0",
     "yarn": null
-  }}
+  }},
+  "manager": "Npm"
 }}"#,
         name
     )

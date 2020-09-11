@@ -16,9 +16,11 @@ use tempfile::TempDir;
 
 mod configure;
 mod install;
+mod manager;
 mod metadata;
 mod uninstall;
 
+pub use manager::PackageManager;
 pub use metadata::{BinConfig, PackageConfig, PackageManifest};
 pub use uninstall::uninstall;
 
@@ -40,14 +42,20 @@ impl Package {
     }
 
     pub fn run_install(&self, platform_image: &Image) -> Fallible<()> {
-        install::run_global_install(self.to_string(), self.staging.path(), platform_image)
+        install::run_global_install(
+            self.to_string(),
+            self.staging.path().to_owned(),
+            platform_image,
+        )
     }
 
     pub fn complete_install(self, image: &Image) -> Fallible<PackageManifest> {
-        let manifest = configure::parse_manifest(&self.name, self.staging.path().to_owned())?;
+        let manager = PackageManager::Npm;
+        let manifest =
+            configure::parse_manifest(&self.name, self.staging.path().to_owned(), manager)?;
 
         persist_install(&self.name, &self.version, self.staging.path())?;
-        configure::write_config_and_shims(&self.name, &manifest, image)?;
+        configure::write_config_and_shims(&self.name, &manifest, image, manager)?;
 
         Ok(manifest)
     }

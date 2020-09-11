@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use super::manager::PackageManager;
 use super::metadata::{BinConfig, PackageConfig, PackageManifest};
 use crate::error::{ErrorKind, Fallible};
 use crate::layout::volta_home;
@@ -10,17 +11,9 @@ use crate::shim;
 pub(super) fn parse_manifest(
     package_name: &str,
     staging_dir: PathBuf,
+    manager: PackageManager,
 ) -> Fallible<PackageManifest> {
-    let mut package_dir = staging_dir;
-    // Looking forward to allowing direct package manager global installs,
-    // this method should be updated to support the different directory layouts
-    // of different package managers.
-
-    // `lib` is not in the directory structure on Windows
-    #[cfg(not(windows))]
-    package_dir.push("lib");
-
-    package_dir.push("node_modules");
+    let mut package_dir = manager.source_dir(staging_dir);
     package_dir.push(package_name);
 
     PackageManifest::for_dir(package_name, &package_dir)
@@ -31,6 +24,7 @@ pub(super) fn write_config_and_shims(
     name: &str,
     manifest: &PackageManifest,
     image: &Image,
+    manager: PackageManager,
 ) -> Fallible<()> {
     validate_bins(name, manifest)?;
 
@@ -49,6 +43,7 @@ pub(super) fn write_config_and_shims(
             package: name.into(),
             version: manifest.version.clone(),
             platform: platform.clone(),
+            manager,
         }
         .write()?;
     }
@@ -59,6 +54,7 @@ pub(super) fn write_config_and_shims(
         version: manifest.version.clone(),
         platform,
         bins: manifest.bin.clone(),
+        manager,
     }
     .write()?;
 

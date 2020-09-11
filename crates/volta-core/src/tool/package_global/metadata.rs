@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::path::Path;
 
+use super::manager::PackageManager;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::layout::volta_home;
 use crate::platform::PlatformSpec;
@@ -23,6 +24,8 @@ pub struct PackageConfig {
     pub platform: PlatformSpec,
     /// The binaries installed by this package
     pub bins: Vec<String>,
+    /// The package manager that was used to install this package
+    pub manager: PackageManager,
 }
 
 impl PackageConfig {
@@ -72,6 +75,8 @@ pub struct BinConfig {
     /// The platform used to install this binary
     #[serde(with = "RawPlatformSpec")]
     pub platform: PlatformSpec,
+    /// The package manager used to install this binary
+    pub manager: PackageManager,
 }
 
 impl BinConfig {
