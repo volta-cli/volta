@@ -126,7 +126,12 @@ impl Spec {
             }
             .into()),
             Spec::Package(name, _) => {
+                #[cfg(feature = "package-global")]
+                package_global::uninstall(&name)?;
+
+                #[cfg(not(feature = "package-global"))]
                 package::uninstall(&name)?;
+
                 Ok(())
             }
         }
