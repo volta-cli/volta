@@ -160,7 +160,7 @@ fn migrate_single_package(config: LegacyPackageConfig, session: &mut Session) ->
     let image = platform.as_binary().checkout(session)?;
 
     // Run the global install command
-    tool.global_install(&image)?;
+    tool.run_install(&image)?;
     // Overwrite the config files and image directory
     tool.complete_install(&image)?;
 
