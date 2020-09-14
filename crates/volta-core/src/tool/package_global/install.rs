@@ -11,7 +11,7 @@ impl Package {
     /// Sets the environment variable `npm_config_prefix` to redirect the install to the Volta
     /// data directory, taking advantage of the standard global install behavior with a custom
     /// location
-    pub(super) fn global_install(&self, platform_image: &Image) -> Fallible<()> {
+    pub fn global_install(&self, platform_image: &Image) -> Fallible<()> {
         let package = self.to_string();
         let mut command = create_command("npm");
         command.args(&[

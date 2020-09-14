@@ -26,11 +26,15 @@ fn empty_volta_home_is_created() {
     assert!(Sandbox::path_exists(".volta/tools/image/node"));
     assert!(Sandbox::path_exists(".volta/tools/image/yarn"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/node"));
+    #[cfg(not(feature = "package-global"))]
     assert!(Sandbox::path_exists(".volta/tools/inventory/packages"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
     assert!(Sandbox::path_exists(".volta/tools/user"));
 
     // Layout file should now exist
+    #[cfg(feature = "package-global")]
+    assert!(Sandbox::path_exists(".volta/layout.v3"));
+    #[cfg(not(feature = "package-global"))]
     assert!(Sandbox::path_exists(".volta/layout.v2"));
 
     // shims should all be created
@@ -63,16 +67,25 @@ fn legacy_v0_volta_home_is_upgraded() {
     // running volta should not create anything else
     assert_that!(s.volta("--version"), execs().with_status(0));
 
-    // everything should be the same as before running the command
+    // Layout should be updated to the most recent
     assert!(Sandbox::path_exists(".volta"));
     assert!(Sandbox::path_exists(".volta/cache/node"));
     assert!(Sandbox::path_exists(".volta/tmp"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/node"));
+    #[cfg(not(feature = "package-global"))]
     assert!(Sandbox::path_exists(".volta/tools/inventory/packages"));
+    #[cfg(feature = "package-global")]
+    assert!(!Sandbox::path_exists(".volta/tools/inventory/packages"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
 
-    // V2 layout file should now exist, V1 layout file should not exist
+    // Most recent layout file should exist, others should not
     assert!(!Sandbox::path_exists(".volta/layout.v1"));
+    #[cfg(feature = "package-global")]
+    {
+        assert!(!Sandbox::path_exists(".volta/layout.v2"));
+        assert!(Sandbox::path_exists(".volta/layout.v3"));
+    }
+    #[cfg(not(feature = "package-global"))]
     assert!(Sandbox::path_exists(".volta/layout.v2"));
 
     // shims should all be created
@@ -136,11 +149,18 @@ fn tagged_v1_volta_home_is_upgraded() {
     assert!(Sandbox::path_exists(".volta/cache/node"));
     assert!(Sandbox::path_exists(".volta/tmp"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/node"));
+    #[cfg(not(feature = "package-global"))]
     assert!(Sandbox::path_exists(".volta/tools/inventory/packages"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
 
-    // V2 layout file should now exist, V1 layout file should not exist
+    // Most recent layout file should exist, others should not
     assert!(!Sandbox::path_exists(".volta/layout.v1"));
+    #[cfg(feature = "package-global")]
+    {
+        assert!(!Sandbox::path_exists(".volta/layout.v2"));
+        assert!(Sandbox::path_exists(".volta/layout.v3"));
+    }
+    #[cfg(not(feature = "package-global"))]
     assert!(Sandbox::path_exists(".volta/layout.v2"));
 
     // shims should all be created
@@ -206,6 +226,32 @@ fn tagged_v1_to_v2_keeps_migrated_node_images() {
 }
 
 #[test]
+#[cfg(feature = "package-global")]
+fn current_v3_volta_home_is_unchanged() {
+    let s = sandbox().layout_file("v3").build();
+
+    // directories that are already created by the test framework
+    assert!(Sandbox::path_exists(".volta"));
+    assert!(Sandbox::path_exists(".volta/layout.v3"));
+    assert!(Sandbox::path_exists(".volta/cache/node"));
+    assert!(Sandbox::path_exists(".volta/tmp"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/node"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
+
+    // running volta should not create anything else
+    assert_that!(s.volta("--version"), execs().with_status(0));
+
+    // everything should be the same as before running the command
+    assert!(Sandbox::path_exists(".volta"));
+    assert!(Sandbox::path_exists(".volta/layout.v3"));
+    assert!(Sandbox::path_exists(".volta/cache/node"));
+    assert!(Sandbox::path_exists(".volta/tmp"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/node"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
+}
+
+#[test]
+#[cfg(not(feature = "package-global"))]
 fn current_v2_volta_home_is_unchanged() {
     let s = sandbox().layout_file("v2").build();
 
