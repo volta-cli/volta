@@ -200,11 +200,20 @@ fn command_line_node() {
         .env(VOLTA_LOGLEVEL, "debug")
         .build();
 
+    #[cfg(not(feature = "package-global"))]
     assert_that!(
         s.volta("run --node 10.99.1040 node --version"),
         execs()
             .with_status(ExitCode::Success as i32)
             .with_stderr_contains("[..]Using node@10.99.1040 from command-line configuration")
+    );
+
+    #[cfg(feature = "package-global")]
+    assert_that!(
+        s.volta("run --node 10.99.1040 node --version"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]Node: 10.99.1040 from command-line configuration")
     );
 }
 
@@ -217,11 +226,20 @@ fn inherited_node() {
         .env(VOLTA_LOGLEVEL, "debug")
         .build();
 
+    #[cfg(not(feature = "package-global"))]
     assert_that!(
         s.volta("run node --version"),
         execs()
             .with_status(ExitCode::Success as i32)
             .with_stderr_contains("[..]Using node@9.27.6 from project configuration")
+    );
+
+    #[cfg(feature = "package-global")]
+    assert_that!(
+        s.volta("run node --version"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]Node: 9.27.6 from project configuration")
     );
 }
 
@@ -235,11 +253,20 @@ fn command_line_npm() {
         .env(VOLTA_LOGLEVEL, "debug")
         .build();
 
+    #[cfg(not(feature = "package-global"))]
     assert_that!(
         s.volta("run --node 10.99.1040 --npm 8.1.5 npm --version"),
         execs()
             .with_status(ExitCode::Success as i32)
             .with_stderr_contains("[..]Using npm@8.1.5 from command-line configuration")
+    );
+
+    #[cfg(feature = "package-global")]
+    assert_that!(
+        s.volta("run --node 10.99.1040 --npm 8.1.5 npm --version"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]npm: 8.1.5 from command-line configuration")
     );
 }
 
@@ -254,11 +281,20 @@ fn inherited_npm() {
         .env(VOLTA_LOGLEVEL, "debug")
         .build();
 
+    #[cfg(not(feature = "package-global"))]
     assert_that!(
         s.volta("run --node 10.99.1040 npm --version"),
         execs()
             .with_status(ExitCode::Success as i32)
             .with_stderr_contains("[..]Using npm@4.5.6 from project configuration")
+    );
+
+    #[cfg(feature = "package-global")]
+    assert_that!(
+        s.volta("run --node 10.99.1040 npm --version"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]npm: 4.5.6 from project configuration")
     );
 }
 
@@ -273,11 +309,20 @@ fn force_bundled_npm() {
         .env(VOLTA_LOGLEVEL, "debug")
         .build();
 
+    #[cfg(not(feature = "package-global"))]
     assert_that!(
         s.volta("run --bundled-npm npm --version"),
         execs()
             .with_status(ExitCode::Success as i32)
-            .with_stderr_contains("[..]Using npm@5.6.17 from project configuration")
+            .with_stderr_contains("[..]Using npm@5.6.17[..]")
+    );
+
+    #[cfg(feature = "package-global")]
+    assert_that!(
+        s.volta("run --bundled-npm npm --version"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]npm: 5.6.17[..]")
     );
 }
 
@@ -291,11 +336,20 @@ fn command_line_yarn() {
         .env(VOLTA_LOGLEVEL, "debug")
         .build();
 
+    #[cfg(not(feature = "package-global"))]
     assert_that!(
         s.volta("run --node 10.99.1040 --yarn 1.7.71 yarn --version"),
         execs()
             .with_status(ExitCode::Success as i32)
             .with_stderr_contains("[..]Using yarn@1.7.71 from command-line configuration")
+    );
+
+    #[cfg(feature = "package-global")]
+    assert_that!(
+        s.volta("run --node 10.99.1040 --yarn 1.7.71 yarn --version"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]Yarn: 1.7.71 from command-line configuration")
     );
 }
 
@@ -310,11 +364,20 @@ fn inherited_yarn() {
         .env(VOLTA_LOGLEVEL, "debug")
         .build();
 
+    #[cfg(not(feature = "package-global"))]
     assert_that!(
         s.volta("run --node 10.99.1040 yarn --version"),
         execs()
             .with_status(ExitCode::Success as i32)
             .with_stderr_contains("[..]Using yarn@1.2.42 from project configuration")
+    );
+
+    #[cfg(feature = "package-global")]
+    assert_that!(
+        s.volta("run --node 10.99.1040 yarn --version"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]Yarn: 1.2.42 from project configuration")
     );
 }
 

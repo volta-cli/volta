@@ -5,7 +5,6 @@ use std::ffi::{OsStr, OsString};
 use std::fmt;
 use std::iter::empty;
 use std::path::Path;
-#[cfg(not(feature = "package-global"))]
 use std::process::Output;
 use std::process::{Command, ExitStatus};
 
@@ -125,7 +124,6 @@ impl ToolCommand {
     /// Add a single argument to the Command.
     ///
     /// The new argument will be added to the end of the current argument list
-    #[cfg(not(feature = "package-global"))]
     pub(crate) fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut ToolCommand {
         self.command.arg(arg);
         self
@@ -155,7 +153,6 @@ impl ToolCommand {
     }
 
     /// Set the current working directory for the Command
-    #[cfg(not(feature = "package-global"))]
     pub(crate) fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut ToolCommand {
         self.command.current_dir(dir);
         self
@@ -171,7 +168,6 @@ impl ToolCommand {
     /// Execute the command, returning all of its output to the caller
     ///
     /// Any failures will be wrapped with the Error value in `on_failure`
-    #[cfg(not(feature = "package-global"))]
     pub(crate) fn output(mut self) -> Fallible<Output> {
         self.command.output().with_context(|| self.on_failure)
     }

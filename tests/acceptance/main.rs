@@ -7,6 +7,7 @@ cfg_if! {
         // test files
         mod corrupted_download;
         mod hooks;
+        #[cfg(not(feature = "package-global"))]
         mod intercept_global_installs;
         mod merged_platform;
         mod migrations;
