@@ -1,5 +1,6 @@
 use std::fmt::{self, Display};
 use std::path::Path;
+use std::process::Command;
 
 use super::Tool;
 use crate::error::{Context, ErrorKind, Fallible};
@@ -107,11 +108,42 @@ impl Display for Package {
     }
 }
 
-fn persist_install(
-    package_name: &str,
-    package_version: &VersionSpec,
-    staging_dir: &Path,
-) -> Fallible<()> {
+pub struct DirectInstall {
+    name: String,
+    staging: TempDir,
+    manager: PackageManager,
+}
+
+impl DirectInstall {
+    pub fn new(name: String, manager: PackageManager) -> Fallible<Self> {
+        let staging = create_staging_dir()?;
+        Ok(DirectInstall {
+            name,
+            staging,
+            manager,
+        })
+    }
+
+    pub fn setup_command(&self, command: &mut Command) {
+        self.manager
+            .setup_global_command(command, self.staging.path().to_owned());
+    }
+
+    pub fn complete_install(self, image: &Image) -> Fallible<()> {
+        let manifest =
+            configure::parse_manifest(&self.name, self.staging.path().to_owned(), self.manager)?;
+
+        persist_install(&self.name, &manifest.version, self.staging.path())?;
+        configure::write_config_and_shims(&self.name, &manifest, image, self.manager)?;
+
+        Ok(())
+    }
+}
+
+fn persist_install<V>(package_name: &str, package_version: V, staging_dir: &Path) -> Fallible<()>
+where
+    V: Display,
+{
     let package_dir = volta_home()?.package_image_dir(package_name);
 
     remove_dir_if_exists(&package_dir)?;
