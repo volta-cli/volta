@@ -443,8 +443,8 @@ impl SandboxBuilder {
         ok_or_panic! { fs::create_dir_all(volta_tmp_dir()) };
 
         // Make sure the shims to npm and yarn exist
-        ok_or_panic! { symlink_file(shim_exe(), self.root.npm_exe()) };
-        ok_or_panic! { symlink_file(shim_exe(), self.root.yarn_exe()) };
+        ok_or_panic! { symlink_file(shim_exe(), shim_file("npm")) };
+        ok_or_panic! { symlink_file(shim_exe(), shim_file("yarn")) };
 
         // write node and yarn caches
         for cache in self.caches.iter() {
@@ -614,13 +614,9 @@ impl Sandbox {
     /// Example:
     ///     assert_that(p.npm("install ember-cli"), execs());
     pub fn npm(&self, cmd: &str) -> ProcessBuilder {
-        let mut p = self.process(&self.npm_exe());
+        let mut p = self.process(shim_file("npm"));
         split_and_add_args(&mut p, cmd);
         p
-    }
-
-    pub fn npm_exe(&self) -> PathBuf {
-        self.root().join(format!("npm{}", env::consts::EXE_SUFFIX))
     }
 
     /// Create a `ProcessBuilder` to run the volta yarn shim.
@@ -628,13 +624,9 @@ impl Sandbox {
     /// Example:
     ///     assert_that(p.yarn("add ember-cli"), execs());
     pub fn yarn(&self, cmd: &str) -> ProcessBuilder {
-        let mut p = self.process(&self.yarn_exe());
+        let mut p = self.process(shim_file("yarn"));
         split_and_add_args(&mut p, cmd);
         p
-    }
-
-    pub fn yarn_exe(&self) -> PathBuf {
-        self.root().join(format!("yarn{}", env::consts::EXE_SUFFIX))
     }
 
     pub fn read_package_json(&self) -> String {
@@ -701,7 +693,7 @@ impl Sandbox {
 
 impl Drop for Sandbox {
     fn drop(&mut self) {
-        self.root().rm_rf();
+        paths::root().rm_rf();
     }
 }
 
