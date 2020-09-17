@@ -203,7 +203,7 @@ fn command_line_node() {
     assert_that!(
         s.volta("run --node 10.99.1040 node --version"),
         execs()
-            .with_status(ExitCode::ExecutionFailure as i32)
+            .with_status(ExitCode::Success as i32)
             .with_stderr_contains("[..]Using node@10.99.1040 from command-line configuration")
     );
 }
@@ -220,7 +220,7 @@ fn inherited_node() {
     assert_that!(
         s.volta("run node --version"),
         execs()
-            .with_status(ExitCode::ExecutionFailure as i32)
+            .with_status(ExitCode::Success as i32)
             .with_stderr_contains("[..]Using node@9.27.6 from project configuration")
     );
 }
@@ -238,7 +238,7 @@ fn command_line_npm() {
     assert_that!(
         s.volta("run --node 10.99.1040 --npm 8.1.5 npm --version"),
         execs()
-            .with_status(ExitCode::ExecutionFailure as i32)
+            .with_status(ExitCode::Success as i32)
             .with_stderr_contains("[..]Using npm@8.1.5 from command-line configuration")
     );
 }
@@ -257,7 +257,7 @@ fn inherited_npm() {
     assert_that!(
         s.volta("run --node 10.99.1040 npm --version"),
         execs()
-            .with_status(ExitCode::ExecutionFailure as i32)
+            .with_status(ExitCode::Success as i32)
             .with_stderr_contains("[..]Using npm@4.5.6 from project configuration")
     );
 }
@@ -276,7 +276,7 @@ fn force_bundled_npm() {
     assert_that!(
         s.volta("run --bundled-npm npm --version"),
         execs()
-            .with_status(ExitCode::ExecutionFailure as i32)
+            .with_status(ExitCode::Success as i32)
             .with_stderr_contains("[..]Using npm@5.6.17 from project configuration")
     );
 }
@@ -294,7 +294,7 @@ fn command_line_yarn() {
     assert_that!(
         s.volta("run --node 10.99.1040 --yarn 1.7.71 yarn --version"),
         execs()
-            .with_status(ExitCode::ExecutionFailure as i32)
+            .with_status(ExitCode::Success as i32)
             .with_stderr_contains("[..]Using yarn@1.7.71 from command-line configuration")
     );
 }
@@ -313,7 +313,7 @@ fn inherited_yarn() {
     assert_that!(
         s.volta("run --node 10.99.1040 yarn --version"),
         execs()
-            .with_status(ExitCode::ExecutionFailure as i32)
+            .with_status(ExitCode::Success as i32)
             .with_stderr_contains("[..]Using yarn@1.2.42 from project configuration")
     );
 }
