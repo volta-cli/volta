@@ -1,7 +1,7 @@
 use std::ffi::{OsStr, OsString};
 use std::path::PathBuf;
 
-use super::executor::{ToolCommand, ToolKind};
+use super::executor::{Executor, ToolCommand, ToolKind};
 use super::{debug_active_image, debug_no_platform};
 use crate::error::{ErrorKind, Fallible};
 use crate::layout::volta_home;
@@ -13,11 +13,7 @@ use log::debug;
 /// Determine the correct command to run for a 3rd-party binary
 ///
 /// Will detect if we should delegate to the project-local version or use the default version
-pub(super) fn command(
-    exe: &OsStr,
-    args: &[OsString],
-    session: &mut Session,
-) -> Fallible<ToolCommand> {
+pub(super) fn command(exe: &OsStr, args: &[OsString], session: &mut Session) -> Fallible<Executor> {
     let bin = exe.to_string_lossy().to_string();
     // First try to use the project toolchain
     if let Some(project) = session.project()? {
@@ -38,7 +34,8 @@ pub(super) fn command(
                 args,
                 platform,
                 ToolKind::ProjectLocalBinary(bin),
-            ));
+            )
+            .into());
         }
     }
 
@@ -55,17 +52,13 @@ pub(super) fn command(
             args,
             Some(default_tool.platform),
             ToolKind::DefaultBinary(bin),
-        ));
+        )
+        .into());
     }
 
     // At this point, the binary is not known to Volta, so we have no platform to use to execute it
     // This should be rare, as anything we have a shim for should have a config file to load
-    Ok(ToolCommand::new(
-        exe,
-        args,
-        None,
-        ToolKind::DefaultBinary(bin),
-    ))
+    Ok(ToolCommand::new(exe, args, None, ToolKind::DefaultBinary(bin)).into())
 }
 
 /// Determine the execution context (PATH and failure error message) for a project-local binary

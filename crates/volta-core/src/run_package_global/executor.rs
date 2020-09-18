@@ -8,6 +8,39 @@ use crate::session::Session;
 use crate::signal::pass_control_to_shim;
 use crate::tool::package::{DirectInstall, PackageManager};
 
+pub enum Executor {
+    Tool(ToolCommand),
+    PackageInstall(PackageInstallCommand),
+}
+
+impl Executor {
+    pub fn envs<E, K, V>(&mut self, envs: E)
+    where
+        E: IntoIterator<Item = (K, V)>,
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>,
+    {
+        match self {
+            Executor::Tool(cmd) => cmd.envs(envs),
+            Executor::PackageInstall(cmd) => cmd.envs(envs),
+        }
+    }
+
+    pub fn cli_platform(&mut self, cli: CliPlatform) {
+        match self {
+            Executor::Tool(cmd) => cmd.cli_platform(cli),
+            Executor::PackageInstall(cmd) => cmd.cli_platform(cli),
+        }
+    }
+
+    pub fn execute(self, session: &mut Session) -> Fallible<ExitStatus> {
+        match self {
+            Executor::Tool(cmd) => cmd.execute(session),
+            Executor::PackageInstall(cmd) => cmd.execute(session),
+        }
+    }
+}
+
 /// Process builder for launching a Volta-managed tool
 ///
 /// Tracks the Platform as well as what kind of tool is being executed, to allow individual tools
@@ -84,6 +117,12 @@ impl ToolCommand {
 
         pass_control_to_shim();
         self.command.status().with_context(|| on_failure)
+    }
+}
+
+impl From<ToolCommand> for Executor {
+    fn from(cmd: ToolCommand) -> Self {
+        Executor::Tool(cmd)
     }
 }
 
@@ -167,5 +206,11 @@ impl PackageInstallCommand {
         }
 
         Ok(status)
+    }
+}
+
+impl From<PackageInstallCommand> for Executor {
+    fn from(cmd: PackageInstallCommand) -> Self {
+        Executor::PackageInstall(cmd)
     }
 }
