@@ -1,4 +1,8 @@
 use std::ffi::OsStr;
+#[cfg(unix)]
+use std::os::unix::process::ExitStatusExt;
+#[cfg(windows)]
+use std::os::windows::process::ExitStatusExt;
 use std::process::{Command, ExitStatus};
 
 use crate::command::create_command;
@@ -6,11 +10,15 @@ use crate::error::{Context, ErrorKind, Fallible};
 use crate::platform::{CliPlatform, Platform, System};
 use crate::session::Session;
 use crate::signal::pass_control_to_shim;
+use crate::style::note_prefix;
 use crate::tool::package::{DirectInstall, PackageManager};
+use crate::tool::Spec;
+use log::info;
 
 pub enum Executor {
-    Tool(ToolCommand),
-    PackageInstall(PackageInstallCommand),
+    Tool(Box<ToolCommand>),
+    PackageInstall(Box<PackageInstallCommand>),
+    InternalInstall(Box<InternalInstallCommand>),
 }
 
 impl Executor {
@@ -23,6 +31,8 @@ impl Executor {
         match self {
             Executor::Tool(cmd) => cmd.envs(envs),
             Executor::PackageInstall(cmd) => cmd.envs(envs),
+            // Internal installs use Volta's logic and don't rely on the environment variables
+            Executor::InternalInstall(_) => {}
         }
     }
 
@@ -30,6 +40,8 @@ impl Executor {
         match self {
             Executor::Tool(cmd) => cmd.cli_platform(cli),
             Executor::PackageInstall(cmd) => cmd.cli_platform(cli),
+            // Internal installs use Volta's logic and don't rely on the Node platform
+            Executor::InternalInstall(_) => {}
         }
     }
 
@@ -37,6 +49,7 @@ impl Executor {
         match self {
             Executor::Tool(cmd) => cmd.execute(session),
             Executor::PackageInstall(cmd) => cmd.execute(session),
+            Executor::InternalInstall(cmd) => cmd.execute(session),
         }
     }
 }
@@ -122,7 +135,7 @@ impl ToolCommand {
 
 impl From<ToolCommand> for Executor {
     fn from(cmd: ToolCommand) -> Self {
-        Executor::Tool(cmd)
+        Executor::Tool(Box::new(cmd))
     }
 }
 
@@ -204,6 +217,36 @@ impl PackageInstallCommand {
 
 impl From<PackageInstallCommand> for Executor {
     fn from(cmd: PackageInstallCommand) -> Self {
-        Executor::PackageInstall(cmd)
+        Executor::PackageInstall(Box::new(cmd))
+    }
+}
+
+/// Executor for running an internal install (installing Node, npm, or Yarn using the `volta
+/// install` logic)
+///
+/// Note: This is not intended to be used for Package installs. Those should go through the
+/// `PackageInstallCommand` above, to more seamlessly integrate with the package manager
+pub struct InternalInstallCommand {
+    tool: Spec,
+}
+
+impl InternalInstallCommand {
+    pub fn new(tool: Spec) -> Self {
+        InternalInstallCommand { tool }
+    }
+
+    /// Runs the install, using Volta's internal install logic for the appropriate tool
+    fn execute(self, session: &mut Session) -> Fallible<ExitStatus> {
+        info!("{} using Volta to install {}", note_prefix(), self.tool);
+
+        self.tool.resolve(session)?.install(session)?;
+
+        Ok(ExitStatus::from_raw(0))
+    }
+}
+
+impl From<InternalInstallCommand> for Executor {
+    fn from(cmd: InternalInstallCommand) -> Self {
+        Executor::InternalInstall(Box::new(cmd))
     }
 }
