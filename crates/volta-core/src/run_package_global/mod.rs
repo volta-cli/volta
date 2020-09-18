@@ -126,3 +126,11 @@ fn debug_active_image(image: &Image) {
 fn format_tool_version(version: &Sourced<Version>) -> String {
     format!("{} from {} configuration", version.value, version.source)
 }
+
+/// Distinguish global `add` commands in npm or yarn from all others
+enum CommandArg<'a> {
+    /// The command is a *global* add command.
+    GlobalAdd(&'a OsStr),
+    /// The command is *not* a global add
+    NotGlobalAdd,
+}

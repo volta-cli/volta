@@ -126,7 +126,7 @@ impl From<ToolCommand> for Executor {
     }
 }
 
-/// Process builder for launchin a package install command (e.g. `npm install --global`)
+/// Process builder for launching a package install command (e.g. `npm install --global`)
 ///
 /// This will use a `DirectInstall` instance to modify the command before running to point it to
 /// the Volta directory. It will also complete the install, writing config files and shims
