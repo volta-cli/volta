@@ -91,3 +91,82 @@ fn check_npm_install(args: &[OsString]) -> CommandArg {
         _ => CommandArg::NotGlobalAdd,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::CommandArg;
+    use super::check_npm_install;
+    use crate::tool::Spec;
+    use std::ffi::{OsStr, OsString};
+
+    fn arg_list<A, S>(args: A) -> Vec<OsString>
+    where
+        A: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        args.into_iter().map(|a| a.as_ref().to_owned()).collect()
+    }
+
+    #[test]
+    fn handles_global_flags() {
+        match check_npm_install(&arg_list(&["install", "-g", "typescript"])) {
+            CommandArg::GlobalAdd(_) => (),
+            _ => panic!("Doesn't handle short form (-g)"),
+        };
+
+        match check_npm_install(&arg_list(&["install", "--global", "typescript"])) {
+            CommandArg::GlobalAdd(_) => (),
+            _ => panic!("Doesn't handle long form"),
+        };
+
+        match check_npm_install(&arg_list(&["install", "typescript"])) {
+            CommandArg::NotGlobalAdd => (),
+            _ => panic!("Doesn't handle non-globals"),
+        };
+    }
+
+    #[test]
+    fn handles_install_aliases() {
+        match check_npm_install(&arg_list(&["install", "-g", "typescript"])) {
+            CommandArg::GlobalAdd(_) => (),
+            _ => panic!("Doesn't handle install"),
+        };
+
+        match check_npm_install(&arg_list(&["i", "-g", "typescript"])) {
+            CommandArg::GlobalAdd(_) => (),
+            _ => panic!("Doesn't handle short form (i)"),
+        };
+
+        match check_npm_install(&arg_list(&["add", "-g", "typescript"])) {
+            CommandArg::GlobalAdd(_) => (),
+            _ => panic!("Doesn't handle add"),
+        };
+
+        match check_npm_install(&arg_list(&["isntall", "-g", "typescript"])) {
+            CommandArg::GlobalAdd(_) => (),
+            _ => panic!("Doesn't handle misspelling"),
+        };
+    }
+
+    #[test]
+    fn ignores_interspersed_flags() {
+        match check_npm_install(&arg_list(&[
+            "--no-update-notifier",
+            "install",
+            "--no-audit",
+            "--global",
+            "cowsay",
+        ])) {
+            CommandArg::GlobalAdd(Spec::Package(name, _)) if name == "cowsay" => (),
+            _ => panic!("Doesn't handle flags correctly"),
+        };
+    }
+
+    #[test]
+    fn treats_invalid_package_as_not_global() {
+        match check_npm_install(&arg_list(&["install", "-g", "//invalid//"])) {
+            CommandArg::NotGlobalAdd => (),
+            _ => panic!("Doesn't handle invalid packages"),
+        };
+    }
+}
