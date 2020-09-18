@@ -237,7 +237,16 @@ impl InternalInstallCommand {
 
     /// Runs the install, using Volta's internal install logic for the appropriate tool
     fn execute(self, session: &mut Session) -> Fallible<ExitStatus> {
-        info!("{} using Volta to install {}", note_prefix(), self.tool);
+        info!(
+            "{} using Volta to install {}",
+            note_prefix(),
+            match &self.tool {
+                Spec::Node(_) => "Node",
+                Spec::Npm(_) => "npm",
+                Spec::Yarn(_) => "Yarn",
+                Spec::Package(name, _) => &name,
+            }
+        );
 
         self.tool.resolve(session)?.install(session)?;
 
