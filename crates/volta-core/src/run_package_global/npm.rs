@@ -66,7 +66,7 @@ fn check_npm_install(args: &[OsString]) -> CommandArg<'_> {
     // Additionally, it is only a valid global install if there is a package to install
     match (filtered.next(), filtered.next()) {
         (Some(cmd), Some(package))
-            if cmd == "install" || cmd == "i" || cmd == "add" || cmd == "isntal" =>
+            if cmd == "install" || cmd == "i" || cmd == "add" || cmd == "isntall" =>
         {
             CommandArg::GlobalAdd(package.as_os_str())
         }
