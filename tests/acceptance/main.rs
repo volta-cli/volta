@@ -6,6 +6,8 @@ cfg_if! {
 
         // test files
         mod corrupted_download;
+        #[cfg(feature = "package-global")]
+        mod direct_install;
         mod hooks;
         #[cfg(not(feature = "package-global"))]
         mod intercept_global_installs;
