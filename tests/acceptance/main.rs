@@ -8,6 +8,8 @@ cfg_if! {
         mod corrupted_download;
         #[cfg(feature = "package-global")]
         mod direct_install;
+        #[cfg(feature = "package-global")]
+        mod direct_uninstall;
         mod hooks;
         #[cfg(not(feature = "package-global"))]
         mod intercept_global_installs;

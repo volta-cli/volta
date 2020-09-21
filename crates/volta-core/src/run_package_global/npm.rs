@@ -2,6 +2,7 @@ use std::ffi::OsString;
 
 use super::executor::{
     Executor, InternalInstallCommand, PackageInstallCommand, ToolCommand, ToolKind,
+    UninstallCommand,
 };
 use super::{debug_active_image, debug_no_platform, CommandArg};
 use crate::error::{ErrorKind, Fallible};
@@ -29,6 +30,9 @@ pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Exec
         }
         CommandArg::GlobalAdd(tool) => {
             return Ok(InternalInstallCommand::new(tool).into());
+        }
+        CommandArg::GlobalRemove(tool) => {
+            return Ok(UninstallCommand::new(tool).into());
         }
         _ => {}
     }
@@ -59,14 +63,14 @@ pub(super) fn execution_context(
     }
 }
 
-/// Using the provided arguments, check if the command is a valid global install
+/// Using the provided arguments, check if the command is a valid global install or uninstall
 ///
-/// Note: We treat the case of `npm install --global <invalid package>` as _not_ a global install,
+/// Note: We treat the case of an invalid package name as _not_ a global install,
 /// to allow npm to show the appropriate error message.
 fn check_npm_install(args: &[OsString]) -> CommandArg {
     // npm global installs will have `-g` or `--global` somewhere in the argument list
     if !args.iter().any(|arg| arg == "-g" || arg == "--global") {
-        return CommandArg::NotGlobalAdd;
+        return CommandArg::NotGlobal;
     }
 
     // Filter the set of args to exclude any CLI flags. The first entry will be the npm command
@@ -77,18 +81,31 @@ fn check_npm_install(args: &[OsString]) -> CommandArg {
     });
 
     // npm has aliases for "install" as a command: `i`, `install`, `add`, or `isntall`
+    // aliases for "uninstall" as a command: `unlink`, `remove`, `rm`, `r`
     // See https://github.com/npm/cli/blob/latest/lib/config/cmd-list.js
-    // Additionally, it is only a valid global install if there is a package to install
+    // Additionally, it is only a valid global install/uninstall if there is a valid package
     match (filtered.next(), filtered.next()) {
         (Some(cmd), Some(package))
             if cmd == "install" || cmd == "i" || cmd == "add" || cmd == "isntall" =>
         {
             match Spec::try_from_str(&package.to_string_lossy()) {
                 Ok(tool) => CommandArg::GlobalAdd(tool),
-                Err(_) => CommandArg::NotGlobalAdd,
+                Err(_) => CommandArg::NotGlobal,
             }
         }
-        _ => CommandArg::NotGlobalAdd,
+        (Some(cmd), Some(package))
+            if cmd == "uninstall"
+                || cmd == "unlink"
+                || cmd == "remove"
+                || cmd == "rm"
+                || cmd == "r" =>
+        {
+            match Spec::try_from_str(&package.to_string_lossy()) {
+                Ok(tool) => CommandArg::GlobalRemove(tool),
+                Err(_) => CommandArg::NotGlobal,
+            }
+        }
+        _ => CommandArg::NotGlobal,
     }
 }
 
@@ -120,7 +137,7 @@ mod tests {
         };
 
         match check_npm_install(&arg_list(&["install", "typescript"])) {
-            CommandArg::NotGlobalAdd => (),
+            CommandArg::NotGlobal => (),
             _ => panic!("Doesn't handle non-globals"),
         };
     }
@@ -149,6 +166,34 @@ mod tests {
     }
 
     #[test]
+    fn handles_uninstall_aliases() {
+        match check_npm_install(&arg_list(&["uninstall", "-g", "typescript"])) {
+            CommandArg::GlobalRemove(_) => (),
+            _ => panic!("Doesn't handle uninstall"),
+        };
+
+        match check_npm_install(&arg_list(&["unlink", "-g", "typescript"])) {
+            CommandArg::GlobalRemove(_) => (),
+            _ => panic!("Doesn't handle unlink"),
+        };
+
+        match check_npm_install(&arg_list(&["remove", "-g", "typescript"])) {
+            CommandArg::GlobalRemove(_) => (),
+            _ => panic!("Doesn't handle remove"),
+        };
+
+        match check_npm_install(&arg_list(&["rm", "-g", "typescript"])) {
+            CommandArg::GlobalRemove(_) => (),
+            _ => panic!("Doesn't handle short form (rm)"),
+        };
+
+        match check_npm_install(&arg_list(&["r", "-g", "typescript"])) {
+            CommandArg::GlobalRemove(_) => (),
+            _ => panic!("Doesn't handle short form (r)"),
+        };
+    }
+
+    #[test]
     fn ignores_interspersed_flags() {
         match check_npm_install(&arg_list(&[
             "--no-update-notifier",
@@ -165,8 +210,13 @@ mod tests {
     #[test]
     fn treats_invalid_package_as_not_global() {
         match check_npm_install(&arg_list(&["install", "-g", "//invalid//"])) {
-            CommandArg::NotGlobalAdd => (),
-            _ => panic!("Doesn't handle invalid packages"),
+            CommandArg::NotGlobal => (),
+            _ => panic!("Doesn't handle invalid packages (install)"),
+        };
+
+        match check_npm_install(&arg_list(&["uninstall", "-g", "//invalid//"])) {
+            CommandArg::NotGlobal => (),
+            _ => panic!("Doesn't handle invalid packages (uninstall)"),
         };
     }
 }

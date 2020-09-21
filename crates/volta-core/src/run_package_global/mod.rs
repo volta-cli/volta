@@ -130,8 +130,10 @@ fn format_tool_version(version: &Sourced<Version>) -> String {
 
 /// Distinguish global `add` commands in npm or yarn from all others
 enum CommandArg {
-    /// The command is a *global* add command.
+    /// The command is a global add command
     GlobalAdd(tool::Spec),
-    /// The command is *not* a global add
-    NotGlobalAdd,
+    /// The command is a global remove command
+    GlobalRemove(tool::Spec),
+    /// The command is *not* a global command
+    NotGlobal,
 }
