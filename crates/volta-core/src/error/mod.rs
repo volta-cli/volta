@@ -48,7 +48,9 @@ impl VoltaError {
         &self.inner.kind
     }
 
-    /// TODO: doc
+    /// TODO:
+    /// 1. find a good name
+    /// 2. determine if it can be removed
     pub fn not_found_to_ok<T>(self, to: T) -> Fallible<T> {
         self.source()
             .and_then(|source| source.downcast_ref::<io::Error>())
@@ -62,6 +64,7 @@ impl VoltaError {
             .ok_or(self)
     }
 
+    /// TODO: find a good name
     pub fn is_io_not_found(&self) -> bool {
         is_not_found_error_kind(self)
     }
@@ -87,24 +90,36 @@ impl From<ErrorKind> for VoltaError {
     }
 }
 
-pub trait AcceptableError<T> {
-    fn error_to_default_if<F>(self, accept: F) -> Fallible<T>
+pub trait AcceptableErrorToValue<T> {
+    fn accept_error_as_value_if<F1, F2>(self, accept_if: F1, as_value: F2) -> Fallible<T>
     where
-        F: FnOnce(&VoltaError) -> bool;
+        F1: FnOnce(&VoltaError) -> bool,
+        F2: FnOnce() -> T;
 }
 
-impl<T> AcceptableError<T> for Fallible<T>
+pub trait AcceptableErrorToDefault<T>: AcceptableErrorToValue<T>
 where
     T: Default,
+    Self: Sized,
 {
     fn error_to_default_if<F>(self, accept: F) -> Fallible<T>
     where
         F: FnOnce(&VoltaError) -> bool,
     {
+        self.accept_error_as_value_if(accept, || T::default())
+    }
+}
+
+impl<T> AcceptableErrorToValue<T> for Fallible<T> {
+    fn accept_error_as_value_if<F1, F2>(self, accept_if: F1, as_value: F2) -> Fallible<T>
+    where
+        F1: FnOnce(&VoltaError) -> bool,
+        F2: FnOnce() -> T,
+    {
         match self {
             Err(error) => {
-                if accept(&error) {
-                    Ok(T::default())
+                if accept_if(&error) {
+                    Ok(as_value())
                 } else {
                     Err(error)
                 }
@@ -113,6 +128,8 @@ where
         }
     }
 }
+
+impl<T> AcceptableErrorToDefault<T> for Fallible<T> where T: Default {}
 
 /// Trait providing the with_context method to easily convert any Result error into a VoltaError
 pub trait Context<T> {

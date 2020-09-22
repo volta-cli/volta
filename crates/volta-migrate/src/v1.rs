@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use super::empty::Empty;
 use super::v0::V0;
 use log::debug;
-use volta_core::error::{Context, ErrorKind, Fallible, VoltaError};
+use volta_core::error::{AcceptableErrorToDefault, Context, ErrorKind, Fallible, VoltaError};
 #[cfg(unix)]
 use volta_core::fs::read_dir_eager;
 use volta_layout::v1;
@@ -88,44 +88,17 @@ impl TryFrom<V0> for V1 {
             debug!("Removing old Volta binaries");
             let old_volta_bin = new_home.root().join("volta");
 
-            match remove_file(&old_volta_bin).with_context(|| ErrorKind::DeleteFileError {
-                file: old_volta_bin,
-            }) {
-                Err(error) => {
-                    if error.is_io_not_found() {
-                        ()
-                    } else {
-                        return Err(error);
-                    }
-                }
-                _ => (),
-            }
-
-            // if old_volta_bin.exists() {
-            //     remove_file(&old_volta_bin).with_context(|| ErrorKind::DeleteFileError {
-            //         file: old_volta_bin,
-            //     })?;
-            // }
+            remove_file(&old_volta_bin)
+                .with_context(|| ErrorKind::DeleteFileError {
+                    file: old_volta_bin,
+                })
+                .error_to_default_if(|err| err.is_io_not_found())?;
 
             let old_shim_bin = new_home.root().join("shim");
 
-            match remove_file(&old_shim_bin)
+            remove_file(&old_shim_bin)
                 .with_context(|| ErrorKind::DeleteFileError { file: old_shim_bin })
-            {
-                Err(error) => {
-                    if error.is_io_not_found() {
-                        ()
-                    } else {
-                        return Err(error);
-                    }
-                }
-                _ => (),
-            }
-
-            // if old_shim_bin.exists() {
-            //     remove_file(&old_shim_bin)
-            //         .with_context(|| ErrorKind::DeleteFileError { file: old_shim_bin })?;
-            // }
+                .error_to_default_if(|err| err.is_io_not_found())?;
         }
 
         V1::complete_migration(new_home)

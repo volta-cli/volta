@@ -1,5 +1,5 @@
 use super::metadata::{BinConfig, PackageConfig};
-use crate::error::AcceptableError;
+use crate::error::AcceptableErrorToDefault;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::{dir_entry_match, remove_dir_if_exists, remove_file_if_exists};
 use crate::layout::volta_home;

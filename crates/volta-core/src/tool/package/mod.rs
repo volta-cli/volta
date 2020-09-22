@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use super::registry::PackageDetails;
 use super::{check_fetched, debug_already_fetched, info_fetched, FetchStatus, Tool};
-use crate::error::{Context, ErrorKind, Fallible};
+use crate::error::{AcceptableErrorToDefault, Context, ErrorKind, Fallible};
 use crate::fs::{dir_entry_match, remove_dir_if_exists, remove_file_if_exists};
 use crate::inventory::package_available;
 use crate::layout::volta_home;
@@ -190,7 +190,7 @@ fn remove_config_and_shim(bin_name: &str, pkg_name: &str) -> Fallible<()> {
 /// all the binaries installed by the input package.
 fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
     let bin_config_dir = volta_home()?.default_bin_dir();
-    match dir_entry_match(&bin_config_dir, |entry| {
+    dir_entry_match(&bin_config_dir, |entry| {
         let path = entry.path();
         if let Ok(config) = BinConfig::from_file(path) {
             if config.package == package {
@@ -201,8 +201,6 @@ fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
     })
     .with_context(|| ErrorKind::ReadBinConfigDirError {
         dir: bin_config_dir.to_owned(),
-    }) {
-        Err(error) => error.not_found_to_ok(vec![]),
-        Ok(x) => Ok(x),
-    }
+    })
+    .error_to_default_if(|err| err.is_io_not_found())
 }
