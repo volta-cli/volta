@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::env;
 use std::env::ArgsOs;
 use std::ffi::{OsStr, OsString};
@@ -30,15 +31,14 @@ pub fn execute_shim(session: &mut Session) -> Fallible<ExitStatus> {
 }
 
 /// Execute a tool with the provided arguments
-pub fn execute_tool<E, K, V>(
+pub fn execute_tool<K, V, S>(
     exe: &OsStr,
     args: &[OsString],
-    envs: E,
+    envs: &HashMap<K, V, S>,
     cli: CliPlatform,
     session: &mut Session,
 ) -> Fallible<ExitStatus>
 where
-    E: IntoIterator<Item = (K, V)>,
     K: AsRef<OsStr>,
     V: AsRef<OsStr>,
 {

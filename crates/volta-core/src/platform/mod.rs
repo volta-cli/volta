@@ -113,6 +113,7 @@ where
 
 /// Represents 3 possible states: Having a value, not having a value, and inheriting a value
 #[cfg_attr(test, derive(Eq, PartialEq, Debug))]
+#[cfg_attr(feature = "package-global", derive(Clone))]
 pub enum InheritOption<T> {
     Some(T),
     None,
@@ -193,7 +194,8 @@ impl PlatformSpec {
 }
 
 /// Represents a (maybe) platform with values from the command line
-#[derive(Default)]
+#[cfg_attr(not(feature = "package-global"), derive(Default))]
+#[cfg_attr(feature = "package-global", derive(Clone))]
 pub struct CliPlatform {
     pub node: Option<Version>,
     pub npm: InheritOption<Version>,
