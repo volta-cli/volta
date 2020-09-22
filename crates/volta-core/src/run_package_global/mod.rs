@@ -8,7 +8,6 @@ use std::process::ExitStatus;
 use crate::error::{ErrorKind, Fallible};
 use crate::platform::{CliPlatform, Image, Sourced};
 use crate::session::Session;
-use crate::tool;
 use log::debug;
 use semver::Version;
 
@@ -17,6 +16,7 @@ mod executor;
 mod node;
 mod npm;
 mod npx;
+mod parser;
 mod yarn;
 
 const VOLTA_BYPASS: &str = "VOLTA_BYPASS";
@@ -126,14 +126,4 @@ fn debug_active_image(image: &Image) {
 
 fn format_tool_version(version: &Sourced<Version>) -> String {
     format!("{} from {} configuration", version.value, version.source)
-}
-
-/// Distinguish global `add` commands in npm or yarn from all others
-enum CommandArg {
-    /// The command is a global add command
-    GlobalAdd(tool::Spec),
-    /// The command is a global remove command
-    GlobalRemove(tool::Spec),
-    /// The command is *not* a global command
-    NotGlobal,
 }

@@ -83,6 +83,16 @@ impl Executor {
     }
 }
 
+impl From<Vec<Executor>> for Executor {
+    fn from(mut executors: Vec<Executor>) -> Self {
+        if executors.len() == 1 {
+            executors.pop().unwrap()
+        } else {
+            Executor::Multiple(executors)
+        }
+    }
+}
+
 /// Process builder for launching a Volta-managed tool
 ///
 /// Tracks the Platform as well as what kind of tool is being executed, to allow individual tools
