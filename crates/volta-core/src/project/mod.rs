@@ -147,10 +147,17 @@ impl Project {
     pub fn has_direct_bin(&self, bin_name: &OsStr) -> Fallible<bool> {
         if let Some(name) = bin_name.to_str() {
             let config_path = volta_home()?.default_tool_bin_config(name);
-            if config_path.exists() {
-                let config = BinConfig::from_file(config_path)?;
-                return Ok(self.has_direct_dependency(&config.package));
-            }
+
+            return match BinConfig::from_file(config_path) {
+                Err(error) => {
+                    if error.is_io_not_found() {
+                        Ok(false)
+                    } else {
+                        return Err(error);
+                    }
+                }
+                Ok(config) => Ok(self.has_direct_dependency(&config.package)),
+            };
         }
         Ok(false)
     }

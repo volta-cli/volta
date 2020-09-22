@@ -1,12 +1,15 @@
 //! Provides utilities for operating on the filesystem.
 
-use std::fs::{self, create_dir_all, read_dir, DirEntry, File, Metadata};
 use std::io;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
+use std::{
+    error::Error,
+    fs::{self, create_dir_all, read_dir, DirEntry, File, Metadata},
+};
 
-use crate::error::{Context, ErrorKind, Fallible};
+use crate::error::{Context, ErrorKind, Fallible, VoltaError};
 use crate::layout::volta_home;
 use retry::delay::Fibonacci;
 use retry::{retry, Error as RetryError, OperationResult};
@@ -40,6 +43,20 @@ pub fn remove_file_if_exists<P: AsRef<Path>>(path: P) -> Fallible<()> {
         .with_context(|| ErrorKind::DeleteFileError {
             file: path.as_ref().to_owned(),
         })
+}
+
+/// TODO: add description
+pub fn is_not_found_error_kind(err: &VoltaError) -> bool {
+    err.source()
+        .and_then(|source| source.downcast_ref::<io::Error>())
+        .and_then(|io_err| {
+            if io_err.kind() == io::ErrorKind::NotFound {
+                Some(true)
+            } else {
+                None
+            }
+        })
+        .unwrap_or(false)
 }
 
 /// Converts a failure because of file not found into a success.

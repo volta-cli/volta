@@ -1,12 +1,14 @@
-use std::error::Error;
 use std::fmt;
 use std::process::exit;
+use std::{error::Error, io};
 
 mod kind;
 mod reporter;
 
 pub use kind::ErrorKind;
 pub use reporter::report_error;
+
+use crate::fs::is_not_found_error_kind;
 
 pub type Fallible<T> = Result<T, VoltaError>;
 
@@ -45,6 +47,24 @@ impl VoltaError {
     pub fn kind(&self) -> &ErrorKind {
         &self.inner.kind
     }
+
+    /// TODO: doc
+    pub fn not_found_to_ok<T>(self, to: T) -> Fallible<T> {
+        self.source()
+            .and_then(|source| source.downcast_ref::<io::Error>())
+            .and_then(|io_err| {
+                if io_err.kind() == io::ErrorKind::NotFound {
+                    Some(to)
+                } else {
+                    None
+                }
+            })
+            .ok_or(self)
+    }
+
+    pub fn is_io_not_found(&self) -> bool {
+        is_not_found_error_kind(self)
+    }
 }
 
 impl fmt::Display for VoltaError {
@@ -63,6 +83,33 @@ impl From<ErrorKind> for VoltaError {
     fn from(kind: ErrorKind) -> Self {
         VoltaError {
             inner: Box::new(Inner { kind, source: None }),
+        }
+    }
+}
+
+pub trait AcceptableError<T> {
+    fn error_to_default_if<F>(self, accept: F) -> Fallible<T>
+    where
+        F: FnOnce(&VoltaError) -> bool;
+}
+
+impl<T> AcceptableError<T> for Fallible<T>
+where
+    T: Default,
+{
+    fn error_to_default_if<F>(self, accept: F) -> Fallible<T>
+    where
+        F: FnOnce(&VoltaError) -> bool,
+    {
+        match self {
+            Err(error) => {
+                if accept(&error) {
+                    Ok(T::default())
+                } else {
+                    Err(error)
+                }
+            }
+            Ok(v) => Ok(v),
         }
     }
 }

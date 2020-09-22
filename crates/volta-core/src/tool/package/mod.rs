@@ -132,25 +132,33 @@ pub fn uninstall(name: &str) -> Fallible<()> {
 
     // if the package config file exists, use that to remove any installed bins and shims
     let package_config_file = home.default_package_config_file(name);
-    let package_found = if package_config_file.exists() {
-        let package_config = PackageConfig::from_file(&package_config_file)?;
 
-        for bin_name in package_config.bins {
-            remove_config_and_shim(&bin_name, name)?;
-        }
-
-        remove_file_if_exists(package_config_file)?;
-        true
-    } else {
-        // there is no package config - check for orphaned binaries
+    let remove_orphan_binaries_if_any = || -> Fallible<bool> {
         let package_binary_list = binaries_from_package(name)?;
         if !package_binary_list.is_empty() {
             for bin_name in package_binary_list {
                 remove_config_and_shim(&bin_name, name)?;
             }
-            true
+            Ok(true)
         } else {
-            false
+            Ok(false)
+        }
+    };
+
+    let package_found = match PackageConfig::from_file(&package_config_file) {
+        Err(error) => {
+            if error.is_io_not_found() {
+                remove_orphan_binaries_if_any()?
+            } else {
+                false
+            }
+        }
+        Ok(package_config) => {
+            for bin_name in package_config.bins {
+                remove_config_and_shim(&bin_name, name)?;
+            }
+            remove_file_if_exists(package_config_file)?;
+            true
         }
     };
 
@@ -182,20 +190,19 @@ fn remove_config_and_shim(bin_name: &str, pkg_name: &str) -> Fallible<()> {
 /// all the binaries installed by the input package.
 fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
     let bin_config_dir = volta_home()?.default_bin_dir();
-    if bin_config_dir.exists() {
-        dir_entry_match(&bin_config_dir, |entry| {
-            let path = entry.path();
-            if let Ok(config) = BinConfig::from_file(path) {
-                if config.package == package {
-                    return Some(config.name);
-                }
-            };
-            None
-        })
-        .with_context(|| ErrorKind::ReadBinConfigDirError {
-            dir: bin_config_dir.to_owned(),
-        })
-    } else {
-        Ok(vec![])
+    match dir_entry_match(&bin_config_dir, |entry| {
+        let path = entry.path();
+        if let Ok(config) = BinConfig::from_file(path) {
+            if config.package == package {
+                return Some(config.name);
+            }
+        };
+        None
+    })
+    .with_context(|| ErrorKind::ReadBinConfigDirError {
+        dir: bin_config_dir.to_owned(),
+    }) {
+        Err(error) => error.not_found_to_ok(vec![]),
+        Ok(x) => Ok(x),
     }
 }
