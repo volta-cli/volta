@@ -9,23 +9,18 @@ use crate::session::Session;
 
 /// Build an `Executor` for npm
 ///
-/// - If the command is a global package install _and_ we have a default platform available, then
-///   we will install the package into the Volta data directory and generate appropriate shims.
-/// - If the command is a global install of a Volta-managed tool (Node, npm, Yarn), then we will
-///   use Volta's internal install logic.
-/// - Otherwise, we allow npm to execute the command as usual
+/// If the command is a global install or uninstall and we have a default platform available, then
+/// we will use custom logic to ensure that the package is correctly installed / uninstalled in the
+/// Volta directory.
+///
+/// If the command is _not_ a global install / uninstall or we don't have a default platform, then
+/// we will allow npm to execute the command as usual.
 pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Executor> {
-    match CommandArg::for_npm(args)? {
-        CommandArg::GlobalInstall(install) => {
-            if let Some(default_platform) = session.default_platform()? {
-                return install.executor(default_platform);
-            }
+    if let CommandArg::Global(cmd) = CommandArg::for_npm(args) {
+        if let Some(default_platform) = session.default_platform()? {
+            return cmd.executor(default_platform);
         }
-        CommandArg::GlobalUninstall(uninstall) => {
-            return Ok(uninstall.executor());
-        }
-        _ => {}
-    };
+    }
 
     let platform = Platform::current(session)?;
 

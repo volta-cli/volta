@@ -8,14 +8,18 @@ use crate::tool::package::PackageManager;
 use crate::tool::Spec;
 
 pub enum CommandArg<'a> {
-    GlobalInstall(InstallArgs<'a>),
-    GlobalUninstall(UninstallArgs),
+    Global(GlobalCommand<'a>),
     NotGlobal,
+}
+
+pub enum GlobalCommand<'a> {
+    Install(InstallArgs<'a>),
+    Uninstall(UninstallArgs<'a>),
 }
 
 impl<'a> CommandArg<'a> {
     /// Parse the given set of arguments to see if they correspond to an npm global command
-    pub fn for_npm<S>(args: &'a [S]) -> Fallible<Self>
+    pub fn for_npm<S>(args: &'a [S]) -> Self
     where
         S: AsRef<OsStr>,
     {
@@ -24,7 +28,7 @@ impl<'a> CommandArg<'a> {
             .iter()
             .any(|arg| arg.as_ref() == "-g" || arg.as_ref() == "--global")
         {
-            return Ok(CommandArg::NotGlobal);
+            return CommandArg::NotGlobal;
         }
 
         let mut positionals = args.iter().filter(is_positional).map(AsRef::as_ref);
@@ -42,7 +46,7 @@ impl<'a> CommandArg<'a> {
                 let mut common_args = vec![cmd];
                 common_args.extend(args.iter().filter(is_flag).map(AsRef::as_ref));
 
-                Ok(CommandArg::GlobalInstall(InstallArgs {
+                CommandArg::Global(GlobalCommand::Install(InstallArgs {
                     manager: PackageManager::Npm,
                     common_args,
                     tools: positionals.collect(),
@@ -55,18 +59,16 @@ impl<'a> CommandArg<'a> {
                     || cmd == "rm"
                     || cmd == "r" =>
             {
-                let tools = positionals
-                    .map(|arg| Spec::try_from_str(&arg.to_string_lossy()))
-                    .collect::<Fallible<Vec<_>>>()?;
-
-                Ok(CommandArg::GlobalUninstall(UninstallArgs { tools }))
+                CommandArg::Global(GlobalCommand::Uninstall(UninstallArgs {
+                    tools: positionals.collect(),
+                }))
             }
-            _ => Ok(CommandArg::NotGlobal),
+            _ => CommandArg::NotGlobal,
         }
     }
 
     /// Parse the given set of arguments to see if they correspond to a Yarn global command
-    pub fn for_yarn<S>(args: &'a [S]) -> Fallible<Self>
+    pub fn for_yarn<S>(args: &'a [S]) -> Self
     where
         S: AsRef<OsStr>,
     {
@@ -81,20 +83,27 @@ impl<'a> CommandArg<'a> {
                 let mut common_args = vec![global, add];
                 common_args.extend(args.iter().filter(is_flag).map(AsRef::as_ref));
 
-                Ok(CommandArg::GlobalInstall(InstallArgs {
+                CommandArg::Global(GlobalCommand::Install(InstallArgs {
                     manager: PackageManager::Yarn,
                     common_args,
                     tools: positionals.collect(),
                 }))
             }
             (Some(global), Some(remove)) if global == "global" && remove == "remove" => {
-                let tools = positionals
-                    .map(|arg| Spec::try_from_str(&arg.to_string_lossy()))
-                    .collect::<Fallible<Vec<_>>>()?;
-
-                Ok(CommandArg::GlobalUninstall(UninstallArgs { tools }))
+                CommandArg::Global(GlobalCommand::Uninstall(UninstallArgs {
+                    tools: positionals.collect(),
+                }))
             }
-            _ => Ok(CommandArg::NotGlobal),
+            _ => CommandArg::NotGlobal,
+        }
+    }
+}
+
+impl<'a> GlobalCommand<'a> {
+    pub fn executor(self, default_platform: &PlatformSpec) -> Fallible<Executor> {
+        match self {
+            GlobalCommand::Install(cmd) => cmd.executor(default_platform),
+            GlobalCommand::Uninstall(cmd) => cmd.executor(),
         }
     }
 }
@@ -137,22 +146,23 @@ impl<'a> InstallArgs<'a> {
 }
 
 /// The list of tools passed to an uninstall command
-pub struct UninstallArgs {
-    tools: Vec<Spec>,
+pub struct UninstallArgs<'a> {
+    tools: Vec<&'a OsStr>,
 }
 
-impl UninstallArgs {
+impl<'a> UninstallArgs<'a> {
     /// Convert the tools into an executor for the uninstall command
     ///
     /// Since the packages are sandboxed, each needs to be uninstalled separately
-    pub fn executor(self) -> Executor {
+    pub fn executor(self) -> Fallible<Executor> {
         let mut executors = Vec::with_capacity(self.tools.len());
 
-        for tool in self.tools {
+        for tool_name in self.tools {
+            let tool = Spec::try_from_str(&tool_name.to_string_lossy())?;
             executors.push(UninstallCommand::new(tool).into());
         }
 
-        executors.into()
+        Ok(executors.into())
     }
 }
 
