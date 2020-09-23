@@ -1,3 +1,4 @@
+use std::env;
 use std::ffi::OsStr;
 use std::iter::once;
 
@@ -6,6 +7,8 @@ use crate::error::Fallible;
 use crate::platform::PlatformSpec;
 use crate::tool::package::PackageManager;
 use crate::tool::Spec;
+
+const UNSAFE_GLOBAL: &str = "VOLTA_UNSAFE_GLOBAL";
 
 pub enum CommandArg<'a> {
     Global(GlobalCommand<'a>),
@@ -18,6 +21,11 @@ impl<'a> CommandArg<'a> {
     where
         S: AsRef<OsStr>,
     {
+        // If VOLTA_UNSAFE_GLOBAL is set, then we always skip any global parsing
+        if env::var_os(UNSAFE_GLOBAL).is_some() {
+            return CommandArg::NotGlobal;
+        }
+
         // npm global installs will always have `-g` or `--global` somewhere in the argument list
         if !args
             .iter()
@@ -67,6 +75,11 @@ impl<'a> CommandArg<'a> {
     where
         S: AsRef<OsStr>,
     {
+        // If VOLTA_UNSAFE_GLOBAL is set, then we always skip any global parsing
+        if env::var_os(UNSAFE_GLOBAL).is_some() {
+            return CommandArg::NotGlobal;
+        }
+
         let mut positionals = args.iter().filter(is_positional).map(AsRef::as_ref);
 
         // Yarn globals must always start with `global <command>`
