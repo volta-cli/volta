@@ -158,6 +158,10 @@ pub enum ErrorKind {
         command: String,
     },
 
+    /// Thrown when determining the name of a newly-installed package fails
+    #[cfg(feature = "package-global")]
+    InstalledPackageNameError,
+
     InvalidHookCommand {
         command: String,
     },
@@ -799,6 +803,14 @@ Please include one of 'bin', 'prefix', or 'template'"
 
 Please ensure that the correct command is specified.",
                 command
+            ),
+            #[cfg(feature = "package-global")]
+            ErrorKind::InstalledPackageNameError => write!(
+                f,
+                "Could not determine the name of the package that was just installed.
+
+{}",
+                REPORT_BUG_CTA
             ),
             ErrorKind::InvalidHookCommand { command } => write!(
                 f,
@@ -1533,6 +1545,8 @@ impl ErrorKind {
             ErrorKind::HookMultipleFieldsSpecified => ExitCode::ConfigurationError,
             ErrorKind::HookNoFieldsSpecified => ExitCode::ConfigurationError,
             ErrorKind::HookPathError { .. } => ExitCode::ConfigurationError,
+            #[cfg(feature = "package-global")]
+            ErrorKind::InstalledPackageNameError => ExitCode::UnknownError,
             ErrorKind::InvalidHookCommand { .. } => ExitCode::ExecutableNotFound,
             ErrorKind::InvalidHookOutput { .. } => ExitCode::ExecutionFailure,
             ErrorKind::InvalidInvocation { .. } => ExitCode::InvalidArguments,

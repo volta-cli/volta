@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::path::Path;
@@ -209,6 +210,16 @@ impl PackageManifest {
 
         Ok(manifest)
     }
+}
+
+#[derive(serde::Deserialize)]
+/// Struct to read the `dependencies` out of Yarn's global manifest.
+///
+/// For global installs, yarn creates a `package.json` file in the `global-folder` and installs
+/// global packages as dependencies of that pseudo-package
+pub(super) struct GlobalYarnManifest {
+    #[serde(default)]
+    pub dependencies: HashMap<String, String>,
 }
 
 mod serde_bins {

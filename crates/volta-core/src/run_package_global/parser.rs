@@ -142,12 +142,12 @@ impl<'a> InstallArgs<'a> {
 
         for tool in self.tools {
             match Spec::try_from_str(&tool.to_string_lossy())? {
-                Spec::Package(name, _) => {
+                Spec::Package(_, _) => {
                     let platform = platform_spec.as_default();
                     // The args for an individual install command are the common args combined
                     // with the name of the tool.
                     let args = self.common_args.iter().chain(once(&tool));
-                    let command = PackageInstallCommand::new(name, args, platform, self.manager)?;
+                    let command = PackageInstallCommand::new(args, platform, self.manager)?;
                     executors.push(command.into());
                 }
                 internal => executors.push(InternalInstallCommand::new(internal).into()),
