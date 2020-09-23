@@ -83,7 +83,7 @@ impl TryFrom<V1> for V2 {
             .with_context(|| ErrorKind::DeleteFileError {
                 file: old_layout_file.to_owned(),
             })
-            .error_to_default_if(|err| err.is_io_not_found())?;
+            .accept_error_as_default_if(|err| err.is_not_found_error_kind())?;
 
         Ok(layout)
     }
@@ -99,7 +99,7 @@ fn clear_default_npm(platform_file: &Path) -> Fallible<()> {
             file: platform_file.to_owned(),
         }) {
             Err(error) => {
-                if error.is_io_not_found() {
+                if error.is_not_found_error_kind() {
                     return Ok(());
                 } else {
                     return Err(error);

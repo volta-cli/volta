@@ -92,13 +92,13 @@ impl TryFrom<V0> for V1 {
                 .with_context(|| ErrorKind::DeleteFileError {
                     file: old_volta_bin,
                 })
-                .error_to_default_if(|err| err.is_io_not_found())?;
+                .accept_error_as_default_if(|err| err.is_not_found_error_kind())?;
 
             let old_shim_bin = new_home.root().join("shim");
 
             remove_file(&old_shim_bin)
                 .with_context(|| ErrorKind::DeleteFileError { file: old_shim_bin })
-                .error_to_default_if(|err| err.is_io_not_found())?;
+                .accept_error_as_default_if(|err| err.is_not_found_error_kind())?;
         }
 
         V1::complete_migration(new_home)

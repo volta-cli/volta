@@ -168,7 +168,13 @@ impl DefaultBinary {
         };
 
         match BinConfig::from_file(bin_config_file) {
-            Err(error) => error.not_found_to_ok(None),
+            Err(error) => {
+                if error.is_not_found_error_kind() {
+                    Ok(None)
+                } else {
+                    Err(error)
+                }
+            }
             Ok(bin_config) => DefaultBinary::from_config(bin_config, session).map(Some),
         }
     }

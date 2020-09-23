@@ -8,8 +8,6 @@ mod reporter;
 pub use kind::ErrorKind;
 pub use reporter::report_error;
 
-use crate::fs::is_not_found_error_kind;
-
 pub type Fallible<T> = Result<T, VoltaError>;
 
 /// Error type for Volta
@@ -48,25 +46,18 @@ impl VoltaError {
         &self.inner.kind
     }
 
-    /// TODO:
-    /// 1. find a good name
-    /// 2. determine if it can be removed
-    pub fn not_found_to_ok<T>(self, to: T) -> Fallible<T> {
+    /// Verifies if the inner source is `io::ErrorKind::NotFound`
+    pub fn is_not_found_error_kind(&self) -> bool {
         self.source()
             .and_then(|source| source.downcast_ref::<io::Error>())
             .and_then(|io_err| {
                 if io_err.kind() == io::ErrorKind::NotFound {
-                    Some(to)
+                    Some(true)
                 } else {
                     None
                 }
             })
-            .ok_or(self)
-    }
-
-    /// TODO: find a good name
-    pub fn is_io_not_found(&self) -> bool {
-        is_not_found_error_kind(self)
+            .unwrap_or(false)
     }
 }
 
@@ -102,7 +93,25 @@ where
     T: Default,
     Self: Sized,
 {
-    fn error_to_default_if<F>(self, accept: F) -> Fallible<T>
+    /// Transforms an `Fallible<T>::Err(x)` into `Fallible<T>::Ok(T::default())`
+    ///
+    ///# Example
+    ///```
+    ///use std::io;
+    ///use io::Error;
+    ///use volta_core::error::{Fallible, VoltaError, ErrorKind};
+    ///use crate::volta_core::error::AcceptableErrorToDefault;
+    ///
+    ///let not_found = Error::new(io::ErrorKind::NotFound, "file not found");
+    ///let volta_error = VoltaError::from_source(not_found, ErrorKind::BinaryExecError);
+    ///let fallible: Fallible<i32> = Err(volta_error);
+    ///if let Ok(zero) = fallible.accept_error_as_default_if(|e| e.is_not_found_error_kind()) {
+    ///    assert_eq!(zero, 0);
+    ///} else {
+    ///    assert!(false, "accept_error_as_value_if is not equal to 10");
+    ///}
+    ///```
+    fn accept_error_as_default_if<F>(self, accept: F) -> Fallible<T>
     where
         F: FnOnce(&VoltaError) -> bool,
     {
@@ -110,7 +119,25 @@ where
     }
 }
 
+/// Extension to `Fallible<T>` to transform a `VoltaError` into a value
 impl<T> AcceptableErrorToValue<T> for Fallible<T> {
+    ///
+    ///# Example
+    ///```
+    ///use std::io;
+    ///use io::Error;
+    ///use volta_core::error::{Fallible, VoltaError, ErrorKind};
+    ///use crate::volta_core::error::AcceptableErrorToValue;
+    ///
+    ///let not_found = Error::new(io::ErrorKind::NotFound, "file not found");
+    ///let volta_error = VoltaError::from_source(not_found, ErrorKind::BinaryExecError);
+    ///let fallible: Fallible<i32> = Err(volta_error);
+    ///if let Ok(ten) = fallible.accept_error_as_value_if(|e| e.is_not_found_error_kind(), || 10) {
+    ///    assert_eq!(ten, 10);
+    ///} else {
+    ///    assert!(false, "accept_error_as_value_if is not equal to 10");
+    ///}
+    ///```
     fn accept_error_as_value_if<F1, F2>(self, accept_if: F1, as_value: F2) -> Fallible<T>
     where
         F1: FnOnce(&VoltaError) -> bool,

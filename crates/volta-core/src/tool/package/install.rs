@@ -184,7 +184,13 @@ fn read_bins(name: &str, version: &Version) -> Fallible<HashMap<String, String>>
         // some packages may install bins with the same name
         let bin_config_file = volta_home()?.default_tool_bin_config(&bin_name);
         match BinConfig::from_file(bin_config_file) {
-            Err(error) => return error.not_found_to_ok(bin_map),
+            Err(error) => {
+                if error.is_not_found_error_kind() {
+                    ()
+                } else {
+                    return Err(error);
+                }
+            }
             Ok(bin_config) => {
                 // if the bin was installed by the package that is currently being installed,
                 // that's ok - otherwise it's an error

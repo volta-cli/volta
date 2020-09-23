@@ -150,7 +150,7 @@ impl Project {
 
             return match BinConfig::from_file(config_path) {
                 Err(error) => {
-                    if error.is_io_not_found() {
+                    if error.is_not_found_error_kind() {
                         Ok(false)
                     } else {
                         return Err(error);

@@ -147,7 +147,7 @@ pub fn uninstall(name: &str) -> Fallible<()> {
 
     let package_found = match PackageConfig::from_file(&package_config_file) {
         Err(error) => {
-            if error.is_io_not_found() {
+            if error.is_not_found_error_kind() {
                 remove_orphan_binaries_if_any()?
             } else {
                 false
@@ -202,5 +202,5 @@ fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
     .with_context(|| ErrorKind::ReadBinConfigDirError {
         dir: bin_config_dir.to_owned(),
     })
-    .error_to_default_if(|err| err.is_io_not_found())
+    .accept_error_as_default_if(|err| err.is_not_found_error_kind())
 }

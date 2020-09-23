@@ -25,7 +25,7 @@ pub fn uninstall(name: &str) -> Fallible<()> {
 
     let package_found = match PackageConfig::from_file(&package_config_file) {
         Err(error) => {
-            if error.is_io_not_found() {
+            if error.is_not_found_error_kind() {
                 let package_binary_list = binaries_from_package(name)?;
                 if !package_binary_list.is_empty() {
                     for bin_name in package_binary_list {
@@ -91,5 +91,5 @@ fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
     .with_context(|| ErrorKind::ReadBinConfigDirError {
         dir: bin_config_dir.to_owned(),
     })
-    .error_to_default_if(|e| e.is_io_not_found())
+    .accept_error_as_default_if(|e| e.is_not_found_error_kind())
 }
