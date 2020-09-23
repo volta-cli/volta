@@ -68,6 +68,10 @@ impl Executor {
             Executor::InternalInstall(cmd) => cmd.execute(session),
             Executor::Uninstall(cmd) => cmd.execute(),
             Executor::Multiple(executors) => {
+                info!(
+                    "{} Volta is processing each package separately",
+                    note_prefix()
+                );
                 for exe in executors {
                     let status = exe.execute(session)?;
                     // If any of the sub-commands fail, then we should stop installing and return

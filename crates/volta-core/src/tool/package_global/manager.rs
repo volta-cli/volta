@@ -2,7 +2,9 @@ use std::path::PathBuf;
 use std::process::Command;
 
 /// The package manager used to install a given package
-#[derive(Copy, Clone, serde::Serialize, serde::Deserialize, PartialOrd, Ord, PartialEq, Eq)]
+#[derive(
+    Copy, Clone, serde::Serialize, serde::Deserialize, PartialOrd, Ord, PartialEq, Eq, Debug,
+)]
 pub enum PackageManager {
     Npm,
     Yarn,

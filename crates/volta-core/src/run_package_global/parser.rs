@@ -12,11 +12,6 @@ pub enum CommandArg<'a> {
     NotGlobal,
 }
 
-pub enum GlobalCommand<'a> {
-    Install(InstallArgs<'a>),
-    Uninstall(UninstallArgs<'a>),
-}
-
 impl<'a> CommandArg<'a> {
     /// Parse the given set of arguments to see if they correspond to an npm global command
     pub fn for_npm<S>(args: &'a [S]) -> Self
@@ -97,6 +92,11 @@ impl<'a> CommandArg<'a> {
             _ => CommandArg::NotGlobal,
         }
     }
+}
+
+pub enum GlobalCommand<'a> {
+    Install(InstallArgs<'a>),
+    Uninstall(UninstallArgs<'a>),
 }
 
 impl<'a> GlobalCommand<'a> {
@@ -181,4 +181,319 @@ where
     A: AsRef<OsStr>,
 {
     !is_flag(arg)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ffi::{OsStr, OsString};
+
+    fn arg_list<A, S>(args: A) -> Vec<OsString>
+    where
+        A: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        args.into_iter().map(|a| a.as_ref().to_owned()).collect()
+    }
+
+    mod npm {
+        use super::super::*;
+        use super::arg_list;
+
+        #[test]
+        fn handles_global_install() {
+            match CommandArg::for_npm(&arg_list(&["install", "--global", "typescript@3"])) {
+                CommandArg::Global(GlobalCommand::Install(install)) => {
+                    assert_eq!(install.manager, PackageManager::Npm);
+                    assert_eq!(install.common_args, vec!["install", "--global"]);
+                    assert_eq!(install.tools, vec!["typescript@3"]);
+                }
+                _ => panic!("Doesn't parse global install as a global"),
+            };
+        }
+
+        #[test]
+        fn handles_local_install() {
+            match CommandArg::for_npm(&arg_list(&["install", "--save-dev", "typescript"])) {
+                CommandArg::NotGlobal => (),
+                _ => panic!("Parses local install as global"),
+            };
+        }
+
+        #[test]
+        fn handles_global_uninstall() {
+            match CommandArg::for_npm(&arg_list(&["uninstall", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Uninstall(uninstall)) => {
+                    assert_eq!(uninstall.tools, vec!["typescript"]);
+                }
+                _ => panic!("Doesn't parse global uninstall as a global"),
+            };
+        }
+
+        #[test]
+        fn handles_local_uninstall() {
+            match CommandArg::for_npm(&arg_list(&["uninstall", "--save-dev", "typescript"])) {
+                CommandArg::NotGlobal => (),
+                _ => panic!("Parses local uninstall as global"),
+            };
+        }
+
+        #[test]
+        fn handles_multiple_install() {
+            match CommandArg::for_npm(&arg_list(&[
+                "install",
+                "--global",
+                "typescript@3",
+                "cowsay@1",
+                "ember-cli@2",
+            ])) {
+                CommandArg::Global(GlobalCommand::Install(install)) => {
+                    assert_eq!(install.manager, PackageManager::Npm);
+                    assert_eq!(install.common_args, vec!["install", "--global"]);
+                    assert_eq!(
+                        install.tools,
+                        vec!["typescript@3", "cowsay@1", "ember-cli@2"]
+                    );
+                }
+                _ => panic!("Doesn't parse global install as a global"),
+            };
+        }
+
+        #[test]
+        fn handles_multiple_uninstall() {
+            match CommandArg::for_npm(&arg_list(&[
+                "uninstall",
+                "--global",
+                "typescript",
+                "cowsay",
+                "ember-cli",
+            ])) {
+                CommandArg::Global(GlobalCommand::Uninstall(uninstall)) => {
+                    assert_eq!(uninstall.tools, vec!["typescript", "cowsay", "ember-cli"]);
+                }
+                _ => panic!("Doesn't parse global uninstall as a global"),
+            };
+        }
+
+        #[test]
+        fn handles_global_aliases() {
+            match CommandArg::for_npm(&arg_list(&["install", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Install(_)) => (),
+                _ => panic!("Doesn't parse long form (--global)"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["install", "-g", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Install(_)) => (),
+                _ => panic!("Doesn't parse short form (-g)"),
+            };
+        }
+
+        #[test]
+        fn handles_install_aliases() {
+            match CommandArg::for_npm(&arg_list(&["install", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Install(_)) => (),
+                _ => panic!("Doesn't parse long form (install)"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["i", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Install(_)) => (),
+                _ => panic!("Doesn't parse short form (i)"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["add", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Install(_)) => (),
+                _ => panic!("Doesn't parse 'add' alias"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["isntall", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Install(_)) => (),
+                _ => panic!("Doesn't parse misspelling (isntall)"),
+            };
+        }
+
+        #[test]
+        fn handles_uninstall_aliases() {
+            match CommandArg::for_npm(&arg_list(&["uninstall", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Uninstall(_)) => (),
+                _ => panic!("Doesn't parse long form (uninstall)"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["unlink", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Uninstall(_)) => (),
+                _ => panic!("Doesn't parse 'unlink'"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["remove", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Uninstall(_)) => (),
+                _ => panic!("Doesn't parse 'remove'"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["rm", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Uninstall(_)) => (),
+                _ => panic!("Doesn't parse short form (rm)"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["r", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Uninstall(_)) => (),
+                _ => panic!("Doesn't parse short form (r)"),
+            };
+        }
+
+        #[test]
+        fn processes_flags() {
+            match CommandArg::for_npm(&arg_list(&[
+                "--global",
+                "install",
+                "typescript",
+                "--no-audit",
+                "cowsay",
+                "--no-update-notifier",
+            ])) {
+                CommandArg::Global(GlobalCommand::Install(install)) => {
+                    // The command gets moved to the front of common_args
+                    assert_eq!(
+                        install.common_args,
+                        vec!["install", "--global", "--no-audit", "--no-update-notifier"]
+                    );
+                    assert_eq!(install.tools, vec!["typescript", "cowsay"]);
+                }
+                _ => panic!("Doesn't parse install with extra flags as a global"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&[
+                "uninstall",
+                "--silent",
+                "typescript",
+                "-g",
+                "cowsay",
+            ])) {
+                CommandArg::Global(GlobalCommand::Uninstall(uninstall)) => {
+                    assert_eq!(uninstall.tools, vec!["typescript", "cowsay"]);
+                }
+                _ => panic!("Doesn't parse uninstall with extra flags as a global"),
+            }
+        }
+    }
+
+    mod yarn {
+        use super::super::*;
+        use super::*;
+
+        #[test]
+        fn handles_global_add() {
+            match CommandArg::for_yarn(&arg_list(&["global", "add", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Install(install)) => {
+                    assert_eq!(install.manager, PackageManager::Yarn);
+                    assert_eq!(install.common_args, vec!["global", "add"]);
+                    assert_eq!(install.tools, vec!["typescript"]);
+                }
+                _ => panic!("Doesn't parse global add as a global"),
+            };
+        }
+
+        #[test]
+        fn handles_local_add() {
+            match CommandArg::for_yarn(&arg_list(&["add", "typescript"])) {
+                CommandArg::NotGlobal => (),
+                _ => panic!("Parses local add as a global"),
+            };
+
+            match CommandArg::for_yarn(&arg_list(&["add", "global"])) {
+                CommandArg::NotGlobal => (),
+                _ => panic!("Incorrectly handles bad order"),
+            };
+        }
+
+        #[test]
+        fn handles_global_remove() {
+            match CommandArg::for_yarn(&arg_list(&["global", "remove", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Uninstall(uninstall)) => {
+                    assert_eq!(uninstall.tools, vec!["typescript"]);
+                }
+                _ => panic!("Doesn't parse global remove as a global"),
+            };
+        }
+
+        #[test]
+        fn handles_local_remove() {
+            match CommandArg::for_yarn(&arg_list(&["remove", "typescript"])) {
+                CommandArg::NotGlobal => (),
+                _ => panic!("Parses local remove as a global"),
+            };
+
+            match CommandArg::for_yarn(&arg_list(&["remove", "global"])) {
+                CommandArg::NotGlobal => (),
+                _ => panic!("Incorrectly handles bad order"),
+            };
+        }
+
+        #[test]
+        fn handles_multiple_add() {
+            match CommandArg::for_yarn(&arg_list(&[
+                "global",
+                "add",
+                "typescript",
+                "cowsay",
+                "ember-cli",
+            ])) {
+                CommandArg::Global(GlobalCommand::Install(install)) => {
+                    assert_eq!(install.manager, PackageManager::Yarn);
+                    assert_eq!(install.common_args, vec!["global", "add"]);
+                    assert_eq!(install.tools, vec!["typescript", "cowsay", "ember-cli"]);
+                }
+                _ => panic!("Doesn't parse global add as a global"),
+            };
+        }
+
+        #[test]
+        fn handles_multiple_remove() {
+            match CommandArg::for_yarn(&arg_list(&[
+                "global",
+                "remove",
+                "typescript",
+                "cowsay",
+                "ember-cli",
+            ])) {
+                CommandArg::Global(GlobalCommand::Uninstall(uninstall)) => {
+                    assert_eq!(uninstall.tools, vec!["typescript", "cowsay", "ember-cli"]);
+                }
+                _ => panic!("Doesn't parse global remove as a global"),
+            };
+        }
+
+        #[test]
+        fn processes_flags() {
+            match CommandArg::for_yarn(&arg_list(&[
+                "global",
+                "--silent",
+                "add",
+                "ember-cli",
+                "--prefix=~/",
+                "typescript",
+            ])) {
+                CommandArg::Global(GlobalCommand::Install(install)) => {
+                    // The commands get moved to the front of common_args
+                    assert_eq!(
+                        install.common_args,
+                        vec!["global", "add", "--silent", "--prefix=~/"]
+                    );
+                    assert_eq!(install.tools, vec!["ember-cli", "typescript"]);
+                }
+                _ => panic!("Doesn't parse global add as a global"),
+            };
+
+            match CommandArg::for_yarn(&arg_list(&[
+                "global",
+                "--silent",
+                "remove",
+                "ember-cli",
+                "--prefix=~/",
+                "typescript",
+            ])) {
+                CommandArg::Global(GlobalCommand::Uninstall(uninstall)) => {
+                    assert_eq!(uninstall.tools, vec!["ember-cli", "typescript"]);
+                }
+                _ => panic!("Doesn't parse global add as a global"),
+            };
+        }
+    }
 }
