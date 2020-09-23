@@ -141,8 +141,11 @@ impl<'a> InstallArgs<'a> {
         let mut executors = Vec::with_capacity(self.tools.len());
 
         for tool in self.tools {
-            match Spec::try_from_str(&tool.to_string_lossy())? {
-                Spec::Package(_, _) => {
+            // External tool installs may be in a form that doesn't match a `Spec` (such as a git
+            // URL or path to a tarball). If parsing into a `Spec` fails, we assume that it's a
+            // 3rd-party Tool and attempt to install anyway.
+            match Spec::try_from_str(&tool.to_string_lossy()) {
+                Ok(Spec::Package(_, _)) | Err(_) => {
                     let platform = platform_spec.as_default();
                     // The args for an individual install command are the common args combined
                     // with the name of the tool.
@@ -150,7 +153,7 @@ impl<'a> InstallArgs<'a> {
                     let command = PackageInstallCommand::new(args, platform, self.manager)?;
                     executors.push(command.into());
                 }
-                internal => executors.push(InternalInstallCommand::new(internal).into()),
+                Ok(internal) => executors.push(InternalInstallCommand::new(internal).into()),
             }
         }
 
