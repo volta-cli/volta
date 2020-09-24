@@ -1,8 +1,9 @@
 use std::fs::File;
+use std::io;
 use std::path::Path;
 
 use super::manager::PackageManager;
-use crate::error::{Context, ErrorKind, Fallible};
+use crate::error::{Context, ErrorKind, Fallible, VoltaError};
 use crate::layout::volta_home;
 use crate::platform::PlatformSpec;
 use crate::version::{option_version_serde, version_serde};
@@ -38,6 +39,29 @@ impl PackageConfig {
             file: file.as_ref().to_owned(),
         })?;
         serde_json::from_reader(config).with_context(|| ErrorKind::ParsePackageConfigError)
+    }
+
+    pub fn from_file_if_exists<P>(file: P) -> Fallible<Option<Self>>
+    where
+        P: AsRef<Path>,
+    {
+        match File::open(&file) {
+            Err(error) => {
+                if error.kind() == io::ErrorKind::NotFound {
+                    Ok(None)
+                } else {
+                    Err(VoltaError::from_source(
+                        error,
+                        ErrorKind::ReadPackageConfigError {
+                            file: file.as_ref().to_owned(),
+                        },
+                    ))
+                }
+            }
+            Ok(config) => serde_json::from_reader(config)
+                .with_context(|| ErrorKind::ParsePackageConfigError)
+                .map(Some),
+        }
     }
 
     /// Write this `PackageConfig` into the appropriate config file
@@ -89,6 +113,29 @@ impl BinConfig {
             file: file.as_ref().to_owned(),
         })?;
         serde_json::from_reader(config).with_context(|| ErrorKind::ParseBinConfigError)
+    }
+
+    pub fn from_file_if_exists<P>(file: P) -> Fallible<Option<Self>>
+    where
+        P: AsRef<Path>,
+    {
+        match File::open(&file) {
+            Err(error) => {
+                if error.kind() == io::ErrorKind::NotFound {
+                    Ok(None)
+                } else {
+                    Err(VoltaError::from_source(
+                        error,
+                        ErrorKind::ReadBinConfigError {
+                            file: file.as_ref().to_owned(),
+                        },
+                    ))
+                }
+            }
+            Ok(config) => serde_json::from_reader(config)
+                .with_context(|| ErrorKind::ParseBinConfigError)
+                .map(|config| Some(config)),
+        }
     }
 
     /// Write this `BinConfig` to the appropriate config file

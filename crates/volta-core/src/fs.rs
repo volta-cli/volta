@@ -46,9 +46,9 @@ pub fn remove_file_if_exists<P: AsRef<Path>>(path: P) -> Fallible<()> {
 ///
 /// Handling the error is preferred over checking if a file exists before removing it, since
 /// that avoids a potential race condition between the check and the removal.
-fn ok_if_not_found(err: io::Error) -> io::Result<()> {
+pub fn ok_if_not_found<T: Default>(err: io::Error) -> io::Result<T> {
     match err.kind() {
-        io::ErrorKind::NotFound => Ok(()),
+        io::ErrorKind::NotFound => Ok(T::default()),
         _ => Err(err),
     }
 }

@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 
 use super::registry::PackageDetails;
 use super::{check_fetched, debug_already_fetched, info_fetched, FetchStatus, Tool};
-use crate::error::{AcceptableErrorToDefault, Context, ErrorKind, Fallible};
 use crate::fs::{dir_entry_match, remove_dir_if_exists, remove_file_if_exists};
 use crate::inventory::package_available;
 use crate::layout::volta_home;
@@ -11,6 +10,10 @@ use crate::session::Session;
 use crate::shim;
 use crate::style::{success_prefix, tool_version};
 use crate::sync::VoltaLock;
+use crate::{
+    error::{Context, ErrorKind, Fallible},
+    fs::ok_if_not_found,
+};
 use dunce::canonicalize;
 use log::{info, warn};
 use semver::Version;
@@ -145,15 +148,9 @@ pub fn uninstall(name: &str) -> Fallible<()> {
         }
     };
 
-    let package_found = match PackageConfig::from_file(&package_config_file) {
-        Err(error) => {
-            if error.is_not_found_error_kind() {
-                remove_orphan_binaries_if_any()?
-            } else {
-                false
-            }
-        }
-        Ok(package_config) => {
+    let package_found = match PackageConfig::from_file_if_exists(&package_config_file)? {
+        None => remove_orphan_binaries_if_any()?,
+        Some(package_config) => {
             for bin_name in package_config.bins {
                 remove_config_and_shim(&bin_name, name)?;
             }
@@ -192,15 +189,15 @@ fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
     let bin_config_dir = volta_home()?.default_bin_dir();
     dir_entry_match(&bin_config_dir, |entry| {
         let path = entry.path();
-        if let Ok(config) = BinConfig::from_file(path) {
+        if let Ok(Some(config)) = BinConfig::from_file_if_exists(path) {
             if config.package == package {
                 return Some(config.name);
             }
         };
         None
     })
+    .or_else(ok_if_not_found)
     .with_context(|| ErrorKind::ReadBinConfigDirError {
         dir: bin_config_dir.to_owned(),
     })
-    .accept_error_as_default_if(|err| err.is_not_found_error_kind())
 }

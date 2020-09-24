@@ -148,15 +148,9 @@ impl Project {
         if let Some(name) = bin_name.to_str() {
             let config_path = volta_home()?.default_tool_bin_config(name);
 
-            return match BinConfig::from_file(config_path) {
-                Err(error) => {
-                    if error.is_not_found_error_kind() {
-                        Ok(false)
-                    } else {
-                        return Err(error);
-                    }
-                }
-                Ok(config) => Ok(self.has_direct_dependency(&config.package)),
+            return match BinConfig::from_file_if_exists(config_path)? {
+                None => Ok(false),
+                Some(config) => Ok(self.has_direct_dependency(&config.package)),
             };
         }
         Ok(false)

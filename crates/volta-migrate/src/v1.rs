@@ -7,9 +7,9 @@ use std::path::PathBuf;
 use super::empty::Empty;
 use super::v0::V0;
 use log::debug;
-use volta_core::error::{AcceptableErrorToDefault, Context, ErrorKind, Fallible, VoltaError};
+use volta_core::error::{Context, ErrorKind, Fallible, VoltaError};
 #[cfg(unix)]
-use volta_core::fs::read_dir_eager;
+use volta_core::fs::{ok_if_not_found, read_dir_eager};
 use volta_layout::v1;
 
 /// Represents a V1 Volta Layout (used by Volta v0.7.0 - v0.7.2)
@@ -89,16 +89,16 @@ impl TryFrom<V0> for V1 {
             let old_volta_bin = new_home.root().join("volta");
 
             remove_file(&old_volta_bin)
+                .or_else(ok_if_not_found)
                 .with_context(|| ErrorKind::DeleteFileError {
                     file: old_volta_bin,
-                })
-                .accept_error_as_default_if(|err| err.is_not_found_error_kind())?;
+                })?;
 
             let old_shim_bin = new_home.root().join("shim");
 
             remove_file(&old_shim_bin)
-                .with_context(|| ErrorKind::DeleteFileError { file: old_shim_bin })
-                .accept_error_as_default_if(|err| err.is_not_found_error_kind())?;
+                .or_else(ok_if_not_found)
+                .with_context(|| ErrorKind::DeleteFileError { file: old_shim_bin })?;
         }
 
         V1::complete_migration(new_home)

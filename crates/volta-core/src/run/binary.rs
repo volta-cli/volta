@@ -166,16 +166,9 @@ impl DefaultBinary {
             Some(name) => volta_home()?.default_tool_bin_config(name),
             None => return Ok(None),
         };
-
-        match BinConfig::from_file(bin_config_file) {
-            Err(error) => {
-                if error.is_not_found_error_kind() {
-                    Ok(None)
-                } else {
-                    Err(error)
-                }
-            }
-            Ok(bin_config) => DefaultBinary::from_config(bin_config, session).map(Some),
+        match BinConfig::from_file_if_exists(bin_config_file)? {
+            None => Ok(None),
+            Some(bin_config) => DefaultBinary::from_config(bin_config, session).map(Some),
         }
     }
 }

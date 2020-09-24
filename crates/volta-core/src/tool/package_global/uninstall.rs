@@ -1,7 +1,6 @@
 use super::metadata::{BinConfig, PackageConfig};
-use crate::error::AcceptableErrorToDefault;
 use crate::error::{Context, ErrorKind, Fallible};
-use crate::fs::{dir_entry_match, remove_dir_if_exists, remove_file_if_exists};
+use crate::fs::{dir_entry_match, ok_if_not_found, remove_dir_if_exists, remove_file_if_exists};
 use crate::layout::volta_home;
 use crate::shim;
 use crate::style::success_prefix;
@@ -23,23 +22,19 @@ pub fn uninstall(name: &str) -> Fallible<()> {
     // If the package config file exists, use that to remove any installed bins and shims
     let package_config_file = home.default_package_config_file(name);
 
-    let package_found = match PackageConfig::from_file(&package_config_file) {
-        Err(error) => {
-            if error.is_not_found_error_kind() {
-                let package_binary_list = binaries_from_package(name)?;
-                if !package_binary_list.is_empty() {
-                    for bin_name in package_binary_list {
-                        remove_config_and_shim(&bin_name, name)?;
-                    }
-                    true
-                } else {
-                    false
+    let package_found = match PackageConfig::from_file_if_exists(&package_config_file)? {
+        None => {
+            let package_binary_list = binaries_from_package(name)?;
+            if !package_binary_list.is_empty() {
+                for bin_name in package_binary_list {
+                    remove_config_and_shim(&bin_name, name)?;
                 }
+                true
             } else {
-                return Err(error);
+                false
             }
         }
-        Ok(package_config) => {
+        Some(package_config) => {
             for bin_name in package_config.bins {
                 remove_config_and_shim(&bin_name, name)?;
             }
@@ -88,8 +83,8 @@ fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
         }
         None
     })
+    .or_else(ok_if_not_found)
     .with_context(|| ErrorKind::ReadBinConfigDirError {
         dir: bin_config_dir.to_owned(),
     })
-    .accept_error_as_default_if(|e| e.is_not_found_error_kind())
 }
