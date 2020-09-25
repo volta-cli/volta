@@ -4,7 +4,7 @@ use std::process::Command;
 
 use super::Tool;
 use crate::error::{Context, ErrorKind, Fallible};
-use crate::fs::{create_staging_dir, remove_dir_if_exists, rename};
+use crate::fs::{create_staging_dir, remove_dir_if_exists, rename, symlink_dir};
 use crate::layout::volta_home;
 use crate::platform::{Image, PlatformSpec};
 use crate::session::Session;
@@ -56,6 +56,7 @@ impl Package {
             configure::parse_manifest(&self.name, self.staging.path().to_owned(), manager)?;
 
         persist_install(&self.name, &self.version, self.staging.path())?;
+        link_package_to_shared_dir(&self.name, manager)?;
         configure::write_config_and_shims(&self.name, &manifest, image, manager)?;
 
         Ok(manifest)
@@ -84,12 +85,20 @@ impl Tool for Package {
 
         let bins = manifest.bin.join(", ");
 
-        info!(
-            "{} installed {} with executables: {}",
-            success_prefix(),
-            tool_version(manifest.name, manifest.version),
-            bins
-        );
+        if bins.is_empty() {
+            info!(
+                "{} installed {}",
+                success_prefix(),
+                tool_version(manifest.name, manifest.version)
+            );
+        } else {
+            info!(
+                "{} installed {} with executables: {}",
+                success_prefix(),
+                tool_version(manifest.name, manifest.version),
+                bins
+            );
+        }
 
         Ok(())
     }
@@ -133,6 +142,7 @@ impl DirectInstall {
             configure::parse_manifest(&name, self.staging.path().to_owned(), self.manager)?;
 
         persist_install(&name, &manifest.version, self.staging.path())?;
+        link_package_to_shared_dir(&name, self.manager)?;
         configure::write_config_and_shims(&name, &manifest, image, self.manager)?;
 
         Ok(())
@@ -155,8 +165,27 @@ where
     rename(staging_dir, &package_dir).with_context(|| ErrorKind::SetupToolImageError {
         tool: package_name.into(),
         version: package_version.to_string(),
-        dir: package_dir,
+        dir: package_dir.clone(),
     })?;
 
     Ok(())
+}
+
+fn link_package_to_shared_dir(package_name: &str, manager: PackageManager) -> Fallible<()> {
+    let home = volta_home()?;
+    let mut source = manager.source_dir(home.package_image_dir(package_name));
+    source.push(package_name);
+
+    let target = home.shared_lib_dir(package_name);
+
+    remove_dir_if_exists(&target)?;
+
+    // Handle scoped packages (@vue/cli), which have an extra directory for the scope
+    ensure_containing_dir_exists(&target).with_context(|| ErrorKind::ContainingDirError {
+        path: target.clone(),
+    })?;
+
+    symlink_dir(source, target).with_context(|| ErrorKind::CreateSharedLinkError {
+        name: package_name.into(),
+    })
 }

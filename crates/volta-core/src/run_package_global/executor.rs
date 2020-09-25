@@ -146,6 +146,15 @@ impl ToolCommand {
         self.command.envs(envs);
     }
 
+    /// Adds or updates a single environment variable that the command will use
+    pub fn env<K, V>(&mut self, key: K, value: V)
+    where
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>,
+    {
+        self.command.env(key, value);
+    }
+
     /// Updates the Platform for the command to include values from the command-line
     pub fn cli_platform(&mut self, cli: CliPlatform) {
         self.platform = match self.platform.take() {

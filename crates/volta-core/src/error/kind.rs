@@ -76,6 +76,12 @@ pub enum ErrorKind {
         file: PathBuf,
     },
 
+    /// Thrown when unable to create a link to the shared global library directory
+    #[cfg(feature = "package-global")]
+    CreateSharedLinkError {
+        name: String,
+    },
+
     /// Thrown when creating a temporary directory fails
     CreateTempDirError {
         in_dir: PathBuf,
@@ -661,6 +667,14 @@ Please ensure that you have the correct permissions.",
 
 {}",
                 file.display(), PERMISSIONS_CTA
+            ),
+            #[cfg(feature = "package-global")]
+            ErrorKind::CreateSharedLinkError { name } => write!(
+                f,
+                "Could not create shared environment for package '{}'
+
+{}",
+                name, PERMISSIONS_CTA
             ),
             ErrorKind::CreateTempDirError { in_dir } => write!(
                 f,
@@ -1525,6 +1539,8 @@ impl ErrorKind {
             ErrorKind::CouldNotStartMigration => ExitCode::EnvironmentError,
             ErrorKind::CreateDirError { .. } => ExitCode::FileSystemError,
             ErrorKind::CreateLayoutFileError { .. } => ExitCode::FileSystemError,
+            #[cfg(feature = "package-global")]
+            ErrorKind::CreateSharedLinkError { .. } => ExitCode::FileSystemError,
             ErrorKind::CreateTempDirError { .. } => ExitCode::FileSystemError,
             ErrorKind::CreateTempFileError { .. } => ExitCode::FileSystemError,
             ErrorKind::CurrentDirError => ExitCode::EnvironmentError,
