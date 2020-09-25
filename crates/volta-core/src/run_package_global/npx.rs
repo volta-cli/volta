@@ -1,7 +1,8 @@
+use std::env;
 use std::ffi::OsString;
 
 use super::executor::{Executor, ToolCommand, ToolKind};
-use super::{debug_active_image, debug_no_platform};
+use super::{debug_active_image, debug_no_platform, RECURSION_ENV_VAR};
 use crate::error::{ErrorKind, Fallible};
 use crate::platform::{Platform, System};
 use crate::session::Session;
@@ -15,7 +16,11 @@ lazy_static! {
 
 /// Build a `ToolCommand` for npx
 pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Executor> {
-    let platform = Platform::current(session)?;
+    // Don't re-evaluate the context if this is a recursive call
+    let platform = match env::var_os(RECURSION_ENV_VAR) {
+        Some(_) => None,
+        None => Platform::current(session)?,
+    };
 
     Ok(ToolCommand::new("npx", args, platform, ToolKind::Npx).into())
 }

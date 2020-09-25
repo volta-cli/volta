@@ -6,6 +6,7 @@ use std::os::unix::process::ExitStatusExt;
 use std::os::windows::process::ExitStatusExt;
 use std::process::{Command, ExitStatus};
 
+use super::RECURSION_ENV_VAR;
 use crate::command::create_command;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::platform::{CliPlatform, Platform, System};
@@ -179,6 +180,7 @@ impl ToolCommand {
             ToolKind::Bypass(command) => (System::path()?, ErrorKind::BypassError { command }),
         };
 
+        self.command.env(RECURSION_ENV_VAR, "1");
         self.command.env("PATH", path);
 
         pass_control_to_shim();
@@ -248,6 +250,7 @@ impl PackageInstallCommand {
         let image = self.platform.checkout(session)?;
         let path = image.path()?;
 
+        self.command.env(RECURSION_ENV_VAR, "1");
         self.command.env("PATH", path);
         self.installer.setup_command(&mut self.command);
 
