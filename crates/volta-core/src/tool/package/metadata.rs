@@ -294,9 +294,7 @@ impl BinConfig {
                     ))
                 }
             }
-            Ok(config_src) => RawBinConfig::from_json(config_src)?
-                .try_into()
-                .map(|config| Some(config)),
+            Ok(config_src) => RawBinConfig::from_json(config_src)?.try_into().map(Some),
         }
     }
 }

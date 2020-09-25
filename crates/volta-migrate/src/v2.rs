@@ -1,5 +1,6 @@
 use std::convert::TryFrom;
-use std::fs::{read_to_string, remove_file, write, File};
+use std::fs::{read_to_string, write, File};
+use std::io;
 use std::path::{Path, PathBuf};
 
 use super::empty::Empty;
@@ -7,14 +8,11 @@ use super::v1::V1;
 use log::debug;
 use semver::Version;
 use tempfile::tempdir_in;
-use volta_core::fs::{read_dir_eager, remove_dir_if_exists, rename};
+use volta_core::error::{Context, ErrorKind, Fallible, VoltaError};
+use volta_core::fs::{read_dir_eager, remove_dir_if_exists, remove_file_if_exists, rename};
 use volta_core::tool::load_default_npm_version;
 use volta_core::toolchain::serial::Platform;
 use volta_core::version::parse_version;
-use volta_core::{
-    error::{Context, ErrorKind, Fallible, VoltaError},
-    fs::ok_if_not_found,
-};
 use volta_layout::{v1, v2};
 
 /// Represents a V2 Volta Layout (used by Volta v0.7.3 and above)
@@ -82,11 +80,7 @@ impl TryFrom<V1> for V2 {
 
         // Remove the V1 layout file, since we're now on V2 (do this after writing the V2 so that we know the migration succeeded)
         let old_layout_file = old.home.layout_file();
-        remove_file(old_layout_file)
-            .or_else(ok_if_not_found)
-            .with_context(|| ErrorKind::DeleteFileError {
-                file: old_layout_file.to_owned(),
-            })?;
+        remove_file_if_exists(old_layout_file)?;
         Ok(layout)
     }
 }
@@ -96,11 +90,21 @@ impl TryFrom<V1> for V2 {
 /// This will ensure that we don't treat the default npm from a prior version of Volta as a "custom" npm that
 /// the user explicitly requested
 fn clear_default_npm(platform_file: &Path) -> Fallible<()> {
-    let platform_json = read_to_string(platform_file)
-        .or_else(ok_if_not_found)
-        .with_context(|| ErrorKind::ReadPlatformError {
-            file: platform_file.to_owned(),
-        })?;
+    let platform_json = match read_to_string(platform_file) {
+        Ok(json) => json,
+        Err(error) => {
+            if error.kind() == io::ErrorKind::NotFound {
+                return Ok(());
+            } else {
+                return Err(VoltaError::from_source(
+                    error,
+                    ErrorKind::ReadPlatformError {
+                        file: platform_file.to_path_buf(),
+                    },
+                ));
+            }
+        }
+    };
     let mut existing_platform = Platform::from_json(platform_json)?;
 
     if let Some(ref mut node_version) = &mut existing_platform.node {

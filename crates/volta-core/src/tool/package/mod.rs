@@ -3,17 +3,14 @@ use std::path::{Path, PathBuf};
 
 use super::registry::PackageDetails;
 use super::{check_fetched, debug_already_fetched, info_fetched, FetchStatus, Tool};
-use crate::fs::{dir_entry_match, remove_dir_if_exists, remove_file_if_exists};
+use crate::error::{Context, ErrorKind, Fallible};
+use crate::fs::{dir_entry_match, ok_if_not_found, remove_dir_if_exists, remove_file_if_exists};
 use crate::inventory::package_available;
 use crate::layout::volta_home;
 use crate::session::Session;
 use crate::shim;
 use crate::style::{success_prefix, tool_version};
 use crate::sync::VoltaLock;
-use crate::{
-    error::{Context, ErrorKind, Fallible},
-    fs::ok_if_not_found,
-};
 use dunce::canonicalize;
 use log::{info, warn};
 use semver::Version;
@@ -136,20 +133,18 @@ pub fn uninstall(name: &str) -> Fallible<()> {
     // if the package config file exists, use that to remove any installed bins and shims
     let package_config_file = home.default_package_config_file(name);
 
-    let remove_orphan_binaries_if_any = || -> Fallible<bool> {
-        let package_binary_list = binaries_from_package(name)?;
-        if !package_binary_list.is_empty() {
-            for bin_name in package_binary_list {
-                remove_config_and_shim(&bin_name, name)?;
-            }
-            Ok(true)
-        } else {
-            Ok(false)
-        }
-    };
-
     let package_found = match PackageConfig::from_file_if_exists(&package_config_file)? {
-        None => remove_orphan_binaries_if_any()?,
+        None => {
+            let package_binary_list = binaries_from_package(name)?;
+            if !package_binary_list.is_empty() {
+                for bin_name in package_binary_list {
+                    remove_config_and_shim(&bin_name, name)?;
+                }
+                true
+            } else {
+                false
+            }
+        }
         Some(package_config) => {
             for bin_name in package_config.bins {
                 remove_config_and_shim(&bin_name, name)?;
@@ -189,7 +184,7 @@ fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
     let bin_config_dir = volta_home()?.default_bin_dir();
     dir_entry_match(&bin_config_dir, |entry| {
         let path = entry.path();
-        if let Ok(Some(config)) = BinConfig::from_file_if_exists(path) {
+        if let Ok(config) = BinConfig::from_file(path) {
             if config.package == package {
                 return Some(config.name);
             }

@@ -134,7 +134,7 @@ impl BinConfig {
             }
             Ok(config) => serde_json::from_reader(config)
                 .with_context(|| ErrorKind::ParseBinConfigError)
-                .map(|config| Some(config)),
+                .map(Some),
         }
     }
 
