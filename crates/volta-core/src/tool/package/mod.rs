@@ -135,6 +135,7 @@ pub fn uninstall(name: &str) -> Fallible<()> {
 
     let package_found = match PackageConfig::from_file_if_exists(&package_config_file)? {
         None => {
+            // there is no package config - check for orphaned binaries
             let package_binary_list = binaries_from_package(name)?;
             if !package_binary_list.is_empty() {
                 for bin_name in package_binary_list {

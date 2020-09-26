@@ -140,7 +140,7 @@ fn npm_view_query(name: &str, version: &str, session: &mut Session) -> Fallible<
         debug!("[parsed package metadata (array)]\n{:?}", metadatas);
 
         // get latest version, making sure the array is not empty
-        let tags = match metadatas.iter().next() {
+        let tags = match metadatas.get(0) {
             Some(m) => m.dist_tags.clone(),
             None => {
                 return Err(ErrorKind::PackageNotFound {

@@ -183,21 +183,18 @@ fn read_bins(name: &str, version: &Version) -> Fallible<HashMap<String, String>>
         // check for conflicts with installed bins
         // some packages may install bins with the same name
         let bin_config_file = volta_home()?.default_tool_bin_config(&bin_name);
-        match BinConfig::from_file_if_exists(bin_config_file)? {
-            None => (),
-            Some(bin_config) => {
-                // if the bin was installed by the package that is currently being installed,
-                // that's ok - otherwise it's an error
-                if name != bin_config.package {
-                    return Err(ErrorKind::BinaryAlreadyInstalled {
-                        bin_name: bin_name.clone(),
-                        existing_package: bin_config.package,
-                        new_package: name.to_string(),
-                    }
-                    .into());
+        if let Some(bin_config) = BinConfig::from_file_if_exists(bin_config_file)? {
+            // if the bin was installed by the package that is currently being installed,
+            // that's ok - otherwise it's an error
+            if name != bin_config.package {
+                return Err(ErrorKind::BinaryAlreadyInstalled {
+                    bin_name: bin_name.clone(),
+                    existing_package: bin_config.package,
+                    new_package: name.to_string(),
                 }
+                .into());
             }
-        };
+        }
     }
 
     Ok(bin_map)
