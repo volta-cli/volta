@@ -166,12 +166,9 @@ impl DefaultBinary {
             Some(name) => volta_home()?.default_tool_bin_config(name),
             None => return Ok(None),
         };
-
-        if bin_config_file.exists() {
-            let bin_config = BinConfig::from_file(bin_config_file)?;
-            DefaultBinary::from_config(bin_config, session).map(Some)
-        } else {
-            Ok(None) // no config means the tool is not installed
+        match BinConfig::from_file_if_exists(bin_config_file)? {
+            None => Ok(None),
+            Some(bin_config) => DefaultBinary::from_config(bin_config, session).map(Some),
         }
     }
 }

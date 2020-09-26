@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use std::fs::{read_to_string, write};
+use std::io;
 use std::path::{Path, PathBuf};
 
 use super::super::registry::RawDistInfo;
@@ -199,6 +200,26 @@ impl PackageConfig {
             })?;
         RawPackageConfig::from_json(config_src)?.try_into()
     }
+
+    pub fn from_file_if_exists(file: &Path) -> Fallible<Option<Self>> {
+        match read_to_string(file) {
+            Err(error) => {
+                if error.kind() == io::ErrorKind::NotFound {
+                    Ok(None)
+                } else {
+                    Err(VoltaError::from_source(
+                        error,
+                        ErrorKind::ReadPackageConfigError {
+                            file: file.to_path_buf(),
+                        },
+                    ))
+                }
+            }
+            Ok(config_src) => RawPackageConfig::from_json(config_src)?
+                .try_into()
+                .map(Some),
+        }
+    }
 }
 
 impl From<PackageConfig> for RawPackageConfig {
@@ -259,6 +280,22 @@ impl BinConfig {
         let config_src =
             read_to_string(&file).with_context(|| ErrorKind::ReadBinConfigError { file })?;
         RawBinConfig::from_json(config_src)?.try_into()
+    }
+
+    pub fn from_file_if_exists(file: PathBuf) -> Fallible<Option<Self>> {
+        match read_to_string(&file) {
+            Err(error) => {
+                if error.kind() == io::ErrorKind::NotFound {
+                    Ok(None)
+                } else {
+                    Err(VoltaError::from_source(
+                        error,
+                        ErrorKind::ReadBinConfigError { file },
+                    ))
+                }
+            }
+            Ok(config_src) => RawBinConfig::from_json(config_src)?.try_into().map(Some),
+        }
     }
 }
 
