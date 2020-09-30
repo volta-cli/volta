@@ -1,25 +1,36 @@
 use std::ffi::OsString;
 
-use super::executor::{Executor, PackageInstallCommand, ToolCommand, ToolKind};
+use super::executor::{
+    Executor, InternalInstallCommand, PackageInstallCommand, ToolCommand, ToolKind,
+};
 use super::{debug_active_image, debug_no_platform, CommandArg};
 use crate::error::{ErrorKind, Fallible};
 use crate::platform::{Platform, Source, System};
 use crate::session::Session;
 use crate::tool::package::PackageManager;
+use crate::tool::Spec;
 
 /// Build an `Executor` for Yarn
 ///
-/// If the command is a global add _and_ we have a default platform available, then we will use
-/// the `volta install` logic to manage the install and create a shim for any binaries
+/// - If the command is a global package install _and_ we have a default platform available, then
+///   we will install the package into the Volta data directory and generate appropriate shims.
+/// - If the command is a global install of a Volta-managed tool (Node, npm, Yarn), then we will
+///   use Volta's internal install logic.
+/// - Otherwise, we allow npm to execute the command as usual
 pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Executor> {
-    if let CommandArg::GlobalAdd(package) = check_yarn_add(args) {
-        if let Some(default_platform) = session.default_platform()? {
-            let platform = default_platform.as_default();
-            let name = package.to_string_lossy().to_string();
-
-            let command = PackageInstallCommand::new(name, args, platform, PackageManager::Yarn)?;
-            return Ok(command.into());
+    match check_yarn_add(args) {
+        CommandArg::GlobalAdd(Spec::Package(name, _)) => {
+            if let Some(default_platform) = session.default_platform()? {
+                let platform = default_platform.as_default();
+                let command =
+                    PackageInstallCommand::new(name, args, platform, PackageManager::Yarn)?;
+                return Ok(command.into());
+            }
         }
+        CommandArg::GlobalAdd(tool) => {
+            return Ok(InternalInstallCommand::new(tool).into());
+        }
+        _ => {}
     }
 
     let platform = Platform::current(session)?;
@@ -61,7 +72,11 @@ fn validate_platform_yarn(platform: &Platform) -> Fallible<()> {
     }
 }
 
-fn check_yarn_add(args: &[OsString]) -> CommandArg<'_> {
+/// Using the provided arguments, check if the command is a valid global add
+///
+/// Note: We treat the case of `yarn global add <invalid package>` as _not_ a global add, to allow
+/// Yarn to show the appropriate error message.
+fn check_yarn_add(args: &[OsString]) -> CommandArg {
     // Yarn global installs must be of the form `yarn global add <package>`
     // However, they may have options intermixed, e.g. `yarn --verbose global add ember-cli`
     let mut filtered = args.iter().filter(|arg| match arg.to_str() {
@@ -71,7 +86,10 @@ fn check_yarn_add(args: &[OsString]) -> CommandArg<'_> {
 
     match (filtered.next(), filtered.next(), filtered.next()) {
         (Some(global), Some(add), Some(package)) if global == "global" && add == "add" => {
-            CommandArg::GlobalAdd(package.as_os_str())
+            match Spec::try_from_str(&package.to_string_lossy()) {
+                Ok(tool) => CommandArg::GlobalAdd(tool),
+                Err(_) => CommandArg::NotGlobalAdd,
+            }
         }
         _ => CommandArg::NotGlobalAdd,
     }

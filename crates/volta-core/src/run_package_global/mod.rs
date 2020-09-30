@@ -7,6 +7,7 @@ use std::process::ExitStatus;
 use crate::error::{ErrorKind, Fallible};
 use crate::platform::{CliPlatform, Image, Sourced};
 use crate::session::Session;
+use crate::tool;
 use log::debug;
 use semver::Version;
 
@@ -128,9 +129,9 @@ fn format_tool_version(version: &Sourced<Version>) -> String {
 }
 
 /// Distinguish global `add` commands in npm or yarn from all others
-enum CommandArg<'a> {
+enum CommandArg {
     /// The command is a *global* add command.
-    GlobalAdd(&'a OsStr),
+    GlobalAdd(tool::Spec),
     /// The command is *not* a global add
     NotGlobalAdd,
 }
