@@ -613,7 +613,6 @@ impl Sandbox {
     /// Arguments can be separated by spaces.
     /// Example:
     ///     assert_that(p.npm("install ember-cli"), execs());
-    #[cfg(not(feature = "package-global"))]
     pub fn npm(&self, cmd: &str) -> ProcessBuilder {
         let mut p = self.process(shim_file("npm"));
         split_and_add_args(&mut p, cmd);
