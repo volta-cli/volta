@@ -274,6 +274,7 @@ impl Platform {
     }
 
     /// Returns the platform created by merging a `CliPartialPlatform` with the currently active platform
+    #[cfg(not(feature = "package-global"))]
     pub fn with_cli(cli: CliPlatform, session: &mut Session) -> Fallible<Option<Self>> {
         match Self::current(session)? {
             Some(current) => Ok(Some(cli.merge(current))),

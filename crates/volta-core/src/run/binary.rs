@@ -6,11 +6,7 @@ use crate::error::{ErrorKind, Fallible};
 use crate::layout::volta_home;
 use crate::platform::{CliPlatform, Platform, Sourced};
 use crate::session::{ActivityKind, Session};
-#[cfg(not(feature = "package-global"))]
 use crate::tool::bin_full_path;
-#[cfg(feature = "package-global")]
-use crate::tool::package::BinConfig;
-#[cfg(not(feature = "package-global"))]
 use crate::tool::{BinConfig, BinLoader};
 use log::debug;
 
@@ -65,10 +61,6 @@ pub(crate) fn command(
 
         let path = image.path()?;
 
-        #[cfg(feature = "package-global")]
-        let cmd = ToolCommand::direct(default_tool.bin_path.as_ref(), &path);
-
-        #[cfg(not(feature = "package-global"))]
         let cmd = match default_tool.loader {
             Some(loader) => {
                 let mut command = ToolCommand::direct(loader.command.as_ref(), &path);
@@ -103,35 +95,10 @@ pub(crate) fn command(
 pub struct DefaultBinary {
     pub bin_path: PathBuf,
     pub platform: Platform,
-    #[cfg(not(feature = "package-global"))]
     pub loader: Option<BinLoader>,
 }
 
 impl DefaultBinary {
-    #[cfg(feature = "package-global")]
-    pub fn from_config(bin_config: BinConfig, session: &mut Session) -> Fallible<Self> {
-        let package_dir = volta_home()?.package_image_dir(&bin_config.package);
-        let mut bin_path = bin_config.manager.binary_dir(package_dir);
-        bin_path.push(&bin_config.name);
-
-        // If the user does not have yarn set in the platform for this binary, use the default
-        // This is necessary because some tools (e.g. ember-cli with the `--yarn` option) invoke `yarn`
-        let yarn = match bin_config.platform.yarn {
-            Some(yarn) => Some(yarn),
-            None => session
-                .default_platform()?
-                .and_then(|ref plat| plat.yarn.clone()),
-        };
-        let platform = Platform {
-            node: Sourced::with_binary(bin_config.platform.node),
-            npm: bin_config.platform.npm.map(Sourced::with_binary),
-            yarn: yarn.map(Sourced::with_binary),
-        };
-
-        Ok(DefaultBinary { bin_path, platform })
-    }
-
-    #[cfg(not(feature = "package-global"))]
     pub fn from_config(bin_config: BinConfig, session: &mut Session) -> Fallible<Self> {
         let bin_path = bin_full_path(
             &bin_config.package,
