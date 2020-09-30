@@ -9,7 +9,7 @@ use crate::tool::package::PackageManager;
 
 /// Build an `Executor` for Yarn
 ///
-/// If the ocmmand is a global add _and_ we have a default platform available, then we will use
+/// If the command is a global add _and_ we have a default platform available, then we will use
 /// the `volta install` logic to manage the install and create a shim for any binaries
 pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Executor> {
     if let CommandArg::GlobalAdd(package) = check_yarn_add(args) {

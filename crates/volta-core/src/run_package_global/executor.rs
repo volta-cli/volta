@@ -136,10 +136,7 @@ pub struct PackageInstallCommand {
     /// The installer that modifies the command as necessary and provides the completion method
     installer: DirectInstall,
     /// The platform to use when running the command.
-    ///
-    /// Note: This will always be set to `Some`, it being an `Option` is an implementation detail
-    /// to allow the `cli_platform` method to move the Platform out when merging with CliPlatform
-    platform: Option<Platform>,
+    platform: Platform,
 }
 
 impl PackageInstallCommand {
@@ -164,7 +161,7 @@ impl PackageInstallCommand {
         Ok(PackageInstallCommand {
             command,
             installer,
-            platform: Some(platform),
+            platform,
         })
     }
 
@@ -180,17 +177,13 @@ impl PackageInstallCommand {
 
     /// Updates the Platform for the command to include values from the command-line
     pub fn cli_platform(&mut self, cli: CliPlatform) {
-        // Invariant: Platform is always set, except during the execution of `CliPlatform::merge`
-        // `CliPlatform::merge` _can't_ call methods on this object, unwrapping is safe
-        self.platform = Some(cli.merge(self.platform.take().unwrap()));
+        self.platform = cli.merge(self.platform.clone());
     }
 
     /// Runs the install command, applying the necessary modifications to install into the Volta
     /// data directory
     pub fn execute(mut self, session: &mut Session) -> Fallible<ExitStatus> {
-        // Invariant: Platform is always set except during the execution of `cli_platform`
-        // Since that function will not call this one, it is safe to unwrap.
-        let image = self.platform.unwrap().checkout(session)?;
+        let image = self.platform.checkout(session)?;
         let path = image.path()?;
 
         self.command.env("PATH", path);
