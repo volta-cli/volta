@@ -149,17 +149,19 @@ impl DefaultBinary {
         Ok(DefaultBinary { bin_path, platform })
     }
 
+    /// Load information about a default binary by name, if available
+    ///
+    /// A `None` response here means that the tool information couldn't be found. Either the tool
+    /// name is not a valid UTF-8 string, or the tool config doesn't exist.
     pub fn from_name(tool_name: &OsStr, session: &mut Session) -> Fallible<Option<Self>> {
         let bin_config_file = match tool_name.to_str() {
             Some(name) => volta_home()?.default_tool_bin_config(name),
             None => return Ok(None),
         };
 
-        if bin_config_file.exists() {
-            let bin_config = BinConfig::from_file(bin_config_file)?;
-            DefaultBinary::from_config(bin_config, session).map(Some)
-        } else {
-            Ok(None) // no config means the tool is not installed
+        match BinConfig::from_file_if_exists(bin_config_file)? {
+            Some(config) => DefaultBinary::from_config(config, session).map(Some),
+            None => Ok(None),
         }
     }
 }
