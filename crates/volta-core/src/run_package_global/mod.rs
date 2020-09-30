@@ -25,7 +25,7 @@ pub fn execute_shim(session: &mut Session) -> Fallible<ExitStatus> {
     let exe = get_tool_name(&mut native_args)?;
     let args: Vec<_> = native_args.collect();
 
-    get_command(&exe, &args, session)?.execute(session)
+    get_executor(&exe, &args, session)?.execute(session)
 }
 
 /// Execute a tool with the provided arguments
@@ -41,7 +41,7 @@ where
     K: AsRef<OsStr>,
     V: AsRef<OsStr>,
 {
-    let mut runner = get_command(exe, args, session)?;
+    let mut runner = get_executor(exe, args, session)?;
     runner.cli_platform(cli);
     runner.envs(envs);
 
@@ -49,18 +49,19 @@ where
 }
 
 /// Get the appropriate Tool command, based on the requested executable and arguments
-fn get_command(
+fn get_executor(
     exe: &OsStr,
     args: &[OsString],
     session: &mut Session,
-) -> Fallible<executor::ToolCommand> {
+) -> Fallible<executor::Executor> {
     if env::var_os(VOLTA_BYPASS).is_some() {
         Ok(executor::ToolCommand::new(
             exe,
             args,
             None,
             executor::ToolKind::Bypass(exe.to_string_lossy().to_string()),
-        ))
+        )
+        .into())
     } else {
         match exe.to_str() {
             Some("volta-shim") => Err(ErrorKind::RunShimDirectly.into()),
@@ -124,4 +125,12 @@ fn debug_active_image(image: &Image) {
 
 fn format_tool_version(version: &Sourced<Version>) -> String {
     format!("{} from {} configuration", version.value, version.source)
+}
+
+/// Distinguish global `add` commands in npm or yarn from all others
+enum CommandArg<'a> {
+    /// The command is a *global* add command.
+    GlobalAdd(&'a OsStr),
+    /// The command is *not* a global add
+    NotGlobalAdd,
 }

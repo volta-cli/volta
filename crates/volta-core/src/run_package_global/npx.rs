@@ -1,6 +1,6 @@
 use std::ffi::OsString;
 
-use super::executor::{ToolCommand, ToolKind};
+use super::executor::{Executor, ToolCommand, ToolKind};
 use super::{debug_active_image, debug_no_platform};
 use crate::error::{ErrorKind, Fallible};
 use crate::platform::{Platform, System};
@@ -14,10 +14,10 @@ lazy_static! {
 }
 
 /// Build a `ToolCommand` for npx
-pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<ToolCommand> {
+pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Executor> {
     let platform = Platform::current(session)?;
 
-    Ok(ToolCommand::new("npx", args, platform, ToolKind::Npx))
+    Ok(ToolCommand::new("npx", args, platform, ToolKind::Npx).into())
 }
 
 /// Determine the execution context (PATH and failure error message) for npx

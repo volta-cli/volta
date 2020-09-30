@@ -226,6 +226,7 @@ impl From<CliPlatform> for Option<Platform> {
 }
 
 /// Represents a real Platform, with Versions pulled from one or more `PlatformSpec`s
+#[derive(Clone)]
 pub struct Platform {
     pub node: Sourced<Version>,
     pub npm: Option<Sourced<Version>>,

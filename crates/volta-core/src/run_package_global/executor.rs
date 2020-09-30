@@ -6,6 +6,40 @@ use crate::error::{Context, ErrorKind, Fallible};
 use crate::platform::{CliPlatform, Platform, System};
 use crate::session::Session;
 use crate::signal::pass_control_to_shim;
+use crate::tool::package::{DirectInstall, PackageManager};
+
+pub enum Executor {
+    Tool(ToolCommand),
+    PackageInstall(PackageInstallCommand),
+}
+
+impl Executor {
+    pub fn envs<E, K, V>(&mut self, envs: E)
+    where
+        E: IntoIterator<Item = (K, V)>,
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>,
+    {
+        match self {
+            Executor::Tool(cmd) => cmd.envs(envs),
+            Executor::PackageInstall(cmd) => cmd.envs(envs),
+        }
+    }
+
+    pub fn cli_platform(&mut self, cli: CliPlatform) {
+        match self {
+            Executor::Tool(cmd) => cmd.cli_platform(cli),
+            Executor::PackageInstall(cmd) => cmd.cli_platform(cli),
+        }
+    }
+
+    pub fn execute(self, session: &mut Session) -> Fallible<ExitStatus> {
+        match self {
+            Executor::Tool(cmd) => cmd.execute(session),
+            Executor::PackageInstall(cmd) => cmd.execute(session),
+        }
+    }
+}
 
 /// Process builder for launching a Volta-managed tool
 ///
@@ -83,5 +117,93 @@ impl ToolCommand {
 
         pass_control_to_shim();
         self.command.status().with_context(|| on_failure)
+    }
+}
+
+impl From<ToolCommand> for Executor {
+    fn from(cmd: ToolCommand) -> Self {
+        Executor::Tool(cmd)
+    }
+}
+
+/// Process builder for launching a package install command (e.g. `npm install --global`)
+///
+/// This will use a `DirectInstall` instance to modify the command before running to point it to
+/// the Volta directory. It will also complete the install, writing config files and shims
+pub struct PackageInstallCommand {
+    /// The command that will ultimately be executed
+    command: Command,
+    /// The installer that modifies the command as necessary and provides the completion method
+    installer: DirectInstall,
+    /// The platform to use when running the command.
+    platform: Platform,
+}
+
+impl PackageInstallCommand {
+    pub fn new<A, S>(
+        name: String,
+        args: A,
+        platform: Platform,
+        manager: PackageManager,
+    ) -> Fallible<Self>
+    where
+        A: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        let installer = DirectInstall::new(name, manager)?;
+
+        let mut command = match manager {
+            PackageManager::Npm => create_command("npm"),
+            PackageManager::Yarn => create_command("yarn"),
+        };
+        command.args(args);
+
+        Ok(PackageInstallCommand {
+            command,
+            installer,
+            platform,
+        })
+    }
+
+    /// Adds or updates environment variables that the command will use
+    pub fn envs<E, K, V>(&mut self, envs: E)
+    where
+        E: IntoIterator<Item = (K, V)>,
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>,
+    {
+        self.command.envs(envs);
+    }
+
+    /// Updates the Platform for the command to include values from the command-line
+    pub fn cli_platform(&mut self, cli: CliPlatform) {
+        self.platform = cli.merge(self.platform.clone());
+    }
+
+    /// Runs the install command, applying the necessary modifications to install into the Volta
+    /// data directory
+    pub fn execute(mut self, session: &mut Session) -> Fallible<ExitStatus> {
+        let image = self.platform.checkout(session)?;
+        let path = image.path()?;
+
+        self.command.env("PATH", path);
+        self.installer.setup_command(&mut self.command);
+
+        let status = self
+            .command
+            .status()
+            .with_context(|| ErrorKind::BinaryExecError)?;
+
+        if status.success() {
+            self.installer.complete_install(&image)?;
+        }
+
+        Ok(status)
+    }
+}
+
+impl From<PackageInstallCommand> for Executor {
+    fn from(cmd: PackageInstallCommand) -> Self {
+        Executor::PackageInstall(cmd)
     }
 }
