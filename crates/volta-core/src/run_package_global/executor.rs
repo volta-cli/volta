@@ -19,6 +19,7 @@ pub enum Executor {
     Tool(Box<ToolCommand>),
     PackageInstall(Box<PackageInstallCommand>),
     InternalInstall(Box<InternalInstallCommand>),
+    Uninstall(Box<UninstallCommand>),
 }
 
 impl Executor {
@@ -33,6 +34,8 @@ impl Executor {
             Executor::PackageInstall(cmd) => cmd.envs(envs),
             // Internal installs use Volta's logic and don't rely on the environment variables
             Executor::InternalInstall(_) => {}
+            // Uninstalls use Volta's logic and don't rely on environment variables
+            Executor::Uninstall(_) => {}
         }
     }
 
@@ -42,6 +45,8 @@ impl Executor {
             Executor::PackageInstall(cmd) => cmd.cli_platform(cli),
             // Internal installs use Volta's logic and don't rely on the Node platform
             Executor::InternalInstall(_) => {}
+            // Uninstall use Volta's logic and don't rely on the Node platform
+            Executor::Uninstall(_) => {}
         }
     }
 
@@ -50,6 +55,7 @@ impl Executor {
             Executor::Tool(cmd) => cmd.execute(session),
             Executor::PackageInstall(cmd) => cmd.execute(session),
             Executor::InternalInstall(cmd) => cmd.execute(session),
+            Executor::Uninstall(cmd) => cmd.execute(),
         }
     }
 }
@@ -240,12 +246,7 @@ impl InternalInstallCommand {
         info!(
             "{} using Volta to install {}",
             note_prefix(),
-            match &self.tool {
-                Spec::Node(_) => "Node",
-                Spec::Npm(_) => "npm",
-                Spec::Yarn(_) => "Yarn",
-                Spec::Package(name, _) => &name,
-            }
+            self.tool.name()
         );
 
         self.tool.resolve(session)?.install(session)?;
@@ -257,5 +258,38 @@ impl InternalInstallCommand {
 impl From<InternalInstallCommand> for Executor {
     fn from(cmd: InternalInstallCommand) -> Self {
         Executor::InternalInstall(Box::new(cmd))
+    }
+}
+
+/// Executor for running a tool uninstall command.
+///
+/// This will use the `volta uninstall` logic to correctly ensure that the package is fully
+/// uninstalled
+pub struct UninstallCommand {
+    tool: Spec,
+}
+
+impl UninstallCommand {
+    pub fn new(tool: Spec) -> Self {
+        UninstallCommand { tool }
+    }
+
+    /// Runs the uninstall with Volta's internal uninstall logic
+    fn execute(self) -> Fallible<ExitStatus> {
+        info!(
+            "{} using Volta to uninstall {}",
+            note_prefix(),
+            self.tool.name()
+        );
+
+        self.tool.uninstall()?;
+
+        Ok(ExitStatus::from_raw(0))
+    }
+}
+
+impl From<UninstallCommand> for Executor {
+    fn from(cmd: UninstallCommand) -> Self {
+        Executor::Uninstall(Box::new(cmd))
     }
 }

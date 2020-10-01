@@ -2,6 +2,7 @@ use std::ffi::OsString;
 
 use super::executor::{
     Executor, InternalInstallCommand, PackageInstallCommand, ToolCommand, ToolKind,
+    UninstallCommand,
 };
 use super::{debug_active_image, debug_no_platform, CommandArg};
 use crate::error::{ErrorKind, Fallible};
@@ -29,6 +30,9 @@ pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Exec
         }
         CommandArg::GlobalAdd(tool) => {
             return Ok(InternalInstallCommand::new(tool).into());
+        }
+        CommandArg::GlobalRemove(tool) => {
+            return Ok(UninstallCommand::new(tool).into());
         }
         _ => {}
     }
@@ -72,9 +76,9 @@ fn validate_platform_yarn(platform: &Platform) -> Fallible<()> {
     }
 }
 
-/// Using the provided arguments, check if the command is a valid global add
+/// Using the provided arguments, check if the command is a valid global add or remove
 ///
-/// Note: We treat the case of `yarn global add <invalid package>` as _not_ a global add, to allow
+/// Note: We treat the case of an invalid package name as _not_ a global add, to allow
 /// Yarn to show the appropriate error message.
 fn check_yarn_add(args: &[OsString]) -> CommandArg {
     // Yarn global installs must be of the form `yarn global add <package>`
@@ -88,10 +92,16 @@ fn check_yarn_add(args: &[OsString]) -> CommandArg {
         (Some(global), Some(add), Some(package)) if global == "global" && add == "add" => {
             match Spec::try_from_str(&package.to_string_lossy()) {
                 Ok(tool) => CommandArg::GlobalAdd(tool),
-                Err(_) => CommandArg::NotGlobalAdd,
+                Err(_) => CommandArg::NotGlobal,
             }
         }
-        _ => CommandArg::NotGlobalAdd,
+        (Some(global), Some(remove), Some(package)) if global == "global" && remove == "remove" => {
+            match Spec::try_from_str(&package.to_string_lossy()) {
+                Ok(tool) => CommandArg::GlobalRemove(tool),
+                Err(_) => CommandArg::NotGlobal,
+            }
+        }
+        _ => CommandArg::NotGlobal,
     }
 }
 
@@ -118,7 +128,20 @@ mod tests {
         };
 
         match check_yarn_add(&arg_list(&["add", "global", "typescript"])) {
-            CommandArg::NotGlobalAdd => (),
+            CommandArg::NotGlobal => (),
+            _ => panic!("Doesn't handle wrong order"),
+        };
+    }
+
+    #[test]
+    fn handles_global_removes() {
+        match check_yarn_add(&arg_list(&["global", "remove", "typescript"])) {
+            CommandArg::GlobalRemove(_) => (),
+            _ => panic!("Doesn't handle global remove"),
+        };
+
+        match check_yarn_add(&arg_list(&["remove", "global", "typescript"])) {
+            CommandArg::NotGlobal => (),
             _ => panic!("Doesn't handle wrong order"),
         };
     }
@@ -141,8 +164,13 @@ mod tests {
     #[test]
     fn treats_invalid_package_as_not_global() {
         match check_yarn_add(&arg_list(&["global", "add", "//invalid//"])) {
-            CommandArg::NotGlobalAdd => (),
-            _ => panic!("Doesn't handle invalid packages"),
+            CommandArg::NotGlobal => (),
+            _ => panic!("Doesn't handle invalid packages (add)"),
+        };
+
+        match check_yarn_add(&arg_list(&["global", "remove", "//invalid//"])) {
+            CommandArg::NotGlobal => (),
+            _ => panic!("Doesn't handle invalid packages (remove)"),
         };
     }
 }

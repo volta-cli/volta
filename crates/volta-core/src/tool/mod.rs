@@ -129,6 +129,17 @@ impl Spec {
             Spec::Package(name, _) => package::uninstall(&name),
         }
     }
+
+    /// The name of the tool, without the version, used for messaging
+    #[cfg(feature = "package-global")]
+    pub fn name(&self) -> &str {
+        match self {
+            Spec::Node(_) => "Node",
+            Spec::Npm(_) => "npm",
+            Spec::Yarn(_) => "Yarn",
+            Spec::Package(name, _) => &name,
+        }
+    }
 }
 
 impl Display for Spec {
