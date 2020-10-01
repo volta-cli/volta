@@ -165,7 +165,7 @@ where
     rename(staging_dir, &package_dir).with_context(|| ErrorKind::SetupToolImageError {
         tool: package_name.into(),
         version: package_version.to_string(),
-        dir: package_dir.clone(),
+        dir: package_dir,
     })?;
 
     Ok(())
