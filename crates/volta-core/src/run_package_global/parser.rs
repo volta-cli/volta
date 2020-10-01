@@ -100,9 +100,9 @@ pub enum GlobalCommand<'a> {
 }
 
 impl<'a> GlobalCommand<'a> {
-    pub fn executor(self, default_platform: &PlatformSpec) -> Fallible<Executor> {
+    pub fn executor(self, platform: &PlatformSpec) -> Fallible<Executor> {
         match self {
-            GlobalCommand::Install(cmd) => cmd.executor(default_platform),
+            GlobalCommand::Install(cmd) => cmd.executor(platform),
             GlobalCommand::Uninstall(cmd) => cmd.executor(),
         }
     }
@@ -124,13 +124,13 @@ impl<'a> InstallArgs<'a> {
     /// If there are multiple packages specified to install, then they will be broken out into
     /// individual commands and run separately. That allows us to keep Volta's sandboxing for each
     /// package while still supporting the ability to install multiple packages at once.
-    pub fn executor(self, default_platform: &PlatformSpec) -> Fallible<Executor> {
+    pub fn executor(self, platform_spec: &PlatformSpec) -> Fallible<Executor> {
         let mut executors = Vec::with_capacity(self.tools.len());
 
         for tool in self.tools {
             match Spec::try_from_str(&tool.to_string_lossy())? {
                 Spec::Package(name, _) => {
-                    let platform = default_platform.as_default();
+                    let platform = platform_spec.as_default();
                     // The args for an individual install command are the common args combined
                     // with the name of the tool.
                     let args = self.common_args.iter().chain(once(&tool));
