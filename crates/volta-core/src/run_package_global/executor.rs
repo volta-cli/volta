@@ -246,7 +246,7 @@ impl InternalInstallCommand {
         info!(
             "{} using Volta to install {}",
             note_prefix(),
-            tool_name(&self.tool)
+            self.tool.name()
         );
 
         self.tool.resolve(session)?.install(session)?;
@@ -279,7 +279,7 @@ impl UninstallCommand {
         info!(
             "{} using Volta to uninstall {}",
             note_prefix(),
-            tool_name(&self.tool)
+            self.tool.name()
         );
 
         self.tool.uninstall()?;
@@ -291,14 +291,5 @@ impl UninstallCommand {
 impl From<UninstallCommand> for Executor {
     fn from(cmd: UninstallCommand) -> Self {
         Executor::Uninstall(Box::new(cmd))
-    }
-}
-
-fn tool_name(tool: &Spec) -> &str {
-    match tool {
-        Spec::Node(_) => "Node",
-        Spec::Npm(_) => "npm",
-        Spec::Yarn(_) => "Yarn",
-        Spec::Package(name, _) => &name,
     }
 }
