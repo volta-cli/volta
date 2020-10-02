@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::env;
 use std::env::ArgsOs;
 use std::ffi::{OsStr, OsString};
@@ -7,7 +8,6 @@ use std::process::ExitStatus;
 use crate::error::{ErrorKind, Fallible};
 use crate::platform::{CliPlatform, Image, Sourced};
 use crate::session::Session;
-use crate::tool;
 use log::debug;
 use semver::Version;
 
@@ -16,6 +16,7 @@ mod executor;
 mod node;
 mod npm;
 mod npx;
+mod parser;
 mod yarn;
 
 const VOLTA_BYPASS: &str = "VOLTA_BYPASS";
@@ -30,15 +31,14 @@ pub fn execute_shim(session: &mut Session) -> Fallible<ExitStatus> {
 }
 
 /// Execute a tool with the provided arguments
-pub fn execute_tool<E, K, V>(
+pub fn execute_tool<K, V, S>(
     exe: &OsStr,
     args: &[OsString],
-    envs: E,
+    envs: &HashMap<K, V, S>,
     cli: CliPlatform,
     session: &mut Session,
 ) -> Fallible<ExitStatus>
 where
-    E: IntoIterator<Item = (K, V)>,
     K: AsRef<OsStr>,
     V: AsRef<OsStr>,
 {
@@ -126,14 +126,4 @@ fn debug_active_image(image: &Image) {
 
 fn format_tool_version(version: &Sourced<Version>) -> String {
     format!("{} from {} configuration", version.value, version.source)
-}
-
-/// Distinguish global `add` commands in npm or yarn from all others
-enum CommandArg {
-    /// The command is a global add command
-    GlobalAdd(tool::Spec),
-    /// The command is a global remove command
-    GlobalRemove(tool::Spec),
-    /// The command is *not* a global command
-    NotGlobal,
 }

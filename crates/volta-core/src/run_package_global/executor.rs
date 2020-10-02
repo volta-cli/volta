@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ffi::OsStr;
 #[cfg(unix)]
 use std::os::unix::process::ExitStatusExt;
@@ -20,12 +21,12 @@ pub enum Executor {
     PackageInstall(Box<PackageInstallCommand>),
     InternalInstall(Box<InternalInstallCommand>),
     Uninstall(Box<UninstallCommand>),
+    Multiple(Vec<Executor>),
 }
 
 impl Executor {
-    pub fn envs<E, K, V>(&mut self, envs: E)
+    pub fn envs<K, V, S>(&mut self, envs: &HashMap<K, V, S>)
     where
-        E: IntoIterator<Item = (K, V)>,
         K: AsRef<OsStr>,
         V: AsRef<OsStr>,
     {
@@ -36,6 +37,11 @@ impl Executor {
             Executor::InternalInstall(_) => {}
             // Uninstalls use Volta's logic and don't rely on environment variables
             Executor::Uninstall(_) => {}
+            Executor::Multiple(executors) => {
+                for exe in executors {
+                    exe.envs(envs);
+                }
+            }
         }
     }
 
@@ -47,6 +53,11 @@ impl Executor {
             Executor::InternalInstall(_) => {}
             // Uninstall use Volta's logic and don't rely on the Node platform
             Executor::Uninstall(_) => {}
+            Executor::Multiple(executors) => {
+                for exe in executors {
+                    exe.cli_platform(cli.clone());
+                }
+            }
         }
     }
 
@@ -56,6 +67,32 @@ impl Executor {
             Executor::PackageInstall(cmd) => cmd.execute(session),
             Executor::InternalInstall(cmd) => cmd.execute(session),
             Executor::Uninstall(cmd) => cmd.execute(),
+            Executor::Multiple(executors) => {
+                info!(
+                    "{} Volta is processing each package separately",
+                    note_prefix()
+                );
+                for exe in executors {
+                    let status = exe.execute(session)?;
+                    // If any of the sub-commands fail, then we should stop installing and return
+                    // that failure.
+                    if !status.success() {
+                        return Ok(status);
+                    }
+                }
+                // If we get here, then all of the sub-commands succeeded, so we should report success
+                Ok(ExitStatus::from_raw(0))
+            }
+        }
+    }
+}
+
+impl From<Vec<Executor>> for Executor {
+    fn from(mut executors: Vec<Executor>) -> Self {
+        if executors.len() == 1 {
+            executors.pop().unwrap()
+        } else {
+            Executor::Multiple(executors)
         }
     }
 }

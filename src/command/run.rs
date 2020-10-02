@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ffi::OsString;
 
 use crate::command::Command;
@@ -52,7 +53,7 @@ impl Command for Run {
         let envs = self.parse_envs();
         let platform = self.parse_platform(session)?;
 
-        match execute_tool(&self.command, &self.args, envs, platform, session).into_result() {
+        match execute_tool(&self.command, &self.args, &envs, platform, session).into_result() {
             Ok(()) => {
                 session.add_event_end(ActivityKind::Run, ExitCode::Success);
                 Ok(ExitCode::Success)
@@ -102,11 +103,11 @@ impl Run {
         Ok(CliPlatform { node, npm, yarn })
     }
 
-    /// Convert the environment variable settings passed to the command line into (Key, Value) pairs
+    /// Convert the environment variable settings passed to the command line into a map
     ///
     /// We ignore any setting that doesn't have a value associated with it
     /// We also ignore the PATH environment variable as that is set when running a command
-    fn parse_envs(&self) -> impl IntoIterator<Item = (&str, &str)> {
+    fn parse_envs(&self) -> HashMap<&str, &str> {
         self.envs.iter().filter_map(|entry| {
             let mut key_value = entry.splitn(2, '=');
 
@@ -119,6 +120,6 @@ impl Run {
                 }
                 (Some(key), Some(value)) => Some((key, value)),
             }
-        })
+        }).collect()
     }
 }
