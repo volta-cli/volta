@@ -12,9 +12,6 @@ pub mod manifest;
 pub mod monitor;
 pub mod platform;
 pub mod project;
-#[cfg(not(feature = "package-global"))]
-pub mod run;
-#[cfg(feature = "package-global")]
 #[path = "run_package_global/mod.rs"]
 pub mod run;
 pub mod session;

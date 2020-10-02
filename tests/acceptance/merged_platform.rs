@@ -103,17 +103,6 @@ fn uses_project_yarn_if_available() {
         .env("VOLTA_LOGLEVEL", "debug")
         .build();
 
-    #[cfg(not(feature = "package-global"))]
-    assert_that!(
-        s.yarn("--version"),
-        execs()
-            .with_status(ExitCode::Success as i32)
-            .with_stderr_does_not_contain("[..]Yarn is not available.")
-            .with_stderr_does_not_contain("[..]No Yarn version found in this project.")
-            .with_stderr_contains("[..]Using yarn@1.12.99 from project configuration")
-    );
-
-    #[cfg(feature = "package-global")]
     assert_that!(
         s.yarn("--version"),
         execs()
@@ -134,17 +123,6 @@ fn uses_default_yarn_in_project_without_yarn() {
         .env("VOLTA_LOGLEVEL", "debug")
         .build();
 
-    #[cfg(not(feature = "package-global"))]
-    assert_that!(
-        s.yarn("--version"),
-        execs()
-            .with_status(ExitCode::Success as i32)
-            .with_stderr_does_not_contain("[..]Yarn is not available.")
-            .with_stderr_does_not_contain("[..]No Yarn version found in this project.")
-            .with_stderr_contains("[..]Using yarn@1.7.71 from default configuration")
-    );
-
-    #[cfg(feature = "package-global")]
     assert_that!(
         s.yarn("--version"),
         execs()
@@ -164,17 +142,6 @@ fn uses_default_yarn_outside_project() {
         .env("VOLTA_LOGLEVEL", "debug")
         .build();
 
-    #[cfg(not(feature = "package-global"))]
-    assert_that!(
-        s.yarn("--version"),
-        execs()
-            .with_status(ExitCode::Success as i32)
-            .with_stderr_does_not_contain("[..]Yarn is not available.")
-            .with_stderr_does_not_contain("[..]No Yarn version found in this project.")
-            .with_stderr_contains("[..]Using yarn@1.7.71 from default configuration")
-    );
-
-    #[cfg(feature = "package-global")]
     assert_that!(
         s.yarn("--version"),
         execs()

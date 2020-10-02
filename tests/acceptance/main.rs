@@ -6,13 +6,9 @@ cfg_if! {
 
         // test files
         mod corrupted_download;
-        #[cfg(feature = "package-global")]
         mod direct_install;
-        #[cfg(feature = "package-global")]
         mod direct_uninstall;
         mod hooks;
-        #[cfg(not(feature = "package-global"))]
-        mod intercept_global_installs;
         mod merged_platform;
         mod migrations;
         mod run_shim_directly;

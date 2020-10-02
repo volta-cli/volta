@@ -41,12 +41,6 @@ fn test_image_path() {
         yarn: None,
     };
 
-    #[cfg(not(feature = "package-global"))]
-    assert_eq!(
-        only_node.path().unwrap().into_string().unwrap(),
-        format!("{}:/usr/bin:/blah:/doesnt/matter/bin", expected_node_bin),
-    );
-    #[cfg(feature = "package-global")]
     assert_eq!(
         only_node.path().unwrap().into_string().unwrap(),
         format!("{}:{}", expected_node_bin, starting_path)
@@ -58,15 +52,6 @@ fn test_image_path() {
         yarn: None,
     };
 
-    #[cfg(not(feature = "package-global"))]
-    assert_eq!(
-        node_npm.path().unwrap().into_string().unwrap(),
-        format!(
-            "{}:{}:/usr/bin:/blah:/doesnt/matter/bin",
-            expected_npm_bin, expected_node_bin
-        ),
-    );
-    #[cfg(feature = "package-global")]
     assert_eq!(
         node_npm.path().unwrap().into_string().unwrap(),
         format!(
@@ -81,15 +66,6 @@ fn test_image_path() {
         yarn: Some(Sourced::with_default(v457.clone())),
     };
 
-    #[cfg(not(feature = "package-global"))]
-    assert_eq!(
-        node_yarn.path().unwrap().into_string().unwrap(),
-        format!(
-            "{}:{}:/usr/bin:/blah:/doesnt/matter/bin",
-            expected_yarn_bin, expected_node_bin
-        ),
-    );
-    #[cfg(feature = "package-global")]
     assert_eq!(
         node_yarn.path().unwrap().into_string().unwrap(),
         format!(
@@ -104,15 +80,6 @@ fn test_image_path() {
         yarn: Some(Sourced::with_default(v457)),
     };
 
-    #[cfg(not(feature = "package-global"))]
-    assert_eq!(
-        node_npm_yarn.path().unwrap().into_string().unwrap(),
-        format!(
-            "{}:{}:{}:/usr/bin:/blah:/doesnt/matter/bin",
-            expected_npm_bin, expected_yarn_bin, expected_node_bin
-        ),
-    );
-    #[cfg(feature = "package-global")]
     assert_eq!(
         node_npm_yarn.path().unwrap().into_string().unwrap(),
         format!(
@@ -156,12 +123,6 @@ fn test_image_path() {
         yarn: None,
     };
 
-    #[cfg(not(feature = "package-global"))]
-    assert_eq!(
-        only_node.path().unwrap().into_string().unwrap(),
-        format!("{};C:\\\\somebin;D:\\\\ProbramFlies", expected_node_bin),
-    );
-    #[cfg(feature = "package-global")]
     assert_eq!(
         only_node.path().unwrap().into_string().unwrap(),
         format!("{};{}", expected_node_bin, path_with_shims),
@@ -173,15 +134,6 @@ fn test_image_path() {
         yarn: None,
     };
 
-    #[cfg(not(feature = "package-global"))]
-    assert_eq!(
-        node_npm.path().unwrap().into_string().unwrap(),
-        format!(
-            "{};{};C:\\\\somebin;D:\\\\ProbramFlies",
-            expected_npm_bin, expected_node_bin
-        ),
-    );
-    #[cfg(feature = "package-global")]
     assert_eq!(
         node_npm.path().unwrap().into_string().unwrap(),
         format!(
@@ -196,15 +148,6 @@ fn test_image_path() {
         yarn: Some(Sourced::with_default(v457.clone())),
     };
 
-    #[cfg(not(feature = "package-global"))]
-    assert_eq!(
-        node_yarn.path().unwrap().into_string().unwrap(),
-        format!(
-            "{};{};C:\\\\somebin;D:\\\\ProbramFlies",
-            expected_yarn_bin, expected_node_bin
-        ),
-    );
-    #[cfg(feature = "package-global")]
     assert_eq!(
         node_yarn.path().unwrap().into_string().unwrap(),
         format!(
@@ -219,15 +162,6 @@ fn test_image_path() {
         yarn: Some(Sourced::with_default(v457)),
     };
 
-    #[cfg(not(feature = "package-global"))]
-    assert_eq!(
-        node_npm_yarn.path().unwrap().into_string().unwrap(),
-        format!(
-            "{};{};{};C:\\\\somebin;D:\\\\ProbramFlies",
-            expected_npm_bin, expected_yarn_bin, expected_node_bin
-        ),
-    );
-    #[cfg(feature = "package-global")]
     assert_eq!(
         node_npm_yarn.path().unwrap().into_string().unwrap(),
         format!(

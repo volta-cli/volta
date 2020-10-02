@@ -164,14 +164,7 @@ fn install_package() {
 
     assert_that!(p.volta("install cowsay@1.4.0"), execs().with_status(0));
     assert!(p.shim_exists("cowsay"));
-
-    #[cfg(feature = "package-global")]
     assert!(p.package_is_installed("cowsay"));
-    #[cfg(not(feature = "package-global"))]
-    {
-        assert!(p.package_version_is_fetched("cowsay", "1.4.0"));
-        assert!(p.package_version_is_unpacked("cowsay", "1.4.0"));
-    }
 
     assert_that!(
         p.exec_shim("cowsay", "hello"),
@@ -208,14 +201,7 @@ fn install_scoped_package() {
 
     assert_that!(p.volta("install @wdio/cli@5.12.4"), execs().with_status(0));
     assert!(p.shim_exists("wdio"));
-
-    #[cfg(feature = "package-global")]
     assert!(p.package_is_installed("@wdio/cli"));
-    #[cfg(not(feature = "package-global"))]
-    {
-        assert!(p.package_version_is_fetched("@wdio/cli", "5.12.4"));
-        assert!(p.package_version_is_unpacked("@wdio/cli", "5.12.4"));
-    }
 
     assert_that!(
         p.exec_shim("wdio", "--version"),

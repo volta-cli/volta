@@ -4,9 +4,6 @@ version = "0.1.0"
 authors = ["Charles Pierce <cpierce.grad@gmail.com>"]
 edition = "2018"
 
-[features]
-package-global = ["volta-core/package-global", "volta-layout/package-global"]
-
 [dependencies]
 volta-core = { path = "../volta-core" }
 volta-layout = { path = "../volta-layout" }

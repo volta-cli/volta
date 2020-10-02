@@ -9,9 +9,6 @@ use log::{debug, info};
 
 pub mod node;
 pub mod npm;
-#[cfg(not(feature = "package-global"))]
-pub mod package;
-#[cfg(feature = "package-global")]
 #[path = "package_global/mod.rs"]
 pub mod package;
 mod registry;
@@ -22,9 +19,6 @@ pub use node::{
     load_default_npm_version, Node, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION, NODE_DISTRO_OS,
 };
 pub use npm::{BundledNpm, Npm};
-#[cfg(not(feature = "package-global"))]
-pub use package::{bin_full_path, BinConfig, BinLoader, Package, PackageConfig};
-#[cfg(feature = "package-global")]
 pub use package::{BinConfig, Package, PackageConfig, PackageManifest};
 pub use registry::PackageDetails;
 pub use yarn::Yarn;
@@ -94,13 +88,7 @@ impl Spec {
                 let version = yarn::resolve(version, session)?;
                 Ok(Box::new(Yarn::new(version)))
             }
-            #[cfg(not(feature = "package-global"))]
-            Spec::Package(name, version) => {
-                let details = package::resolve(&name, version, session)?;
-                Ok(Box::new(Package::new(name, details)))
-            }
             // When using global package install, we allow the package manager to perform the version resolution
-            #[cfg(feature = "package-global")]
             Spec::Package(name, version) => {
                 let package = Package::new(name, version)?;
                 Ok(Box::new(package))
@@ -131,7 +119,6 @@ impl Spec {
     }
 
     /// The name of the tool, without the version, used for messaging
-    #[cfg(feature = "package-global")]
     pub fn name(&self) -> &str {
         match self {
             Spec::Node(_) => "Node",

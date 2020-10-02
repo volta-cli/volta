@@ -3,8 +3,6 @@ use std::path::PathBuf;
 
 use super::{build_path_error, Sourced};
 use crate::error::{Context, Fallible};
-#[cfg(not(feature = "package-global"))]
-use crate::layout::env_paths;
 use crate::layout::volta_home;
 use crate::tool::load_default_npm_version;
 use semver::Version;
@@ -46,28 +44,11 @@ impl Image {
     pub fn path(&self) -> Fallible<OsString> {
         let old_path = envoy::path().unwrap_or_else(|| envoy::Var::from(""));
 
-        #[cfg(not(feature = "package-global"))]
-        {
-            let mut new_path = old_path.split();
-
-            for remove_path in env_paths()? {
-                new_path = new_path.remove(remove_path);
-            }
-
-            new_path
-                .prefix(self.bins()?)
-                .join()
-                .with_context(build_path_error)
-        }
-
-        #[cfg(feature = "package-global")]
-        {
-            old_path
-                .split()
-                .prefix(self.bins()?)
-                .join()
-                .with_context(build_path_error)
-        }
+        old_path
+            .split()
+            .prefix(self.bins()?)
+            .join()
+            .with_context(build_path_error)
     }
 
     /// Determines the sourced version of npm that will be available, resolving the version bundled with Node, if needed

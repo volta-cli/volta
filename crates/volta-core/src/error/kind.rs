@@ -1,5 +1,3 @@
-#[cfg(not(feature = "package-global"))]
-use std::ffi::OsString;
 use std::fmt;
 use std::path::PathBuf;
 
@@ -42,7 +40,6 @@ pub enum ErrorKind {
     },
 
     /// Thrown when a user tries to `volta fetch` something other than node/yarn/npm.
-    #[cfg(feature = "package-global")]
     CannotFetchPackage {
         package: String,
     },
@@ -77,7 +74,6 @@ pub enum ErrorKind {
     },
 
     /// Thrown when unable to create a link to the shared global library directory
-    #[cfg(feature = "package-global")]
     CreateSharedLinkError {
         name: String,
     },
@@ -109,27 +105,9 @@ pub enum ErrorKind {
         advice: String,
     },
 
-    /// Thrown when determining the loader for a binary encountered an error
-    #[cfg(not(feature = "package-global"))]
-    DetermineBinaryLoaderError {
-        bin: String,
-    },
-
     DownloadToolNetworkError {
         tool: tool::Spec,
         from_url: String,
-    },
-
-    /// Thrown when building the path to an executable fails
-    #[cfg(not(feature = "package-global"))]
-    ExecutablePathError {
-        command: String,
-    },
-
-    /// Thrown when verifying the file permissions on an executable fails
-    #[cfg(not(feature = "package-global"))]
-    ExecutablePermissionsError {
-        bin: String,
     },
 
     /// Thrown when unable to execute a hook command
@@ -165,7 +143,6 @@ pub enum ErrorKind {
     },
 
     /// Thrown when determining the name of a newly-installed package fails
-    #[cfg(feature = "package-global")]
     InstalledPackageNameError,
 
     InvalidHookCommand {
@@ -194,12 +171,6 @@ pub enum ErrorKind {
     /// Thrown when unable to acquire a lock on the Volta directory
     LockAcquireError,
 
-    /// Thrown when BinConfig (read from file) does not contain Platform info.
-    #[cfg(not(feature = "package-global"))]
-    NoBinPlatform {
-        binary: String,
-    },
-
     /// Thrown when pinning or installing npm@bundled and couldn't detect the bundled version
     NoBundledNpm {
         command: String,
@@ -218,21 +189,12 @@ pub enum ErrorKind {
         matching: String,
     },
 
-    #[cfg(not(feature = "package-global"))]
-    NoGlobalInstalls {
-        package: Option<OsString>,
-    },
-
     NoHomeEnvironmentVar,
 
     /// Thrown when the install dir could not be determined
     NoInstallDir,
 
     NoLocalDataDir,
-
-    /// Thrown when a user tries to install or fetch a package with no executables.
-    #[cfg(not(feature = "package-global"))]
-    NoPackageExecutables,
 
     /// Thrown when a user tries to pin a Yarn or npm version before pinning a Node version.
     NoPinnedNodeVersion {
@@ -260,65 +222,28 @@ pub enum ErrorKind {
     /// Thrown when default Yarn is not set
     NoDefaultYarn,
 
-    /// Thrown when there is an error running `npm pack`
-    #[cfg(not(feature = "package-global"))]
-    NpmPackFetchError {
-        package: String,
-    },
-
-    /// Thrown when there is issue finding, loading, or unpacking the file downloaded via `npm pack`
-    #[cfg(not(feature = "package-global"))]
-    NpmPackUnpackError {
-        package: String,
-    },
-
     /// Thrown when there is no npm version matching the requested Semver/Tag
     NpmVersionNotFound {
         matching: String,
-    },
-
-    /// Thrown when there is an error running `npm view`
-    #[cfg(not(feature = "package-global"))]
-    NpmViewMetadataFetchError {
-        package: String,
-    },
-
-    /// Thrown when there is an error parsing the metadata from `npm view`
-    #[cfg(not(feature = "package-global"))]
-    NpmViewMetadataParseError {
-        package: String,
     },
 
     NpxNotAvailable {
         version: String,
     },
 
-    /// Thrown when the command to install package dependencies is not successful.
-    #[cfg(not(feature = "package-global"))]
-    PackageDependenciesInstallFailed,
-
     /// Thrown when the command to install a global package is not successful
-    #[cfg(feature = "package-global")]
     PackageInstallFailed {
         package: String,
     },
 
     /// Thrown when parsing the package manifest fails
-    #[cfg(feature = "package-global")]
     PackageManifestParseError {
         package: String,
     },
 
     /// Thrown when reading the package manifest fails
-    #[cfg(feature = "package-global")]
     PackageManifestReadError {
         package: String,
-    },
-
-    /// Thrown when there is an error fetching package metadata
-    #[cfg(not(feature = "package-global"))]
-    PackageMetadataFetchError {
-        from_url: String,
     },
 
     /// Thrown when a specified package could not be found on the npm registry
@@ -338,13 +263,6 @@ pub enum ErrorKind {
 
     /// Thrown when a package has been unpacked but is not formed correctly.
     PackageUnpackError,
-
-    /// Thrown when there is no package version matching a requested semver specifier.
-    #[cfg(not(feature = "package-global"))]
-    PackageVersionNotFound {
-        name: String,
-        matching: String,
-    },
 
     /// Thrown when writing a package manifest fails
     PackageWriteError {
@@ -375,12 +293,6 @@ pub enum ErrorKind {
 
     /// Thrown when unable to parse a package configuration
     ParsePackageConfigError,
-
-    /// Thrown when unable to parse the metadata for a package
-    #[cfg(not(feature = "package-global"))]
-    ParsePackageMetadataError {
-        from_url: String,
-    },
 
     /// Thrown when unable to parse the platform.json file
     ParsePlatformError,
@@ -543,14 +455,6 @@ pub enum ErrorKind {
         file: PathBuf,
     },
 
-    /// Thrown when there was an error writing the shasum for a package
-    #[cfg(not(feature = "package-global"))]
-    WritePackageShasumError {
-        package: String,
-        version: String,
-        file: PathBuf,
-    },
-
     /// Thrown when writing the platform.json file fails
     WritePlatformError {
         file: PathBuf,
@@ -611,7 +515,6 @@ Please ensure your PATH is valid."
 VOLTA_BYPASS is enabled, please ensure that the command exists on your system or unset VOLTA_BYPASS",
                 command,
             ),
-            #[cfg(feature = "package-global")]
             ErrorKind::CannotFetchPackage { package } => write!(
                 f,
                 "Fetching packages without installing them is not supported.
@@ -668,7 +571,6 @@ Please ensure that you have the correct permissions.",
 {}",
                 file.display(), PERMISSIONS_CTA
             ),
-            #[cfg(feature = "package-global")]
             ErrorKind::CreateSharedLinkError { name } => write!(
                 f,
                 "Could not create shared environment for package '{}'
@@ -721,14 +623,6 @@ at {}
             ErrorKind::DeprecatedCommandError { command, advice } => {
                 write!(f, "The subcommand `{}` is deprecated.\n{}", command, advice)
             }
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::DetermineBinaryLoaderError { bin } => write!(
-                f,
-                "Could not determine loader for executable '{}'
-
-{}",
-                bin, REPORT_BUG_CTA
-            ),
             ErrorKind::DownloadToolNetworkError { tool, from_url } => write!(
                 f,
                 "Could not download {}
@@ -736,22 +630,6 @@ from {}
 
 Please verify your internet connection and ensure the correct version is specified.",
                 tool, from_url
-            ),
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::ExecutablePathError { command } => write!(
-                f,
-                "Could not determine path to executable '{}'
-
-{}",
-                command, REPORT_BUG_CTA
-            ),
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::ExecutablePermissionsError { bin } => write!(
-                f,
-                "Could not verify permissions for executable '{}'
-
-{}",
-                bin, PERMISSIONS_CTA
             ),
             ErrorKind::ExecuteHookError { command } => write!(
                 f,
@@ -818,7 +696,6 @@ Please include one of 'bin', 'prefix', or 'template'"
 Please ensure that the correct command is specified.",
                 command
             ),
-            #[cfg(feature = "package-global")]
             ErrorKind::InstalledPackageNameError => write!(
                 f,
                 "Could not determine the name of the package that was just installed.
@@ -895,14 +772,6 @@ To {action} the packages '{name}' and '{version}', please {action} them in separ
                 f,
                 "Unable to acquire lock on Volta directory"
             ),
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::NoBinPlatform { binary } => write!(
-                f,
-                "Platform info for executable `{}` is missing
-
-Please uninstall and re-install the package that provides that executable.",
-                binary
-            ),
             ErrorKind::NoBundledNpm { command } => write!(
                 f,
                 "Could not detect bundled npm version.
@@ -930,17 +799,6 @@ Use `volta install node` to select a default Node first, then install a {0} vers
 Please verify that the version is correct."#,
                 matching
             ),
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::NoGlobalInstalls { package } => write!(
-                f,
-                "Global package installs are not supported.
-
-Use `volta install{}` to add a package to your toolchain (see `volta help install` for more info).",
-                match package {
-                    Some(original) => String::from(" ") + &original.to_string_lossy().into_owned(),
-                    None => String::from(""),
-                }
-            ),
             ErrorKind::NoHomeEnvironmentVar => write!(
                 f,
                 "Could not determine home directory.
@@ -958,13 +816,6 @@ Please ensure Volta was installed correctly"
                 "Could not determine LocalAppData directory.
 
 Please ensure the directory is available."
-            ),
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::NoPackageExecutables => write!(
-                f,
-                "Package has no executables to install.
-
-Please verify the requested package name."
             ),
             ErrorKind::NoPinnedNodeVersion { tool } => write!(
                 f,
@@ -1011,44 +862,12 @@ Use `volta install` to select a default version of a tool."
 
 Use `volta install yarn` to select a default version (see `volta help install` for more info)."
             ),
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::NpmPackFetchError { package } => write!(
-                f,
-                "Could not download '{}' via npm pack
-
-Please verify your internet connection and ensure the correct version is specified.",
-                package
-            ),
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::NpmPackUnpackError { package } => write!(
-                f,
-                "Could not read archive for '{}' from npm pack.
-
-{}",
-                package, PERMISSIONS_CTA
-            ),
             ErrorKind::NpmVersionNotFound { matching } => write!(
                 f,
                 r#"Could not find Node version matching "{}" in the version registry.
 
 Please verify that the version is correct."#,
                 matching
-            ),
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::NpmViewMetadataFetchError { package } => write!(
-                f,
-                "Could not download package metadata for '{}'
-
-Please ensure the requested package name is correct.",
-                package
-            ),
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::NpmViewMetadataParseError { package } => write!(
-                f,
-                "Could not parse package metadata for '{}'
-
-Please ensure the requested package name is correct.",
-                package
             ),
             ErrorKind::NpxNotAvailable { version } => write!(
                 f,
@@ -1057,16 +876,6 @@ Please ensure the requested package name is correct.",
 This project is configured to use version {} of npm.",
                 version
             ),
-            // Confirming permissions is a Weak CTA in this case, but it seems the most likely error vector
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::PackageDependenciesInstallFailed => write!(
-                f,
-                "Could not install package dependencies.
-
-{}",
-                PERMISSIONS_CTA
-            ),
-            #[cfg(feature = "package-global")]
             ErrorKind::PackageInstallFailed { package } => write!(
                 f,
                 "Could not install package '{}'
@@ -1074,7 +883,6 @@ This project is configured to use version {} of npm.",
 Please confirm the package is valid and run with `--verbose` for more diagnostics.",
                 package
             ),
-            #[cfg(feature = "package-global")]
             ErrorKind::PackageManifestParseError { package } => write!(
                 f,
                 "Could not parse package.json manifest for {}
@@ -1082,22 +890,12 @@ Please confirm the package is valid and run with `--verbose` for more diagnostic
 Please ensure the package includes a valid manifest file.",
                 package
             ),
-            #[cfg(feature = "package-global")]
             ErrorKind::PackageManifestReadError { package } => write!(
                 f,
                 "Could not read package.json manifest for {}
 
 Please ensure the package includes a valid manifest file.",
                 package
-            ),
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::PackageMetadataFetchError { from_url } => write!(
-                f,
-                "Could not download package metadata
-from {}
-
-Please verify your internet connection.",
-                from_url
             ),
             ErrorKind::PackageNotFound { package } => write!(
                 f,
@@ -1127,14 +925,6 @@ Please ensure that the file exists.",
                 "Could not determine package directory layout.
 
 Please ensure the package is correctly formatted."
-            ),
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::PackageVersionNotFound { name, matching } => write!(
-                f,
-                r#"Could not find {} version matching "{}" in the package registry.
-
-Please verify that the version is correct."#,
-                name, matching
             ),
             ErrorKind::PackageWriteError { file } => write!(
                 f,
@@ -1193,15 +983,6 @@ Please ensure the version of Node is correct."
 
 {}",
                 REPORT_BUG_CTA
-            ),
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::ParsePackageMetadataError { from_url } => write!(
-                f,
-                "Could not parse package metadata
-from {}
-
-Please verify the requested package and version.",
-                from_url
             ),
             ErrorKind::ParsePlatformError => write!(
                 f,
@@ -1471,22 +1252,6 @@ to {}
                 file.display(),
                 PERMISSIONS_CTA
             ),
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::WritePackageShasumError {
-                package,
-                version,
-                file,
-            } => write!(
-                f,
-                "Could not write shasum for {} v{}
-to {}
-
-{}",
-                package,
-                version,
-                file.display(),
-                PERMISSIONS_CTA
-            ),
             ErrorKind::WritePlatformError { file } => write!(
                 f,
                 "Could not save platform settings
@@ -1530,7 +1295,6 @@ impl ErrorKind {
             ErrorKind::BinaryNotFound { .. } => ExitCode::ExecutableNotFound,
             ErrorKind::BuildPathError => ExitCode::EnvironmentError,
             ErrorKind::BypassError { .. } => ExitCode::ExecutionFailure,
-            #[cfg(feature = "package-global")]
             ErrorKind::CannotFetchPackage { .. } => ExitCode::InvalidArguments,
             ErrorKind::CannotPinPackage { .. } => ExitCode::InvalidArguments,
             ErrorKind::CompletionsOutFileError { .. } => ExitCode::InvalidArguments,
@@ -1539,7 +1303,6 @@ impl ErrorKind {
             ErrorKind::CouldNotStartMigration => ExitCode::EnvironmentError,
             ErrorKind::CreateDirError { .. } => ExitCode::FileSystemError,
             ErrorKind::CreateLayoutFileError { .. } => ExitCode::FileSystemError,
-            #[cfg(feature = "package-global")]
             ErrorKind::CreateSharedLinkError { .. } => ExitCode::FileSystemError,
             ErrorKind::CreateTempDirError { .. } => ExitCode::FileSystemError,
             ErrorKind::CreateTempFileError { .. } => ExitCode::FileSystemError,
@@ -1547,13 +1310,7 @@ impl ErrorKind {
             ErrorKind::DeleteDirectoryError { .. } => ExitCode::FileSystemError,
             ErrorKind::DeleteFileError { .. } => ExitCode::FileSystemError,
             ErrorKind::DeprecatedCommandError { .. } => ExitCode::InvalidArguments,
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::DetermineBinaryLoaderError { .. } => ExitCode::FileSystemError,
             ErrorKind::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::ExecutablePathError { .. } => ExitCode::UnknownError,
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::ExecutablePermissionsError { .. } => ExitCode::FileSystemError,
             ErrorKind::ExecuteHookError { .. } => ExitCode::ExecutionFailure,
             ErrorKind::ExtensionCycleError { .. } => ExitCode::ConfigurationError,
             ErrorKind::ExtensionPathError { .. } => ExitCode::FileSystemError,
@@ -1561,26 +1318,19 @@ impl ErrorKind {
             ErrorKind::HookMultipleFieldsSpecified => ExitCode::ConfigurationError,
             ErrorKind::HookNoFieldsSpecified => ExitCode::ConfigurationError,
             ErrorKind::HookPathError { .. } => ExitCode::ConfigurationError,
-            #[cfg(feature = "package-global")]
             ErrorKind::InstalledPackageNameError => ExitCode::UnknownError,
             ErrorKind::InvalidHookCommand { .. } => ExitCode::ExecutableNotFound,
             ErrorKind::InvalidHookOutput { .. } => ExitCode::ExecutionFailure,
             ErrorKind::InvalidInvocation { .. } => ExitCode::InvalidArguments,
             ErrorKind::InvalidToolName { .. } => ExitCode::InvalidArguments,
             ErrorKind::LockAcquireError => ExitCode::FileSystemError,
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::NoBinPlatform { .. } => ExitCode::ExecutionFailure,
             ErrorKind::NoBundledNpm { .. } => ExitCode::ConfigurationError,
             ErrorKind::NoCommandLineYarn => ExitCode::ConfigurationError,
             ErrorKind::NoDefaultNodeVersion { .. } => ExitCode::ConfigurationError,
             ErrorKind::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::NoGlobalInstalls { .. } => ExitCode::InvalidArguments,
             ErrorKind::NoHomeEnvironmentVar => ExitCode::EnvironmentError,
             ErrorKind::NoInstallDir => ExitCode::EnvironmentError,
             ErrorKind::NoLocalDataDir => ExitCode::EnvironmentError,
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::NoPackageExecutables { .. } => ExitCode::InvalidArguments,
             ErrorKind::NoPinnedNodeVersion { .. } => ExitCode::ConfigurationError,
             ErrorKind::NoPlatform => ExitCode::ConfigurationError,
             ErrorKind::NoProjectNodeInManifest => ExitCode::ConfigurationError,
@@ -1588,32 +1338,15 @@ impl ErrorKind {
             ErrorKind::NoShellProfile { .. } => ExitCode::EnvironmentError,
             ErrorKind::NotInPackage => ExitCode::ConfigurationError,
             ErrorKind::NoDefaultYarn => ExitCode::ConfigurationError,
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::NpmPackFetchError { .. } => ExitCode::NetworkError,
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::NpmPackUnpackError { .. } => ExitCode::FileSystemError,
             ErrorKind::NpmVersionNotFound { .. } => ExitCode::NoVersionMatch,
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::NpmViewMetadataFetchError { .. } => ExitCode::NetworkError,
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::NpmViewMetadataParseError { .. } => ExitCode::UnknownError,
             ErrorKind::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::PackageDependenciesInstallFailed => ExitCode::FileSystemError,
-            #[cfg(feature = "package-global")]
             ErrorKind::PackageInstallFailed { .. } => ExitCode::UnknownError,
-            #[cfg(feature = "package-global")]
             ErrorKind::PackageManifestParseError { .. } => ExitCode::ConfigurationError,
-            #[cfg(feature = "package-global")]
             ErrorKind::PackageManifestReadError { .. } => ExitCode::FileSystemError,
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::PackageMetadataFetchError { .. } => ExitCode::NetworkError,
             ErrorKind::PackageNotFound { .. } => ExitCode::InvalidArguments,
             ErrorKind::PackageParseError { .. } => ExitCode::ConfigurationError,
             ErrorKind::PackageReadError { .. } => ExitCode::FileSystemError,
             ErrorKind::PackageUnpackError => ExitCode::ConfigurationError,
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::PackageVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorKind::PackageWriteError { .. } => ExitCode::FileSystemError,
             ErrorKind::ParseBinConfigError => ExitCode::UnknownError,
             ErrorKind::ParseHooksError { .. } => ExitCode::ConfigurationError,
@@ -1623,8 +1356,6 @@ impl ErrorKind {
             ErrorKind::ParseNodeIndexExpiryError => ExitCode::UnknownError,
             ErrorKind::ParseNpmManifestError => ExitCode::UnknownError,
             ErrorKind::ParsePackageConfigError => ExitCode::UnknownError,
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::ParsePackageMetadataError { .. } => ExitCode::UnknownError,
             ErrorKind::ParsePlatformError => ExitCode::ConfigurationError,
             ErrorKind::PersistInventoryError { .. } => ExitCode::FileSystemError,
             ErrorKind::ProjectLocalBinaryExecError { .. } => ExitCode::ExecutionFailure,
@@ -1660,8 +1391,6 @@ impl ErrorKind {
             ErrorKind::WriteNodeIndexCacheError { .. } => ExitCode::FileSystemError,
             ErrorKind::WriteNodeIndexExpiryError { .. } => ExitCode::FileSystemError,
             ErrorKind::WritePackageConfigError { .. } => ExitCode::FileSystemError,
-            #[cfg(not(feature = "package-global"))]
-            ErrorKind::WritePackageShasumError { .. } => ExitCode::FileSystemError,
             ErrorKind::WritePlatformError { .. } => ExitCode::FileSystemError,
             #[cfg(windows)]
             ErrorKind::WriteUserPathError => ExitCode::EnvironmentError,
