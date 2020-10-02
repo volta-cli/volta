@@ -18,6 +18,19 @@ fn platform_with_node(node: &str) -> String {
     )
 }
 
+fn platform_with_node_yarn(node: &str, yarn: &str) -> String {
+    format!(
+        r#"{{
+  "node": {{
+    "runtime": "{}",
+    "npm": null
+  }},
+  "yarn": "{}"
+}}"#,
+        node, yarn
+    )
+}
+
 const NODE_VERSION_INFO: &str = r#"[
 {"version":"v10.99.1040","npm":"6.2.26","lts": "Dubnium","files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip", "linux-arm64"]},
 {"version":"v9.27.6","npm":"5.6.17","lts": false,"files":["linux-x64","osx-x64-tar","win-x64-zip","win-x86-zip", "linux-arm64"]},
@@ -325,5 +338,40 @@ fn yarn_global_add_supports_multiples() {
             .with_stdout_contains("[..]installed and set npm@8.1.5 as default")
             .with_stdout_contains("[..]using Volta to install Yarn")
             .with_stdout_contains("[..]installed and set yarn@1.12.99 as default")
+    );
+}
+
+#[test]
+fn npm_global_with_override_does_not_intercept() {
+    let s = sandbox()
+        .platform(&platform_with_node("10.99.1040"))
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .env("VOLTA_LOGLEVEL", "info")
+        .env("VOLTA_UNSAFE_GLOBAL", "1")
+        .build();
+
+    assert_that!(
+        s.npm("install --global npm@8"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stdout_does_not_contain("[..]using Volta to install npm")
+    );
+}
+
+#[test]
+fn yarn_global_with_override_does_not_intercept() {
+    let s = sandbox()
+        .platform(&platform_with_node_yarn("10.99.1040", "1.12.99"))
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .env("VOLTA_LOGLEVEL", "info")
+        .env("VOLTA_UNSAFE_GLOBAL", "1")
+        .build();
+
+    assert_that!(
+        s.yarn("global add npm@8"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stdout_does_not_contain("[..]using Volta to install npm")
     );
 }

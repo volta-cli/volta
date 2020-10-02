@@ -1,6 +1,5 @@
 use std::collections::HashMap;
-use std::env;
-use std::env::ArgsOs;
+use std::env::{self, ArgsOs};
 use std::ffi::{OsStr, OsString};
 use std::path::Path;
 use std::process::ExitStatus;
@@ -97,11 +96,13 @@ fn tool_name_from_file_name(file_name: &OsStr) -> OsString {
     }
 }
 
+/// Write a debug message that there is no platform available
 #[inline]
 fn debug_no_platform() {
     debug!("Could not find Volta-managed platform, delegating to system");
 }
 
+/// Write a debug message with the full image that will be used to execute a command
 #[inline]
 fn debug_active_image(image: &Image) {
     debug!(
