@@ -9,7 +9,6 @@ use log::{debug, info};
 
 pub mod node;
 pub mod npm;
-#[path = "package_global/mod.rs"]
 pub mod package;
 mod registry;
 mod serial;

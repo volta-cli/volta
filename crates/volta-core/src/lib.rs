@@ -12,7 +12,6 @@ pub mod manifest;
 pub mod monitor;
 pub mod platform;
 pub mod project;
-#[path = "run_package_global/mod.rs"]
 pub mod run;
 pub mod session;
 pub mod shim;
