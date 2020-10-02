@@ -27,6 +27,7 @@ layout! {
                 "yarn": yarn_image_root_dir {}
                 "packages": package_image_root_dir {}
             }
+            "shared": shared_lib_root {}
             "user": default_toolchain_dir {
                 "bins": default_bin_dir {}
                 "packages": default_package_dir {}
@@ -84,6 +85,10 @@ impl VoltaHome {
 
     pub fn shim_file(&self, toolname: &str) -> PathBuf {
         path_buf!(self.shim_dir.clone(), executable(toolname))
+    }
+
+    pub fn shared_lib_dir(&self, library: &str) -> PathBuf {
+        path_buf!(self.shared_lib_root.clone(), library)
     }
 }
 

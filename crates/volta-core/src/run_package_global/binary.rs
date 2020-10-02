@@ -1,9 +1,10 @@
+use std::env;
 use std::ffi::{OsStr, OsString};
 use std::path::PathBuf;
 
 use super::executor::{Executor, ToolCommand, ToolKind};
 use super::{debug_active_image, debug_no_platform};
-use crate::error::{ErrorKind, Fallible};
+use crate::error::{Context, ErrorKind, Fallible};
 use crate::layout::volta_home;
 use crate::platform::{Platform, Sourced, System};
 use crate::session::Session;
@@ -47,13 +48,15 @@ pub(super) fn command(exe: &OsStr, args: &[OsString], session: &mut Session) -> 
             default_tool.bin_path.display()
         );
 
-        return Ok(ToolCommand::new(
+        let mut command = ToolCommand::new(
             default_tool.bin_path,
             args,
             Some(default_tool.platform),
             ToolKind::DefaultBinary(bin),
-        )
-        .into());
+        );
+        command.env("NODE_PATH", shared_module_path()?);
+
+        return Ok(command.into());
     }
 
     // At this point, the binary is not known to Volta, so we have no platform to use to execute it
@@ -157,4 +160,20 @@ impl DefaultBinary {
             None => Ok(None),
         }
     }
+}
+
+/// Determine the value for NODE_PATH, with the shared lib directory prepended
+///
+/// This will ensure that global bins can `require` other global libs
+fn shared_module_path() -> Fallible<OsString> {
+    let node_path = match env::var("NODE_PATH") {
+        Ok(path) => envoy::Var::from(path),
+        Err(_) => envoy::Var::from(""),
+    };
+
+    node_path
+        .split()
+        .prefix_entry(volta_home()?.shared_lib_root())
+        .join()
+        .with_context(|| ErrorKind::BuildPathError)
 }

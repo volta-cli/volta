@@ -1,6 +1,8 @@
 use super::metadata::{BinConfig, PackageConfig};
 use crate::error::{Context, ErrorKind, Fallible};
-use crate::fs::{dir_entry_match, ok_if_not_found, remove_dir_if_exists, remove_file_if_exists};
+use crate::fs::{
+    dir_entry_match, ok_if_not_found, read_dir_eager, remove_dir_if_exists, remove_file_if_exists,
+};
 use crate::layout::volta_home;
 use crate::shim;
 use crate::style::success_prefix;
@@ -45,6 +47,8 @@ pub fn uninstall(name: &str) -> Fallible<()> {
         }
     };
 
+    remove_shared_link_dir(name)?;
+
     // Remove the package directory itself
     let package_image_dir = home.package_image_dir(name);
     remove_dir_if_exists(package_image_dir)?;
@@ -88,4 +92,26 @@ fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
     .with_context(|| ErrorKind::ReadBinConfigDirError {
         dir: bin_config_dir.to_owned(),
     })
+}
+
+/// Remove the link to the package in the shared lib directory
+///
+/// For scoped packages, if the scope directory is now empty, it will also be removed
+fn remove_shared_link_dir(name: &str) -> Fallible<()> {
+    // Remove the link in the shared package directory, if it exists
+    let mut shared_lib_dir = volta_home()?.shared_lib_dir(name);
+    remove_dir_if_exists(&shared_lib_dir)?;
+
+    // For scoped packages, clean up the scope directory if it is now empty
+    if name.starts_with('@') {
+        shared_lib_dir.pop();
+
+        if let Ok(mut entries) = read_dir_eager(&shared_lib_dir) {
+            if entries.next().is_none() {
+                remove_dir_if_exists(&shared_lib_dir)?;
+            }
+        }
+    }
+
+    Ok(())
 }
