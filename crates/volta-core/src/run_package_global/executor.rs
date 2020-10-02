@@ -197,17 +197,12 @@ pub struct PackageInstallCommand {
 }
 
 impl PackageInstallCommand {
-    pub fn new<A, S>(
-        name: String,
-        args: A,
-        platform: Platform,
-        manager: PackageManager,
-    ) -> Fallible<Self>
+    pub fn new<A, S>(args: A, platform: Platform, manager: PackageManager) -> Fallible<Self>
     where
         A: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
-        let installer = DirectInstall::new(name, manager)?;
+        let installer = DirectInstall::new(manager)?;
 
         let mut command = match manager {
             PackageManager::Npm => create_command("npm"),

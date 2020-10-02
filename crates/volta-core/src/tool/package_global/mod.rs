@@ -109,19 +109,14 @@ impl Display for Package {
 }
 
 pub struct DirectInstall {
-    name: String,
     staging: TempDir,
     manager: PackageManager,
 }
 
 impl DirectInstall {
-    pub fn new(name: String, manager: PackageManager) -> Fallible<Self> {
+    pub fn new(manager: PackageManager) -> Fallible<Self> {
         let staging = create_staging_dir()?;
-        Ok(DirectInstall {
-            name,
-            staging,
-            manager,
-        })
+        Ok(DirectInstall { staging, manager })
     }
 
     pub fn setup_command(&self, command: &mut Command) {
@@ -130,11 +125,15 @@ impl DirectInstall {
     }
 
     pub fn complete_install(self, image: &Image) -> Fallible<()> {
+        let name = self
+            .manager
+            .get_installed_package(self.staging.path().to_owned())
+            .ok_or_else(|| ErrorKind::InstalledPackageNameError)?;
         let manifest =
-            configure::parse_manifest(&self.name, self.staging.path().to_owned(), self.manager)?;
+            configure::parse_manifest(&name, self.staging.path().to_owned(), self.manager)?;
 
-        persist_install(&self.name, &manifest.version, self.staging.path())?;
-        configure::write_config_and_shims(&self.name, &manifest, image, self.manager)?;
+        persist_install(&name, &manifest.version, self.staging.path())?;
+        configure::write_config_and_shims(&name, &manifest, image, self.manager)?;
 
         Ok(())
     }

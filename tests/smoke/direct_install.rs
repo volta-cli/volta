@@ -11,7 +11,7 @@ fn npm_global_install() {
     assert_that!(p.volta("install node@14.1.0"), execs().with_status(0));
 
     assert_that!(
-        p.npm("install --global typescript@3.9.4 yarn@1.16.0"),
+        p.npm("install --global typescript@3.9.4 yarn@1.16.0 ../../../../tests/fixtures/volta-test-1.0.0.tgz"),
         execs().with_status(0)
     );
 
@@ -31,11 +31,26 @@ fn npm_global_install() {
         p.yarn("--version"),
         execs().with_status(0).with_stdout_contains("1.16.0")
     );
+
+    assert!(p.shim_exists("volta-test"));
+    assert!(p.package_is_installed("volta-test"));
+    assert_that!(
+        p.exec_shim("volta-test", ""),
+        execs()
+            .with_status(0)
+            .with_stdout_contains("Volta test successful")
+    );
 }
 
 #[test]
 fn yarn_global_add() {
     let p = temp_project().build();
+
+    let tarball_path = p
+        .root()
+        .join("../../../../tests/fixtures/volta-test-1.0.0.tgz")
+        .canonicalize()
+        .unwrap();
 
     // Have to install node and yarn first
     assert_that!(
@@ -44,7 +59,10 @@ fn yarn_global_add() {
     );
 
     assert_that!(
-        p.yarn("global add typescript@4.0.2 npm@6.4.0"),
+        p.yarn(&format!(
+            "global add typescript@4.0.2 npm@6.4.0 file:{}",
+            tarball_path.display()
+        )),
         execs().with_status(0)
     );
 
@@ -63,5 +81,14 @@ fn yarn_global_add() {
     assert_that!(
         p.npm("--version"),
         execs().with_status(0).with_stdout_contains("6.4.0")
+    );
+
+    assert!(p.shim_exists("volta-test"));
+    assert!(p.package_is_installed("volta-test"));
+    assert_that!(
+        p.exec_shim("volta-test", ""),
+        execs()
+            .with_status(0)
+            .with_stdout_contains("Volta test successful")
     );
 }
