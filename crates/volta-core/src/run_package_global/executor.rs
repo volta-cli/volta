@@ -12,6 +12,7 @@ use crate::platform::{CliPlatform, Platform, System};
 use crate::session::Session;
 use crate::signal::pass_control_to_shim;
 use crate::style::note_prefix;
+use crate::sync::VoltaLock;
 use crate::tool::package::{DirectInstall, PackageManager};
 use crate::tool::Spec;
 use log::info;
@@ -239,6 +240,7 @@ impl PackageInstallCommand {
     /// Runs the install command, applying the necessary modifications to install into the Volta
     /// data directory
     pub fn execute(mut self, session: &mut Session) -> Fallible<ExitStatus> {
+        let _lock = VoltaLock::acquire();
         let image = self.platform.checkout(session)?;
         let path = image.path()?;
 

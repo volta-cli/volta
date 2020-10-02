@@ -71,7 +71,7 @@ impl Tool for Package {
     }
 
     fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {
-        let _lock = VoltaLock::acquire()?;
+        let _lock = VoltaLock::acquire();
 
         let default_image = session
             .default_platform()?
