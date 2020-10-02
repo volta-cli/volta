@@ -113,7 +113,7 @@ where
 
 /// Represents 3 possible states: Having a value, not having a value, and inheriting a value
 #[cfg_attr(test, derive(Eq, PartialEq, Debug))]
-#[cfg_attr(feature = "package-global", derive(Clone))]
+#[derive(Clone)]
 pub enum InheritOption<T> {
     Some(T),
     None,
@@ -194,8 +194,7 @@ impl PlatformSpec {
 }
 
 /// Represents a (maybe) platform with values from the command line
-#[cfg_attr(not(feature = "package-global"), derive(Default))]
-#[cfg_attr(feature = "package-global", derive(Clone))]
+#[derive(Clone)]
 pub struct CliPlatform {
     pub node: Option<Version>,
     pub npm: InheritOption<Version>,
@@ -273,15 +272,6 @@ impl Platform {
                 Some(platform) => Ok(Some(platform.as_default())),
                 None => Ok(None),
             },
-        }
-    }
-
-    /// Returns the platform created by merging a `CliPartialPlatform` with the currently active platform
-    #[cfg(not(feature = "package-global"))]
-    pub fn with_cli(cli: CliPlatform, session: &mut Session) -> Fallible<Option<Self>> {
-        match Self::current(session)? {
-            Some(current) => Ok(Some(cli.merge(current))),
-            None => Ok(cli.into()),
         }
     }
 

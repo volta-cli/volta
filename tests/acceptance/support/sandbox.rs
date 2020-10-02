@@ -406,19 +406,6 @@ impl SandboxBuilder {
         self
     }
 
-    /// Set cached package tarballs for the sandbox (chainable)
-    #[cfg(not(feature = "package-global"))]
-    pub fn package_inventory(mut self, name: &str, version: &str) -> Self {
-        let pkg_inventory_dir = package_inventory_dir();
-        let package_tarball = pkg_inventory_dir.join(format!("{}-{}.tgz", name, version));
-        self.files
-            .push(FileBuilder::new(package_tarball, "tarball contents"));
-        let package_shasum = pkg_inventory_dir.join(format!("{}-{}.shasum", name, version));
-        self.files
-            .push(FileBuilder::new(package_shasum, "shasum contents"));
-        self
-    }
-
     /// Write the "default npm" file for a node version (chainable)
     pub fn node_npm_version_file(mut self, node_version: &str, npm_version: &str) -> Self {
         let npm_file = node_npm_version_file(node_version);
@@ -671,20 +658,6 @@ impl Sandbox {
     pub fn package_image_exists(name: &str, version: &str) -> bool {
         let package_img_dir = package_image_dir(name, version);
         package_img_dir.join("package.json").exists()
-    }
-    #[cfg(not(feature = "package-global"))]
-    pub fn pkg_inventory_tarball_exists(name: &str, version: &str) -> bool {
-        let pkg_inventory_dir = package_inventory_dir();
-        pkg_inventory_dir
-            .join(format!("{}-{}.tgz", name, version))
-            .exists()
-    }
-    #[cfg(not(feature = "package-global"))]
-    pub fn pkg_inventory_shasum_exists(name: &str, version: &str) -> bool {
-        let pkg_inventory_dir = package_inventory_dir();
-        pkg_inventory_dir
-            .join(format!("{}-{}.shasum", name, version))
-            .exists()
     }
     pub fn read_default_platform() -> String {
         read_file_to_string(default_platform_file())

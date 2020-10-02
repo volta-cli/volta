@@ -6,9 +6,6 @@ use cfg_if::cfg_if;
 use double_checked_cell::DoubleCheckedCell;
 use dunce::canonicalize;
 use lazy_static::lazy_static;
-#[cfg(not(feature = "package-global"))]
-use volta_layout::v2::{VoltaHome, VoltaInstall};
-#[cfg(feature = "package-global")]
 use volta_layout::v3::{VoltaHome, VoltaInstall};
 
 cfg_if! {

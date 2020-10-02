@@ -30,16 +30,3 @@ fn fetch_npm() {
     assert!(p.npm_version_is_fetched("6.14.2"));
     assert!(p.npm_version_is_unpacked("6.14.2"));
 }
-
-#[test]
-#[cfg(not(feature = "package-global"))]
-fn fetch_package() {
-    let p = temp_project().build();
-
-    // have to install node first, because we need npm
-    assert_that!(p.volta("install node@12.16.1"), execs().with_status(0));
-
-    assert_that!(p.volta("fetch cowsay@1.4.0"), execs().with_status(0));
-    assert!(p.package_version_is_fetched("cowsay", "1.4.0"));
-    assert!(p.package_version_is_unpacked("cowsay", "1.4.0"));
-}
