@@ -18,6 +18,18 @@ mod npx;
 mod parser;
 mod yarn;
 
+/// Environment variable set internally when a shim has been executed and the context evaluated
+///
+/// This is set when executing a shim command. If this is already, then the built-in shims (Node,
+/// npm, npx, and Yarn) will assume that the context has already been evaluated & the PATH has
+/// already been modified, so they will use the pass-through behavior.
+///
+/// Shims should only be called recursively when the environment is misconfigured, so this will
+/// prevent infinite recursion as the pass-through logic removes the shim directory from the PATH.
+///
+/// Note: This is explicitly _removed_ when calling a command through `volta run`, as that will
+/// never happen due to the Volta environment.
+const RECURSION_ENV_VAR: &str = "_VOLTA_TOOL_RECURSION";
 const VOLTA_BYPASS: &str = "VOLTA_BYPASS";
 
 /// Execute a shim command, based on the command-line arguments to the current process
@@ -41,6 +53,10 @@ where
     K: AsRef<OsStr>,
     V: AsRef<OsStr>,
 {
+    // Remove the recursion environment variable so that the context is correctly re-evaluated
+    // when calling `volta run` (even when called from a Node script)
+    env::remove_var(RECURSION_ENV_VAR);
+
     let mut runner = get_executor(exe, args, session)?;
     runner.cli_platform(cli);
     runner.envs(envs);
