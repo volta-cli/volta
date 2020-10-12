@@ -12,10 +12,9 @@ use crate::session::Session;
 use crate::style::progress_spinner;
 use crate::tool::Yarn;
 use crate::version::{parse_version, VersionSpec, VersionTag};
+use attohttpc::header::ACCEPT;
+use attohttpc::Response;
 use log::debug;
-use reqwest::blocking::Client;
-use reqwest::blocking::Response;
-use reqwest::header::ACCEPT;
 use semver::{Version, VersionReq};
 
 pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Version> {
@@ -73,9 +72,7 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Yarn>>) -> Fall
 fn fetch_yarn_index() -> Fallible<(String, PackageIndex)> {
     let url = public_registry_index("yarn");
     let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
-    let http_client = Client::new();
-    let metadata: RawPackageMetadata = http_client
-        .get(&url)
+    let metadata: RawPackageMetadata = attohttpc::get(&url)
         .header(ACCEPT, NPM_ABBREVIATED_ACCEPT_HEADER)
         .send()
         .and_then(Response::error_for_status)
@@ -99,7 +96,8 @@ fn resolve_custom_tag(tag: String) -> Fallible<Version> {
 }
 
 fn resolve_latest_legacy(url: String) -> Fallible<Version> {
-    let response_text = reqwest::blocking::get(&url)
+    let response_text = attohttpc::get(&url)
+        .send()
         .and_then(Response::error_for_status)
         .and_then(Response::text)
         .with_context(|| ErrorKind::YarnLatestFetchError {
@@ -135,7 +133,8 @@ fn resolve_semver_from_registry(matching: VersionReq) -> Fallible<Version> {
 
 fn resolve_semver_legacy(matching: VersionReq, url: String) -> Fallible<Version> {
     let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
-    let releases: RawYarnIndex = reqwest::blocking::get(&url)
+    let releases: RawYarnIndex = attohttpc::get(&url)
+        .send()
         .and_then(Response::error_for_status)
         .and_then(Response::json)
         .with_context(registry_fetch_error("Yarn", &url))?;
