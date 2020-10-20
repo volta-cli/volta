@@ -1,3 +1,9 @@
+# Version 0.9.0
+
+- Support Proxies through environment variables (#809, #851)
+- Avoid unnecessary `exists` calls for files (#834)
+- Rework package installs to allow for directly calling package manager (#848, #849)
+
 # Version 0.8.7
 
 - Support fetching older versions of Yarn (#771)
