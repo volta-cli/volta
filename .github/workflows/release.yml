@@ -176,7 +176,6 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: ${{ github.ref }}
           draft: true
-          prerelease: true
       - name: Upload CentOS artifact
         uses: actions/upload-release-asset@v1
         env:
