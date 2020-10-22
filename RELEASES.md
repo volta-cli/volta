@@ -1,3 +1,7 @@
+# Version 0.9.1
+
+- Fix an issue with installing globals using npm 7 (#858)
+
 # Version 0.9.0
 
 - Support Proxies through environment variables (#809, #851)
