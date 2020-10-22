@@ -34,7 +34,8 @@ pub struct Package {
 
 impl Package {
     pub fn new(name: String, version: VersionSpec) -> Fallible<Self> {
-        let staging = create_staging_dir()?;
+        let staging = setup_staging_directory(PackageManager::Npm)?;
+
         Ok(Package {
             name,
             version,
@@ -124,7 +125,8 @@ pub struct DirectInstall {
 
 impl DirectInstall {
     pub fn new(manager: PackageManager) -> Fallible<Self> {
-        let staging = create_staging_dir()?;
+        let staging = setup_staging_directory(manager)?;
+
         Ok(DirectInstall { staging, manager })
     }
 
@@ -147,6 +149,22 @@ impl DirectInstall {
 
         Ok(())
     }
+}
+
+/// Create the temporary staging directory we will use to install and ensure expected
+/// subdirectories exist within it
+fn setup_staging_directory(manager: PackageManager) -> Fallible<TempDir> {
+    let staging = create_staging_dir()?;
+
+    let source_dir = manager.source_dir(staging.path().to_owned());
+    ensure_containing_dir_exists(&source_dir)
+        .with_context(|| ErrorKind::ContainingDirError { path: source_dir })?;
+
+    let binary_dir = manager.binary_dir(staging.path().to_owned());
+    ensure_containing_dir_exists(&binary_dir)
+        .with_context(|| ErrorKind::ContainingDirError { path: binary_dir })?;
+
+    Ok(staging)
 }
 
 fn persist_install<V>(package_name: &str, package_version: V, staging_dir: &Path) -> Fallible<()>
