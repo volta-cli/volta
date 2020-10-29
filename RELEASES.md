@@ -1,3 +1,7 @@
+# Version 0.9.2
+
+- Correctly detect Volta binary installation directory (#864)
+
 # Version 0.9.1
 
 - Fix an issue with installing globals using npm 7 (#858)
