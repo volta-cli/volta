@@ -137,13 +137,13 @@ impl Spec {
 ///
 /// This means it is either 'latest', 'lts', a Version, or a Version Range.
 fn is_version_like(value: &str) -> bool {
-    match value.parse() {
+    matches!(
+        value.parse(),
         Ok(VersionSpec::Exact(_))
         | Ok(VersionSpec::Semver(_))
         | Ok(VersionSpec::Tag(VersionTag::Latest))
-        | Ok(VersionSpec::Tag(VersionTag::Lts)) => true,
-        _ => false,
-    }
+        | Ok(VersionSpec::Tag(VersionTag::Lts))
+    )
 }
 
 #[cfg(test)]

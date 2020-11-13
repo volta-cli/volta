@@ -55,10 +55,7 @@ impl Source {
     fn allowed_with(&self, filter: &Filter) -> bool {
         match filter {
             Filter::Default => self == &Source::Default,
-            Filter::Current => match self {
-                Source::Default | Source::Project(_) => true,
-                _ => false,
-            },
+            Filter::Current => matches!(self, Source::Default | Source::Project(_)),
             Filter::None => true,
         }
     }
