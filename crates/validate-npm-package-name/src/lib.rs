@@ -73,17 +73,11 @@ pub enum Validity {
 
 impl Validity {
     pub fn valid_for_old_packages(&self) -> bool {
-        match self {
-            Validity::Invalid { .. } => false,
-            _ => true,
-        }
+        matches!(self, Validity::Valid | Validity::ValidForOldPackages { .. })
     }
 
     pub fn valid_for_new_packages(&self) -> bool {
-        match self {
-            Validity::Valid => true,
-            _ => false,
-        }
+        matches!(self, Validity::Valid)
     }
 }
 
