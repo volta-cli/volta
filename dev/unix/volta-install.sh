@@ -385,10 +385,19 @@ check_architecture() {
   local arch="$2"
 
   if [[ "$version" != "local"* ]]; then
-    if [ "$arch" != "x86_64" ]; then
-      error "Sorry! Volta currently only provides pre-built binaries for x86_64 architectures."
-      return 1
-    fi
+    case "$arch" in
+      x86_64)
+        return 0
+        ;;
+      arm64)
+        if [ "$(uname -s)" = "Darwin" ]; then
+          return 0
+        fi
+        ;;
+    esac
+
+    error "Sorry! Volta currently only provides pre-built binaries for x86_64 architectures."
+    return 1
   fi
 }
 
