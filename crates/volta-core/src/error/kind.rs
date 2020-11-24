@@ -307,6 +307,12 @@ pub enum ErrorKind {
         tool: String,
     },
 
+    /// Thrown when there is no pnpm version matching the requested Semver/Tag
+    #[cfg(feature = "pnpm")]
+    PnpmVersionNotFound {
+        matching: String,
+    },
+
     /// Thrown when executing a project-local binary fails
     ProjectLocalBinaryExecError {
         command: String,
@@ -864,7 +870,7 @@ Use `volta install yarn` to select a default version (see `volta help install` f
             ),
             ErrorKind::NpmVersionNotFound { matching } => write!(
                 f,
-                r#"Could not find Node version matching "{}" in the version registry.
+                r#"Could not find npm version matching "{}" in the version registry.
 
 Please verify that the version is correct."#,
                 matching
@@ -1004,6 +1010,14 @@ Please supply a spec in the format `<tool name>[@<version>]`.",
 
 {}",
                 tool, PERMISSIONS_CTA
+            ),
+            #[cfg(feature = "pnpm")]
+            ErrorKind::PnpmVersionNotFound { matching } => write!(
+                f,
+                r#"Could not find pnpm version matching "{}" in the version registry.
+
+Please verify that the version is correct."#,
+                matching
             ),
             ErrorKind::ProjectLocalBinaryExecError { command } => write!(
                 f,
@@ -1358,6 +1372,8 @@ impl ErrorKind {
             ErrorKind::ParsePackageConfigError => ExitCode::UnknownError,
             ErrorKind::ParsePlatformError => ExitCode::ConfigurationError,
             ErrorKind::PersistInventoryError { .. } => ExitCode::FileSystemError,
+            #[cfg(feature = "pnpm")]
+            ErrorKind::PnpmVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorKind::ProjectLocalBinaryExecError { .. } => ExitCode::ExecutionFailure,
             ErrorKind::ProjectLocalBinaryNotFound { .. } => ExitCode::FileSystemError,
             ErrorKind::PublishHookBothUrlAndBin => ExitCode::ConfigurationError,

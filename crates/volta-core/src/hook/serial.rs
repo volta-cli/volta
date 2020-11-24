@@ -4,6 +4,8 @@ use std::path::Path;
 
 use super::tool;
 use crate::error::{ErrorKind, Fallible, VoltaError};
+#[cfg(feature = "pnpm")]
+use crate::tool::Pnpm;
 use crate::tool::{Node, Npm, Tool, Yarn};
 use serde::{Deserialize, Serialize};
 
@@ -101,6 +103,8 @@ impl TryFrom<RawPublishHook> for super::Publish {
 pub struct RawHookConfig {
     pub node: Option<RawToolHooks<Node>>,
     pub npm: Option<RawToolHooks<Npm>>,
+    #[cfg(feature = "pnpm")]
+    pub pnpm: Option<RawToolHooks<Pnpm>>,
     pub yarn: Option<RawToolHooks<Yarn>>,
     pub events: Option<RawEventHooks>,
 }
@@ -136,11 +140,15 @@ impl RawHookConfig {
     pub fn into_hook_config(self, base_dir: &Path) -> Fallible<super::HookConfig> {
         let node = self.node.map(|n| n.into_tool_hooks(base_dir)).transpose()?;
         let npm = self.npm.map(|n| n.into_tool_hooks(base_dir)).transpose()?;
+        #[cfg(feature = "pnpm")]
+        let pnpm = self.pnpm.map(|p| p.into_tool_hooks(base_dir)).transpose()?;
         let yarn = self.yarn.map(|y| y.into_tool_hooks(base_dir)).transpose()?;
         let events = self.events.map(|e| e.try_into()).transpose()?;
         Ok(super::HookConfig {
             node,
             npm,
+            #[cfg(feature = "pnpm")]
+            pnpm,
             yarn,
             events,
         })

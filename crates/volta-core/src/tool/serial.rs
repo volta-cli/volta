@@ -20,6 +20,8 @@ impl Spec {
         match tool_name {
             "node" => Spec::Node(version),
             "npm" => Spec::Npm(version),
+            #[cfg(feature = "pnpm")]
+            "pnpm" => Spec::Pnpm(version),
             "yarn" => Spec::Yarn(version),
             package => Spec::Package(package.to_string(), version),
         }
@@ -53,6 +55,8 @@ impl Spec {
         Ok(match name {
             "node" => Spec::Node(version),
             "npm" => Spec::Npm(version),
+            #[cfg(feature = "pnpm")]
+            "pnpm" => Spec::Pnpm(version),
             "yarn" => Spec::Yarn(version),
             package => Spec::Package(package.into(), version),
         })
@@ -125,6 +129,12 @@ impl Spec {
             (Spec::Npm(_), Spec::Npm(_)) => Ordering::Equal,
             (Spec::Npm(_), _) => Ordering::Less,
             (_, Spec::Npm(_)) => Ordering::Greater,
+            #[cfg(feature = "pnpm")]
+            (Spec::Pnpm(_), Spec::Pnpm(_)) => Ordering::Equal,
+            #[cfg(feature = "pnpm")]
+            (Spec::Pnpm(_), _) => Ordering::Less,
+            #[cfg(feature = "pnpm")]
+            (_, Spec::Pnpm(_)) => Ordering::Greater,
             (Spec::Yarn(_), Spec::Yarn(_)) => Ordering::Equal,
             (Spec::Yarn(_), _) => Ordering::Less,
             (_, Spec::Yarn(_)) => Ordering::Greater,
