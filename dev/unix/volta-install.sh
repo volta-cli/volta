@@ -377,7 +377,7 @@ install_from_file() {
 
   info 'Extracting' "Volta binaries and launchers"
   # extract the files to the specified directory
-  tar -xzvf "$archive" -C "$install_dir"/bin
+  tar -xf "$archive" -C "$install_dir"/bin
 }
 
 check_architecture() {
