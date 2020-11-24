@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["Charles Pierce <cpierce.grad@gmail.com>"]
 edition = "2018"
 
+[features]
+pnpm = ["volta-layout/pnpm", "volta-core/pnpm"]
+
 [dependencies]
 volta-core = { path = "../volta-core" }
 volta-layout = { path = "../volta-layout" }
