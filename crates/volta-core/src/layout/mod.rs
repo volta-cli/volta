@@ -6,7 +6,10 @@ use cfg_if::cfg_if;
 use double_checked_cell::DoubleCheckedCell;
 use dunce::canonicalize;
 use lazy_static::lazy_static;
+#[cfg(not(feature = "pnpm"))]
 use volta_layout::v3::{VoltaHome, VoltaInstall};
+#[cfg(feature = "pnpm")]
+use volta_layout::v4::{VoltaHome, VoltaInstall};
 
 cfg_if! {
     if #[cfg(unix)] {

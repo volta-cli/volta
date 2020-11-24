@@ -30,7 +30,10 @@ fn empty_volta_home_is_created() {
     assert!(Sandbox::path_exists(".volta/tools/user"));
 
     // Layout file should now exist
+    #[cfg(not(feature = "pnpm"))]
     assert!(Sandbox::path_exists(".volta/layout.v3"));
+    #[cfg(feature = "pnpm")]
+    assert!(Sandbox::path_exists(".volta/layout.v4"));
 
     // shims should all be created
     // NOTE: this doesn't work in Windows, because the default shims are stored separately
@@ -58,6 +61,8 @@ fn legacy_v0_volta_home_is_upgraded() {
     // Layout file is not there
     assert!(!Sandbox::path_exists(".volta/layout.v1"));
     assert!(!Sandbox::path_exists(".volta/layout.v2"));
+    #[cfg(feature = "pnpm")]
+    assert!(!Sandbox::path_exists(".volta/layout.v3"));
 
     // running volta should not create anything else
     assert_that!(s.volta("--version"), execs().with_status(0));
@@ -73,7 +78,12 @@ fn legacy_v0_volta_home_is_upgraded() {
     // Most recent layout file should exist, others should not
     assert!(!Sandbox::path_exists(".volta/layout.v1"));
     assert!(!Sandbox::path_exists(".volta/layout.v2"));
+    #[cfg(not(feature = "pnpm"))]
     assert!(Sandbox::path_exists(".volta/layout.v3"));
+    #[cfg(feature = "pnpm")]
+    assert!(!Sandbox::path_exists(".volta/layout.v3"));
+    #[cfg(feature = "pnpm")]
+    assert!(Sandbox::path_exists(".volta/layout.v4"));
 
     // shims should all be created
     // NOTE: this doesn't work in Windows, because the default shims are stored separately
@@ -141,7 +151,12 @@ fn tagged_v1_volta_home_is_upgraded() {
     // Most recent layout file should exist, others should not
     assert!(!Sandbox::path_exists(".volta/layout.v1"));
     assert!(!Sandbox::path_exists(".volta/layout.v2"));
+    #[cfg(not(feature = "pnpm"))]
     assert!(Sandbox::path_exists(".volta/layout.v3"));
+    #[cfg(feature = "pnpm")]
+    assert!(!Sandbox::path_exists(".volta/layout.v3"));
+    #[cfg(feature = "pnpm")]
+    assert!(Sandbox::path_exists(".volta/layout.v4"));
 
     // shims should all be created
     // NOTE: this doesn't work in Windows, because the default shims are stored separately
@@ -206,6 +221,7 @@ fn tagged_v1_to_v2_keeps_migrated_node_images() {
 }
 
 #[test]
+#[cfg(not(feature = "pnpm"))]
 fn current_v3_volta_home_is_unchanged() {
     let s = sandbox().layout_file("v3").build();
 
@@ -223,6 +239,31 @@ fn current_v3_volta_home_is_unchanged() {
     // everything should be the same as before running the command
     assert!(Sandbox::path_exists(".volta"));
     assert!(Sandbox::path_exists(".volta/layout.v3"));
+    assert!(Sandbox::path_exists(".volta/cache/node"));
+    assert!(Sandbox::path_exists(".volta/tmp"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/node"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
+}
+
+#[test]
+#[cfg(feature = "pnpm")]
+fn current_v4_volta_home_is_unchanged() {
+    let s = sandbox().layout_file("v4").build();
+
+    // directories that are already created by the test framework
+    assert!(Sandbox::path_exists(".volta"));
+    assert!(Sandbox::path_exists(".volta/layout.v4"));
+    assert!(Sandbox::path_exists(".volta/cache/node"));
+    assert!(Sandbox::path_exists(".volta/tmp"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/node"));
+    assert!(Sandbox::path_exists(".volta/tools/inventory/yarn"));
+
+    // running volta should not create anything else
+    assert_that!(s.volta("--version"), execs().with_status(0));
+
+    // everything should be the same as before running the command
+    assert!(Sandbox::path_exists(".volta"));
+    assert!(Sandbox::path_exists(".volta/layout.v4"));
     assert!(Sandbox::path_exists(".volta/cache/node"));
     assert!(Sandbox::path_exists(".volta/tmp"));
     assert!(Sandbox::path_exists(".volta/tools/inventory/node"));

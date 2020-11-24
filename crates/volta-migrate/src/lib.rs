@@ -16,11 +16,15 @@ mod v0;
 mod v1;
 mod v2;
 mod v3;
+#[cfg(feature = "pnpm")]
+mod v4;
 
 use v0::V0;
 use v1::V1;
 use v2::V2;
 use v3::V3;
+#[cfg(feature = "pnpm")]
+use v4::V4;
 
 use log::{debug, info};
 use volta_core::error::Fallible;
@@ -39,6 +43,8 @@ enum MigrationState {
     V1(Box<V1>),
     V2(Box<V2>),
     V3(Box<V3>),
+    #[cfg(feature = "pnpm")]
+    V4(Box<V4>),
 }
 
 /// Macro to simplify the boilerplate associated with detecting a tagged state.
@@ -78,7 +84,11 @@ macro_rules! detect_tagged {
     }
 }
 
+#[cfg(not(feature = "pnpm"))]
 detect_tagged!((v3, V3, V3), (v2, V2, V2), (v1, V1, V1));
+
+#[cfg(feature = "pnpm")]
+detect_tagged!((v4, V4, V4), (v3, V3, V3), (v2, V2, V2), (v1, V1, V1));
 
 impl MigrationState {
     fn current() -> Fallible<Self> {
@@ -158,11 +168,21 @@ fn detect_and_migrate() -> Fallible<()> {
     // latest version. We then apply the migrations sequentially here: V0 -> V1 -> ... -> VX
     loop {
         state = match state {
+            #[cfg(not(feature = "pnpm"))]
             MigrationState::Empty(e) => MigrationState::V3(Box::new(e.try_into()?)),
+            #[cfg(feature = "pnpm")]
+            MigrationState::Empty(e) => MigrationState::V4(Box::new(e.try_into()?)),
             MigrationState::V0(zero) => MigrationState::V1(Box::new((*zero).try_into()?)),
             MigrationState::V1(one) => MigrationState::V2(Box::new((*one).try_into()?)),
             MigrationState::V2(two) => MigrationState::V3(Box::new((*two).try_into()?)),
+            #[cfg(not(feature = "pnpm"))]
             MigrationState::V3(_) => {
+                break;
+            }
+            #[cfg(feature = "pnpm")]
+            MigrationState::V3(three) => MigrationState::V4(Box::new((*three).try_into()?)),
+            #[cfg(feature = "pnpm")]
+            MigrationState::V4(_) => {
                 break;
             }
         };
