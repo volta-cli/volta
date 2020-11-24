@@ -11,6 +11,7 @@ mock-network = ["mockito"]
 # See ci/publish-docs.yml for an example of how it's enabled.
 # See volta-core::path for an example of where it's used.
 cross-platform-docs = []
+pnpm = ["volta-layout/pnpm"]
 
 [dependencies]
 term_size = "0.3.0"
