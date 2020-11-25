@@ -20,7 +20,7 @@ pub use resolve::resolve;
 
 /// The Tool implementation for fetching and installing npm
 pub struct Npm {
-    pub(super) version: Version,
+    version: Version,
 }
 
 impl Npm {

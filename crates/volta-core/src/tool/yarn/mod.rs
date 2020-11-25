@@ -19,7 +19,7 @@ pub use resolve::resolve;
 
 /// The Tool implementation for fetching and installing Yarn
 pub struct Yarn {
-    pub(super) version: Version,
+    version: Version,
 }
 
 impl Yarn {

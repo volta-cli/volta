@@ -87,7 +87,7 @@ impl Display for NodeVersion {
 
 /// The Tool implementation for fetching and installing Node
 pub struct Node {
-    pub(super) version: Version,
+    version: Version,
 }
 
 impl Node {
