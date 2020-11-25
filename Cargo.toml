@@ -11,6 +11,7 @@ cross-platform-docs = ["volta-core/cross-platform-docs"]
 mock-network = ["mockito", "volta-core/mock-network"]
 volta-dev = []
 smoke-tests = []
+pnpm = ["volta-core/pnpm", "volta-migrate/pnpm"]
 
 [[bin]]
 name = "volta-shim"

@@ -4,5 +4,8 @@ version = "0.1.1"
 authors = ["Chuck Pierce <cpierce.grad@gmail.com>"]
 edition = "2018"
 
+[features]
+pnpm = []
+
 [dependencies]
 volta-layout-macro = { path = "../volta-layout-macro" }
