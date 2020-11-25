@@ -31,6 +31,8 @@ pub(super) fn write_config_and_shims(
     let platform = PlatformSpec {
         node: image.node.value.clone(),
         npm: image.npm.clone().map(|s| s.value),
+        #[cfg(feature = "pnpm")]
+        pnpm: image.pnpm.clone().map(|s| s.value),
         yarn: image.yarn.clone().map(|s| s.value),
     };
 

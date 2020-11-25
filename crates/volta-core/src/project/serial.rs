@@ -63,6 +63,8 @@ impl Manifest {
 pub(super) enum ManifestKey {
     Node,
     Npm,
+    #[cfg(feature = "pnpm")]
+    Pnpm,
     Yarn,
 }
 
@@ -71,6 +73,8 @@ impl fmt::Display for ManifestKey {
         f.write_str(match self {
             ManifestKey::Node => "node",
             ManifestKey::Npm => "npm",
+            #[cfg(feature = "pnpm")]
+            ManifestKey::Pnpm => "pnpm",
             ManifestKey::Yarn => "yarn",
         })
     }
@@ -168,6 +172,9 @@ struct ToolchainSpec {
     #[serde(skip_serializing_if = "Option::is_none")]
     npm: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg(feature = "pnpm")]
+    pnpm: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     yarn: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     extends: Option<PathBuf>,
@@ -178,9 +185,17 @@ impl ToolchainSpec {
     fn parse_split(self) -> Fallible<(PartialPlatform, Option<PathBuf>)> {
         let node = self.node.map(parse_version).transpose()?;
         let npm = self.npm.map(parse_version).transpose()?;
+        #[cfg(feature = "pnpm")]
+        let pnpm = self.pnpm.map(parse_version).transpose()?;
         let yarn = self.yarn.map(parse_version).transpose()?;
 
-        let platform = PartialPlatform { node, npm, yarn };
+        let platform = PartialPlatform {
+            node,
+            npm,
+            #[cfg(feature = "pnpm")]
+            pnpm,
+            yarn,
+        };
 
         Ok((platform, self.extends))
     }

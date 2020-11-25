@@ -2,6 +2,8 @@ use std::fmt;
 
 use crate::error::{ErrorKind, Fallible};
 use crate::session::Session;
+#[cfg(feature = "pnpm")]
+use crate::tool::Pnpm;
 use crate::tool::{Node, Npm, Yarn};
 use semver::Version;
 
@@ -161,6 +163,8 @@ impl<T> Default for InheritOption<T> {
 pub struct PlatformSpec {
     pub node: Version,
     pub npm: Option<Version>,
+    #[cfg(feature = "pnpm")]
+    pub pnpm: Option<Version>,
     pub yarn: Option<Version>,
 }
 
@@ -170,6 +174,8 @@ impl PlatformSpec {
         Platform {
             node: Sourced::with_default(self.node.clone()),
             npm: self.npm.clone().map(Sourced::with_default),
+            #[cfg(feature = "pnpm")]
+            pnpm: self.pnpm.clone().map(Sourced::with_default),
             yarn: self.yarn.clone().map(Sourced::with_default),
         }
     }
@@ -179,6 +185,8 @@ impl PlatformSpec {
         Platform {
             node: Sourced::with_project(self.node.clone()),
             npm: self.npm.clone().map(Sourced::with_project),
+            #[cfg(feature = "pnpm")]
+            pnpm: self.pnpm.clone().map(Sourced::with_project),
             yarn: self.yarn.clone().map(Sourced::with_project),
         }
     }
@@ -188,6 +196,8 @@ impl PlatformSpec {
         Platform {
             node: Sourced::with_binary(self.node.clone()),
             npm: self.npm.clone().map(Sourced::with_binary),
+            #[cfg(feature = "pnpm")]
+            pnpm: self.pnpm.clone().map(Sourced::with_binary),
             yarn: self.yarn.clone().map(Sourced::with_binary),
         }
     }
@@ -198,6 +208,8 @@ impl PlatformSpec {
 pub struct CliPlatform {
     pub node: Option<Version>,
     pub npm: InheritOption<Version>,
+    #[cfg(feature = "pnpm")]
+    pub pnpm: InheritOption<Version>,
     pub yarn: InheritOption<Version>,
 }
 
@@ -207,6 +219,8 @@ impl CliPlatform {
         Platform {
             node: self.node.map_or(base.node, Sourced::with_command_line),
             npm: self.npm.map(Sourced::with_command_line).inherit(base.npm),
+            #[cfg(feature = "pnpm")]
+            pnpm: self.pnpm.map(Sourced::with_command_line).inherit(base.pnpm),
             yarn: self.yarn.map(Sourced::with_command_line).inherit(base.yarn),
         }
     }
@@ -220,6 +234,8 @@ impl From<CliPlatform> for Option<Platform> {
             Some(node) => Some(Platform {
                 node: Sourced::with_command_line(node),
                 npm: base.npm.map(Sourced::with_command_line).into(),
+                #[cfg(feature = "pnpm")]
+                pnpm: base.pnpm.map(Sourced::with_command_line).into(),
                 yarn: base.yarn.map(Sourced::with_command_line).into(),
             }),
         }
@@ -231,6 +247,8 @@ impl From<CliPlatform> for Option<Platform> {
 pub struct Platform {
     pub node: Sourced<Version>,
     pub npm: Option<Sourced<Version>>,
+    #[cfg(feature = "pnpm")]
+    pub pnpm: Option<Sourced<Version>>,
     pub yarn: Option<Sourced<Version>>,
 }
 
@@ -246,6 +264,7 @@ impl Platform {
     pub fn current(session: &mut Session) -> Fallible<Option<Self>> {
         match session.project_platform()? {
             Some(platform) => {
+                #[cfg(not(feature = "pnpm"))]
                 if platform.yarn.is_none() || platform.npm.is_none() {
                     if let Some(default) = session.default_platform()? {
                         let npm = platform
@@ -262,6 +281,34 @@ impl Platform {
                         return Ok(Some(Platform {
                             node: Sourced::with_project(platform.node.clone()),
                             npm,
+                            yarn,
+                        }));
+                    }
+                }
+
+                #[cfg(feature = "pnpm")]
+                if platform.yarn.is_none() || platform.npm.is_none() || platform.pnpm.is_none() {
+                    if let Some(default) = session.default_platform()? {
+                        let npm = platform
+                            .npm
+                            .clone()
+                            .map(Sourced::with_project)
+                            .or_else(|| default.npm.clone().map(Sourced::with_default));
+                        let pnpm = platform
+                            .pnpm
+                            .clone()
+                            .map(Sourced::with_project)
+                            .or_else(|| default.npm.clone().map(Sourced::with_default));
+                        let yarn = platform
+                            .yarn
+                            .clone()
+                            .map(Sourced::with_project)
+                            .or_else(|| default.yarn.clone().map(Sourced::with_default));
+
+                        return Ok(Some(Platform {
+                            node: Sourced::with_project(platform.node.clone()),
+                            npm,
+                            pnpm,
                             yarn,
                         }));
                     }
@@ -285,6 +332,11 @@ impl Platform {
             Npm::new(version.clone()).ensure_fetched(session)?;
         }
 
+        #[cfg(feature = "pnpm")]
+        if let Some(Sourced { value: version, .. }) = &self.pnpm {
+            Pnpm::new(version.clone()).ensure_fetched(session)?;
+        }
+
         if let Some(Sourced { value: version, .. }) = &self.yarn {
             Yarn::new(version.clone()).ensure_fetched(session)?;
         }
@@ -292,6 +344,8 @@ impl Platform {
         Ok(Image {
             node: self.node,
             npm: self.npm,
+            #[cfg(feature = "pnpm")]
+            pnpm: self.pnpm,
             yarn: self.yarn,
         })
     }

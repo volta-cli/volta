@@ -42,6 +42,8 @@ impl From<LegacyPlatform> for PlatformSpec {
         PlatformSpec {
             node: config_platform.node.runtime,
             npm: config_platform.node.npm,
+            #[cfg(feature = "pnpm")]
+            pnpm: None,
             yarn: config_platform.yarn,
         }
     }

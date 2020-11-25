@@ -1,3 +1,8 @@
+// Suppressing the redundant clone warning while the `pnpm` feature is active, as that makes it
+// difficult to properly avoid redundant clones. This should be removed when the feature flag is
+// disabled (#[cfg(feature = "pnpm")])
+#![allow(clippy::redundant_clone)]
+
 use super::*;
 use crate::layout::volta_home;
 #[cfg(windows)]
@@ -28,16 +33,25 @@ fn test_image_path() {
     let npm_bin = volta_home().unwrap().npm_image_bin_dir("6.4.3");
     let expected_npm_bin = npm_bin.to_str().unwrap();
 
+    #[cfg(feature = "pnpm")]
+    let pnpm_bin = volta_home().unwrap().pnpm_image_bin_dir("5.1.3");
+    #[cfg(feature = "pnpm")]
+    let expected_pnpm_bin = pnpm_bin.to_str().unwrap();
+
     let yarn_bin = volta_home().unwrap().yarn_image_bin_dir("4.5.7");
     let expected_yarn_bin = yarn_bin.to_str().unwrap();
 
     let v123 = Version::parse("1.2.3").unwrap();
     let v457 = Version::parse("4.5.7").unwrap();
+    #[cfg(feature = "pnpm")]
+    let v513 = Version::parse("5.1.3").unwrap();
     let v643 = Version::parse("6.4.3").unwrap();
 
     let only_node = Image {
         node: Sourced::with_default(v123.clone()),
         npm: None,
+        #[cfg(feature = "pnpm")]
+        pnpm: None,
         yarn: None,
     };
 
@@ -49,6 +63,8 @@ fn test_image_path() {
     let node_npm = Image {
         node: Sourced::with_default(v123.clone()),
         npm: Some(Sourced::with_default(v643.clone())),
+        #[cfg(feature = "pnpm")]
+        pnpm: None,
         yarn: None,
     };
 
@@ -60,9 +76,29 @@ fn test_image_path() {
         )
     );
 
+    #[cfg(feature = "pnpm")]
+    {
+        let node_pnpm = Image {
+            node: Sourced::with_default(v123.clone()),
+            npm: None,
+            pnpm: Some(Sourced::with_default(v513.clone())),
+            yarn: None,
+        };
+
+        assert_eq!(
+            node_pnpm.path().unwrap().into_string().unwrap(),
+            format!(
+                "{}:{}:{}",
+                expected_pnpm_bin, expected_node_bin, starting_path
+            )
+        );
+    }
+
     let node_yarn = Image {
         node: Sourced::with_default(v123.clone()),
         npm: None,
+        #[cfg(feature = "pnpm")]
+        pnpm: None,
         yarn: Some(Sourced::with_default(v457.clone())),
     };
 
@@ -75,9 +111,11 @@ fn test_image_path() {
     );
 
     let node_npm_yarn = Image {
-        node: Sourced::with_default(v123),
-        npm: Some(Sourced::with_default(v643)),
-        yarn: Some(Sourced::with_default(v457)),
+        node: Sourced::with_default(v123.clone()),
+        npm: Some(Sourced::with_default(v643.clone())),
+        #[cfg(feature = "pnpm")]
+        pnpm: None,
+        yarn: Some(Sourced::with_default(v457.clone())),
     };
 
     assert_eq!(
@@ -87,6 +125,28 @@ fn test_image_path() {
             expected_npm_bin, expected_yarn_bin, expected_node_bin, starting_path
         )
     );
+
+    #[cfg(feature = "pnpm")]
+    {
+        let all = Image {
+            node: Sourced::with_default(v123.clone()),
+            npm: Some(Sourced::with_default(v643.clone())),
+            pnpm: Some(Sourced::with_default(v513.clone())),
+            yarn: Some(Sourced::with_default(v457.clone())),
+        };
+
+        assert_eq!(
+            all.path().unwrap().into_string().unwrap(),
+            format!(
+                "{}:{}:{}:{}:{}",
+                expected_npm_bin,
+                expected_pnpm_bin,
+                expected_yarn_bin,
+                expected_node_bin,
+                starting_path
+            )
+        );
+    }
 }
 
 #[cfg(windows)]
@@ -110,16 +170,25 @@ fn test_image_path() {
     let npm_bin = volta_home().unwrap().npm_image_bin_dir("6.4.3");
     let expected_npm_bin = npm_bin.to_str().unwrap();
 
+    #[cfg(feature = "pnpm")]
+    let pnpm_bin = volta_home().unwrap().pnpm_image_bin_dir("5.1.3");
+    #[cfg(feature = "pnpm")]
+    let expected_pnpm_bin = pnpm_bin.to_str().unwrap();
+
     let yarn_bin = volta_home().unwrap().yarn_image_bin_dir("4.5.7");
     let expected_yarn_bin = yarn_bin.to_str().unwrap();
 
     let v123 = Version::parse("1.2.3").unwrap();
     let v457 = Version::parse("4.5.7").unwrap();
+    #[cfg(feature = "pnpm")]
+    let v513 = Version::parse("5.1.3").unwrap();
     let v643 = Version::parse("6.4.3").unwrap();
 
     let only_node = Image {
         node: Sourced::with_default(v123.clone()),
         npm: None,
+        #[cfg(feature = "pnpm")]
+        pnpm: None,
         yarn: None,
     };
 
@@ -131,6 +200,8 @@ fn test_image_path() {
     let node_npm = Image {
         node: Sourced::with_default(v123.clone()),
         npm: Some(Sourced::with_default(v643.clone())),
+        #[cfg(feature = "pnpm")]
+        pnpm: None,
         yarn: None,
     };
 
@@ -142,9 +213,29 @@ fn test_image_path() {
         )
     );
 
+    #[cfg(feature = "pnpm")]
+    {
+        let node_pnpm = Image {
+            node: Sourced::with_default(v123.clone()),
+            npm: None,
+            pnpm: Some(Sourced::with_default(v513.clone())),
+            yarn: None,
+        };
+
+        assert_eq!(
+            node_pnpm.path().unwrap().into_string().unwrap(),
+            format!(
+                "{};{};{}",
+                expected_pnpm_bin, expected_node_bin, path_with_shims
+            )
+        );
+    }
+
     let node_yarn = Image {
         node: Sourced::with_default(v123.clone()),
         npm: None,
+        #[cfg(feature = "pnpm")]
+        pnpm: None,
         yarn: Some(Sourced::with_default(v457.clone())),
     };
 
@@ -157,9 +248,11 @@ fn test_image_path() {
     );
 
     let node_npm_yarn = Image {
-        node: Sourced::with_default(v123),
-        npm: Some(Sourced::with_default(v643)),
-        yarn: Some(Sourced::with_default(v457)),
+        node: Sourced::with_default(v123.clone()),
+        npm: Some(Sourced::with_default(v643.clone())),
+        #[cfg(feature = "pnpm")]
+        pnpm: None,
+        yarn: Some(Sourced::with_default(v457.clone())),
     };
 
     assert_eq!(
@@ -168,7 +261,29 @@ fn test_image_path() {
             "{};{};{};{}",
             expected_npm_bin, expected_yarn_bin, expected_node_bin, path_with_shims
         )
-    )
+    );
+
+    #[cfg(feature = "pnpm")]
+    {
+        let all = Image {
+            node: Sourced::with_default(v123.clone()),
+            npm: Some(Sourced::with_default(v643.clone())),
+            pnpm: Some(Sourced::with_default(v513.clone())),
+            yarn: Some(Sourced::with_default(v457.clone())),
+        };
+
+        assert_eq!(
+            all.path().unwrap().into_string().unwrap(),
+            format!(
+                "{};{};{};{};{}",
+                expected_npm_bin,
+                expected_pnpm_bin,
+                expected_yarn_bin,
+                expected_node_bin,
+                path_with_shims
+            )
+        );
+    }
 }
 
 #[cfg(unix)]
@@ -271,6 +386,7 @@ mod cli_platform {
     lazy_static! {
         static ref NODE_VERSION: Version = Version::from((12, 14, 1));
         static ref NPM_VERSION: Version = Version::from((6, 13, 2));
+        static ref PNPM_VERSION: Version = Version::from((5, 2, 15));
         static ref YARN_VERSION: Version = Version::from((1, 17, 0));
     }
 
@@ -283,12 +399,16 @@ mod cli_platform {
             let test = CliPlatform {
                 node: Some(NODE_VERSION.clone()),
                 npm: InheritOption::default(),
+                #[cfg(feature = "pnpm")]
+                pnpm: InheritOption::default(),
                 yarn: InheritOption::default(),
             };
 
             let base = Platform {
                 node: Sourced::with_default(Version::from((10, 10, 10))),
                 npm: None,
+                #[cfg(feature = "pnpm")]
+                pnpm: None,
                 yarn: None,
             };
 
@@ -303,12 +423,16 @@ mod cli_platform {
             let test = CliPlatform {
                 node: None,
                 npm: InheritOption::default(),
+                #[cfg(feature = "pnpm")]
+                pnpm: InheritOption::default(),
                 yarn: InheritOption::default(),
             };
 
             let base = Platform {
                 node: Sourced::with_default(NODE_VERSION.clone()),
                 npm: None,
+                #[cfg(feature = "pnpm")]
+                pnpm: None,
                 yarn: None,
             };
 
@@ -323,12 +447,16 @@ mod cli_platform {
             let test = CliPlatform {
                 node: Some(NODE_VERSION.clone()),
                 npm: InheritOption::Some(NPM_VERSION.clone()),
+                #[cfg(feature = "pnpm")]
+                pnpm: InheritOption::default(),
                 yarn: InheritOption::default(),
             };
 
             let base = Platform {
                 node: Sourced::with_default(Version::from((10, 10, 10))),
                 npm: Some(Sourced::with_default(Version::from((5, 6, 3)))),
+                #[cfg(feature = "pnpm")]
+                pnpm: None,
                 yarn: None,
             };
 
@@ -344,12 +472,16 @@ mod cli_platform {
             let test = CliPlatform {
                 node: Some(NODE_VERSION.clone()),
                 npm: InheritOption::Inherit,
+                #[cfg(feature = "pnpm")]
+                pnpm: InheritOption::default(),
                 yarn: InheritOption::default(),
             };
 
             let base = Platform {
                 node: Sourced::with_default(Version::from((10, 10, 10))),
                 npm: Some(Sourced::with_default(NPM_VERSION.clone())),
+                #[cfg(feature = "pnpm")]
+                pnpm: None,
                 yarn: None,
             };
 
@@ -365,12 +497,16 @@ mod cli_platform {
             let test = CliPlatform {
                 node: Some(NODE_VERSION.clone()),
                 npm: InheritOption::None,
+                #[cfg(feature = "pnpm")]
+                pnpm: InheritOption::default(),
                 yarn: InheritOption::default(),
             };
 
             let base = Platform {
                 node: Sourced::with_default(Version::from((10, 10, 10))),
                 npm: Some(Sourced::with_default(NPM_VERSION.clone())),
+                #[cfg(feature = "pnpm")]
+                pnpm: None,
                 yarn: None,
             };
 
@@ -380,16 +516,90 @@ mod cli_platform {
         }
 
         #[test]
+        #[cfg(feature = "pnpm")]
+        fn uses_pnpm() {
+            let test = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::default(),
+                pnpm: InheritOption::Some(PNPM_VERSION.clone()),
+                yarn: InheritOption::default(),
+            };
+
+            let base = Platform {
+                node: Sourced::with_default(Version::from((10, 10, 10))),
+                npm: None,
+                pnpm: Some(Sourced::with_default(Version::from((1, 10, 3)))),
+                yarn: None,
+            };
+
+            let merged = test.merge(base);
+
+            let merged_pnpm = merged.pnpm.unwrap();
+            assert_eq!(merged_pnpm.value, PNPM_VERSION.clone());
+            assert_eq!(merged_pnpm.source, Source::CommandLine);
+        }
+
+        #[test]
+        #[cfg(feature = "pnpm")]
+        fn inherits_pnpm() {
+            let test = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::default(),
+                pnpm: InheritOption::Inherit,
+                yarn: InheritOption::default(),
+            };
+
+            let base = Platform {
+                node: Sourced::with_default(Version::from((10, 10, 10))),
+                npm: None,
+                pnpm: Some(Sourced::with_default(PNPM_VERSION.clone())),
+                yarn: None,
+            };
+
+            let merged = test.merge(base);
+
+            let merged_pnpm = merged.pnpm.unwrap();
+            assert_eq!(merged_pnpm.value, PNPM_VERSION.clone());
+            assert_eq!(merged_pnpm.source, Source::Default);
+        }
+
+        #[test]
+        #[cfg(feature = "pnpm")]
+        fn none_does_not_inherit_pnpm() {
+            let test = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::default(),
+                pnpm: InheritOption::None,
+                yarn: InheritOption::default(),
+            };
+
+            let base = Platform {
+                node: Sourced::with_default(Version::from((10, 10, 10))),
+                npm: None,
+                pnpm: Some(Sourced::with_default(PNPM_VERSION.clone())),
+                yarn: None,
+            };
+
+            let merged = test.merge(base);
+
+            assert!(merged.pnpm.is_none());
+        }
+
+        #[test]
         fn uses_yarn() {
             let test = CliPlatform {
                 node: Some(NODE_VERSION.clone()),
                 npm: InheritOption::default(),
+                #[cfg(feature = "pnpm")]
+                pnpm: InheritOption::default(),
                 yarn: InheritOption::Some(YARN_VERSION.clone()),
             };
 
             let base = Platform {
                 node: Sourced::with_default(Version::from((10, 10, 10))),
                 npm: None,
+                #[cfg(feature = "pnpm")]
+                pnpm: None,
                 yarn: Some(Sourced::with_default(Version::from((1, 10, 3)))),
             };
 
@@ -405,12 +615,16 @@ mod cli_platform {
             let test = CliPlatform {
                 node: Some(NODE_VERSION.clone()),
                 npm: InheritOption::default(),
+                #[cfg(feature = "pnpm")]
+                pnpm: InheritOption::default(),
                 yarn: InheritOption::Inherit,
             };
 
             let base = Platform {
                 node: Sourced::with_default(Version::from((10, 10, 10))),
                 npm: None,
+                #[cfg(feature = "pnpm")]
+                pnpm: None,
                 yarn: Some(Sourced::with_default(YARN_VERSION.clone())),
             };
 
@@ -426,12 +640,16 @@ mod cli_platform {
             let test = CliPlatform {
                 node: Some(NODE_VERSION.clone()),
                 npm: InheritOption::default(),
+                #[cfg(feature = "pnpm")]
+                pnpm: InheritOption::default(),
                 yarn: InheritOption::None,
             };
 
             let base = Platform {
                 node: Sourced::with_default(Version::from((10, 10, 10))),
                 npm: None,
+                #[cfg(feature = "pnpm")]
+                pnpm: None,
                 yarn: Some(Sourced::with_default(YARN_VERSION.clone())),
             };
 
@@ -450,6 +668,8 @@ mod cli_platform {
             let cli = CliPlatform {
                 node: None,
                 npm: InheritOption::default(),
+                #[cfg(feature = "pnpm")]
+                pnpm: InheritOption::default(),
                 yarn: InheritOption::default(),
             };
 
@@ -463,6 +683,8 @@ mod cli_platform {
             let cli = CliPlatform {
                 node: Some(NODE_VERSION.clone()),
                 npm: InheritOption::default(),
+                #[cfg(feature = "pnpm")]
+                pnpm: InheritOption::default(),
                 yarn: InheritOption::default(),
             };
 
@@ -478,6 +700,8 @@ mod cli_platform {
             let cli = CliPlatform {
                 node: Some(NODE_VERSION.clone()),
                 npm: InheritOption::Some(NPM_VERSION.clone()),
+                #[cfg(feature = "pnpm")]
+                pnpm: InheritOption::default(),
                 yarn: InheritOption::default(),
             };
 
@@ -493,6 +717,8 @@ mod cli_platform {
             let cli = CliPlatform {
                 node: Some(NODE_VERSION.clone()),
                 npm: InheritOption::None,
+                #[cfg(feature = "pnpm")]
+                pnpm: InheritOption::default(),
                 yarn: InheritOption::default(),
             };
 
@@ -506,6 +732,8 @@ mod cli_platform {
             let cli = CliPlatform {
                 node: Some(NODE_VERSION.clone()),
                 npm: InheritOption::Inherit,
+                #[cfg(feature = "pnpm")]
+                pnpm: InheritOption::default(),
                 yarn: InheritOption::default(),
             };
 
@@ -515,10 +743,57 @@ mod cli_platform {
         }
 
         #[test]
+        #[cfg(feature = "pnpm")]
+        fn uses_cli_pnpm() {
+            let cli = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::default(),
+                pnpm: InheritOption::Some(PNPM_VERSION.clone()),
+                yarn: InheritOption::default(),
+            };
+
+            let transformed: Option<Platform> = cli.into();
+
+            let pnpm = transformed.unwrap().pnpm.unwrap();
+            assert_eq!(pnpm.value, PNPM_VERSION.clone());
+            assert_eq!(pnpm.source, Source::CommandLine);
+        }
+
+        #[test]
+        #[cfg(feature = "pnpm")]
+        fn no_pnpm() {
+            let cli = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::default(),
+                pnpm: InheritOption::None,
+                yarn: InheritOption::default(),
+            };
+
+            let transformed: Option<Platform> = cli.into();
+            assert!(transformed.unwrap().pnpm.is_none());
+        }
+
+        #[test]
+        #[cfg(feature = "pnpm")]
+        fn inherit_pnpm_becomes_none() {
+            let cli = CliPlatform {
+                node: Some(NODE_VERSION.clone()),
+                npm: InheritOption::default(),
+                pnpm: InheritOption::Inherit,
+                yarn: InheritOption::default(),
+            };
+
+            let transformed: Option<Platform> = cli.into();
+            assert!(transformed.unwrap().pnpm.is_none());
+        }
+
+        #[test]
         fn uses_cli_yarn() {
             let cli = CliPlatform {
                 node: Some(NODE_VERSION.clone()),
                 npm: InheritOption::default(),
+                #[cfg(feature = "pnpm")]
+                pnpm: InheritOption::default(),
                 yarn: InheritOption::Some(YARN_VERSION.clone()),
             };
 
@@ -534,6 +809,8 @@ mod cli_platform {
             let cli = CliPlatform {
                 node: Some(NODE_VERSION.clone()),
                 npm: InheritOption::default(),
+                #[cfg(feature = "pnpm")]
+                pnpm: InheritOption::default(),
                 yarn: InheritOption::None,
             };
 
@@ -547,6 +824,8 @@ mod cli_platform {
             let cli = CliPlatform {
                 node: Some(NODE_VERSION.clone()),
                 npm: InheritOption::default(),
+                #[cfg(feature = "pnpm")]
+                pnpm: InheritOption::default(),
                 yarn: InheritOption::Inherit,
             };
 

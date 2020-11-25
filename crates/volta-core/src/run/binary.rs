@@ -136,9 +136,20 @@ impl DefaultBinary {
                 .default_platform()?
                 .and_then(|ref plat| plat.yarn.clone()),
         };
+        // Similarly, if the user doesn't have `pnpm` set in the platform for this binary, use the default
+        #[cfg(feature = "pnpm")]
+        let pnpm = match bin_config.platform.pnpm {
+            Some(pnpm) => Some(pnpm),
+            None => session
+                .default_platform()?
+                .and_then(|ref plat| plat.pnpm.clone()),
+        };
+
         let platform = Platform {
             node: Sourced::with_binary(bin_config.platform.node),
             npm: bin_config.platform.npm.map(Sourced::with_binary),
+            #[cfg(feature = "pnpm")]
+            pnpm: pnpm.map(Sourced::with_binary),
             yarn: yarn.map(Sourced::with_binary),
         };
 

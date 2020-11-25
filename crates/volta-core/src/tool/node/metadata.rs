@@ -42,8 +42,7 @@ pub struct RawNodeIndex(Vec<RawNodeEntry>);
 pub struct RawNodeEntry {
     #[serde(with = "version_serde")]
     version: Version,
-    #[serde(default)] // handles Option
-    #[serde(with = "option_version_serde")]
+    #[serde(default, with = "option_version_serde")]
     npm: Option<Version>,
     files: Vec<String>,
     #[serde(deserialize_with = "lts_version_serde")]

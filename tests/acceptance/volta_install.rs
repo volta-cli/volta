@@ -7,6 +7,7 @@ use test_support::matchers::execs;
 
 use volta_core::error::ExitCode;
 
+#[cfg(not(feature = "pnpm"))]
 fn platform_with_node(node: &str) -> String {
     format!(
         r#"{{
@@ -20,6 +21,22 @@ fn platform_with_node(node: &str) -> String {
     )
 }
 
+#[cfg(feature = "pnpm")]
+fn platform_with_node(node: &str) -> String {
+    format!(
+        r#"{{
+  "node": {{
+    "runtime": "{}",
+    "npm": null
+  }},
+  "pnpm": null,
+  "yarn": null
+}}"#,
+        node
+    )
+}
+
+#[cfg(not(feature = "pnpm"))]
 fn platform_with_node_npm(node: &str, npm: &str) -> String {
     format!(
         r#"{{
@@ -27,6 +44,21 @@ fn platform_with_node_npm(node: &str, npm: &str) -> String {
     "runtime": "{}",
     "npm": "{}"
   }},
+  "yarn": null
+}}"#,
+        node, npm
+    )
+}
+
+#[cfg(feature = "pnpm")]
+fn platform_with_node_npm(node: &str, npm: &str) -> String {
+    format!(
+        r#"{{
+  "node": {{
+    "runtime": "{}",
+    "npm": "{}"
+  }},
+  "pnpm": null,
   "yarn": null
 }}"#,
         node, npm

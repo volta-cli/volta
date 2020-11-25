@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 pub struct NodeVersion {
     #[serde(with = "version_serde")]
     pub runtime: Version,
-    #[serde(with = "option_version_serde")]
+    #[serde(default, with = "option_version_serde")]
     pub npm: Option<Version>,
 }
 
@@ -16,8 +16,10 @@ pub struct NodeVersion {
 pub struct Platform {
     #[serde(default)]
     pub node: Option<NodeVersion>,
-    #[serde(default)]
-    #[serde(with = "option_version_serde")]
+    #[serde(default, with = "option_version_serde")]
+    #[cfg(feature = "pnpm")]
+    pub pnpm: Option<Version>,
+    #[serde(default, with = "option_version_serde")]
     pub yarn: Option<Version>,
 }
 
@@ -28,15 +30,21 @@ impl Platform {
                 runtime: source.node.clone(),
                 npm: source.npm.clone(),
             }),
+            #[cfg(feature = "pnpm")]
+            pnpm: source.pnpm.clone(),
             yarn: source.yarn.clone(),
         }
     }
 
     pub fn into_platform(self) -> Option<PlatformSpec> {
+        #[cfg(feature = "pnpm")]
+        let pnpm = self.pnpm;
         let yarn = self.yarn;
         self.node.map(|node_version| PlatformSpec {
             node: node_version.runtime,
             npm: node_version.npm,
+            #[cfg(feature = "pnpm")]
+            pnpm,
             yarn,
         })
     }
@@ -68,11 +76,21 @@ pub mod tests {
     // NOTE: serde_json is required with the "preserve_order" feature in Cargo.toml,
     // so these tests will serialized/deserialize in a predictable order
 
+    #[cfg(not(feature = "pnpm"))]
     const BASIC_JSON_STR: &str = r#"{
   "node": {
     "runtime": "4.5.6",
     "npm": "7.8.9"
   },
+  "yarn": "1.2.3"
+}"#;
+    #[cfg(feature = "pnpm")]
+    const BASIC_JSON_STR: &str = r#"{
+  "node": {
+    "runtime": "4.5.6",
+    "npm": "7.8.9"
+  },
+  "pnpm": "5.2.8",
   "yarn": "1.2.3"
 }"#;
 
@@ -81,10 +99,12 @@ pub mod tests {
         let json_str = BASIC_JSON_STR.to_string();
         let platform = Platform::from_json(json_str).expect("could not parse JSON string");
         let expected_platform = Platform {
-            yarn: Some(Version::parse("1.2.3").expect("could not parse version")),
+            yarn: Some(Version::from((1, 2, 3))),
+            #[cfg(feature = "pnpm")]
+            pnpm: Some(Version::from((5, 2, 8))),
             node: Some(NodeVersion {
-                runtime: Version::parse("4.5.6").expect("could not parse version"),
-                npm: Some(Version::parse("7.8.9").expect("could not parse version")),
+                runtime: Version::from((4, 5, 6)),
+                npm: Some(Version::from((7, 8, 9))),
             }),
         };
         assert_eq!(platform, expected_platform);
@@ -96,6 +116,8 @@ pub mod tests {
         let platform = Platform::from_json(json_str).expect("could not parse JSON string");
         let expected_platform = Platform {
             node: None,
+            #[cfg(feature = "pnpm")]
+            pnpm: None,
             yarn: None,
         };
         assert_eq!(platform, expected_platform);
@@ -104,9 +126,11 @@ pub mod tests {
     #[test]
     fn test_into_json() {
         let platform_spec = platform::PlatformSpec {
-            yarn: Some(Version::parse("1.2.3").expect("could not parse version")),
-            node: Version::parse("4.5.6").expect("could not parse version"),
-            npm: Some(Version::parse("7.8.9").expect("could not parse version")),
+            yarn: Some(Version::from((1, 2, 3))),
+            node: Version::from((4, 5, 6)),
+            #[cfg(feature = "pnpm")]
+            pnpm: Some(Version::from((5, 2, 8))),
+            npm: Some(Version::from((7, 8, 9))),
         };
         let json_str = Platform::of(&platform_spec)
             .into_json()

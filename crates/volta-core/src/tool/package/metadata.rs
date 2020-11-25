@@ -163,9 +163,12 @@ impl BinConfig {
 struct RawPlatformSpec {
     #[serde(with = "version_serde")]
     node: Version,
-    #[serde(with = "option_version_serde")]
+    #[serde(default, with = "option_version_serde")]
     npm: Option<Version>,
-    #[serde(with = "option_version_serde")]
+    #[serde(default, with = "option_version_serde")]
+    #[cfg(feature = "pnpm")]
+    pnpm: Option<Version>,
+    #[serde(default, with = "option_version_serde")]
     yarn: Option<Version>,
 }
 
