@@ -16,6 +16,10 @@ mod node;
 mod npm;
 mod npx;
 mod parser;
+#[cfg(feature = "pnpm")]
+mod pnpm;
+#[cfg(feature = "pnpm")]
+mod pnpx;
 mod yarn;
 
 /// Environment variable set internally when a shim has been executed and the context evaluated
@@ -84,6 +88,10 @@ fn get_executor(
             Some("node") => node::command(args, session),
             Some("npm") => npm::command(args, session),
             Some("npx") => npx::command(args, session),
+            #[cfg(feature = "pnpm")]
+            Some("pnpm") => pnpm::command(args, session),
+            #[cfg(feature = "pnpm")]
+            Some("pnpx") => pnpx::command(args, session),
             Some("yarn") => yarn::command(args, session),
             _ => binary::command(exe, args, session),
         }

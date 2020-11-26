@@ -43,6 +43,10 @@ fn empty_volta_home_is_created() {
         assert!(Sandbox::shim_exists("yarn"));
         assert!(Sandbox::shim_exists("npm"));
         assert!(Sandbox::shim_exists("npx"));
+        #[cfg(feature = "pnpm")]
+        assert!(Sandbox::shim_exists("pnpm"));
+        #[cfg(feature = "pnpm")]
+        assert!(Sandbox::shim_exists("pnpx"));
     }
 }
 
@@ -93,6 +97,10 @@ fn legacy_v0_volta_home_is_upgraded() {
         assert!(Sandbox::shim_exists("yarn"));
         assert!(Sandbox::shim_exists("npm"));
         assert!(Sandbox::shim_exists("npx"));
+        #[cfg(feature = "pnpm")]
+        assert!(Sandbox::shim_exists("pnpm"));
+        #[cfg(feature = "pnpm")]
+        assert!(Sandbox::shim_exists("pnpx"));
     }
 }
 
@@ -166,6 +174,10 @@ fn tagged_v1_volta_home_is_upgraded() {
         assert!(Sandbox::shim_exists("yarn"));
         assert!(Sandbox::shim_exists("npm"));
         assert!(Sandbox::shim_exists("npx"));
+        #[cfg(feature = "pnpm")]
+        assert!(Sandbox::shim_exists("pnpm"));
+        #[cfg(feature = "pnpm")]
+        assert!(Sandbox::shim_exists("pnpx"));
     }
 }
 

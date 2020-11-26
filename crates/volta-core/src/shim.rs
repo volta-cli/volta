@@ -34,6 +34,10 @@ fn get_shim_list_deduped(dir: &Path) -> Fallible<HashSet<String>> {
         shims.insert("node".into());
         shims.insert("npm".into());
         shims.insert("npx".into());
+        #[cfg(feature = "pnpm")]
+        shims.insert("pnpm".into());
+        #[cfg(feature = "pnpm")]
+        shims.insert("pnpx".into());
         shims.insert("yarn".into());
         Ok(shims)
     }
