@@ -1,10 +1,14 @@
 use std::fmt;
 
-use super::{check_fetched, debug_already_fetched, info_fetched, FetchStatus, Tool};
-use crate::error::Fallible;
+use super::{
+    check_fetched, debug_already_fetched, info_fetched, info_installed, info_pinned, FetchStatus,
+    Tool,
+};
+use crate::error::{ErrorKind, Fallible};
 use crate::inventory::pnpm_available;
 use crate::session::Session;
 use crate::style::tool_version;
+use crate::sync::VoltaLock;
 use semver::Version;
 
 mod fetch;
@@ -48,12 +52,32 @@ impl Tool for Pnpm {
         Ok(())
     }
 
-    fn install(self: Box<Self>, _session: &mut Session) -> Fallible<()> {
-        todo!();
+    fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {
+        // Acquire a lock on the Volta directory, if possible, to prevent concurrent changes
+        let _lock = VoltaLock::acquire();
+        self.ensure_fetched(session)?;
+
+        session
+            .toolchain_mut()?
+            .set_active_pnpm(Some(self.version.clone()))?;
+
+        info_installed(self);
+        Ok(())
     }
 
-    fn pin(self: Box<Self>, _session: &mut Session) -> Fallible<()> {
-        todo!()
+    fn pin(self: Box<Self>, session: &mut Session) -> Fallible<()> {
+        if session.project()?.is_some() {
+            self.ensure_fetched(session)?;
+
+            // Note: We know this will succeed, since we checked above
+            let project = session.project_mut()?.unwrap();
+            project.pin_pnpm(Some(self.version.clone()))?;
+
+            info_pinned(self);
+            Ok(())
+        } else {
+            Err(ErrorKind::NotInPackage.into())
+        }
     }
 }
 
