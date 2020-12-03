@@ -139,7 +139,7 @@ impl DirectInstall {
         let name = self
             .manager
             .get_installed_package(self.staging.path().to_owned())
-            .ok_or_else(|| ErrorKind::InstalledPackageNameError)?;
+            .ok_or(ErrorKind::InstalledPackageNameError)?;
         let manifest =
             configure::parse_manifest(&name, self.staging.path().to_owned(), self.manager)?;
 
