@@ -215,8 +215,8 @@ fn read_cached_opt(url: &str) -> Fallible<Option<RawNodeIndex>> {
                 })?;
 
             if let Some(content) = cached {
-                if content.starts_with(url) {
-                    return serde_json::de::from_str(&content[url.len()..])
+                if let Some(json) = content.strip_prefix(url) {
+                    return serde_json::de::from_str(json)
                         .with_context(|| ErrorKind::ParseNodeIndexCacheError);
                 }
             }
