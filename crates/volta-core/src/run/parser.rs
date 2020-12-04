@@ -42,18 +42,25 @@ impl<'a> CommandArg<'a> {
         //   - uninstall: `uninstall`, `unlink`, `remove`, `rm`, `r`
         // See https://github.com/npm/cli/blob/latest/lib/config/cmd-list.js
         // Additionally, if we have a global install or uninstall, all of the remaining positional
-        // arguments will be the tools to install or uninstall
+        // arguments will be the tools to install or uninstall. If there are _no_ other arguments,
+        // then we treat the command not a global and allow npm to handle any error messages.
         match positionals.next() {
             Some(cmd) if cmd == "install" || cmd == "i" || cmd == "add" || cmd == "isntall" => {
-                // The common args for an install should be the command combined with any flags
-                let mut common_args = vec![cmd];
-                common_args.extend(args.iter().filter(is_flag).map(AsRef::as_ref));
+                let tools: Vec<_> = positionals.collect();
 
-                CommandArg::Global(GlobalCommand::Install(InstallArgs {
-                    manager: PackageManager::Npm,
-                    common_args,
-                    tools: positionals.collect(),
-                }))
+                if tools.is_empty() {
+                    CommandArg::NotGlobal
+                } else {
+                    // The common args for an install should be the command combined with any flags
+                    let mut common_args = vec![cmd];
+                    common_args.extend(args.iter().filter(is_flag).map(AsRef::as_ref));
+
+                    CommandArg::Global(GlobalCommand::Install(InstallArgs {
+                        manager: PackageManager::Npm,
+                        common_args,
+                        tools,
+                    }))
+                }
             }
             Some(cmd)
                 if cmd == "uninstall"
@@ -62,9 +69,13 @@ impl<'a> CommandArg<'a> {
                     || cmd == "rm"
                     || cmd == "r" =>
             {
-                CommandArg::Global(GlobalCommand::Uninstall(UninstallArgs {
-                    tools: positionals.collect(),
-                }))
+                let tools: Vec<_> = positionals.collect();
+
+                if tools.is_empty() {
+                    CommandArg::NotGlobal
+                } else {
+                    CommandArg::Global(GlobalCommand::Uninstall(UninstallArgs { tools }))
+                }
             }
             _ => CommandArg::NotGlobal,
         }
@@ -84,23 +95,34 @@ impl<'a> CommandArg<'a> {
 
         // Yarn globals must always start with `global <command>`
         // If we have a global add or remove, then all of the remaining positional arguments will
-        // be the tools to install or uninstall
+        // be the tools to install or uninstall. As with npm, if there are no arguments then we
+        // can treat it as if it's not a global command and allow Yarn to show any errors.
         match (positionals.next(), positionals.next()) {
             (Some(global), Some(add)) if global == "global" && add == "add" => {
-                // The common args for an install should be `global add` and any flags
-                let mut common_args = vec![global, add];
-                common_args.extend(args.iter().filter(is_flag).map(AsRef::as_ref));
+                let tools: Vec<_> = positionals.collect();
 
-                CommandArg::Global(GlobalCommand::Install(InstallArgs {
-                    manager: PackageManager::Yarn,
-                    common_args,
-                    tools: positionals.collect(),
-                }))
+                if tools.is_empty() {
+                    CommandArg::NotGlobal
+                } else {
+                    // The common args for an install should be `global add` and any flags
+                    let mut common_args = vec![global, add];
+                    common_args.extend(args.iter().filter(is_flag).map(AsRef::as_ref));
+
+                    CommandArg::Global(GlobalCommand::Install(InstallArgs {
+                        manager: PackageManager::Yarn,
+                        common_args,
+                        tools,
+                    }))
+                }
             }
             (Some(global), Some(remove)) if global == "global" && remove == "remove" => {
-                CommandArg::Global(GlobalCommand::Uninstall(UninstallArgs {
-                    tools: positionals.collect(),
-                }))
+                let tools: Vec<_> = positionals.collect();
+
+                if tools.is_empty() {
+                    CommandArg::NotGlobal
+                } else {
+                    CommandArg::Global(GlobalCommand::Uninstall(UninstallArgs { tools }))
+                }
             }
             _ => CommandArg::NotGlobal,
         }
