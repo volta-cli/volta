@@ -317,6 +317,23 @@ fn npm_global_install_supports_multiples() {
 }
 
 #[test]
+fn npm_global_install_without_packages_is_treated_as_not_global() {
+    let s = sandbox()
+        .platform(&platform_with_node("10.99.1040"))
+        .node_available_versions(NODE_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .env("VOLTA_LOGLEVEL", "info")
+        .build();
+
+    assert_that!(
+        s.npm("i --global"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stdout_does_not_contain("[..]Volta is processing each package separately")
+    );
+}
+
+#[test]
 fn yarn_global_add_supports_multiples() {
     let s = sandbox()
         .platform(&platform_with_node("10.99.1040"))
@@ -338,6 +355,25 @@ fn yarn_global_add_supports_multiples() {
             .with_stdout_contains("[..]installed and set npm@8.1.5 as default")
             .with_stdout_contains("[..]using Volta to install Yarn")
             .with_stdout_contains("[..]installed and set yarn@1.12.99 as default")
+    );
+}
+
+#[test]
+fn yarn_global_add_without_packages_is_treated_as_not_global() {
+    let s = sandbox()
+        .platform(&platform_with_node_yarn("10.99.1040", "1.2.42"))
+        .node_available_versions(NODE_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .yarn_available_versions(YARN_VERSION_INFO)
+        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .env("VOLTA_LOGLEVEL", "info")
+        .build();
+
+    assert_that!(
+        s.yarn("global add"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stdout_does_not_contain("[..]Volta is processing each package separately")
     );
 }
 
