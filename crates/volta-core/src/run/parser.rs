@@ -4,7 +4,7 @@ use std::iter::once;
 
 use super::executor::{Executor, InternalInstallCommand, PackageInstallCommand, UninstallCommand};
 use crate::error::Fallible;
-use crate::platform::PlatformSpec;
+use crate::platform::{Platform, PlatformSpec};
 use crate::tool::package::PackageManager;
 use crate::tool::Spec;
 
@@ -16,29 +16,24 @@ const NPM_INSTALL_ALIASES: [&str; 12] = [
 ];
 /// Aliases that npm supports for the 'uninstall' command
 const NPM_UNINSTALL_ALIASES: [&str; 6] = ["un", "uninstall", "unlink", "remove", "rm", "r"];
+/// Aliases that npm supports for the 'link' command
+const NPM_LINK_ALIASES: [&str; 2] = ["link", "ln"];
 
 pub enum CommandArg<'a> {
     Global(GlobalCommand<'a>),
-    NotGlobal,
+    Intercepted(InterceptedCommand<'a>),
+    Standard,
 }
 
 impl<'a> CommandArg<'a> {
-    /// Parse the given set of arguments to see if they correspond to an npm global command
+    /// Parse the given set of arguments to see if they correspond to an intercepted npm command
     pub fn for_npm<S>(args: &'a [S]) -> Self
     where
         S: AsRef<OsStr>,
     {
-        // If VOLTA_UNSAFE_GLOBAL is set, then we always skip any global parsing
+        // If VOLTA_UNSAFE_GLOBAL is set, then we always skip any interception parsing
         if env::var_os(UNSAFE_GLOBAL).is_some() {
-            return CommandArg::NotGlobal;
-        }
-
-        // npm global installs will always have `-g` or `--global` somewhere in the argument list
-        if !args
-            .iter()
-            .any(|arg| arg.as_ref() == "-g" || arg.as_ref() == "--global")
-        {
-            return CommandArg::NotGlobal;
+            return CommandArg::Standard;
         }
 
         let mut positionals = args.iter().filter(is_positional).map(AsRef::as_ref);
@@ -50,43 +45,63 @@ impl<'a> CommandArg<'a> {
         // then we treat the command not a global and allow npm to handle any error messages.
         match positionals.next() {
             Some(cmd) if NPM_INSTALL_ALIASES.iter().any(|a| a == &cmd) => {
-                let tools: Vec<_> = positionals.collect();
+                if has_global_flag(args) {
+                    let tools: Vec<_> = positionals.collect();
 
-                if tools.is_empty() {
-                    CommandArg::NotGlobal
+                    if tools.is_empty() {
+                        CommandArg::Standard
+                    } else {
+                        // The common args for an install should be the command combined with any flags
+                        let mut common_args = vec![cmd];
+                        common_args.extend(args.iter().filter(is_flag).map(AsRef::as_ref));
+
+                        CommandArg::Global(GlobalCommand::Install(InstallArgs {
+                            manager: PackageManager::Npm,
+                            common_args,
+                            tools,
+                        }))
+                    }
                 } else {
-                    // The common args for an install should be the command combined with any flags
-                    let mut common_args = vec![cmd];
-                    common_args.extend(args.iter().filter(is_flag).map(AsRef::as_ref));
-
-                    CommandArg::Global(GlobalCommand::Install(InstallArgs {
-                        manager: PackageManager::Npm,
-                        common_args,
-                        tools,
-                    }))
+                    CommandArg::Standard
                 }
             }
             Some(cmd) if NPM_UNINSTALL_ALIASES.iter().any(|a| a == &cmd) => {
-                let tools: Vec<_> = positionals.collect();
+                if has_global_flag(args) {
+                    let tools: Vec<_> = positionals.collect();
 
-                if tools.is_empty() {
-                    CommandArg::NotGlobal
+                    if tools.is_empty() {
+                        CommandArg::Standard
+                    } else {
+                        CommandArg::Global(GlobalCommand::Uninstall(UninstallArgs { tools }))
+                    }
                 } else {
-                    CommandArg::Global(GlobalCommand::Uninstall(UninstallArgs { tools }))
+                    CommandArg::Standard
                 }
             }
-            _ => CommandArg::NotGlobal,
+            Some(cmd) if NPM_LINK_ALIASES.iter().any(|a| a == &cmd) => {
+                // Much like install, the common args for a link are the command combined with any flags
+                let mut common_args = vec![cmd];
+                common_args.extend(args.iter().filter(is_flag).map(AsRef::as_ref));
+                let tools: Vec<_> = positionals.collect();
+
+                CommandArg::Intercepted(InterceptedCommand::Link(LinkArgs {
+                    manager: PackageManager::Npm,
+                    common_args,
+                    tools,
+                }))
+            }
+            _ => CommandArg::Standard,
         }
     }
 
-    /// Parse the given set of arguments to see if they correspond to a Yarn global command
+    /// Parse the given set of arguments to see if they correspond to an intercepted Yarn command
     pub fn for_yarn<S>(args: &'a [S]) -> Self
     where
         S: AsRef<OsStr>,
     {
         // If VOLTA_UNSAFE_GLOBAL is set, then we always skip any global parsing
         if env::var_os(UNSAFE_GLOBAL).is_some() {
-            return CommandArg::NotGlobal;
+            return CommandArg::Standard;
         }
 
         let mut positionals = args.iter().filter(is_positional).map(AsRef::as_ref);
@@ -100,7 +115,7 @@ impl<'a> CommandArg<'a> {
                 let tools: Vec<_> = positionals.collect();
 
                 if tools.is_empty() {
-                    CommandArg::NotGlobal
+                    CommandArg::Standard
                 } else {
                     // The common args for an install should be `global add` and any flags
                     let mut common_args = vec![global, add];
@@ -117,12 +132,23 @@ impl<'a> CommandArg<'a> {
                 let tools: Vec<_> = positionals.collect();
 
                 if tools.is_empty() {
-                    CommandArg::NotGlobal
+                    CommandArg::Standard
                 } else {
                     CommandArg::Global(GlobalCommand::Uninstall(UninstallArgs { tools }))
                 }
             }
-            _ => CommandArg::NotGlobal,
+            (Some(link), maybe_tool) if link == "link" => {
+                let mut common_args = vec![link];
+                common_args.extend(args.iter().filter(is_flag).map(AsRef::as_ref));
+                let tools = maybe_tool.into_iter().chain(positionals).collect();
+
+                CommandArg::Intercepted(InterceptedCommand::Link(LinkArgs {
+                    manager: PackageManager::Yarn,
+                    common_args,
+                    tools,
+                }))
+            }
+            _ => CommandArg::Standard,
         }
     }
 }
@@ -202,6 +228,52 @@ impl<'a> UninstallArgs<'a> {
     }
 }
 
+/// An intercepted local command
+pub enum InterceptedCommand<'a> {
+    Link(LinkArgs<'a>),
+}
+
+impl<'a> InterceptedCommand<'a> {
+    pub fn executor(self, platform: Platform) -> Fallible<Executor> {
+        match self {
+            InterceptedCommand::Link(cmd) => cmd.executor(platform),
+        }
+    }
+}
+
+/// The arguments passed to a link-to-global command (e.g. `npm link` without package arguments)
+pub struct LinkArgs<'a> {
+    /// The package manager being used
+    manager: PackageManager,
+    /// The common arguments that apply to each tool
+    common_args: Vec<&'a OsStr>,
+    /// The list of tools to link (if any)
+    tools: Vec<&'a OsStr>,
+}
+
+impl<'a> LinkArgs<'a> {
+    pub fn executor(self, platform: Platform) -> Fallible<Executor> {
+        if self.tools.is_empty() {
+            // If not tools are specified, then this is a bare link command, linking the current
+            // project as a global package. We treat this exactly like a global install
+            PackageInstallCommand::new(self.common_args, platform, self.manager).map(Into::into)
+        } else {
+            // If there are tools specified, then this represents a command to link a global
+            // package into the current project. We handle each tool separately to support Volta's
+            // package sandboxing.
+            todo!();
+        }
+    }
+}
+
+fn has_global_flag<A>(args: &[A]) -> bool
+where
+    A: AsRef<OsStr>,
+{
+    args.iter()
+        .any(|arg| arg.as_ref() == "-g" || arg.as_ref() == "--global")
+}
+
 fn is_flag<A>(arg: &A) -> bool
 where
     A: AsRef<OsStr>,
@@ -250,7 +322,7 @@ mod tests {
         #[test]
         fn handles_local_install() {
             match CommandArg::for_npm(&arg_list(&["install", "--save-dev", "typescript"])) {
-                CommandArg::NotGlobal => (),
+                CommandArg::Standard => (),
                 _ => panic!("Parses local install as global"),
             };
         }
@@ -268,7 +340,7 @@ mod tests {
         #[test]
         fn handles_local_uninstall() {
             match CommandArg::for_npm(&arg_list(&["uninstall", "--save-dev", "typescript"])) {
-                CommandArg::NotGlobal => (),
+                CommandArg::Standard => (),
                 _ => panic!("Parses local uninstall as global"),
             };
         }
@@ -474,12 +546,12 @@ mod tests {
         #[test]
         fn handles_local_add() {
             match CommandArg::for_yarn(&arg_list(&["add", "typescript"])) {
-                CommandArg::NotGlobal => (),
+                CommandArg::Standard => (),
                 _ => panic!("Parses local add as a global"),
             };
 
             match CommandArg::for_yarn(&arg_list(&["add", "global"])) {
-                CommandArg::NotGlobal => (),
+                CommandArg::Standard => (),
                 _ => panic!("Incorrectly handles bad order"),
             };
         }
@@ -497,12 +569,12 @@ mod tests {
         #[test]
         fn handles_local_remove() {
             match CommandArg::for_yarn(&arg_list(&["remove", "typescript"])) {
-                CommandArg::NotGlobal => (),
+                CommandArg::Standard => (),
                 _ => panic!("Parses local remove as a global"),
             };
 
             match CommandArg::for_yarn(&arg_list(&["remove", "global"])) {
-                CommandArg::NotGlobal => (),
+                CommandArg::Standard => (),
                 _ => panic!("Incorrectly handles bad order"),
             };
         }

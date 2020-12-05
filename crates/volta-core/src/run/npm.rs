@@ -22,10 +22,20 @@ pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Exec
     let platform = match env::var_os(RECURSION_ENV_VAR) {
         Some(_) => None,
         None => {
-            if let CommandArg::Global(cmd) = CommandArg::for_npm(args) {
-                if let Some(default_platform) = session.default_platform()? {
-                    return cmd.executor(default_platform);
+            match CommandArg::for_npm(args) {
+                CommandArg::Global(cmd) => {
+                    // For globals, only intercept if the default platform exists
+                    if let Some(default_platform) = session.default_platform()? {
+                        return cmd.executor(default_platform);
+                    }
                 }
+                CommandArg::Intercepted(cmd) => {
+                    // For local commands, only intercept if a platform exists
+                    if let Some(platform) = Platform::current(session)? {
+                        return cmd.executor(platform);
+                    }
+                }
+                _ => {}
             }
 
             Platform::current(session)?
