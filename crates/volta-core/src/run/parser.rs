@@ -139,17 +139,6 @@ impl<'a> CommandArg<'a> {
                     CommandArg::Global(GlobalCommand::Uninstall(UninstallArgs { tools }))
                 }
             }
-            (Some(link), maybe_tool) if link == "link" => {
-                let mut common_args = vec![link];
-                common_args.extend(args.iter().filter(is_flag).map(AsRef::as_ref));
-                let tools = maybe_tool.into_iter().chain(positionals).collect();
-
-                CommandArg::Intercepted(InterceptedCommand::Link(LinkArgs {
-                    manager: PackageManager::Yarn,
-                    common_args,
-                    tools,
-                }))
-            }
             _ => CommandArg::Standard,
         }
     }
