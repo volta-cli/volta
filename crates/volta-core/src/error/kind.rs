@@ -222,6 +222,16 @@ pub enum ErrorKind {
     /// Thrown when default Yarn is not set
     NoDefaultYarn,
 
+    /// Thrown when `npm link` is called with a package that isn't available
+    NpmLinkMissingPackage {
+        package: String,
+    },
+
+    /// Thrown when `npm link` is called with a package that was not installed / linked with npm
+    NpmLinkWrongManager {
+        package: String,
+    },
+
     /// Thrown when there is no npm version matching the requested Semver/Tag
     NpmVersionNotFound {
         matching: String,
@@ -862,6 +872,20 @@ Use `volta install` to select a default version of a tool."
 
 Use `volta install yarn` to select a default version (see `volta help install` for more info)."
             ),
+            ErrorKind::NpmLinkMissingPackage { package } => write!(
+                f,
+                "Could not locate the package '{}'
+
+Please ensure it is available by running `npm link` in its source directory.",
+                package
+            ),
+            ErrorKind::NpmLinkWrongManager { package } => write!(
+                f,
+                "The package '{}' was not installed using npm and cannot be linked with `npm link`
+
+Please ensure it is linked with `npm link` or installed with `npm i -g {0}`.",
+                package
+            ),
             ErrorKind::NpmVersionNotFound { matching } => write!(
                 f,
                 r#"Could not find Node version matching "{}" in the version registry.
@@ -1338,6 +1362,8 @@ impl ErrorKind {
             ErrorKind::NoShellProfile { .. } => ExitCode::EnvironmentError,
             ErrorKind::NotInPackage => ExitCode::ConfigurationError,
             ErrorKind::NoDefaultYarn => ExitCode::ConfigurationError,
+            ErrorKind::NpmLinkMissingPackage { .. } => ExitCode::ConfigurationError,
+            ErrorKind::NpmLinkWrongManager { .. } => ExitCode::ConfigurationError,
             ErrorKind::NpmVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorKind::NpxNotAvailable { .. } => ExitCode::ExecutableNotFound,
             ErrorKind::PackageInstallFailed { .. } => ExitCode::UnknownError,

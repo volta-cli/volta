@@ -86,11 +86,7 @@ impl<'a> CommandArg<'a> {
                 common_args.extend(args.iter().filter(is_flag).map(AsRef::as_ref));
                 let tools: Vec<_> = positionals.collect();
 
-                CommandArg::Intercepted(InterceptedCommand::Link(LinkArgs {
-                    manager: PackageManager::Npm,
-                    common_args,
-                    tools,
-                }))
+                CommandArg::Intercepted(InterceptedCommand::Link(LinkArgs { common_args, tools }))
             }
             _ => CommandArg::Standard,
         }
@@ -232,10 +228,8 @@ impl<'a> InterceptedCommand<'a> {
     }
 }
 
-/// The arguments passed to a link-to-global command (e.g. `npm link` without package arguments)
+/// The arguments passed to an `npm link` command
 pub struct LinkArgs<'a> {
-    /// The package manager being used
-    manager: PackageManager,
     /// The common arguments that apply to each tool
     common_args: Vec<&'a OsStr>,
     /// The list of tools to link (if any)
@@ -247,13 +241,13 @@ impl<'a> LinkArgs<'a> {
         if self.tools.is_empty() {
             // If not tools are specified, then this is a bare link command, linking the current
             // project as a global package. We treat this exactly like a global install
-            PackageInstallCommand::new(self.common_args, platform, self.manager).map(Into::into)
+            PackageInstallCommand::new(self.common_args, platform, PackageManager::Npm)
+                .map(Into::into)
         } else {
             // If there are tools specified, then this represents a command to link a global
             // package into the current project. We handle each tool separately to support Volta's
             // package sandboxing.
             let common_args = self.common_args;
-            let manager = self.manager;
 
             Ok(self
                 .tools
@@ -263,7 +257,6 @@ impl<'a> LinkArgs<'a> {
                     PackageLinkCommand::new(
                         args,
                         platform.clone(),
-                        manager,
                         tool.to_string_lossy().to_string(),
                     )
                     .into()

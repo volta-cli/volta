@@ -15,7 +15,7 @@ use crate::session::Session;
 use crate::signal::pass_control_to_shim;
 use crate::style::note_prefix;
 use crate::sync::VoltaLock;
-use crate::tool::package::{DirectInstall, PackageManager};
+use crate::tool::package::{DirectInstall, PackageConfig, PackageManager};
 use crate::tool::Spec;
 use log::info;
 
@@ -278,37 +278,31 @@ impl From<PackageInstallCommand> for Executor {
     }
 }
 
-/// Process builder for launching a package `link` command (e.g. `npm link my-package`)
+/// Process builder for launching a `npm link` command
 ///
-/// This will set the appropriate environment variables for the package manager to ensure that
-/// the linked package can be found.
+/// This will set the appropriate environment variables to ensure that the linked package can be
+/// found.
 pub struct PackageLinkCommand {
     /// The command that will ultimately be executed
     command: Command,
     /// The tool the user wants to link
     tool: String,
-    /// The package manager used to link (will be checked aginst the tool itself)
-    manager: PackageManager,
     /// The platform to use when running the command
     platform: Platform,
 }
 
 impl PackageLinkCommand {
-    pub fn new<A, S>(args: A, platform: Platform, manager: PackageManager, tool: String) -> Self
+    pub fn new<A, S>(args: A, platform: Platform, tool: String) -> Self
     where
         A: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
-        let mut command = match manager {
-            PackageManager::Npm => create_command("npm"),
-            PackageManager::Yarn => create_command("yarn"),
-        };
+        let mut command = create_command("npm");
         command.args(args);
 
         PackageLinkCommand {
             command,
             tool,
-            manager,
             platform,
         }
     }
@@ -335,18 +329,36 @@ impl PackageLinkCommand {
     ///     - The package is not found as a global
     ///     - The package exists, but was linked using a different package manager
     pub fn execute(mut self, session: &mut Session) -> Fallible<ExitStatus> {
+        self.check_linked_package()?;
+
         let image = self.platform.checkout(session)?;
         let path = image.path()?;
 
         self.command.env(RECURSION_ENV_VAR, "1");
         self.command.env("PATH", path);
         let package_root = volta_home()?.package_image_dir(&self.tool);
-        self.manager
-            .setup_global_command(&mut self.command, package_root);
+        PackageManager::Npm.setup_global_command(&mut self.command, package_root);
 
         self.command
             .status()
             .with_context(|| ErrorKind::BinaryExecError)
+    }
+
+    fn check_linked_package(&self) -> Fallible<()> {
+        let config =
+            PackageConfig::from_file(volta_home()?.default_package_config_file(&self.tool))
+                .with_context(|| ErrorKind::NpmLinkMissingPackage {
+                    package: self.tool.clone(),
+                })?;
+
+        if config.manager == PackageManager::Npm {
+            Ok(())
+        } else {
+            Err(ErrorKind::NpmLinkWrongManager {
+                package: self.tool.clone(),
+            }
+            .into())
+        }
     }
 }
 
