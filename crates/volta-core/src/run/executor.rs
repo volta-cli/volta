@@ -13,11 +13,11 @@ use crate::layout::volta_home;
 use crate::platform::{CliPlatform, Platform, System};
 use crate::session::Session;
 use crate::signal::pass_control_to_shim;
-use crate::style::note_prefix;
+use crate::style::{note_prefix, tool_version};
 use crate::sync::VoltaLock;
 use crate::tool::package::{DirectInstall, PackageConfig, PackageManager};
 use crate::tool::Spec;
-use log::info;
+use log::{info, warn};
 
 pub enum Executor {
     Tool(Box<ToolCommand>),
@@ -278,7 +278,7 @@ impl From<PackageInstallCommand> for Executor {
     }
 }
 
-/// Process builder for launching a `npm link` command
+/// Process builder for launching a `npm link <package>` command
 ///
 /// This will set the appropriate environment variables to ensure that the linked package can be
 /// found.
@@ -325,11 +325,9 @@ impl PackageLinkCommand {
     /// Runs the link command, applying the necessary modifications to pull from the Volta data
     /// directory.
     ///
-    /// This will also check for some common failure cases:
-    ///     - The package is not found as a global
-    ///     - The package exists, but was linked using a different package manager
+    /// This will also check for some common failure cases and alert the user
     pub fn execute(mut self, session: &mut Session) -> Fallible<ExitStatus> {
-        self.check_linked_package()?;
+        self.check_linked_package(session)?;
 
         let image = self.platform.checkout(session)?;
         let path = image.path()?;
@@ -344,21 +342,36 @@ impl PackageLinkCommand {
             .with_context(|| ErrorKind::BinaryExecError)
     }
 
-    fn check_linked_package(&self) -> Fallible<()> {
+    /// Check for possible failure cases with the linked package:
+    ///     - The package is not found as a global
+    ///     - The package exists, but was linked using a different package manager
+    ///     - The package is using a different version of Node than the current project (warning)
+    fn check_linked_package(&self, session: &mut Session) -> Fallible<()> {
         let config =
             PackageConfig::from_file(volta_home()?.default_package_config_file(&self.tool))
                 .with_context(|| ErrorKind::NpmLinkMissingPackage {
                     package: self.tool.clone(),
                 })?;
 
-        if config.manager == PackageManager::Npm {
-            Ok(())
-        } else {
-            Err(ErrorKind::NpmLinkWrongManager {
+        if config.manager != PackageManager::Npm {
+            return Err(ErrorKind::NpmLinkWrongManager {
                 package: self.tool.clone(),
             }
-            .into())
+            .into());
         }
+
+        if let Some(platform) = session.project_platform()? {
+            if platform.node.major != config.platform.node.major {
+                warn!(
+                    "the current project is using {}, but package '{}' was linked using {}. These might not interact correctly.",
+                    tool_version("node", &platform.node),
+                    self.tool,
+                    tool_version("node", &config.platform.node)
+                );
+            }
+        }
+
+        Ok(())
     }
 }
 
