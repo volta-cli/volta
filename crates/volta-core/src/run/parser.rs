@@ -2,7 +2,9 @@ use std::env;
 use std::ffi::OsStr;
 use std::iter::once;
 
-use super::executor::{Executor, InternalInstallCommand, PackageInstallCommand, UninstallCommand};
+use super::executor::{
+    Executor, InternalInstallCommand, PackageInstallCommand, PackageLinkCommand, UninstallCommand,
+};
 use crate::error::Fallible;
 use crate::platform::{Platform, PlatformSpec};
 use crate::tool::package::PackageManager;
@@ -261,7 +263,24 @@ impl<'a> LinkArgs<'a> {
             // If there are tools specified, then this represents a command to link a global
             // package into the current project. We handle each tool separately to support Volta's
             // package sandboxing.
-            todo!();
+            let common_args = self.common_args;
+            let manager = self.manager;
+
+            Ok(self
+                .tools
+                .into_iter()
+                .map(|tool| {
+                    let args = common_args.iter().chain(once(&tool));
+                    PackageLinkCommand::new(
+                        args,
+                        platform.clone(),
+                        manager,
+                        tool.to_string_lossy().to_string(),
+                    )
+                    .into()
+                })
+                .collect::<Vec<_>>()
+                .into())
         }
     }
 }

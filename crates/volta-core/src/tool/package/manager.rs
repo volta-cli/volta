@@ -81,7 +81,7 @@ impl PackageManager {
     }
 
     /// Modify a given `Command` to be set up for global installs, given the package root
-    pub(super) fn setup_global_command(self, command: &mut Command, package_root: PathBuf) {
+    pub fn setup_global_command(self, command: &mut Command, package_root: PathBuf) {
         command.env("npm_config_prefix", &package_root);
 
         if let PackageManager::Yarn = self {
