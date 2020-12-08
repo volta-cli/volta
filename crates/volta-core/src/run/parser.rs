@@ -17,7 +17,7 @@ const NPM_INSTALL_ALIASES: [&str; 12] = [
     "add",
 ];
 /// Aliases that npm supports for the 'uninstall' command
-const NPM_UNINSTALL_ALIASES: [&str; 6] = ["un", "uninstall", "unlink", "remove", "rm", "r"];
+const NPM_UNINSTALL_ALIASES: [&str; 5] = ["un", "uninstall", "remove", "rm", "r"];
 /// Aliases that npm supports for the 'link' command
 const NPM_LINK_ALIASES: [&str; 2] = ["link", "ln"];
 
@@ -76,6 +76,19 @@ impl<'a> CommandArg<'a> {
                     } else {
                         CommandArg::Global(GlobalCommand::Uninstall(UninstallArgs { tools }))
                     }
+                } else {
+                    CommandArg::Standard
+                }
+            }
+            Some(cmd) if cmd == "unlink" => {
+                let tools: Vec<_> = positionals.collect();
+
+                if tools.is_empty() {
+                    // `npm unlink` without any arguments is used to unlink the current project
+                    CommandArg::Intercepted(InterceptedCommand::Unlink)
+                } else if has_global_flag(args) {
+                    // With arguments, `npm unlink` is an alias of `npm remove`
+                    CommandArg::Global(GlobalCommand::Uninstall(UninstallArgs { tools }))
                 } else {
                     CommandArg::Standard
                 }
@@ -218,14 +231,7 @@ impl<'a> UninstallArgs<'a> {
 /// An intercepted local command
 pub enum InterceptedCommand<'a> {
     Link(LinkArgs<'a>),
-}
-
-impl<'a> InterceptedCommand<'a> {
-    pub fn executor(self, platform: Platform) -> Fallible<Executor> {
-        match self {
-            InterceptedCommand::Link(cmd) => cmd.executor(platform),
-        }
-    }
+    Unlink,
 }
 
 /// The arguments passed to an `npm link` command
@@ -399,6 +405,22 @@ mod tests {
                 }
                 _ => panic!("Doesn't parse link command with packages"),
             };
+        }
+
+        #[test]
+        fn handles_bare_unlink() {
+            match CommandArg::for_npm(&arg_list(&["unlink"])) {
+                CommandArg::Intercepted(InterceptedCommand::Unlink) => (),
+                _ => panic!("Doesn't parse bare unlink command ('npm unlink' with no packages"),
+            };
+        }
+
+        #[test]
+        fn handles_local_unlink() {
+            match CommandArg::for_npm(&arg_list(&["unlink", "@angular/cli"])) {
+                CommandArg::Standard => (),
+                _ => panic!("Doesn't pass through local 'unlink' command"),
+            }
         }
 
         #[test]

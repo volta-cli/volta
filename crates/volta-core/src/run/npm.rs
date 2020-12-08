@@ -1,12 +1,15 @@
 use std::env;
 use std::ffi::OsString;
+use std::fs::File;
 
-use super::executor::{Executor, ToolCommand, ToolKind};
-use super::parser::CommandArg;
+use super::executor::{Executor, ToolCommand, ToolKind, UninstallCommand};
+use super::parser::{CommandArg, InterceptedCommand};
 use super::{debug_active_image, debug_no_platform, RECURSION_ENV_VAR};
 use crate::error::{ErrorKind, Fallible};
 use crate::platform::{Platform, System};
 use crate::session::{ActivityKind, Session};
+use crate::tool::{PackageManifest, Spec};
+use crate::version::VersionSpec;
 
 /// Build an `Executor` for npm
 ///
@@ -29,10 +32,24 @@ pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Exec
                         return cmd.executor(default_platform);
                     }
                 }
-                CommandArg::Intercepted(cmd) => {
-                    // For local commands, only intercept if a platform exists
+                CommandArg::Intercepted(InterceptedCommand::Link(link)) => {
+                    // For link commands, only intercept if a platform exists
                     if let Some(platform) = Platform::current(session)? {
-                        return cmd.executor(platform);
+                        return link.executor(platform);
+                    }
+                }
+                CommandArg::Intercepted(InterceptedCommand::Unlink) => {
+                    // For unlink, attempt to find the current project name. If successful, treat
+                    // this as a global uninstall of the current project.
+                    if let Some(name) = current_project_name(session) {
+                        // Same as for link, only intercept if a platform exists
+                        if Platform::current(session)?.is_some() {
+                            return Ok(UninstallCommand::new(Spec::Package(
+                                name,
+                                VersionSpec::None,
+                            ))
+                            .into());
+                        }
                     }
                 }
                 _ => {}
@@ -64,4 +81,13 @@ pub(super) fn execution_context(
             Ok((path, ErrorKind::NoPlatform))
         }
     }
+}
+
+/// Determine the name of the current project, if possible
+fn current_project_name(session: &mut Session) -> Option<String> {
+    let project = session.project().ok()??;
+    let manifest_file = File::open(project.manifest_file()).ok()?;
+    let manifest: PackageManifest = serde_json::de::from_reader(manifest_file).ok()?;
+
+    Some(manifest.name)
 }
