@@ -239,7 +239,7 @@ pub struct LinkArgs<'a> {
 impl<'a> LinkArgs<'a> {
     pub fn executor(self, platform: Platform) -> Fallible<Executor> {
         if self.tools.is_empty() {
-            // If not tools are specified, then this is a bare link command, linking the current
+            // If no tools are specified, then this is a bare link command, linking the current
             // project as a global package. We treat this exactly like a global install
             PackageInstallCommand::new(self.common_args, platform, PackageManager::Npm)
                 .map(Into::into)
@@ -384,6 +384,24 @@ mod tests {
         }
 
         #[test]
+        fn handles_bare_link() {
+            match CommandArg::for_npm(&arg_list(&["link"])) {
+                CommandArg::Intercepted(InterceptedCommand::Link(_)) => (),
+                _ => panic!("Doesn't parse bare link command ('npm link' with no packages"),
+            };
+        }
+
+        #[test]
+        fn handles_multiple_link() {
+            match CommandArg::for_npm(&arg_list(&["link", "typescript", "react"])) {
+                CommandArg::Intercepted(InterceptedCommand::Link(link)) => {
+                    assert_eq!(link.tools, vec!["typescript", "react"]);
+                }
+                _ => panic!("Doesn't parse link command with packages"),
+            };
+        }
+
+        #[test]
         fn handles_global_aliases() {
             match CommandArg::for_npm(&arg_list(&["install", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(_)) => (),
@@ -489,6 +507,19 @@ mod tests {
             match CommandArg::for_npm(&arg_list(&["r", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Uninstall(_)) => (),
                 _ => panic!("Doesn't parse short form (r)"),
+            };
+        }
+
+        #[test]
+        fn handles_link_aliases() {
+            match CommandArg::for_npm(&arg_list(&["link"])) {
+                CommandArg::Intercepted(InterceptedCommand::Link(_)) => (),
+                _ => panic!("Doesn't parse long form (link)"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["ln"])) {
+                CommandArg::Intercepted(InterceptedCommand::Link(_)) => (),
+                _ => panic!("Doesn't parse short form (ln)"),
             };
         }
 
