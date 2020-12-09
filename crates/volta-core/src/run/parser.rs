@@ -7,6 +7,7 @@ use super::executor::{
     PackageUpgradeCommand, UninstallCommand,
 };
 use crate::error::Fallible;
+use crate::inventory::package_configs;
 use crate::platform::{Platform, PlatformSpec};
 use crate::tool::package::PackageManager;
 use crate::tool::Spec;
@@ -277,6 +278,10 @@ impl<'a> UpgradeArgs<'a> {
     /// individual commands and run separately. If no packages are specified, then we will upgrade
     /// _all_ installed packages that were installed with the same package manager.
     pub fn executor(self, platform_spec: &PlatformSpec) -> Fallible<Executor> {
+        if self.tools.is_empty() {
+            return self.executor_all_packages(platform_spec);
+        }
+
         let mut executors = Vec::with_capacity(self.tools.len());
 
         for tool in self.tools {
@@ -289,6 +294,26 @@ impl<'a> UpgradeArgs<'a> {
         }
 
         Ok(executors.into())
+    }
+
+    /// Build an executor to upgrade _all_ global packages that were installed with the same
+    /// package manager as we are currently running.
+    fn executor_all_packages(self, platform_spec: &PlatformSpec) -> Fallible<Executor> {
+        package_configs()?
+            .into_iter()
+            .filter(|config| config.manager == self.manager)
+            .map(|config| {
+                let platform = platform_spec.as_default();
+                let package_name = config.name.as_ref();
+                let args = self.common_args.iter().chain(once(&package_name));
+
+                let executor =
+                    PackageUpgradeCommand::new(args, config.name.clone(), platform, self.manager)?
+                        .into();
+                Ok(executor)
+            })
+            .collect::<Fallible<Vec<_>>>()
+            .map(Into::into)
     }
 }
 
