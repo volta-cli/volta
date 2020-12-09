@@ -6,7 +6,7 @@ use super::executor::{
     Executor, InternalInstallCommand, PackageInstallCommand, PackageLinkCommand,
     PackageUpgradeCommand, UninstallCommand,
 };
-use crate::error::Fallible;
+use crate::error::{ErrorKind, Fallible};
 use crate::inventory::package_configs;
 use crate::platform::{Platform, PlatformSpec};
 use crate::tool::package::PackageManager;
@@ -285,12 +285,25 @@ impl<'a> UpgradeArgs<'a> {
         let mut executors = Vec::with_capacity(self.tools.len());
 
         for tool in self.tools {
-            let platform = platform_spec.as_default();
-            let args = self.common_args.iter().chain(once(&tool));
-            let package = tool.to_string_lossy().to_string();
-
-            executors
-                .push(PackageUpgradeCommand::new(args, package, platform, self.manager)?.into());
+            match Spec::try_from_str(&tool.to_string_lossy()) {
+                Ok(Spec::Package(package, _)) => {
+                    let platform = platform_spec.as_default();
+                    let args = self.common_args.iter().chain(once(&tool));
+                    executors.push(
+                        PackageUpgradeCommand::new(args, package, platform, self.manager)?.into(),
+                    );
+                }
+                Ok(internal) => {
+                    executors.push(UninstallCommand::new(internal).into());
+                }
+                Err(_) => {
+                    return Err(ErrorKind::UpgradePackageNotFound {
+                        package: tool.to_string_lossy().to_string(),
+                        manager: self.manager,
+                    }
+                    .into())
+                }
+            }
         }
 
         Ok(executors.into())
