@@ -90,6 +90,7 @@ fn get_executor(
     }
 }
 
+/// Determine the name of the command to run by inspecting the first argument to the active process
 pub fn get_tool_name(args: &mut ArgsOs) -> Fallible<OsString> {
     args.next()
         .and_then(|arg0| Path::new(&arg0).file_name().map(tool_name_from_file_name))
