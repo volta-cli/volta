@@ -3,7 +3,8 @@ use std::ffi::OsStr;
 use std::iter::once;
 
 use super::executor::{
-    Executor, InternalInstallCommand, PackageInstallCommand, PackageLinkCommand, UninstallCommand,
+    Executor, InternalInstallCommand, PackageInstallCommand, PackageLinkCommand,
+    PackageUpgradeCommand, UninstallCommand,
 };
 use crate::error::Fallible;
 use crate::platform::{Platform, PlatformSpec};
@@ -20,6 +21,8 @@ const NPM_INSTALL_ALIASES: [&str; 12] = [
 const NPM_UNINSTALL_ALIASES: [&str; 5] = ["un", "uninstall", "remove", "rm", "r"];
 /// Aliases that npm supports for the 'link' command
 const NPM_LINK_ALIASES: [&str; 2] = ["link", "ln"];
+/// Aliases that npm supports for the `update` command
+const NPM_UPDATE_ALIASES: [&str; 4] = ["update", "udpate", "upgrade", "up"];
 
 pub enum CommandArg<'a> {
     Global(GlobalCommand<'a>),
@@ -101,6 +104,22 @@ impl<'a> CommandArg<'a> {
 
                 CommandArg::Intercepted(InterceptedCommand::Link(LinkArgs { common_args, tools }))
             }
+            Some(cmd) if NPM_UPDATE_ALIASES.iter().any(|a| a == &cmd) => {
+                if has_global_flag(args) {
+                    // Once again, the common args are the command combined with any flags
+                    let mut common_args = vec![cmd];
+                    common_args.extend(args.iter().filter(is_flag).map(AsRef::as_ref));
+                    let tools: Vec<_> = positionals.collect();
+
+                    CommandArg::Global(GlobalCommand::Upgrade(UpgradeArgs {
+                        common_args,
+                        tools,
+                        manager: PackageManager::Npm,
+                    }))
+                } else {
+                    CommandArg::Standard
+                }
+            }
             _ => CommandArg::Standard,
         }
     }
@@ -118,8 +137,8 @@ impl<'a> CommandArg<'a> {
         let mut positionals = args.iter().filter(is_positional).map(AsRef::as_ref);
 
         // Yarn globals must always start with `global <command>`
-        // If we have a global add or remove, then all of the remaining positional arguments will
-        // be the tools to install or uninstall. As with npm, if there are no arguments then we
+        // If we have a global add, remove, or upgrade, then all of the remaining positional
+        // arguments will be the tools to modify. As with npm, if there are no arguments then we
         // can treat it as if it's not a global command and allow Yarn to show any errors.
         match (positionals.next(), positionals.next()) {
             (Some(global), Some(add)) if global == "global" && add == "add" => {
@@ -148,6 +167,17 @@ impl<'a> CommandArg<'a> {
                     CommandArg::Global(GlobalCommand::Uninstall(UninstallArgs { tools }))
                 }
             }
+            (Some(global), Some(upgrade)) if global == "global" && upgrade == "upgrade" => {
+                // The common args for an upgrade should be `global upgrade` and any flags
+                let mut common_args = vec![global, upgrade];
+                common_args.extend(args.iter().filter(is_flag).map(AsRef::as_ref));
+
+                CommandArg::Global(GlobalCommand::Upgrade(UpgradeArgs {
+                    common_args,
+                    tools: positionals.collect(),
+                    manager: PackageManager::Yarn,
+                }))
+            }
             _ => CommandArg::Standard,
         }
     }
@@ -156,6 +186,7 @@ impl<'a> CommandArg<'a> {
 pub enum GlobalCommand<'a> {
     Install(InstallArgs<'a>),
     Uninstall(UninstallArgs<'a>),
+    Upgrade(UpgradeArgs<'a>),
 }
 
 impl<'a> GlobalCommand<'a> {
@@ -163,6 +194,7 @@ impl<'a> GlobalCommand<'a> {
         match self {
             GlobalCommand::Install(cmd) => cmd.executor(platform),
             GlobalCommand::Uninstall(cmd) => cmd.executor(),
+            GlobalCommand::Upgrade(cmd) => cmd.executor(platform),
         }
     }
 }
@@ -222,6 +254,38 @@ impl<'a> UninstallArgs<'a> {
         for tool_name in self.tools {
             let tool = Spec::try_from_str(&tool_name.to_string_lossy())?;
             executors.push(UninstallCommand::new(tool).into());
+        }
+
+        Ok(executors.into())
+    }
+}
+
+/// The list of tools passed to an upgrade command
+pub struct UpgradeArgs<'a> {
+    /// The package manager being used
+    manager: PackageManager,
+    /// Common arguments that apply to each tool (e.g. flags)
+    common_args: Vec<&'a OsStr>,
+    /// The individual tool arguments
+    tools: Vec<&'a OsStr>,
+}
+
+impl<'a> UpgradeArgs<'a> {
+    /// Convert these global upgrade arguments into an executor for the command
+    ///
+    /// If there are multiple packages specified to upgrade, then they will be broken out into
+    /// individual commands and run separately. If no packages are specified, then we will upgrade
+    /// _all_ installed packages that were installed with the same package manager.
+    pub fn executor(self, platform_spec: &PlatformSpec) -> Fallible<Executor> {
+        let mut executors = Vec::with_capacity(self.tools.len());
+
+        for tool in self.tools {
+            let platform = platform_spec.as_default();
+            let args = self.common_args.iter().chain(once(&tool));
+            let package = tool.to_string_lossy().to_string();
+
+            executors
+                .push(PackageUpgradeCommand::new(args, package, platform, self.manager)?.into());
         }
 
         Ok(executors.into())
