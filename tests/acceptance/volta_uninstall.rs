@@ -7,29 +7,27 @@ const PKG_CONFIG_BASIC: &str = r#"{
   "name": "cowsay",
   "version": "1.4.0",
   "platform": {
-    "node": {
-      "runtime": "11.10.1",
-      "npm": "6.7.0"
-    },
+    "node": "11.10.1",
+    "npm": "6.7.0",
     "yarn": null
   },
   "bins": [
     "cowsay",
     "cowthink"
-  ]
+  ],
+  "manager": "Npm"
 }"#;
 
 const PKG_CONFIG_NO_BINS: &str = r#"{
   "name": "cowsay",
   "version": "1.4.0",
   "platform": {
-    "node": {
-      "runtime": "11.10.1",
-      "npm": "6.7.0"
-    },
+    "node": "11.10.1",
+    "npm": "6.7.0",
     "yarn": null
   },
-  "bins": []
+  "bins": [],
+  "manager": "Npm"
 }"#;
 
 fn bin_config(name: &str) -> String {
@@ -38,14 +36,12 @@ fn bin_config(name: &str) -> String {
   "name": "{}",
   "package": "cowsay",
   "version": "1.4.0",
-  "path": "./cli.js",
   "platform": {{
-    "node": {{
-      "runtime": "11.10.1",
-      "npm": "6.7.0"
-    }},
+    "node": "11.10.1",
+    "npm": "6.7.0",
     "yarn": null
-  }}
+  }},
+  "manager": "Npm"
 }}"#,
         name
     )
@@ -77,7 +73,6 @@ fn uninstall_package_basic() {
         .shim("cowsay")
         .shim("cowthink")
         .package_image("cowsay", "1.4.0")
-        .package_inventory("cowsay", "1.4.0")
         .env(VOLTA_LOGLEVEL, "info")
         .build();
 
@@ -97,9 +92,6 @@ fn uninstall_package_basic() {
     assert!(!Sandbox::shim_exists("cowsay"));
     assert!(!Sandbox::shim_exists("cowthink"));
     assert!(!Sandbox::package_image_exists("cowsay", "1.4.0"));
-    // but the inventory files still exist
-    assert!(Sandbox::pkg_inventory_tarball_exists("cowsay", "1.4.0"));
-    assert!(Sandbox::pkg_inventory_shasum_exists("cowsay", "1.4.0"));
 }
 
 #[test]
@@ -109,7 +101,6 @@ fn uninstall_package_no_bins() {
     let s = sandbox()
         .package_config("cowsay", PKG_CONFIG_NO_BINS)
         .package_image("cowsay", "1.4.0")
-        .package_inventory("cowsay", "1.4.0")
         .env(VOLTA_LOGLEVEL, "info")
         .build();
 
@@ -127,9 +118,6 @@ fn uninstall_package_no_bins() {
     assert!(!Sandbox::shim_exists("cowsay"));
     assert!(!Sandbox::shim_exists("cowthink"));
     assert!(!Sandbox::package_image_exists("cowsay", "1.4.0"));
-    // but the inventory files still exist
-    assert!(Sandbox::pkg_inventory_tarball_exists("cowsay", "1.4.0"));
-    assert!(Sandbox::pkg_inventory_shasum_exists("cowsay", "1.4.0"));
 }
 
 #[test]
@@ -142,7 +130,6 @@ fn uninstall_package_no_image() {
         .binary_config("cowthink", &bin_config("cowthink"))
         .shim("cowsay")
         .shim("cowthink")
-        .package_inventory("cowsay", "1.4.0")
         .env(VOLTA_LOGLEVEL, "info")
         .build();
 
@@ -162,9 +149,6 @@ fn uninstall_package_no_image() {
     assert!(!Sandbox::shim_exists("cowsay"));
     assert!(!Sandbox::shim_exists("cowthink"));
     assert!(!Sandbox::package_image_exists("cowsay", "1.4.0"));
-    // but the inventory files still exist
-    assert!(Sandbox::pkg_inventory_tarball_exists("cowsay", "1.4.0"));
-    assert!(Sandbox::pkg_inventory_shasum_exists("cowsay", "1.4.0"));
 }
 
 #[test]

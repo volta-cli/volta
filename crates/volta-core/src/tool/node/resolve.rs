@@ -15,6 +15,7 @@ use crate::session::Session;
 use crate::style::progress_spinner;
 use crate::tool::Node;
 use crate::version::{VersionSpec, VersionTag};
+use attohttpc::header::HeaderMap;
 use attohttpc::Response;
 use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
@@ -214,8 +215,8 @@ fn read_cached_opt(url: &str) -> Fallible<Option<RawNodeIndex>> {
                 })?;
 
             if let Some(content) = cached {
-                if content.starts_with(url) {
-                    return serde_json::de::from_str(&content[url.len()..])
+                if let Some(json) = content.strip_prefix(url) {
+                    return serde_json::de::from_str(json)
                         .with_context(|| ErrorKind::ParseNodeIndexCacheError);
                 }
             }
@@ -226,7 +227,7 @@ fn read_cached_opt(url: &str) -> Fallible<Option<RawNodeIndex>> {
 }
 
 /// Get the cache max-age of an HTTP reponse.
-fn max_age(headers: &attohttpc::header::HeaderMap) -> u32 {
+fn max_age(headers: &HeaderMap) -> u32 {
     if let Ok(cache_control_header) = headers.decode::<CacheControl>() {
         for cache_directive in cache_control_header.iter() {
             if let CacheDirective::MaxAge(max_age) = cache_directive {
@@ -254,6 +255,13 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
                 .and_then(Response::error_for_status)
                 .with_context(registry_fetch_error("Node", url))?
                 .split();
+
+            let expires = if let Ok(expires_header) = headers.decode::<Expires>() {
+                expires_header.to_string()
+            } else {
+                let expiry_date = SystemTime::now() + Duration::from_secs(max_age(&headers).into());
+                HttpDate::from(expiry_date).to_string()
+            };
 
             let response_text = response
                 .text()
@@ -290,16 +298,10 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
             let expiry = create_staging_file()?;
             let mut expiry_file: &File = expiry.as_file();
 
-            let result = if let Ok(expires_header) = headers.decode::<Expires>() {
-                write!(expiry_file, "{}", expires_header)
-            } else {
-                let expiry_date = SystemTime::now() + Duration::from_secs(max_age(&headers).into());
-
-                write!(expiry_file, "{}", HttpDate::from(expiry_date))
-            };
-
-            result.with_context(|| ErrorKind::WriteNodeIndexExpiryError {
-                file: expiry.path().to_path_buf(),
+            write!(expiry_file, "{}", expires).with_context(|| {
+                ErrorKind::WriteNodeIndexExpiryError {
+                    file: expiry.path().to_path_buf(),
+                }
             })?;
 
             let index_expiry_file = volta_home()?.node_index_expiry_file();

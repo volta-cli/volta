@@ -16,13 +16,11 @@ fn test_paths() {
 
 #[cfg(unix)]
 fn test_image_path() {
-    std::env::set_var(
-        "PATH",
-        format!(
-            "/usr/bin:/blah:{}:/doesnt/matter/bin",
-            volta_home().unwrap().shim_dir().to_string_lossy()
-        ),
+    let starting_path = format!(
+        "/usr/bin:/blah:{}:/doesnt/matter/bin",
+        volta_home().unwrap().shim_dir().to_string_lossy()
     );
+    std::env::set_var("PATH", &starting_path);
 
     let node_bin = volta_home().unwrap().node_image_bin_dir("1.2.3");
     let expected_node_bin = node_bin.to_str().unwrap();
@@ -45,7 +43,7 @@ fn test_image_path() {
 
     assert_eq!(
         only_node.path().unwrap().into_string().unwrap(),
-        format!("{}:/usr/bin:/blah:/doesnt/matter/bin", expected_node_bin),
+        format!("{}:{}", expected_node_bin, starting_path)
     );
 
     let node_npm = Image {
@@ -57,9 +55,9 @@ fn test_image_path() {
     assert_eq!(
         node_npm.path().unwrap().into_string().unwrap(),
         format!(
-            "{}:{}:/usr/bin:/blah:/doesnt/matter/bin",
-            expected_npm_bin, expected_node_bin
-        ),
+            "{}:{}:{}",
+            expected_npm_bin, expected_node_bin, starting_path
+        )
     );
 
     let node_yarn = Image {
@@ -71,9 +69,9 @@ fn test_image_path() {
     assert_eq!(
         node_yarn.path().unwrap().into_string().unwrap(),
         format!(
-            "{}:{}:/usr/bin:/blah:/doesnt/matter/bin",
-            expected_yarn_bin, expected_node_bin
-        ),
+            "{}:{}:{}",
+            expected_yarn_bin, expected_node_bin, starting_path
+        )
     );
 
     let node_npm_yarn = Image {
@@ -85,9 +83,9 @@ fn test_image_path() {
     assert_eq!(
         node_npm_yarn.path().unwrap().into_string().unwrap(),
         format!(
-            "{}:{}:{}:/usr/bin:/blah:/doesnt/matter/bin",
-            expected_npm_bin, expected_yarn_bin, expected_node_bin
-        ),
+            "{}:{}:{}:{}",
+            expected_npm_bin, expected_yarn_bin, expected_node_bin, starting_path
+        )
     );
 }
 
@@ -104,7 +102,7 @@ fn test_image_path() {
         .into_string()
         .expect("Could not create path containing shim dir");
 
-    std::env::set_var("PATH", path_with_shims);
+    std::env::set_var("PATH", &path_with_shims);
 
     let node_bin = volta_home().unwrap().node_image_bin_dir("1.2.3");
     let expected_node_bin = node_bin.to_str().unwrap();
@@ -127,7 +125,7 @@ fn test_image_path() {
 
     assert_eq!(
         only_node.path().unwrap().into_string().unwrap(),
-        format!("{};C:\\\\somebin;D:\\\\ProbramFlies", expected_node_bin),
+        format!("{};{}", expected_node_bin, path_with_shims),
     );
 
     let node_npm = Image {
@@ -139,9 +137,9 @@ fn test_image_path() {
     assert_eq!(
         node_npm.path().unwrap().into_string().unwrap(),
         format!(
-            "{};{};C:\\\\somebin;D:\\\\ProbramFlies",
-            expected_npm_bin, expected_node_bin
-        ),
+            "{};{};{}",
+            expected_npm_bin, expected_node_bin, path_with_shims
+        )
     );
 
     let node_yarn = Image {
@@ -153,9 +151,9 @@ fn test_image_path() {
     assert_eq!(
         node_yarn.path().unwrap().into_string().unwrap(),
         format!(
-            "{};{};C:\\\\somebin;D:\\\\ProbramFlies",
-            expected_yarn_bin, expected_node_bin
-        ),
+            "{};{};{}",
+            expected_yarn_bin, expected_node_bin, path_with_shims
+        )
     );
 
     let node_npm_yarn = Image {
@@ -167,10 +165,10 @@ fn test_image_path() {
     assert_eq!(
         node_npm_yarn.path().unwrap().into_string().unwrap(),
         format!(
-            "{};{};{};C:\\\\somebin;D:\\\\ProbramFlies",
-            expected_npm_bin, expected_yarn_bin, expected_node_bin
-        ),
-    );
+            "{};{};{};{}",
+            expected_npm_bin, expected_yarn_bin, expected_node_bin, path_with_shims
+        )
+    )
 }
 
 #[cfg(unix)]

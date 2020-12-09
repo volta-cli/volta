@@ -2,12 +2,14 @@ use std::fmt::{self, Display};
 
 use super::node::load_default_npm_version;
 use super::{
-    debug_already_fetched, info_fetched, info_installed, info_pinned, info_project_version, Tool,
+    check_fetched, debug_already_fetched, info_fetched, info_installed, info_pinned,
+    info_project_version, FetchStatus, Tool,
 };
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::inventory::npm_available;
 use crate::session::Session;
 use crate::style::{success_prefix, tool_version};
+use crate::sync::VoltaLock;
 use log::info;
 use semver::Version;
 
@@ -35,11 +37,12 @@ impl Npm {
     }
 
     pub(crate) fn ensure_fetched(&self, session: &mut Session) -> Fallible<()> {
-        if npm_available(&self.version)? {
-            debug_already_fetched(self);
-            Ok(())
-        } else {
-            fetch::fetch(&self.version, session.hooks()?.npm())
+        match check_fetched(|| npm_available(&self.version))? {
+            FetchStatus::AlreadyFetched => {
+                debug_already_fetched(self);
+                Ok(())
+            }
+            FetchStatus::FetchNeeded(_lock) => fetch::fetch(&self.version, session.hooks()?.npm()),
         }
     }
 }
@@ -52,6 +55,8 @@ impl Tool for Npm {
         Ok(())
     }
     fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {
+        // Acquire a lock on the Volta directory, if possible, to prevent concurrent changes
+        let _lock = VoltaLock::acquire();
         self.ensure_fetched(session)?;
 
         session

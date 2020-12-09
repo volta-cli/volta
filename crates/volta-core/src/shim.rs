@@ -8,9 +8,12 @@ use std::path::Path;
 use crate::error::{Context, ErrorKind, Fallible, VoltaError};
 use crate::fs::{read_dir_eager, symlink_file};
 use crate::layout::{volta_home, volta_install};
+use crate::sync::VoltaLock;
 use log::debug;
 
 pub fn regenerate_shims_for_dir(dir: &Path) -> Fallible<()> {
+    // Acquire a lock on the Volta directory, if possible, to prevent concurrent changes
+    let _lock = VoltaLock::acquire();
     debug!("Rebuilding shims for directory: {}", dir.display());
     for shim_name in get_shim_list_deduped(dir)?.iter() {
         delete(shim_name)?;
@@ -119,11 +122,10 @@ pub fn delete(shim_name: &str) -> Fallible<ShimResult> {
 /// This bash script simply calls the shim using `cmd.exe`, so that it is resolved correctly
 #[cfg(windows)]
 mod windows {
-    use crate::error::{Context, ErrorKind, Fallible, VoltaError};
+    use crate::error::{Context, ErrorKind, Fallible};
     use crate::fs::remove_file_if_exists;
     use crate::layout::volta_home;
-    use std::fs::{remove_file, write};
-    use std::io;
+    use std::fs::write;
 
     const BASH_SCRIPT: &str = r#"cmd //C $0 "$@""#;
 

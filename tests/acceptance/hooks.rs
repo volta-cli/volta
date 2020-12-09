@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use crate::support::sandbox::sandbox;
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
+use mockito::mock;
 use test_support::matchers::execs;
 use volta_core::error::ExitCode;
 
@@ -70,6 +71,23 @@ fn workspace_hooks_json() -> String {
     "yarn": {{
         "distro": {{
             "template": "{0}/hook/workspace/yarn/{{{{version}}}}"
+        }}
+    }}
+}}"#,
+        mockito::SERVER_URL
+    )
+}
+
+fn yarn_hooks_json() -> String {
+    format!(
+        r#"
+{{
+    "yarn": {{
+        "latest": {{
+            "template": "{0}/yarn-old/latest"
+        }},
+        "index": {{
+            "template": "{0}/yarn-old/index"
         }}
     }}
 }}"#,
@@ -159,5 +177,77 @@ fn merges_workspace_hooks() {
             .with_status(ExitCode::NetworkError as i32)
             .with_stderr_contains("[..]Could not download node@11.11.2")
             .with_stderr_contains("[..]/hook/default/node/11.11.2")
+    );
+}
+
+#[test]
+fn yarn_latest_with_hook_reads_latest() {
+    let s = sandbox()
+        .default_hooks(&yarn_hooks_json())
+        .env("VOLTA_LOGLEVEL", "debug")
+        .build();
+    let _mock = mock("GET", "/yarn-old/latest")
+        .with_status(200)
+        .with_body("4.2.9")
+        .create();
+
+    assert_that!(
+        s.volta("install yarn@latest"),
+        execs()
+            .with_status(ExitCode::NetworkError as i32)
+            .with_stderr_contains("[..]Using yarn.latest hook to determine latest-version URL")
+            .with_stderr_contains("[..]Found yarn latest version (4.2.9)[..]")
+            .with_stderr_contains("[..]Could not download yarn@4.2.9")
+    );
+}
+
+#[test]
+fn yarn_no_version_with_hook_reads_latest() {
+    let s = sandbox()
+        .default_hooks(&yarn_hooks_json())
+        .env("VOLTA_LOGLEVEL", "debug")
+        .build();
+    let _mock = mock("GET", "/yarn-old/latest")
+        .with_status(200)
+        .with_body("4.2.9")
+        .create();
+
+    assert_that!(
+        s.volta("install yarn"),
+        execs()
+            .with_status(ExitCode::NetworkError as i32)
+            .with_stderr_contains("[..]Using yarn.latest hook to determine latest-version URL")
+            .with_stderr_contains("[..]Found yarn latest version (4.2.9)[..]")
+            .with_stderr_contains("[..]Could not download yarn@4.2.9")
+    );
+}
+
+#[test]
+fn yarn_semver_with_hook_uses_old_format() {
+    let s = sandbox()
+        .default_hooks(&yarn_hooks_json())
+        .env("VOLTA_LOGLEVEL", "debug")
+        .build();
+    let _mock = mock("GET", "/yarn-old/index")
+        .with_status(200)
+        .with_header("Content-Type", "application/json")
+        .with_body(
+            // Yarn Index hook expects the "old" (Github API) format
+            r#"[
+    {"tag_name":"v1.22.4","assets":[{"name":"yarn-v1.22.4.tar.gz"}]},
+    {"tag_name":"v2.0.0","assets":[{"name":"yarn-v2.0.0.tar.gz"}]},
+    {"tag_name":"v3.9.2","assets":[{"name":"yarn-v3.9.2.tar.gz"}]},
+    {"tag_name":"v4.1.1","assets":[{"name":"yarn-v4.1.1.tar.gz"}]}
+]"#,
+        )
+        .create();
+
+    assert_that!(
+        s.volta("install yarn@3"),
+        execs()
+            .with_status(ExitCode::NetworkError as i32)
+            .with_stderr_contains("[..]Using yarn.index hook to determine yarn index URL")
+            .with_stderr_contains("[..]Found yarn@3.9.2 matching requirement[..]")
+            .with_stderr_contains("[..]Could not download yarn@3.9.2")
     );
 }

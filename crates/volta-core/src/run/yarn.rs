@@ -1,64 +1,69 @@
-use std::env::args_os;
-use std::ffi::OsStr;
+use std::env;
+use std::ffi::OsString;
 
-use super::{debug_tool_message, intercept_global_installs, CommandArg, ToolCommand};
+use super::executor::{Executor, ToolCommand, ToolKind};
+use super::parser::CommandArg;
+use super::{debug_active_image, debug_no_platform, RECURSION_ENV_VAR};
 use crate::error::{ErrorKind, Fallible};
-use crate::platform::{CliPlatform, Platform, Source};
-use crate::session::{ActivityKind, Session};
-use log::debug;
+use crate::platform::{Platform, Source, System};
+use crate::session::Session;
 
-pub(crate) fn command(cli: CliPlatform, session: &mut Session) -> Fallible<ToolCommand> {
-    session.add_event_start(ActivityKind::Yarn);
-
-    match get_yarn_platform(cli, session)? {
-        Some(platform) => {
-            if intercept_global_installs() {
-                if let CommandArg::GlobalAdd(package) = check_yarn_add() {
-                    return Err(ErrorKind::NoGlobalInstalls { package }.into());
+/// Build an `Executor` for Yarn
+///
+/// If the command is a global add or remove and we have a default platform available, then we will
+/// use custom logic to ensure that the package is correctly installed / uninstalled in the Volta
+/// directory.
+///
+/// If the command is _not_ a global add / remove or we don't have a default platform, then
+/// we will allow Yarn to execute the command as usual.
+pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Executor> {
+    // Don't re-evaluate the context or global install interception if this is a recursive call
+    let platform = match env::var_os(RECURSION_ENV_VAR) {
+        Some(_) => None,
+        None => {
+            if let CommandArg::Global(cmd) = CommandArg::for_yarn(args) {
+                if let Some(default_platform) = session.default_platform()? {
+                    return cmd.executor(default_platform);
                 }
             }
 
-            // Note: If we've gotten this far, we know there is a yarn version set
-            debug_tool_message("yarn", platform.yarn.as_ref().unwrap());
+            Platform::current(session)?
+        }
+    };
 
-            let image = platform.checkout(session)?;
+    Ok(ToolCommand::new("yarn", args, platform, ToolKind::Yarn).into())
+}
+
+/// Determine the execution context (PATH and failure error message) for Yarn
+pub(super) fn execution_context(
+    platform: Option<Platform>,
+    session: &mut Session,
+) -> Fallible<(OsString, ErrorKind)> {
+    match platform {
+        Some(plat) => {
+            validate_platform_yarn(&plat)?;
+
+            let image = plat.checkout(session)?;
             let path = image.path()?;
-            Ok(ToolCommand::direct(OsStr::new("yarn"), &path))
+            debug_active_image(&image);
+
+            Ok((path, ErrorKind::BinaryExecError))
         }
         None => {
-            debug!("Could not find Volta-managed yarn, delegating to system");
-            ToolCommand::passthrough(OsStr::new("yarn"), ErrorKind::NoPlatform)
+            let path = System::path()?;
+            debug_no_platform();
+            Ok((path, ErrorKind::NoPlatform))
         }
     }
 }
 
-/// Determine the correct platform (project or default) and check if yarn is set for that platform
-fn get_yarn_platform(cli: CliPlatform, session: &mut Session) -> Fallible<Option<Platform>> {
-    match Platform::with_cli(cli, session)? {
-        Some(platform) => match &platform.yarn {
-            Some(_) => Ok(Some(platform)),
-            None => match platform.node.source {
-                Source::Project => Err(ErrorKind::NoProjectYarn.into()),
-                Source::Default | Source::Binary => Err(ErrorKind::NoDefaultYarn.into()),
-                Source::CommandLine => Err(ErrorKind::NoCommandLineYarn.into()),
-            },
+fn validate_platform_yarn(platform: &Platform) -> Fallible<()> {
+    match &platform.yarn {
+        Some(_) => Ok(()),
+        None => match platform.node.source {
+            Source::Project => Err(ErrorKind::NoProjectYarn.into()),
+            Source::Default | Source::Binary => Err(ErrorKind::NoDefaultYarn.into()),
+            Source::CommandLine => Err(ErrorKind::NoCommandLineYarn.into()),
         },
-        None => Ok(None),
-    }
-}
-
-fn check_yarn_add() -> CommandArg {
-    // Yarn global installs must be of the form `yarn global add`
-    // However, they may have options intermixed, e.g. yarn --verbose global add ember-cli
-    let mut args = args_os().skip(1).filter(|arg| match arg.to_str() {
-        Some(arg) => !arg.starts_with('-'),
-        None => true,
-    });
-
-    match (args.next(), args.next()) {
-        (Some(global), Some(add)) if global == "global" && add == "add" => {
-            CommandArg::GlobalAdd(args.next())
-        }
-        _ => CommandArg::NotGlobalAdd,
     }
 }

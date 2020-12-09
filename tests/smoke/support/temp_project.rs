@@ -69,6 +69,13 @@ impl TempProjectBuilder {
         self
     }
 
+    /// Create a file in the `volta_home` directory (chainable)
+    pub fn volta_home_file(mut self, path: &str, contents: &str) -> Self {
+        let path = volta_home(self.root()).join(path);
+        self.files.push(FileBuilder::new(path, contents));
+        self
+    }
+
     /// Create the project
     pub fn build(mut self) -> TempProject {
         // First, clean the temporary project directory if it already exists
@@ -196,12 +203,6 @@ fn yarn_inventory_dir(root: PathBuf) -> PathBuf {
 fn package_inventory_dir(root: PathBuf) -> PathBuf {
     inventory_dir(root).join("packages")
 }
-fn package_distro_file(name: &str, version: &str, root: PathBuf) -> PathBuf {
-    package_inventory_dir(root).join(package_distro_file_name(name, version))
-}
-fn package_distro_shasum(name: &str, version: &str, root: PathBuf) -> PathBuf {
-    package_inventory_dir(root).join(package_shasum_file_name(name, version))
-}
 fn cache_dir(root: PathBuf) -> PathBuf {
     volta_home(root).join("cache")
 }
@@ -215,8 +216,8 @@ fn package_json_file(mut root: PathBuf) -> PathBuf {
 fn shim_file(name: &str, root: PathBuf) -> PathBuf {
     volta_bin_dir(root).join(format!("{}{}", name, env::consts::EXE_SUFFIX))
 }
-fn package_image_dir(name: &str, version: &str, root: PathBuf) -> PathBuf {
-    image_dir(root).join("packages").join(name).join(version)
+fn package_image_dir(name: &str, root: PathBuf) -> PathBuf {
+    image_dir(root).join("packages").join(name)
 }
 fn default_platform_file(root: PathBuf) -> PathBuf {
     default_toolchain_dir(root).join("platform.json")
@@ -235,9 +236,6 @@ fn yarn_distro_file_name(version: &str) -> String {
 }
 fn package_distro_file_name(name: &str, version: &str) -> String {
     format!("{}-{}.tgz", name, version)
-}
-fn package_shasum_file_name(name: &str, version: &str) -> String {
-    format!("{}-{}.shasum", name, version)
 }
 
 pub struct TempProject {
@@ -387,17 +385,10 @@ impl TempProject {
         assert_eq!(json_contents["node"]["npm"], version);
     }
 
-    /// Verify that the input package version has been fetched.
-    pub fn package_version_is_fetched(&self, name: &str, version: &str) -> bool {
-        let package_file = package_distro_file(name, version, self.root());
-        let shasum_file = package_distro_shasum(name, version, self.root());
-        package_file.exists() && shasum_file.exists()
-    }
-
-    /// Verify that the input package version has been unpacked.
-    pub fn package_version_is_unpacked(&self, name: &str, version: &str) -> bool {
-        let unpack_dir = package_image_dir(name, version, self.root());
-        unpack_dir.exists()
+    /// Verify that the input package has been installed
+    pub fn package_is_installed(&self, name: &str) -> bool {
+        let install_dir = package_image_dir(name, self.root());
+        install_dir.exists()
     }
 
     /// Verify that the input package version has been fetched.

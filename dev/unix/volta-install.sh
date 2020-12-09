@@ -39,6 +39,7 @@ FLAGS:
 OPTIONS:
         --dev                   Compile and install Volta locally, using the dev target
         --release               Compile and install Volta locally, using the release target
+        --skip-setup            Do not run 'volta setup' to modify startup scripts
         --version <version>     Install a specific release version of Volta
 END_USAGE
 }
@@ -376,7 +377,7 @@ install_from_file() {
 
   info 'Extracting' "Volta binaries and launchers"
   # extract the files to the specified directory
-  tar -xzvf "$archive" -C "$install_dir"/bin
+  tar -xf "$archive" -C "$install_dir"/bin
 }
 
 check_architecture() {
@@ -384,10 +385,19 @@ check_architecture() {
   local arch="$2"
 
   if [[ "$version" != "local"* ]]; then
-    if [ "$arch" != "x86_64" ]; then
-      error "Sorry! Volta currently only provides pre-built binaries for x86_64 architectures."
-      return 1
-    fi
+    case "$arch" in
+      x86_64)
+        return 0
+        ;;
+      arm64)
+        if [ "$(uname -s)" = "Darwin" ]; then
+          return 0
+        fi
+        ;;
+    esac
+
+    error "Sorry! Volta currently only provides pre-built binaries for x86_64 architectures."
+    return 1
   fi
 }
 

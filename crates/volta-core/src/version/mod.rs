@@ -109,10 +109,9 @@ pub fn parse_version(s: impl AsRef<str>) -> Fallible<Version> {
 // remove the leading 'v' from the version string, if present
 fn trim_version(s: &str) -> &str {
     let s = s.trim();
-    if s.starts_with('v') {
-        s[1..].trim()
-    } else {
-        s
+    match s.strip_prefix('v') {
+        Some(stripped) => stripped,
+        None => s,
     }
 }
 

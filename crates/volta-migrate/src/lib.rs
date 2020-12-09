@@ -15,15 +15,19 @@ mod empty;
 mod v0;
 mod v1;
 mod v2;
+mod v3;
 
 use v0::V0;
 use v1::V1;
 use v2::V2;
+use v3::V3;
 
+use log::{debug, info};
 use volta_core::error::Fallible;
 use volta_core::layout::volta_home;
 #[cfg(unix)]
 use volta_core::layout::volta_install;
+use volta_core::sync::VoltaLock;
 
 /// Represents the state of the Volta directory at every point in the migration process
 ///
@@ -34,6 +38,7 @@ enum MigrationState {
     V0(Box<V0>),
     V1(Box<V1>),
     V2(Box<V2>),
+    V3(Box<V3>),
 }
 
 /// Macro to simplify the boilerplate associated with detecting a tagged state.
@@ -73,7 +78,7 @@ macro_rules! detect_tagged {
     }
 }
 
-detect_tagged!((v2, V2, V2), (v1, V1, V1));
+detect_tagged!((v3, V3, V3), (v2, V2, V2), (v1, V1, V1));
 
 impl MigrationState {
     fn current() -> Fallible<Self> {
@@ -130,6 +135,22 @@ impl MigrationState {
 }
 
 pub fn run_migration() -> Fallible<()> {
+    // Acquire an exclusive lock on the Volta directory, to ensure that no other migrations are running.
+    // If this fails, however, we still need to run the migration
+    match VoltaLock::acquire() {
+        Ok(_lock) => {
+            // The lock was acquired, so we can be confident that no other migrations are running
+            detect_and_migrate()
+        }
+        Err(_) => {
+            debug!("Unable to acquire lock on Volta directory! Running migration anyway.");
+            detect_and_migrate()
+        }
+    }
+}
+
+fn detect_and_migrate() -> Fallible<()> {
+    info!("Updating your Volta directory. This may take a few moments...");
     let mut state = MigrationState::current()?;
 
     // To keep the complexity of writing a new migration from continuously increasing, each new
@@ -137,10 +158,11 @@ pub fn run_migration() -> Fallible<()> {
     // latest version. We then apply the migrations sequentially here: V0 -> V1 -> ... -> VX
     loop {
         state = match state {
-            MigrationState::Empty(e) => MigrationState::V1(Box::new(e.try_into()?)),
+            MigrationState::Empty(e) => MigrationState::V3(Box::new(e.try_into()?)),
             MigrationState::V0(zero) => MigrationState::V1(Box::new((*zero).try_into()?)),
             MigrationState::V1(one) => MigrationState::V2(Box::new((*one).try_into()?)),
-            MigrationState::V2(_) => {
+            MigrationState::V2(two) => MigrationState::V3(Box::new((*two).try_into()?)),
+            MigrationState::V3(_) => {
                 break;
             }
         };

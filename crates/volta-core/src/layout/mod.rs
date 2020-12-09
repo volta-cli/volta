@@ -6,7 +6,7 @@ use cfg_if::cfg_if;
 use double_checked_cell::DoubleCheckedCell;
 use dunce::canonicalize;
 use lazy_static::lazy_static;
-use volta_layout::v2::{VoltaHome, VoltaInstall};
+use volta_layout::v3::{VoltaHome, VoltaInstall};
 
 cfg_if! {
     if #[cfg(unix)] {
@@ -53,10 +53,10 @@ pub fn volta_install<'a>() -> Fallible<&'a VoltaInstall> {
 /// actual binary files
 fn default_install_dir() -> Fallible<PathBuf> {
     env::current_exe()
+        .and_then(canonicalize)
         .map(|mut path| {
             path.pop(); // Remove the executable name from the path
             path
         })
-        .and_then(canonicalize)
         .with_context(|| ErrorKind::NoInstallDir)
 }

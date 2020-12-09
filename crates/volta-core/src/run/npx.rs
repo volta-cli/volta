@@ -1,38 +1,58 @@
-use std::ffi::OsStr;
+use std::env;
+use std::ffi::OsString;
 
-use super::{debug_tool_message, ToolCommand};
+use super::executor::{Executor, ToolCommand, ToolKind};
+use super::{debug_active_image, debug_no_platform, RECURSION_ENV_VAR};
 use crate::error::{ErrorKind, Fallible};
-use crate::platform::{CliPlatform, Platform};
-use crate::session::{ActivityKind, Session};
-use crate::version::parse_version;
-use log::debug;
+use crate::platform::{Platform, System};
+use crate::session::Session;
+use lazy_static::lazy_static;
+use semver::Version;
 
-pub(crate) fn command(cli: CliPlatform, session: &mut Session) -> Fallible<ToolCommand> {
-    session.add_event_start(ActivityKind::Npx);
+lazy_static! {
+    /// The minimum required npm version that includes npx (5.2.0)
+    static ref REQUIRED_NPM_VERSION: Version = Version::new(5, 2, 0);
+}
 
-    match Platform::with_cli(cli, session)? {
-        Some(platform) => {
-            let image = platform.checkout(session)?;
+/// Build a `ToolCommand` for npx
+pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Executor> {
+    // Don't re-evaluate the context if this is a recursive call
+    let platform = match env::var_os(RECURSION_ENV_VAR) {
+        Some(_) => None,
+        None => Platform::current(session)?,
+    };
 
-            // npx was only included with npm 5.2.0 and higher. If the npm version is less than that, we
-            // should include a helpful error message
-            let required_npm = parse_version("5.2.0")?;
+    Ok(ToolCommand::new("npx", args, platform, ToolKind::Npx).into())
+}
+
+/// Determine the execution context (PATH and failure error message) for npx
+pub(super) fn execution_context(
+    platform: Option<Platform>,
+    session: &mut Session,
+) -> Fallible<(OsString, ErrorKind)> {
+    match platform {
+        Some(plat) => {
+            let image = plat.checkout(session)?;
+
+            // If the npm version is lower than the minimum required, we can show a helpful error
+            // message instead of a 'command not found' error.
             let active_npm = image.resolve_npm()?;
-            if active_npm.value >= required_npm {
-                let path = image.path()?;
-
-                debug_tool_message("npx", &active_npm);
-                Ok(ToolCommand::direct(OsStr::new("npx"), &path))
-            } else {
-                Err(ErrorKind::NpxNotAvailable {
+            if active_npm.value < *REQUIRED_NPM_VERSION {
+                return Err(ErrorKind::NpxNotAvailable {
                     version: active_npm.value.to_string(),
                 }
-                .into())
+                .into());
             }
+
+            let path = image.path()?;
+            debug_active_image(&image);
+
+            Ok((path, ErrorKind::BinaryExecError))
         }
         None => {
-            debug!("Could not find Volta-managed npx, delegating to system");
-            ToolCommand::passthrough(OsStr::new("npx"), ErrorKind::NoPlatform)
+            let path = System::path()?;
+            debug_no_platform();
+            Ok((path, ErrorKind::NoPlatform))
         }
     }
 }

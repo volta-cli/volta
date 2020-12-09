@@ -1,5 +1,6 @@
 use std::convert::TryFrom;
-use std::fs::{read_to_string, remove_file, write, File};
+use std::fs::{read_to_string, write, File};
+use std::io;
 use std::path::{Path, PathBuf};
 
 use super::empty::Empty;
@@ -8,7 +9,7 @@ use log::debug;
 use semver::Version;
 use tempfile::tempdir_in;
 use volta_core::error::{Context, ErrorKind, Fallible, VoltaError};
-use volta_core::fs::{read_dir_eager, remove_dir_if_exists, rename};
+use volta_core::fs::{read_dir_eager, remove_dir_if_exists, remove_file_if_exists, rename};
 use volta_core::tool::load_default_npm_version;
 use volta_core::toolchain::serial::Platform;
 use volta_core::version::parse_version;
@@ -16,7 +17,7 @@ use volta_layout::{v1, v2};
 
 /// Represents a V2 Volta Layout (used by Volta v0.7.3 and above)
 ///
-/// Holds a reference to the V1 layout struct to support potential future migrations
+/// Holds a reference to the V2 layout struct to support potential future migrations
 pub struct V2 {
     pub home: v2::VoltaHome,
 }
@@ -28,7 +29,7 @@ impl V2 {
         }
     }
 
-    /// Write the layout file to mark migration to V1 as complete
+    /// Write the layout file to mark migration to V2 as complete
     ///
     /// Should only be called once all other migration steps are finished, so that we don't
     /// accidentally mark an incomplete migration as completed
@@ -79,12 +80,7 @@ impl TryFrom<V1> for V2 {
 
         // Remove the V1 layout file, since we're now on V2 (do this after writing the V2 so that we know the migration succeeded)
         let old_layout_file = old.home.layout_file();
-        if old_layout_file.exists() {
-            remove_file(old_layout_file).with_context(|| ErrorKind::DeleteFileError {
-                file: old_layout_file.to_owned(),
-            })?;
-        }
-
+        remove_file_if_exists(old_layout_file)?;
         Ok(layout)
     }
 }
@@ -94,24 +90,33 @@ impl TryFrom<V1> for V2 {
 /// This will ensure that we don't treat the default npm from a prior version of Volta as a "custom" npm that
 /// the user explicitly requested
 fn clear_default_npm(platform_file: &Path) -> Fallible<()> {
-    if platform_file.exists() {
-        let platform_json =
-            read_to_string(platform_file).with_context(|| ErrorKind::ReadPlatformError {
-                file: platform_file.to_owned(),
-            })?;
-        let mut existing_platform = Platform::from_json(platform_json)?;
+    let platform_json = match read_to_string(platform_file) {
+        Ok(json) => json,
+        Err(error) => {
+            if error.kind() == io::ErrorKind::NotFound {
+                return Ok(());
+            } else {
+                return Err(VoltaError::from_source(
+                    error,
+                    ErrorKind::ReadPlatformError {
+                        file: platform_file.to_path_buf(),
+                    },
+                ));
+            }
+        }
+    };
+    let mut existing_platform = Platform::from_json(platform_json)?;
 
-        if let Some(ref mut node_version) = &mut existing_platform.node {
-            if let Some(npm) = &node_version.npm {
-                if let Ok(default_npm) = load_default_npm_version(&node_version.runtime) {
-                    if *npm == default_npm {
-                        node_version.npm = None;
-                        write(platform_file, existing_platform.into_json()?).with_context(
-                            || ErrorKind::WritePlatformError {
-                                file: platform_file.to_owned(),
-                            },
-                        )?;
-                    }
+    if let Some(ref mut node_version) = &mut existing_platform.node {
+        if let Some(npm) = &node_version.npm {
+            if let Ok(default_npm) = load_default_npm_version(&node_version.runtime) {
+                if *npm == default_npm {
+                    node_version.npm = None;
+                    write(platform_file, existing_platform.into_json()?).with_context(|| {
+                        ErrorKind::WritePlatformError {
+                            file: platform_file.to_owned(),
+                        }
+                    })?;
                 }
             }
         }

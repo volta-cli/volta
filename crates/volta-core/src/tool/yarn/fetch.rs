@@ -4,6 +4,7 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 
 use super::super::download_tool_error;
+use super::super::registry::{find_unpack_dir, public_registry_package};
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::{create_staging_dir, create_staging_file, rename};
 use crate::hook::ToolHooks;
@@ -12,22 +13,9 @@ use crate::style::{progress_bar, tool_version};
 use crate::tool::{self, Yarn};
 use crate::version::VersionSpec;
 use archive::{Archive, Tarball};
-use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
 use log::debug;
 use semver::Version;
-
-cfg_if! {
-    if #[cfg(feature = "mock-network")] {
-        fn public_yarn_server_root() -> String {
-            mockito::SERVER_URL.to_string()
-        }
-    } else {
-        fn public_yarn_server_root() -> String {
-            "https://github.com/yarnpkg/yarn/releases/download".to_string()
-        }
-    }
-}
 
 pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<()> {
     let yarn_dir = volta_home()?.yarn_inventory_dir();
@@ -95,11 +83,8 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<()> 
     ensure_containing_dir_exists(&dest)
         .with_context(|| ErrorKind::ContainingDirError { path: dest.clone() })?;
 
-    rename(
-        temp.path().join(Yarn::archive_basename(&version_string)),
-        &dest,
-    )
-    .with_context(|| ErrorKind::SetupToolImageError {
+    let unpack_dir = find_unpack_dir(temp.path())?;
+    rename(unpack_dir, &dest).with_context(|| ErrorKind::SetupToolImageError {
         tool: "Yarn".into(),
         version: version_string.clone(),
         dir: dest.clone(),
@@ -128,21 +113,16 @@ fn load_cached_distro(file: &PathBuf) -> Option<Box<dyn Archive>> {
 /// Determine the remote URL to download from, using the hooks if available
 fn determine_remote_url(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<String> {
     let version_str = version.to_string();
-    let distro_file_name = Yarn::archive_filename(&version_str);
     match hooks {
         Some(&ToolHooks {
             distro: Some(ref hook),
             ..
         }) => {
             debug!("Using yarn.distro hook to determine download URL");
+            let distro_file_name = Yarn::archive_filename(&version_str);
             hook.resolve(&version, &distro_file_name)
         }
-        _ => Ok(format!(
-            "{}/v{}/{}",
-            public_yarn_server_root(),
-            version_str,
-            distro_file_name
-        )),
+        _ => Ok(public_registry_package("yarn", &version_str)),
     }
 }
 

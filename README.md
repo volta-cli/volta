@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://www.volta.sh/">
-    <img alt="Volta" src="./volta.jpg?raw=true" width="360">
+    <img alt="Volta" src="./volta.png?raw=true" width="360">
   </a>
 </p>
 

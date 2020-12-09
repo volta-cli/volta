@@ -105,7 +105,14 @@ mod os {
 
     /// Add zsh profile script, if necessary
     fn add_zsh_profile(home_dir: &Path, shell: &str, profiles: &mut Vec<PathBuf>) {
-        let zshrc = home_dir.join(".zshrc");
+        let zdotdir_env = env::var("ZDOTDIR").unwrap_or_else(|_| String::new());
+        let zdotdir = if zdotdir_env.is_empty() {
+            home_dir
+        } else {
+            Path::new(&zdotdir_env)
+        };
+
+        let zshrc = zdotdir.join(".zshrc");
 
         if shell.contains("zsh") || zshrc.exists() {
             profiles.push(zshrc);

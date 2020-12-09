@@ -1,25 +1,40 @@
-use std::ffi::OsStr;
+use std::env;
+use std::ffi::OsString;
 
-use super::{debug_tool_message, ToolCommand};
+use super::executor::{Executor, ToolCommand, ToolKind};
+use super::{debug_active_image, debug_no_platform, RECURSION_ENV_VAR};
 use crate::error::{ErrorKind, Fallible};
-use crate::platform::{CliPlatform, Platform};
-use crate::session::{ActivityKind, Session};
-use log::debug;
+use crate::platform::{Platform, System};
+use crate::session::Session;
 
-pub(crate) fn command(cli: CliPlatform, session: &mut Session) -> Fallible<ToolCommand> {
-    session.add_event_start(ActivityKind::Node);
+/// Build a `ToolCommand` for Node
+pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Executor> {
+    // Don't re-evaluate the platform if this is a recursive call
+    let platform = match env::var_os(RECURSION_ENV_VAR) {
+        Some(_) => None,
+        None => Platform::current(session)?,
+    };
 
-    match Platform::with_cli(cli, session)? {
-        Some(platform) => {
-            debug_tool_message("node", &platform.node);
+    Ok(ToolCommand::new("node", args, platform, ToolKind::Node).into())
+}
 
-            let image = platform.checkout(session)?;
+/// Determine the execution context (PATH and failure error message) for Node
+pub(super) fn execution_context(
+    platform: Option<Platform>,
+    session: &mut Session,
+) -> Fallible<(OsString, ErrorKind)> {
+    match platform {
+        Some(plat) => {
+            let image = plat.checkout(session)?;
             let path = image.path()?;
-            Ok(ToolCommand::direct(OsStr::new("node"), &path))
+            debug_active_image(&image);
+
+            Ok((path, ErrorKind::BinaryExecError))
         }
         None => {
-            debug!("Could not find Volta-managed node, delegating to system");
-            ToolCommand::passthrough(OsStr::new("node"), ErrorKind::NoPlatform)
+            let path = System::path()?;
+            debug_no_platform();
+            Ok((path, ErrorKind::NoPlatform))
         }
     }
 }

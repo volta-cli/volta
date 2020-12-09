@@ -15,7 +15,7 @@ pub use crate::zip::Zip;
 #[derive(Error, Debug)]
 pub enum ArchiveError {
     #[error("HTTP failure ({0})")]
-    HttpError(::attohttpc::StatusCode),
+    HttpError(attohttpc::StatusCode),
 
     #[error("HTTP header '{0}' not found")]
     MissingHeaderError(String),

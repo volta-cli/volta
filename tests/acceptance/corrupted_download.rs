@@ -24,10 +24,14 @@ const NODE_VERSION_FIXTURES: [DistroMetadata; 2] = [
     },
 ];
 
-const YARN_VERSION_INFO: &str = r#"[
-{"tag_name":"v0.0.1","assets":[{"name":"yarn-v0.0.1.tar.gz"}]},
-{"tag_name":"v1.2.42","assets":[{"name":"yarn-v1.2.42.tar.gz"}]}
-]"#;
+const YARN_VERSION_INFO: &str = r#"{
+    "name":"yarn",
+    "dist-tags": { "latest": "1.2.42" },
+    "versions": {
+        "0.0.1": { "version":"0.0.1", "dist": { "shasum":"", "tarball":"" }},
+        "1.2.42": { "version":"1.2.42", "dist": { "shasum:"", "tarball":"" }}
+    }
+}"#;
 
 const YARN_VERSION_FIXTURES: [DistroMetadata; 2] = [
     DistroMetadata {

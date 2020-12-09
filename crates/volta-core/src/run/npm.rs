@@ -1,60 +1,56 @@
-use std::env::args_os;
-use std::ffi::OsStr;
+use std::env;
+use std::ffi::OsString;
 
-use super::{debug_tool_message, intercept_global_installs, CommandArg, ToolCommand};
+use super::executor::{Executor, ToolCommand, ToolKind};
+use super::parser::CommandArg;
+use super::{debug_active_image, debug_no_platform, RECURSION_ENV_VAR};
 use crate::error::{ErrorKind, Fallible};
-use crate::platform::{CliPlatform, Platform};
-use crate::session::{ActivityKind, Session};
-use log::debug;
+use crate::platform::{Platform, System};
+use crate::session::Session;
 
-pub(crate) fn command(cli: CliPlatform, session: &mut Session) -> Fallible<ToolCommand> {
-    session.add_event_start(ActivityKind::Npm);
-
-    match Platform::with_cli(cli, session)? {
-        Some(platform) => {
-            if intercept_global_installs() {
-                if let CommandArg::GlobalAdd(package) = check_npm_install() {
-                    return Err(ErrorKind::NoGlobalInstalls { package }.into());
+/// Build an `Executor` for npm
+///
+/// If the command is a global install or uninstall and we have a default platform available, then
+/// we will use custom logic to ensure that the package is correctly installed / uninstalled in the
+/// Volta directory.
+///
+/// If the command is _not_ a global install / uninstall or we don't have a default platform, then
+/// we will allow npm to execute the command as usual.
+pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Executor> {
+    // Don't re-evaluate the context or global install interception if this is a recursive call
+    let platform = match env::var_os(RECURSION_ENV_VAR) {
+        Some(_) => None,
+        None => {
+            if let CommandArg::Global(cmd) = CommandArg::for_npm(args) {
+                if let Some(default_platform) = session.default_platform()? {
+                    return cmd.executor(default_platform);
                 }
             }
-            let image = platform.checkout(session)?;
-            let path = image.path()?;
 
-            debug_tool_message("npm", &image.resolve_npm()?);
+            Platform::current(session)?
+        }
+    };
 
-            Ok(ToolCommand::direct(OsStr::new("npm"), &path))
-        }
-        None => {
-            debug!("Could not find Volta-managed npm, delegating to system");
-            ToolCommand::passthrough(OsStr::new("npm"), ErrorKind::NoPlatform)
-        }
-    }
+    Ok(ToolCommand::new("npm", args, platform, ToolKind::Npm).into())
 }
 
-fn check_npm_install() -> CommandArg {
-    // npm global installs will have `-g` or `--global` somewhere in the
-    // argument list
-    if !args_os().any(|arg| arg == "-g" || arg == "--global") {
-        return CommandArg::NotGlobalAdd;
-    }
+/// Determine the execution context (PATH and failure error message) for npm
+pub(super) fn execution_context(
+    platform: Option<Platform>,
+    session: &mut Session,
+) -> Fallible<(OsString, ErrorKind)> {
+    match platform {
+        Some(plat) => {
+            let image = plat.checkout(session)?;
+            let path = image.path()?;
+            debug_active_image(&image);
 
-    // Get the same set of args again to iterate over, this time with the
-    // command itself skipped and all flags excluded entirely. The first item
-    // in that skipped, filtered iterator is the npm command.
-    let mut args = args_os().skip(1).filter(|arg| match arg.to_str() {
-        Some(arg) => !arg.starts_with('-'),
-        None => true,
-    });
-    let command = args.next();
-
-    // They will be specified by the command `i`, `install`, `add` or `isntall`.
-    // See https://github.com/npm/cli/blob/latest/lib/config/cmd-list.js
-    match command {
-        Some(cmd) if cmd == "install" || cmd == "i" || cmd == "isntall" || cmd == "add" => {
-            // `args` here picks up from where the command lookup left off, so
-            // will be the name of the package passed to the command.
-            CommandArg::GlobalAdd(args.next())
+            Ok((path, ErrorKind::BinaryExecError))
         }
-        _ => CommandArg::NotGlobalAdd,
+        None => {
+            let path = System::path()?;
+            debug_no_platform();
+            Ok((path, ErrorKind::NoPlatform))
+        }
     }
 }

@@ -13,10 +13,12 @@
 
 cfg_if::cfg_if! {
     if #[cfg(all(unix, feature = "smoke-tests"))] {
+        mod autodownload;
+        mod direct_install;
+        mod package_migration;
         mod support;
         mod volta_fetch;
         mod volta_install;
         mod volta_run;
-        mod autodownload;
     }
 }

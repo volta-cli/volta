@@ -1,12 +1,14 @@
 use std::fmt::{self, Display};
 
 use super::{
-    debug_already_fetched, info_fetched, info_installed, info_pinned, info_project_version, Tool,
+    check_fetched, debug_already_fetched, info_fetched, info_installed, info_pinned,
+    info_project_version, FetchStatus, Tool,
 };
 use crate::error::{ErrorKind, Fallible};
 use crate::inventory::node_available;
 use crate::session::Session;
 use crate::style::{note_prefix, tool_version};
+use crate::sync::VoltaLock;
 use cfg_if::cfg_if;
 use log::info;
 use semver::Version;
@@ -106,16 +108,17 @@ impl Node {
     }
 
     pub(crate) fn ensure_fetched(&self, session: &mut Session) -> Fallible<NodeVersion> {
-        if node_available(&self.version)? {
-            debug_already_fetched(self);
-            let npm = fetch::load_default_npm_version(&self.version)?;
+        match check_fetched(|| node_available(&self.version))? {
+            FetchStatus::AlreadyFetched => {
+                debug_already_fetched(self);
+                let npm = fetch::load_default_npm_version(&self.version)?;
 
-            Ok(NodeVersion {
-                runtime: self.version.clone(),
-                npm,
-            })
-        } else {
-            fetch::fetch(&self.version, session.hooks()?.node())
+                Ok(NodeVersion {
+                    runtime: self.version.clone(),
+                    npm,
+                })
+            }
+            FetchStatus::FetchNeeded(_lock) => fetch::fetch(&self.version, session.hooks()?.node()),
         }
     }
 }
@@ -128,6 +131,8 @@ impl Tool for Node {
         Ok(())
     }
     fn install(self: Box<Self>, session: &mut Session) -> Fallible<()> {
+        // Acquire a lock on the Volta directory, if possible, to prevent concurrent changes
+        let _lock = VoltaLock::acquire();
         let node_version = self.ensure_fetched(session)?;
 
         let default_toolchain = session.toolchain_mut()?;

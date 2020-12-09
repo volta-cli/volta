@@ -1,183 +1,97 @@
-//! Types and helpers for executing command-line tools.
-
-use std::env::{self, args_os, ArgsOs};
+use std::collections::HashMap;
+use std::env::{self, ArgsOs};
 use std::ffi::{OsStr, OsString};
-use std::fmt;
-use std::iter::empty;
 use std::path::Path;
-use std::process::{Command, ExitStatus, Output};
+use std::process::ExitStatus;
 
-use crate::command::create_command;
-use crate::error::{Context, ErrorKind, Fallible};
-use crate::platform::{CliPlatform, Sourced, System};
+use crate::error::{ErrorKind, Fallible};
+use crate::platform::{CliPlatform, Image, Sourced};
 use crate::session::Session;
-use crate::signal::pass_control_to_shim;
-use crate::style::tool_version;
 use log::debug;
+use semver::Version;
 
 pub mod binary;
-pub mod node;
-pub mod npm;
-pub mod npx;
-pub mod yarn;
+mod executor;
+mod node;
+mod npm;
+mod npx;
+mod parser;
+mod yarn;
 
+/// Environment variable set internally when a shim has been executed and the context evaluated
+///
+/// This is set when executing a shim command. If this is already, then the built-in shims (Node,
+/// npm, npx, and Yarn) will assume that the context has already been evaluated & the PATH has
+/// already been modified, so they will use the pass-through behavior.
+///
+/// Shims should only be called recursively when the environment is misconfigured, so this will
+/// prevent infinite recursion as the pass-through logic removes the shim directory from the PATH.
+///
+/// Note: This is explicitly _removed_ when calling a command through `volta run`, as that will
+/// never happen due to the Volta environment.
+const RECURSION_ENV_VAR: &str = "_VOLTA_TOOL_RECURSION";
 const VOLTA_BYPASS: &str = "VOLTA_BYPASS";
-const UNSAFE_GLOBAL: &str = "VOLTA_UNSAFE_GLOBAL";
 
+/// Execute a shim command, based on the command-line arguments to the current process
 pub fn execute_shim(session: &mut Session) -> Fallible<ExitStatus> {
-    let mut args = args_os();
-    let exe = get_tool_name(&mut args)?;
-    let envs = empty::<(String, String)>();
+    let mut native_args = env::args_os();
+    let exe = get_tool_name(&mut native_args)?;
+    let args: Vec<_> = native_args.collect();
 
-    execute_tool(&exe, args, envs, CliPlatform::default(), session)
+    get_executor(&exe, &args, session)?.execute(session)
 }
 
-pub fn execute_tool<A, S, E, K, V>(
+/// Execute a tool with the provided arguments
+pub fn execute_tool<K, V, S>(
     exe: &OsStr,
-    args: A,
-    envs: E,
+    args: &[OsString],
+    envs: &HashMap<K, V, S>,
     cli: CliPlatform,
     session: &mut Session,
 ) -> Fallible<ExitStatus>
 where
-    A: IntoIterator<Item = S>,
-    S: AsRef<OsStr>,
-    E: IntoIterator<Item = (K, V)>,
     K: AsRef<OsStr>,
     V: AsRef<OsStr>,
 {
-    let mut command = if env::var_os(VOLTA_BYPASS).is_some() {
-        ToolCommand::passthrough(
-            &exe,
-            ErrorKind::BypassError {
-                command: exe.to_string_lossy().to_string(),
-            },
-        )?
+    // Remove the recursion environment variable so that the context is correctly re-evaluated
+    // when calling `volta run` (even when called from a Node script)
+    env::remove_var(RECURSION_ENV_VAR);
+
+    let mut runner = get_executor(exe, args, session)?;
+    runner.cli_platform(cli);
+    runner.envs(envs);
+
+    runner.execute(session)
+}
+
+/// Get the appropriate Tool command, based on the requested executable and arguments
+fn get_executor(
+    exe: &OsStr,
+    args: &[OsString],
+    session: &mut Session,
+) -> Fallible<executor::Executor> {
+    if env::var_os(VOLTA_BYPASS).is_some() {
+        Ok(executor::ToolCommand::new(
+            exe,
+            args,
+            None,
+            executor::ToolKind::Bypass(exe.to_string_lossy().to_string()),
+        )
+        .into())
     } else {
         match exe.to_str() {
-            Some("volta-shim") => return Err(ErrorKind::RunShimDirectly.into()),
-            Some("node") => node::command(cli, session)?,
-            Some("npm") => npm::command(cli, session)?,
-            Some("npx") => npx::command(cli, session)?,
-            Some("yarn") => yarn::command(cli, session)?,
-            _ => binary::command(exe, cli, session)?,
-        }
-    };
-
-    command.args(args);
-    command.envs(envs);
-
-    pass_control_to_shim();
-    command.status()
-}
-
-/// Process builder for launching a Volta-managed tool
-///
-/// This is a thin wrapper around std::process::Command, providing a few QoL improvements:
-///
-/// * `ErrorKind` error type on `status` and `output` methods, determined based on the context
-/// * Helper methods for constructing a type with the appropriate context
-pub(crate) struct ToolCommand {
-    /// The wrapped Command
-    command: Command,
-
-    /// The Volta error with which to wrap any failure.
-    ///
-    /// This allows us to call out to the system for the pass-through behavior, but still
-    /// show a friendly error message for cases where the user needs to select a Node version
-    on_failure: ErrorKind,
-}
-
-impl ToolCommand {
-    /// Build a ToolCommand that is directly calling a tool in the Volta directory
-    fn direct(exe: &OsStr, path_var: &OsStr) -> Self {
-        ToolCommand {
-            command: command_with_path(exe, path_var),
-            on_failure: ErrorKind::BinaryExecError,
+            Some("volta-shim") => Err(ErrorKind::RunShimDirectly.into()),
+            Some("node") => node::command(args, session),
+            Some("npm") => npm::command(args, session),
+            Some("npx") => npx::command(args, session),
+            Some("yarn") => yarn::command(args, session),
+            _ => binary::command(exe, args, session),
         }
     }
-
-    /// Build a ToolCommand that is calling a binary in the current project's `node_modules/bin`
-    fn project_local(exe: &OsStr, path_var: &OsStr) -> Self {
-        ToolCommand {
-            command: command_with_path(exe, path_var),
-            on_failure: ErrorKind::ProjectLocalBinaryExecError {
-                command: exe.to_string_lossy().to_string(),
-            },
-        }
-    }
-
-    /// Build a ToolCommand that is calling a command that Volta couldn't find
-    ///
-    /// This will allow the existing system to resolve the tool, if possible. If that still fails,
-    /// then we show `default_error` as the friendly error to the user, directing them how to
-    /// resolve the issue (e.g. run `volta install node` to enable `node`)
-    fn passthrough(exe: &OsStr, default_error: ErrorKind) -> Fallible<Self> {
-        let path = System::path()?;
-        Ok(ToolCommand {
-            command: command_with_path(exe, &path),
-            on_failure: default_error,
-        })
-    }
-
-    /// Add a single argument to the Command.
-    ///
-    /// The new argument will be added to the end of the current argument list
-    pub(crate) fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut ToolCommand {
-        self.command.arg(arg);
-        self
-    }
-
-    /// Add multiple arguments to the Command.
-    ///
-    /// New arguments will be added at the end of the current argument list
-    pub(crate) fn args<I, S>(&mut self, args: I) -> &mut ToolCommand
-    where
-        S: AsRef<OsStr>,
-        I: IntoIterator<Item = S>,
-    {
-        self.command.args(args);
-        self
-    }
-
-    /// Adds or updates multiple environment variables for the Command
-    pub(crate) fn envs<E, K, V>(&mut self, envs: E) -> &mut ToolCommand
-    where
-        E: IntoIterator<Item = (K, V)>,
-        K: AsRef<OsStr>,
-        V: AsRef<OsStr>,
-    {
-        self.command.envs(envs);
-        self
-    }
-
-    /// Set the current working directory for the Command
-    pub(crate) fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut ToolCommand {
-        self.command.current_dir(dir);
-        self
-    }
-
-    /// Execute the command, returning its status
-    ///
-    /// Any failures will be wrapped with the Error value in `on_failure`
-    pub(crate) fn status(mut self) -> Fallible<ExitStatus> {
-        self.command.status().with_context(|| self.on_failure)
-    }
-
-    /// Execute the command, returning all of its output to the caller
-    ///
-    /// Any failures will be wrapped with the Error value in `on_failure`
-    pub(crate) fn output(mut self) -> Fallible<Output> {
-        self.command.output().with_context(|| self.on_failure)
-    }
 }
 
-impl fmt::Debug for ToolCommand {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self.command)
-    }
-}
 
+/// Determine the name of the command to run by inspecting the first argument to the active process
 pub fn get_tool_name(args: &mut ArgsOs) -> Fallible<OsString> {
     args.next()
         .and_then(|arg0| Path::new(&arg0).file_name().map(tool_name_from_file_name))
@@ -199,36 +113,35 @@ fn tool_name_from_file_name(file_name: &OsStr) -> OsString {
     }
 }
 
-/// Create a command in the given context by setting the `PATH` environment variable
-fn command_with_path(exe: &OsStr, path_var: &OsStr) -> Command {
-    let mut command = create_command(exe);
-    command.env("PATH", path_var);
-    command
+/// Write a debug message that there is no platform available
+#[inline]
+fn debug_no_platform() {
+    debug!("Could not find Volta-managed platform, delegating to system");
 }
 
-/// Determine if we should intercept global installs or not
-///
-/// Setting the VOLTA_UNSAFE_GLOBAL environment variable will disable interception of global installs
-fn intercept_global_installs() -> bool {
-    env::var_os(UNSAFE_GLOBAL).is_none()
-}
-
-/// Distinguish global `add` commands in npm or yarn from all others.
-enum CommandArg {
-    /// The command is a *global* add command.
-    GlobalAdd(Option<OsString>),
-    /// The command is a local, i.e. non-global, add command.
-    NotGlobalAdd,
-}
-
-/// Write the tool version and source to the debug log
-fn debug_tool_message<T>(tool: &str, version: &Sourced<T>)
-where
-    T: std::fmt::Display + Sized,
-{
+/// Write a debug message with the full image that will be used to execute a command
+#[inline]
+fn debug_active_image(image: &Image) {
     debug!(
-        "Using {} from {} configuration",
-        tool_version(tool, &version.value),
-        version.source,
+        "Active Image:
+    Node: {}
+    npm: {}
+    Yarn: {}",
+        format_tool_version(&image.node),
+        image
+            .resolve_npm()
+            .ok()
+            .as_ref()
+            .map(format_tool_version)
+            .unwrap_or_else(|| "Bundled with Node".into()),
+        image
+            .yarn
+            .as_ref()
+            .map(format_tool_version)
+            .unwrap_or_else(|| "None".into()),
     )
+}
+
+fn format_tool_version(version: &Sourced<Version>) -> String {
+    format!("{} from {} configuration", version.value, version.source)
 }

@@ -126,13 +126,16 @@ cfg_if::cfg_if! {
     }
 }
 
-const YARN_VERSION_INFO: &str = r#"[
-{"tag_name":"v1.2.42","assets":[{"name":"yarn-v1.2.42.tar.gz"}]},
-{"tag_name":"v1.3.1","assets":[{"name":"yarn-v1.3.1.msi"}]},
-{"tag_name":"v1.4.159","assets":[{"name":"yarn-v1.4.159.tar.gz"}]},
-{"tag_name":"v1.7.71","assets":[{"name":"yarn-v1.7.71.tar.gz"}]},
-{"tag_name":"v1.12.99","assets":[{"name":"yarn-v1.12.99.tar.gz"}]}
-]"#;
+const YARN_VERSION_INFO: &str = r#"{
+    "name":"yarn",
+    "dist-tags": { "latest":"1.12.99" },
+    "versions": {
+        "1.2.42": { "version":"1.2.42", "dist": { "shasum":"", "tarball":"" }},
+        "1.4.159": { "version":"1.4.159", "dist": { "shasum":"", "tarball":"" }},
+        "1.7.71": { "version":"1.7.71", "dist": { "shasum":"", "tarball":"" }},
+        "1.12.99": { "version":"1.12.99", "dist": { "shasum":"", "tarball":"" }}
+    }
+}"#;
 
 const YARN_VERSION_FIXTURES: [DistroMetadata; 4] = [
     DistroMetadata {
@@ -200,8 +203,8 @@ fn command_line_node() {
     assert_that!(
         s.volta("run --node 10.99.1040 node --version"),
         execs()
-            .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_contains("[..]Using node@10.99.1040 from command-line configuration")
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]Node: 10.99.1040 from command-line configuration")
     );
 }
 
@@ -217,8 +220,8 @@ fn inherited_node() {
     assert_that!(
         s.volta("run node --version"),
         execs()
-            .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_contains("[..]Using node@9.27.6 from project configuration")
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]Node: 9.27.6 from project configuration")
     );
 }
 
@@ -235,8 +238,8 @@ fn command_line_npm() {
     assert_that!(
         s.volta("run --node 10.99.1040 --npm 8.1.5 npm --version"),
         execs()
-            .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_contains("[..]Using npm@8.1.5 from command-line configuration")
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]npm: 8.1.5 from command-line configuration")
     );
 }
 
@@ -254,8 +257,8 @@ fn inherited_npm() {
     assert_that!(
         s.volta("run --node 10.99.1040 npm --version"),
         execs()
-            .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_contains("[..]Using npm@4.5.6 from project configuration")
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]npm: 4.5.6 from project configuration")
     );
 }
 
@@ -273,8 +276,8 @@ fn force_bundled_npm() {
     assert_that!(
         s.volta("run --bundled-npm npm --version"),
         execs()
-            .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_contains("[..]Using npm@5.6.17 from project configuration")
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]npm: 5.6.17[..]")
     );
 }
 
@@ -291,8 +294,8 @@ fn command_line_yarn() {
     assert_that!(
         s.volta("run --node 10.99.1040 --yarn 1.7.71 yarn --version"),
         execs()
-            .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_contains("[..]Using yarn@1.7.71 from command-line configuration")
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]Yarn: 1.7.71 from command-line configuration")
     );
 }
 
@@ -310,8 +313,8 @@ fn inherited_yarn() {
     assert_that!(
         s.volta("run --node 10.99.1040 yarn --version"),
         execs()
-            .with_status(ExitCode::ExecutionFailure as i32)
-            .with_stderr_contains("[..]Using yarn@1.2.42 from project configuration")
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]Yarn: 1.2.42 from project configuration")
     );
 }
 

@@ -1,3 +1,28 @@
+# Version 0.9.2
+
+- Correctly detect Volta binary installation directory (#864)
+
+# Version 0.9.1
+
+- Fix an issue with installing globals using npm 7 (#858)
+
+# Version 0.9.0
+
+- Support Proxies through environment variables (#809, #851)
+- Avoid unnecessary `exists` calls for files (#834)
+- Rework package installs to allow for directly calling package manager (#848, #849)
+- **Breaking Change**: Remove support for `packages` hooks (#817)
+
+# Version 0.8.7
+
+- Support fetching older versions of Yarn (#771)
+- Correctly detect `zsh` environment with `ZDOTDIR` variable (#799)
+- Prevent race conditions when installing tools (#684, #796)
+
+# Version 0.8.6
+
+- Improve parsing of `engines` when installing a package (#791, #792)
+
 # Version 0.8.5
 
 - Improve the stability of installing tools on systems with virus scanning software (#784)

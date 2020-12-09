@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use super::{build_path_error, Sourced};
 use crate::error::{Context, Fallible};
-use crate::layout::{env_paths, volta_home};
+use crate::layout::volta_home;
 use crate::tool::load_default_npm_version;
 use semver::Version;
 
@@ -43,13 +43,9 @@ impl Image {
     /// for the given versions instead of in the Volta shim directory.
     pub fn path(&self) -> Fallible<OsString> {
         let old_path = envoy::path().unwrap_or_else(|| envoy::Var::from(""));
-        let mut new_path = old_path.split();
 
-        for remove_path in env_paths()? {
-            new_path = new_path.remove(remove_path);
-        }
-
-        new_path
+        old_path
+            .split()
             .prefix(self.bins()?)
             .join()
             .with_context(build_path_error)

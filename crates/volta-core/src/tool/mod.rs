@@ -3,6 +3,7 @@ use std::fmt::{self, Display};
 use crate::error::{ErrorKind, Fallible};
 use crate::session::Session;
 use crate::style::{note_prefix, success_prefix, tool_version};
+use crate::sync::VoltaLock;
 use crate::version::VersionSpec;
 use log::{debug, info};
 
@@ -17,7 +18,7 @@ pub use node::{
     load_default_npm_version, Node, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION, NODE_DISTRO_OS,
 };
 pub use npm::{BundledNpm, Npm};
-pub use package::{bin_full_path, BinConfig, BinLoader, Package, PackageConfig};
+pub use package::{BinConfig, Package, PackageConfig, PackageManifest};
 pub use registry::PackageDetails;
 pub use yarn::Yarn;
 
@@ -86,9 +87,10 @@ impl Spec {
                 let version = yarn::resolve(version, session)?;
                 Ok(Box::new(Yarn::new(version)))
             }
+            // When using global package install, we allow the package manager to perform the version resolution
             Spec::Package(name, version) => {
-                let details = package::resolve(&name, version, session)?;
-                Ok(Box::new(Package::new(name, details)))
+                let package = Package::new(name, version)?;
+                Ok(Box::new(package))
             }
         }
     }
@@ -111,10 +113,17 @@ impl Spec {
                 feature: "Uninstalling yarn".into(),
             }
             .into()),
-            Spec::Package(name, _) => {
-                package::uninstall(&name)?;
-                Ok(())
-            }
+            Spec::Package(name, _) => package::uninstall(&name),
+        }
+    }
+
+    /// The name of the tool, without the version, used for messaging
+    pub fn name(&self) -> &str {
+        match self {
+            Spec::Node(_) => "Node",
+            Spec::Npm(_) => "npm",
+            Spec::Yarn(_) => "Yarn",
+            Spec::Package(name, _) => &name,
         }
     }
 }
@@ -128,6 +137,45 @@ impl Display for Spec {
             Spec::Package(ref name, ref version) => tool_version(name, version),
         };
         f.write_str(&s)
+    }
+}
+
+/// Represents the result of checking if a tool is available locally or not
+///
+/// If a fetch is required, will include an exclusive lock on the Volta directory where possible
+enum FetchStatus {
+    AlreadyFetched,
+    FetchNeeded(Option<VoltaLock>),
+}
+
+/// Uses the supplied `already_fetched` predicate to determine if a tool is available or not.
+///
+/// This uses double-checking logic, to correctly handle concurrent fetch requests:
+///
+/// - If `already_fetched` indicates that a fetch is needed, we acquire an exclusive lock on the Volta directory
+/// - Then, we check _again_, to confirm that no other process completed the fetch while we waited for the lock
+///
+/// Note: If acquiring the lock fails, we proceed anyway, since the fetch is still necessary.
+fn check_fetched<F>(already_fetched: F) -> Fallible<FetchStatus>
+where
+    F: Fn() -> Fallible<bool>,
+{
+    if !already_fetched()? {
+        let lock = match VoltaLock::acquire() {
+            Ok(l) => Some(l),
+            Err(_) => {
+                debug!("Unable to acquire lock on Volta directory!");
+                None
+            }
+        };
+
+        if !already_fetched()? {
+            Ok(FetchStatus::FetchNeeded(lock))
+        } else {
+            Ok(FetchStatus::AlreadyFetched)
+        }
+    } else {
+        Ok(FetchStatus::AlreadyFetched)
     }
 }
 

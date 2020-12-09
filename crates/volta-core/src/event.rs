@@ -165,7 +165,7 @@ pub mod tests {
         assert_eq!(event_log.events.len(), 3);
         assert_eq!(event_log.events[2].name, "version");
 
-        let error = ErrorKind::NoGlobalInstalls { package: None }.into();
+        let error = ErrorKind::BinaryExecError.into();
         event_log.add_event_error(ActivityKind::Install, &error);
         assert_eq!(event_log.events.len(), 4);
         assert_eq!(event_log.events[3].name, "install");

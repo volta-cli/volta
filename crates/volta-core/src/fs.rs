@@ -46,9 +46,9 @@ pub fn remove_file_if_exists<P: AsRef<Path>>(path: P) -> Fallible<()> {
 ///
 /// Handling the error is preferred over checking if a file exists before removing it, since
 /// that avoids a potential race condition between the check and the removal.
-fn ok_if_not_found(err: io::Error) -> io::Result<()> {
+pub fn ok_if_not_found<T: Default>(err: io::Error) -> io::Result<T> {
     match err.kind() {
-        io::ErrorKind::NotFound => Ok(()),
+        io::ErrorKind::NotFound => Ok(T::default()),
         _ => Err(err),
     }
 }
@@ -118,7 +118,7 @@ pub fn create_staging_dir() -> Fallible<TempDir> {
     })
 }
 
-/// Create a symlink. The `dst` path will be a symbolic link pointing to the `src` path.
+/// Create a file symlink. The `dst` path will be a symbolic link pointing to the `src` path.
 pub fn symlink_file<S, D>(src: S, dest: D) -> io::Result<()>
 where
     S: AsRef<Path>,
@@ -126,6 +126,19 @@ where
 {
     #[cfg(windows)]
     return std::os::windows::fs::symlink_file(src, dest);
+
+    #[cfg(unix)]
+    return std::os::unix::fs::symlink(src, dest);
+}
+
+/// Create a directory symlink. The `dst` path will be a symbolic link pointing to the `src` path
+pub fn symlink_dir<S, D>(src: S, dest: D) -> io::Result<()>
+where
+    S: AsRef<Path>,
+    D: AsRef<Path>,
+{
+    #[cfg(windows)]
+    return std::os::windows::fs::symlink_dir(src, dest);
 
     #[cfg(unix)]
     return std::os::unix::fs::symlink(src, dest);

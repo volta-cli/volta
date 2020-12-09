@@ -9,7 +9,7 @@ use std::path::Path;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::layout::volta_home;
 use crate::project::Project;
-use crate::tool::{Node, Npm, Package, Tool, Yarn};
+use crate::tool::{Node, Npm, Tool, Yarn};
 use lazycell::LazyCell;
 use log::debug;
 
@@ -51,7 +51,6 @@ pub struct HookConfig {
     node: Option<ToolHooks<Node>>,
     npm: Option<ToolHooks<Npm>>,
     yarn: Option<ToolHooks<Yarn>>,
-    package: Option<ToolHooks<Package>>,
     events: Option<EventHooks>,
 }
 
@@ -100,10 +99,6 @@ impl HookConfig {
 
     pub fn yarn(&self) -> Option<&ToolHooks<Yarn>> {
         self.yarn.as_ref()
-    }
-
-    pub fn package(&self) -> Option<&ToolHooks<Package>> {
-        self.package.as_ref()
     }
 
     pub fn events(&self) -> Option<&EventHooks> {
@@ -167,7 +162,6 @@ impl HookConfig {
                         node: None,
                         npm: None,
                         yarn: None,
-                        package: None,
                         events: None,
                     }
                 })
@@ -200,7 +194,6 @@ impl HookConfig {
             node: merge_hooks!(self, other, node),
             npm: merge_hooks!(self, other, npm),
             yarn: merge_hooks!(self, other, yarn),
-            package: merge_hooks!(self, other, package),
             events: merge_hooks!(self, other, events),
         }
     }

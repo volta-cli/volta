@@ -195,12 +195,11 @@ impl DistroFixture for NpmFixture {
 
 impl DistroFixture for YarnFixture {
     fn server_path(&self) -> String {
-        let version = &self.metadata.version;
-        format!("/v{}/yarn-v{}.tar.gz", version, version)
+        format!("/yarn/-/yarn-{}.tgz", self.metadata.version)
     }
 
     fn fixture_path(&self) -> String {
-        format!("tests/fixtures/yarn-v{}.tar.gz", self.metadata.version)
+        format!("tests/fixtures/yarn-{}.tgz", self.metadata.version)
     }
 
     fn metadata(&self) -> &DistroMetadata {
@@ -287,20 +286,10 @@ impl SandboxBuilder {
 
     /// Setup mock to return the available yarn versions (chainable)
     pub fn yarn_available_versions(mut self, body: &str) -> Self {
-        let mock = mock("GET", "/yarn-releases/index.json")
+        let mock = mock("GET", "/yarn")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(body)
-            .create();
-        self.root.mocks.push(mock);
-        self
-    }
-
-    /// Setup mock to return the latest version of yarn (chainable)
-    pub fn yarn_latest(mut self, version: &str) -> Self {
-        let mock = mock("GET", "/yarn-latest")
-            .with_status(200)
-            .with_body(version)
             .create();
         self.root.mocks.push(mock);
         self
@@ -417,18 +406,6 @@ impl SandboxBuilder {
         self
     }
 
-    /// Set cached package tarballs for the sandbox (chainable)
-    pub fn package_inventory(mut self, name: &str, version: &str) -> Self {
-        let pkg_inventory_dir = package_inventory_dir();
-        let package_tarball = pkg_inventory_dir.join(format!("{}-{}.tgz", name, version));
-        self.files
-            .push(FileBuilder::new(package_tarball, "tarball contents"));
-        let package_shasum = pkg_inventory_dir.join(format!("{}-{}.shasum", name, version));
-        self.files
-            .push(FileBuilder::new(package_shasum, "shasum contents"));
-        self
-    }
-
     /// Write the "default npm" file for a node version (chainable)
     pub fn node_npm_version_file(mut self, node_version: &str, npm_version: &str) -> Self {
         let npm_file = node_npm_version_file(node_version);
@@ -445,6 +422,7 @@ impl SandboxBuilder {
         self.root.root().mkdir_p();
 
         // make sure these directories exist
+        ok_or_panic! { fs::create_dir_all(volta_bin_dir()) };
         ok_or_panic! { fs::create_dir_all(node_cache_dir()) };
         ok_or_panic! { fs::create_dir_all(node_inventory_dir()) };
         ok_or_panic! { fs::create_dir_all(package_inventory_dir()) };
@@ -452,8 +430,8 @@ impl SandboxBuilder {
         ok_or_panic! { fs::create_dir_all(volta_tmp_dir()) };
 
         // Make sure the shims to npm and yarn exist
-        ok_or_panic! { symlink_file(shim_exe(), self.root.npm_exe()) };
-        ok_or_panic! { symlink_file(shim_exe(), self.root.yarn_exe()) };
+        ok_or_panic! { symlink_file(shim_exe(), shim_file("npm")) };
+        ok_or_panic! { symlink_file(shim_exe(), shim_file("yarn")) };
 
         // write node and yarn caches
         for cache in self.caches.iter() {
@@ -623,13 +601,9 @@ impl Sandbox {
     /// Example:
     ///     assert_that(p.npm("install ember-cli"), execs());
     pub fn npm(&self, cmd: &str) -> ProcessBuilder {
-        let mut p = self.process(&self.npm_exe());
+        let mut p = self.process(shim_file("npm"));
         split_and_add_args(&mut p, cmd);
         p
-    }
-
-    pub fn npm_exe(&self) -> PathBuf {
-        self.root().join(format!("npm{}", env::consts::EXE_SUFFIX))
     }
 
     /// Create a `ProcessBuilder` to run the volta yarn shim.
@@ -637,13 +611,9 @@ impl Sandbox {
     /// Example:
     ///     assert_that(p.yarn("add ember-cli"), execs());
     pub fn yarn(&self, cmd: &str) -> ProcessBuilder {
-        let mut p = self.process(&self.yarn_exe());
+        let mut p = self.process(shim_file("yarn"));
         split_and_add_args(&mut p, cmd);
         p
-    }
-
-    pub fn yarn_exe(&self) -> PathBuf {
-        self.root().join(format!("yarn{}", env::consts::EXE_SUFFIX))
     }
 
     pub fn read_package_json(&self) -> String {
@@ -689,18 +659,6 @@ impl Sandbox {
         let package_img_dir = package_image_dir(name, version);
         package_img_dir.join("package.json").exists()
     }
-    pub fn pkg_inventory_tarball_exists(name: &str, version: &str) -> bool {
-        let pkg_inventory_dir = package_inventory_dir();
-        pkg_inventory_dir
-            .join(format!("{}-{}.tgz", name, version))
-            .exists()
-    }
-    pub fn pkg_inventory_shasum_exists(name: &str, version: &str) -> bool {
-        let pkg_inventory_dir = package_inventory_dir();
-        pkg_inventory_dir
-            .join(format!("{}-{}.shasum", name, version))
-            .exists()
-    }
     pub fn read_default_platform() -> String {
         read_file_to_string(default_platform_file())
     }
@@ -708,7 +666,7 @@ impl Sandbox {
 
 impl Drop for Sandbox {
     fn drop(&mut self) {
-        self.root().rm_rf();
+        paths::root().rm_rf();
     }
 }
 
