@@ -42,22 +42,15 @@ impl Monitor {
 
 fn spawn_process(command: &str) -> Option<Child> {
     command.split(' ').take(1).next().and_then(|executable| {
-        // Only show stdout and stderr of spawned process in dev mode
-        let child = if cfg!(debug_assertions) {
-            create_command(executable)
-                .args(command.split(' ').skip(1))
-                .stdin(Stdio::piped()) // JSON data is sent over stdin
-                .spawn()
-        } else {
-            create_command(executable)
-                .args(command.split(' ').skip(1))
-                .stdin(Stdio::piped()) // JSON data is sent over stdin
-                .stdout(Stdio::null()) // Pipe stdout to nowhere
-                .stderr(Stdio::null()) // Pipe stdout to nowhere
-                .spawn()
-        };
+        let mut child = create_command(executable);
+        child.args(command.split(' ').skip(1));
+        child.stdin(Stdio::piped());
 
-        match child {
+        #[cfg(debug_assertions)]
+        // Only show stdout and stderr of spawned process in dev mode
+        child.stdout(Stdio::null()).stderr(Stdio::null());
+
+        match child.spawn() {
             Err(err) => {
                 error!("Unable to run plugin command: '{}'\n{}", command, err);
                 None
