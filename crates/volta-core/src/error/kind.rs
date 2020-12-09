@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use super::ExitCode;
 use crate::style::{text_width, tool_version};
 use crate::tool;
+use crate::tool::package::PackageManager;
 use textwrap::{fill, indent};
 
 const REPORT_BUG_CTA: &str =
@@ -429,6 +430,18 @@ pub enum ErrorKind {
     UnpackArchiveError {
         tool: String,
         version: String,
+    },
+
+    /// Thrown when a package to upgrade was not found
+    UpgradePackageNotFound {
+        package: String,
+        manager: PackageManager,
+    },
+
+    /// Thrown when a package to upgrade was installed with a different package manager
+    UpgradePackageWrongManager {
+        package: String,
+        manager: PackageManager,
     },
 
     VersionParseError {
@@ -1217,6 +1230,30 @@ at {}
 Please ensure the correct version is specified.",
                 tool, version
             ),
+            ErrorKind::UpgradePackageNotFound { package, manager } => write!(
+                f,
+                r#"Could not locate the package '{}' to upgrade.
+
+Please ensure it is installed with `{} {0}`"#,
+                package,
+                match manager {
+                    PackageManager::Npm => "npm i -g",
+                    PackageManager::Yarn => "yarn global add",
+                }
+            ),
+            ErrorKind::UpgradePackageWrongManager { package, manager } => {
+                let (name, command) = match manager {
+                    PackageManager::Npm => ("npm", "npm update -g"),
+                    PackageManager::Yarn => ("Yarn", "yarn global upgrade"),
+                };
+                write!(
+                    f,
+                    r#"The package '{}' was installed using {}.
+
+To upgrade it, please use the command `{} {0}`"#,
+                    package, name, command
+                )
+            }
             ErrorKind::VersionParseError { version } => write!(
                 f,
                 r#"Could not parse version "{}"
@@ -1410,6 +1447,8 @@ impl ErrorKind {
             ErrorKind::StringifyPlatformError => ExitCode::UnknownError,
             ErrorKind::Unimplemented { .. } => ExitCode::UnknownError,
             ErrorKind::UnpackArchiveError { .. } => ExitCode::UnknownError,
+            ErrorKind::UpgradePackageNotFound { .. } => ExitCode::ConfigurationError,
+            ErrorKind::UpgradePackageWrongManager { .. } => ExitCode::ConfigurationError,
             ErrorKind::VersionParseError { .. } => ExitCode::NoVersionMatch,
             ErrorKind::WriteBinConfigError { .. } => ExitCode::FileSystemError,
             ErrorKind::WriteDefaultNpmError { .. } => ExitCode::FileSystemError,

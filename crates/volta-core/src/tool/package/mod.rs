@@ -174,6 +174,28 @@ impl InPlaceUpgrade {
         })
     }
 
+    /// Check for possible failure cases with the package to be upgraded
+    ///     - The package is not installed as a global
+    ///     - The package exists, but was installed with a different package manager
+    pub fn check_upgraded_package(&self) -> Fallible<()> {
+        let config =
+            PackageConfig::from_file(volta_home()?.default_package_config_file(&self.package))
+                .with_context(|| ErrorKind::UpgradePackageNotFound {
+                    package: self.package.clone(),
+                    manager: self.manager,
+                })?;
+
+        if config.manager != self.manager {
+            Err(ErrorKind::UpgradePackageWrongManager {
+                package: self.package.clone(),
+                manager: config.manager,
+            }
+            .into())
+        } else {
+            Ok(())
+        }
+    }
+
     pub fn setup_command(&self, command: &mut Command) {
         self.manager
             .setup_global_command(command, self.directory.clone());
