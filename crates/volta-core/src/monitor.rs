@@ -46,8 +46,8 @@ fn spawn_process(command: &str) -> Option<Child> {
         child.args(command.split(' ').skip(1));
         child.stdin(Stdio::piped());
 
-        #[cfg(debug_assertions)]
-        // Only show stdout and stderr of spawned process in dev mode
+        #[cfg(not(debug_assertions))]
+        // Hide stdout and stderr of spawned process in release mode
         child.stdout(Stdio::null()).stderr(Stdio::null());
 
         match child.spawn() {
