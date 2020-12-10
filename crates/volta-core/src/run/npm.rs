@@ -6,7 +6,7 @@ use super::parser::CommandArg;
 use super::{debug_active_image, debug_no_platform, RECURSION_ENV_VAR};
 use crate::error::{ErrorKind, Fallible};
 use crate::platform::{Platform, System};
-use crate::session::Session;
+use crate::session::{ActivityKind, Session};
 
 /// Build an `Executor` for npm
 ///
@@ -17,6 +17,7 @@ use crate::session::Session;
 /// If the command is _not_ a global install / uninstall or we don't have a default platform, then
 /// we will allow npm to execute the command as usual.
 pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Executor> {
+    session.add_event_start(ActivityKind::Npm);
     // Don't re-evaluate the context or global install interception if this is a recursive call
     let platform = match env::var_os(RECURSION_ENV_VAR) {
         Some(_) => None,

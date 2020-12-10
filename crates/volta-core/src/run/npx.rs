@@ -5,7 +5,7 @@ use super::executor::{Executor, ToolCommand, ToolKind};
 use super::{debug_active_image, debug_no_platform, RECURSION_ENV_VAR};
 use crate::error::{ErrorKind, Fallible};
 use crate::platform::{Platform, System};
-use crate::session::Session;
+use crate::session::{ActivityKind, Session};
 use lazy_static::lazy_static;
 use semver::Version;
 
@@ -16,6 +16,7 @@ lazy_static! {
 
 /// Build a `ToolCommand` for npx
 pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Executor> {
+    session.add_event_start(ActivityKind::Npx);
     // Don't re-evaluate the context if this is a recursive call
     let platform = match env::var_os(RECURSION_ENV_VAR) {
         Some(_) => None,
