@@ -15,6 +15,7 @@ cfg_if::cfg_if! {
     if #[cfg(all(unix, feature = "smoke-tests"))] {
         mod autodownload;
         mod direct_install;
+        mod direct_upgrade;
         mod npm_link;
         mod package_migration;
         mod support;
