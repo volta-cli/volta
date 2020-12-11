@@ -1,3 +1,7 @@
+# Version 0.9.3
+
+- Various fixes to event plugin logic (#892, #894, #897)
+
 # Version 0.9.2
 
 - Correctly detect Volta binary installation directory (#864)
