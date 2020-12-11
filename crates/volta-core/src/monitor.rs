@@ -1,7 +1,7 @@
 use std::io::Write;
 use std::process::{Child, Stdio};
 
-use log::error;
+use log::debug;
 
 use crate::command::create_command;
 use crate::event::Event;
@@ -32,7 +32,7 @@ impl Monitor {
                     }
                     Err(error) => {
                         // FIXME: tighten up this error message
-                        error!("There was a problem serializing the JSON data: {:?}", error);
+                        debug!("There was a problem serializing the JSON data: {:?}", error);
                     }
                 };
             }
@@ -52,7 +52,7 @@ fn spawn_process(command: &str) -> Option<Child> {
 
         match child.spawn() {
             Err(err) => {
-                error!("Unable to run plugin command: '{}'\n{}", command, err);
+                debug!("Unable to run plugin command: '{}'\n{}", command, err);
                 None
             }
             Ok(c) => Some(c),
