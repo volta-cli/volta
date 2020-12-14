@@ -1,10 +1,11 @@
 use std::fmt::{self, Display};
+use std::fs::create_dir_all;
 use std::path::Path;
 use std::process::Command;
 
 use super::Tool;
 use crate::error::{Context, ErrorKind, Fallible};
-use crate::fs::{create_staging_dir, remove_dir_if_exists, rename, symlink_dir};
+use crate::fs::{remove_dir_if_exists, rename, symlink_dir};
 use crate::layout::volta_home;
 use crate::platform::{Image, PlatformSpec};
 use crate::session::Session;
@@ -13,7 +14,7 @@ use crate::sync::VoltaLock;
 use crate::version::VersionSpec;
 use fs_utils::ensure_containing_dir_exists;
 use log::info;
-use tempfile::TempDir;
+use tempfile::{tempdir_in, TempDir};
 
 mod configure;
 mod install;
@@ -154,7 +155,22 @@ impl DirectInstall {
 /// Create the temporary staging directory we will use to install and ensure expected
 /// subdirectories exist within it
 fn setup_staging_directory(manager: PackageManager) -> Fallible<TempDir> {
-    let staging = create_staging_dir()?;
+    // Workaround to ensure relative symlinks continue to work.
+    // The final installed location of packages is:
+    //      $VOLTA_HOME/tools/image/packages/{name}/
+    // To ensure that the temp directory has the same amount of nesting, we use:
+    //      $VOLTA_HOME/tmp/image/packages/{tempdir}/
+    // This way any relative symlinks will have the same amount of nesting and will remain valid
+    // even when the directory is persisted.
+    let mut staging_root = volta_home()?.tmp_dir().to_owned();
+    staging_root.push("image");
+    staging_root.push("packages");
+    create_dir_all(&staging_root).with_context(|| ErrorKind::ContainingDirError {
+        path: staging_root.clone(),
+    })?;
+    let staging = tempdir_in(&staging_root).with_context(|| ErrorKind::CreateTempDirError {
+        in_dir: staging_root,
+    })?;
 
     let source_dir = manager.source_dir(staging.path().to_owned());
     ensure_containing_dir_exists(&source_dir)

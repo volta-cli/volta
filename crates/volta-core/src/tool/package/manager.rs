@@ -81,7 +81,7 @@ impl PackageManager {
     }
 
     /// Modify a given `Command` to be set up for global installs, given the package root
-    pub(super) fn setup_global_command(self, command: &mut Command, package_root: PathBuf) {
+    pub fn setup_global_command(self, command: &mut Command, package_root: PathBuf) {
         command.env("npm_config_prefix", &package_root);
 
         if let PackageManager::Yarn = self {
@@ -124,15 +124,16 @@ fn get_npm_package_name(mut source_dir: PathBuf) -> Option<String> {
 fn get_single_directory_name(parent_dir: &Path) -> Option<String> {
     let mut entries = read_dir_eager(parent_dir)
         .ok()?
-        .filter_map(
-            |(entry, metadata)| {
-                if metadata.is_dir() {
-                    Some(entry)
-                } else {
-                    None
-                }
-            },
-        );
+        .filter_map(|(entry, metadata)| {
+            // If the entry is a symlink, _both_ is_dir() _and_ is_file() will be false. We want to
+            // include symlinks as well as directories in our search, since `npm link` uses
+            // symlinks internally, so we only exclude files from this search
+            if !metadata.is_file() {
+                Some(entry)
+            } else {
+                None
+            }
+        });
 
     match (entries.next(), entries.next()) {
         (Some(entry), None) => entry.file_name().into_string().ok(),
