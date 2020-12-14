@@ -1,4 +1,4 @@
-use crate::support::sandbox::{sandbox, Sandbox};
+use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, Sandbox, YarnFixture};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
@@ -13,6 +13,19 @@ fn platform_with_node(node: &str) -> String {
 "yarn": null
 }}"#,
         node
+    )
+}
+
+fn platform_with_node_yarn(node: &str, yarn: &str) -> String {
+    format!(
+        r#"{{
+"node": {{
+  "runtime": "{}",
+  "npm": null
+}},
+"yarn": "{}"
+}}"#,
+        node, yarn
     )
 }
 
@@ -62,6 +75,42 @@ fn bin_config(name: &str, pkg: &str) -> String {
         name, pkg
     )
 }
+
+cfg_if::cfg_if! {
+    if #[cfg(target_os = "macos")] {
+        const NODE_VERSION_FIXTURES: [DistroMetadata; 1] = [
+            DistroMetadata {
+                version: "10.99.1040",
+                compressed_size: 273,
+                uncompressed_size: Some(0x0028_0000),
+            },
+        ];
+    } else if #[cfg(target_os = "linux")] {
+        const NODE_VERSION_FIXTURES: [DistroMetadata; 1] = [
+            DistroMetadata {
+                version: "10.99.1040",
+                compressed_size: 273,
+                uncompressed_size: Some(0x0028_0000),
+            },
+        ];
+    } else if #[cfg(target_os = "windows")] {
+        const NODE_VERSION_FIXTURES: [DistroMetadata; 1] = [
+            DistroMetadata {
+                version: "10.99.1040",
+                compressed_size: 1096,
+                uncompressed_size: None,
+            },
+        ];
+    } else {
+        compile_error!("Unsupported target_os for tests (expected 'macos', 'linux', or 'windows').");
+    }
+}
+
+const YARN_VERSION_FIXTURES: [DistroMetadata; 1] = [DistroMetadata {
+    version: "1.2.42",
+    compressed_size: 174,
+    uncompressed_size: Some(0x0028_0000),
+}];
 
 #[test]
 fn npm_uninstall_uses_volta_logic() {
@@ -145,6 +194,22 @@ fn npm_uninstall_supports_multiples() {
 }
 
 #[test]
+fn npm_uninstall_without_packages_skips_volta_logic() {
+    let s = sandbox()
+        .platform(&platform_with_node("10.99.1040"))
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .env("VOLTA_LOGLEVEL", "info")
+        .build();
+
+    assert_that!(
+        s.npm("uninstall -g"),
+        execs()
+            .with_status(0)
+            .with_stdout_does_not_contain("[..]Volta is processing each package separately")
+    );
+}
+
+#[test]
 fn yarn_remove_uses_volta_logic() {
     let s = sandbox()
         .platform(&platform_with_node("10.99.1040"))
@@ -223,4 +288,21 @@ fn yarn_remove_supports_multiples() {
     assert!(!Sandbox::shim_exists("tsc"));
     assert!(!Sandbox::shim_exists("tsserver"));
     assert!(!Sandbox::package_image_exists("typescript", "1.4.0"));
+}
+
+#[test]
+fn yarn_remove_without_packages_skips_volta_logic() {
+    let s = sandbox()
+        .platform(&platform_with_node_yarn("10.99.1040", "1.2.42"))
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .env("VOLTA_LOGLEVEL", "info")
+        .build();
+
+    assert_that!(
+        s.yarn("global remove"),
+        execs()
+            .with_status(0)
+            .with_stdout_does_not_contain("[..]Volta is processing each package separately")
+    );
 }
