@@ -9,6 +9,13 @@ use crate::tool::package::PackageManager;
 use crate::tool::Spec;
 
 const UNSAFE_GLOBAL: &str = "VOLTA_UNSAFE_GLOBAL";
+/// Aliases that npm supports for the 'install' command
+const NPM_INSTALL_ALIASES: [&str; 12] = [
+    "i", "in", "ins", "inst", "insta", "instal", "install", "isnt", "isnta", "isntal", "isntall",
+    "add",
+];
+/// Aliases that npm supports for the 'uninstall' command
+const NPM_UNINSTALL_ALIASES: [&str; 6] = ["un", "uninstall", "unlink", "remove", "rm", "r"];
 
 pub enum CommandArg<'a> {
     Global(GlobalCommand<'a>),
@@ -36,16 +43,13 @@ impl<'a> CommandArg<'a> {
 
         let mut positionals = args.iter().filter(is_positional).map(AsRef::as_ref);
 
-        // The first positional argument will always be the command, however npm supports
-        // multiple aliases for each command:
-        //   -   install: `install`, `i`, `add`, `isntall`
-        //   - uninstall: `uninstall`, `unlink`, `remove`, `rm`, `r`
-        // See https://github.com/npm/cli/blob/latest/lib/config/cmd-list.js
+        // The first positional argument will always be the command, however npm supports multiple
+        // aliases for commands (see https://github.com/npm/cli/blob/latest/lib/utils/cmd-list.js)
         // Additionally, if we have a global install or uninstall, all of the remaining positional
         // arguments will be the tools to install or uninstall. If there are _no_ other arguments,
         // then we treat the command not a global and allow npm to handle any error messages.
         match positionals.next() {
-            Some(cmd) if cmd == "install" || cmd == "i" || cmd == "add" || cmd == "isntall" => {
+            Some(cmd) if NPM_INSTALL_ALIASES.iter().any(|a| a == &cmd) => {
                 let tools: Vec<_> = positionals.collect();
 
                 if tools.is_empty() {
@@ -62,13 +66,7 @@ impl<'a> CommandArg<'a> {
                     }))
                 }
             }
-            Some(cmd)
-                if cmd == "uninstall"
-                    || cmd == "unlink"
-                    || cmd == "remove"
-                    || cmd == "rm"
-                    || cmd == "r" =>
-            {
+            Some(cmd) if NPM_UNINSTALL_ALIASES.iter().any(|a| a == &cmd) => {
                 let tools: Vec<_> = positionals.collect();
 
                 if tools.is_empty() {
@@ -327,24 +325,64 @@ mod tests {
 
         #[test]
         fn handles_install_aliases() {
-            match CommandArg::for_npm(&arg_list(&["install", "--global", "typescript"])) {
-                CommandArg::Global(GlobalCommand::Install(_)) => (),
-                _ => panic!("Doesn't parse long form (install)"),
-            };
-
             match CommandArg::for_npm(&arg_list(&["i", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(_)) => (),
                 _ => panic!("Doesn't parse short form (i)"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["add", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(&["in", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(_)) => (),
-                _ => panic!("Doesn't parse 'add' alias"),
+                _ => panic!("Doesn't parse short form (in)"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["ins", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Install(_)) => (),
+                _ => panic!("Doesn't parse short form (ins)"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["inst", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Install(_)) => (),
+                _ => panic!("Doesn't parse short form (inst)"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["insta", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Install(_)) => (),
+                _ => panic!("Doesn't parse short form (insta)"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["instal", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Install(_)) => (),
+                _ => panic!("Doesn't parse short form (instal)"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["install", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Install(_)) => (),
+                _ => panic!("Doesn't parse exact command (install)"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["isnt", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Install(_)) => (),
+                _ => panic!("Doesn't parse short form misspelling (isnt)"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["isnta", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Install(_)) => (),
+                _ => panic!("Doesn't parse short form misspelling (isnta)"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["isntal", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Install(_)) => (),
+                _ => panic!("Doesn't parse short form misspelling (isntal)"),
             };
 
             match CommandArg::for_npm(&arg_list(&["isntall", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(_)) => (),
                 _ => panic!("Doesn't parse misspelling (isntall)"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["add", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Install(_)) => (),
+                _ => panic!("Doesn't parse 'add' alias"),
             };
         }
 
@@ -363,6 +401,11 @@ mod tests {
             match CommandArg::for_npm(&arg_list(&["remove", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Uninstall(_)) => (),
                 _ => panic!("Doesn't parse 'remove'"),
+            };
+
+            match CommandArg::for_npm(&arg_list(&["un", "--global", "typescript"])) {
+                CommandArg::Global(GlobalCommand::Uninstall(_)) => (),
+                _ => panic!("Doesn't parse short form (un)"),
             };
 
             match CommandArg::for_npm(&arg_list(&["rm", "--global", "typescript"])) {
