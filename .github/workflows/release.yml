@@ -11,7 +11,7 @@ name: Production
 jobs:
   centos:
     name: Build - CentOS / RHEL
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-18.04
     steps:
       - name: Check out code
         uses: actions/checkout@v2
@@ -37,7 +37,7 @@ jobs:
           - 1_1_0
           - 1_0_1
     name: Build - OpenSSL ${{ matrix.openssl }}
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-18.04
     steps:
       - name: Check out code
         uses: actions/checkout@v2
