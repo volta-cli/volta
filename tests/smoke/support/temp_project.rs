@@ -69,6 +69,13 @@ impl TempProjectBuilder {
         self
     }
 
+    /// Create a file in the project directory (chainable)
+    pub fn project_file(mut self, path: &str, contents: &str) -> Self {
+        let path = self.root().join(path);
+        self.files.push(FileBuilder::new(path, contents));
+        self
+    }
+
     /// Create a file in the `volta_home` directory (chainable)
     pub fn volta_home_file(mut self, path: &str, contents: &str) -> Self {
         let path = volta_home(self.root()).join(path);
@@ -394,6 +401,11 @@ impl TempProject {
     /// Verify that the input package version has been fetched.
     pub fn shim_exists(&self, name: &str) -> bool {
         shim_file(name, self.root()).exists()
+    }
+
+    /// Verify that a given path in the project directory exists
+    pub fn project_path_exists(&self, path: &str) -> bool {
+        self.root().join(path).exists()
     }
 }
 
