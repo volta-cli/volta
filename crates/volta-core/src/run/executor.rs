@@ -15,7 +15,7 @@ use crate::session::Session;
 use crate::signal::pass_control_to_shim;
 use crate::style::{note_prefix, tool_version};
 use crate::sync::VoltaLock;
-use crate::tool::package::{DirectInstall, PackageConfig, PackageManager};
+use crate::tool::package::{DirectInstall, InPlaceUpgrade, PackageConfig, PackageManager};
 use crate::tool::Spec;
 use log::{info, warn};
 
@@ -23,6 +23,7 @@ pub enum Executor {
     Tool(Box<ToolCommand>),
     PackageInstall(Box<PackageInstallCommand>),
     PackageLink(Box<PackageLinkCommand>),
+    PackageUpgrade(Box<PackageUpgradeCommand>),
     InternalInstall(Box<InternalInstallCommand>),
     Uninstall(Box<UninstallCommand>),
     Multiple(Vec<Executor>),
@@ -38,6 +39,7 @@ impl Executor {
             Executor::Tool(cmd) => cmd.envs(envs),
             Executor::PackageInstall(cmd) => cmd.envs(envs),
             Executor::PackageLink(cmd) => cmd.envs(envs),
+            Executor::PackageUpgrade(cmd) => cmd.envs(envs),
             // Internal installs use Volta's logic and don't rely on the environment variables
             Executor::InternalInstall(_) => {}
             // Uninstalls use Volta's logic and don't rely on environment variables
@@ -55,6 +57,7 @@ impl Executor {
             Executor::Tool(cmd) => cmd.cli_platform(cli),
             Executor::PackageInstall(cmd) => cmd.cli_platform(cli),
             Executor::PackageLink(cmd) => cmd.cli_platform(cli),
+            Executor::PackageUpgrade(cmd) => cmd.cli_platform(cli),
             // Internal installs use Volta's logic and don't rely on the Node platform
             Executor::InternalInstall(_) => {}
             // Uninstall use Volta's logic and don't rely on the Node platform
@@ -72,6 +75,7 @@ impl Executor {
             Executor::Tool(cmd) => cmd.execute(session),
             Executor::PackageInstall(cmd) => cmd.execute(session),
             Executor::PackageLink(cmd) => cmd.execute(session),
+            Executor::PackageUpgrade(cmd) => cmd.execute(session),
             Executor::InternalInstall(cmd) => cmd.execute(session),
             Executor::Uninstall(cmd) => cmd.execute(),
             Executor::Multiple(executors) => {
@@ -378,6 +382,95 @@ impl PackageLinkCommand {
 impl From<PackageLinkCommand> for Executor {
     fn from(cmd: PackageLinkCommand) -> Self {
         Executor::PackageLink(Box::new(cmd))
+    }
+}
+
+/// Process builder for launching a global package upgrade command (e.g. `npm update -g`)
+///
+/// This will use an `InPlaceUpgrade` instance to modify the command and point at the appropriate
+/// image directory. It will also complete the install, writing any updated configs and shims
+pub struct PackageUpgradeCommand {
+    /// The command that will ultimately be executed
+    command: Command,
+    /// Helper utility to modify the command and provide the completion method
+    upgrader: InPlaceUpgrade,
+    /// The platform to run the command under
+    platform: Platform,
+}
+
+impl PackageUpgradeCommand {
+    pub fn new<A, S>(
+        args: A,
+        package: String,
+        platform: Platform,
+        manager: PackageManager,
+    ) -> Fallible<Self>
+    where
+        A: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        let upgrader = InPlaceUpgrade::new(package, manager)?;
+
+        let mut command = match manager {
+            PackageManager::Npm => create_command("npm"),
+            PackageManager::Yarn => create_command("yarn"),
+        };
+        command.args(args);
+
+        Ok(PackageUpgradeCommand {
+            command,
+            upgrader,
+            platform,
+        })
+    }
+
+    /// Adds or updates environment variables that the command will use
+    pub fn envs<E, K, V>(&mut self, envs: E)
+    where
+        E: IntoIterator<Item = (K, V)>,
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>,
+    {
+        self.command.envs(envs);
+    }
+
+    /// Updates the Platform for the command to include values from the command-line
+    pub fn cli_platform(&mut self, cli: CliPlatform) {
+        self.platform = cli.merge(self.platform.clone());
+    }
+
+    /// Runs the upgrade command, applying the necessary modifications to point at the Volta image
+    /// directory
+    ///
+    /// Will also check for common failure cases, such as non-existant package or wrong package
+    /// manager
+    pub fn execute(mut self, session: &mut Session) -> Fallible<ExitStatus> {
+        self.upgrader.check_upgraded_package()?;
+
+        let _lock = VoltaLock::acquire();
+        let image = self.platform.checkout(session)?;
+        let path = image.path()?;
+
+        self.command.env(RECURSION_ENV_VAR, "1");
+        self.command.env("PATH", path);
+        self.upgrader.setup_command(&mut self.command);
+
+        let status = self
+            .command
+            .status()
+            .with_context(|| ErrorKind::BinaryExecError)?;
+
+        if status.success() {
+            self.upgrader.complete_upgrade(&image)?;
+        }
+
+        Ok(status)
+    }
+}
+
+impl From<PackageUpgradeCommand> for Executor {
+    fn from(cmd: PackageUpgradeCommand) -> Self {
+        Executor::PackageUpgrade(Box::new(cmd))
     }
 }
 

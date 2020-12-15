@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 use std::fs::create_dir_all;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use super::Tool;
@@ -119,6 +119,10 @@ impl Display for Package {
     }
 }
 
+/// Helper struct for direct installs through `npm i -g` or `yarn global add`
+///
+/// Provides methods to simplify installing into a staging directory and then moving that install
+/// into the proper location after it is complete.
 pub struct DirectInstall {
     staging: TempDir,
     manager: PackageManager,
@@ -146,9 +150,62 @@ impl DirectInstall {
 
         persist_install(&name, &manifest.version, self.staging.path())?;
         link_package_to_shared_dir(&name, self.manager)?;
-        configure::write_config_and_shims(&name, &manifest, image, self.manager)?;
+        configure::write_config_and_shims(&name, &manifest, image, self.manager)
+    }
+}
 
-        Ok(())
+/// Helper struct for direct in-place upgrades using `npm update -g` or `yarn global upgrade`
+///
+/// Upgrades the requested package directly in the image directory
+pub struct InPlaceUpgrade {
+    package: String,
+    directory: PathBuf,
+    manager: PackageManager,
+}
+
+impl InPlaceUpgrade {
+    pub fn new(package: String, manager: PackageManager) -> Fallible<Self> {
+        let directory = volta_home()?.package_image_dir(&package);
+
+        Ok(Self {
+            package,
+            directory,
+            manager,
+        })
+    }
+
+    /// Check for possible failure cases with the package to be upgraded
+    ///     - The package is not installed as a global
+    ///     - The package exists, but was installed with a different package manager
+    pub fn check_upgraded_package(&self) -> Fallible<()> {
+        let config =
+            PackageConfig::from_file(volta_home()?.default_package_config_file(&self.package))
+                .with_context(|| ErrorKind::UpgradePackageNotFound {
+                    package: self.package.clone(),
+                    manager: self.manager,
+                })?;
+
+        if config.manager != self.manager {
+            Err(ErrorKind::UpgradePackageWrongManager {
+                package: self.package.clone(),
+                manager: config.manager,
+            }
+            .into())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn setup_command(&self, command: &mut Command) {
+        self.manager
+            .setup_global_command(command, self.directory.clone());
+    }
+
+    pub fn complete_upgrade(self, image: &Image) -> Fallible<()> {
+        let manifest = configure::parse_manifest(&self.package, self.directory, self.manager)?;
+
+        link_package_to_shared_dir(&self.package, self.manager)?;
+        configure::write_config_and_shims(&self.package, &manifest, image, self.manager)
     }
 }
 
