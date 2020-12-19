@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  Start your engines.
+  The Hassle-Free JavaScript Tool Manager
 </p>
 
 <p align="center">

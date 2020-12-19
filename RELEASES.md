@@ -1,3 +1,9 @@
+# Version 1.0.0
+
+- Support for `npm link` (#888, #889, #891)
+- Support for `npm update -g` and `yarn global upgrade` (#895)
+- Improvements in the handling of `npm` and `yarn` commands (#886, #887)
+
 # Version 0.9.3
 
 - Various fixes to event plugin logic (#892, #894, #897)
