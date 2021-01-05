@@ -1,4 +1,6 @@
 use crate::error::{Context, ErrorKind, Fallible, VoltaError};
+use std::convert::Into;
+
 use crate::platform::PlatformSpec;
 use crate::version::{option_version_serde, version_serde};
 use semver::Version;
@@ -33,15 +35,6 @@ impl Platform {
         }
     }
 
-    pub fn into_platform(self) -> Option<PlatformSpec> {
-        let yarn = self.yarn;
-        self.node.map(|node_version| PlatformSpec {
-            node: node_version.runtime,
-            npm: node_version.npm,
-            yarn,
-        })
-    }
-
     /// Serialize the Platform to a JSON String
     pub fn into_json(self) -> Fallible<String> {
         serde_json::to_string_pretty(&self).with_context(|| ErrorKind::StringifyPlatformError)
@@ -58,6 +51,17 @@ impl TryFrom<String> for Platform {
         };
 
         result.with_context(|| ErrorKind::ParsePlatformError)
+    }
+}
+
+impl Into<Option<PlatformSpec>> for Platform {
+    fn into(self) -> Option<PlatformSpec> {
+        let yarn = self.yarn;
+        self.node.map(|node_version| PlatformSpec {
+            node: node_version.runtime,
+            npm: node_version.npm,
+            yarn,
+        })
     }
 }
 

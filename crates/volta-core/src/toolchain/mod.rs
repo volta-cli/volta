@@ -1,3 +1,4 @@
+use std::convert::Into;
 use std::convert::TryFrom;
 use std::fs::write;
 
@@ -49,7 +50,7 @@ impl Toolchain {
                 file: path.to_owned(),
             })?;
 
-        let platform = serial::Platform::try_from(src)?.into_platform();
+        let platform: Option<PlatformSpec> = serial::Platform::try_from(src)?.into();
         if platform.is_some() {
             debug!("Found default configuration at '{}'", path.display());
         }
