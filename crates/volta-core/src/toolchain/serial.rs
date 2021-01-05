@@ -54,10 +54,10 @@ impl TryFrom<String> for Platform {
     }
 }
 
-impl Into<Option<PlatformSpec>> for Platform {
-    fn into(self) -> Option<PlatformSpec> {
-        let yarn = self.yarn;
-        self.node.map(|node_version| PlatformSpec {
+impl From<Platform> for Option<PlatformSpec> {
+    fn from(platform: Platform) -> Option<PlatformSpec> {
+        let yarn = platform.yarn;
+        platform.node.map(|node_version| PlatformSpec {
             node: node_version.runtime,
             npm: node_version.npm,
             yarn,
