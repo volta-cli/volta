@@ -1,3 +1,5 @@
+use std::convert::From;
+use std::convert::TryFrom;
 use std::fs::write;
 
 use crate::error::{Context, ErrorKind, Fallible};
@@ -48,7 +50,7 @@ impl Toolchain {
                 file: path.to_owned(),
             })?;
 
-        let platform = serial::Platform::from_json(src)?.into_platform();
+        let platform = serial::Platform::try_from(src)?.into_platform();
         if platform.is_some() {
             debug!("Found default configuration at '{}'", path.display());
         }

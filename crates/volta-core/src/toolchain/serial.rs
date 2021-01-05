@@ -1,8 +1,9 @@
-use crate::error::{Context, ErrorKind, Fallible};
+use crate::error::{Context, ErrorKind, Fallible, VoltaError};
 use crate::platform::PlatformSpec;
 use crate::version::{option_version_serde, version_serde};
 use semver::Version;
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct NodeVersion {
@@ -41,8 +42,15 @@ impl Platform {
         })
     }
 
-    /// Deserialize the input JSON String into a Platform
-    pub fn from_json(src: String) -> Fallible<Self> {
+    /// Serialize the Platform to a JSON String
+    pub fn into_json(self) -> Fallible<String> {
+        serde_json::to_string_pretty(&self).with_context(|| ErrorKind::StringifyPlatformError)
+    }
+}
+
+impl TryFrom<String> for Platform {
+    type Error = VoltaError;
+    fn try_from(src: String) -> Fallible<Self> {
         let result = if src.is_empty() {
             serde_json::de::from_str("{}")
         } else {
@@ -50,11 +58,6 @@ impl Platform {
         };
 
         result.with_context(|| ErrorKind::ParsePlatformError)
-    }
-
-    /// Serialize the Platform to a JSON String
-    pub fn into_json(self) -> Fallible<String> {
-        serde_json::to_string_pretty(&self).with_context(|| ErrorKind::StringifyPlatformError)
     }
 }
 
@@ -79,7 +82,7 @@ pub mod tests {
     #[test]
     fn test_from_json() {
         let json_str = BASIC_JSON_STR.to_string();
-        let platform = Platform::from_json(json_str).expect("could not parse JSON string");
+        let platform = Platform::try_from(json_str).expect("could not parse JSON string");
         let expected_platform = Platform {
             yarn: Some(Version::parse("1.2.3").expect("could not parse version")),
             node: Some(NodeVersion {
@@ -93,7 +96,7 @@ pub mod tests {
     #[test]
     fn test_from_json_empty_string() {
         let json_str = "".to_string();
-        let platform = Platform::from_json(json_str).expect("could not parse JSON string");
+        let platform = Platform::try_from(json_str).expect("could not parse JSON string");
         let expected_platform = Platform {
             node: None,
             yarn: None,
