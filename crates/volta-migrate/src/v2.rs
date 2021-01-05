@@ -105,7 +105,7 @@ fn clear_default_npm(platform_file: &Path) -> Fallible<()> {
             }
         }
     };
-    let mut existing_platform = Platform::from_json(platform_json)?;
+    let mut existing_platform = Platform::try_from(platform_json)?;
 
     if let Some(ref mut node_version) = &mut existing_platform.node {
         if let Some(npm) = &node_version.npm {
