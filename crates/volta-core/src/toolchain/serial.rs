@@ -1,6 +1,4 @@
 use crate::error::{Context, ErrorKind, Fallible, VoltaError};
-use std::convert::Into;
-
 use crate::platform::PlatformSpec;
 use crate::version::{option_version_serde, version_serde};
 use semver::Version;
