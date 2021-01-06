@@ -33,15 +33,6 @@ impl Platform {
         }
     }
 
-    pub fn into_platform(self) -> Option<PlatformSpec> {
-        let yarn = self.yarn;
-        self.node.map(|node_version| PlatformSpec {
-            node: node_version.runtime,
-            npm: node_version.npm,
-            yarn,
-        })
-    }
-
     /// Serialize the Platform to a JSON String
     pub fn into_json(self) -> Fallible<String> {
         serde_json::to_string_pretty(&self).with_context(|| ErrorKind::StringifyPlatformError)
@@ -58,6 +49,17 @@ impl TryFrom<String> for Platform {
         };
 
         result.with_context(|| ErrorKind::ParsePlatformError)
+    }
+}
+
+impl From<Platform> for Option<PlatformSpec> {
+    fn from(platform: Platform) -> Option<PlatformSpec> {
+        let yarn = platform.yarn;
+        platform.node.map(|node_version| PlatformSpec {
+            node: node_version.runtime,
+            npm: node_version.npm,
+            yarn,
+        })
     }
 }
 
