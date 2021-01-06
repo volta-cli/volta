@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::iter::FromIterator;
 use std::str::FromStr;
 
 use crate::version::{option_version_serde, version_serde};
@@ -56,7 +55,7 @@ impl From<RawNodeIndex> for NodeIndex {
         for entry in raw.0 {
             if let Some(npm) = entry.npm {
                 let data = NodeDistroFiles {
-                    files: HashSet::from_iter(entry.files.into_iter()),
+                    files: entry.files.into_iter().collect(),
                 };
                 entries.push(NodeEntry {
                     version: entry.version,

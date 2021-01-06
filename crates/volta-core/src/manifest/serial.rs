@@ -85,7 +85,7 @@ impl From<RawBinManifest> for super::BinManifest {
         if let Some(ref bin) = raw.bin {
             for (name, path) in bin.iter() {
                 // handle case where only the path was given and binary name was unknown
-                if name == "" {
+                if name.is_empty() {
                     // npm uses the package name for the binary in this case
                     map.insert(raw.name.clone().unwrap(), path.clone());
                 } else {
