@@ -262,6 +262,7 @@ install_version() {
         info 'Finished' "installation. Updating user profile settings."
         "$install_dir"/bin/volta setup
       else
+        "$install_dir"/bin/volta --version &>/dev/null # creates the default shims
         info 'Finished' "installation. No changes were made to user profile settings."
       fi
   fi
