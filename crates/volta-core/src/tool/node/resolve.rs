@@ -106,7 +106,6 @@ fn resolve_lts(hooks: Option<&ToolHooks<Node>>) -> Fallible<Version> {
 }
 
 fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Node>>) -> Fallible<Version> {
-    // ISSUE #34: also make sure this OS is available for this version
     let url = match hooks {
         Some(&ToolHooks {
             index: Some(ref hook),

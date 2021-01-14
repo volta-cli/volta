@@ -21,45 +21,67 @@ pub use fetch::load_default_npm_version;
 pub use resolve::resolve;
 
 cfg_if! {
-    if #[cfg(target_os = "windows")] {
-        /// The OS component of a Node distro's filename.
+    if #[cfg(all(target_os = "windows", target_arch = "x86"))] {
+        /// The OS component of a Node distro filename
         pub const NODE_DISTRO_OS: &str = "win";
-    } else if #[cfg(target_os = "macos")] {
-        /// The OS component of a Node distro's filename.
-        pub const NODE_DISTRO_OS: &str = "darwin";
-    } else if #[cfg(target_os = "linux")] {
-        /// The OS component of a Node distro's filename.
-        pub const NODE_DISTRO_OS: &str = "linux";
-    } else {
-        compile_error!("Unsupported operating system (expected Windows, macOS, or Linux).");
-    }
-}
-
-cfg_if! {
-    if #[cfg(target_arch = "x86")] {
-        /// The system architecture component of a Node distro's name.
+        /// The architecture component of a Node distro filename
         pub const NODE_DISTRO_ARCH: &str = "x86";
-    } else if #[cfg(target_arch = "x86_64")] {
-        /// The system architecture component of a Node distro's name.
-        pub const NODE_DISTRO_ARCH: &str = "x64";
-    } else if #[cfg(target_arch = "aarch64")] {
-        /// The system architecture component of a Node distro's name.
-        pub const NODE_DISTRO_ARCH: &str = "arm64";
-    } else if #[cfg(target_arch = "arm")] {
-        /// The system architecture component of a Node distro's name.
-        pub const NODE_DISTRO_ARCH: &str = "armv7l";
-    } else {
-        compile_error!("Unsupported target_arch variant (expected 'x86', 'x64', or 'aarch64').");
-    }
-}
-
-cfg_if! {
-    if #[cfg(target_os = "windows")] {
-        /// Filename extension for Node distro files.
+        /// The extension for Node distro files
         pub const NODE_DISTRO_EXTENSION: &str = "zip";
-    } else {
-        /// Filename extension for Node distro files.
+        /// The file identifier in the Node index `files` array
+        pub const NODE_DISTRO_IDENTIFIER: &str = "win-x86-zip";
+    } else if #[cfg(all(target_os = "windows", target_arch = "x86_64"))] {
+        /// The OS component of a Node distro filename
+        pub const NODE_DISTRO_OS: &str = "win";
+        /// The architecture component of a Node distro filename
+        pub const NODE_DISTRO_ARCH: &str = "x64";
+        /// The extension for Node distro files
+        pub const NODE_DISTRO_EXTENSION: &str = "zip";
+        /// The file identifier in the Node index `files` array
+        pub const NODE_DISTRO_IDENTIFIER: &str = "win-x64-zip";
+    } else if #[cfg(all(target_os = "macos", any(target_arch = "x86_64", target_arch = "aarch64")))] {
+        // NOTE: Currently, Node does not provide prebuilt binaries for Apple M1 machines, so we
+        // fall back to using the x64 binaries through Rosetta 2. When Node starts shipping M1
+        // binaries, then we will need to adjust our logic to search for those first and only fall
+        // back if they aren't found
+
+        /// The OS component of a Node distro filename
+        pub const NODE_DISTRO_OS: &str = "darwin";
+        /// The architecture component of a Node distro filename
+        pub const NODE_DISTRO_ARCH: &str = "x64";
+        /// The extension for Node distro files
         pub const NODE_DISTRO_EXTENSION: &str = "tar.gz";
+        /// The file identifier in the Node index `files` array
+        pub const NODE_DISTRO_IDENTIFIER: &str = "osx-x64-tar";
+    } else if #[cfg(all(target_os = "linux", target_arch = "x86_64"))] {
+        /// The OS component of a Node distro filename
+        pub const NODE_DISTRO_OS: &str = "linux";
+        /// The architecture component of a Node distro filename
+        pub const NODE_DISTRO_ARCH: &str = "x64";
+        /// The extension for Node distro files
+        pub const NODE_DISTRO_EXTENSION: &str = "tar.gz";
+        /// The file identifier in the Node index `files` array
+        pub const NODE_DISTRO_IDENTIFIER: &str = "linux-x64";
+    } else if #[cfg(all(target_os = "linux", target_arch = "aarch64"))] {
+        /// The OS component of a Node distro filename
+        pub const NODE_DISTRO_OS: &str = "linux";
+        /// The architecture component of a Node distro filename
+        pub const NODE_DISTRO_ARCH: &str = "arm64";
+        /// The extension for Node distro files
+        pub const NODE_DISTRO_EXTENSION: &str = "tar.gz";
+        /// The file identifier in the Node index `files` array
+        pub const NODE_DISTRO_IDENTIFIER: &str = "linux-arm64";
+    } else if #[cfg(all(target_os = "linux", target_arch = "arm"))] {
+        /// The OS component of a Node distro filename
+        pub const NODE_DISTRO_OS: &str = "linux";
+        /// The architecture component of a Node distro filename
+        pub const NODE_DISTRO_ARCH: &str = "armv7l";
+        /// The extension for Node distro files
+        pub const NODE_DISTRO_EXTENSION: &str = "tar.gz";
+        /// The file identifier in the Node index `files` array
+        pub const NODE_DISTRO_IDENTIFIER: &str = "linux-armv7l";
+    } else {
+        compile_error!("Unsuppored operating system + architecture combination");
     }
 }
 
