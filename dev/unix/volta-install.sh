@@ -137,7 +137,11 @@ parse_os_info() {
       echo "linux-openssl-$parsed_version"
       ;;
     Darwin)
-      echo "macos"
+      if [ "$(uname -m)" == "arm64" ]; then
+        echo "macos-aarch64"
+      else
+        echo "macos"
+      fi
       ;;
     *)
       return 1
