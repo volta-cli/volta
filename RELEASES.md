@@ -1,3 +1,7 @@
+# Version 1.0.1
+
+- Create Native build for Apple Silicon machines (#915, #917)
+
 # Version 1.0.0
 
 - Support for `npm link` (#888, #889, #891)
