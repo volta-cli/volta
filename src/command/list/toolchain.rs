@@ -55,30 +55,30 @@ impl Lookup {
         default_platform: Option<&PlatformSpec>,
         version: &Version,
     ) -> Source {
-        let default_or_none = default_platform
-            .and_then(self.version_from_spec())
-            .and_then(|ref default_version| {
-                if default_version == version {
-                    Some(Source::Default)
-                } else {
-                    None
-                }
-            });
-
-        match project {
-            Some(project) => project
-                .platform()
-                .and_then(self.version_from_spec())
-                .and_then(|project_version| {
-                    if &project_version == version {
-                        Some(Source::Project(project.manifest_file().to_owned()))
-                    } else {
-                        default_or_none
-                    }
-                }),
-            None => default_or_none,
-        }
-        .unwrap_or(Source::None)
+        project
+            .and_then(|proj| {
+                proj.platform()
+                    .and_then(self.version_from_spec())
+                    .and_then(|project_version| {
+                        if &project_version == version {
+                            Some(Source::Project(proj.manifest_file().to_owned()))
+                        } else {
+                            None
+                        }
+                    })
+            })
+            .or_else(|| {
+                default_platform
+                    .and_then(self.version_from_spec())
+                    .and_then(|default_version| {
+                        if &default_version == version {
+                            Some(Source::Default)
+                        } else {
+                            None
+                        }
+                    })
+            })
+            .unwrap_or(Source::None)
     }
 
     /// Determine the `Source` for a given kind of tool (`Lookup`).
@@ -87,16 +87,17 @@ impl Lookup {
         project: Option<&Project>,
         default: Option<&PlatformSpec>,
     ) -> Option<(Source, Version)> {
-        match project {
-            Some(project) => project
-                .platform()
-                .and_then(self.version_from_spec())
-                .map(|version| (Source::Project(project.manifest_file().to_owned()), version)),
-            None => default
-                .clone()
-                .and_then(self.version_from_spec())
-                .map(|version| (Source::Default, version)),
-        }
+        project
+            .and_then(|proj| {
+                proj.platform()
+                    .and_then(self.version_from_spec())
+                    .map(|version| (Source::Project(proj.manifest_file().to_owned()), version))
+            })
+            .or_else(|| {
+                default
+                    .and_then(self.version_from_spec())
+                    .map(|version| (Source::Default, version))
+            })
     }
 }
 
