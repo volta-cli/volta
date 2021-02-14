@@ -20,6 +20,7 @@ lazy_static! {
             .subsequent_indent(INDENTATION);
 }
 
+#[allow(clippy::unnecessary_wraps)] // Needs to match the API of `plain::format`
 pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
     // Formatting here depends on the toolchain: we do different degrees of
     // indentation

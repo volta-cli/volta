@@ -52,6 +52,7 @@ impl From<RawNodeIndex> for NodeIndex {
     }
 }
 
+#[allow(clippy::unnecessary_wraps)] // Needs to match the API expected by Serde
 fn lts_version_serde<'de, D>(deserializer: D) -> Result<bool, D::Error>
 where
     D: Deserializer<'de>,

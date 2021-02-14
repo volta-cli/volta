@@ -140,9 +140,9 @@ fn is_version_like(value: &str) -> bool {
     matches!(
         value.parse(),
         Ok(VersionSpec::Exact(_))
-        | Ok(VersionSpec::Semver(_))
-        | Ok(VersionSpec::Tag(VersionTag::Latest))
-        | Ok(VersionSpec::Tag(VersionTag::Lts))
+            | Ok(VersionSpec::Semver(_))
+            | Ok(VersionSpec::Tag(VersionTag::Latest))
+            | Ok(VersionSpec::Tag(VersionTag::Lts))
     )
 }
 
