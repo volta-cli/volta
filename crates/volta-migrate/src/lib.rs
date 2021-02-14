@@ -93,6 +93,7 @@ impl MigrationState {
         }
     }
 
+    #[allow(clippy::unnecessary_wraps)] // Needs to be Fallible for Unix
     fn detect_legacy_state(home: &Path) -> Fallible<Self> {
         /*
         Triage for determining the legacy layout version:
