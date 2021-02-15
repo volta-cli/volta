@@ -2,7 +2,6 @@ use std::process::{Command, ExitStatus};
 
 use volta_core::error::{Context, ErrorKind, VoltaError};
 use volta_core::layout::{volta_home, volta_install};
-use volta_core::shim::regenerate_shims_for_dir;
 
 pub enum Error {
     Volta(VoltaError),
@@ -19,7 +18,6 @@ pub fn ensure_layout() -> Result<(), Error> {
             .status()
             .with_context(|| ErrorKind::CouldNotStartMigration)
             .into_result()?;
-        regenerate_shims_for_dir(home.shim_dir()).map_err(Error::Volta)?;
     }
 
     Ok(())
