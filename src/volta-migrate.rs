@@ -29,11 +29,7 @@ pub fn main() {
     Logger::init(LogContext::Migration, LogVerbosity::Default)
         .expect("Only a single Logger should be initialized");
 
-    if volta_migrate.no_create
-        && !volta_home()
-            .map(|home| home.root().exists())
-            .unwrap_or(false)
-    {
+    if volta_migrate.no_create && !volta_home().map_or(false, |home| home.root().exists()) {
         ExitCode::Success.exit();
     }
 
