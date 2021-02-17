@@ -104,10 +104,11 @@ fn tool_name_from_file_name(file_name: &OsStr) -> OsString {
 
 #[cfg(windows)]
 fn tool_name_from_file_name(file_name: &OsStr) -> OsString {
-    // On Windows PowerShell, the file name includes the .exe suffix
+    // On Windows PowerShell, the file name includes the .exe suffix,
+    // and the Windows file system is case-insensitive
     // We need to remove that to get the raw tool name
     match file_name.to_str() {
-        Some(file) => OsString::from(file.trim_end_matches(".exe")),
+        Some(file) => OsString::from(file.to_ascii_lowercase().trim_end_matches(".exe")),
         None => OsString::from(file_name),
     }
 }
