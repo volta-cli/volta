@@ -35,7 +35,7 @@ pub struct Package {
 
 impl Package {
     pub fn new(name: String, version: VersionSpec) -> Fallible<Self> {
-        let staging = setup_staging_directory(PackageManager::Npm)?;
+        let staging = setup_staging_directory(PackageManager::Npm, false /* needs_scope */)?;
 
         Ok(Package {
             name,
@@ -126,13 +126,28 @@ impl Display for Package {
 pub struct DirectInstall {
     staging: TempDir,
     manager: PackageManager,
+    name: Option<String>,
 }
 
 impl DirectInstall {
     pub fn new(manager: PackageManager) -> Fallible<Self> {
-        let staging = setup_staging_directory(manager)?;
+        let staging = setup_staging_directory(manager, false /* needs_scope */)?;
 
-        Ok(DirectInstall { staging, manager })
+        Ok(DirectInstall {
+            staging,
+            manager,
+            name: None,
+        })
+    }
+
+    pub fn with_name(manager: PackageManager, name: String) -> Fallible<Self> {
+        let staging = setup_staging_directory(manager, name.contains('/'))?;
+
+        Ok(DirectInstall {
+            staging,
+            manager,
+            name: Some(name),
+        })
     }
 
     pub fn setup_command(&self, command: &mut Command) {
@@ -141,16 +156,20 @@ impl DirectInstall {
     }
 
     pub fn complete_install(self, image: &Image) -> Fallible<()> {
-        let name = self
-            .manager
-            .get_installed_package(self.staging.path().to_owned())
-            .ok_or(ErrorKind::InstalledPackageNameError)?;
-        let manifest =
-            configure::parse_manifest(&name, self.staging.path().to_owned(), self.manager)?;
+        let DirectInstall {
+            staging,
+            name,
+            manager,
+        } = self;
 
-        persist_install(&name, &manifest.version, self.staging.path())?;
-        link_package_to_shared_dir(&name, self.manager)?;
-        configure::write_config_and_shims(&name, &manifest, image, self.manager)
+        let name = name
+            .or_else(|| manager.get_installed_package(staging.path().to_owned()))
+            .ok_or(ErrorKind::InstalledPackageNameError)?;
+        let manifest = configure::parse_manifest(&name, staging.path().to_owned(), manager)?;
+
+        persist_install(&name, &manifest.version, staging.path())?;
+        link_package_to_shared_dir(&name, manager)?;
+        configure::write_config_and_shims(&name, &manifest, image, manager)
     }
 }
 
@@ -211,7 +230,7 @@ impl InPlaceUpgrade {
 
 /// Create the temporary staging directory we will use to install and ensure expected
 /// subdirectories exist within it
-fn setup_staging_directory(manager: PackageManager) -> Fallible<TempDir> {
+fn setup_staging_directory(manager: PackageManager, needs_scope: bool) -> Fallible<TempDir> {
     // Workaround to ensure relative symlinks continue to work.
     // The final installed location of packages is:
     //      $VOLTA_HOME/tools/image/packages/{name}/
@@ -219,9 +238,14 @@ fn setup_staging_directory(manager: PackageManager) -> Fallible<TempDir> {
     //      $VOLTA_HOME/tmp/image/packages/{tempdir}/
     // This way any relative symlinks will have the same amount of nesting and will remain valid
     // even when the directory is persisted.
+    // We also need to handle the case when the linked package has a scope, which requires another
+    // level of nesting
     let mut staging_root = volta_home()?.tmp_dir().to_owned();
     staging_root.push("image");
     staging_root.push("packages");
+    if needs_scope {
+        staging_root.push("scope");
+    }
     create_dir_all(&staging_root).with_context(|| ErrorKind::ContainingDirError {
         path: staging_root.clone(),
     })?;
