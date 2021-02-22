@@ -35,7 +35,7 @@ pub struct Package {
 
 impl Package {
     pub fn new(name: String, version: VersionSpec) -> Fallible<Self> {
-        let staging = setup_staging_directory(PackageManager::Npm, false /* needs_scope */)?;
+        let staging = setup_staging_directory(PackageManager::Npm, NeedsScope::No)?;
 
         Ok(Package {
             name,
@@ -123,6 +123,9 @@ impl Display for Package {
 ///
 /// Provides methods to simplify installing into a staging directory and then moving that install
 /// into the proper location after it is complete.
+///
+/// Note: We don't always know the name of the package up-front, as the install could be from a
+/// tarball or a git coordinate. If we do know ahead of time, then we can skip looking it up
 pub struct DirectInstall {
     staging: TempDir,
     manager: PackageManager,
@@ -131,7 +134,7 @@ pub struct DirectInstall {
 
 impl DirectInstall {
     pub fn new(manager: PackageManager) -> Fallible<Self> {
-        let staging = setup_staging_directory(manager, false /* needs_scope */)?;
+        let staging = setup_staging_directory(manager, NeedsScope::No)?;
 
         Ok(DirectInstall {
             staging,
@@ -141,7 +144,7 @@ impl DirectInstall {
     }
 
     pub fn with_name(manager: PackageManager, name: String) -> Fallible<Self> {
-        let staging = setup_staging_directory(manager, name.contains('/'))?;
+        let staging = setup_staging_directory(manager, name.contains('/').into())?;
 
         Ok(DirectInstall {
             staging,
@@ -228,9 +231,25 @@ impl InPlaceUpgrade {
     }
 }
 
+#[derive(Clone, Copy, PartialEq)]
+enum NeedsScope {
+    Yes,
+    No,
+}
+
+impl From<bool> for NeedsScope {
+    fn from(value: bool) -> Self {
+        if value {
+            NeedsScope::Yes
+        } else {
+            NeedsScope::No
+        }
+    }
+}
+
 /// Create the temporary staging directory we will use to install and ensure expected
 /// subdirectories exist within it
-fn setup_staging_directory(manager: PackageManager, needs_scope: bool) -> Fallible<TempDir> {
+fn setup_staging_directory(manager: PackageManager, needs_scope: NeedsScope) -> Fallible<TempDir> {
     // Workaround to ensure relative symlinks continue to work.
     // The final installed location of packages is:
     //      $VOLTA_HOME/tools/image/packages/{name}/
@@ -243,7 +262,7 @@ fn setup_staging_directory(manager: PackageManager, needs_scope: bool) -> Fallib
     let mut staging_root = volta_home()?.tmp_dir().to_owned();
     staging_root.push("image");
     staging_root.push("packages");
-    if needs_scope {
+    if needs_scope == NeedsScope::Yes {
         staging_root.push("scope");
     }
     create_dir_all(&staging_root).with_context(|| ErrorKind::ContainingDirError {
