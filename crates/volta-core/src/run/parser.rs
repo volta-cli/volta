@@ -345,12 +345,16 @@ pub struct LinkArgs<'a> {
 }
 
 impl<'a> LinkArgs<'a> {
-    pub fn executor(self, platform: Platform) -> Fallible<Executor> {
+    pub fn executor(self, platform: Platform, project_name: Option<String>) -> Fallible<Executor> {
         if self.tools.is_empty() {
             // If no tools are specified, then this is a bare link command, linking the current
-            // project as a global package. We treat this exactly like a global install
-            PackageInstallCommand::new(self.common_args, platform, PackageManager::Npm)
-                .map(Into::into)
+            // project as a global package. We treat this like a global install except we look up
+            // the name from the current directory first.
+            match project_name {
+                Some(name) => PackageInstallCommand::for_npm_link(self.common_args, platform, name),
+                None => PackageInstallCommand::new(self.common_args, platform, PackageManager::Npm),
+            }
+            .map(Into::into)
         } else {
             // If there are tools specified, then this represents a command to link a global
             // package into the current project. We handle each tool separately to support Volta's

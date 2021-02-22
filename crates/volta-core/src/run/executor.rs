@@ -237,6 +237,23 @@ impl PackageInstallCommand {
         })
     }
 
+    pub fn for_npm_link<A, S>(args: A, platform: Platform, name: String) -> Fallible<Self>
+    where
+        A: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        let installer = DirectInstall::with_name(PackageManager::Npm, name)?;
+
+        let mut command = create_command("npm");
+        command.args(args);
+
+        Ok(PackageInstallCommand {
+            command,
+            installer,
+            platform,
+        })
+    }
+
     /// Adds or updates environment variables that the command will use
     pub fn envs<E, K, V>(&mut self, envs: E)
     where

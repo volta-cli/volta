@@ -35,7 +35,7 @@ pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Exec
                 CommandArg::Intercepted(InterceptedCommand::Link(link)) => {
                     // For link commands, only intercept if a platform exists
                     if let Some(platform) = Platform::current(session)? {
-                        return link.executor(platform);
+                        return link.executor(platform, current_project_name(session));
                     }
                 }
                 CommandArg::Intercepted(InterceptedCommand::Unlink) => {
