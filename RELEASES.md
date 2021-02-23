@@ -1,3 +1,9 @@
+# Version 1.0.2
+
+- Fix issues where `volta list` wasn't showing the correct information in all cases (#778, #926)
+- Make detection of tool name case-insensitive on Windows (#941)
+- Fix problem with `npm link` in a scoped package under npm 7 (#945)
+
 # Version 1.0.1
 
 - Create Native build for Apple Silicon machines (#915, #917)
