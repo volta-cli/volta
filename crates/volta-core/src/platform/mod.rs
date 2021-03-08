@@ -244,34 +244,17 @@ impl Platform {
     ///   pulling Yarn from the user default platform, if available
     /// - If there is no Project platform, then we use the user Default Platform
     pub fn current(session: &mut Session) -> Fallible<Option<Self>> {
-        match session.project_platform()? {
-            Some(platform) => {
-                if platform.yarn.is_none() || platform.npm.is_none() {
-                    if let Some(default) = session.default_platform()? {
-                        let npm = platform
-                            .npm
-                            .clone()
-                            .map(Sourced::with_project)
-                            .or_else(|| default.npm.clone().map(Sourced::with_default));
-                        let yarn = platform
-                            .yarn
-                            .clone()
-                            .map(Sourced::with_project)
-                            .or_else(|| default.yarn.clone().map(Sourced::with_default));
-
-                        return Ok(Some(Platform {
-                            node: Sourced::with_project(platform.node.clone()),
-                            npm,
-                            yarn,
-                        }));
-                    }
-                }
-                Ok(Some(platform.as_project()))
+        if let Some(mut platform) = session.project_platform()?.map(PlatformSpec::as_project) {
+            if platform.yarn.is_none() {
+                platform.yarn = session
+                    .default_platform()?
+                    .and_then(|default_platform| default_platform.yarn.clone())
+                    .map(Sourced::with_default);
             }
-            None => match session.default_platform()? {
-                Some(platform) => Ok(Some(platform.as_default())),
-                None => Ok(None),
-            },
+
+            Ok(Some(platform))
+        } else {
+            Ok(session.default_platform()?.map(PlatformSpec::as_default))
         }
     }
 
