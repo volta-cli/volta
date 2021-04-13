@@ -203,9 +203,10 @@ impl PackageManifest {
         // If the bin list contains only an empty string, that means `bin` was a string value,
         // rather than a map. In that case, to match `npm`s behavior, we use the name of the package
         // as the bin name.
+        // Note: For a scoped package, we should remove the scope and only use the package name
         if manifest.bin == [""] {
             manifest.bin.pop();
-            manifest.bin.push(manifest.name.clone());
+            manifest.bin.push(default_binary_name(&manifest.name));
         }
 
         Ok(manifest)
@@ -264,5 +265,47 @@ mod serde_bins {
             }
             Ok(bins)
         }
+    }
+}
+
+/// Determine the default binary name from the package name
+///
+/// For non-scoped packages, this is just the package name
+/// For scoped packages, to match the behavior of the package managers, we remove the scope and use
+/// only the package part, e.g. `@microsoft/rush` would have a default name of `rush`
+fn default_binary_name(package_name: &str) -> String {
+    if package_name.starts_with('@') {
+        let mut chars = package_name.chars();
+
+        loop {
+            match chars.next() {
+                Some('/') | None => break,
+                _ => {}
+            }
+        }
+
+        let name = chars.as_str();
+        if name.is_empty() {
+            package_name.to_string()
+        } else {
+            name.to_string()
+        }
+    } else {
+        package_name.to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::default_binary_name;
+
+    #[test]
+    fn default_binary_uses_full_name_if_unscoped() {
+        assert_eq!(default_binary_name("my-package"), "my-package");
+    }
+
+    #[test]
+    fn default_binary_removes_scope() {
+        assert_eq!(default_binary_name("@scope/my-package"), "my-package");
     }
 }
