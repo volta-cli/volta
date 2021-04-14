@@ -1,7 +1,7 @@
 //! Provides fetcher for npm distributions
 
 use std::fs::{write, File};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use super::super::download_tool_error;
 use super::super::registry::public_registry_package;
@@ -108,7 +108,7 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<()> 
 /// Return the archive if it is valid. It may have been corrupted or interrupted in the middle of
 /// downloading.
 /// ISSUE(#134) - verify checksum
-fn load_cached_distro(file: &PathBuf) -> Option<Box<dyn Archive>> {
+fn load_cached_distro(file: &Path) -> Option<Box<dyn Archive>> {
     if file.is_file() {
         let file = File::open(file).ok()?;
         Tarball::load(file).ok()
