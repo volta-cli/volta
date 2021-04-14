@@ -1,3 +1,8 @@
+# Version 1.0.3
+
+- Fix pinning of `npm@bundled` when there is a custom default npm version (#957)
+- Use correct binary name for scoped packages with a string `bin` entry in `package.json` (#969)
+
 # Version 1.0.2
 
 - Fix issues where `volta list` wasn't showing the correct information in all cases (#778, #926)
