@@ -84,10 +84,8 @@ mod os {
     fn determine_profiles() -> Fallible<Vec<PathBuf>> {
         let home_dir = dirs::home_dir().ok_or(ErrorKind::NoHomeEnvironmentVar)?;
         let shell = env::var("SHELL").unwrap_or_else(|_| String::new());
-        let mut profiles = Vec::new();
-
         // Always include `~/.profile`
-        profiles.push(home_dir.join(".profile"));
+        let mut profiles = vec![home_dir.join(".profile")];
 
         // PROFILE environment variable, if set
         if let Ok(profile_env) = env::var("PROFILE") {
