@@ -201,7 +201,7 @@ If you run into problems running Volta, create {} and run `volta setup` again.",
         let mut file = File::create(path)?;
         write!(
             file,
-            "{}\nset -gx VOLTA_HOME \"{}\"\nset -gx PATH \"$VOLTA_HOME/bin\" $PATH\n",
+            "{}\nset -gx VOLTA_HOME \"{}\"\nfish_add_path \"$VOLTA_HOME/bin\"\n",
             contents, volta_home,
         )
     }
