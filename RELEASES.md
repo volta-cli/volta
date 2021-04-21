@@ -1,3 +1,7 @@
+# Version 1.0.4
+
+- Fetch native Apple silicon versions of Node when available (#974)
+
 # Version 1.0.3
 
 - Fix pinning of `npm@bundled` when there is a custom default npm version (#957)
