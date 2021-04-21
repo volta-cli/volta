@@ -129,11 +129,11 @@ impl Node {
         Node { version }
     }
 
-    pub fn archive_basename(version: &str) -> String {
+    pub fn archive_basename(version: &Version) -> String {
         format!("node-v{}-{}-{}", version, NODE_DISTRO_OS, NODE_DISTRO_ARCH)
     }
 
-    pub fn archive_filename(version: &str) -> String {
+    pub fn archive_filename(version: &Version) -> String {
         format!(
             "{}.{}",
             Node::archive_basename(version),
@@ -242,7 +242,7 @@ mod tests {
     #[test]
     fn test_node_archive_basename() {
         assert_eq!(
-            Node::archive_basename("1.2.3"),
+            Node::archive_basename(&Version::new(1, 2, 3)),
             format!("node-v1.2.3-{}-{}", NODE_DISTRO_OS, NODE_DISTRO_ARCH)
         );
     }
@@ -250,7 +250,7 @@ mod tests {
     #[test]
     fn test_node_archive_filename() {
         assert_eq!(
-            Node::archive_filename("1.2.3"),
+            Node::archive_filename(&Version::new(1, 2, 3)),
             format!(
                 "node-v1.2.3-{}-{}.{}",
                 NODE_DISTRO_OS, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION

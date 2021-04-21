@@ -1,6 +1,7 @@
 use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, YarnFixture};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
+use semver::Version;
 use test_support::matchers::execs;
 
 use volta_core::error::ExitCode;
@@ -58,7 +59,7 @@ fn install_corrupted_node_leaves_inventory_unchanged() {
         execs().with_status(ExitCode::UnknownError as i32)
     );
 
-    assert!(!s.node_inventory_archive_exists("0.0.1"));
+    assert!(!s.node_inventory_archive_exists(&Version::new(0, 0, 1)));
 }
 
 #[test]
@@ -73,7 +74,7 @@ fn install_valid_node_saves_to_inventory() {
         execs().with_status(ExitCode::Success as i32)
     );
 
-    assert!(s.node_inventory_archive_exists("10.99.1040"));
+    assert!(s.node_inventory_archive_exists(&Version::new(10, 99, 1040)));
 }
 
 #[test]

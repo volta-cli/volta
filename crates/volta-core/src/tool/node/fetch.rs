@@ -30,7 +30,7 @@ cfg_if! {
     }
 }
 
-fn npm_manifest_path(version: &str) -> PathBuf {
+fn npm_manifest_path(version: &Version) -> PathBuf {
     let mut manifest = PathBuf::from(Node::archive_basename(version));
 
     #[cfg(unix)]
@@ -46,7 +46,7 @@ fn npm_manifest_path(version: &str) -> PathBuf {
 pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Node>>) -> Fallible<NodeVersion> {
     let home = volta_home()?;
     let node_dir = home.node_inventory_dir();
-    let cache_file = node_dir.join(Node::archive_filename(&version.to_string()));
+    let cache_file = node_dir.join(Node::archive_filename(version));
 
     let (archive, staging) = match load_cached_distro(&cache_file) {
         Some(archive) => {
@@ -107,7 +107,7 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<Node
         })?;
 
     // Save the npm version number in the npm version file for this distro
-    let npm_package_json = temp.path().join(npm_manifest_path(&version_string));
+    let npm_package_json = temp.path().join(npm_manifest_path(version));
     let npm = Manifest::version(&npm_package_json)?;
     save_default_npm_version(&version, &npm)?;
 
@@ -115,14 +115,12 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<Node
     ensure_containing_dir_exists(&dest)
         .with_context(|| ErrorKind::ContainingDirError { path: dest.clone() })?;
 
-    rename(
-        temp.path().join(Node::archive_basename(&version_string)),
-        &dest,
-    )
-    .with_context(|| ErrorKind::SetupToolImageError {
-        tool: "Node".into(),
-        version: version_string,
-        dir: dest.clone(),
+    rename(temp.path().join(Node::archive_basename(version)), &dest).with_context(|| {
+        ErrorKind::SetupToolImageError {
+            tool: "Node".into(),
+            version: version_string,
+            dir: dest.clone(),
+        }
     })?;
 
     progress.finish_and_clear();
@@ -151,8 +149,7 @@ fn load_cached_distro(file: &Path) -> Option<Box<dyn Archive>> {
 
 /// Determine the remote URL to download from, using the hooks if available
 fn determine_remote_url(version: &Version, hooks: Option<&ToolHooks<Node>>) -> Fallible<String> {
-    let version_str = version.to_string();
-    let distro_file_name = Node::archive_filename(&version_str);
+    let distro_file_name = Node::archive_filename(version);
     match hooks {
         Some(&ToolHooks {
             distro: Some(ref hook),

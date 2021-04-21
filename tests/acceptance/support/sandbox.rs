@@ -7,6 +7,7 @@ use std::time::{Duration, SystemTime};
 
 use hyperx::header::HttpDate;
 use mockito::{self, mock, Matcher};
+use semver::Version;
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 use volta_core::fs::symlink_file;
 use volta_core::tool::{Node, Yarn, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION, NODE_DISTRO_OS};
@@ -631,7 +632,7 @@ impl Sandbox {
 
     // check that files in the sandbox exist
 
-    pub fn node_inventory_archive_exists(&self, version: &str) -> bool {
+    pub fn node_inventory_archive_exists(&self, version: &Version) -> bool {
         node_inventory_dir()
             .join(Node::archive_filename(version))
             .exists()
