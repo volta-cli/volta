@@ -39,12 +39,7 @@ cfg_if! {
         pub const NODE_DISTRO_EXTENSION: &str = "zip";
         /// The file identifier in the Node index `files` array
         pub const NODE_DISTRO_IDENTIFIER: &str = "win-x64-zip";
-    } else if #[cfg(all(target_os = "macos", any(target_arch = "x86_64", target_arch = "aarch64")))] {
-        // NOTE: Currently, Node does not provide prebuilt binaries for Apple M1 machines, so we
-        // fall back to using the x64 binaries through Rosetta 2. When Node starts shipping M1
-        // binaries, then we will need to adjust our logic to search for those first and only fall
-        // back if they aren't found
-
+    } else if #[cfg(all(target_os = "macos", target_arch = "x86_64"))] {
         /// The OS component of a Node distro filename
         pub const NODE_DISTRO_OS: &str = "darwin";
         /// The architecture component of a Node distro filename
@@ -53,6 +48,23 @@ cfg_if! {
         pub const NODE_DISTRO_EXTENSION: &str = "tar.gz";
         /// The file identifier in the Node index `files` array
         pub const NODE_DISTRO_IDENTIFIER: &str = "osx-x64-tar";
+    } else if #[cfg(all(target_os = "macos", target_arch = "aarch64"))] {
+        /// The OS component of a Node distro filename
+        pub const NODE_DISTRO_OS: &str = "darwin";
+        /// The architecture component of a Node distro filename
+        pub const NODE_DISTRO_ARCH: &str = "arm64";
+        /// The extension for Node distro files
+        pub const NODE_DISTRO_EXTENSION: &str = "tar.gz";
+        /// The file identifier in the Node index `files` array
+        pub const NODE_DISTRO_IDENTIFIER: &str = "osx-arm64-tar";
+
+        // NOTE: Node support for pre-built Apple Silicon binaries was added in major version 16
+        // For versions prior to that, we need to fall back on the x64 binaries via Rosetta 2
+
+        /// The fallback architecture component of a Node distro filename
+        pub const NODE_DISTRO_ARCH_FALLBACK: &str = "x64";
+        /// The fallback file identifier in the Node index `files` array
+        pub const NODE_DISTRO_IDENTIFIER_FALLBACK: &str = "osx-x64-tar";
     } else if #[cfg(all(target_os = "linux", target_arch = "x86_64"))] {
         /// The OS component of a Node distro filename
         pub const NODE_DISTRO_OS: &str = "linux";
@@ -117,11 +129,28 @@ impl Node {
         Node { version }
     }
 
-    pub fn archive_basename(version: &str) -> String {
+    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+    pub fn archive_basename(version: &Version) -> String {
         format!("node-v{}-{}-{}", version, NODE_DISTRO_OS, NODE_DISTRO_ARCH)
     }
 
-    pub fn archive_filename(version: &str) -> String {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    pub fn archive_basename(version: &Version) -> String {
+        // Note: Node began shipping pre-built binaries for Apple Silicon with Major version 16
+        // Prior to that, we need to fall back on the x64 binaries
+        format!(
+            "node-v{}-{}-{}",
+            version,
+            NODE_DISTRO_OS,
+            if version.major >= 16 {
+                NODE_DISTRO_ARCH
+            } else {
+                NODE_DISTRO_ARCH_FALLBACK
+            }
+        )
+    }
+
+    pub fn archive_filename(version: &Version) -> String {
         format!(
             "{}.{}",
             Node::archive_basename(version),
@@ -230,7 +259,7 @@ mod tests {
     #[test]
     fn test_node_archive_basename() {
         assert_eq!(
-            Node::archive_basename("1.2.3"),
+            Node::archive_basename(&Version::new(1, 2, 3)),
             format!("node-v1.2.3-{}-{}", NODE_DISTRO_OS, NODE_DISTRO_ARCH)
         );
     }
@@ -238,7 +267,7 @@ mod tests {
     #[test]
     fn test_node_archive_filename() {
         assert_eq!(
-            Node::archive_filename("1.2.3"),
+            Node::archive_filename(&Version::new(1, 2, 3)),
             format!(
                 "node-v1.2.3-{}-{}.{}",
                 NODE_DISTRO_OS, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION
