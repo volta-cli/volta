@@ -129,8 +129,25 @@ impl Node {
         Node { version }
     }
 
+    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
     pub fn archive_basename(version: &Version) -> String {
         format!("node-v{}-{}-{}", version, NODE_DISTRO_OS, NODE_DISTRO_ARCH)
+    }
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    pub fn archive_basename(version: &Version) -> String {
+        // Note: Node began shipping pre-built binaries for Apple Silicon with Major version 16
+        // Prior to that, we need to fall back on the x64 binaries
+        format!(
+            "node-v{}-{}-{}",
+            version,
+            NODE_DISTRO_OS,
+            if version.major >= 16 {
+                NODE_DISTRO_ARCH
+            } else {
+                NODE_DISTRO_ARCH_FALLBACK
+            }
+        )
     }
 
     pub fn archive_filename(version: &Version) -> String {
