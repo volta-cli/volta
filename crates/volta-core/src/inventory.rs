@@ -2,6 +2,7 @@
 //! of available tool versions.
 
 use std::collections::BTreeSet;
+use std::ffi::OsStr;
 use std::path::Path;
 
 use crate::error::{Context, ErrorKind, Fallible};
@@ -60,11 +61,15 @@ pub fn package_configs() -> Fallible<BTreeSet<PackageConfig>> {
         // debug output, though
         .filter_map(|entry| match entry {
             Ok(dir_entry) => {
-                // Ignore directory entries.
-                if dir_entry.file_type().is_file() {
-                    Some(dir_entry.into_path())
-                } else {
-                    None
+                // Ignore directory entries and any files that don't have a .json extension.
+                // This will prevent us from trying to parse OS-generated files as package
+                // configs (e.g. `.DS_Store` on macOS)
+                let extension = dir_entry.path().extension().and_then(OsStr::to_str);
+                match (dir_entry.file_type().is_file(), extension) {
+                    (true, Some(ext)) if ext.eq_ignore_ascii_case("json") => {
+                        Some(dir_entry.into_path())
+                    }
+                    _ => None,
                 }
             }
             Err(e) => {
