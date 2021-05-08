@@ -43,6 +43,16 @@ mod os {
         let home = volta_home()?;
         let formatted_home = format_home(home.root());
 
+        // Don't update the user's shell config files if VOLTA_HOME and PATH already contain what we need.
+        let home_in_path = match env::var_os("PATH") {
+            Some(paths) => env::split_paths(&paths).find(|p| p == home.root()),
+            None => None
+        };
+
+        if env::var_os("VOLTA_HOME").is_some() && home_in_path.is_some() {
+            return Ok(());
+        }
+
         debug!("Searching for profiles to update");
         let profiles = determine_profiles()?;
 
