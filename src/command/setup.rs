@@ -51,7 +51,7 @@ mod os {
 
         if env::var_os("VOLTA_HOME").is_some() && home_in_path.is_some() {
             debug!(
-                "{} skipping dot-file modification as VOLTA_HOME is set, and included in the PATH."
+                "Skipping dot-file modification as VOLTA_HOME is set, and included in the PATH."
             );
             return Ok(());
         }
