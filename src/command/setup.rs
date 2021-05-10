@@ -45,11 +45,14 @@ mod os {
 
         // Don't update the user's shell config files if VOLTA_HOME and PATH already contain what we need.
         let home_in_path = match env::var_os("PATH") {
-            Some(paths) => env::split_paths(&paths).find(|p| p == home.shim_dir()),
-            None => None
+            Some(paths) => env::split_paths(&paths).find(|p| p == home.root()),
+            None => None,
         };
 
         if env::var_os("VOLTA_HOME").is_some() && home_in_path.is_some() {
+            debug!(
+                "{} skipping dot-file modification as VOLTA_HOME is set, and included in the PATH."
+            );
             return Ok(());
         }
 
