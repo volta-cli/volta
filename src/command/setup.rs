@@ -45,7 +45,7 @@ mod os {
 
         // Don't update the user's shell config files if VOLTA_HOME and PATH already contain what we need.
         let home_in_path = match env::var_os("PATH") {
-            Some(paths) => env::split_paths(&paths).find(|p| p == home.root()),
+            Some(paths) => env::split_paths(&paths).find(|p| p == home.shim_dir()),
             None => None
         };
 
