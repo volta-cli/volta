@@ -91,11 +91,12 @@ fn test_image_path() {
 
 #[cfg(windows)]
 fn test_image_path() {
-    let mut pathbufs: Vec<PathBuf> = Vec::new();
-    pathbufs.push(volta_home().unwrap().shim_dir().to_owned());
-    pathbufs.push(PathBuf::from("C:\\\\somebin"));
-    pathbufs.push(volta_install().unwrap().root().to_owned());
-    pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
+    let pathbufs = vec![
+        volta_home().unwrap().shim_dir().to_owned(),
+        PathBuf::from("C:\\\\somebin"),
+        volta_install().unwrap().root().to_owned(),
+        PathBuf::from("D:\\\\ProbramFlies"),
+    ];
 
     let path_with_shims = std::env::join_paths(pathbufs.iter())
         .unwrap()
@@ -191,11 +192,12 @@ fn test_system_path() {
 
 #[cfg(windows)]
 fn test_system_path() {
-    let mut pathbufs: Vec<PathBuf> = Vec::new();
-    pathbufs.push(volta_home().unwrap().shim_dir().to_owned());
-    pathbufs.push(PathBuf::from("C:\\\\somebin"));
-    pathbufs.push(volta_install().unwrap().root().to_owned());
-    pathbufs.push(PathBuf::from("D:\\\\ProbramFlies"));
+    let pathbufs = vec![
+        volta_home().unwrap().shim_dir().to_owned(),
+        PathBuf::from("C:\\\\somebin"),
+        volta_install().unwrap().root().to_owned(),
+        PathBuf::from("D:\\\\ProbramFlies"),
+    ];
 
     let path_with_shims = std::env::join_paths(pathbufs.iter())
         .unwrap()

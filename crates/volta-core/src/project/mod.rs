@@ -114,8 +114,8 @@ impl Project {
 
         Ok(Project {
             manifest_file,
-            dependencies,
             workspace_manifests,
+            dependencies,
             platform,
         })
     }
