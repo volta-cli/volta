@@ -789,7 +789,7 @@ To {action} the packages '{name}' and '{version}', please {action} them in separ
 
                 let call_to_action = format!(
 "To {action} node version '{version}', please run `volta {action} {formatted}`. \
-To {action} the package '{version}', please use an explicit version such as '{version}@lts'.",
+To {action} the package '{version}', please use an explicit version such as '{version}@latest'.",
                     action=action,
                     version=version,
                     formatted=tool_version("node", version)
