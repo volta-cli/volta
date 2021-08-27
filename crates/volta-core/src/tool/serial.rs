@@ -83,14 +83,34 @@ impl Spec {
         Ok(tools)
     }
 
-    /// Check the args for the bad pattern of `volta install <tool> <number>`.
+    /// Check the args for the bad patterns of
+    /// - `volta install <number>`
+    /// - `volta install <tool> <number>`
     fn check_args<T>(args: &[T], action: &str) -> Fallible<()>
     where
         T: AsRef<str>,
     {
-        let mut args = args.iter();
+        let mut args_iter = args.iter();
 
-        // The case we are concerned with is where we have `<tool> <number>`.
+        // The case we are concerned with here is where we have `<number>`.
+        // That is, exactly one argument, which is a valid version specifier.
+        //
+        // - `volta install node@12` is allowed.
+        // - `volta install 12` is an error.
+        // - `volta install lts` is an error.
+        if let (Some(maybe_version), None) = (args_iter.next(), args_iter.next()) {
+            if is_version_like(maybe_version.as_ref()) {
+                return Err(ErrorKind::InvalidInvocationOfBareVersion {
+                    action: action.to_string(),
+                    version: maybe_version.as_ref().to_string(),
+                }
+                .into());
+            }
+        }
+
+        args_iter = args.iter();
+
+        // The case we are concerned with here is where we have `<tool> <number>`.
         // This is only interesting if there are exactly two args. Then we care
         // whether the two items are a bare name (with no `@version`), followed
         // by a valid version specifier (ignoring custom tags). That is:
@@ -98,7 +118,9 @@ impl Spec {
         // - `volta install node@lts latest` is allowed.
         // - `volta install node latest` is an error.
         // - `volta install node latest yarn` is allowed.
-        if let (Some(name), Some(maybe_version), None) = (args.next(), args.next(), args.next()) {
+        if let (Some(name), Some(maybe_version), None) =
+            (args_iter.next(), args_iter.next(), args_iter.next())
+        {
             if !HAS_VERSION.is_match(name.as_ref()) && is_version_like(maybe_version.as_ref()) {
                 return Err(ErrorKind::InvalidInvocation {
                     action: action.to_string(),
@@ -359,6 +381,23 @@ mod tests {
         static PIN: &str = "pin";
 
         #[test]
+        fn special_cases_just_number() {
+            let version = "1.2.3";
+            let args: Vec<String> = vec![version.into()];
+
+            let err = Spec::from_strings(&args, PIN).unwrap_err();
+
+            assert_eq!(
+                err.kind(),
+                &ErrorKind::InvalidInvocationOfBareVersion {
+                    action: PIN.into(),
+                    version: version.into()
+                },
+                "`volta <action> number` results in the correct error"
+            );
+        }
+
+        #[test]
         fn special_cases_tool_space_number() {
             let name = "potato";
             let version = "1.2.3";
@@ -391,6 +430,15 @@ mod tests {
                 Spec::from_strings(&only_one, PIN).expect("is ok").len(),
                 only_one.len(),
                 "when there is only one arg"
+            );
+
+            let one_with_explicit_verson = ["10@latest".to_owned()];
+            assert_eq!(
+                Spec::from_strings(&one_with_explicit_verson, PIN)
+                    .expect("is ok")
+                    .len(),
+                only_one.len(),
+                "when the sole arg is version-like but has an explicit version"
             );
 
             let two_but_unmistakable = ["12".to_owned(), "node".to_owned()];
