@@ -93,43 +93,40 @@ impl Spec {
         let mut args = args.iter();
 
         match (args.next(), args.next(), args.next()) {
-            (Some(maybe_version), None, None) => {
-                // The case we are concerned with here is where we have `<number>`.
-                // That is, exactly one argument, which is a valid version specifier.
-                //
-                // - `volta install node@12` is allowed.
-                // - `volta install 12` is an error.
-                // - `volta install lts` is an error.
-                if is_version_like(maybe_version.as_ref()) {
-                    return Err(ErrorKind::InvalidInvocationOfBareVersion {
-                        action: action.to_string(),
-                        version: maybe_version.as_ref().to_string(),
-                    }
-                    .into());
+            // The case we are concerned with here is where we have `<number>`.
+            // That is, exactly one argument, which is a valid version specifier.
+            //
+            // - `volta install node@12` is allowed.
+            // - `volta install 12` is an error.
+            // - `volta install lts` is an error.
+            (Some(maybe_version), None, None) if is_version_like(maybe_version.as_ref()) => {
+                Err(ErrorKind::InvalidInvocationOfBareVersion {
+                    action: action.to_string(),
+                    version: maybe_version.as_ref().to_string(),
                 }
+                .into())
             }
-            (Some(name), Some(maybe_version), None) => {
-                // The case we are concerned with here is where we have `<tool> <number>`.
-                // This is only interesting if there are exactly two args. Then we care
-                // whether the two items are a bare name (with no `@version`), followed
-                // by a valid version specifier (ignoring custom tags). That is:
-                //
-                // - `volta install node@lts latest` is allowed.
-                // - `volta install node latest` is an error.
-                // - `volta install node latest yarn` is allowed.
-                if !HAS_VERSION.is_match(name.as_ref()) && is_version_like(maybe_version.as_ref()) {
-                    return Err(ErrorKind::InvalidInvocation {
-                        action: action.to_string(),
-                        name: name.as_ref().to_string(),
-                        version: maybe_version.as_ref().to_string(),
-                    }
-                    .into());
+            // The case we are concerned with here is where we have `<tool> <number>`.
+            // This is only interesting if there are exactly two args. Then we care
+            // whether the two items are a bare name (with no `@version`), followed
+            // by a valid version specifier (ignoring custom tags). That is:
+            //
+            // - `volta install node@lts latest` is allowed.
+            // - `volta install node latest` is an error.
+            // - `volta install node latest yarn` is allowed.
+            (Some(name), Some(maybe_version), None)
+                if !HAS_VERSION.is_match(name.as_ref())
+                    && is_version_like(maybe_version.as_ref()) =>
+            {
+                Err(ErrorKind::InvalidInvocation {
+                    action: action.to_string(),
+                    name: name.as_ref().to_string(),
+                    version: maybe_version.as_ref().to_string(),
                 }
+                .into())
             }
-            _ => {}
+            _ => Ok(()),
         }
-
-        Ok(())
     }
 
     /// Compare `Spec`s for sorting when converting from strings
