@@ -163,6 +163,13 @@ pub enum ErrorKind {
         version: String,
     },
 
+    /// Thrown when a user does e.g. `volta install 12` instead of
+    /// `volta install node@12`.
+    InvalidInvocationOfBareVersion {
+        action: String,
+        version: String,
+    },
+
     /// Thrown when a tool name is invalid per npm's rules.
     InvalidToolName {
         name: String,
@@ -760,6 +767,32 @@ To {action} the packages '{name}' and '{version}', please {action} them in separ
                     name=name,
                     version=version,
                     formatted=tool_version(name, version)
+                );
+
+                let wrapped_cta = match text_width() {
+                    Some(width) => fill(&call_to_action, width),
+                    None => call_to_action,
+                };
+
+                write!(f, "{}\n\n{}", error, wrapped_cta)
+            }
+
+            ErrorKind::InvalidInvocationOfBareVersion {
+                action,
+                version,
+            } => {
+                let error = format!(
+                    "`volta {action} {version}` is not supported.",
+                    action = action,
+                    version = version
+                );
+
+                let call_to_action = format!(
+"To {action} node version '{version}', please run `volta {action} {formatted}`. \
+To {action} the package '{version}', please use an explicit version such as '{version}@latest'.",
+                    action=action,
+                    version=version,
+                    formatted=tool_version("node", version)
                 );
 
                 let wrapped_cta = match text_width() {
@@ -1383,6 +1416,7 @@ impl ErrorKind {
             ErrorKind::InvalidHookCommand { .. } => ExitCode::ExecutableNotFound,
             ErrorKind::InvalidHookOutput { .. } => ExitCode::ExecutionFailure,
             ErrorKind::InvalidInvocation { .. } => ExitCode::InvalidArguments,
+            ErrorKind::InvalidInvocationOfBareVersion { .. } => ExitCode::InvalidArguments,
             ErrorKind::InvalidToolName { .. } => ExitCode::InvalidArguments,
             ErrorKind::LockAcquireError => ExitCode::FileSystemError,
             ErrorKind::NoBundledNpm { .. } => ExitCode::ConfigurationError,
