@@ -74,7 +74,7 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Npm>>) -> Falli
     let details_opt = index
         .entries
         .into_iter()
-        .find(|PackageDetails { version, .. }| matching.matches(&version));
+        .find(|PackageDetails { version, .. }| matching.matches(version));
 
     match details_opt {
         Some(details) => {

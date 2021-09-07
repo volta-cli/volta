@@ -79,7 +79,7 @@ fn remove_config_and_shim(bin_name: &str, pkg_name: &str) -> Fallible<()> {
 fn binaries_from_package(package: &str) -> Fallible<Vec<String>> {
     let bin_config_dir = volta_home()?.default_bin_dir();
 
-    dir_entry_match(&bin_config_dir, |entry| {
+    dir_entry_match(bin_config_dir, |entry| {
         let path = entry.path();
         if let Ok(config) = BinConfig::from_file(path) {
             if config.package == package {

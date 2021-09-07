@@ -25,7 +25,7 @@ pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
     // Formatting here depends on the toolchain: we do different degrees of
     // indentation
     Some(match toolchain {
-        Toolchain::Node(runtimes) => display_node(&runtimes),
+        Toolchain::Node(runtimes) => display_node(runtimes),
         Toolchain::Active {
             runtime,
             package_managers,
@@ -121,7 +121,7 @@ fn display_node(runtimes: &[Node]) -> String {
     } else {
         format!(
             "⚡️ Node runtimes in your toolchain:\n\n{}",
-            format_runtime_list(&runtimes)
+            format_runtime_list(runtimes)
         )
     }
 }

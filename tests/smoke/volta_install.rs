@@ -146,7 +146,7 @@ fn install_npm_concurrent() {
     assert!(concurrent_thread.join().is_ok());
 }
 
-const COWSAY_HELLO: &'static str = r#" _______
+const COWSAY_HELLO: &str = r#" _______
 < hello >
  -------
         \   ^__^

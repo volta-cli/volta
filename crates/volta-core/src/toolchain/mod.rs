@@ -43,7 +43,7 @@ pub struct Toolchain {
 impl Toolchain {
     fn current() -> Fallible<Toolchain> {
         let path = volta_home()?.default_platform_file();
-        let src = touch(&path)
+        let src = touch(path)
             .and_then(|mut file| file.read_into_string())
             .with_context(|| ErrorKind::ReadPlatformError {
                 file: path.to_owned(),

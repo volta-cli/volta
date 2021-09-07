@@ -36,7 +36,7 @@ pub(super) fn write_config_and_shims(
 
     // Generate the shims and bin configs for each bin provided by the package
     for bin_name in &manifest.bin {
-        shim::create(&bin_name)?;
+        shim::create(bin_name)?;
 
         BinConfig {
             name: bin_name.clone(),
@@ -68,7 +68,7 @@ fn validate_bins(package_name: &str, manifest: &PackageManifest) -> Fallible<()>
     for bin_name in &manifest.bin {
         // Check for name conflicts with already-installed bins
         // Some packages may install bins with the same name
-        if let Ok(config) = BinConfig::from_file(home.default_tool_bin_config(&bin_name)) {
+        if let Ok(config) = BinConfig::from_file(home.default_tool_bin_config(bin_name)) {
             // The file exists, so there is a bin with this name
             // That is okay iff it came from the package that is currently being installed
             if package_name != config.package {

@@ -32,8 +32,8 @@ pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<()>
         }
         None => {
             let staging = create_staging_file()?;
-            let remote_url = determine_remote_url(&version, hooks)?;
-            let archive = fetch_remote_distro(&version, &remote_url, staging.path())?;
+            let remote_url = determine_remote_url(version, hooks)?;
+            let archive = fetch_remote_distro(version, &remote_url, staging.path())?;
             (archive, Some(staging))
         }
     };
@@ -120,7 +120,7 @@ fn determine_remote_url(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> F
         }) => {
             debug!("Using yarn.distro hook to determine download URL");
             let distro_file_name = Yarn::archive_filename(&version_str);
-            hook.resolve(&version, &distro_file_name)
+            hook.resolve(version, &distro_file_name)
         }
         _ => Ok(public_registry_package("yarn", &version_str)),
     }

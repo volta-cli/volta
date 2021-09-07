@@ -55,7 +55,7 @@ impl TempProjectBuilder {
     pub fn new(root: PathBuf) -> TempProjectBuilder {
         TempProjectBuilder {
             root: TempProject {
-                root: root.clone(),
+                root,
                 path: OsString::new(),
             },
             files: vec![],
@@ -341,7 +341,7 @@ impl TempProject {
     }
 
     /// Verify that the input Node version has been installed.
-    pub fn assert_node_version_is_installed(&self, version: &str) -> () {
+    pub fn assert_node_version_is_installed(&self, version: &str) {
         let default_platform = default_platform_file(self.root());
         let platform_contents = read_file_to_string(default_platform);
         let json_contents: serde_json::Value =
@@ -363,7 +363,7 @@ impl TempProject {
     }
 
     /// Verify that the input Yarn version has been installed.
-    pub fn assert_yarn_version_is_installed(&self, version: &str) -> () {
+    pub fn assert_yarn_version_is_installed(&self, version: &str) {
         let default_platform = default_platform_file(self.root());
         let platform_contents = read_file_to_string(default_platform);
         let json_contents: serde_json::Value =
@@ -384,7 +384,7 @@ impl TempProject {
     }
 
     /// Verify that the input Npm version has been installed.
-    pub fn assert_npm_version_is_installed(&self, version: &str) -> () {
+    pub fn assert_npm_version_is_installed(&self, version: &str) {
         let default_platform = default_platform_file(self.root());
         let platform_contents = read_file_to_string(default_platform);
         let json_contents: serde_json::Value =

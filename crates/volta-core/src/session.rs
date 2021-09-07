@@ -110,7 +110,7 @@ impl Session {
 
     /// Returns the current project's pinned platform image, if any.
     pub fn project_platform(&self) -> Fallible<Option<&PlatformSpec>> {
-        if let Some(ref project) = self.project()? {
+        if let Some(project) = self.project()? {
             return Ok(project.platform());
         }
         Ok(None)
@@ -191,7 +191,7 @@ pub mod tests {
         let pinned_platform = pinned_session
             .project_platform()
             .expect("Couldn't create Project");
-        assert_eq!(pinned_platform.is_some(), true);
+        assert!(pinned_platform.is_some());
 
         let project_unpinned = fixture_path("no_toolchain");
         env::set_current_dir(&project_unpinned).expect("Could not set current directory");
@@ -199,6 +199,6 @@ pub mod tests {
         let unpinned_platform = unpinned_session
             .project_platform()
             .expect("Couldn't create Project");
-        assert_eq!(unpinned_platform.is_none(), true);
+        assert!(unpinned_platform.is_none());
     }
 }
