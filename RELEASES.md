@@ -1,3 +1,9 @@
+# Version 1.0.5
+
+- Added error when attempting to install Node using `nvm` syntax (#1020)
+- Avoid modifying shell config if the environment is already correct (#990)
+- Prevent trying to read OS-generated files as package configs (#981)
+
 # Version 1.0.4
 
 - Fetch native Apple silicon versions of Node when available (#974)
