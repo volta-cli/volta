@@ -43,3 +43,34 @@ Read the [Understanding Volta Guide](https://docs.volta.sh/guide/understanding) 
 Contributions are always welcome, no matter how large or small. Substantial feature ideas should be proposed as an [RFC](https://github.com/volta-cli/rfcs). Before contributing, please read the [code of conduct](CODE_OF_CONDUCT.md).
 
 See the [Contributing Guide](https://docs.volta.sh/contributing/) on our website for detailed instructions on how to contribute to Volta.
+
+## Who is using Volta?
+
+<table>
+  <tbody>
+    <tr>
+      <td align="center">
+        <a href="https://github.com/microsoft/TypeScript" target="_blank">
+          <img src="https://pbs.twimg.com/profile_images/1290672565690695681/0G4bie6b_400x400.jpg" alt="TypeScript" width="100" height="100">
+        </a>
+      </td>
+      <td align="center">
+        <a href="https://github.com/grafana/grafana" target="_blank">
+          <img src="https://pbs.twimg.com/profile_images/1204869696132190212/HxPK_45O_400x400.jpg" alt="Grafana" width="100" height="100">
+        </a>
+      </td>
+      <td align="center">
+        <a href="https://github.com/getsentry/sentry-javascript" target="_blank">
+          <img src="https://pbs.twimg.com/profile_images/1182715338808385537/TJKJyg8V_400x400.jpg" alt="Sentry" width="100" height="100">
+        </a>
+      </td>
+      <td align="center">
+        <a href="https://github.com/snowpackjs/astro" target="_blank">
+          <img src="https://pbs.twimg.com/profile_images/1380575279362494465/dJp9mvNz_400x400.jpg" alt="Astro" width="100" height="100">
+        </a>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+See [here](https://sourcegraph.com/search?q=context:global+%22volta%22+file:package.json&patternType=literal) for more Volta users.
