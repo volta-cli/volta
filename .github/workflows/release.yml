@@ -62,6 +62,38 @@ jobs:
           name: linux-openssl-${{ matrix.openssl }}
           path: target/release/volta-openssl-${{ matrix.openssl }}.tar.gz
 
+  linux-arm:
+    strategy:
+      matrix:
+        openssl:
+          - 1_1_0
+          - 1_0_1
+    name: Build - OpenSSL ${{ matrix.openssl }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Check out OpenSSL
+        uses: actions/checkout@v2
+        with:
+          repository: openssl/openssl
+          ref: OpenSSL_${{ matrix.openssl }}-stable
+          path: openssl
+      - name: Set up docker image
+        run: docker build -t volta .
+        working-directory: ./ci/docker
+      - name: Compile and package OpenSSL & Volta
+        run: docker run --volume ${PWD}:/root/workspace --workdir /root/workspace --rm --init --tty volta /root/workspace/ci/build-with-openssl-arm.sh volta-openssl-arm-${{ matrix.openssl }}
+      - name: Confirm OpenSSL Version
+        run: |
+          objdump -p target/release/volta
+          readelf -d target/release/volta
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: linux-openssl-arm-${{ matrix.openssl }}
+          path: target/release/volta-openssl-arm-${{ matrix.openssl }}.tar.gz
+
   macos:
     name: Build - MacOS
     runs-on: macos-latest
@@ -96,7 +128,7 @@ jobs:
           target: aarch64-apple-darwin
           override: true
       - name: Compile and package Volta
-        run: ./ci/build-for-arm.sh volta-macos-aarch64
+        run: ./ci/build-for-macos-arm.sh volta-macos-aarch64
       - name: Upload release artifact
         uses: actions/upload-artifact@v2
         with:
@@ -130,7 +162,7 @@ jobs:
         if: github.event_name == 'push'
         uses: timheuer/base64-to-file@v1
         with:
-          fileName: 'volta-certificate.pfx'
+          fileName: "volta-certificate.pfx"
           encodedString: ${{ secrets.INSTALLER_CERTIFICATE }}
       - name: Sign Installer
         if: github.event_name == 'push'
