@@ -68,7 +68,7 @@ jobs:
         openssl:
           - 1_1_0
           - 1_0_1
-    name: Build - OpenSSL ${{ matrix.openssl }}
+    name: Build - OpenSSL ARM ${{ matrix.openssl }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
