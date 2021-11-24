@@ -280,6 +280,24 @@ jobs:
           asset_path: ./release/volta-openssl-1_1_0.tar.gz
           asset_name: volta-${{ steps.release_info.outputs.version }}-linux-openssl-1.1.tar.gz
           asset_content_type: applictaion/gzip
+      - name: Upload OpenSSL 1.0.* ARM artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/volta-openssl-arm-1_0_1.tar.gz
+          asset_name: volta-${{ steps.release_info.outputs.version }}-linux-openssl-arm-1.0.tar.gz
+          asset_content_type: applictaion/gzip
+      - name: Upload OpenSSL 1.1.* ARM artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/volta-openssl-arm-1_1_0.tar.gz
+          asset_name: volta-${{ steps.release_info.outputs.version }}-linux-openssl-arm-1.1.tar.gz
+          asset_content_type: applictaion/gzip
       - name: Upload MacOS artifact
         uses: actions/upload-release-asset@v1
         env:
