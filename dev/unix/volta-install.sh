@@ -395,7 +395,11 @@ check_architecture() {
         return 0
         ;;
       arm64)
-        return 0
+        if [ "$(uname -s)" = "Darwin" ]; then
+          return 0
+        if [ "$(uname -s)" = "Linux" ]; then
+          return 0
+        fi
         ;;
     esac
 

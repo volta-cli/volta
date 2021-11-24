@@ -4,9 +4,9 @@ set -e
 
 echo "Building OpenSSL"
 cd openssl
-./config shared --prefix=/root/workspace/openssl-dist
+./config linux-aarch64 shared --prefix=/root/workspace/openssl-arm-dist 
 make
 make install_sw
 cd -
 
-OPENSSL_DIR=/root/workspace/openssl-dist ./ci/build-for-linux-arm.sh "$1"
+OPENSSL_DIR=/root/workspace/openssl-arm-dist ./ci/build-for-linux-arm.sh "$1"
