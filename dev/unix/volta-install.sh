@@ -397,11 +397,11 @@ check_architecture() {
       arm64)
         if [ "$(uname -s)" = "Darwin" ]; then
           return 0
-        if [ "$(uname -s)" = "Linux" ]; then
+        
+        elif [ "$(uname -s)" = "Linux" ]; then
           return 0
         fi
-        ;;
-    esac
+      esac
 
     error "Sorry! Volta currently does not provide pre-built binaries for your system architecture."
     return 1
