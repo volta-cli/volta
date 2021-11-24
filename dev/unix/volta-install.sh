@@ -134,7 +134,11 @@ parse_os_info() {
         return "$exit_code"
       fi
 
-      echo "linux-openssl-$parsed_version"
+      if [ "$(uname -m)" == "aarch64" ]; then
+        echo "linux-openssl-arm-$parsed_version"
+      else
+        echo "linux-openssl-$parsed_version"
+      fi
       ;;
     Darwin)
       if [ "$(uname -m)" == "arm64" ]; then
@@ -397,10 +401,13 @@ check_architecture() {
       arm64)
         if [ "$(uname -s)" = "Darwin" ]; then
           return 0
-        
-        elif [ "$(uname -s)" = "Linux" ]; then
+        fi
+        ;;
+      aarch64)
+        if [ "$(uname -s)" = "Linux" ]; then
           return 0
         fi
+        ;;
       esac
 
     error "Sorry! Volta currently does not provide pre-built binaries for your system architecture."
