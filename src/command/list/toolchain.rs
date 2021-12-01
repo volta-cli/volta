@@ -335,7 +335,7 @@ impl Toolchain {
                 let packages = packages_and_tools
                     .into_iter()
                     .filter_map(|(kind, config, source)| match kind {
-                        Kind::Package => Some(Package::new(&config, &source)),
+                        Kind::Package => Some(Package::new(config, &source)),
                         Kind::Tool => None,
                     })
                     .collect();
@@ -348,7 +348,7 @@ impl Toolchain {
                 let host_packages = packages_and_tools
                     .into_iter()
                     .filter_map(|(kind, config, source)| match kind {
-                        Kind::Tool => Some(Package::new(&config, &source)),
+                        Kind::Tool => Some(Package::new(config, &source)),
                         Kind::Package => None, // should be none of these!
                     })
                     .collect();

@@ -114,7 +114,7 @@ fn resolve_semver_from_registry(matching: VersionReq) -> Fallible<Version> {
     let details_opt = index
         .entries
         .into_iter()
-        .find(|PackageDetails { version, .. }| matching.matches(&version));
+        .find(|PackageDetails { version, .. }| matching.matches(version));
 
     match details_opt {
         Some(details) => {

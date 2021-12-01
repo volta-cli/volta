@@ -59,8 +59,8 @@ pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Node>>) -> Fallible<Nod
         }
         None => {
             let staging = create_staging_file()?;
-            let remote_url = determine_remote_url(&version, hooks)?;
-            let archive = fetch_remote_distro(&version, &remote_url, staging.path())?;
+            let remote_url = determine_remote_url(version, hooks)?;
+            let archive = fetch_remote_distro(version, &remote_url, staging.path())?;
             (archive, Some(staging))
         }
     };
@@ -109,7 +109,7 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<Node
     // Save the npm version number in the npm version file for this distro
     let npm_package_json = temp.path().join(npm_manifest_path(version));
     let npm = Manifest::version(&npm_package_json)?;
-    save_default_npm_version(&version, &npm)?;
+    save_default_npm_version(version, &npm)?;
 
     let dest = volta_home()?.node_image_dir(&version_string);
     ensure_containing_dir_exists(&dest)
@@ -156,7 +156,7 @@ fn determine_remote_url(version: &Version, hooks: Option<&ToolHooks<Node>>) -> F
             ..
         }) => {
             debug!("Using node.distro hook to determine download URL");
-            hook.resolve(&version, &distro_file_name)
+            hook.resolve(version, &distro_file_name)
         }
         _ => Ok(format!(
             "{}/v{}/{}",
