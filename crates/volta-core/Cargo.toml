@@ -55,4 +55,4 @@ retry = "1.0.0"
 fs2 = "0.4.3"
 
 [target.'cfg(windows)'.dependencies]
-winreg = "0.6.0"
+winreg = "0.10.1"
