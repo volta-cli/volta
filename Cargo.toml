@@ -38,7 +38,7 @@ dirs = "1.0.4"
 volta-migrate = { path = "crates/volta-migrate" }
 
 [target.'cfg(windows)'.dependencies]
-winreg = "0.6.0"
+winreg = "0.10.1"
 
 [dev-dependencies]
 hamcrest2 = "0.3.0"
