@@ -496,9 +496,9 @@ dependencies = [
 
 [[package]]
 name = "double-checked-cell"
-version = "2.0.2"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "deb515eb73e9bd6190f40e098946e6c476e5a80067294af584c001afa16fe0c8"
+checksum = "91ecdac508e0a96c2cc6328363eab7937290bfbd397cb360c35786feaed0b06a"
 dependencies = [
  "unreachable",
  "void",
