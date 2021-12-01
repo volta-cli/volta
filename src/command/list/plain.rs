@@ -8,11 +8,11 @@ use super::{Node, Package, PackageManager, Source, Toolchain};
 
 pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
     let (runtimes, package_managers, packages) = match toolchain {
-        Toolchain::Node(runtimes) => (describe_runtimes(&runtimes), None, None),
+        Toolchain::Node(runtimes) => (describe_runtimes(runtimes), None, None),
         Toolchain::PackageManagers { managers, .. } => {
             (None, describe_package_managers(managers), None)
         }
-        Toolchain::Packages(packages) => (None, None, describe_packages(&packages)),
+        Toolchain::Packages(packages) => (None, None, describe_packages(packages)),
         Toolchain::Tool {
             name,
             host_packages,
@@ -25,17 +25,17 @@ pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
             runtime
                 .as_ref()
                 .and_then(|r| describe_runtimes(&[(**r).clone()])),
-            describe_package_managers(&package_managers),
-            describe_packages(&packages),
+            describe_package_managers(package_managers),
+            describe_packages(packages),
         ),
         Toolchain::All {
             runtimes,
             package_managers,
             packages,
         } => (
-            describe_runtimes(&runtimes),
-            describe_package_managers(&package_managers),
-            describe_packages(&packages),
+            describe_runtimes(runtimes),
+            describe_package_managers(package_managers),
+            describe_packages(packages),
         ),
     };
 
@@ -78,7 +78,7 @@ fn describe_package_managers(package_managers: &[PackageManager]) -> Option<Stri
         Some(
             package_managers
                 .iter()
-                .map(|package_manager| display_package_manager(&package_manager))
+                .map(|package_manager| display_package_manager(package_manager))
                 .collect::<Vec<String>>()
                 .join("\n"),
         )
@@ -148,7 +148,7 @@ fn display_package(package: &Package) -> String {
                 // Should be updated when we support installing with custom package_managers,
                 // whether Yarn or non-built-in versions of npm
                 "npm@built-in",
-                package_source(&package)
+                package_source(package)
             )
         }
         Package::Project { name, tools, .. } => {
@@ -163,7 +163,7 @@ fn display_package(package: &Package) -> String {
                 tools,
                 "node@project",
                 "npm@project",
-                package_source(&package)
+                package_source(package)
             )
         }
         Package::Fetched(details) => format!(
@@ -181,7 +181,7 @@ fn display_tool(name: &str, host: &Package) -> Option<String> {
             tool_version(&details.name, &details.version),
             tool_version("node", &node),
             "npm@built-in",
-            package_source(&host)
+            package_source(host)
         )),
         Package::Project {
             name: host_name, ..
@@ -191,7 +191,7 @@ fn display_tool(name: &str, host: &Package) -> Option<String> {
             tool_version(&host_name, "project"),
             "node@project",
             "npm@project",
-            package_source(&host)
+            package_source(host)
         )),
         Package::Fetched(..) => None,
     }

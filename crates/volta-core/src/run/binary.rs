@@ -134,7 +134,7 @@ impl DefaultBinary {
             Some(yarn) => Some(yarn),
             None => session
                 .default_platform()?
-                .and_then(|ref plat| plat.yarn.clone()),
+                .and_then(|plat| plat.yarn.clone()),
         };
         let platform = Platform {
             node: Sourced::with_binary(bin_config.platform.node),

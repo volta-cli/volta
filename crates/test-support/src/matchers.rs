@@ -196,7 +196,7 @@ impl Execs {
         }
         for &(ref expect, number) in self.expect_stdout_contains_n.iter() {
             self.match_std(
-                Some(&expect),
+                Some(expect),
                 &actual.stdout,
                 "stdout",
                 &actual.stderr,
@@ -483,7 +483,7 @@ impl Execs {
             .enumerate()
             .filter_map(|(i, (a, e))| match (a, e) {
                 (Some(a), Some(e)) => {
-                    if lines_match(&e, &a) {
+                    if lines_match(e, a) {
                         None
                     } else {
                         Some(format!("{:3} - |{}|\n    + |{}|\n", i, e, a))
@@ -577,7 +577,7 @@ fn find_mismatch<'a>(expected: &'a Value, actual: &'a Value) -> Option<(&'a Valu
 
             if !l.is_empty() {
                 assert!(!r.is_empty());
-                Some((&l[0], &r[0]))
+                Some((l[0], r[0]))
             } else {
                 assert_eq!(r.len(), 0);
                 None

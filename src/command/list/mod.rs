@@ -129,7 +129,7 @@ impl Package {
                 .iter()
                 .map(|config| {
                     let source = Self::source(&config.name, project);
-                    Package::new(&config, &source)
+                    Package::new(config, &source)
                 })
                 .collect()
         })

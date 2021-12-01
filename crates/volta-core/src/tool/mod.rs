@@ -123,7 +123,7 @@ impl Spec {
             Spec::Node(_) => "Node",
             Spec::Npm(_) => "npm",
             Spec::Yarn(_) => "Yarn",
-            Spec::Package(name, _) => &name,
+            Spec::Package(name, _) => name,
         }
     }
 }
