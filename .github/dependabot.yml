@@ -1,0 +1,71 @@
+version: 2
+updates:
+  - directory: /
+    open-pull-requests-limit: 5
+    package-ecosystem: "cargo"
+    rebase-strategy: auto
+    schedule:
+      timezone: 05:00 UTC
+
+  - directory: /crates/archive
+    open-pull-requests-limit: 3
+    package-ecosystem: "cargo"
+    rebase-strategy: auto
+    schedule:
+      timezone: 05:00 UTC
+
+  - directory: /crates/fs-utils
+    open-pull-requests-limit: 3
+    package-ecosystem: "cargo"
+    rebase-strategy: auto
+    schedule:
+      timezone: 05:00 UTC
+
+  - directory: /crates/progress-read
+    open-pull-requests-limit: 3
+    package-ecosystem: "cargo"
+    rebase-strategy: auto
+    schedule:
+      timezone: 05:00 UTC
+
+  - directory: /crates/test-support
+    open-pull-requests-limit: 3
+    package-ecosystem: "cargo"
+    rebase-strategy: auto
+    schedule:
+      timezone: 05:00 UTC
+
+  - directory: /crates/validate-npm-package-name
+    open-pull-requests-limit: 3
+    package-ecosystem: "cargo"
+    rebase-strategy: auto
+    schedule:
+      timezone: 05:00 UTC
+
+  - directory: /crates/volta-core
+    open-pull-requests-limit: 3
+    package-ecosystem: "cargo"
+    rebase-strategy: auto
+    schedule:
+      timezone: 05:00 UTC
+
+  - directory: /crates/volta-layout
+    open-pull-requests-limit: 3
+    package-ecosystem: "cargo"
+    rebase-strategy: auto
+    schedule:
+      timezone: 05:00 UTC
+
+  - directory: /crates/volta-layout-macro
+    open-pull-requests-limit: 3
+    package-ecosystem: "cargo"
+    rebase-strategy: auto
+    schedule:
+      timezone: 05:00 UTC
+
+  - directory: /crates/volta-migrate
+    open-pull-requests-limit: 3
+    package-ecosystem: "cargo"
+    rebase-strategy: auto
+    schedule:
+      timezone: 05:00 UTC
