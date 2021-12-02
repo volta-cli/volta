@@ -56,8 +56,6 @@ pub fn find_unpack_dir(in_dir: &Path) -> Fallible<PathBuf> {
 #[derive(Debug)]
 pub struct PackageDetails {
     pub(crate) version: Version,
-    pub(crate) tarball_url: String,
-    pub(crate) shasum: String,
 }
 
 /// Index of versions of a specific package from the npm Registry
@@ -102,8 +100,6 @@ impl From<RawPackageMetadata> for PackageIndex {
             .into_iter()
             .map(|(_, version_info)| PackageDetails {
                 version: version_info.version,
-                tarball_url: version_info.dist.tarball,
-                shasum: version_info.dist.shasum,
             })
             .collect();
 

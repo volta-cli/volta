@@ -11,7 +11,6 @@ use serde_json::{self, Value};
 #[derive(Clone)]
 pub struct Execs {
     expect_stdout: Option<String>,
-    expect_stdin: Option<String>,
     expect_stderr: Option<String>,
     expect_exit_code: Option<i32>,
     expect_stdout_contains: Vec<String>,
@@ -671,7 +670,6 @@ pub fn execs() -> Execs {
     Execs {
         expect_stdout: None,
         expect_stderr: None,
-        expect_stdin: None,
         expect_exit_code: Some(0),
         expect_stdout_contains: Vec::new(),
         expect_stderr_contains: Vec::new(),
