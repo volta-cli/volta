@@ -78,7 +78,7 @@ fn describe_package_managers(package_managers: &[PackageManager]) -> Option<Stri
         Some(
             package_managers
                 .iter()
-                .map(|package_manager| display_package_manager(package_manager))
+                .map(display_package_manager)
                 .collect::<Vec<String>>()
                 .join("\n"),
         )
