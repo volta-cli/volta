@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use super::{Node, Package, PackageManager, PackageManagerKind, Toolchain};
 use lazy_static::lazy_static;
-use textwrap::{HyphenSplitter, Wrapper};
+use textwrap::{fill, Options};
 use volta_core::style::{text_width, tool_version, MAX_WIDTH};
 
 static INDENTATION: &str = "    ";
@@ -14,10 +14,7 @@ static NO_RUNTIME: &str = "⚡️ No Node runtimes installed!
     details and more options.";
 
 lazy_static! {
-    static ref WRAPPER: Wrapper<'static, HyphenSplitter> =
-        Wrapper::new(text_width().unwrap_or(MAX_WIDTH))
-            .initial_indent(INDENTATION)
-            .subsequent_indent(INDENTATION);
+    static ref TEXT_WIDTH: usize = text_width().unwrap_or(MAX_WIDTH);
 }
 
 #[allow(clippy::unnecessary_wraps)] // Needs to match the API of `plain::format`
@@ -57,7 +54,7 @@ fn display_active(
     match runtime {
         None => NO_RUNTIME.to_string(),
         Some(node) => {
-            let runtime_version = WRAPPER.fill(&format!("Node: {}", format_runtime(node)));
+            let runtime_version = wrap(format!("Node: {}", format_runtime(node)));
 
             let package_manager_versions = if package_managers.is_empty() {
                 String::new()
@@ -69,9 +66,9 @@ fn display_active(
             };
 
             let package_versions = if packages.is_empty() {
-                WRAPPER.fill("Tool binaries available: NONE")
+                wrap("Tool binaries available: NONE")
             } else {
-                WRAPPER.fill(&format!(
+                wrap(format!(
                     "Tool binaries available:\n{}",
                     format_tool_list(packages)
                 ))
@@ -97,16 +94,13 @@ fn display_all(
     if runtimes.is_empty() {
         NO_RUNTIME.to_string()
     } else {
-        let runtime_versions: String = WRAPPER.fill(&format!(
-            "Node runtimes:\n{}",
-            format_runtime_list(runtimes)
-        ));
-        let package_manager_versions: String = WRAPPER.fill(&format!(
+        let runtime_versions: String =
+            wrap(format!("Node runtimes:\n{}", format_runtime_list(runtimes)));
+        let package_manager_versions: String = wrap(format!(
             "Package managers:\n{}",
             format_package_manager_list_verbose(package_managers)
         ));
-        let package_versions =
-            WRAPPER.fill(&format!("Packages:\n{}", format_package_list(packages)));
+        let package_versions = wrap(format!("Packages:\n{}", format_package_list(packages)));
         format!(
             "⚡️ User toolchain:\n\n{}\n\n{}\n\n{}",
             runtime_versions, package_manager_versions, package_versions
@@ -135,8 +129,8 @@ You can install an npm version by running `volta install npm`.
 See `volta help install` for details and more options."
             .into()
     } else {
-        let versions = WRAPPER.fill(
-            &managers
+        let versions = wrap(
+            managers
                 .iter()
                 .map(format_package_manager)
                 .collect::<Vec<_>>()
@@ -163,8 +157,8 @@ See `volta help install` for details and more options.",
                     kind
                 )
             } else {
-                let versions = WRAPPER.fill(
-                    &managers
+                let versions = wrap(
+                    managers
                         .iter()
                         .map(format_package_manager)
                         .collect::<Vec<String>>()
@@ -209,8 +203,8 @@ See `volta help install` for details and more options.",
             tool
         )
     } else {
-        let versions = WRAPPER.fill(
-            &host_packages
+        let versions = wrap(
+            host_packages
                 .iter()
                 .map(format_package)
                 .collect::<Vec<String>>()
@@ -236,7 +230,7 @@ fn format_tool(package: &Package) -> String {
                 0 => String::from(""),
                 _ => tools.join(", "),
             };
-            WRAPPER.fill(&format!("{}{}", tools, list_package_source(package)))
+            wrap(format!("{}{}", tools, list_package_source(package)))
         }
         Package::Fetched(..) => String::new(),
     }
@@ -244,8 +238,8 @@ fn format_tool(package: &Package) -> String {
 
 /// format a list of `Toolchain::Node`s.
 fn format_runtime_list(runtimes: &[Node]) -> String {
-    WRAPPER.fill(
-        &runtimes
+    wrap(
+        runtimes
             .iter()
             .map(format_runtime)
             .collect::<Vec<String>>()
@@ -260,8 +254,8 @@ fn format_runtime(runtime: &Node) -> String {
 
 /// format a list of `Toolchain::PackageManager`s in condensed form
 fn format_package_manager_list_condensed(package_managers: &[PackageManager]) -> String {
-    WRAPPER.fill(
-        &package_managers
+    wrap(
+        package_managers
             .iter()
             .map(|manager| {
                 format!(
@@ -286,14 +280,14 @@ fn format_package_manager_list_verbose(package_managers: &[PackageManager]) -> S
             .push(format_package_manager(manager));
     }
 
-    WRAPPER.fill(
-        &manager_lists
+    wrap(
+        manager_lists
             .iter()
             .map(|(kind, list)| {
                 format!(
                     "{}:\n{}",
                     format_package_manager_kind(*kind),
-                    WRAPPER.fill(&list.join("\n"))
+                    wrap(list.join("\n"))
                 )
             })
             .collect::<Vec<_>>()
@@ -318,8 +312,8 @@ fn format_package_manager_kind(kind: PackageManagerKind) -> String {
 
 /// format a list of `Toolchain::Package`s and their associated tools.
 fn format_package_list(packages: &[Package]) -> String {
-    WRAPPER.fill(
-        &packages
+    wrap(
+        packages
             .iter()
             .map(format_package)
             .collect::<Vec<String>>()
@@ -342,15 +336,15 @@ fn format_package(package: &Package) -> String {
             };
 
             let version = format!("{}{}", details.version, list_package_source(package));
-            let binaries = WRAPPER.fill(&format!("binary tools: {}", tools));
-            let platform_detail = WRAPPER.fill(&format!(
+            let binaries = wrap(format!("binary tools: {}", tools));
+            let platform_detail = wrap(format!(
                 "runtime: {}\npackage manager: {}",
                 tool_version("node", &node),
                 // TODO: Should be updated when we support installing with custom package_managers,
                 // whether Yarn or non-built-in versions of npm
                 "npm@built-in"
             ));
-            let platform = WRAPPER.fill(&format!("platform:\n{}", platform_detail));
+            let platform = wrap(format!("platform:\n{}", platform_detail));
             format!("{}@{}\n{}\n{}", details.name, version, binaries, platform)
         }
         Package::Project { name, tools, .. } => {
@@ -359,7 +353,7 @@ fn format_package(package: &Package) -> String {
                 _ => tools.join(", "),
             };
 
-            let binaries = WRAPPER.fill(&format!("binary tools: {}", tools));
+            let binaries = wrap(format!("binary tools: {}", tools));
             format!("{}{}\n{}", name, list_package_source(package), binaries)
         }
         Package::Fetched(details) => {
@@ -380,6 +374,22 @@ fn list_package_source(package: &Package) -> String {
         Package::Project { path, .. } => format!(" (current @ {})", path.display()),
         Package::Fetched(..) => String::new(),
     }
+}
+
+/// Wrap and indent the output
+fn wrap<S>(text: S) -> String
+where
+    S: AsRef<str>,
+{
+    let options = Options::new(*TEXT_WIDTH)
+        .initial_indent(INDENTATION)
+        .subsequent_indent(INDENTATION);
+
+    let mut wrapped = fill(text.as_ref(), options);
+    // The `fill` method in the latest `textwrap` version does not trim the indentation whitespace
+    // from the final line.
+    wrapped.truncate(wrapped.trim_end_matches(INDENTATION).len());
+    wrapped
 }
 
 // These tests are organized by way of the *commands* supplied to `list`, unlike
