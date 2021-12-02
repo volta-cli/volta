@@ -50,7 +50,7 @@ ci_info = "0.10.0"
 hyperx = "1.0.0"
 attohttpc = { version = "0.16.0", features = ["json"] }
 chain-map = "0.1.0"
-indexmap = "1.3.2"
+indexmap = "1.7.0"
 retry = "1.0.0"
 fs2 = "0.4.3"
 
