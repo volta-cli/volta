@@ -12,7 +12,7 @@ tee = "0.1.0"
 fs-utils = { path = "../fs-utils" }
 progress-read = { path = "../progress-read" }
 verbatim = "0.1"
-cfg-if = "0.1"
+cfg-if = "1.0"
 hyperx = "1.0.0"
 thiserror = "1.0.16"
 attohttpc = { version = "0.16.0", features = ["json"] }
