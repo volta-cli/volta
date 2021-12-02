@@ -12,4 +12,4 @@ tempfile = "3.0.2"
 semver = { git = "https://github.com/mikrostew/semver", branch = "new-parser" }
 serde_json = { version = "1.0.37", features = ["preserve_order"] }
 serde = { version = "1.0.85", features = ["derive"] }
-walkdir = "2.2.9"
+walkdir = "2.3.2"
