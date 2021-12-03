@@ -20,7 +20,11 @@ use serde::Deserialize;
 
 cfg_if! {
     if #[cfg(feature = "mock-network")] {
+        // TODO: We need to reconsider our mocking strategy in light of mockito deprecating the
+        // SERVER_URL constant: Since our acceptance tests run the binary in a separate process,
+        // we can't use `mockito::server_url()`, which relies on shared memory.
         fn public_node_server_root() -> String {
+            #[allow(deprecated)]
             mockito::SERVER_URL.to_string()
         }
     } else {
