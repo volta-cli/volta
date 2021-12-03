@@ -1398,9 +1398,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.20"
+version = "1.0.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "175c513d55719db99da20232b06cda8bab6b83ec2d04e3283edf0213c37c1a29"
+checksum = "ba508cc11742c0dc5c1659771673afbab7a0efab23aa17e854cbab0837ed0b43"
 dependencies = [
  "unicode-xid 0.2.0",
 ]
@@ -1433,7 +1433,7 @@ version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "053a8c8bcc71fcce321828dc897a98ab9760bef03a4fc36693c231e5b3216cfe"
 dependencies = [
- "proc-macro2 1.0.20",
+ "proc-macro2 1.0.32",
 ]
 
 [[package]]
@@ -1983,11 +1983,11 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "1.0.39"
+version = "1.0.82"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "891d8d6567fe7c7f8835a3a98af4208f3846fba258c1bc3c31d6e506239f11f9"
+checksum = "8daf5dd0bb60cbd4137b1b587d2fc0ae729bc07cf01cd70b36a1ed5ade3b9d59"
 dependencies = [
- "proc-macro2 1.0.20",
+ "proc-macro2 1.0.32",
  "quote 1.0.2",
  "unicode-xid 0.2.0",
 ]
@@ -2078,22 +2078,22 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.16"
+version = "1.0.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d12a1dae4add0f0d568eebc7bf142f145ba1aa2544cafb195c76f0f409091b60"
+checksum = "854babe52e4df1653706b98fcfc05843010039b406875930a70e4d9644e5c417"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.16"
+version = "1.0.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f34e0c1caaa462fd840ec6b768946ea1e7842620d94fe29d5b847138f521269"
+checksum = "aa32fd3f627f367fe16f893e2597ae3c05020f8bba2666a4e6ea73d377e5714b"
 dependencies = [
- "proc-macro2 1.0.20",
+ "proc-macro2 1.0.32",
  "quote 1.0.2",
- "syn 1.0.39",
+ "syn 1.0.82",
 ]
 
 [[package]]
@@ -2334,9 +2334,9 @@ dependencies = [
 name = "volta-layout-macro"
 version = "0.1.0"
 dependencies = [
- "proc-macro2 1.0.20",
+ "proc-macro2 1.0.32",
  "quote 1.0.2",
- "syn 1.0.39",
+ "syn 1.0.82",
 ]
 
 [[package]]
