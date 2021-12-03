@@ -71,7 +71,7 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Yarn>>) -> Fall
 
 fn fetch_yarn_index() -> Fallible<(String, PackageIndex)> {
     let url = public_registry_index("yarn");
-    let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
+    let spinner = progress_spinner(format!("Fetching public registry: {}", url));
     let metadata: RawPackageMetadata = attohttpc::get(&url)
         .header(ACCEPT, NPM_ABBREVIATED_ACCEPT_HEADER)
         .send()
@@ -132,7 +132,7 @@ fn resolve_semver_from_registry(matching: VersionReq) -> Fallible<Version> {
 }
 
 fn resolve_semver_legacy(matching: VersionReq, url: String) -> Fallible<Version> {
-    let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
+    let spinner = progress_spinner(format!("Fetching public registry: {}", url));
     let releases: RawYarnIndex = attohttpc::get(&url)
         .send()
         .and_then(Response::error_for_status)
