@@ -2,8 +2,21 @@
 //! [`validate-npm-package-name`](https://github.com/npm/validate-npm-package-name/).
 
 use lazy_static::lazy_static;
-use percent_encoding::{percent_encode, USERINFO_ENCODE_SET};
+use percent_encoding::{utf8_percent_encode, AsciiSet, NON_ALPHANUMERIC};
 use regex::Regex;
+
+/// The set of characters to encode, matching the characters encoded by
+/// [`encodeURIComponent`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent#description)
+static ENCODE_URI_SET: &AsciiSet = &NON_ALPHANUMERIC
+    .remove(b'-')
+    .remove(b'_')
+    .remove(b'.')
+    .remove(b'!')
+    .remove(b'~')
+    .remove(b'*')
+    .remove(b'\'')
+    .remove(b'(')
+    .remove(b')');
 
 lazy_static! {
     static ref SCOPED_PACKAGE: Regex =
@@ -136,23 +149,19 @@ pub fn validate(name: &str) -> Validity {
         warnings.push(r#"name can no longer contain special characters ("~\'!()*")"#.into());
     }
 
-    if percent_encode(name.as_bytes(), USERINFO_ENCODE_SET).to_string() != name {
+    if utf8_percent_encode(name, ENCODE_URI_SET).to_string() != name {
         // Maybe it's a scoped package name, like @user/package
         if let Some(captures) = SCOPED_PACKAGE.captures(name) {
             let valid_scope_name = captures
                 .get(1)
                 .map(|scope| scope.as_str())
-                .map(|scope| {
-                    percent_encode(scope.as_bytes(), USERINFO_ENCODE_SET).to_string() == scope
-                })
+                .map(|scope| utf8_percent_encode(scope, ENCODE_URI_SET).to_string() == scope)
                 .unwrap_or(true);
 
             let valid_package_name = captures
                 .get(2)
                 .map(|package| package.as_str())
-                .map(|package| {
-                    percent_encode(package.as_bytes(), USERINFO_ENCODE_SET).to_string() == package
-                })
+                .map(|package| utf8_percent_encode(package, ENCODE_URI_SET).to_string() == package)
                 .unwrap_or(true);
 
             if valid_scope_name && valid_package_name {
