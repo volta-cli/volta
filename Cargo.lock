@@ -686,7 +686,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5fc25a87fa4fd2094bffb06925852034d90a17f0d1e05197d4956d3555752191"
 dependencies = [
  "matches",
- "percent-encoding 2.1.0",
+ "percent-encoding",
 ]
 
 [[package]]
@@ -864,7 +864,7 @@ dependencies = [
  "language-tags",
  "log",
  "mime",
- "percent-encoding 2.1.0",
+ "percent-encoding",
  "time",
  "unicase",
 ]
@@ -1237,12 +1237,6 @@ dependencies = [
  "serde",
  "winapi 0.3.9",
 ]
-
-[[package]]
-name = "percent-encoding"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31010dd2e1ac33d5b46a5b413495239882813e0369f8ed8a5e266f173602f831"
 
 [[package]]
 name = "percent-encoding"
@@ -2144,7 +2138,7 @@ checksum = "829d4a8476c35c9bf0bbce5a3b23f4106f79728039b726d292bb93bc106787cb"
 dependencies = [
  "idna",
  "matches",
- "percent-encoding 2.1.0",
+ "percent-encoding",
 ]
 
 [[package]]
@@ -2158,7 +2152,7 @@ name = "validate-npm-package-name"
 version = "0.1.0"
 dependencies = [
  "lazy_static",
- "percent-encoding 1.0.1",
+ "percent-encoding",
  "regex 1.5.4",
 ]
 
