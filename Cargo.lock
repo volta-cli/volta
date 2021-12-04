@@ -36,12 +36,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "approx"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08abcc3b4e9339e33a3d0a5ed15d84a687350c05689d825e0f6655eef9e76a94"
-
-[[package]]
 name = "archive"
 version = "0.1.0"
 dependencies = [
@@ -306,17 +300,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
-name = "cgmath"
-version = "0.16.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64a4b57c8f4e3a2e9ac07e0f6abc9c24b6fc9e1b54c3478cfb598f3d0023e51c"
-dependencies = [
- "approx",
- "num-traits 0.1.43",
- "rand 0.4.6",
-]
-
-[[package]]
 name = "chain-map"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -341,7 +324,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80094f509cf8b5ae86a4966a39b3ff66cd7e2a3e594accec3743ff3fabeab5b2"
 dependencies = [
  "num-integer",
- "num-traits 0.2.8",
+ "num-traits",
  "time",
 ]
 
@@ -383,16 +366,6 @@ name = "cmdline_words_parser"
 version = "0.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "346b10598869bcdcd53cd166ecfb04ff8a4d5d7bb33e4ef4acbdb2a447ac3c73"
-
-[[package]]
-name = "colored"
-version = "1.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6cdb90b60f2927f8d76139c72dbde7e10c3a2bc47c8594c9c7a66529f2687c03"
-dependencies = [
- "lazy_static",
- "winconsole",
-]
 
 [[package]]
 name = "colored"
@@ -1047,28 +1020,12 @@ dependencies = [
 
 [[package]]
 name = "mockito"
-version = "0.14.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "466ec7bc68f7188b587bdf1b0857eca98de58ce63efa6adcd0e98be3ba297570"
-dependencies = [
- "colored 1.8.0",
- "difference",
- "httparse",
- "lazy_static",
- "log",
- "rand 0.5.6",
- "regex 1.5.4",
- "serde_json",
-]
-
-[[package]]
-name = "mockito"
 version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d10030163d67f681db11810bc486df3149e6d91c8b4f3f96fa8b62b546c2cef8"
 dependencies = [
  "assert-json-diff",
- "colored 2.0.0",
+ "colored",
  "difference",
  "httparse",
  "lazy_static",
@@ -1137,7 +1094,7 @@ dependencies = [
  "num-integer",
  "num-iter",
  "num-rational",
- "num-traits 0.2.8",
+ "num-traits",
 ]
 
 [[package]]
@@ -1148,7 +1105,7 @@ checksum = "f9c3f34cdd24f334cb265d9bf8bfa8a241920d026916785747a92f0e55541a1a"
 dependencies = [
  "autocfg 0.1.4",
  "num-integer",
- "num-traits 0.2.8",
+ "num-traits",
 ]
 
 [[package]]
@@ -1158,7 +1115,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fcb0cf31fb3ff77e6d2a6ebd6800df7fdcd106f2ad89113c9130bcd07f93dffc"
 dependencies = [
  "autocfg 0.1.4",
- "num-traits 0.2.8",
+ "num-traits",
 ]
 
 [[package]]
@@ -1168,7 +1125,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b85e541ef8255f6cf42bbfe4ef361305c6c135d10919ecc26126c4e5ae94bc09"
 dependencies = [
  "autocfg 0.1.4",
- "num-traits 0.2.8",
+ "num-traits",
 ]
 
 [[package]]
@@ -1179,7 +1136,7 @@ checksum = "76bd5272412d173d6bf9afdf98db8612bbabc9a7a830b7bfc9c188911716132e"
 dependencies = [
  "autocfg 0.1.4",
  "num-integer",
- "num-traits 0.2.8",
+ "num-traits",
 ]
 
 [[package]]
@@ -1191,16 +1148,7 @@ dependencies = [
  "autocfg 0.1.4",
  "num-bigint",
  "num-integer",
- "num-traits 0.2.8",
-]
-
-[[package]]
-name = "num-traits"
-version = "0.1.43"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92e5113e9fd4cc14ded8e499429f396a20f98c772a47cc8622a736e1ec843c31"
-dependencies = [
- "num-traits 0.2.8",
+ "num-traits",
 ]
 
 [[package]]
@@ -1434,32 +1382,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "053a8c8bcc71fcce321828dc897a98ab9760bef03a4fc36693c231e5b3216cfe"
 dependencies = [
  "proc-macro2 1.0.32",
-]
-
-[[package]]
-name = "rand"
-version = "0.4.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "552840b97013b1a26992c11eac34bdd778e464601a4c2054b5f0bff7c6761293"
-dependencies = [
- "fuchsia-cprng",
- "libc",
- "rand_core 0.3.1",
- "rdrand",
- "winapi 0.3.9",
-]
-
-[[package]]
-name = "rand"
-version = "0.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c618c47cd3ebd209790115ab837de41425723956ad3ce2e6a7f09890947cacb9"
-dependencies = [
- "cloudabi",
- "fuchsia-cprng",
- "libc",
- "rand_core 0.3.1",
- "winapi 0.3.9",
 ]
 
 [[package]]
@@ -1757,12 +1679,6 @@ checksum = "789e7aad247a37b785401b4d82bbad03212bb516fe7c0c2cc42f37bccb00b9b2"
 dependencies = [
  "rand 0.7.3",
 ]
-
-[[package]]
-name = "rgb"
-version = "0.8.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f089652ca87f5a82a62935ec6172a534066c7b97be003cc8f702ee9a7a59c92"
 
 [[package]]
 name = "rustc-demangle"
@@ -2263,7 +2179,7 @@ dependencies = [
  "hyperx",
  "lazy_static",
  "log",
- "mockito 0.14.1",
+ "mockito",
  "semver",
  "serde",
  "serde_json",
@@ -2304,7 +2220,7 @@ dependencies = [
  "lazy_static",
  "lazycell",
  "log",
- "mockito 0.30.0",
+ "mockito",
  "os_info",
  "readext",
  "regex 1.5.4",
@@ -2441,18 +2357,6 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
-
-[[package]]
-name = "winconsole"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ef84b96d10db72dd980056666d7f1e7663ce93d82fa33b63e71c966f4cf5032"
-dependencies = [
- "cgmath",
- "lazy_static",
- "rgb",
- "winapi 0.3.9",
-]
 
 [[package]]
 name = "winfolder"

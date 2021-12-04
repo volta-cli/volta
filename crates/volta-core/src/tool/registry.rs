@@ -15,8 +15,13 @@ pub const NPM_ABBREVIATED_ACCEPT_HEADER: &str =
 
 cfg_if! {
     if #[cfg(feature = "mock-network")] {
+        // TODO: We need to reconsider our mocking strategy in light of mockito deprecating the
+        // SERVER_URL constant: Since our acceptance tests run the binary in a separate process,
+        // we can't use `mockito::server_url()`, which relies on shared memory.
+        #[allow(deprecated)]
+        const SERVER_URL: &str = mockito::SERVER_URL;
         pub fn public_registry_index(package: &str) -> String {
-            format!("{}/{}", mockito::SERVER_URL, package)
+            format!("{}/{}", SERVER_URL, package)
         }
     } else {
         pub fn public_registry_index(package: &str) -> String {

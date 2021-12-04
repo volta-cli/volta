@@ -41,7 +41,7 @@ fn default_hooks_json() -> String {
         }}
     }}
 }}"#,
-        mockito::SERVER_URL
+        mockito::server_url()
     )
 }
 
@@ -55,7 +55,7 @@ fn project_hooks_json() -> String {
         }}
     }}
 }}"#,
-        mockito::SERVER_URL
+        mockito::server_url()
     )
 }
 
@@ -74,7 +74,7 @@ fn workspace_hooks_json() -> String {
         }}
     }}
 }}"#,
-        mockito::SERVER_URL
+        mockito::server_url()
     )
 }
 
@@ -91,7 +91,7 @@ fn yarn_hooks_json() -> String {
         }}
     }}
 }}"#,
-        mockito::SERVER_URL
+        mockito::server_url()
     )
 }
 
