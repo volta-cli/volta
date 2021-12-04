@@ -30,7 +30,7 @@ pub(super) fn run_global_install(
     PackageManager::Npm.setup_global_command(&mut command, staging_dir);
 
     debug!("Installing {} with command: {:?}", package, command);
-    let spinner = progress_spinner(&format!("Installing {}", package));
+    let spinner = progress_spinner(format!("Installing {}", package));
     let output_result = command
         .output()
         .with_context(|| ErrorKind::PackageInstallFailed {

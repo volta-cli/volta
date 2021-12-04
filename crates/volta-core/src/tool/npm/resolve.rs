@@ -41,7 +41,7 @@ fn fetch_npm_index(hooks: Option<&ToolHooks<Npm>>) -> Fallible<(String, PackageI
         _ => public_registry_index("npm"),
     };
 
-    let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
+    let spinner = progress_spinner(format!("Fetching public registry: {}", url));
     let metadata: RawPackageMetadata = attohttpc::get(&url)
         .header(ACCEPT, NPM_ABBREVIATED_ACCEPT_HEADER)
         .send()

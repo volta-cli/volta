@@ -1,4 +1,5 @@
 //! The view layer of Volta, with utilities for styling command-line output.
+use std::borrow::Cow;
 use std::error::Error;
 
 use archive::Origin;
@@ -69,7 +70,7 @@ pub fn progress_bar(origin: Origin, details: &str, len: u64) -> ProgressBar {
 
     let progress = ProgressBar::new(len);
 
-    progress.set_message(&format!(
+    progress.set_message(format!(
         "{: >width$} {}",
         style(action).green().bold(),
         details,
@@ -91,7 +92,10 @@ cfg_if! {
     if #[cfg(windows)] {
         /// Constructs a command-line progress spinner with the specified "message"
         /// string. The spinner is ticked by default every 100ms.
-        pub fn progress_spinner(message: &str) -> ProgressBar {
+        pub fn progress_spinner<S>(message: S) -> ProgressBar
+        where
+            S: Into<Cow<'static, str>>,
+        {
             let spinner = ProgressBar::new_spinner();
             // Windows CMD prompt doesn't support Unicode characters, so use a simplified spinner
             let style = ProgressStyle::default_spinner().tick_chars(r#"-\|/-"#);
@@ -105,7 +109,10 @@ cfg_if! {
     } else {
         /// Constructs a command-line progress spinner with the specified "message"
         /// string. The spinner is ticked by default every 50ms.
-        pub fn progress_spinner(message: &str) -> ProgressBar {
+        pub fn progress_spinner<S>(message: S) -> ProgressBar
+        where
+            S: Into<Cow<'static, str>>,
+        {
             // ⠋ Fetching public registry: https://nodejs.org/dist/index.json
             let spinner = ProgressBar::new_spinner();
 

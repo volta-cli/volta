@@ -202,7 +202,7 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
         }
         None => {
             debug!("Node index cache was not found or was invalid");
-            let spinner = progress_spinner(&format!("Fetching public registry: {}", url));
+            let spinner = progress_spinner(format!("Fetching public registry: {}", url));
 
             let (_, headers, response) = attohttpc::get(url)
                 .send()
