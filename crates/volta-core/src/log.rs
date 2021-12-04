@@ -4,7 +4,8 @@ use console::style;
 use log::{Level, LevelFilter, Log, Metadata, Record, SetLoggerError};
 use std::env;
 use std::fmt::Display;
-use textwrap::{NoHyphenation, Wrapper};
+use textwrap::word_splitters::NoHyphenation;
+use textwrap::{fill, Options};
 
 use crate::style::text_width;
 
@@ -124,11 +125,14 @@ where
     D: Display,
 {
     match text_width() {
-        Some(width) => Wrapper::with_splitter(width, NoHyphenation)
-            .subsequent_indent(WRAP_INDENT)
-            .break_words(false)
-            .fill(&format!("{} {}", prefix, content))
-            .replace(prefix, ""),
+        Some(width) => {
+            let options = Options::new(width)
+                .word_splitter(NoHyphenation)
+                .subsequent_indent(WRAP_INDENT)
+                .break_words(false);
+
+            fill(&format!("{} {}", prefix, content), options).replace(prefix, "")
+        }
         None => format!(" {}", content),
     }
 }
