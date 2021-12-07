@@ -363,9 +363,9 @@ dependencies = [
 
 [[package]]
 name = "cmdline_words_parser"
-version = "0.0.2"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "346b10598869bcdcd53cd166ecfb04ff8a4d5d7bb33e4ef4acbdb2a447ac3c73"
+checksum = "75d8078f03daf673d8bd34a1ef48c680ea4a895204882ce5f0ccfb2487b2bd29"
 
 [[package]]
 name = "colored"

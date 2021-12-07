@@ -7,7 +7,7 @@ use std::process::Stdio;
 use crate::command::create_command;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::tool::{NODE_DISTRO_ARCH, NODE_DISTRO_OS};
-use cmdline_words_parser::StrExt;
+use cmdline_words_parser::parse_posix;
 use dunce::canonicalize;
 use lazy_static::lazy_static;
 use log::debug;
@@ -102,7 +102,7 @@ impl MetadataHook {
 /// Execute a shell command and return the trimmed stdout from that command
 fn execute_binary(bin: &str, base_path: &Path, extra_arg: Option<String>) -> Fallible<String> {
     let mut trimmed = bin.trim().to_string();
-    let mut words = trimmed.parse_cmdline_words();
+    let mut words = parse_posix(&mut trimmed);
     let cmd = match words.next() {
         Some(word) => {
             // Treat any path that starts with a './' or '../' as a relative path (using OS separator)
