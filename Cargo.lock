@@ -334,7 +334,16 @@ version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b407009a4a51ae109dbdfcd7b6e4de38d148f37fad512b8c4623c642c4045e68"
 dependencies = [
- "envmnt",
+ "envmnt 0.8.1",
+]
+
+[[package]]
+name = "ci_info"
+version = "0.14.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f0e2864372242f01b92c1b882a904f6fb8b57f16e81e148a35b6368b1ea7323"
+dependencies = [
+ "envmnt 0.9.1",
 ]
 
 [[package]]
@@ -596,7 +605,17 @@ version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d779a6b692f4df25a68178f49ddc4629331092aaf025d03f2c633e58e217f37f"
 dependencies = [
- "fsio",
+ "fsio 0.1.2",
+ "indexmap",
+]
+
+[[package]]
+name = "envmnt"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f96dd862f12fac698dec3932dff0e6fb34bffeb5515ae5932d620cfe076571e"
+dependencies = [
+ "fsio 0.3.0",
  "indexmap",
 ]
 
@@ -708,6 +727,15 @@ name = "fsio"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2131cb03096f67334dfba2f0bc46afc5564b08a919d042c6e217e2665741fc54"
+
+[[package]]
+name = "fsio"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09e87827efaf94c7a44b562ff57de06930712fe21b530c3797cdede26e6377eb"
+dependencies = [
+ "dunce",
+]
 
 [[package]]
 name = "fuchsia-cprng"
@@ -1681,22 +1709,22 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.92"
+version = "1.0.130"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32746bf0f26eab52f06af0d0aa1984f641341d06d8d673c693871da2d188c9be"
+checksum = "f12d06de37cf59146fbdecab66aa99f9fe4f78722e3607577a5375d66bd0c913"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.92"
+version = "1.0.130"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46a3223d0c9ba936b61c0d2e3e559e3217dbfb8d65d06d26e8b3c25de38bae3e"
+checksum = "d7bc1a1ab1961464eae040d96713baa5a724a8152c1222492465b54322ec508b"
 dependencies = [
- "proc-macro2 0.4.30",
- "quote 0.6.12",
- "syn 0.15.36",
+ "proc-macro2 1.0.32",
+ "quote 1.0.2",
+ "syn 1.0.82",
 ]
 
 [[package]]
@@ -2115,7 +2143,7 @@ version = "1.0.5"
 dependencies = [
  "atty",
  "cfg-if 1.0.0",
- "ci_info",
+ "ci_info 0.10.0",
  "dirs 1.0.5",
  "envoy",
  "hamcrest2",
@@ -2145,7 +2173,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "chain-map",
  "chrono",
- "ci_info",
+ "ci_info 0.14.3",
  "cmdline_words_parser",
  "console",
  "ctrlc",
