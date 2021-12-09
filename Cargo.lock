@@ -39,7 +39,7 @@ dependencies = [
 name = "archive"
 version = "0.1.0"
 dependencies = [
- "attohttpc 0.18.0",
+ "attohttpc",
  "cfg-if 1.0.0",
  "flate2",
  "fs-utils",
@@ -83,23 +83,6 @@ dependencies = [
 
 [[package]]
 name = "attohttpc"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1082810677916862c7704351dfe4696a837aaf34da0dd6431abc60783e71ee8f"
-dependencies = [
- "flate2",
- "http",
- "log",
- "native-tls",
- "openssl",
- "serde",
- "serde_json",
- "url",
- "wildmatch 1.0.11",
-]
-
-[[package]]
-name = "attohttpc"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e69e13a99a7e6e070bb114f7ff381e58c7ccc188630121fc4c2fe4bcf24cd072"
@@ -112,7 +95,7 @@ dependencies = [
  "serde",
  "serde_json",
  "url",
- "wildmatch 2.1.0",
+ "wildmatch",
 ]
 
 [[package]]
@@ -2168,7 +2151,7 @@ name = "volta-core"
 version = "0.1.0"
 dependencies = [
  "archive",
- "attohttpc 0.16.0",
+ "attohttpc",
  "atty",
  "cfg-if 1.0.0",
  "chain-map",
@@ -2273,12 +2256,6 @@ dependencies = [
  "lazy_static",
  "libc",
 ]
-
-[[package]]
-name = "wildmatch"
-version = "1.0.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae79c150cec3fd46326dfb57f358b1f8f75223869555c5cb6c896a393ee4615c"
 
 [[package]]
 name = "wildmatch"
