@@ -36,7 +36,7 @@ regex = "1.5.4"
 dirs = "4.0.0"
 sha-1 = "0.10.0"
 hex = "0.4.3"
-chrono = "0.4.11"
+chrono = "0.4.19"
 validate-npm-package-name = { path = "../validate-npm-package-name" }
 textwrap = "0.14.2"
 atty = "0.2"
