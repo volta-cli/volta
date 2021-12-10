@@ -315,20 +315,11 @@ dependencies = [
 
 [[package]]
 name = "ci_info"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b407009a4a51ae109dbdfcd7b6e4de38d148f37fad512b8c4623c642c4045e68"
-dependencies = [
- "envmnt 0.8.1",
-]
-
-[[package]]
-name = "ci_info"
 version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f0e2864372242f01b92c1b882a904f6fb8b57f16e81e148a35b6368b1ea7323"
 dependencies = [
- "envmnt 0.9.1",
+ "envmnt",
 ]
 
 [[package]]
@@ -597,21 +588,11 @@ checksum = "90b2c9496c001e8cb61827acdefad780795c42264c137744cae6f7d9e3450abd"
 
 [[package]]
 name = "envmnt"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d779a6b692f4df25a68178f49ddc4629331092aaf025d03f2c633e58e217f37f"
-dependencies = [
- "fsio 0.1.2",
- "indexmap",
-]
-
-[[package]]
-name = "envmnt"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f96dd862f12fac698dec3932dff0e6fb34bffeb5515ae5932d620cfe076571e"
 dependencies = [
- "fsio 0.3.0",
+ "fsio",
  "indexmap",
 ]
 
@@ -717,12 +698,6 @@ dependencies = [
  "libc",
  "winapi 0.3.9",
 ]
-
-[[package]]
-name = "fsio"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2131cb03096f67334dfba2f0bc46afc5564b08a919d042c6e217e2665741fc54"
 
 [[package]]
 name = "fsio"
@@ -2130,7 +2105,7 @@ version = "1.0.5"
 dependencies = [
  "atty",
  "cfg-if 1.0.0",
- "ci_info 0.10.0",
+ "ci_info",
  "dirs 1.0.5",
  "envoy",
  "hamcrest2",
@@ -2160,7 +2135,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "chain-map",
  "chrono",
- "ci_info 0.14.3",
+ "ci_info",
  "cmdline_words_parser",
  "console",
  "ctrlc",
