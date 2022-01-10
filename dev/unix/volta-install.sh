@@ -124,7 +124,8 @@ upgrade_is_ok() {
 # including the openssl info if necessary
 parse_os_info() {
   local uname_str="$1"
-  local openssl_version="$2"
+  local arch_str="$2"
+  local openssl_version="$3"
 
   case "$uname_str" in
     Linux)
@@ -133,11 +134,10 @@ parse_os_info() {
       if [ "$exit_code" != 0 ]; then
         return "$exit_code"
       fi
-
-      echo "linux-openssl-$parsed_version"
+      echo "linux-openssl-$parsed_version-$arch_str"
       ;;
     Darwin)
-      if [ "$(uname -m)" == "arm64" ]; then
+      if [ "$arch_str" == "arm64" ]; then
         echo "macos-aarch64"
       else
         echo "macos"
@@ -359,9 +359,10 @@ download_release() {
   local version="$1"
 
   local uname_str="$(uname -s)"
+  local arch_str="$(uname -m)"
   local openssl_version="$(openssl version)"
   local os_info
-  os_info="$(parse_os_info "$uname_str" "$openssl_version")"
+  os_info="$(parse_os_info "$uname_str" "arch_str" "$openssl_version")"
   if [ "$?" != 0 ]; then
     error "The current operating system ($uname_str) does not appear to be supported by Volta."
     return 1

@@ -1,4 +1,4 @@
-FROM centos:6.10
+FROM centos:6.10 as base
 
 # CentOS 6 packages are no longer hosted on the main repository, instead they are in the CentOS Vault
 RUN sed -i 's/^mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Base.repo && \
@@ -6,8 +6,21 @@ RUN sed -i 's/^mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Base.repo && \
 
 # Set up additional build tools
 RUN yum -y update && yum clean all
-RUN yum -y install gcc curl openssl openssl-devel ca-certificates tar perl perl-Module-Load-Conditional && yum clean all
+RUN yum -y install gcc git curl openssl openssl-devel ca-certificates tar perl perl-Module-Load-Conditional && yum clean all
 
 # Install Rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
-ENV PATH="/root/.cargo/bin:${PATH}"
+
+ENV CARGO_HOME=/root/workspace/.cargo \
+    PATH="/root/.cargo/bin:${PATH}"
+
+FROM base as openssl
+
+WORKDIR /app/src
+COPY ./ci ./ci
+
+FROM openssl AS openssl-1_0_1
+RUN ./ci/build-openssl.sh 1_0_1
+
+FROM openssl AS openssl-1_1_1
+RUN ./ci/build-openssl.sh 1_1_1
