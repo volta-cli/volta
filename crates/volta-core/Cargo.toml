@@ -27,7 +27,7 @@ cmdline_words_parser = "0.2.1"
 fs-utils = { path = "../fs-utils" }
 cfg-if = "1.0"
 winfolder = "0.1"
-tempfile = "3.2.0"
+tempfile = "3.3.0"
 os_info = "3.1.0"
 detect-indent = { git = "https://github.com/stefanpenner/detect-indent-rs", branch = "master" }
 envoy = "0.1.3"
