@@ -124,13 +124,13 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: wix
-          args: --nocapture --output target\wix\volta-windows.msi
+          args: --nocapture --package volta --output target\wix\volta-windows.msi
       - name: Load Certificate File
         id: certificate_file
         if: github.event_name == 'push'
         uses: timheuer/base64-to-file@v1
         with:
-          fileName: 'volta-certificate.pfx'
+          fileName: "volta-certificate.pfx"
           encodedString: ${{ secrets.INSTALLER_CERTIFICATE }}
       - name: Sign Installer
         if: github.event_name == 'push'
