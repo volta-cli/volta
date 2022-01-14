@@ -186,9 +186,7 @@ pub mod tests {
         // tar.gz format has extra handling, to support a multi-part extension
         let expected = format!(
             "http://localhost/node/{}/{}/{}/tar.gz/node-v1.0.0.tar.gz",
-            NODE_DISTRO_OS,
-            NODE_DISTRO_ARCH,
-            version.to_string()
+            NODE_DISTRO_OS, NODE_DISTRO_ARCH, version
         );
         assert_eq!(
             hook.resolve(&version, "node-v1.0.0.tar.gz")
@@ -199,9 +197,7 @@ pub mod tests {
         // zip is a standard extension
         let expected = format!(
             "http://localhost/node/{}/{}/{}/zip/node-v1.0.0.zip",
-            NODE_DISTRO_OS,
-            NODE_DISTRO_ARCH,
-            version.to_string()
+            NODE_DISTRO_OS, NODE_DISTRO_ARCH, version
         );
         assert_eq!(
             hook.resolve(&version, "node-v1.0.0.zip")
