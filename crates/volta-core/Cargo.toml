@@ -46,7 +46,7 @@ walkdir = "2.3.2"
 volta-layout = { path = "../volta-layout" }
 double-checked-cell = "2.1.0"
 dunce = "1.0.2"
-ci_info = "0.14.3"
+ci_info = "0.14.4"
 hyperx = "1.4.0"
 attohttpc = { version = "0.18.0", features = ["json"] }
 chain-map = "0.1.0"
