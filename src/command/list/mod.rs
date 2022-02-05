@@ -220,12 +220,6 @@ pub(crate) struct List {
     )]
     format: Option<Format>,
 
-    /// Show a pretty version of the output (only for JSON format).
-    ///
-    ///
-    #[structopt(long = "pretty", short = "p")]
-    pretty: bool,
-
     /// Show the currently-active tool(s).
     ///
     /// Equivalent to `volta list` when not specifying a specific tool.

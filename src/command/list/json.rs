@@ -1,29 +1,21 @@
-use serde_json::{to_string, to_string_pretty};
+//! Define the "JSON" format style for list commands.
+
+use serde_json::to_string_pretty;
 
 use super::{Node, Package, PackageManager, Toolchain};
 
 pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
     let (runtimes, package_managers, packages) = match toolchain {
         Toolchain::Node(runtimes) => (describe_runtimes(&runtimes), None, None),
-        Toolchain::PackageManagers(package_managers) => {
-            (None, describe_package_managers(&package_managers), None)
-        }
-        Toolchain::Packages(packages) => (None, None, describe_packages(&packages)),
-        Toolchain::Tool {
-            name,
-            host_packages,
-        } => (None, None, Some(describe_tool_set(name, host_packages))),
         Toolchain::Active {
             runtime,
-            package_manager,
+            package_managers,
             packages,
         } => (
             runtime
                 .as_ref()
                 .and_then(|r| describe_runtimes(&[(**r).clone()])),
-            package_manager
-                .as_ref()
-                .and_then(|p| describe_package_managers(&[(**p).clone()])),
+            describe_package_managers(&package_managers),
             describe_packages(&packages),
         ),
         Toolchain::All {
@@ -35,6 +27,14 @@ pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
             describe_package_managers(&package_managers),
             describe_packages(&packages),
         ),
+        Toolchain::PackageManagers { managers, .. } => {
+            (None, describe_package_managers(&managers), None)
+        }
+        Toolchain::Packages(packages) => (None, None, describe_packages(&packages)),
+        Toolchain::Tool {
+            name,
+            host_packages,
+        } => (None, None, Some(describe_tool_set(name, host_packages))),
     };
 
     match (runtimes, package_managers, packages) {
@@ -55,11 +55,12 @@ pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
     }
 }
 
+#[derive(serde::Serialize)]
+struct Runtimes<'a> {
+    runtimes: &'a [Node],
+}
+
 fn describe_runtimes(runtimes: &[Node]) -> Option<String> {
-    #[derive(serde::Serialize)]
-    struct Runtimes<'a> {
-        runtimes: &'a [Node],
-    };
     if runtimes.is_empty() {
         None
     } else {
@@ -67,11 +68,12 @@ fn describe_runtimes(runtimes: &[Node]) -> Option<String> {
     }
 }
 
+#[derive(serde::Serialize)]
+struct PackageManagers<'a> {
+    package_managers: &'a [PackageManager],
+}
+
 fn describe_package_managers(package_managers: &[PackageManager]) -> Option<String> {
-    #[derive(serde::Serialize)]
-    struct PackageManagers<'a> {
-        package_managers: &'a [PackageManager],
-    };
     if package_managers.is_empty() {
         None
     } else {
@@ -79,11 +81,12 @@ fn describe_package_managers(package_managers: &[PackageManager]) -> Option<Stri
     }
 }
 
+#[derive(serde::Serialize)]
+struct Packages<'a> {
+    packages: &'a [Package],
+}
+
 fn describe_packages(packages: &[Package]) -> Option<String> {
-    #[derive(serde::Serialize)]
-    struct Packages<'a> {
-        packages: &'a [Package],
-    };
     if packages.is_empty() {
         None
     } else {
@@ -91,13 +94,13 @@ fn describe_packages(packages: &[Package]) -> Option<String> {
     }
 }
 
-fn describe_tool_set(name: &str, hosts: &[Package]) -> String {
-    #[derive(serde::Serialize)]
-    struct Tool<'a> {
-        name: &'a str,
-        host: &'a Package,
-    };
+#[derive(serde::Serialize)]
+struct Tool<'a> {
+    name: &'a str,
+    host: &'a Package,
+}
 
+fn describe_tool_set(name: &str, hosts: &[Package]) -> String {
     hosts
         .into_iter()
         .map(|host| to_string_pretty(&Tool { name, host }).unwrap())
@@ -164,12 +167,8 @@ mod tests {
         fn single_project() {
             assert_eq!(
                 describe_packages(&[Package::Project {
-                    details: PackageDetails {
-                        name: "typescript".into(),
-                        version: TYPESCRIPT_VERSION.clone(),
-                    },
+                    name: "typescript".into(),
                     path: PROJECT_PATH.clone(),
-                    node: NODE_VERSION.clone(),
                     tools: vec!["tsc".into(), "tsserver".into()]
                 }])
                 .expect("Should always return a `String` if given a non-empty set")
@@ -178,11 +177,7 @@ mod tests {
   \"packages\": [
     {
       \"Project\": {
-        \"details\": {
-          \"name\": \"typescript\",
-          \"version\": \"3.4.1\"
-        },
-        \"node\": \"12.4.0\",
+        \"name\": \"typescript\",
         \"tools\": [
           \"tsc\",
           \"tsserver\"
@@ -200,12 +195,8 @@ mod tests {
             assert_eq!(
                 describe_packages(&[
                     Package::Project {
-                        details: PackageDetails {
-                            name: "typescript".into(),
-                            version: TYPESCRIPT_VERSION.clone(),
-                        },
+                        name: "typescript".into(),
                         path: PROJECT_PATH.clone(),
-                        node: NODE_VERSION.clone(),
                         tools: vec!["tsc".into(), "tsserver".into()]
                     },
                     Package::Default {
@@ -227,11 +218,7 @@ mod tests {
   \"packages\": [
     {
       \"Project\": {
-        \"details\": {
-          \"name\": \"typescript\",
-          \"version\": \"3.4.1\"
-        },
-        \"node\": \"12.4.0\",
+        \"name\": \"typescript\",
         \"tools\": [
           \"tsc\",
           \"tsserver\"
@@ -326,12 +313,8 @@ mod tests {
                             tools: vec!["ember".into()]
                         },
                         Package::Project {
-                            details: PackageDetails {
-                                name: "ember-cli".into(),
-                                version: Version::from((3, 8, 1)),
-                            },
+                            name: "ember-cli".into(),
                             path: PROJECT_PATH.clone(),
-                            node: NODE_VERSION.clone(),
                             tools: vec!["ember".into()]
                         },
                         Package::Default {
@@ -388,11 +371,7 @@ mod tests {
     },
     {
       \"Project\": {
-        \"details\": {
-          \"name\": \"ember-cli\",
-          \"version\": \"3.8.1\"
-        },
-        \"node\": \"12.4.0\",
+        \"name\": \"ember-cli\",
         \"tools\": [
           \"ember\"
         ],
