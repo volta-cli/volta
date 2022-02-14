@@ -10,6 +10,6 @@ volta-layout = { path = "../volta-layout" }
 log = { version = "0.4", features = ["std"] }
 tempfile = "3.3.0"
 semver = { git = "https://github.com/mikrostew/semver", branch = "new-parser" }
-serde_json = { version = "1.0.78", features = ["preserve_order"] }
+serde_json = { version = "1.0.79", features = ["preserve_order"] }
 serde = { version = "1.0.136", features = ["derive"] }
 walkdir = "2.3.2"
