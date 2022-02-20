@@ -117,7 +117,7 @@ jobs:
         openssl: [1_0_1, 1_1_0]
     name: Build - OpenSSL ${{ matrix.openssl }} - Arch x86_64
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    #if: github.event_name == 'push'
     steps:
       - name: Check out code
         uses: actions/checkout@v2
