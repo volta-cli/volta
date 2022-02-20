@@ -279,6 +279,7 @@ jobs:
   release:
     name: Publish release
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     needs:
       - centos
       - linux-x86_64
@@ -286,7 +287,6 @@ jobs:
       - macos
       - macos-aarch64
       - windows
-    if: github.event_name == 'push'
     steps:
       - name: Check out code
         uses: actions/checkout@v2
