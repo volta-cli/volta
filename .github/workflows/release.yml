@@ -44,7 +44,7 @@ jobs:
   linux-x86_64:
     strategy:
       matrix:
-        openssl: [1_0_1, 1_1_1]
+        openssl: [1_0_1, 1_1_0]
     name: Build - OpenSSL ${{ matrix.openssl }} - Arch x86_64
     runs-on: ubuntu-latest
     steps:
