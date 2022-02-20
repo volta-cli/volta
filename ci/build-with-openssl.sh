@@ -2,11 +2,4 @@
 
 set -e
 
-echo "Building OpenSSL"
-cd openssl
-./config shared --prefix=/root/workspace/openssl-dist
-make
-make install_sw
-cd -
-
-OPENSSL_DIR=/root/workspace/openssl-dist ./ci/build-and-package.sh "$1"
+OPENSSL_DIR=/app/src/openssl-dist ./ci/build-and-package.sh "$1"

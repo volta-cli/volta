@@ -42,19 +42,35 @@ END_CARGO_TOML
 
 
 # macos
-@test "parse_os_info - macos" {
+@test "parse_os_info - macos intel" {
   expected_output="macos"
 
-  run parse_os_info "Darwin" "this is ignored"
+  run parse_os_info "Darwin" "arch is ignored" "openssl is ignored"
+  [ "$status" -eq 0 ]
+  diff <(echo "$output") <(echo "$expected_output")
+}
+
+@test "parse_os_info - macos m1" {
+  expected_output="macos-aarch64"
+
+  run parse_os_info "Darwin" "arm64" "openssl is ignored"
   [ "$status" -eq 0 ]
   diff <(echo "$output") <(echo "$expected_output")
 }
 
 # linux - supported OpenSSL
-@test "parse_os_info - linux with supported OpenSSL" {
-  expected_output="linux-openssl-1.2"
+@test "parse_os_info - linux-x86_64 with supported OpenSSL" {
+  expected_output="linux-openssl-1.2-x86_64"
 
-  run parse_os_info "Linux" "OpenSSL 1.2.3a whatever else"
+  run parse_os_info "Linux" "x86_64" "OpenSSL 1.2.3a whatever else"
+  [ "$status" -eq 0 ]
+  diff <(echo "$output") <(echo "$expected_output")
+}
+
+@test "parse_os_info - linux-arm64 with supported OpenSSL" {
+  expected_output="linux-openssl-1.2-arm64"
+
+  run parse_os_info "Linux" "arm64" "OpenSSL 1.2.3a whatever else"
   [ "$status" -eq 0 ]
   diff <(echo "$output") <(echo "$expected_output")
 }
@@ -63,7 +79,7 @@ END_CARGO_TOML
 @test "parse_os_info - linux with unsupported OpenSSL" {
   expected_output=$(echo -e "\033[1;31mError\033[0m: Releases for 'SomeSSL' not currently supported. Supported libraries are: OpenSSL.")
 
-  run parse_os_info "Linux" "SomeSSL 1.2.3a whatever else"
+  run parse_os_info "Linux" "x86_64" "SomeSSL 1.2.3a whatever else"
   [ "$status" -eq 1 ]
   diff <(echo "$output") <(echo "$expected_output")
 }
@@ -72,7 +88,7 @@ END_CARGO_TOML
 @test "parse_os_info - linux with unexpected OpenSSL format" {
   expected_output=$(echo -e "\033[1;31mError\033[0m: Could not determine OpenSSL version for 'Some SSL 1.2.4'.")
 
-  run parse_os_info "Linux" "Some SSL 1.2.4"
+  run parse_os_info "Linux" "x86_64" "Some SSL 1.2.4"
   [ "$status" -eq 1 ]
   diff <(echo "$output") <(echo "$expected_output")
 }
