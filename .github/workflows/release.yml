@@ -45,7 +45,7 @@ jobs:
     strategy:
       matrix:
         openssl: [1_0_1, 1_1_0]
-    name: Build - OpenSSL ${{ matrix.openssl }} - Arch x86_64
+    name: Build - OpenSSL ${{ matrix.openssl }} - x86_64
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
@@ -115,7 +115,7 @@ jobs:
     strategy:
       matrix:
         openssl: [1_0_1, 1_1_0]
-    name: Build - OpenSSL ${{ matrix.openssl }} - Arch x86_64
+    name: Build - OpenSSL ${{ matrix.openssl }} - aarch64
     runs-on: ubuntu-latest
     #if: github.event_name == 'push'
     steps:
