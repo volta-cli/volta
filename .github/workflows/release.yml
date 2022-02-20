@@ -1,5 +1,7 @@
 on:
   push:
+    branches:
+      - "**"
     tags:
       - v*
   pull_request:
@@ -117,7 +119,6 @@ jobs:
         openssl: [1_0_1, 1_1_1]
     name: Build - OpenSSL ${{ matrix.openssl }} - Arch aarch64
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
     steps:
       - name: Check out code
         uses: actions/checkout@v2
@@ -280,7 +281,6 @@ jobs:
   release:
     name: Publish release
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
     needs:
       - centos
       - linux-x86_64
