@@ -60,7 +60,7 @@ END_CARGO_TOML
 
 # linux - supported OpenSSL
 @test "parse_os_info - linux-x86_64 with supported OpenSSL" {
-  expected_output="linux-openssl-1.2-x86_64"
+  expected_output="linux-openssl-1.2"
 
   run parse_os_info "Linux" "x86_64" "OpenSSL 1.2.3a whatever else"
   [ "$status" -eq 0 ]
@@ -68,7 +68,7 @@ END_CARGO_TOML
 }
 
 @test "parse_os_info - linux-arm64 with supported OpenSSL" {
-  expected_output="linux-openssl-1.2-arm64"
+  expected_output="linux-openssl-1.2"
 
   run parse_os_info "Linux" "arm64" "OpenSSL 1.2.3a whatever else"
   [ "$status" -eq 0 ]
