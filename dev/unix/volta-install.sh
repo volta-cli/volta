@@ -134,7 +134,11 @@ parse_os_info() {
       if [ "$exit_code" != 0 ]; then
         return "$exit_code"
       fi
-      echo "linux-openssl-$parsed_version-$arch_str"
+      if [ "$arch_str" == "aarch64" ]; then
+        echo "linux-openssl-$parsed_version-$arch_str"
+      else
+        echo "linux-openssl-$parsed_version"
+      fi
       ;;
     Darwin)
       if [ "$arch_str" == "arm64" ]; then
@@ -362,7 +366,7 @@ download_release() {
   local arch_str="$(uname -m)"
   local openssl_version="$(openssl version)"
   local os_info
-  os_info="$(parse_os_info "$uname_str" "arch_str" "$openssl_version")"
+  os_info="$(parse_os_info "$uname_str" "$arch_str" "$openssl_version")"
   if [ "$?" != 0 ]; then
     error "The current operating system ($uname_str) does not appear to be supported by Volta."
     return 1
@@ -397,6 +401,11 @@ check_architecture() {
         ;;
       arm64)
         if [ "$(uname -s)" = "Darwin" ]; then
+          return 0
+        fi
+        ;;
+      aarch64)
+        if [ "$(uname -s)" = "Linux" ]; then
           return 0
         fi
         ;;
