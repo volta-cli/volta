@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - "**"
+      - "__test"
     tags:
       - v*
   pull_request:
@@ -9,7 +9,6 @@ on:
       - main
 
 name: Production
-
 jobs:
   centos:
     name: Build - CentOS / RHEL
