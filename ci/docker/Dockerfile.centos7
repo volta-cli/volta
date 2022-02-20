@@ -1,4 +1,4 @@
-FROM centos:8 as base
+FROM centos:7 as base
 
 # Set up additional build tools
 RUN yum -y update && yum clean all
