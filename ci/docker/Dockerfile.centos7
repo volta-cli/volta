@@ -18,5 +18,5 @@ COPY ./ci ./ci
 FROM openssl AS openssl-1_0_1
 RUN ./ci/build-openssl.sh 1_0_1
 
-FROM openssl AS openssl-1_1_1
-RUN ./ci/build-openssl.sh 1_1_1
+FROM openssl AS openssl-1_1_0
+RUN ./ci/build-openssl.sh 1_1_0
