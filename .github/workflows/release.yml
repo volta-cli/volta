@@ -26,7 +26,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           context: .
-          file: ./ci/docker/Dockerfile.centos7
+          file: ./ci/docker/Dockerfile.centos
           load: true
           push: false
           tags: volta
