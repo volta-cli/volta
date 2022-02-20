@@ -294,7 +294,8 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - centos
-      - linux
+      - linux-x86_64
+      - linux-aarch64
       - macos
       - macos-aarch64
       - windows
