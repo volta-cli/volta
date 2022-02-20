@@ -114,15 +114,15 @@ jobs:
   linux-aarch64:
     strategy:
       matrix:
-        openssl: [1_0_1, 1_1_1]
-    name: Build - OpenSSL ${{ matrix.openssl }} - Arch aarch64
+        openssl: [1_0_1, 1_1_0]
+    name: Build - OpenSSL ${{ matrix.openssl }} - Arch x86_64
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
     steps:
       - name: Check out code
         uses: actions/checkout@v2
 
-      # Not stricly speaking necessary for x86 builds, but the QEMU arm64 builds take hours
+      # The QEMU arm64 builds take hours
       - name: Rust build cache
         id: cache-openssl
         uses: actions/cache@v2
