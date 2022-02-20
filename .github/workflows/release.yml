@@ -41,24 +41,23 @@ jobs:
           name: linux-centos
           path: target/release/volta-centos.tar.gz
 
-  linux:
+        #           os: [linux]
+        # include:
+        #   - arch: x86_64
+        #     dockerfile: Dockerfile.centos6
+        #     # Docker's BuildX platform for x86_64 is `arm64`. But `uname -m` on linux returns x86_64.
+        #     # So we'll officially designate this binary as `x86_64` but map it here to `arm64` so that
+        #     # we build it on the correct docker arch
+        #     dockerArch: arm64
+        #   - arch: aarch64
+        #     dockerfile: Dockerfile.centos8
+        #     dockerArch: arm64
+
+  linux-x86_64:
     strategy:
       matrix:
-        arch: [x86_64, arm64]
         openssl: [1_0_1, 1_1_1]
-        os: [linux]
-        include:
-          - arch: x86_64
-            dockerfile: Dockerfile.centos6
-            # Docker's BuildX platform for x86_64 is `amd64`. But `uname -m` on linux returns x86_64.
-            # So we'll officially designate this binary as `x86_64` but map it here to `amd64` so that
-            # we build it on the correct docker arch
-            dockerArch: amd64
-          - arch: arm64
-            dockerfile: Dockerfile.centos8
-            dockerArch: arm64
-
-    name: Build - OpenSSL ${{ matrix.openssl }} - Arch ${{ matrix.arch }}
+    name: Build - OpenSSL ${{ matrix.openssl }} - Arch x86_64
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
@@ -73,9 +72,9 @@ jobs:
             .cargo/registry
             .cargo/git
             target/
-          key: ${{ runner.os }}-${{ matrix.openssl }}-${{ matrix.arch }}-target-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ matrix.openssl }}-x86_64-target-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.openssl }}-${{ matrix.arch }}-target-
+            ${{ runner.os }}-${{ matrix.openssl }}-x86_64-target-
 
       - name: Clean .git
         run: |
@@ -97,18 +96,18 @@ jobs:
         with:
           build-args: |
             OPENSSL_VERSION=${{ matrix.openssl }}
-          cache-from: type=gha,scope=${{ matrix.openssl }}-${{ matrix.arch }}
-          cache-to: type=gha,scope=${{ matrix.openssl }}-${{ matrix.arch }},mode=max
+          cache-from: type=gha,scope=${{ matrix.openssl }}-x86_64
+          cache-to: type=gha,scope=${{ matrix.openssl }}-x86_64,mode=max
           context: .
-          file: ./ci/docker/${{ matrix.dockerfile }}
+          file: ./ci/docker/Dockerfile.centos6
           load: true
-          platforms: linux/${{ matrix.dockerArch }}
+          platforms: linux/amd64
           push: false
-          tags: volta-${{ matrix.openssl }}-${{ matrix.arch }}
+          tags: volta-${{ matrix.openssl }}-x86_64
           target: openssl-${{ matrix.openssl }}
 
       - name: Compile and package OpenSSL & Volta
-        run: docker run --volume ${PWD}:/root/workspace --platform linux/${{ matrix.dockerArch }} --workdir /root/workspace --rm --init --tty volta-${{ matrix.openssl }}-${{ matrix.arch }} /root/workspace/ci/build-with-openssl.sh linux-openssl-${{ matrix.openssl }}-${{ matrix.arch }}
+        run: docker run --volume ${PWD}:/root/workspace --platform linux/amd64 --workdir /root/workspace --rm --init --tty volta-${{ matrix.openssl }}-x86_64 /root/workspace/ci/build-with-openssl.sh linux-openssl-${{ matrix.openssl }}-x86_64
 
       - name: Set .cargo/ ownership to current user
         run: sudo chown -R $(id -u):$(id -g) .cargo/
@@ -121,8 +120,80 @@ jobs:
       - name: Upload release artifact
         uses: actions/upload-artifact@v2
         with:
-          name: linux-openssl-${{ matrix.openssl }}-${{ matrix.arch }}
-          path: target/release/linux-openssl-${{ matrix.openssl }}-${{ matrix.arch }}.tar.gz
+          name: linux-openssl-${{ matrix.openssl }}-x86_64
+          path: target/release/linux-openssl-${{ matrix.openssl }}-x86_64.tar.gz
+
+   linux-aarch64:
+    strategy:
+      matrix:
+        openssl: [1_0_1, 1_1_1]
+    name: Build - OpenSSL ${{ matrix.openssl }} - Arch aarch64
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      # Not stricly speaking necessary for x86 builds, but the QEMU arm64 builds take hours
+      - name: Rust build cache
+        id: cache-openssl
+        uses: actions/cache@v2
+        with:
+          path: |
+            .cargo/registry
+            .cargo/git
+            target/
+          key: ${{ runner.os }}-${{ matrix.openssl }}-aarch64-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.openssl }}-aarch64-target-
+
+      - name: Clean .git
+        run: |
+          rm -rf ./openssl/.git
+
+      - name: Debug
+        run: |
+          echo $(ls -la)
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          build-args: |
+            OPENSSL_VERSION=${{ matrix.openssl }}
+          cache-from: type=gha,scope=${{ matrix.openssl }}-aarch64
+          cache-to: type=gha,scope=${{ matrix.openssl }}-aarch64,mode=max
+          context: .
+          file: ./ci/docker/Dockerfile.centos8
+          load: true
+          platforms: linux/arm64
+          push: false
+          tags: volta-${{ matrix.openssl }}-aarch64
+          target: openssl-${{ matrix.openssl }}
+
+      - name: Compile and package OpenSSL & Volta
+        run: docker run --volume ${PWD}:/root/workspace --platform linux/arm64 --workdir /root/workspace --rm --init --tty volta-${{ matrix.openssl }}-aarch64 /root/workspace/ci/build-with-openssl.sh linux-openssl-${{ matrix.openssl }}-aarch64
+
+      - name: Set .cargo/ ownership to current user
+        run: sudo chown -R $(id -u):$(id -g) .cargo/
+
+      - name: Confirm OpenSSL Version
+        run: |
+          objdump -p target/release/volta
+          readelf -d target/release/volta
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: linux-openssl-${{ matrix.openssl }}-aarch64
+          path: target/release/linux-openssl-${{ matrix.openssl }}-aarch64.tar.gz
+
 
   macos:
     name: Build - MacOS
