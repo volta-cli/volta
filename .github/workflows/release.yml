@@ -24,7 +24,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           context: .
-          file: ./ci/docker/Dockerfile.centos6
+          file: ./ci/docker/Dockerfile.centos
           load: true
           push: false
           tags: volta
@@ -87,7 +87,7 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.openssl }}-x86_64
           cache-to: type=gha,scope=${{ matrix.openssl }}-x86_64,mode=max
           context: .
-          file: ./ci/docker/Dockerfile.centos6
+          file: ./ci/docker/Dockerfile.centos
           load: true
           platforms: linux/amd64
           push: false
@@ -158,7 +158,7 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.openssl }}-aarch64
           cache-to: type=gha,scope=${{ matrix.openssl }}-aarch64,mode=max
           context: .
-          file: ./ci/docker/Dockerfile.centos8
+          file: ./ci/docker/Dockerfile.centos
           load: true
           platforms: linux/arm64
           push: false
