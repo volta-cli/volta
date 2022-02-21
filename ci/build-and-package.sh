@@ -7,8 +7,8 @@ echo "Building Volta"
 if [ -z "$2" ]; then 
     cargo build --release
     cd target/release
-else 
-    cargo build --release --target=$2
+else
+    cargo build --release --target $2
     cd target/$2/release
 fi
 
