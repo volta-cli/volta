@@ -106,7 +106,16 @@ jobs:
           target: openssl-${{ matrix.openssl }}
 
       - name: Compile and package OpenSSL & Volta
-        run: docker run --volume ${PWD}:/root/workspace --platform linux/${{ matrix.dockerArch }} --workdir /root/workspace --rm --init --tty volta-${{ matrix.std }}-${{ matrix.openssl }}-${{ matrix.architecture }} /root/workspace/ci/build-with-openssl.sh linux-${{ matrix.std }}-openssl-${{ matrix.openssl }}-${{ matrix.architecture }}
+        run: >
+          docker run 
+          --volume ${PWD}:/root/workspace 
+          --platform linux/${{ matrix.dockerArch }} 
+          --workdir /root/workspace 
+          --rm --init 
+          --tty
+          volta-${{ matrix.std }}-${{ matrix.openssl }}-${{ matrix.architecture }} 
+          /root/workspace/ci/build-with-openssl.sh 
+          linux-${{ matrix.std }}-openssl-${{ matrix.openssl }}-${{ matrix.architecture }}
 
       - name: Set .cargo/ ownership to current user
         run: sudo chown -R $(id -u):$(id -g) .cargo/
@@ -278,7 +287,7 @@ jobs:
       - name: Fetch MacOS artifact
         uses: actions/download-artifact@v2
         with:
-          name: macos
+          name: macos-x86_64
           path: release
       - name: Fetch MacOS (ARM) artifact
         uses: actions/download-artifact@v2
@@ -402,7 +411,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/volta-macos.tar.gz
+          asset_path: ./release/volta-macos-x86_64.tar.gz
           asset_name: volta-${{ steps.release_info.outputs.version }}-macos.tar.gz
           asset_content_type: application/gzip
 
