@@ -1,6 +1,6 @@
 FROM alpine as base
 
-RUN apk update && apk add bash git perl make gcc musl-dev
+RUN apk update && apk add bash git perl make gcc musl-dev linux-headers
 
 # Install Rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
@@ -14,9 +14,7 @@ WORKDIR /app/src
 COPY ./ci ./ci
 
 FROM openssl AS openssl-1_0_1
-RUN git clone --branch OpenSSL_"1_0_1"-stable https://github.com/openssl/openssl
 RUN ./ci/build-openssl.sh 1_0_1
 
 FROM openssl AS openssl-1_1_0
-RUN git clone --branch OpenSSL_"1_1_0"-stable https://github.com/openssl/openssl
 RUN ./ci/build-openssl.sh 1_1_0
