@@ -93,8 +93,8 @@ jobs:
         with:
           build-args: |
             OPENSSL_VERSION=${{ matrix.openssl }}
-          cache-from: type=gha,scope=${{ matrix.openssl }}-${{ matrix.architecture }}
-          cache-to: type=gha,scope=${{ matrix.openssl }}-${{ matrix.architecture }},mode=max
+          cache-from: type=gha,scope=${{ matrix.std }}-${{ matrix.openssl }}-${{ matrix.architecture }}
+          cache-to: type=gha,scope=${{ matrix.std }}-${{ matrix.openssl }}-${{ matrix.architecture }},mode=max
           context: .
           file: ./ci/docker/${{ matrix.dockerfile }}
           load: true
