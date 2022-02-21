@@ -45,3 +45,5 @@ fabric.properties
 # End of https://www.gitignore.io/api/intellij
 
 openssl/
+openssl-dist/
+.DS_Store
