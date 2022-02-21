@@ -43,6 +43,7 @@ jobs:
 
   linux-x86_64:
     strategy:
+      fail-fast: false
       matrix:
         openssl: [1_0_1, 1_1_0]
     name: Build - OpenSSL ${{ matrix.openssl }} - x86_64
@@ -113,6 +114,7 @@ jobs:
 
   linux-aarch64:
     strategy:
+      fail-fast: false
       matrix:
         openssl: [1_0_1, 1_1_0]
     name: Build - OpenSSL ${{ matrix.openssl }} - aarch64
