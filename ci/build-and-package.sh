@@ -1,17 +1,4 @@
-#!/bin/bash
+# This is not doing the right things somehow
+OPENSSL_DIR=/workspaces/volta/openssl-dist cargo build --release
 
-set -e
-
-echo "Building Volta"
-
-if [ -z "$2" ]; then 
-    cargo build --release
-    cd target/release
-else
-    cargo build --release --target $2
-    cd target/$2/release
-fi
-
-echo "Packaging Binaries"
-
-tar -zcvf "$1.tar.gz" volta volta-shim volta-migrate
+# Even --target still gives me a /lib/ld-linux-aarch64.so.1
