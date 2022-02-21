@@ -1,6 +1,6 @@
 FROM alpine as base
 
-RUN apk update && apk add bash git
+RUN apk update && apk add bash git perl
 
 # Install Rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
