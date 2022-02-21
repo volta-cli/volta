@@ -20,7 +20,9 @@ WORKDIR /app/src
 COPY ./ci ./ci
 
 FROM openssl AS openssl-1_0_1
+RUN git clone --branch OpenSSL_"1_0_1"-stable https://github.com/openssl/openssl
 RUN ./ci/build-openssl.sh 1_0_1
 
 FROM openssl AS openssl-1_1_0
+RUN git clone --branch OpenSSL_"1_1_0"-stable https://github.com/openssl/openssl
 RUN ./ci/build-openssl.sh 1_1_0
