@@ -55,7 +55,7 @@ jobs:
           - architecture: x86_64
             dockerArch: amd64
             dockerfile: Dockerfile.centos6
-    name: Build - OpenSSL ${{ matrix.openssl }} - ${{ matrix.architecture }}
+    name: Build - OpenSSL ${{ matrix.openssl }} - ${{ matrix.architecture }} (${{ matrix.std }})
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
