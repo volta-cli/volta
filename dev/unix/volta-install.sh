@@ -134,6 +134,15 @@ parse_os_info() {
         return "$exit_code"
       fi
 
+      libc="$(ldd /bin/ls)"
+      warning "$libc"
+
+      # Use MUSL version if we detect MUSL.
+      if [[ $libc == *"musl"* ]]; then
+        echo "linux-musl-openssl-$parsed_version"
+        return 0;
+      fi
+
       echo "linux-openssl-$parsed_version"
       ;;
     Darwin)
@@ -396,6 +405,11 @@ check_architecture() {
         ;;
       arm64)
         if [ "$(uname -s)" = "Darwin" ]; then
+          return 0
+        fi
+        ;;
+      aarch64)
+        if [ "$(uname -s)" = "Linux" ]; then
           return 0
         fi
         ;;
