@@ -157,7 +157,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: macos-${{ matrix.architecture }}
-          path: target/${{ matrix.architecture }}/release/volta-macos-${{ matrix.architecture }}.tar.gz
+          path: target/${{ matrix.architecture }}-apple-darwin/release/volta-macos-${{ matrix.architecture }}.tar.gz
 
   windows:
     name: Build - Windows
