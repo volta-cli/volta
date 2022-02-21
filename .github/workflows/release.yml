@@ -129,7 +129,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: linux-${{ matrix.std }}-openssl-${{ matrix.openssl }}-${{ matrix.architecture }}
-          path: target/release/linux-${{ matrix.std }}-openssl-${{ matrix.openssl }}-${{ matrix.architecture }}.tar.gz
+          path: target/${{ matrix.architecture }}-unknown-linux-${{ matrix.std }}/release/linux-${{ matrix.std }}-openssl-${{ matrix.openssl }}-${{ matrix.architecture }}.tar.gz
 
   macos:
     name: Build - macos-${{ matrix.architecture }}
