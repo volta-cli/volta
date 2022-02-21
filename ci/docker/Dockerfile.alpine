@@ -1,7 +1,5 @@
-FROM alpine as base
-RUN apk update && apk add curl bash git perl make gcc musl-dev linux-headers
-RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
+FROM rust:alpine as base
+RUN apk update && apk add curl bash git perl make gcc musl-dev linux-headers file
 
 FROM base as openssl
 WORKDIR /app/src
