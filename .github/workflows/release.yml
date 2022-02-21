@@ -104,7 +104,7 @@ jobs:
           target: openssl-${{ matrix.openssl }}
 
       - name: Compile and package OpenSSL & Volta
-        run: docker run --volume ${PWD}:/root/workspace --platform linux/${{ matrix.dockerArch }} --workdir /root/workspace --rm --init --tty volta-${{ matrix.openssl }}-${{ matrix.architecture }} /root/workspace/ci/build-with-openssl.sh linux-${{ matrix.std }}-openssl-${{ matrix.openssl }}-${{ matrix.architecture }}
+        run: docker run --volume ${PWD}:/root/workspace --platform linux/${{ matrix.dockerArch }} --workdir /root/workspace --rm --init --tty volta-${{ matrix.std }}-${{ matrix.openssl }}-${{ matrix.architecture }} /root/workspace/ci/build-with-openssl.sh linux-${{ matrix.std }}-openssl-${{ matrix.openssl }}-${{ matrix.architecture }}
 
       - name: Set .cargo/ ownership to current user
         run: sudo chown -R $(id -u):$(id -g) .cargo/
