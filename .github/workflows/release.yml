@@ -115,7 +115,7 @@ jobs:
           --tty
           volta-${{ matrix.std }}-${{ matrix.openssl }}-${{ matrix.architecture }} 
           /root/workspace/ci/build-with-openssl.sh 
-          linux-${{ matrix.std }}-openssl-${{ matrix.openssl }}-${{ matrix.architecture }}
+          linux-${{ matrix.std }}-openssl-${{ matrix.openssl }}-${{ matrix.architecture }} ${{ matrix.architecture}}-unknown-linux-musl
 
       - name: Set .cargo/ ownership to current user
         run: sudo chown -R $(id -u):$(id -g) .cargo/
