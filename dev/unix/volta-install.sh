@@ -124,7 +124,8 @@ upgrade_is_ok() {
 # including the openssl info if necessary
 parse_os_info() {
   local uname_str="$1"
-  local openssl_version="$2"
+  local arch_str="$2"
+  local openssl_version="$3"
 
   case "$uname_str" in
     Linux)
@@ -134,19 +135,26 @@ parse_os_info() {
         return "$exit_code"
       fi
 
-      libc="$(ldd /bin/ls)"
-      warning "$libc"
+      if [ "$arch_str" == "aarch64" ]; then
+        # Use MUSL version if we detect MUSL.
+        if [[ "$(ldd /bin/ls)" == *"musl"* ]]; then
+          echo "linux-musl-openssl-$parsed_version-$arch_str"
+          return 0;
+        fi
 
-      # Use MUSL version if we detect MUSL.
-      if [[ $libc == *"musl"* ]]; then
-        echo "linux-musl-openssl-$parsed_version"
-        return 0;
+        echo "linux-openssl-$parsed_version-$arch_str"
+      else
+        # Use MUSL version if we detect MUSL.
+        if [[ "$(ldd /bin/ls)" == *"musl"* ]]; then
+          echo "linux-musl-openssl-$parsed_version"
+          return 0;
+        fi
+
+        echo "linux-openssl-$parsed_version"
       fi
-
-      echo "linux-openssl-$parsed_version"
       ;;
     Darwin)
-      if [ "$(uname -m)" == "arm64" ]; then
+      if [ "$arch_str" == "arm64" ]; then
         echo "macos-aarch64"
       else
         echo "macos"
@@ -368,9 +376,10 @@ download_release() {
   local version="$1"
 
   local uname_str="$(uname -s)"
+  local arch_str="$(uname -m)"
   local openssl_version="$(openssl version)"
   local os_info
-  os_info="$(parse_os_info "$uname_str" "$openssl_version")"
+  os_info="$(parse_os_info "$uname_str" "$arch_str" "$openssl_version")"
   if [ "$?" != 0 ]; then
     error "The current operating system ($uname_str) does not appear to be supported by Volta."
     return 1

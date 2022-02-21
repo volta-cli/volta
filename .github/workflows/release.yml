@@ -15,9 +15,20 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v2
-      - name: Set up docker image
-        run: docker build -t volta .
-        working-directory: ./ci/docker
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          context: .
+          file: ./ci/docker/Dockerfile.centos6
+          load: true
+          push: false
+          tags: volta
+          target: base
       - name: Compile and package Volta
         run: docker run --volume ${PWD}:/root/workspace --workdir /root/workspace --rm --init --tty volta /root/workspace/ci/build-and-package.sh volta-centos
       - name: Confirm correct OpenSSL Version
@@ -30,37 +41,148 @@ jobs:
           name: linux-centos
           path: target/release/volta-centos.tar.gz
 
-  linux:
+  linux-x86_64:
     strategy:
+      fail-fast: false
       matrix:
-        openssl:
-          - 1_1_0
-          - 1_0_1
-    name: Build - OpenSSL ${{ matrix.openssl }}
+        openssl: [1_0_1, 1_1_0]
+    name: Build - OpenSSL ${{ matrix.openssl }} - x86_64
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
         uses: actions/checkout@v2
-      - name: Check out OpenSSL
-        uses: actions/checkout@v2
+
+      # Not stricly speaking necessary for x86 builds, but the QEMU arm64 builds take hours
+      - name: Rust build cache
+        id: cache-openssl
+        uses: actions/cache@v2
         with:
-          repository: openssl/openssl
-          ref: OpenSSL_${{ matrix.openssl }}-stable
-          path: openssl
-      - name: Set up docker image
-        run: docker build -t volta .
-        working-directory: ./ci/docker
+          path: |
+            .cargo/registry
+            .cargo/git
+            target/
+          key: ${{ runner.os }}-${{ matrix.openssl }}-x86_64-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.openssl }}-x86_64-target-
+
+      - name: Clean .git
+        run: |
+          rm -rf ./openssl/.git
+
+      - name: Debug
+        run: |
+          echo $(ls -la)
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          build-args: |
+            OPENSSL_VERSION=${{ matrix.openssl }}
+          cache-from: type=gha,scope=${{ matrix.openssl }}-x86_64
+          cache-to: type=gha,scope=${{ matrix.openssl }}-x86_64,mode=max
+          context: .
+          file: ./ci/docker/Dockerfile.centos6
+          load: true
+          platforms: linux/amd64
+          push: false
+          tags: volta-${{ matrix.openssl }}-x86_64
+          target: openssl-${{ matrix.openssl }}
+
       - name: Compile and package OpenSSL & Volta
-        run: docker run --volume ${PWD}:/root/workspace --workdir /root/workspace --rm --init --tty volta /root/workspace/ci/build-with-openssl.sh volta-openssl-${{ matrix.openssl }}
+        run: docker run --volume ${PWD}:/root/workspace --platform linux/amd64 --workdir /root/workspace --rm --init --tty volta-${{ matrix.openssl }}-x86_64 /root/workspace/ci/build-with-openssl.sh linux-openssl-${{ matrix.openssl }}-x86_64
+
+      - name: Set .cargo/ ownership to current user
+        run: sudo chown -R $(id -u):$(id -g) .cargo/
+
       - name: Confirm OpenSSL Version
         run: |
           objdump -p target/release/volta
           readelf -d target/release/volta
+
       - name: Upload release artifact
         uses: actions/upload-artifact@v2
         with:
-          name: linux-openssl-${{ matrix.openssl }}
-          path: target/release/volta-openssl-${{ matrix.openssl }}.tar.gz
+          name: linux-openssl-${{ matrix.openssl }}-x86_64
+          path: target/release/linux-openssl-${{ matrix.openssl }}-x86_64.tar.gz
+
+  linux-aarch64:
+    strategy:
+      fail-fast: false
+      matrix:
+        openssl: [1_0_1, 1_1_0]
+    name: Build - OpenSSL ${{ matrix.openssl }} - aarch64
+    runs-on: ubuntu-latest
+    #if: github.event_name == 'push'
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      # The QEMU arm64 builds take hours
+      - name: Rust build cache
+        id: cache-openssl
+        uses: actions/cache@v2
+        with:
+          path: |
+            .cargo/registry
+            .cargo/git
+            target/
+          key: ${{ runner.os }}-${{ matrix.openssl }}-aarch64-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.openssl }}-aarch64-target-
+
+      - name: Clean .git
+        run: |
+          rm -rf ./openssl/.git
+
+      - name: Debug
+        run: |
+          echo $(ls -la)
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          build-args: |
+            OPENSSL_VERSION=${{ matrix.openssl }}
+          cache-from: type=gha,scope=${{ matrix.openssl }}-aarch64
+          cache-to: type=gha,scope=${{ matrix.openssl }}-aarch64,mode=max
+          context: .
+          file: ./ci/docker/Dockerfile.centos7
+          load: true
+          platforms: linux/arm64
+          push: false
+          tags: volta-${{ matrix.openssl }}-aarch64
+          target: openssl-${{ matrix.openssl }}
+
+      - name: Compile and package OpenSSL & Volta
+        run: docker run --volume ${PWD}:/root/workspace --platform linux/arm64 --workdir /root/workspace --rm --init --tty volta-${{ matrix.openssl }}-aarch64 /root/workspace/ci/build-with-openssl.sh linux-openssl-${{ matrix.openssl }}-aarch64
+
+      - name: Set .cargo/ ownership to current user
+        run: sudo chown -R $(id -u):$(id -g) .cargo/
+
+      - name: Confirm OpenSSL Version
+        run: |
+          objdump -p target/release/volta
+          readelf -d target/release/volta
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: linux-openssl-${{ matrix.openssl }}-aarch64
+          path: target/release/linux-openssl-${{ matrix.openssl }}-aarch64.tar.gz
 
   macos:
     name: Build - MacOS
@@ -160,13 +282,14 @@ jobs:
   release:
     name: Publish release
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     needs:
       - centos
-      - linux
+      - linux-x86_64
+      - linux-aarch64
       - macos
       - macos-aarch64
       - windows
-    if: github.event_name == 'push'
     steps:
       - name: Check out code
         uses: actions/checkout@v2
@@ -180,15 +303,25 @@ jobs:
         with:
           name: linux-centos
           path: release
-      - name: Fetch OpenSSL 1.0.* artifact
+      - name: Fetch OpenSSL 1.0.*-x86_64 artifact
         uses: actions/download-artifact@v2
         with:
-          name: linux-openssl-1_0_1
+          name: linux-openssl-1_0_1-x86_64
           path: release
-      - name: Fetch OpenSSL 1.1.* artifact
+      - name: Fetch OpenSSL 1.0.*-aarch64 artifact
         uses: actions/download-artifact@v2
         with:
-          name: linux-openssl-1_1_0
+          name: linux-openssl-1_0_1-aarch64
+          path: release
+      - name: Fetch OpenSSL 1.1.*-x86_64 artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-openssl-1_1_0-x86_64
+          path: release
+      - name: Fetch OpenSSL 1.1.*-aarch64 artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-openssl-1_1_0-aarch64
           path: release
       - name: Fetch MacOS artifact
         uses: actions/download-artifact@v2
@@ -229,25 +362,43 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./release/volta-centos.tar.gz
           asset_name: volta-${{ steps.release_info.outputs.version }}-linux-openssl-rhel.tar.gz
-          asset_content_type: applictaion/gzip
+          asset_content_type: application/gzip
       - name: Upload OpenSSL 1.0.* artifact
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/volta-openssl-1_0_1.tar.gz
+          asset_path: ./release/linux-openssl-1_0_1-x86_64.tar.gz
           asset_name: volta-${{ steps.release_info.outputs.version }}-linux-openssl-1.0.tar.gz
-          asset_content_type: applictaion/gzip
+          asset_content_type: application/gzip
+      - name: Upload OpenSSL 1.0.*-aarch64 artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/linux-openssl-1_0_1-aarch64.tar.gz
+          asset_name: volta-${{ steps.release_info.outputs.version }}-linux-openssl-1.0-aarch64.tar.gz
+          asset_content_type: application/gzip
       - name: Upload OpenSSL 1.1.* artifact
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/volta-openssl-1_1_0.tar.gz
+          asset_path: ./release/linux-openssl-1_1_0-x86_64.tar.gz
           asset_name: volta-${{ steps.release_info.outputs.version }}-linux-openssl-1.1.tar.gz
-          asset_content_type: applictaion/gzip
+          asset_content_type: application/gzip
+      - name: Upload OpenSSL 1.1.*-aarch64 artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/linux-openssl-1_1_0-aarch64.tar.gz
+          asset_name: volta-${{ steps.release_info.outputs.version }}-linux-openssl-1.1-aarch64.tar.gz
+          asset_content_type: application/gzip
       - name: Upload MacOS artifact
         uses: actions/upload-release-asset@v1
         env:
@@ -256,7 +407,7 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./release/volta-macos.tar.gz
           asset_name: volta-${{ steps.release_info.outputs.version }}-macos.tar.gz
-          asset_content_type: applictaion/gzip
+          asset_content_type: application/gzip
       - name: Upload MacOS (ARM) artifact
         uses: actions/upload-release-asset@v1
         env:
@@ -274,7 +425,7 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./release/volta-windows.msi
           asset_name: volta-${{ steps.release_info.outputs.version }}-windows-x86_64.msi
-          asset_content_type: applictaion/x-msi
+          asset_content_type: application/x-msi
       - name: Upload Windows zip
         uses: actions/upload-release-asset@v1
         env:

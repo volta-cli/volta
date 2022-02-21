@@ -1,0 +1,22 @@
+FROM centos:7 as base
+
+# Set up additional build tools
+RUN yum -y update && yum clean all
+RUN yum -y install gcc git curl openssl openssl-devel ca-certificates tar perl perl-Module-Load-Conditional && yum clean all
+
+# Install Rust
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
+
+ENV CARGO_HOME=/root/workspace/.cargo \
+    PATH="/root/.cargo/bin:${PATH}"
+
+FROM base as openssl
+
+WORKDIR /app/src
+COPY ./ci ./ci
+
+FROM openssl AS openssl-1_0_1
+RUN ./ci/build-openssl.sh 1_0_1
+
+FROM openssl AS openssl-1_1_0
+RUN ./ci/build-openssl.sh 1_1_0
