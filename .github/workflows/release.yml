@@ -41,7 +41,7 @@ jobs:
           name: linux-centos
           path: target/release/volta-centos.tar.gz
 
-  linux-x86_64:
+  linux-gnu-x86_64:
     strategy:
       fail-fast: false
       matrix:
@@ -119,7 +119,6 @@ jobs:
         openssl: [1_0_1, 1_1_0]
     name: Build - OpenSSL ${{ matrix.openssl }} - aarch64
     runs-on: ubuntu-latest
-    #if: github.event_name == 'push'
     steps:
       - name: Check out code
         uses: actions/checkout@v2
@@ -185,45 +184,32 @@ jobs:
           path: target/release/linux-openssl-${{ matrix.openssl }}-aarch64.tar.gz
 
   macos:
-    name: Build - MacOS
+    name: Build - macos-${{ matrix.architecture }}
     runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [x86_64, aarch64]
     steps:
       - name: Check out code
         uses: actions/checkout@v2
-      - name: Set up cargo
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - name: Compile and package Volta
-        run: ./ci/build-and-package.sh volta-macos
-      - name: Upload release artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: macos
-          path: target/release/volta-macos.tar.gz
 
-  macos-aarch64:
-    name: Build - MacOS (ARM)
-    runs-on: macos-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
       - name: Set up cargo
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
-          target: aarch64-apple-darwin
+          target: ${{ matrix.architecture }}-apple-darwin
           override: true
+
       - name: Compile and package Volta
-        run: ./ci/build-for-arm.sh volta-macos-aarch64
+        run: ./ci/macos/build.sh volta-macos-${{ matrix.architecture }} ${{ matrix.architecture }}
+
       - name: Upload release artifact
         uses: actions/upload-artifact@v2
         with:
-          name: macos-aarch64
-          path: target/aarch64-apple-darwin/release/volta-macos-aarch64.tar.gz
+          name: macos-${{ matrix.architecture }}
+          path: target/${{ matrix.architecture }}/release/volta-macos-${{ matrix.architecture }}.tar.gz
 
   windows:
     name: Build - Windows
@@ -285,10 +271,8 @@ jobs:
     if: github.event_name == 'push'
     needs:
       - centos
-      - linux-x86_64
-      - linux-aarch64
+      - linux
       - macos
-      - macos-aarch64
       - windows
     steps:
       - name: Check out code
@@ -303,26 +287,49 @@ jobs:
         with:
           name: linux-centos
           path: release
+
       - name: Fetch OpenSSL 1.0.*-x86_64 artifact
         uses: actions/download-artifact@v2
         with:
-          name: linux-openssl-1_0_1-x86_64
+          name: linux-gnu-x86_64-openssl-1_0_1
           path: release
       - name: Fetch OpenSSL 1.0.*-aarch64 artifact
         uses: actions/download-artifact@v2
         with:
-          name: linux-openssl-1_0_1-aarch64
+          name: linux-gnu-aarch64-openssl-1_0_1
           path: release
       - name: Fetch OpenSSL 1.1.*-x86_64 artifact
         uses: actions/download-artifact@v2
         with:
-          name: linux-openssl-1_1_0-x86_64
+          name: linux-gnu-x86_64-openssl-1_1_0
           path: release
       - name: Fetch OpenSSL 1.1.*-aarch64 artifact
         uses: actions/download-artifact@v2
         with:
-          name: linux-openssl-1_1_0-aarch64
+          name: linux-gnu-aarch64-openssl-1_1_0
           path: release
+
+      - name: Fetch OpenSSL 1.0.*-x86_64-musl artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-musl-x86_64-openssl-1_0_1
+          path: release
+      - name: Fetch OpenSSL 1.0.*-aarch64-musl artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-musl-aarch64-openssl-1_0_1
+          path: release
+      - name: Fetch OpenSSL 1.1.*-x86_64-musl artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-musl-x86_64-openssl-1_1_0
+          path: release
+      - name: Fetch OpenSSL 1.1.*-aarch64-musl artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-musl-aarch64-openssl-1_1_0
+          path: release
+
       - name: Fetch MacOS artifact
         uses: actions/download-artifact@v2
         with:
