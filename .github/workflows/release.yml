@@ -129,7 +129,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: linux-${{ matrix.std }}-openssl-${{ matrix.openssl }}-${{ matrix.architecture }}
-          path: target/${{ matrix.architecture }}-unknown-linux-${{ matrix.std }}/release/linux-${{ matrix.std }}-openssl-${{ matrix.openssl }}-${{ matrix.architecture }}.tar.gz
+          path: target/release/linux-${{ matrix.std }}-openssl-${{ matrix.openssl }}-${{ matrix.architecture }}.tar.gz
 
   macos:
     name: Build - macos-${{ matrix.architecture }}
@@ -151,7 +151,7 @@ jobs:
           override: true
 
       - name: Compile and package Volta
-        run: ./ci/macos/build.sh volta-macos-${{ matrix.architecture }} ${{ matrix.architecture }}
+        run: ./ci/build-macos.sh volta-macos-${{ matrix.architecture }} ${{ matrix.architecture }}
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v2
