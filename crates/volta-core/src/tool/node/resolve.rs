@@ -15,8 +15,6 @@ use crate::session::Session;
 use crate::style::progress_spinner;
 use crate::tool::Node;
 use crate::version::{VersionSpec, VersionTag};
-use attohttpc::header::HeaderMap;
-use attohttpc::Response;
 use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
 use hyperx::header::{CacheControl, CacheDirective, Expires, HttpDate, TypedHeaders};
@@ -181,7 +179,7 @@ fn read_cached_opt(url: &str) -> Fallible<Option<RawNodeIndex>> {
 }
 
 /// Get the cache max-age of an HTTP reponse.
-fn max_age(headers: &HeaderMap) -> u32 {
+fn max_age(headers: &reqwest::header::HeaderMap) -> u32 {
     if let Ok(cache_control_header) = headers.decode::<CacheControl>() {
         for cache_directive in cache_control_header.iter() {
             if let CacheDirective::MaxAge(max_age) = cache_directive {
@@ -204,11 +202,13 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
             debug!("Node index cache was not found or was invalid");
             let spinner = progress_spinner(format!("Fetching public registry: {}", url));
 
-            let (_, headers, response) = attohttpc::get(url)
+            let client = reqwest::blocking::Client::new();
+            let response = client
+                .get(url)
                 .send()
-                .and_then(Response::error_for_status)
-                .with_context(registry_fetch_error("Node", url))?
-                .split();
+                .and_then(|r| reqwest::blocking::Response::error_for_status(r))
+                .with_context(registry_fetch_error("Node", url))?;
+            let headers = response.headers();
 
             let expires = if let Ok(expires_header) = headers.decode::<Expires>() {
                 expires_header.to_string()

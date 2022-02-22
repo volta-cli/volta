@@ -34,7 +34,8 @@ impl Zip {
     /// Initiate fetching of a Node zip archive from the given URL, returning
     /// a `Remote` data source.
     pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, ArchiveError> {
-        let (status, _, mut response) = attohttpc::get(url).send()?.split();
+        let mut response = reqwest::blocking::get(url)?;
+        let status = response.status();
 
         if !status.is_success() {
             return Err(ArchiveError::HttpError(status));
