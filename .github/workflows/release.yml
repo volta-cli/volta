@@ -201,7 +201,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # TODO: Linux artifacts
         artifact:
           [
             "x86_64-unknown-linux-gnu",
@@ -214,7 +213,17 @@ jobs:
             "x86_64-pc-windows-msvc-zip",
           ]
         include:
-          # TODO: Linux artifacts
+          - artifact: x86_64-unknown-linux-gnu
+            asset_content_type: gzip
+          
+          - artifact:x86_64-unknown-linux-musl
+            asset_content_type: gzip
+        
+          - artifact: aarch64-unknown-linux-gnu
+            asset_content_type: gzip
+          
+          - artifact: aarch64-unknown-linux-musl
+            asset_content_type: gzip
 
           - artifact: x86_64-apple-darwin
             asset_content_type: gzip
@@ -251,7 +260,7 @@ jobs:
         with:
           upload_url: ${{ needs.create_draft_release.outputs.upload_url }}
           asset_path: ./release/${{ matrix.artifact }}.tar.gz
-          asset_name: volta-${{ steps.release_info.outputs.version }}-${{ matrix.artifact }}.tar.gz
+          asset_name: volta-${{ steps.release_info.outputs.version }}-${{ matrix.asset_name }}.tar.gz
           asset_content_type: ${{ matrix.act }}
 
   upload-manifest:
