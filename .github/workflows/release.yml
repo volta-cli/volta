@@ -5,7 +5,7 @@ on:
   pull_request:
     branches:
       - main
-        use-static-tls-impl
+      - use-static-tls-impl
 
 name: Production
 
