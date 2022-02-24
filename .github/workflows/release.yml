@@ -19,6 +19,8 @@ jobs:
     name: ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
     runs-on: ubuntu-latest
     steps:
+      - run: ldd --version ldd
+
       - name: Check out code
         uses: actions/checkout@v2
 
