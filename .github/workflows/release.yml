@@ -35,6 +35,7 @@ jobs:
           context: .
           file: ./ci/docker/Dockerfile
           platforms: linux/amd64
+          build-args: TARGET=${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
           load: true
           tags: ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
           cache-from: type=gha,scope=${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
@@ -50,14 +51,6 @@ jobs:
             target/
           key: ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Set up cargo
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          target: ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
-          override: true
-
       - name: Compile Volta
         run: >
           docker run 
@@ -68,7 +61,7 @@ jobs:
           --init 
           --tty 
           ${{ matrix.arch }}-unknown-linux-${{ matrix.std }} 
-          cargo build --release --target ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
+          'cargo build --release --target ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}'
 
       - name: Package Volta
         run: chmod +x ./ci/package.sh && ./ci/package.sh ./target/${{ matrix.arch }}-unknown-linux-${{ matrix.std }}/release ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
