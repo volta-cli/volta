@@ -21,24 +21,19 @@ target=$1
 features=${2-}
 
 function install_packages {
-  sudo apt-get -yq --no-install-suggests --no-install-recommends install "$@"
+ yum -y install "$@"
 }
 
 use_clang=0
 
-# TODO: install GCC from source here
-
 case $target in
 --target=aarch64-unknown-linux-gnu)
-  install_packages \
-    qemu-user \
-    gcc-aarch64-linux-gnu \
-    libc6-dev-arm64-cross
+  install_packages qemu-user
+  # gcc-aarch64-linux-gnu \ libc6-dev-arm64-cross
   ;;
 --target=aarch64-unknown-linux-musl)
   use_clang=1
-  install_packages \
-    qemu-user
+  install_packages qemu-user
   ;;
 --target=x86_64-unknown-linux-musl)
   use_clang=1
