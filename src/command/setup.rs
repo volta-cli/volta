@@ -60,7 +60,7 @@ mod os {
         let profiles = determine_profiles()?;
 
         let found_profile = profiles.into_iter().fold(false, |prev, profile| {
-            let contents = read_profile_without_volta(&profile).unwrap_or_else(String::new);
+            let contents = read_profile_without_volta(&profile).unwrap_or_default();
 
             let write_profile = match profile.extension() {
                 Some(ext) if ext == "fish" => write_profile_fish,
