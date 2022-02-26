@@ -51,7 +51,7 @@ impl<'a> CommandArg<'a> {
         // then we treat the command not a global and allow npm to handle any error messages.
         match positionals.next() {
             Some(cmd) if NPM_INSTALL_ALIASES.iter().any(|a| a == &cmd) => {
-                if has_global_flag(args) {
+                if has_global_without_prefix(args) {
                     let tools: Vec<_> = positionals.collect();
 
                     if tools.is_empty() {
@@ -72,7 +72,7 @@ impl<'a> CommandArg<'a> {
                 }
             }
             Some(cmd) if NPM_UNINSTALL_ALIASES.iter().any(|a| a == &cmd) => {
-                if has_global_flag(args) {
+                if has_global_without_prefix(args) {
                     let tools: Vec<_> = positionals.collect();
 
                     if tools.is_empty() {
@@ -90,7 +90,7 @@ impl<'a> CommandArg<'a> {
                 if tools.is_empty() {
                     // `npm unlink` without any arguments is used to unlink the current project
                     CommandArg::Intercepted(InterceptedCommand::Unlink)
-                } else if has_global_flag(args) {
+                } else if has_global_without_prefix(args) {
                     // With arguments, `npm unlink` is an alias of `npm remove`
                     CommandArg::Global(GlobalCommand::Uninstall(UninstallArgs { tools }))
                 } else {
@@ -106,7 +106,7 @@ impl<'a> CommandArg<'a> {
                 CommandArg::Intercepted(InterceptedCommand::Link(LinkArgs { common_args, tools }))
             }
             Some(cmd) if NPM_UPDATE_ALIASES.iter().any(|a| a == &cmd) => {
-                if has_global_flag(args) {
+                if has_global_without_prefix(args) {
                     // Once again, the common args are the command combined with any flags
                     let mut common_args = vec![cmd];
                     common_args.extend(args.iter().filter(is_flag).map(AsRef::as_ref));
@@ -379,12 +379,25 @@ impl<'a> LinkArgs<'a> {
     }
 }
 
-fn has_global_flag<A>(args: &[A]) -> bool
+/// Check if the provided argument list includes a global flag and _doesn't_ have a prefix setting
+///
+/// For our interception, we only want to intercept global commands. Additionally, if the user
+/// passes a prefix setting, that will override the logic we use to redirect the install, so our
+/// process won't work and will cause an error. We should avoid intercepting in those cases since
+/// a command with an explicit prefix is something beyond the "standard" global install anyway.
+fn has_global_without_prefix<A>(args: &[A]) -> bool
 where
     A: AsRef<OsStr>,
 {
-    args.iter()
-        .any(|arg| arg.as_ref() == "-g" || arg.as_ref() == "--global")
+    let (has_global, has_prefix) = args.iter().fold((false, false), |(global, prefix), arg| {
+        match arg.as_ref().to_str() {
+            Some("-g") | Some("--global") => (true, prefix),
+            Some(pre) if pre.starts_with("--prefix") => (global, true),
+            _ => (global, prefix),
+        }
+    });
+
+    has_global && !has_prefix
 }
 
 fn is_flag<A>(arg: &A) -> bool
@@ -683,6 +696,49 @@ mod tests {
                     assert_eq!(uninstall.tools, vec!["typescript", "cowsay"]);
                 }
                 _ => panic!("Doesn't parse uninstall with extra flags as a global"),
+            }
+        }
+
+        #[test]
+        fn skips_commands_with_prefix() {
+            match CommandArg::for_npm(&arg_list(&["install", "-g", "--prefix", "~/", "ember"])) {
+                CommandArg::Standard => {}
+                _ => panic!("Parsed command with prefix as a global"),
+            }
+
+            match CommandArg::for_npm(&arg_list(&["install", "-g", "--prefix=~/", "ember"])) {
+                CommandArg::Standard => {}
+                _ => panic!("Parsed command with prefix as a global"),
+            }
+
+            match CommandArg::for_npm(&arg_list(&["uninstall", "-g", "--prefix", "~/", "ember"])) {
+                CommandArg::Standard => {}
+                _ => panic!("Parsed command with prefix as a global"),
+            }
+
+            match CommandArg::for_npm(&arg_list(&["uninstall", "-g", "--prefix=~/", "ember"])) {
+                CommandArg::Standard => {}
+                _ => panic!("Parsed command with prefix as a global"),
+            }
+
+            match CommandArg::for_npm(&arg_list(&["unlink", "-g", "--prefix", "~/", "ember"])) {
+                CommandArg::Standard => {}
+                _ => panic!("Parsed command with prefix as a global"),
+            }
+
+            match CommandArg::for_npm(&arg_list(&["unlink", "-g", "--prefix=~/", "ember"])) {
+                CommandArg::Standard => {}
+                _ => panic!("Parsed command with prefix as a global"),
+            }
+
+            match CommandArg::for_npm(&arg_list(&["update", "-g", "--prefix", "~/"])) {
+                CommandArg::Standard => {}
+                _ => panic!("Parsed command with prefix as a global"),
+            }
+
+            match CommandArg::for_npm(&arg_list(&["update", "-g", "--prefix=~/"])) {
+                CommandArg::Standard => {}
+                _ => panic!("Parsed command with prefix as a global"),
             }
         }
     }
