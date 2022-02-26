@@ -7,7 +7,7 @@ RUN sed -i 's/^mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Base.repo && \
 
 # Set up additional build tools
 RUN yum -y update && yum clean all
-RUN yum -y install curl && yum clean all
+RUN yum -y install curl bash && yum clean all
 
 # Install Rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
@@ -17,4 +17,6 @@ ENV CARGO_HOME=/root/workspace/.cargo \
 
 RUN rustup target add $TARGET
 
-# TODO: build latest version of GCC from source
+ADD . .
+
+RUN chmod +x ./ci/install-build-tools.sh && bash ./install-build-tools.sh --target=$TARGET
