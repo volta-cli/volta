@@ -19,4 +19,4 @@ RUN rustup target add $TARGET
 
 ADD . .
 
-RUN chmod +x ./ci/install-build-tools.sh && bash ./ci/install-build-tools.sh --target=$TARGET
+RUN chmod +x ./ci/install-build-tools.sh && bash ./ci/install-build-tools.sh $TARGET
