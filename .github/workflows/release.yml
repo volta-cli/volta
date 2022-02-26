@@ -5,6 +5,7 @@ on:
   pull_request:
     branches:
       - main
+      - use-static-tls-impl
 
 name: Production
 
@@ -18,44 +19,29 @@ jobs:
     name: ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
     runs-on: ubuntu-latest
     steps:
+      - run: ldd --version ldd
+
       - name: Check out code
         uses: actions/checkout@v2
 
-       - name: Set up QEMU
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
 
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v1
-      
+
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
           context: .
           file: ./ci/docker/Dockerfile
           platforms: linux/amd64
+          build-args: TARGET=${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
           load: true
           tags: ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
           cache-from: type=gha,scope=${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
           cache-to: type=gha,scope=${{ matrix.arch }}-unknown-linux-${{ matrix.std }},mode=max
-
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Set up cargo
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          target: ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
-          override: true
 
       - name: Compile Volta
         run: >
@@ -67,7 +53,7 @@ jobs:
           --init 
           --tty 
           ${{ matrix.arch }}-unknown-linux-${{ matrix.std }} 
-          cargo build --release --target ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
+          ./ci/cargo.sh build --release --target=${{ matrix.arch }}-unknown-linux-${{ matrix.std }}s
 
       - name: Package Volta
         run: chmod +x ./ci/package.sh && ./ci/package.sh ./target/${{ matrix.arch }}-unknown-linux-${{ matrix.std }}/release ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
