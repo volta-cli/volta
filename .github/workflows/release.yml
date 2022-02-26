@@ -43,16 +43,6 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
           cache-to: type=gha,scope=${{ matrix.arch }}-unknown-linux-${{ matrix.std }},mode=max
 
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
       - name: Compile Volta
         run: >
           docker run 
@@ -63,7 +53,7 @@ jobs:
           --init 
           --tty 
           ${{ matrix.arch }}-unknown-linux-${{ matrix.std }} 
-          'cargo build --release --target ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}'
+          'chmod +x ./ci/cargo.sh && ./ci/cargo.sh build --release --target=${{ matrix.arch }}-unknown-linux-${{ matrix.std }}'
 
       - name: Package Volta
         run: chmod +x ./ci/package.sh && ./ci/package.sh ./target/${{ matrix.arch }}-unknown-linux-${{ matrix.std }}/release ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
