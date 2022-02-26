@@ -322,8 +322,8 @@ impl Execs {
             Ok(actual) => actual,
         };
         // Let's not deal with \r\n vs \n on windows...
-        let actual = actual.replace("\r", "");
-        let actual = actual.replace("\t", "<tab>");
+        let actual = actual.replace('\r', "");
+        let actual = actual.replace('\t', "<tab>");
 
         match kind {
             MatchKind::Exact => {
@@ -515,8 +515,8 @@ enum MatchKind {
 ///   See `substitute_macros` for a complete list of macros.
 pub fn lines_match(expected: &str, actual: &str) -> bool {
     // Let's not deal with / vs \ (windows...)
-    let expected = expected.replace("\\", "/");
-    let mut actual: &str = &actual.replace("\\", "/");
+    let expected = expected.replace('\\', "/");
+    let mut actual: &str = &actual.replace('\\', "/");
     let expected = substitute_macros(&expected);
     for (i, part) in expected.split("[..]").enumerate() {
         match actual.find(part) {
