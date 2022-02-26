@@ -17,6 +17,6 @@ ENV CARGO_HOME=/root/workspace/.cargo \
 
 RUN rustup target add $TARGET
 
-ADD . .
+ADD . /root/workspace/
 
-RUN chmod +x ./ci/install-build-tools.sh && bash ./ci/install-build-tools.sh $TARGET
+RUN chmod +x /root/workspace/ci/install-build-tools.sh && bash /root/workspace/ci/install-build-tools.sh $TARGET

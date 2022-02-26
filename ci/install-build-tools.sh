@@ -26,6 +26,8 @@ function install_packages {
 
 use_clang=0
 
+# TODO: install GCC from source here
+
 case $target in
 --target=aarch64-unknown-linux-gnu)
   install_packages \
