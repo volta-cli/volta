@@ -53,7 +53,7 @@ jobs:
           --init 
           --tty 
           ${{ matrix.arch }}-unknown-linux-${{ matrix.std }} 
-          'chmod +x /root/workspace/ci/cargo.sh && /root/workspace/ci/cargo.sh build --release --target=${{ matrix.arch }}-unknown-linux-${{ matrix.std }}'
+          './ci/cargo.sh build --release --target=${{ matrix.arch }}-unknown-linux-${{ matrix.std }}'
 
       - name: Package Volta
         run: chmod +x ./ci/package.sh && ./ci/package.sh ./target/${{ matrix.arch }}-unknown-linux-${{ matrix.std }}/release ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
