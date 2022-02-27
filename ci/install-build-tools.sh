@@ -18,22 +18,24 @@ set -eux -o pipefail
 IFS=$'\n\t'
 
 target=$1
-features=${2-}
 
 function install_packages {
- yum -y install "$@"
+  apt-get -yq --no-install-suggests --no-install-recommends install "$@"
 }
 
 use_clang=0
 
 case $target in
 --target=aarch64-unknown-linux-gnu)
-  install_packages qemu-user
-  # gcc-aarch64-linux-gnu \ libc6-dev-arm64-cross
+  install_packages \
+    qemu-user \
+    gcc-aarch64-linux-gnu \
+    libc6-dev-arm64-cross
   ;;
 --target=aarch64-unknown-linux-musl)
   use_clang=1
-  install_packages qemu-user
+  install_packages \
+    qemu-user
   ;;
 --target=x86_64-unknown-linux-musl)
   use_clang=1
@@ -46,6 +48,9 @@ if [ -n "$use_clang" ]; then
   # https://github.com/rustls/rustls/pull/1009 upgraded Rust's LLVM version to
   # 14
   llvm_version=14
-  
-  # TODO: build llvm-14 and clang-14 from source
+  apt-get -qqy update && apt-get install -y wget gnupg2 unzip git curl libxml2 libatomic1 libc6-dev lsb-release
+  echo "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-14 main" >> /etc/apt/sources.list
+  echo "deb-src http://apt.llvm.org/bionic/ llvm-toolchain-bionic-14 main" >> /etc/apt/sources.list
+  wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key| apt-key add -
+  apt-get update && apt-get install -y libllvm-14-ocaml-dev libllvm14 llvm-14 llvm-14-dev llvm-14-doc llvm-14-examples llvm-14-runtime clang-14 lldb-14 lld-14
 fi

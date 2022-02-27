@@ -14,13 +14,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: ["x86_64"]
-        std: ["gnu"]
-    name: ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
+        target:
+          [
+            "x86_64-unknown-linux-gnu",
+            "x86_64-unknown-linux-musl",
+            "aarch64-unknown-linux-gnu",
+            "aarch64-unknown-linux-musl",
+          ]
+    name: ${{ matrix.target }}
     runs-on: ubuntu-latest
     steps:
-      - run: ldd --version ldd
-
       - name: Check out code
         uses: actions/checkout@v2
 
@@ -37,11 +40,11 @@ jobs:
           context: .
           file: ./ci/docker/Dockerfile
           platforms: linux/amd64
-          build-args: TARGET=${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
+          build-args: TARGET=${{ matrix.target }}
           load: true
-          tags: ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
-          cache-from: type=gha,scope=${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
-          cache-to: type=gha,scope=${{ matrix.arch }}-unknown-linux-${{ matrix.std }},mode=max
+          tags: ${{ matrix.target }}
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,scope=${{ matrix.target }},mode=max
 
       - name: Compile Volta
         run: >
@@ -52,24 +55,24 @@ jobs:
           --rm 
           --init 
           --tty 
-          ${{ matrix.arch }}-unknown-linux-${{ matrix.std }} 
-          ./ci/cargo.sh build --release --target=${{ matrix.arch }}-unknown-linux-${{ matrix.std }}s
+          ${{ matrix.target }} 
+          ./ci/cargo.sh build --release --target=${{ matrix.target }}
 
       - name: Package Volta
-        run: chmod +x ./ci/package.sh && ./ci/package.sh ./target/${{ matrix.arch }}-unknown-linux-${{ matrix.std }}/release ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
+        run: chmod +x ./ci/package.sh && ./ci/package.sh ./target/${{ matrix.target }}/release ${{ matrix.target }}
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.arch }}-unknown-linux-${{ matrix.std }}
-          path: ./${{ matrix.arch }}-unknown-linux-${{ matrix.std }}.tar.gz
+          name: ${{ matrix.target }}
+          path: ./${{ matrix.target }}.tar.gz
 
   macos:
     strategy:
       fail-fast: false
       matrix:
-        arch: ["x86_64", "aarch64"]
-    name: ${{ matrix.arch }}-apple-darwin
+        target: ["x86_64-apple-darwin", "aarch64-apple-darwin"]
+    name: ${{ matrix.target }}
     runs-on: macos-latest
     steps:
       - name: Check out code
@@ -83,40 +86,39 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ matrix.arch }}-apple-darwin-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Set up cargo
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
-          target: ${{ matrix.arch }}-apple-darwin
+          target: ${{ matrix.target }}
           override: true
 
       - name: Compile Volta ( aarch64 )
         if: ${{ matrix.arch == 'aarch64' }}
-        run: SDKROOT=$(xcrun -sdk macosx11.1 --show-sdk-path) MACOSX_DEPLOYMENT_TARGET=11.0 cargo build --release --target=${{ matrix.arch }}-apple-darwin
+        run: SDKROOT=$(xcrun -sdk macosx11.1 --show-sdk-path) MACOSX_DEPLOYMENT_TARGET=11.0 cargo build --release --target=${{ matrix.target }}
 
       - name: Compile Volta ( x86_64 )
         if: ${{ matrix.arch != 'aarch64' }}
-        run: cargo build --release --target=${{ matrix.arch }}-apple-darwin
+        run: cargo build --release --target=${{ matrix.target }}
 
       - name: Package Volta
-        run: chmod +x ./ci/package.sh && ./ci/package.sh ./target/${{ matrix.arch }}-apple-darwin/release ${{ matrix.arch }}-apple-darwin
+        run: chmod +x ./ci/package.sh && ./ci/package.sh ./target/${{ matrix.target }}/release ${{ matrix.target }}
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.arch }}-apple-darwin
-          path: ./${{ matrix.arch }}-apple-darwin.tar.gz
+          name: ${{ matrix.target }}
+          path: ./${{ matrix.target }}.tar.gz
 
   windows:
     strategy:
       fail-fast: false
       matrix:
-        arch: ["x86_64"]
-        std: ["msvc"]
-    name: ${{ matrix.arch }}-pc-windows-${{ matrix.std }}
+        target: ["x86_64-pc-windows-msvc"]
+    name: ${{ matrix.target }}
     runs-on: windows-latest
     steps:
       - name: Check out code
@@ -127,7 +129,7 @@ jobs:
         with:
           profile: minimal
           toolchain: stable
-          target: ${{ matrix.arch }}-pc-windows-${{ matrix.std }}
+          target: ${{ matrix.target }}
           override: true]
 
       - name: Add cargo-wix subcommand
@@ -140,7 +142,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: wix
-          args: --nocapture --package volta --output target\wix\${{ matrix.arch }}-pc-windows-${{ matrix.std }}.msi
+          args: --nocapture --package volta --output target\wix\${{ matrix.target }}.msi
 
       - name: Load Certificate File
         id: certificate_file
@@ -156,26 +158,26 @@ jobs:
           CERTIFICATE_FILE: ${{ steps.certificate_file.outputs.filePath }}
           CERTIFICATE_PASSWORD: ${{ secrets.INSTALLER_CERTIFICATE_PASSWORD }}
         run: |
-          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x86\signtool.exe" sign /fd sha256 /f "$env:CERTIFICATE_FILE" /p "$env:CERTIFICATE_PASSWORD" /tr http://ts.ssl.com /td sha256 /d "Volta: Start Your Engines" /du "https://volta.sh" "target\wix\${{ matrix.arch }}-pc-windows-${{ matrix.std }}.msi"
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x86\signtool.exe" sign /fd sha256 /f "$env:CERTIFICATE_FILE" /p "$env:CERTIFICATE_PASSWORD" /tr http://ts.ssl.com /td sha256 /d "Volta: Start Your Engines" /du "https://volta.sh" "target\wix\${{ matrix.target }}.msi"
       - name: Verify Signature
         if: github.event_name == 'push'
         run: |
-          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x86\signtool.exe" verify /pa "target\wix\${{ matrix.arch }}-pc-windows-${{ matrix.std }}.msi"
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x86\signtool.exe" verify /pa "target\wix\${{ matrix.target }}.msi"
       - name: Create zip of binaries
-        run: powershell Compress-Archive volta*.exe ${{ matrix.arch }}-pc-windows-${{ matrix.std }}.zip
+        run: powershell Compress-Archive volta*.exe ${{ matrix.target }}.zip
         working-directory: ./target/release
 
       - name: Upload installer
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.arch }}-pc-windows-${{ matrix.std }}-installer
-          path: target/wix/${{ matrix.arch }}-pc-windows-${{ matrix.std }}.msi
+          name: ${{ matrix.target }}-installer
+          path: target/wix/${{ matrix.target }}.msi
 
       - name: Upload zip
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.arch }}-pc-windows-${{ matrix.std }}-zip
-          path: target/release/${{ matrix.arch }}-pc-windows-${{ matrix.std }}.zip
+          name: ${{ matrix.target }}-zip
+          path: target/release/${{ matrix.target }}.zip
 
   create-draft-release:
     name: Create draft release
