@@ -11,6 +11,7 @@ use crate::inventory::package_configs;
 use crate::platform::{Platform, PlatformSpec};
 use crate::tool::package::PackageManager;
 use crate::tool::Spec;
+use log::debug;
 
 const UNSAFE_GLOBAL: &str = "VOLTA_UNSAFE_GLOBAL";
 /// Aliases that npm supports for the 'install' command
@@ -396,6 +397,10 @@ where
             _ => (global, prefix),
         }
     });
+
+    if has_global && has_prefix {
+        debug!("Skipping global interception due to prefix argument");
+    }
 
     has_global && !has_prefix
 }
