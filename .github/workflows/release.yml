@@ -5,126 +5,145 @@ on:
   pull_request:
     branches:
       - main
+      - use-static-tls-impl
 
 name: Production
 
 jobs:
-  centos:
-    name: Build - CentOS / RHEL
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
-      - name: Set up docker image
-        run: docker build -t volta .
-        working-directory: ./ci/docker
-      - name: Compile and package Volta
-        run: docker run --volume ${PWD}:/root/workspace --workdir /root/workspace --rm --init --tty volta /root/workspace/ci/build-and-package.sh volta-centos
-      - name: Confirm correct OpenSSL Version
-        run: |
-          objdump -p target/release/volta
-          readelf -d target/release/volta
-      - name: Upload release artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: linux-centos
-          path: target/release/volta-centos.tar.gz
-
   linux:
     strategy:
+      fail-fast: false
       matrix:
-        openssl:
-          - 1_1_0
-          - 1_0_1
-    name: Build - OpenSSL ${{ matrix.openssl }}
+        target:
+          [
+            "x86_64-unknown-linux-gnu",
+            "x86_64-unknown-linux-musl",
+            "aarch64-unknown-linux-gnu",
+            "aarch64-unknown-linux-musl",
+          ]
+    name: ${{ matrix.target }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
         uses: actions/checkout@v2
-      - name: Check out OpenSSL
-        uses: actions/checkout@v2
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build and push
+        uses: docker/build-push-action@v2
         with:
-          repository: openssl/openssl
-          ref: OpenSSL_${{ matrix.openssl }}-stable
-          path: openssl
-      - name: Set up docker image
-        run: docker build -t volta .
-        working-directory: ./ci/docker
-      - name: Compile and package OpenSSL & Volta
-        run: docker run --volume ${PWD}:/root/workspace --workdir /root/workspace --rm --init --tty volta /root/workspace/ci/build-with-openssl.sh volta-openssl-${{ matrix.openssl }}
-      - name: Confirm OpenSSL Version
-        run: |
-          objdump -p target/release/volta
-          readelf -d target/release/volta
+          context: .
+          file: ./ci/docker/Dockerfile
+          platforms: linux/amd64
+          build-args: TARGET=${{ matrix.target }}
+          load: true
+          tags: ${{ matrix.target }}
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,scope=${{ matrix.target }},mode=max
+
+      - name: Compile Volta
+        run: >
+          docker run 
+          --volume ${PWD}:/root/workspace 
+          --platform linux/amd64
+          --workdir /root/workspace 
+          --rm 
+          --init 
+          --tty 
+          ${{ matrix.target }} 
+          ./ci/cargo.sh build --release --target=${{ matrix.target }}
+
+      - name: Package Volta
+        run: chmod +x ./ci/package.sh && ./ci/package.sh ./target/${{ matrix.target }}/release ${{ matrix.target }}
+
       - name: Upload release artifact
         uses: actions/upload-artifact@v2
         with:
-          name: linux-openssl-${{ matrix.openssl }}
-          path: target/release/volta-openssl-${{ matrix.openssl }}.tar.gz
+          name: ${{ matrix.target }}
+          path: ./${{ matrix.target }}.tar.gz
 
   macos:
-    name: Build - MacOS
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ["x86_64-apple-darwin", "aarch64-apple-darwin"]
+    name: ${{ matrix.target }}
     runs-on: macos-latest
     steps:
       - name: Check out code
         uses: actions/checkout@v2
-      - name: Set up cargo
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - name: Compile and package Volta
-        run: ./ci/build-and-package.sh volta-macos
-      - name: Upload release artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: macos
-          path: target/release/volta-macos.tar.gz
 
-  macos-aarch64:
-    name: Build - MacOS (ARM)
-    runs-on: macos-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Set up cargo
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
-          target: aarch64-apple-darwin
+          target: ${{ matrix.target }}
           override: true
-      - name: Compile and package Volta
-        run: ./ci/build-for-arm.sh volta-macos-aarch64
+
+      - name: Compile Volta ( aarch64 )
+        if: ${{ matrix.arch == 'aarch64' }}
+        run: SDKROOT=$(xcrun -sdk macosx11.1 --show-sdk-path) MACOSX_DEPLOYMENT_TARGET=11.0 cargo build --release --target=${{ matrix.target }}
+
+      - name: Compile Volta ( x86_64 )
+        if: ${{ matrix.arch != 'aarch64' }}
+        run: cargo build --release --target=${{ matrix.target }}
+
+      - name: Package Volta
+        run: chmod +x ./ci/package.sh && ./ci/package.sh ./target/${{ matrix.target }}/release ${{ matrix.target }}
+
       - name: Upload release artifact
         uses: actions/upload-artifact@v2
         with:
-          name: macos-aarch64
-          path: target/aarch64-apple-darwin/release/volta-macos-aarch64.tar.gz
+          name: ${{ matrix.target }}
+          path: ./${{ matrix.target }}.tar.gz
 
   windows:
-    name: Build - Windows
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ["x86_64-pc-windows-msvc"]
+    name: ${{ matrix.target }}
     runs-on: windows-latest
     steps:
       - name: Check out code
         uses: actions/checkout@v2
+
       - name: Set up cargo
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
-          override: true
+          target: ${{ matrix.target }}
+          override: true]
+
       - name: Add cargo-wix subcommand
         uses: actions-rs/cargo@v1
         with:
           command: install
           args: cargo-wix
+
       - name: Compile and package installer
         uses: actions-rs/cargo@v1
         with:
           command: wix
-          args: --nocapture --package volta --output target\wix\volta-windows.msi
+          args: --nocapture --package volta --output target\wix\${{ matrix.target }}.msi
+
       - name: Load Certificate File
         id: certificate_file
         if: github.event_name == 'push'
@@ -132,86 +151,45 @@ jobs:
         with:
           fileName: "volta-certificate.pfx"
           encodedString: ${{ secrets.INSTALLER_CERTIFICATE }}
+
       - name: Sign Installer
         if: github.event_name == 'push'
         env:
           CERTIFICATE_FILE: ${{ steps.certificate_file.outputs.filePath }}
           CERTIFICATE_PASSWORD: ${{ secrets.INSTALLER_CERTIFICATE_PASSWORD }}
         run: |
-          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x86\signtool.exe" sign /fd sha256 /f "$env:CERTIFICATE_FILE" /p "$env:CERTIFICATE_PASSWORD" /tr http://ts.ssl.com /td sha256 /d "Volta: Start Your Engines" /du "https://volta.sh" "target\wix\volta-windows.msi"
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x86\signtool.exe" sign /fd sha256 /f "$env:CERTIFICATE_FILE" /p "$env:CERTIFICATE_PASSWORD" /tr http://ts.ssl.com /td sha256 /d "Volta: Start Your Engines" /du "https://volta.sh" "target\wix\${{ matrix.target }}.msi"
       - name: Verify Signature
         if: github.event_name == 'push'
         run: |
-          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x86\signtool.exe" verify /pa "target\wix\volta-windows.msi"
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x86\signtool.exe" verify /pa "target\wix\${{ matrix.target }}.msi"
       - name: Create zip of binaries
-        run: powershell Compress-Archive volta*.exe volta-windows.zip
+        run: powershell Compress-Archive volta*.exe ${{ matrix.target }}.zip
         working-directory: ./target/release
+
       - name: Upload installer
         uses: actions/upload-artifact@v2
         with:
-          name: windows-installer
-          path: target/wix/volta-windows.msi
+          name: ${{ matrix.target }}-installer
+          path: target/wix/${{ matrix.target }}.msi
+
       - name: Upload zip
         uses: actions/upload-artifact@v2
         with:
-          name: windows-zip
-          path: target/release/volta-windows.zip
+          name: ${{ matrix.target }}-zip
+          path: target/release/${{ matrix.target }}.zip
 
-  release:
-    name: Publish release
+  create-draft-release:
+    name: Create draft release
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     needs:
-      - centos
       - linux
       - macos
-      - macos-aarch64
       - windows
-    if: github.event_name == 'push'
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
-      - name: Check out code
-        uses: actions/checkout@v2
-      - name: Determine release version
-        id: release_info
-        env:
-          TAG: ${{ github.ref }}
-        run: echo "::set-output name=version::${TAG:11}"
-      - name: Fetch CentOS artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: linux-centos
-          path: release
-      - name: Fetch OpenSSL 1.0.* artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: linux-openssl-1_0_1
-          path: release
-      - name: Fetch OpenSSL 1.1.* artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: linux-openssl-1_1_0
-          path: release
-      - name: Fetch MacOS artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: macos
-          path: release
-      - name: Fetch MacOS (ARM) artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: macos-aarch64
-          path: release
-      - name: Fetch Windows installer
-        uses: actions/download-artifact@v2
-        with:
-          name: windows-installer
-          path: release
-      - name: Fetch Windows zip
-        uses: actions/download-artifact@v2
-        with:
-          name: windows-zip
-          path: release
-      - name: Show release artifacts
-        run: ls -la release
       - name: Create draft release
         id: create_release
         uses: actions/create-release@v1
@@ -221,69 +199,81 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: ${{ github.ref }}
           draft: true
-      - name: Upload CentOS artifact
+
+  upload-artifacts:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    needs:
+      - create-draft-release
+    strategy:
+      fail-fast: false
+      matrix:
+        artifact:
+          [
+            "x86_64-unknown-linux-gnu",
+            "x86_64-apple-darwin",
+            "aarch64-apple-darwin",
+            "x86_64-pc-windows-msvc-installer",
+            "x86_64-pc-windows-msvc-zip",
+          ]
+        include:
+          - artifact: x86_64-unknown-linux-gnu
+            asset_content_type: gzip
+
+          - artifact: x86_64-apple-darwin
+            asset_content_type: gzip
+
+          - artifact: aarch64-apple-darwin
+            asset_content_type: gzip
+
+          - artifact: x86_64-pc-windows-msvc-installer
+            asset_content_type: x-msi
+
+          - artifact: x86_64-pc-windows-msvc-zip
+            asset_content_type: x-zip
+    name: Upload ${{ matrix.artifact }} artifact
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Determine release version
+        id: release_info
+        env:
+          TAG: ${{ github.ref }}
+        run: echo "::set-output name=version::${TAG:11}"
+
+      - name: Fetch `${{ matrix.artifact }}` artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ matrix.artifact }}
+          path: release
+
+      - name: Upload `${{ matrix.artifact }}` artifact
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/volta-centos.tar.gz
-          asset_name: volta-${{ steps.release_info.outputs.version }}-linux-openssl-rhel.tar.gz
-          asset_content_type: applictaion/gzip
-      - name: Upload OpenSSL 1.0.* artifact
-        uses: actions/upload-release-asset@v1
+          upload_url: ${{ needs.create_draft_release.outputs.upload_url }}
+          asset_path: ./release/${{ matrix.artifact }}.tar.gz
+          asset_name: volta-${{ steps.release_info.outputs.version }}-${{ matrix.asset_name }}.tar.gz
+          asset_content_type: ${{ matrix.act }}
+
+  upload-manifest:
+    name: Upload manifest
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs:
+      - upload-artifacts
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Determine release version
+        id: release_info
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/volta-openssl-1_0_1.tar.gz
-          asset_name: volta-${{ steps.release_info.outputs.version }}-linux-openssl-1.0.tar.gz
-          asset_content_type: applictaion/gzip
-      - name: Upload OpenSSL 1.1.* artifact
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/volta-openssl-1_1_0.tar.gz
-          asset_name: volta-${{ steps.release_info.outputs.version }}-linux-openssl-1.1.tar.gz
-          asset_content_type: applictaion/gzip
-      - name: Upload MacOS artifact
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/volta-macos.tar.gz
-          asset_name: volta-${{ steps.release_info.outputs.version }}-macos.tar.gz
-          asset_content_type: applictaion/gzip
-      - name: Upload MacOS (ARM) artifact
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/volta-macos-aarch64.tar.gz
-          asset_name: volta-${{ steps.release_info.outputs.version }}-macos-aarch64.tar.gz
-          asset_content_type: application/gzip
-      - name: Upload Windows installer
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/volta-windows.msi
-          asset_name: volta-${{ steps.release_info.outputs.version }}-windows-x86_64.msi
-          asset_content_type: applictaion/x-msi
-      - name: Upload Windows zip
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/volta-windows.zip
-          asset_name: volta-${{ steps.release_info.outputs.version }}-windows.zip
-          asset_content_type: application/zip
+          TAG: ${{ github.ref }}
+        run: echo "::set-output name=version::${TAG:11}"
+
       - name: Upload manifest file
         uses: actions/upload-release-asset@v1
         env:
