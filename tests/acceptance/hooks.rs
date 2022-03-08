@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::{thread, time};
 
 use crate::support::events_helpers::{assert_events, match_end, match_error, match_start};
 use crate::support::sandbox::sandbox;
@@ -143,6 +144,7 @@ fn redirects_download() {
             .with_stderr_contains("[..]/hook/default/node/1.2.3")
     );
 
+    thread::sleep(time::Duration::from_millis(5000));
     assert_events(
         &s,
         vec![
@@ -172,6 +174,7 @@ fn merges_project_and_default_hooks() {
             .with_stderr_contains("[..]Could not download yarn@3.2.1")
             .with_stderr_contains("[..]/hook/project/yarn/3.2.1")
     );
+    thread::sleep(time::Duration::from_millis(5000));
     assert_events(
         &s,
         vec![
@@ -190,6 +193,7 @@ fn merges_project_and_default_hooks() {
             .with_stderr_contains("[..]Could not download node@10.12.1")
             .with_stderr_contains("[..]/hook/default/node/10.12.1")
     );
+    thread::sleep(time::Duration::from_millis(5000));
     assert_events(
         &s,
         vec![
@@ -226,6 +230,7 @@ fn merges_workspace_hooks() {
             .with_stderr_contains("[..]Could not download yarn@3.1.4")
             .with_stderr_contains("[..]/hook/project/yarn/3.1.4")
     );
+    thread::sleep(time::Duration::from_millis(5000));
     assert_events(
         &s,
         vec![
@@ -244,6 +249,7 @@ fn merges_workspace_hooks() {
             .with_stderr_contains("[..]Could not download npm@5.6.7")
             .with_stderr_contains("[..]/hook/workspace/npm/5.6.7")
     );
+    thread::sleep(time::Duration::from_millis(5000));
     assert_events(
         &s,
         vec![

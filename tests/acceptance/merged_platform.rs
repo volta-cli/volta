@@ -1,3 +1,5 @@
+use std::{thread, time};
+
 use crate::support::events_helpers::{assert_events, match_start, match_tool_end};
 use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, NpmFixture, YarnFixture};
 use hamcrest2::assert_that;
@@ -257,6 +259,7 @@ fn uses_project_yarn_if_available() {
             .with_stderr_contains("[..]Yarn: 1.12.99 from project configuration")
     );
 
+    thread::sleep(time::Duration::from_millis(5000));
     assert_events(
         &s,
         vec![
