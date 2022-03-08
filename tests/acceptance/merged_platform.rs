@@ -52,17 +52,17 @@ const PLATFORM_WITH_YARN: &str = r#"{
 }"#;
 
 // scripts that read stdin, and write it to file 'events.json'
-
-#[cfg(windows)]
-const EVENTS_EXECUTABLE: &str = r#"@echo off
+cfg_if::cfg_if! {
+    if #[cfg(windows)] {
+        const EVENTS_EXECUTABLE: &str = r#"@echo off
 setlocal
 break >events.json
 for /F "tokens=*" %%line in ('more') do (
     echo %%line >>events.json
 )"#;
-
-#[cfg(unix)]
-const EVENTS_EXECUTABLE: &str = r#"#!/bin/bash
+        const SCRIPT_FILENAME: &str = "write-events.bat";
+    } else if #[cfg(unix)] {
+        const EVENTS_EXECUTABLE: &str = r#"#!/bin/bash
 # read Volta events from stdin, and write to events.json
 # (but first clear it out)
 echo -n "" >events.json
@@ -71,15 +71,25 @@ do
   echo "$line" >>events.json
 done
 "#;
-
-const EVENTS_HOOKS_JSON: &str = r#"
-{
-    "events": {
-        "publish": {
-            "bin": "write-events.sh"
-        }
+        const SCRIPT_FILENAME: &str = "write-events.sh";
+    } else {
+        compile_error!("Unsupported platform for tests (expected 'unix' or 'windows').");
     }
-}"#;
+}
+
+fn events_hooks_json() -> String {
+    format!(
+        r#"
+{{
+    "events": {{
+        "publish": {{
+            "bin": "{}"
+        }}
+    }}
+}}"#,
+        SCRIPT_FILENAME
+    )
+}
 
 cfg_if::cfg_if! {
     if #[cfg(target_os = "macos")] {
@@ -234,8 +244,8 @@ fn uses_project_yarn_if_available() {
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
         .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
         .env("VOLTA_LOGLEVEL", "debug")
-        .default_hooks(&EVENTS_HOOKS_JSON)
-        .executable_file("write-events.sh", EVENTS_EXECUTABLE)
+        .default_hooks(&events_hooks_json())
+        .executable_file(SCRIPT_FILENAME, EVENTS_EXECUTABLE)
         .build();
 
     assert_that!(

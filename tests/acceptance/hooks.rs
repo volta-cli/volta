@@ -23,17 +23,17 @@ const PROJECT_PACKAGE_JSON: &str = r#"
 }"#;
 
 // scripts that read stdin, and write it to file 'events.json'
-
-#[cfg(windows)]
-const EVENTS_EXECUTABLE: &str = r#"@echo off
+cfg_if::cfg_if! {
+    if #[cfg(windows)] {
+        const EVENTS_EXECUTABLE: &str = r#"@echo off
 setlocal
 break >events.json
 for /F "tokens=*" %%line in ('more') do (
     echo %%line >>events.json
 )"#;
-
-#[cfg(unix)]
-const EVENTS_EXECUTABLE: &str = r#"#!/bin/bash
+        const SCRIPT_FILENAME: &str = "write-events.bat";
+    } else if #[cfg(unix)] {
+        const EVENTS_EXECUTABLE: &str = r#"#!/bin/bash
 # read Volta events from stdin, and write to events.json
 # (but first clear it out)
 echo -n "" >events.json
@@ -42,6 +42,11 @@ do
   echo "$line" >>events.json
 done
 "#;
+        const SCRIPT_FILENAME: &str = "write-events.sh";
+    } else {
+        compile_error!("Unsupported platform for tests (expected 'unix' or 'windows').");
+    }
+}
 
 fn default_hooks_json() -> String {
     format!(
@@ -64,11 +69,12 @@ fn default_hooks_json() -> String {
     }},
     "events": {{
         "publish": {{
-            "bin": "write-events.sh"
+            "bin": "{}"
         }}
     }}
 }}"#,
-        mockito::server_url()
+        mockito::server_url(),
+        SCRIPT_FILENAME
     )
 }
 
@@ -126,7 +132,7 @@ fn yarn_hooks_json() -> String {
 fn redirects_download() {
     let s = sandbox()
         .default_hooks(&default_hooks_json())
-        .executable_file("write-events.sh", EVENTS_EXECUTABLE)
+        .executable_file(SCRIPT_FILENAME, EVENTS_EXECUTABLE)
         .build();
 
     assert_that!(
@@ -155,7 +161,7 @@ fn merges_project_and_default_hooks() {
         .package_json("{}")
         .default_hooks(&default_hooks_json())
         .project_file(&local_hooks.to_string_lossy(), &project_hooks_json())
-        .executable_file("write-events.sh", EVENTS_EXECUTABLE)
+        .executable_file(SCRIPT_FILENAME, EVENTS_EXECUTABLE)
         .build();
 
     // Project defines yarn hooks, so those should be used
@@ -209,7 +215,7 @@ fn merges_workspace_hooks() {
             WORKSPACE_PACKAGE_JSON,
         )
         .project_file(&workspace_hooks.to_string_lossy(), &workspace_hooks_json())
-        .executable_file("write-events.sh", EVENTS_EXECUTABLE)
+        .executable_file(SCRIPT_FILENAME, EVENTS_EXECUTABLE)
         .build();
 
     // Project defines yarn hooks, so those should be used
