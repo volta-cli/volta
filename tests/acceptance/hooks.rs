@@ -22,6 +22,17 @@ const PROJECT_PACKAGE_JSON: &str = r#"
     }
 }"#;
 
+// scripts that read stdin, and write it to file 'events.json'
+
+#[cfg(windows)]
+const EVENTS_EXECUTABLE: &str = r#"@echo off
+setlocal
+break >events.json
+for /F "tokens=*" %%line in ('more') do (
+    echo %%line >>events.json
+)"#;
+
+#[cfg(unix)]
 const EVENTS_EXECUTABLE: &str = r#"#!/bin/bash
 # read Volta events from stdin, and write to events.json
 # (but first clear it out)
