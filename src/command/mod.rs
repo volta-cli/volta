@@ -28,5 +28,5 @@ pub(crate) trait Command: Sized {
     /// Executes the command. Returns `Ok(true)` if the process should return 0,
     /// `Ok(false)` if the process should return 1, and `Err(e)` if the process
     /// should return `e.exit_code()`.
-    fn run(self, session: &mut Session) -> Fallible<ExitCode>;
+    fn run(self, session: &mut Session, argv: String) -> Fallible<ExitCode>;
 }

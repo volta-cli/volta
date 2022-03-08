@@ -23,8 +23,8 @@ impl Command for Which {
     //    as a user default. If so, we're done.
     // 2. Otherwise, use the platform image and/or the system environment to
     //    determine a lookup path to run `which` in.
-    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
-        session.add_event_start(ActivityKind::Which);
+    fn run(self, session: &mut Session, argv: String) -> Fallible<ExitCode> {
+        session.add_event_start(ActivityKind::Which, argv);
 
         let default_tool = DefaultBinary::from_name(&self.binary, session)?;
         let project_bin_path = session

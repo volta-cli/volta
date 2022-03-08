@@ -45,7 +45,7 @@ pub(crate) struct Volta {
 }
 
 impl Volta {
-    pub(crate) fn run(self, session: &mut Session) -> Fallible<ExitCode> {
+    pub(crate) fn run(self, session: &mut Session, argv: String) -> Fallible<ExitCode> {
         if self.version {
             // suffix indicator for dev build
             if cfg!(debug_assertions) {
@@ -55,9 +55,9 @@ impl Volta {
             }
             Ok(ExitCode::Success)
         } else if let Some(command) = self.command {
-            command.run(session)
+            command.run(session, argv)
         } else {
-            Volta::from_iter(["volta", "help"].iter()).run(session)
+            Volta::from_iter(["volta", "help"].iter()).run(session, argv)
         }
     }
 }
@@ -130,18 +130,18 @@ otherwise, they will be written to `stdout`.
 }
 
 impl Subcommand {
-    pub(crate) fn run(self, session: &mut Session) -> Fallible<ExitCode> {
+    pub(crate) fn run(self, session: &mut Session, argv: String) -> Fallible<ExitCode> {
         match self {
-            Subcommand::Fetch(fetch) => fetch.run(session),
-            Subcommand::Install(install) => install.run(session),
-            Subcommand::Uninstall(uninstall) => uninstall.run(session),
-            Subcommand::Pin(pin) => pin.run(session),
-            Subcommand::List(list) => list.run(session),
-            Subcommand::Completions(completions) => completions.run(session),
-            Subcommand::Which(which) => which.run(session),
-            Subcommand::Use(r#use) => r#use.run(session),
-            Subcommand::Setup(setup) => setup.run(session),
-            Subcommand::Run(run) => run.run(session),
+            Subcommand::Fetch(fetch) => fetch.run(session, argv),
+            Subcommand::Install(install) => install.run(session, argv),
+            Subcommand::Uninstall(uninstall) => uninstall.run(session, argv),
+            Subcommand::Pin(pin) => pin.run(session, argv),
+            Subcommand::List(list) => list.run(session, argv),
+            Subcommand::Completions(completions) => completions.run(session, argv),
+            Subcommand::Which(which) => which.run(session, argv),
+            Subcommand::Use(r#use) => r#use.run(session, argv),
+            Subcommand::Setup(setup) => setup.run(session, argv),
+            Subcommand::Run(run) => run.run(session, argv),
         }
     }
 }

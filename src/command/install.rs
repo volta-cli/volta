@@ -14,8 +14,8 @@ pub(crate) struct Install {
 }
 
 impl Command for Install {
-    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
-        session.add_event_start(ActivityKind::Install);
+    fn run(self, session: &mut Session, argv: String) -> Fallible<ExitCode> {
+        session.add_event_start(ActivityKind::Install, argv);
 
         for tool in Spec::from_strings(&self.tools, "install")? {
             tool.resolve(session)?.install(session)?;

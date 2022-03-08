@@ -1,3 +1,4 @@
+use crate::support::events_helpers::{assert_events, match_start, match_tool_end};
 use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, NpmFixture, YarnFixture};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
@@ -48,6 +49,25 @@ const PLATFORM_WITH_YARN: &str = r#"{
         "npm":null
     },
     "yarn": "1.7.71"
+}"#;
+
+const EVENTS_EXECUTABLE: &str = r#"#!/bin/bash
+# read Volta events from stdin, and write to events.json
+# (but first clear it out)
+echo -n "" >events.json
+while read line
+do
+  echo "$line" >>events.json
+done
+"#;
+
+const EVENTS_HOOKS_JSON: &str = r#"
+{
+    "events": {
+        "publish": {
+            "bin": "write-events.sh"
+        }
+    }
 }"#;
 
 cfg_if::cfg_if! {
@@ -203,6 +223,8 @@ fn uses_project_yarn_if_available() {
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
         .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
         .env("VOLTA_LOGLEVEL", "debug")
+        .default_hooks(&EVENTS_HOOKS_JSON)
+        .executable_file("write-events.sh", EVENTS_EXECUTABLE)
         .build();
 
     assert_that!(
@@ -212,6 +234,15 @@ fn uses_project_yarn_if_available() {
             .with_stderr_does_not_contain("[..]Yarn is not available.")
             .with_stderr_does_not_contain("[..]No Yarn version found in this project.")
             .with_stderr_contains("[..]Yarn: 1.12.99 from project configuration")
+    );
+
+    assert_events(
+        &s,
+        vec![
+            ("tool", match_start("yarn --version")),
+            ("yarn", match_start("--version")),
+            ("tool", match_tool_end(0)),
+        ],
     );
 }
 

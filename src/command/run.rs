@@ -47,8 +47,8 @@ pub(crate) struct Run {
 }
 
 impl Command for Run {
-    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
-        session.add_event_start(ActivityKind::Run);
+    fn run(self, session: &mut Session, argv: String) -> Fallible<ExitCode> {
+        session.add_event_start(ActivityKind::Run, argv);
 
         let envs = self.parse_envs();
         let platform = self.parse_platform(session)?;

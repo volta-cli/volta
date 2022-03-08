@@ -28,7 +28,7 @@ impl Monitor {
                 match json {
                     Ok(data) => {
                         // FIXME: tighten up this error message
-                        write!(p_stdin, "{}", data).expect("Writing data to plugin failed!");
+                        write!(p_stdin, "{}\n", data).expect("Writing data to plugin failed!");
                     }
                     Err(error) => {
                         // FIXME: tighten up this error message

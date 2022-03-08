@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use crate::support::events_helpers::{assert_events, match_end, match_error, match_start};
 use crate::support::sandbox::sandbox;
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
@@ -21,6 +22,16 @@ const PROJECT_PACKAGE_JSON: &str = r#"
     }
 }"#;
 
+const EVENTS_EXECUTABLE: &str = r#"#!/bin/bash
+# read Volta events from stdin, and write to events.json
+# (but first clear it out)
+echo -n "" >events.json
+while read line
+do
+  echo "$line" >>events.json
+done
+"#;
+
 fn default_hooks_json() -> String {
     format!(
         r#"
@@ -38,6 +49,11 @@ fn default_hooks_json() -> String {
     "yarn": {{
         "distro": {{
             "template": "{0}/hook/default/yarn/{{{{version}}}}"
+        }}
+    }},
+    "events": {{
+        "publish": {{
+            "bin": "write-events.sh"
         }}
     }}
 }}"#,
@@ -97,7 +113,10 @@ fn yarn_hooks_json() -> String {
 
 #[test]
 fn redirects_download() {
-    let s = sandbox().default_hooks(&default_hooks_json()).build();
+    let s = sandbox()
+        .default_hooks(&default_hooks_json())
+        .executable_file("write-events.sh", EVENTS_EXECUTABLE)
+        .build();
 
     assert_that!(
         s.volta("install node@1.2.3"),
@@ -105,6 +124,16 @@ fn redirects_download() {
             .with_status(ExitCode::NetworkError as i32)
             .with_stderr_contains("[..]Could not download node@1.2.3")
             .with_stderr_contains("[..]/hook/default/node/1.2.3")
+    );
+
+    assert_events(
+        &s,
+        vec![
+            ("volta", match_start("volta install node@1.2.3")),
+            ("install", match_start("volta install node@1.2.3")),
+            ("volta", match_error(5, "Could not download node")),
+            ("volta", match_end(5)),
+        ],
     );
 }
 
@@ -115,6 +144,7 @@ fn merges_project_and_default_hooks() {
         .package_json("{}")
         .default_hooks(&default_hooks_json())
         .project_file(&local_hooks.to_string_lossy(), &project_hooks_json())
+        .executable_file("write-events.sh", EVENTS_EXECUTABLE)
         .build();
 
     // Project defines yarn hooks, so those should be used
@@ -125,6 +155,15 @@ fn merges_project_and_default_hooks() {
             .with_stderr_contains("[..]Could not download yarn@3.2.1")
             .with_stderr_contains("[..]/hook/project/yarn/3.2.1")
     );
+    assert_events(
+        &s,
+        vec![
+            ("volta", match_start("volta install yarn@3.2.1")),
+            ("install", match_start("volta install yarn@3.2.1")),
+            ("volta", match_error(5, "Could not download yarn")),
+            ("volta", match_end(5)),
+        ],
+    );
 
     // Project doesn't define node hooks, so should inherit from the default
     assert_that!(
@@ -133,6 +172,15 @@ fn merges_project_and_default_hooks() {
             .with_status(ExitCode::NetworkError as i32)
             .with_stderr_contains("[..]Could not download node@10.12.1")
             .with_stderr_contains("[..]/hook/default/node/10.12.1")
+    );
+    assert_events(
+        &s,
+        vec![
+            ("volta", match_start("volta install node@10.12.1")),
+            ("install", match_start("volta install node@10.12.1")),
+            ("volta", match_error(5, "Could not download node")),
+            ("volta", match_end(5)),
+        ],
     );
 }
 
@@ -150,6 +198,7 @@ fn merges_workspace_hooks() {
             WORKSPACE_PACKAGE_JSON,
         )
         .project_file(&workspace_hooks.to_string_lossy(), &workspace_hooks_json())
+        .executable_file("write-events.sh", EVENTS_EXECUTABLE)
         .build();
 
     // Project defines yarn hooks, so those should be used
@@ -160,6 +209,15 @@ fn merges_workspace_hooks() {
             .with_stderr_contains("[..]Could not download yarn@3.1.4")
             .with_stderr_contains("[..]/hook/project/yarn/3.1.4")
     );
+    assert_events(
+        &s,
+        vec![
+            ("volta", match_start("volta pin yarn@3.1.4")),
+            ("pin", match_start("volta pin yarn@3.1.4")),
+            ("volta", match_error(5, "Could not download yarn")),
+            ("volta", match_end(5)),
+        ],
+    );
 
     // Workspace defines npm hooks, so those should be inherited
     assert_that!(
@@ -168,6 +226,15 @@ fn merges_workspace_hooks() {
             .with_status(ExitCode::NetworkError as i32)
             .with_stderr_contains("[..]Could not download npm@5.6.7")
             .with_stderr_contains("[..]/hook/workspace/npm/5.6.7")
+    );
+    assert_events(
+        &s,
+        vec![
+            ("volta", match_start("volta pin npm@5.6.7")),
+            ("pin", match_start("volta pin npm@5.6.7")),
+            ("volta", match_error(5, "Could not download npm")),
+            ("volta", match_end(5)),
+        ],
     );
 
     // Neither project nor workspace defines node hooks, so should inherit from the default

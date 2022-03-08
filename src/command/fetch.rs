@@ -14,8 +14,8 @@ pub(crate) struct Fetch {
 }
 
 impl Command for Fetch {
-    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
-        session.add_event_start(ActivityKind::Fetch);
+    fn run(self, session: &mut Session, argv: String) -> Fallible<ExitCode> {
+        session.add_event_start(ActivityKind::Fetch, argv);
 
         for tool in tool::Spec::from_strings(&self.tools, "fetch")? {
             tool.resolve(session)?.fetch(session)?;

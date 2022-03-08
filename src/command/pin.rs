@@ -14,8 +14,8 @@ pub(crate) struct Pin {
 }
 
 impl Command for Pin {
-    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
-        session.add_event_start(ActivityKind::Pin);
+    fn run(self, session: &mut Session, argv: String) -> Fallible<ExitCode> {
+        session.add_event_start(ActivityKind::Pin, argv);
 
         for tool in Spec::from_strings(&self.tools, "pin")? {
             tool.resolve(session)?.pin(session)?;

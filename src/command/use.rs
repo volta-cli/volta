@@ -25,8 +25,8 @@ pub(crate) struct Use {
 }
 
 impl Command for Use {
-    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
-        session.add_event_start(ActivityKind::Help);
+    fn run(self, session: &mut Session, argv: String) -> Fallible<ExitCode> {
+        session.add_event_start(ActivityKind::Help, argv);
         let result = Err(ErrorKind::DeprecatedCommandError {
             command: "use".to_string(),
             advice: ADVICE.to_string(),

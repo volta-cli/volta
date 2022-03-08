@@ -1,6 +1,7 @@
 mod common;
 
 use common::{ensure_layout, Error, IntoResult};
+use std::env;
 use volta_core::error::{report_error, ExitCode};
 use volta_core::log::{LogContext, LogVerbosity, Logger};
 use volta_core::run::execute_shim;
@@ -13,7 +14,8 @@ pub fn main() {
     setup_signal_handler();
 
     let mut session = Session::init();
-    session.add_event_start(ActivityKind::Tool);
+    let tool_argv = env::args().collect::<Vec<String>>().join(" ");
+    session.add_event_start(ActivityKind::Tool, tool_argv);
 
     let result = ensure_layout().and_then(|()| execute_shim(&mut session).into_result());
     match result {

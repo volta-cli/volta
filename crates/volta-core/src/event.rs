@@ -3,7 +3,7 @@
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::error::{ExitCode, VoltaError};
 use crate::hook::Publish;
@@ -11,14 +11,14 @@ use crate::monitor::Monitor;
 use crate::session::ActivityKind;
 
 // the Event data that is serialized to JSON and sent the plugin
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Event {
     timestamp: u64,
-    name: String,
-    event: EventKind,
+    pub name: String,
+    pub event: EventKind,
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct ErrorEnv {
     argv: String,
     exec_path: String,
@@ -27,10 +27,12 @@ pub struct ErrorEnv {
     platform_version: String,
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
 #[serde(rename_all = "lowercase")]
-enum EventKind {
-    Start,
+pub enum EventKind {
+    Start {
+        argv: String,
+    },
     End {
         exit_code: i32,
     },
@@ -98,8 +100,8 @@ impl EventLog {
         EventLog { events: Vec::new() }
     }
 
-    pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
-        self.add_event(EventKind::Start, activity_kind)
+    pub fn add_event_start(&mut self, activity_kind: ActivityKind, argv: String) {
+        self.add_event(EventKind::Start { argv }, activity_kind)
     }
     pub fn add_event_end(&mut self, activity_kind: ActivityKind, exit_code: ExitCode) {
         self.add_event(
@@ -144,7 +146,7 @@ impl EventLog {
 #[cfg(test)]
 pub mod tests {
 
-    use super::EventLog;
+    use super::{EventKind, EventLog};
     use crate::error::{ErrorKind, ExitCode};
     use crate::session::ActivityKind;
 
@@ -153,21 +155,33 @@ pub mod tests {
         let mut event_log = EventLog::init();
         assert_eq!(event_log.events.len(), 0);
 
-        event_log.add_event_start(ActivityKind::Current);
+        event_log.add_event_start(ActivityKind::Current, String::from("foo"));
         assert_eq!(event_log.events.len(), 1);
         assert_eq!(event_log.events[0].name, "current");
+        assert_eq!(
+            event_log.events[0].event,
+            EventKind::Start {
+                argv: String::from("foo")
+            }
+        );
 
         event_log.add_event_end(ActivityKind::Pin, ExitCode::NetworkError);
         assert_eq!(event_log.events.len(), 2);
         assert_eq!(event_log.events[1].name, "pin");
+        assert_eq!(event_log.events[1].event, EventKind::End { exit_code: 5 });
 
         event_log.add_event_tool_end(ActivityKind::Version, 12);
         assert_eq!(event_log.events.len(), 3);
         assert_eq!(event_log.events[2].name, "version");
+        assert_eq!(
+            event_log.events[2].event,
+            EventKind::ToolEnd { exit_code: 12 }
+        );
 
         let error = ErrorKind::BinaryExecError.into();
         event_log.add_event_error(ActivityKind::Install, &error);
         assert_eq!(event_log.events.len(), 4);
         assert_eq!(event_log.events[3].name, "install");
+        // not checking the error because it has too much machine-specific info
     }
 }

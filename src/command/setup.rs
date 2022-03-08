@@ -12,8 +12,8 @@ use crate::command::Command;
 pub(crate) struct Setup {}
 
 impl Command for Setup {
-    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
-        session.add_event_start(ActivityKind::Setup);
+    fn run(self, session: &mut Session, argv: String) -> Fallible<ExitCode> {
+        session.add_event_start(ActivityKind::Setup, argv);
 
         os::setup_environment()?;
         regenerate_shims_for_dir(volta_home()?.shim_dir())?;

@@ -9,7 +9,12 @@ use crate::session::{ActivityKind, Session};
 
 /// Build a `ToolCommand` for Node
 pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Executor> {
-    session.add_event_start(ActivityKind::Node);
+    let node_argv = args
+        .iter()
+        .map(|s| s.to_string_lossy().to_string())
+        .collect::<Vec<String>>()
+        .join(" ");
+    session.add_event_start(ActivityKind::Node, node_argv);
     // Don't re-evaluate the platform if this is a recursive call
     let platform = match env::var_os(RECURSION_ENV_VAR) {
         Some(_) => None,
