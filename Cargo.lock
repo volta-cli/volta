@@ -334,7 +334,7 @@ dependencies = [
  "encode_unicode",
  "libc",
  "once_cell",
- "regex 1.5.4",
+ "regex 1.5.5",
  "terminal_size",
  "unicode-width",
  "winapi 0.3.9",
@@ -731,7 +731,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49f837c62de05dc9cc71ff6486cd85de8856a330395ae338a04bfcefe5e91075"
 dependencies = [
  "num",
- "regex 1.5.4",
+ "regex 1.5.5",
 ]
 
 [[package]]
@@ -833,7 +833,7 @@ dependencies = [
  "console",
  "lazy_static",
  "number_prefix",
- "regex 1.5.4",
+ "regex 1.5.5",
 ]
 
 [[package]]
@@ -979,7 +979,7 @@ dependencies = [
  "lazy_static",
  "log",
  "rand",
- "regex 1.5.4",
+ "regex 1.5.5",
  "serde_json",
  "serde_urlencoded",
  "similar",
@@ -1401,9 +1401,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.5.4"
+version = "1.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d07a8629359eb56f1e2fb1652bb04212c072a87ba68546a04065d525673ac461"
+checksum = "1a11647b6b25ff05a515cb92c365cec08801e83423a235b51e231e1808747286"
 dependencies = [
  "aho-corasick 0.7.18",
  "memchr",
@@ -1845,7 +1845,7 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a52dcaab0c48d931f7cc8ef826fa51690a08e1ea55117ef26f89864f532383f"
 dependencies = [
- "regex 1.5.4",
+ "regex 1.5.5",
 ]
 
 [[package]]
@@ -1913,7 +1913,7 @@ version = "0.1.0"
 dependencies = [
  "lazy_static",
  "percent-encoding",
- "regex 1.5.4",
+ "regex 1.5.5",
 ]
 
 [[package]]
@@ -2003,7 +2003,7 @@ dependencies = [
  "mockito",
  "os_info",
  "readext",
- "regex 1.5.4",
+ "regex 1.5.5",
  "retry",
  "semver",
  "serde",
