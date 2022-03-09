@@ -63,7 +63,7 @@ copy %%EVENTS_FILE%% events.json
     } else if #[cfg(unix)] {
         // copy the tempfile (path in EVENTS_FILE env var) to events.json
         const EVENTS_EXECUTABLE: &str = r#"#!/bin/bash
-cp "$EVENTS_FILE" events.json
+/bin/cp "$EVENTS_FILE" events.json
 "#;
         const SCRIPT_FILENAME: &str = "write-events.sh";
     } else {
