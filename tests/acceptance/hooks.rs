@@ -23,17 +23,17 @@ const PROJECT_PACKAGE_JSON: &str = r#"
     }
 }"#;
 
-// scripts that read stdin, and write it to file 'events.json'
+// scripts that write events to file 'events.json'
 cfg_if::cfg_if! {
     if #[cfg(windows)] {
+        // have not been able to read events from stdin with batch, powershell, etc.
+        // so just copy the tempfile (path in EVENTS_FILE env var) to events.json
         const EVENTS_EXECUTABLE: &str = r#"@echo off
-setlocal
-break >events.json
-for /F "tokens=*" %%line in ('more') do (
-    echo %%line >>events.json
-)"#;
+copy %%EVENTS_FILE%% events.json
+"#;
         const SCRIPT_FILENAME: &str = "write-events.bat";
     } else if #[cfg(unix)] {
+        // read events from stdin
         const EVENTS_EXECUTABLE: &str = r#"#!/bin/bash
 # read Volta events from stdin, and write to events.json
 # (but first clear it out)
@@ -144,7 +144,7 @@ fn redirects_download() {
             .with_stderr_contains("[..]/hook/default/node/1.2.3")
     );
 
-    thread::sleep(time::Duration::from_millis(5000));
+    thread::sleep(time::Duration::from_millis(500));
     assert_events(
         &s,
         vec![
@@ -174,7 +174,7 @@ fn merges_project_and_default_hooks() {
             .with_stderr_contains("[..]Could not download yarn@3.2.1")
             .with_stderr_contains("[..]/hook/project/yarn/3.2.1")
     );
-    thread::sleep(time::Duration::from_millis(5000));
+    thread::sleep(time::Duration::from_millis(500));
     assert_events(
         &s,
         vec![
@@ -193,7 +193,7 @@ fn merges_project_and_default_hooks() {
             .with_stderr_contains("[..]Could not download node@10.12.1")
             .with_stderr_contains("[..]/hook/default/node/10.12.1")
     );
-    thread::sleep(time::Duration::from_millis(5000));
+    thread::sleep(time::Duration::from_millis(500));
     assert_events(
         &s,
         vec![
@@ -230,7 +230,7 @@ fn merges_workspace_hooks() {
             .with_stderr_contains("[..]Could not download yarn@3.1.4")
             .with_stderr_contains("[..]/hook/project/yarn/3.1.4")
     );
-    thread::sleep(time::Duration::from_millis(5000));
+    thread::sleep(time::Duration::from_millis(500));
     assert_events(
         &s,
         vec![
@@ -249,7 +249,7 @@ fn merges_workspace_hooks() {
             .with_stderr_contains("[..]Could not download npm@5.6.7")
             .with_stderr_contains("[..]/hook/workspace/npm/5.6.7")
     );
-    thread::sleep(time::Duration::from_millis(5000));
+    thread::sleep(time::Duration::from_millis(500));
     assert_events(
         &s,
         vec![

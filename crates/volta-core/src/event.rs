@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{ExitCode, VoltaError};
 use crate::hook::Publish;
-use crate::monitor::Monitor;
+use crate::monitor::send_events;
 use crate::session::ActivityKind;
 
 // the Event data that is serialized to JSON and sent the plugin
@@ -135,8 +135,7 @@ impl EventLog {
             // Note: This call to unimplemented is left in, as it's not a Fallible operation that can use ErrorKind::Unimplemented
             Some(&Publish::Url(_)) => unimplemented!(),
             Some(&Publish::Bin(ref command)) => {
-                let mut monitor = Monitor::new(command);
-                monitor.send_events(&self.events);
+                send_events(command, &self.events);
             }
             None => {}
         }

@@ -53,25 +53,17 @@ const PLATFORM_WITH_YARN: &str = r#"{
     "yarn": "1.7.71"
 }"#;
 
-// scripts that read stdin, and write it to file 'events.json'
 cfg_if::cfg_if! {
     if #[cfg(windows)] {
+        // copy the tempfile (path in EVENTS_FILE env var) to events.json
         const EVENTS_EXECUTABLE: &str = r#"@echo off
-setlocal
-break >events.json
-for /F "tokens=*" %%line in ('more') do (
-    echo %%line >>events.json
-)"#;
+copy %%EVENTS_FILE%% events.json
+"#;
         const SCRIPT_FILENAME: &str = "write-events.bat";
     } else if #[cfg(unix)] {
+        // copy the tempfile (path in EVENTS_FILE env var) to events.json
         const EVENTS_EXECUTABLE: &str = r#"#!/bin/bash
-# read Volta events from stdin, and write to events.json
-# (but first clear it out)
-echo -n "" >events.json
-while read line
-do
-  echo "$line" >>events.json
-done
+cp "$EVENTS_FILE" events.json
 "#;
         const SCRIPT_FILENAME: &str = "write-events.sh";
     } else {
@@ -259,7 +251,7 @@ fn uses_project_yarn_if_available() {
             .with_stderr_contains("[..]Yarn: 1.12.99 from project configuration")
     );
 
-    thread::sleep(time::Duration::from_millis(5000));
+    thread::sleep(time::Duration::from_millis(500));
     assert_events(
         &s,
         vec![
