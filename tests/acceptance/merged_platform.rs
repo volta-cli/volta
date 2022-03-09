@@ -57,15 +57,17 @@ cfg_if::cfg_if! {
     if #[cfg(windows)] {
         // copy the tempfile (path in EVENTS_FILE env var) to events.json
         const EVENTS_EXECUTABLE: &str = r#"@echo off
-copy %%EVENTS_FILE%% events.json
+copy %EVENTS_FILE% events.json
 "#;
         const SCRIPT_FILENAME: &str = "write-events.bat";
+        const YARN_SHIM: &str = "yarn.exe";
     } else if #[cfg(unix)] {
         // copy the tempfile (path in EVENTS_FILE env var) to events.json
         const EVENTS_EXECUTABLE: &str = r#"#!/bin/bash
 /bin/cp "$EVENTS_FILE" events.json
 "#;
         const SCRIPT_FILENAME: &str = "write-events.sh";
+        const YARN_SHIM: &str = "yarn";
     } else {
         compile_error!("Unsupported platform for tests (expected 'unix' or 'windows').");
     }
@@ -255,7 +257,10 @@ fn uses_project_yarn_if_available() {
     assert_events(
         &s,
         vec![
-            ("tool", match_start("yarn --version")),
+            (
+                "tool",
+                match_start(format!("{} --version", YARN_SHIM).as_str()),
+            ),
             ("yarn", match_start("--version")),
             ("tool", match_tool_end(0)),
         ],

@@ -29,9 +29,10 @@ cfg_if::cfg_if! {
         // have not been able to read events from stdin with batch, powershell, etc.
         // so just copy the tempfile (path in EVENTS_FILE env var) to events.json
         const EVENTS_EXECUTABLE: &str = r#"@echo off
-copy %%EVENTS_FILE%% events.json
+copy %EVENTS_FILE% events.json
 "#;
         const SCRIPT_FILENAME: &str = "write-events.bat";
+        const VOLTA_BINARY: &str = "volta.exe";
     } else if #[cfg(unix)] {
         // read events from stdin
         const EVENTS_EXECUTABLE: &str = r#"#!/bin/bash
@@ -44,6 +45,7 @@ do
 done
 "#;
         const SCRIPT_FILENAME: &str = "write-events.sh";
+        const VOLTA_BINARY: &str = "volta";
     } else {
         compile_error!("Unsupported platform for tests (expected 'unix' or 'windows').");
     }
@@ -148,8 +150,14 @@ fn redirects_download() {
     assert_events(
         &s,
         vec![
-            ("volta", match_start("volta install node@1.2.3")),
-            ("install", match_start("volta install node@1.2.3")),
+            (
+                "volta",
+                match_start(format!("{} install node@1.2.3", VOLTA_BINARY).as_str()),
+            ),
+            (
+                "install",
+                match_start(format!("{} install node@1.2.3", VOLTA_BINARY).as_str()),
+            ),
             ("volta", match_error(5, "Could not download node")),
             ("volta", match_end(5)),
         ],
@@ -178,8 +186,14 @@ fn merges_project_and_default_hooks() {
     assert_events(
         &s,
         vec![
-            ("volta", match_start("volta install yarn@3.2.1")),
-            ("install", match_start("volta install yarn@3.2.1")),
+            (
+                "volta",
+                match_start(format!("{} install yarn@3.2.1", VOLTA_BINARY).as_str()),
+            ),
+            (
+                "install",
+                match_start(format!("{} install yarn@3.2.1", VOLTA_BINARY).as_str()),
+            ),
             ("volta", match_error(5, "Could not download yarn")),
             ("volta", match_end(5)),
         ],
@@ -197,8 +211,14 @@ fn merges_project_and_default_hooks() {
     assert_events(
         &s,
         vec![
-            ("volta", match_start("volta install node@10.12.1")),
-            ("install", match_start("volta install node@10.12.1")),
+            (
+                "volta",
+                match_start(format!("{} install node@10.12.1", VOLTA_BINARY).as_str()),
+            ),
+            (
+                "install",
+                match_start(format!("{} install node@10.12.1", VOLTA_BINARY).as_str()),
+            ),
             ("volta", match_error(5, "Could not download node")),
             ("volta", match_end(5)),
         ],
@@ -234,8 +254,14 @@ fn merges_workspace_hooks() {
     assert_events(
         &s,
         vec![
-            ("volta", match_start("volta pin yarn@3.1.4")),
-            ("pin", match_start("volta pin yarn@3.1.4")),
+            (
+                "volta",
+                match_start(format!("{} pin yarn@3.1.4", VOLTA_BINARY).as_str()),
+            ),
+            (
+                "pin",
+                match_start(format!("{} pin yarn@3.1.4", VOLTA_BINARY).as_str()),
+            ),
             ("volta", match_error(5, "Could not download yarn")),
             ("volta", match_end(5)),
         ],
@@ -253,8 +279,14 @@ fn merges_workspace_hooks() {
     assert_events(
         &s,
         vec![
-            ("volta", match_start("volta pin npm@5.6.7")),
-            ("pin", match_start("volta pin npm@5.6.7")),
+            (
+                "volta",
+                match_start(format!("{} pin npm@5.6.7", VOLTA_BINARY).as_str()),
+            ),
+            (
+                "pin",
+                match_start(format!("{} pin npm@5.6.7", VOLTA_BINARY).as_str()),
+            ),
             ("volta", match_error(5, "Could not download npm")),
             ("volta", match_end(5)),
         ],
