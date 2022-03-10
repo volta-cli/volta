@@ -11,26 +11,55 @@ use crate::event::Event;
 /// send event to the spawned command process
 // if hook command is not configured, this is not called
 pub fn send_events(command: &str, events: &[Event]) {
-    // TODO: make these expects into errors or whatever
-    let events_json =
-        serde_json::to_string_pretty(&events).expect("Problem serializing events JSON data");
-    let mut events_file = NamedTempFile::new().expect("Could not create temp file for events");
-    events_file
-        .write_all(events_json.as_bytes())
-        .expect("Writing data to file failed");
-    // don't automatically delete this temp file please
-    let path = events_file.into_temp_path();
-    let tempfile_path = path.keep().expect("Could not persist temp file");
-
-    // spawn a child process, with the path to that temp file as an env var
-    if let Some(ref mut child_process) = spawn_process(command, tempfile_path) {
-        if let Some(ref mut p_stdin) = child_process.stdin.as_mut() {
-            // still send the data over stdin
-            writeln!(p_stdin, "{}", events_json).expect("Writing data to plugin failed!");
+    match serde_json::to_string_pretty(&events) {
+        Ok(events_json) => {
+            if let Some(tempfile_path) = write_events_file(events_json.clone()) {
+                if let Some(ref mut child_process) = spawn_process(command, tempfile_path) {
+                    if let Some(ref mut p_stdin) = child_process.stdin.as_mut() {
+                        if let Err(error) = writeln!(p_stdin, "{}", events_json) {
+                            debug!("Could not write events to executable stdin: {:?}", error);
+                        }
+                    }
+                }
+            }
+        }
+        Err(error) => {
+            debug!("Could not serialize events data to JSON: {:?}", error);
         }
     }
 }
 
+// Write the events JSON to a file in the temporary directory
+fn write_events_file(events_json: String) -> Option<PathBuf> {
+    match NamedTempFile::new() {
+        Ok(mut events_file) => {
+            match events_file.write_all(events_json.as_bytes()) {
+                Ok(()) => {
+                    let path = events_file.into_temp_path();
+                    // if it's not persisted, the temp file will be automatically deleted
+                    // (and the executable won't be able to read it)
+                    match path.keep() {
+                        Ok(tempfile_path) => Some(tempfile_path),
+                        Err(error) => {
+                            debug!("Failed to persist temp file for events data: {:?}", error);
+                            None
+                        }
+                    }
+                }
+                Err(error) => {
+                    debug!("Failed to write events to the temp file: {:?}", error);
+                    None
+                }
+            }
+        }
+        Err(error) => {
+            debug!("Failed to create a temp file for events data: {:?}", error);
+            None
+        }
+    }
+}
+
+// Spawn a child process to receive the events data, setting the path to the events file as an env var
 fn spawn_process(command: &str, tempfile_path: PathBuf) -> Option<Child> {
     command.split(' ').take(1).next().and_then(|executable| {
         let mut child = create_command(executable);
@@ -44,7 +73,7 @@ fn spawn_process(command: &str, tempfile_path: PathBuf) -> Option<Child> {
 
         match child.spawn() {
             Err(err) => {
-                debug!("Unable to run plugin command: '{}'\n{}", command, err);
+                debug!("Unable to run executable command: '{}'\n{}", command, err);
                 None
             }
             Ok(c) => Some(c),
