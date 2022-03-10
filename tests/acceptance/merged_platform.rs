@@ -58,6 +58,8 @@ cfg_if::cfg_if! {
         // copy the tempfile (path in EVENTS_FILE env var) to events.json
         const EVENTS_EXECUTABLE: &str = r#"@echo off
 copy %EVENTS_FILE% events.json
+:: executables should clean up the temp file
+del %EVENTS_FILE%
 "#;
         const SCRIPT_FILENAME: &str = "write-events.bat";
         const YARN_SHIM: &str = "yarn.exe";
@@ -65,6 +67,8 @@ copy %EVENTS_FILE% events.json
         // copy the tempfile (path in EVENTS_FILE env var) to events.json
         const EVENTS_EXECUTABLE: &str = r#"#!/bin/bash
 /bin/cp "$EVENTS_FILE" events.json
+# executables should clean up the temp file
+/bin/rm "$EVENTS_FILE"
 "#;
         const SCRIPT_FILENAME: &str = "write-events.sh";
         const YARN_SHIM: &str = "yarn";

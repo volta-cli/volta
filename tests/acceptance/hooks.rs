@@ -30,6 +30,8 @@ cfg_if::cfg_if! {
         // so just copy the tempfile (path in EVENTS_FILE env var) to events.json
         const EVENTS_EXECUTABLE: &str = r#"@echo off
 copy %EVENTS_FILE% events.json
+:: executables should clean up the temp file
+del %EVENTS_FILE%
 "#;
         const SCRIPT_FILENAME: &str = "write-events.bat";
         const VOLTA_BINARY: &str = "volta.exe";
@@ -43,6 +45,8 @@ while read line
 do
   echo "$line" >>events.json
 done
+# executables should clean up the temp file
+/bin/rm "$EVENTS_FILE"
 "#;
         const SCRIPT_FILENAME: &str = "write-events.sh";
         const VOLTA_BINARY: &str = "volta";

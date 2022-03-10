@@ -8,7 +8,7 @@ use tempfile::NamedTempFile;
 use crate::command::create_command;
 use crate::event::Event;
 
-/// send event to the spawned command process
+/// Send event to the spawned command process
 // if hook command is not configured, this is not called
 pub fn send_events(command: &str, events: &[Event]) {
     match serde_json::to_string_pretty(&events) {
