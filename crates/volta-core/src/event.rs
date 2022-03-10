@@ -100,7 +100,11 @@ impl EventLog {
         EventLog { events: Vec::new() }
     }
 
-    pub fn add_event_start(&mut self, activity_kind: ActivityKind, argv: String) {
+    pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
+        let argv = env::args_os()
+            .map(|arg| arg.to_string_lossy().to_string())
+            .collect::<Vec<String>>()
+            .join(" ");
         self.add_event(EventKind::Start { argv }, activity_kind)
     }
     pub fn add_event_end(&mut self, activity_kind: ActivityKind, exit_code: ExitCode) {
@@ -148,21 +152,28 @@ pub mod tests {
     use super::{EventKind, EventLog};
     use crate::error::{ErrorKind, ExitCode};
     use crate::session::ActivityKind;
+    use regex::Regex;
 
     #[test]
     fn test_adding_events() {
         let mut event_log = EventLog::init();
         assert_eq!(event_log.events.len(), 0);
 
-        event_log.add_event_start(ActivityKind::Current, String::from("foo"));
+        event_log.add_event_start(ActivityKind::Current);
         assert_eq!(event_log.events.len(), 1);
         assert_eq!(event_log.events[0].name, "current");
-        assert_eq!(
-            event_log.events[0].event,
-            EventKind::Start {
-                argv: String::from("foo")
+        match event_log.events[0].event {
+            EventKind::Start { ref argv } => {
+                let re = Regex::new("volta_core").unwrap();
+                assert!(re.is_match(argv));
             }
-        );
+            _ => {
+                panic!(
+                    "Expected EventKind::Start {{ argv }}, Got: {:?}",
+                    event_log.events[0].event
+                );
+            }
+        }
 
         event_log.add_event_end(ActivityKind::Pin, ExitCode::NetworkError);
         assert_eq!(event_log.events.len(), 2);

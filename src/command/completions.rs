@@ -32,8 +32,8 @@ pub(crate) struct Completions {
 }
 
 impl Command for Completions {
-    fn run(self, session: &mut Session, argv: String) -> Fallible<ExitCode> {
-        session.add_event_start(ActivityKind::Completions, argv);
+    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
+        session.add_event_start(ActivityKind::Completions);
 
         let mut app = crate::cli::Volta::clap();
         match self.out_file {

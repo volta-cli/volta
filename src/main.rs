@@ -2,7 +2,6 @@
 mod command;
 mod cli;
 
-use std::env;
 use structopt::StructOpt;
 
 use volta_core::error::report_error;
@@ -26,11 +25,9 @@ pub fn main() {
     Logger::init(LogContext::Volta, verbosity).expect("Only a single logger should be initialized");
 
     let mut session = Session::init();
-    let volta_argv = env::args().collect::<Vec<String>>().join(" ");
-    session.add_event_start(ActivityKind::Volta, volta_argv.clone());
+    session.add_event_start(ActivityKind::Volta);
 
-    let result =
-        ensure_layout().and_then(|()| volta.run(&mut session, volta_argv).map_err(Error::Volta));
+    let result = ensure_layout().and_then(|()| volta.run(&mut session).map_err(Error::Volta));
     match result {
         Ok(exit_code) => {
             session.add_event_end(ActivityKind::Volta, exit_code);

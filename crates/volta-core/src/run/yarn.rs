@@ -17,12 +17,7 @@ use crate::session::{ActivityKind, Session};
 /// If the command is _not_ a global add / remove or we don't have a default platform, then
 /// we will allow Yarn to execute the command as usual.
 pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Executor> {
-    let yarn_argv = args
-        .iter()
-        .map(|s| s.to_string_lossy().to_string())
-        .collect::<Vec<String>>()
-        .join(" ");
-    session.add_event_start(ActivityKind::Yarn, yarn_argv);
+    session.add_event_start(ActivityKind::Yarn);
     // Don't re-evaluate the context or global install interception if this is a recursive call
     let platform = match env::var_os(RECURSION_ENV_VAR) {
         Some(_) => None,

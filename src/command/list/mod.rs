@@ -271,8 +271,8 @@ impl List {
 }
 
 impl Command for List {
-    fn run(self, session: &mut Session, argv: String) -> Fallible<ExitCode> {
-        session.add_event_start(ActivityKind::List, argv);
+    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
+        session.add_event_start(ActivityKind::List);
 
         let project = session.project()?;
         let default_platform = session.default_platform()?;

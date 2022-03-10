@@ -14,8 +14,8 @@ pub(crate) struct Uninstall {
 }
 
 impl Command for Uninstall {
-    fn run(self, session: &mut Session, argv: String) -> Fallible<ExitCode> {
-        session.add_event_start(ActivityKind::Uninstall, argv);
+    fn run(self, session: &mut Session) -> Fallible<ExitCode> {
+        session.add_event_start(ActivityKind::Uninstall);
 
         let version = VersionSpec::default();
         let tool = tool::Spec::from_str_and_version(&self.tool, version);

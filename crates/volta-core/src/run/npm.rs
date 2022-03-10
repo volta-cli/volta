@@ -20,12 +20,7 @@ use crate::version::VersionSpec;
 /// If the command is _not_ a global install / uninstall or we don't have a default platform, then
 /// we will allow npm to execute the command as usual.
 pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Executor> {
-    let npm_argv = args
-        .iter()
-        .map(|s| s.to_string_lossy().to_string())
-        .collect::<Vec<String>>()
-        .join(" ");
-    session.add_event_start(ActivityKind::Npm, npm_argv);
+    session.add_event_start(ActivityKind::Npm);
     // Don't re-evaluate the context or global install interception if this is a recursive call
     let platform = match env::var_os(RECURSION_ENV_VAR) {
         Some(_) => None,

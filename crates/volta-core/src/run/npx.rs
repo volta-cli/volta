@@ -16,12 +16,7 @@ lazy_static! {
 
 /// Build a `ToolCommand` for npx
 pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Executor> {
-    let npx_argv = args
-        .iter()
-        .map(|s| s.to_string_lossy().to_string())
-        .collect::<Vec<String>>()
-        .join(" ");
-    session.add_event_start(ActivityKind::Npx, npx_argv);
+    session.add_event_start(ActivityKind::Npx);
     // Don't re-evaluate the context if this is a recursive call
     let platform = match env::var_os(RECURSION_ENV_VAR) {
         Some(_) => None,

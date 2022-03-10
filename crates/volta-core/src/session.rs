@@ -131,8 +131,8 @@ impl Session {
         self.hooks.get(self.project()?)
     }
 
-    pub fn add_event_start(&mut self, activity_kind: ActivityKind, argv: String) {
-        self.event_log.add_event_start(activity_kind, argv)
+    pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
+        self.event_log.add_event_start(activity_kind)
     }
     pub fn add_event_end(&mut self, activity_kind: ActivityKind, exit_code: ExitCode) {
         self.event_log.add_event_end(activity_kind, exit_code)
