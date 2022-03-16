@@ -139,6 +139,7 @@ fn yarn_hooks_json() -> String {
 fn redirects_download() {
     let s = sandbox()
         .default_hooks(&default_hooks_json())
+        .env("VOLTA_WRITE_EVENTS_FILE", "true")
         .executable_file(SCRIPT_FILENAME, EVENTS_EXECUTABLE)
         .build();
 
@@ -175,6 +176,7 @@ fn merges_project_and_default_hooks() {
         .package_json("{}")
         .default_hooks(&default_hooks_json())
         .project_file(&local_hooks.to_string_lossy(), &project_hooks_json())
+        .env("VOLTA_WRITE_EVENTS_FILE", "true")
         .executable_file(SCRIPT_FILENAME, EVENTS_EXECUTABLE)
         .build();
 
@@ -243,6 +245,7 @@ fn merges_workspace_hooks() {
             WORKSPACE_PACKAGE_JSON,
         )
         .project_file(&workspace_hooks.to_string_lossy(), &workspace_hooks_json())
+        .env("VOLTA_WRITE_EVENTS_FILE", "true")
         .executable_file(SCRIPT_FILENAME, EVENTS_EXECUTABLE)
         .build();
 

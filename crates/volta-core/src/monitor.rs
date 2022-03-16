@@ -1,3 +1,4 @@
+use std::env;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Child, Stdio};
@@ -13,12 +14,14 @@ use crate::event::Event;
 pub fn send_events(command: &str, events: &[Event]) {
     match serde_json::to_string_pretty(&events) {
         Ok(events_json) => {
-            if let Some(tempfile_path) = write_events_file(events_json.clone()) {
-                if let Some(ref mut child_process) = spawn_process(command, tempfile_path) {
-                    if let Some(ref mut p_stdin) = child_process.stdin.as_mut() {
-                        if let Err(error) = writeln!(p_stdin, "{}", events_json) {
-                            debug!("Could not write events to executable stdin: {:?}", error);
-                        }
+            let tempfile_path = match env::var("VOLTA_WRITE_EVENTS_FILE") {
+                Ok(_) => write_events_file(events_json.clone()),
+                Err(_) => None,
+            };
+            if let Some(ref mut child_process) = spawn_process(command, tempfile_path) {
+                if let Some(ref mut p_stdin) = child_process.stdin.as_mut() {
+                    if let Err(error) = writeln!(p_stdin, "{}", events_json) {
+                        debug!("Could not write events to executable stdin: {:?}", error);
                     }
                 }
             }
@@ -60,12 +63,14 @@ fn write_events_file(events_json: String) -> Option<PathBuf> {
 }
 
 // Spawn a child process to receive the events data, setting the path to the events file as an env var
-fn spawn_process(command: &str, tempfile_path: PathBuf) -> Option<Child> {
+fn spawn_process(command: &str, tempfile_path: Option<PathBuf>) -> Option<Child> {
     command.split(' ').take(1).next().and_then(|executable| {
         let mut child = create_command(executable);
         child.args(command.split(' ').skip(1));
         child.stdin(Stdio::piped());
-        child.env("EVENTS_FILE", tempfile_path);
+        if let Some(events_file) = tempfile_path {
+            child.env("EVENTS_FILE", events_file);
+        }
 
         #[cfg(not(debug_assertions))]
         // Hide stdout and stderr of spawned process in release mode

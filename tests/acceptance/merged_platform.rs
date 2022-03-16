@@ -244,6 +244,7 @@ fn uses_project_yarn_if_available() {
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
         .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
         .env("VOLTA_LOGLEVEL", "debug")
+        .env("VOLTA_WRITE_EVENTS_FILE", "true")
         .default_hooks(&events_hooks_json())
         .executable_file(SCRIPT_FILENAME, EVENTS_EXECUTABLE)
         .build();
