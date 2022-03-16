@@ -102,9 +102,14 @@ impl EventLog {
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
         let argv = env::args_os()
-            .map(|arg| arg.to_string_lossy().to_string())
-            .collect::<Vec<String>>()
-            .join(" ");
+            .enumerate()
+            .fold(String::new(), |mut result, (i, arg)| {
+                if i > 0 {
+                    result.push(' ');
+                }
+                result.push_str(&arg.to_string_lossy());
+                result
+            });
         self.add_event(EventKind::Start { argv }, activity_kind)
     }
     pub fn add_event_end(&mut self, activity_kind: ActivityKind, exit_code: ExitCode) {
