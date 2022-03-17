@@ -1,6 +1,6 @@
 use std::{thread, time};
 
-use crate::support::events_helpers::{assert_events, match_start, match_tool_end};
+use crate::support::events_helpers::{assert_events, match_args, match_start, match_tool_end};
 use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, NpmFixture, YarnFixture};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
@@ -262,12 +262,13 @@ fn uses_project_yarn_if_available() {
     assert_events(
         &s,
         vec![
-            (
-                "tool",
-                match_start(format!("{} --version", YARN_SHIM).as_str()),
-            ),
-            ("yarn", match_start("--version")),
+            ("tool", match_start()),
+            ("yarn", match_start()),
             ("tool", match_tool_end(0)),
+            (
+                "args",
+                match_args(format!("{} --version", YARN_SHIM).as_str()),
+            ),
         ],
     );
 }

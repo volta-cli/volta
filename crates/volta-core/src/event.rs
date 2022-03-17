@@ -30,9 +30,7 @@ pub struct ErrorEnv {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum EventKind {
-    Start {
-        argv: String,
-    },
+    Start,
     End {
         exit_code: i32,
     },
@@ -43,6 +41,9 @@ pub enum EventKind {
     },
     ToolEnd {
         exit_code: i32,
+    },
+    Args {
+        argv: String,
     },
 }
 
@@ -101,16 +102,7 @@ impl EventLog {
     }
 
     pub fn add_event_start(&mut self, activity_kind: ActivityKind) {
-        let argv = env::args_os()
-            .enumerate()
-            .fold(String::new(), |mut result, (i, arg)| {
-                if i > 0 {
-                    result.push(' ');
-                }
-                result.push_str(&arg.to_string_lossy());
-                result
-            });
-        self.add_event(EventKind::Start { argv }, activity_kind)
+        self.add_event(EventKind::Start, activity_kind)
     }
     pub fn add_event_end(&mut self, activity_kind: ActivityKind, exit_code: ExitCode) {
         self.add_event(
@@ -132,6 +124,18 @@ impl EventLog {
             },
             activity_kind,
         )
+    }
+    pub fn add_event_args(&mut self) {
+        let argv = env::args_os()
+            .enumerate()
+            .fold(String::new(), |mut result, (i, arg)| {
+                if i > 0 {
+                    result.push(' ');
+                }
+                result.push_str(&arg.to_string_lossy());
+                result
+            });
+        self.add_event(EventKind::Args { argv }, ActivityKind::Args)
     }
 
     fn add_event(&mut self, event_kind: EventKind, activity_kind: ActivityKind) {
@@ -167,18 +171,7 @@ pub mod tests {
         event_log.add_event_start(ActivityKind::Current);
         assert_eq!(event_log.events.len(), 1);
         assert_eq!(event_log.events[0].name, "current");
-        match event_log.events[0].event {
-            EventKind::Start { ref argv } => {
-                let re = Regex::new("volta_core").unwrap();
-                assert!(re.is_match(argv));
-            }
-            _ => {
-                panic!(
-                    "Expected EventKind::Start {{ argv }}, Got: {:?}",
-                    event_log.events[0].event
-                );
-            }
-        }
+        assert_eq!(event_log.events[0].event, EventKind::Start);
 
         event_log.add_event_end(ActivityKind::Pin, ExitCode::NetworkError);
         assert_eq!(event_log.events.len(), 2);
@@ -198,5 +191,21 @@ pub mod tests {
         assert_eq!(event_log.events.len(), 4);
         assert_eq!(event_log.events[3].name, "install");
         // not checking the error because it has too much machine-specific info
+
+        event_log.add_event_args();
+        assert_eq!(event_log.events.len(), 5);
+        assert_eq!(event_log.events[4].name, "args");
+        match event_log.events[4].event {
+            EventKind::Args { ref argv } => {
+                let re = Regex::new("volta_core").unwrap();
+                assert!(re.is_match(argv));
+            }
+            _ => {
+                panic!(
+                    "Expected EventKind::Args {{ argv }}, Got: {:?}",
+                    event_log.events[4].event
+                );
+            }
+        }
     }
 }

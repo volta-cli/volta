@@ -36,6 +36,7 @@ pub enum ActivityKind {
     Which,
     Setup,
     Run,
+    Args,
 }
 
 impl Display for ActivityKind {
@@ -62,6 +63,7 @@ impl Display for ActivityKind {
             ActivityKind::Completions => "completions",
             ActivityKind::Which => "which",
             ActivityKind::Run => "run",
+            ActivityKind::Args => "args",
         };
         f.write_str(s)
     }
@@ -158,12 +160,14 @@ impl Session {
         }
     }
 
-    pub fn exit(self, code: ExitCode) -> ! {
+    pub fn exit(mut self, code: ExitCode) -> ! {
+        self.event_log.add_event_args();
         self.publish_to_event_log();
         code.exit();
     }
 
-    pub fn exit_tool(self, code: i32) -> ! {
+    pub fn exit_tool(mut self, code: i32) -> ! {
+        self.event_log.add_event_args();
         self.publish_to_event_log();
         exit(code);
     }

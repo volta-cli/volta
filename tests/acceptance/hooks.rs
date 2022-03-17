@@ -1,7 +1,9 @@
 use std::path::PathBuf;
 use std::{thread, time};
 
-use crate::support::events_helpers::{assert_events, match_end, match_error, match_start};
+use crate::support::events_helpers::{
+    assert_events, match_args, match_end, match_error, match_start,
+};
 use crate::support::sandbox::sandbox;
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
@@ -155,16 +157,14 @@ fn redirects_download() {
     assert_events(
         &s,
         vec![
-            (
-                "volta",
-                match_start(format!("{} install node@1.2.3", VOLTA_BINARY).as_str()),
-            ),
-            (
-                "install",
-                match_start(format!("{} install node@1.2.3", VOLTA_BINARY).as_str()),
-            ),
+            ("volta", match_start()),
+            ("install", match_start()),
             ("volta", match_error(5, "Could not download node")),
             ("volta", match_end(5)),
+            (
+                "args",
+                match_args(format!("{} install node@1.2.3", VOLTA_BINARY).as_str()),
+            ),
         ],
     );
 }
@@ -192,16 +192,14 @@ fn merges_project_and_default_hooks() {
     assert_events(
         &s,
         vec![
-            (
-                "volta",
-                match_start(format!("{} install yarn@3.2.1", VOLTA_BINARY).as_str()),
-            ),
-            (
-                "install",
-                match_start(format!("{} install yarn@3.2.1", VOLTA_BINARY).as_str()),
-            ),
+            ("volta", match_start()),
+            ("install", match_start()),
             ("volta", match_error(5, "Could not download yarn")),
             ("volta", match_end(5)),
+            (
+                "args",
+                match_args(format!("{} install yarn@3.2.1", VOLTA_BINARY).as_str()),
+            ),
         ],
     );
 
@@ -217,16 +215,14 @@ fn merges_project_and_default_hooks() {
     assert_events(
         &s,
         vec![
-            (
-                "volta",
-                match_start(format!("{} install node@10.12.1", VOLTA_BINARY).as_str()),
-            ),
-            (
-                "install",
-                match_start(format!("{} install node@10.12.1", VOLTA_BINARY).as_str()),
-            ),
+            ("volta", match_start()),
+            ("install", match_start()),
             ("volta", match_error(5, "Could not download node")),
             ("volta", match_end(5)),
+            (
+                "args",
+                match_args(format!("{} install node@10.12.1", VOLTA_BINARY).as_str()),
+            ),
         ],
     );
 }
@@ -261,16 +257,14 @@ fn merges_workspace_hooks() {
     assert_events(
         &s,
         vec![
-            (
-                "volta",
-                match_start(format!("{} pin yarn@3.1.4", VOLTA_BINARY).as_str()),
-            ),
-            (
-                "pin",
-                match_start(format!("{} pin yarn@3.1.4", VOLTA_BINARY).as_str()),
-            ),
+            ("volta", match_start()),
+            ("pin", match_start()),
             ("volta", match_error(5, "Could not download yarn")),
             ("volta", match_end(5)),
+            (
+                "args",
+                match_args(format!("{} pin yarn@3.1.4", VOLTA_BINARY).as_str()),
+            ),
         ],
     );
 
@@ -286,16 +280,14 @@ fn merges_workspace_hooks() {
     assert_events(
         &s,
         vec![
-            (
-                "volta",
-                match_start(format!("{} pin npm@5.6.7", VOLTA_BINARY).as_str()),
-            ),
-            (
-                "pin",
-                match_start(format!("{} pin npm@5.6.7", VOLTA_BINARY).as_str()),
-            ),
+            ("volta", match_start()),
+            ("pin", match_start()),
             ("volta", match_error(5, "Could not download npm")),
             ("volta", match_end(5)),
+            (
+                "args",
+                match_args(format!("{} pin npm@5.6.7", VOLTA_BINARY).as_str()),
+            ),
         ],
     );
 
