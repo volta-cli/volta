@@ -1,5 +1,9 @@
 use std::path::PathBuf;
+use std::{thread, time};
 
+use crate::support::events_helpers::{
+    assert_events, match_args, match_end, match_error, match_start,
+};
 use crate::support::sandbox::sandbox;
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
@@ -21,6 +25,38 @@ const PROJECT_PACKAGE_JSON: &str = r#"
     }
 }"#;
 
+// scripts that write events to file 'events.json'
+cfg_if::cfg_if! {
+    if #[cfg(windows)] {
+        // have not been able to read events from stdin with batch, powershell, etc.
+        // so just copy the tempfile (path in EVENTS_FILE env var) to events.json
+        const EVENTS_EXECUTABLE: &str = r#"@echo off
+copy %EVENTS_FILE% events.json
+:: executables should clean up the temp file
+del %EVENTS_FILE%
+"#;
+        const SCRIPT_FILENAME: &str = "write-events.bat";
+        const VOLTA_BINARY: &str = "volta.exe";
+    } else if #[cfg(unix)] {
+        // read events from stdin
+        const EVENTS_EXECUTABLE: &str = r#"#!/bin/bash
+# read Volta events from stdin, and write to events.json
+# (but first clear it out)
+echo -n "" >events.json
+while read line
+do
+  echo "$line" >>events.json
+done
+# executables should clean up the temp file
+/bin/rm "$EVENTS_FILE"
+"#;
+        const SCRIPT_FILENAME: &str = "write-events.sh";
+        const VOLTA_BINARY: &str = "volta";
+    } else {
+        compile_error!("Unsupported platform for tests (expected 'unix' or 'windows').");
+    }
+}
+
 fn default_hooks_json() -> String {
     format!(
         r#"
@@ -39,9 +75,15 @@ fn default_hooks_json() -> String {
         "distro": {{
             "template": "{0}/hook/default/yarn/{{{{version}}}}"
         }}
+    }},
+    "events": {{
+        "publish": {{
+            "bin": "{}"
+        }}
     }}
 }}"#,
-        mockito::server_url()
+        mockito::server_url(),
+        SCRIPT_FILENAME
     )
 }
 
@@ -97,7 +139,11 @@ fn yarn_hooks_json() -> String {
 
 #[test]
 fn redirects_download() {
-    let s = sandbox().default_hooks(&default_hooks_json()).build();
+    let s = sandbox()
+        .default_hooks(&default_hooks_json())
+        .env("VOLTA_WRITE_EVENTS_FILE", "true")
+        .executable_file(SCRIPT_FILENAME, EVENTS_EXECUTABLE)
+        .build();
 
     assert_that!(
         s.volta("install node@1.2.3"),
@@ -105,6 +151,21 @@ fn redirects_download() {
             .with_status(ExitCode::NetworkError as i32)
             .with_stderr_contains("[..]Could not download node@1.2.3")
             .with_stderr_contains("[..]/hook/default/node/1.2.3")
+    );
+
+    thread::sleep(time::Duration::from_millis(500));
+    assert_events(
+        &s,
+        vec![
+            ("volta", match_start()),
+            ("install", match_start()),
+            ("volta", match_error(5, "Could not download node")),
+            ("volta", match_end(5)),
+            (
+                "args",
+                match_args(format!("{} install node@1.2.3", VOLTA_BINARY).as_str()),
+            ),
+        ],
     );
 }
 
@@ -115,6 +176,8 @@ fn merges_project_and_default_hooks() {
         .package_json("{}")
         .default_hooks(&default_hooks_json())
         .project_file(&local_hooks.to_string_lossy(), &project_hooks_json())
+        .env("VOLTA_WRITE_EVENTS_FILE", "true")
+        .executable_file(SCRIPT_FILENAME, EVENTS_EXECUTABLE)
         .build();
 
     // Project defines yarn hooks, so those should be used
@@ -125,6 +188,20 @@ fn merges_project_and_default_hooks() {
             .with_stderr_contains("[..]Could not download yarn@3.2.1")
             .with_stderr_contains("[..]/hook/project/yarn/3.2.1")
     );
+    thread::sleep(time::Duration::from_millis(500));
+    assert_events(
+        &s,
+        vec![
+            ("volta", match_start()),
+            ("install", match_start()),
+            ("volta", match_error(5, "Could not download yarn")),
+            ("volta", match_end(5)),
+            (
+                "args",
+                match_args(format!("{} install yarn@3.2.1", VOLTA_BINARY).as_str()),
+            ),
+        ],
+    );
 
     // Project doesn't define node hooks, so should inherit from the default
     assert_that!(
@@ -133,6 +210,20 @@ fn merges_project_and_default_hooks() {
             .with_status(ExitCode::NetworkError as i32)
             .with_stderr_contains("[..]Could not download node@10.12.1")
             .with_stderr_contains("[..]/hook/default/node/10.12.1")
+    );
+    thread::sleep(time::Duration::from_millis(500));
+    assert_events(
+        &s,
+        vec![
+            ("volta", match_start()),
+            ("install", match_start()),
+            ("volta", match_error(5, "Could not download node")),
+            ("volta", match_end(5)),
+            (
+                "args",
+                match_args(format!("{} install node@10.12.1", VOLTA_BINARY).as_str()),
+            ),
+        ],
     );
 }
 
@@ -150,6 +241,8 @@ fn merges_workspace_hooks() {
             WORKSPACE_PACKAGE_JSON,
         )
         .project_file(&workspace_hooks.to_string_lossy(), &workspace_hooks_json())
+        .env("VOLTA_WRITE_EVENTS_FILE", "true")
+        .executable_file(SCRIPT_FILENAME, EVENTS_EXECUTABLE)
         .build();
 
     // Project defines yarn hooks, so those should be used
@@ -160,6 +253,20 @@ fn merges_workspace_hooks() {
             .with_stderr_contains("[..]Could not download yarn@3.1.4")
             .with_stderr_contains("[..]/hook/project/yarn/3.1.4")
     );
+    thread::sleep(time::Duration::from_millis(500));
+    assert_events(
+        &s,
+        vec![
+            ("volta", match_start()),
+            ("pin", match_start()),
+            ("volta", match_error(5, "Could not download yarn")),
+            ("volta", match_end(5)),
+            (
+                "args",
+                match_args(format!("{} pin yarn@3.1.4", VOLTA_BINARY).as_str()),
+            ),
+        ],
+    );
 
     // Workspace defines npm hooks, so those should be inherited
     assert_that!(
@@ -168,6 +275,20 @@ fn merges_workspace_hooks() {
             .with_status(ExitCode::NetworkError as i32)
             .with_stderr_contains("[..]Could not download npm@5.6.7")
             .with_stderr_contains("[..]/hook/workspace/npm/5.6.7")
+    );
+    thread::sleep(time::Duration::from_millis(500));
+    assert_events(
+        &s,
+        vec![
+            ("volta", match_start()),
+            ("pin", match_start()),
+            ("volta", match_error(5, "Could not download npm")),
+            ("volta", match_end(5)),
+            (
+                "args",
+                match_args(format!("{} pin npm@5.6.7", VOLTA_BINARY).as_str()),
+            ),
+        ],
     );
 
     // Neither project nor workspace defines node hooks, so should inherit from the default

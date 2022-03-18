@@ -2,7 +2,7 @@
 
 mod command;
 pub mod error;
-mod event;
+pub mod event;
 pub mod fs;
 mod hook;
 pub mod inventory;
