@@ -14,10 +14,8 @@ use crate::event::Event;
 pub fn send_events(command: &str, events: &[Event]) {
     match serde_json::to_string_pretty(&events) {
         Ok(events_json) => {
-            let tempfile_path = match env::var("VOLTA_WRITE_EVENTS_FILE") {
-                Ok(_) => write_events_file(events_json.clone()),
-                Err(_) => None,
-            };
+            let tempfile_path = env::var_os("VOLTA_WRITE_EVENTS_FILE")
+                .and_then(|_| write_events_file(events_json.clone()));
             if let Some(ref mut child_process) = spawn_process(command, tempfile_path) {
                 if let Some(ref mut p_stdin) = child_process.stdin.as_mut() {
                     if let Err(error) = writeln!(p_stdin, "{}", events_json) {

@@ -147,12 +147,20 @@ impl Session {
     }
 
     fn publish_to_event_log(self) {
-        let plugin_res = self
-            .hooks()
+        let Self {
+            project,
+            hooks,
+            mut event_log,
+            ..
+        } = self;
+        let plugin_res = project
+            .get()
+            .and_then(|p| hooks.get(p))
             .map(|hooks| hooks.events().and_then(|e| e.publish.as_ref()));
         match plugin_res {
             Ok(plugin) => {
-                self.event_log.publish(plugin);
+                event_log.add_event_args();
+                event_log.publish(plugin);
             }
             Err(e) => {
                 debug!("Unable to publish event log.\n{}", e);
@@ -160,14 +168,12 @@ impl Session {
         }
     }
 
-    pub fn exit(mut self, code: ExitCode) -> ! {
-        self.event_log.add_event_args();
+    pub fn exit(self, code: ExitCode) -> ! {
         self.publish_to_event_log();
         code.exit();
     }
 
-    pub fn exit_tool(mut self, code: i32) -> ! {
-        self.event_log.add_event_args();
+    pub fn exit_tool(self, code: i32) -> ! {
         self.publish_to_event_log();
         exit(code);
     }
