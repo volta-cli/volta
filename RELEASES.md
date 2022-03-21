@@ -1,3 +1,9 @@
+# Version 1.0.6
+
+- Fixed panic when `stdout` is closed (#1058)
+- Disabled global package interception when `--prefix` is provided (#1171)
+- Numerous dependency updates
+
 # Version 1.0.5
 
 - Added error when attempting to install Node using `nvm` syntax (#1020)
