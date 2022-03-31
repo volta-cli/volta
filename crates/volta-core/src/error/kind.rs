@@ -402,6 +402,11 @@ pub enum ErrorKind {
     /// Thrown when the shim binary is called directly, not through a symlink
     RunShimDirectly,
 
+    /// Thrown when there was an error setting a tool to executable
+    SetToolExecutable {
+        tool: String,
+    },
+
     /// Thrown when there was an error copying an unpacked tool to the image directory
     SetupToolImageError {
         tool: String,
@@ -1207,6 +1212,13 @@ Please verify your internet connection.",
 
 Please use the existing shims provided by Volta (node, yarn, etc.) to run tools."
             ),
+            ErrorKind::SetToolExecutable { tool } => write!(
+                f,
+                r#"Could not set "{}" to executable
+
+{}"#,
+                tool, PERMISSIONS_CTA
+            ),
             ErrorKind::SetupToolImageError { tool, version, dir } => write!(
                 f,
                 "Could not create environment for {} v{}
@@ -1474,6 +1486,7 @@ impl ErrorKind {
             ErrorKind::RegistryFetchError { .. } => ExitCode::NetworkError,
             ErrorKind::RunShimDirectly => ExitCode::InvalidArguments,
             ErrorKind::SetupToolImageError { .. } => ExitCode::FileSystemError,
+            ErrorKind::SetToolExecutable { .. } => ExitCode::FileSystemError,
             ErrorKind::ShimCreateError { .. } => ExitCode::FileSystemError,
             ErrorKind::ShimRemoveError { .. } => ExitCode::FileSystemError,
             ErrorKind::StringifyBinConfigError => ExitCode::UnknownError,

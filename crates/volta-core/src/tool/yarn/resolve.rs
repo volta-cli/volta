@@ -1,5 +1,7 @@
 //! Provides resolution of Yarn requirements into specific versions
 
+use std::env;
+
 use super::super::registry::{
     public_registry_index, PackageDetails, PackageIndex, RawPackageMetadata,
     NPM_ABBREVIATED_ACCEPT_HEADER,
@@ -69,8 +71,8 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Yarn>>) -> Fall
     }
 }
 
-fn fetch_yarn_index() -> Fallible<(String, PackageIndex)> {
-    let url = public_registry_index("yarn");
+fn fetch_yarn_index(package: &str) -> Fallible<(String, PackageIndex)> {
+    let url = public_registry_index(package);
     let spinner = progress_spinner(format!("Fetching public registry: {}", url));
     let metadata: RawPackageMetadata = attohttpc::get(&url)
         .header(ACCEPT, NPM_ABBREVIATED_ACCEPT_HEADER)
@@ -84,7 +86,12 @@ fn fetch_yarn_index() -> Fallible<(String, PackageIndex)> {
 }
 
 fn resolve_custom_tag(tag: String) -> Fallible<Version> {
-    let (url, mut index) = fetch_yarn_index()?;
+    // yarn2 and yarn3 are under "@yarnpkg/cli-dist" instead of "yarn"
+    let package: &str = match env::var_os("VOLTA_FEATURE_YARN_3") {
+        Some(_) => "@yarnpkg/cli-dist",
+        None => "yarn",
+    };
+    let (url, mut index) = fetch_yarn_index(package)?;
 
     match index.tags.remove(&tag) {
         Some(version) => {
@@ -109,7 +116,32 @@ fn resolve_latest_legacy(url: String) -> Fallible<Version> {
 }
 
 fn resolve_semver_from_registry(matching: VersionReq) -> Fallible<Version> {
-    let (url, index) = fetch_yarn_index()?;
+    if env::var_os("VOLTA_FEATURE_YARN_3").is_some() {
+        // first try yarn2+, which uses "@yarnpkg/cli-dist" instead of "yarn"
+        let (url, index) = fetch_yarn_index("@yarnpkg/cli-dist")?;
+        let details_opt = index
+            .entries
+            .into_iter()
+            .find(|PackageDetails { version, .. }| matching.matches(version));
+
+        match details_opt {
+            Some(details) => {
+                debug!(
+                    "Found yarn@{} matching requirement '{}' from {}",
+                    details.version, matching, url
+                );
+                return Ok(details.version);
+            }
+            None => {
+                debug!(
+                    "Did not find yarn matching requirement '{}' from {}",
+                    matching, url
+                );
+            }
+        }
+    }
+
+    let (url, index) = fetch_yarn_index("yarn")?;
 
     let details_opt = index
         .entries
@@ -124,6 +156,7 @@ fn resolve_semver_from_registry(matching: VersionReq) -> Fallible<Version> {
             );
             Ok(details.version)
         }
+        // at this point Yarn is not found in either registry
         None => Err(ErrorKind::YarnVersionNotFound {
             matching: matching.to_string(),
         }

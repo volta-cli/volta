@@ -1,12 +1,13 @@
 //! Provides fetcher for Yarn distributions
 
+use std::env;
 use std::fs::File;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use super::super::download_tool_error;
 use super::super::registry::{find_unpack_dir, public_registry_package};
 use crate::error::{Context, ErrorKind, Fallible};
-use crate::fs::{create_staging_dir, create_staging_file, rename};
+use crate::fs::{create_staging_dir, create_staging_file, rename, set_executable};
 use crate::hook::ToolHooks;
 use crate::layout::volta_home;
 use crate::style::{progress_bar, tool_version};
@@ -15,7 +16,7 @@ use crate::version::VersionSpec;
 use archive::{Archive, Tarball};
 use fs_utils::ensure_containing_dir_exists;
 use log::debug;
-use semver::Version;
+use semver::{Version, VersionReq};
 
 pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<()> {
     let yarn_dir = volta_home()?.yarn_inventory_dir();
@@ -79,11 +80,14 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<()> 
             version: version_string.clone(),
         })?;
 
+    let unpack_dir = find_unpack_dir(temp.path())?;
+    // "bin/yarn" is not executable in the @yarnpkg/cli-dist package
+    ensure_bin_is_executable(&unpack_dir, "yarn")?;
+
     let dest = volta_home()?.yarn_image_dir(&version_string);
     ensure_containing_dir_exists(&dest)
         .with_context(|| ErrorKind::ContainingDirError { path: dest.clone() })?;
 
-    let unpack_dir = find_unpack_dir(temp.path())?;
     rename(unpack_dir, &dest).with_context(|| ErrorKind::SetupToolImageError {
         tool: "Yarn".into(),
         version: version_string.clone(),
@@ -122,7 +126,19 @@ fn determine_remote_url(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> F
             let distro_file_name = Yarn::archive_filename(&version_str);
             hook.resolve(version, &distro_file_name)
         }
-        _ => Ok(public_registry_package("yarn", &version_str)),
+        _ => {
+            let matches_yarn_berry = VersionReq::parse(">2").unwrap();
+            if env::var_os("VOLTA_FEATURE_YARN_3").is_some() && matches_yarn_berry.matches(version)
+            {
+                Ok(public_registry_package(
+                    "@yarnpkg/cli-dist",
+                    "cli-dist",
+                    &version_str,
+                ))
+            } else {
+                Ok(public_registry_package("yarn", "yarn", &version_str))
+            }
+        }
     }
 }
 
@@ -137,4 +153,9 @@ fn fetch_remote_distro(
         tool::Spec::Yarn(VersionSpec::Exact(version.clone())),
         url,
     ))
+}
+
+fn ensure_bin_is_executable(unpack_dir: &PathBuf, tool: &str) -> Fallible<()> {
+    let exec_path = unpack_dir.join("bin").join(tool);
+    set_executable(&exec_path).with_context(|| ErrorKind::SetToolExecutable { tool: tool.into() })
 }

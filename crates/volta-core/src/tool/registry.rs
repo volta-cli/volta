@@ -30,11 +30,13 @@ cfg_if! {
     }
 }
 
-pub fn public_registry_package(package: &str, version: &str) -> String {
+// need package and filename for namespaced tools like @yarnpkg/cli-dist, which is located at
+//   https://registry.npmjs.org/@yarnpkg/cli-dist/-/cli-dist-1.2.3.tgz
+pub fn public_registry_package(package: &str, filename: &str, version: &str) -> String {
     format!(
         "{}/-/{}-{}.tgz",
         public_registry_index(package),
-        package,
+        filename,
         version
     )
 }
