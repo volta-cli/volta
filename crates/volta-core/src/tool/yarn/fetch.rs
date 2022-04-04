@@ -2,7 +2,7 @@
 
 use std::env;
 use std::fs::File;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use super::super::download_tool_error;
 use super::super::registry::{find_unpack_dir, public_registry_package};
@@ -155,7 +155,7 @@ fn fetch_remote_distro(
     ))
 }
 
-fn ensure_bin_is_executable(unpack_dir: &PathBuf, tool: &str) -> Fallible<()> {
+fn ensure_bin_is_executable(unpack_dir: &Path, tool: &str) -> Fallible<()> {
     let exec_path = unpack_dir.join("bin").join(tool);
     set_executable(&exec_path).with_context(|| ErrorKind::SetToolExecutable { tool: tool.into() })
 }

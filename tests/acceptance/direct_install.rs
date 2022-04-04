@@ -1,4 +1,4 @@
-use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, NpmFixture, YarnFixture};
+use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, NpmFixture, Yarn1Fixture};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
@@ -114,7 +114,7 @@ cfg_if::cfg_if! {
     }
 }
 
-const YARN_VERSION_INFO: &str = r#"[
+const YARN_1_VERSION_INFO: &str = r#"[
 {"tag_name":"v1.2.42","assets":[{"name":"yarn-v1.2.42.tar.gz"}]},
 {"tag_name":"v1.3.1","assets":[{"name":"yarn-v1.3.1.msi"}]},
 {"tag_name":"v1.4.159","assets":[{"name":"yarn-v1.4.159.tar.gz"}]},
@@ -122,7 +122,7 @@ const YARN_VERSION_INFO: &str = r#"[
 {"tag_name":"v1.12.99","assets":[{"name":"yarn-v1.12.99.tar.gz"}]}
 ]"#;
 
-const YARN_VERSION_FIXTURES: [DistroMetadata; 4] = [
+const YARN_1_VERSION_FIXTURES: [DistroMetadata; 4] = [
     DistroMetadata {
         version: "1.12.99",
         compressed_size: 178,
@@ -257,8 +257,8 @@ fn npm_global_install_yarn_intercepts() {
         .platform(&platform_with_node("10.99.1040"))
         .node_available_versions(NODE_VERSION_INFO)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .yarn_available_versions(YARN_VERSION_INFO)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .env("VOLTA_LOGLEVEL", "info")
         .build();
 
@@ -277,8 +277,8 @@ fn yarn_global_add_yarn_intercepts() {
         .platform(&platform_with_node("10.99.1040"))
         .node_available_versions(NODE_VERSION_INFO)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .yarn_available_versions(YARN_VERSION_INFO)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .env("VOLTA_LOGLEVEL", "info")
         .build();
 
@@ -299,8 +299,8 @@ fn npm_global_install_supports_multiples() {
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
         .npm_available_versions(NPM_VERSION_INFO)
         .distro_mocks::<NpmFixture>(&NPM_VERSION_FIXTURES)
-        .yarn_available_versions(YARN_VERSION_INFO)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .env("VOLTA_LOGLEVEL", "info")
         .build();
 
@@ -341,8 +341,8 @@ fn yarn_global_add_supports_multiples() {
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
         .npm_available_versions(NPM_VERSION_INFO)
         .distro_mocks::<NpmFixture>(&NPM_VERSION_FIXTURES)
-        .yarn_available_versions(YARN_VERSION_INFO)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .env("VOLTA_LOGLEVEL", "info")
         .build();
 
@@ -364,8 +364,8 @@ fn yarn_global_add_without_packages_is_treated_as_not_global() {
         .platform(&platform_with_node_yarn("10.99.1040", "1.2.42"))
         .node_available_versions(NODE_VERSION_INFO)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .yarn_available_versions(YARN_VERSION_INFO)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .env("VOLTA_LOGLEVEL", "info")
         .build();
 
@@ -399,7 +399,7 @@ fn yarn_global_with_override_does_not_intercept() {
     let s = sandbox()
         .platform(&platform_with_node_yarn("10.99.1040", "1.12.99"))
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .env("VOLTA_LOGLEVEL", "info")
         .env("VOLTA_UNSAFE_GLOBAL", "1")
         .build();

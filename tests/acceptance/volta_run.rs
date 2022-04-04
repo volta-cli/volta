@@ -1,4 +1,4 @@
-use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, NpmFixture, YarnFixture};
+use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, NpmFixture, Yarn1Fixture};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
@@ -126,7 +126,7 @@ cfg_if::cfg_if! {
     }
 }
 
-const YARN_VERSION_INFO: &str = r#"{
+const YARN_1_VERSION_INFO: &str = r#"{
     "name":"yarn",
     "dist-tags": { "latest":"1.12.99" },
     "versions": {
@@ -137,7 +137,7 @@ const YARN_VERSION_INFO: &str = r#"{
     }
 }"#;
 
-const YARN_VERSION_FIXTURES: [DistroMetadata; 4] = [
+const YARN_1_VERSION_FIXTURES: [DistroMetadata; 4] = [
     DistroMetadata {
         version: "1.12.99",
         compressed_size: 178,
@@ -286,8 +286,8 @@ fn command_line_yarn() {
     let s = sandbox()
         .node_available_versions(NODE_VERSION_INFO)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .yarn_available_versions(YARN_VERSION_INFO)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .env(VOLTA_LOGLEVEL, "debug")
         .build();
 
@@ -304,8 +304,8 @@ fn inherited_yarn() {
     let s = sandbox()
         .node_available_versions(NODE_VERSION_INFO)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .yarn_available_versions(YARN_VERSION_INFO)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .package_json(&package_json_with_pinned_node_yarn("10.99.1040", "1.2.42"))
         .env(VOLTA_LOGLEVEL, "debug")
         .build();
@@ -323,8 +323,8 @@ fn force_no_yarn() {
     let s = sandbox()
         .node_available_versions(NODE_VERSION_INFO)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .yarn_available_versions(YARN_VERSION_INFO)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .package_json(&package_json_with_pinned_node_yarn("10.99.1040", "1.2.42"))
         .env(VOLTA_LOGLEVEL, "debug")
         .build();

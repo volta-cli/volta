@@ -1,5 +1,5 @@
 use crate::support::sandbox::{
-    sandbox, DistroMetadata, NodeFixture, NpmFixture, Sandbox, YarnFixture,
+    sandbox, DistroMetadata, NodeFixture, NpmFixture, Sandbox, Yarn1Fixture,
 };
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
@@ -116,7 +116,7 @@ cfg_if::cfg_if! {
     }
 }
 
-const YARN_VERSION_INFO: &str = r#"[
+const YARN_1_VERSION_INFO: &str = r#"[
 {"tag_name":"v1.2.42","assets":[{"name":"yarn-v1.2.42.tar.gz"}]},
 {"tag_name":"v1.3.1","assets":[{"name":"yarn-v1.3.1.msi"}]},
 {"tag_name":"v1.4.159","assets":[{"name":"yarn-v1.4.159.tar.gz"}]},
@@ -124,7 +124,7 @@ const YARN_VERSION_INFO: &str = r#"[
 {"tag_name":"v1.12.99","assets":[{"name":"yarn-v1.12.99.tar.gz"}]}
 ]"#;
 
-const YARN_VERSION_FIXTURES: [DistroMetadata; 4] = [
+const YARN_1_VERSION_FIXTURES: [DistroMetadata; 4] = [
     DistroMetadata {
         version: "1.12.99",
         compressed_size: 178,
@@ -266,8 +266,8 @@ fn install_npm_without_node_errors() {
 #[test]
 fn install_yarn_without_node_errors() {
     let s = sandbox()
-        .yarn_available_versions(YARN_VERSION_INFO)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .build();
 
     assert_that!(

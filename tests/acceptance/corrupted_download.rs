@@ -1,4 +1,4 @@
-use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, YarnFixture};
+use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, Yarn1Fixture};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use semver::Version;
@@ -25,7 +25,7 @@ const NODE_VERSION_FIXTURES: [DistroMetadata; 2] = [
     },
 ];
 
-const YARN_VERSION_INFO: &str = r#"{
+const YARN_1_VERSION_INFO: &str = r#"{
     "name":"yarn",
     "dist-tags": { "latest": "1.2.42" },
     "versions": {
@@ -34,7 +34,7 @@ const YARN_VERSION_INFO: &str = r#"{
     }
 }"#;
 
-const YARN_VERSION_FIXTURES: [DistroMetadata; 2] = [
+const YARN_1_VERSION_FIXTURES: [DistroMetadata; 2] = [
     DistroMetadata {
         version: "0.0.1",
         compressed_size: 10,
@@ -81,9 +81,9 @@ fn install_valid_node_saves_to_inventory() {
 fn install_corrupted_yarn_leaves_inventory_unchanged() {
     let s = sandbox()
         .node_available_versions(NODE_VERSION_INFO)
-        .yarn_available_versions(YARN_VERSION_INFO)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .build();
 
     assert_that!(
@@ -99,9 +99,9 @@ fn install_valid_yarn_saves_to_inventory() {
     let s = sandbox()
         .platform(r#"{ "node": { "runtime": "1.2.3", "npm": null }, "yarn": null }"#)
         .node_available_versions(NODE_VERSION_INFO)
-        .yarn_available_versions(YARN_VERSION_INFO)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .build();
 
     assert_that!(
