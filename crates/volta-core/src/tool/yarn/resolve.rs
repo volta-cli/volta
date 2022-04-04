@@ -119,26 +119,35 @@ fn resolve_semver_from_registry(matching: VersionReq) -> Fallible<Version> {
     if env::var_os("VOLTA_FEATURE_YARN_3").is_some() {
         // first try yarn2+, which uses "@yarnpkg/cli-dist" instead of "yarn"
         let (url, index) = fetch_yarn_index("@yarnpkg/cli-dist")?;
-        let details_opt = index
+        let matching_entries: Vec<PackageDetails> = index
             .entries
             .into_iter()
-            .find(|PackageDetails { version, .. }| matching.matches(version));
+            .filter(|PackageDetails { version, .. }| matching.matches(version))
+            .collect();
 
-        match details_opt {
-            Some(details) => {
-                debug!(
-                    "Found yarn@{} matching requirement '{}' from {}",
-                    details.version, matching, url
-                );
-                return Ok(details.version);
-            }
-            None => {
-                debug!(
-                    "Did not find yarn matching requirement '{}' from {}",
-                    matching, url
-                );
+        if matching_entries.len() > 0 {
+            let matches_yarn_3 = VersionReq::parse(">=3").unwrap();
+            let details_opt = matching_entries
+                .iter()
+                .find(|PackageDetails { version, .. }| matches_yarn_3.matches(version));
+
+            match details_opt {
+                Some(details) => {
+                    debug!(
+                        "Found yarn@{} matching requirement '{}' from {}",
+                        details.version, matching, url
+                    );
+                    return Ok(details.version.clone());
+                }
+                None => {
+                    return Err(ErrorKind::Yarn2NotSupported.into());
+                }
             }
         }
+        debug!(
+            "Did not find yarn matching requirement '{}' from {}",
+            matching, url
+        );
     }
 
     let (url, index) = fetch_yarn_index("yarn")?;

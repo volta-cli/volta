@@ -499,6 +499,9 @@ pub enum ErrorKind {
     #[cfg(windows)]
     WriteUserPathError,
 
+    /// Thrown when a user attempts to install a version of Yarn2
+    Yarn2NotSupported,
+
     /// Thrown when there is an error fetching the latest version of Yarn
     YarnLatestFetchError {
         from_url: String,
@@ -1374,6 +1377,12 @@ to {}
 
 Please ensure you have permissions to edit your environment variables."
             ),
+            ErrorKind::Yarn2NotSupported => write!(
+                f,
+                "Yarn@2 is not recommended for use, and not supported by Volta.
+
+Please use Yarn@3 instead."
+            ),
             ErrorKind::YarnLatestFetchError { from_url } => write!(
                 f,
                 "Could not fetch latest version of Yarn
@@ -1506,6 +1515,7 @@ impl ErrorKind {
             ErrorKind::WritePlatformError { .. } => ExitCode::FileSystemError,
             #[cfg(windows)]
             ErrorKind::WriteUserPathError => ExitCode::EnvironmentError,
+            ErrorKind::Yarn2NotSupported => ExitCode::NoVersionMatch,
             ErrorKind::YarnLatestFetchError { .. } => ExitCode::NetworkError,
             ErrorKind::YarnVersionNotFound { .. } => ExitCode::NoVersionMatch,
         }

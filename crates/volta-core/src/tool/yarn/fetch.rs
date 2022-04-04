@@ -127,7 +127,7 @@ fn determine_remote_url(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> F
             hook.resolve(version, &distro_file_name)
         }
         _ => {
-            let matches_yarn_berry = VersionReq::parse(">2").unwrap();
+            let matches_yarn_berry = VersionReq::parse(">=2").unwrap();
             if env::var_os("VOLTA_FEATURE_YARN_3").is_some() && matches_yarn_berry.matches(version)
             {
                 Ok(public_registry_package(

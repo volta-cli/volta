@@ -411,7 +411,6 @@ fn pin_yarn_1() {
 
 #[test]
 fn pin_yarn_2_is_error() {
-    // TODO
     let s = sandbox()
         .package_json(&package_json_with_pinned_node("1.2.3"))
         .yarn_1_available_versions(YARN_1_VERSION_INFO)
@@ -423,12 +422,16 @@ fn pin_yarn_2_is_error() {
 
     assert_that!(
         s.volta("pin yarn@2"),
-        execs().with_status(ExitCode::Success as i32)
+        execs()
+            .with_status(ExitCode::NoVersionMatch as i32)
+            .with_stderr_contains(
+                "[..]Yarn@2 is not recommended for use, and not supported by Volta[..]"
+            )
     );
 
     assert_eq!(
         s.read_package_json(),
-        package_json_with_pinned_node_yarn("1.2.3", "2.4.159"),
+        package_json_with_pinned_node("1.2.3"),
     )
 }
 
