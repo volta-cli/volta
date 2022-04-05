@@ -29,7 +29,7 @@ fn run_npm() {
     let p = temp_project().build();
 
     assert_that!(
-        p.volta("run --node 14.14.1 --npm 6.14.16 npm --version"),
+        p.volta("run --node 14.14.0 --npm 6.14.16 npm --version"),
         execs().with_status(0).with_stdout_contains("6.14.16")
     )
 }
