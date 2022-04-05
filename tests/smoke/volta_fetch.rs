@@ -8,13 +8,13 @@ use test_support::matchers::execs;
 fn fetch_node() {
     let p = temp_project().build();
 
-    assert_that!(p.volta("fetch node@12.16.0"), execs().with_status(0));
-    assert!(p.node_version_is_fetched("12.16.0"));
-    assert!(p.node_version_is_unpacked("12.16.0"));
+    assert_that!(p.volta("fetch node@14.17.6"), execs().with_status(0));
+    assert!(p.node_version_is_fetched("14.17.6"));
+    assert!(p.node_version_is_unpacked("14.17.6"));
 }
 
 #[test]
-fn fetch_yarn() {
+fn fetch_yarn_1() {
     let p = temp_project().build();
 
     assert_that!(p.volta("fetch yarn@1.22.1"), execs().with_status(0));
@@ -23,10 +23,19 @@ fn fetch_yarn() {
 }
 
 #[test]
+fn fetch_yarn_3() {
+    let p = temp_project().env("VOLTA_FEATURE_YARN_3", "yes").build();
+
+    assert_that!(p.volta("fetch yarn@3.2.0"), execs().with_status(0));
+    assert!(p.yarn_version_is_fetched("3.2.0"));
+    assert!(p.yarn_version_is_unpacked("3.2.0"));
+}
+
+#[test]
 fn fetch_npm() {
     let p = temp_project().build();
 
-    assert_that!(p.volta("fetch npm@6.14.2"), execs().with_status(0));
-    assert!(p.npm_version_is_fetched("6.14.2"));
-    assert!(p.npm_version_is_unpacked("6.14.2"));
+    assert_that!(p.volta("fetch npm@8.3.1"), execs().with_status(0));
+    assert!(p.npm_version_is_fetched("8.3.1"));
+    assert!(p.npm_version_is_unpacked("8.3.1"));
 }

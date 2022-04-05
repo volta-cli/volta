@@ -7,23 +7,31 @@ use test_support::matchers::execs;
 static PACKAGE_JSON_WITH_PINNED_NODE: &str = r#"{
     "name": "test-package",
     "volta": {
-        "node": "12.13.0"
+        "node": "14.15.5"
     }
 }"#;
 
 static PACKAGE_JSON_WITH_PINNED_NODE_NPM: &str = r#"{
     "name": "test-package",
     "volta": {
-        "node": "13.0.1",
-        "npm": "6.13.4"
+        "node": "17.3.0",
+        "npm": "8.5.1"
     }
 }"#;
 
-static PACKAGE_JSON_WITH_PINNED_NODE_YARN: &str = r#"{
+static PACKAGE_JSON_WITH_PINNED_NODE_YARN_1: &str = r#"{
     "name": "test-package",
     "volta": {
-        "node": "12.10.0",
-        "yarn": "1.22.0"
+        "node": "16.11.1",
+        "yarn": "1.22.16"
+    }
+}"#;
+
+static PACKAGE_JSON_WITH_PINNED_NODE_YARN_3: &str = r#"{
+    "name": "test-package",
+    "volta": {
+        "node": "16.14.0",
+        "yarn": "3.1.0"
     }
 }"#;
 
@@ -35,7 +43,7 @@ fn autodownload_node() {
 
     assert_that!(
         p.node("--version"),
-        execs().with_status(0).with_stdout_contains("v12.13.0")
+        execs().with_status(0).with_stdout_contains("v14.15.5")
     );
 }
 
@@ -47,18 +55,31 @@ fn autodownload_npm() {
 
     assert_that!(
         p.npm("--version"),
-        execs().with_status(0).with_stdout_contains("6.13.4")
+        execs().with_status(0).with_stdout_contains("8.5.1")
     );
 }
 
 #[test]
-fn autodownload_yarn() {
+fn autodownload_yarn_1() {
     let p = temp_project()
-        .package_json(PACKAGE_JSON_WITH_PINNED_NODE_YARN)
+        .package_json(PACKAGE_JSON_WITH_PINNED_NODE_YARN_1)
         .build();
 
     assert_that!(
         p.yarn("--version"),
-        execs().with_status(0).with_stdout_contains("1.22.0")
+        execs().with_status(0).with_stdout_contains("1.22.16")
+    );
+}
+
+#[test]
+fn autodownload_yarn_3() {
+    let p = temp_project()
+        .package_json(PACKAGE_JSON_WITH_PINNED_NODE_YARN_3)
+        .env("VOLTA_FEATURE_YARN_3", "true")
+        .build();
+
+    assert_that!(
+        p.yarn("--version"),
+        execs().with_status(0).with_stdout_contains("3.1.0")
     );
 }

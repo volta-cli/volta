@@ -9,7 +9,7 @@ const LEGACY_PACKAGE_CONFIG: &str = r#"{
   "version": "1.1.7",
   "platform": {
     "node": {
-      "runtime": "12.18.3",
+      "runtime": "14.18.2",
       "npm": null
     },
     "yarn": null
@@ -27,7 +27,7 @@ const LEGACY_BIN_CONFIG: &str = r#"{
   "path": "./cli.js",
   "platform": {
     "node": {
-      "runtime": "12.18.3",
+      "runtime": "14.18.2",
       "npm": null
     },
     "yarn": null

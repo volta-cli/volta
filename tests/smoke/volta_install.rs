@@ -9,16 +9,16 @@ use test_support::matchers::execs;
 fn install_node() {
     let p = temp_project().build();
 
-    assert_that!(p.volta("install node@12.16.2"), execs().with_status(0));
+    assert_that!(p.volta("install node@14.15.4"), execs().with_status(0));
 
     assert_that!(
         p.node("--version"),
-        execs().with_status(0).with_stdout_contains("v12.16.2")
+        execs().with_status(0).with_stdout_contains("v14.15.4")
     );
 
-    assert!(p.node_version_is_fetched("12.16.2"));
-    assert!(p.node_version_is_unpacked("12.16.2"));
-    p.assert_node_version_is_installed("12.16.2");
+    assert!(p.node_version_is_fetched("14.15.4"));
+    assert!(p.node_version_is_unpacked("14.15.4"));
+    p.assert_node_version_is_installed("14.15.4");
 }
 
 #[test]
@@ -34,7 +34,7 @@ fn install_node_lts() {
 fn install_node_concurrent() {
     let p = temp_project().build();
 
-    let install = p.volta("install node@12.14.0");
+    let install = p.volta("install node@14.17.2");
     let run = p.node("--version");
 
     let concurrent_thread = thread::spawn(move || {
@@ -42,7 +42,7 @@ fn install_node_concurrent() {
         assert_that!(run, execs().with_status(0));
     });
 
-    assert_that!(p.volta("install node@12.14.0"), execs().with_status(0));
+    assert_that!(p.volta("install node@14.17.2"), execs().with_status(0));
     assert_that!(p.node("--version"), execs().with_status(0));
 
     assert!(concurrent_thread.join().is_ok());
@@ -52,7 +52,7 @@ fn install_node_concurrent() {
 fn install_yarn() {
     let p = temp_project().build();
 
-    assert_that!(p.volta("install node@12.16.3"), execs().with_status(0));
+    assert_that!(p.volta("install node@14.15.2"), execs().with_status(0));
     assert_that!(p.volta("install yarn@1.22.1"), execs().with_status(0));
 
     assert_that!(
@@ -69,7 +69,7 @@ fn install_yarn() {
 fn install_old_yarn() {
     let p = temp_project().build();
 
-    assert_that!(p.volta("install node@10.21.0"), execs().with_status(0));
+    assert_that!(p.volta("install node@14.11.0"), execs().with_status(0));
     // Yarn 1.9.2 is old enough that it is no longer on the first page of results from the GitHub API
     assert_that!(p.volta("install yarn@1.9.2"), execs().with_status(0));
 
@@ -87,7 +87,7 @@ fn install_old_yarn() {
 fn install_yarn_concurrent() {
     let p = temp_project().build();
 
-    assert_that!(p.volta("install node@12.14.0"), execs().with_status(0));
+    assert_that!(p.volta("install node@14.19.0"), execs().with_status(0));
 
     let install = p.volta("install yarn@1.17.0");
     let run = p.yarn("--version");
@@ -107,22 +107,22 @@ fn install_yarn_concurrent() {
 fn install_npm() {
     let p = temp_project().build();
 
-    // node 13.10.0 is bundled with npm 6.13.7
-    assert_that!(p.volta("install node@13.10.0"), execs().with_status(0));
+    // node 17.6.0 is bundled with npm 8.5.1
+    assert_that!(p.volta("install node@17.6.0"), execs().with_status(0));
     assert_that!(
         p.npm("--version"),
-        execs().with_status(0).with_stdout_contains("6.13.7")
+        execs().with_status(0).with_stdout_contains("8.5.1")
     );
 
     // install npm 6.8.0 and verify that is installed correctly
-    assert_that!(p.volta("install npm@6.14.3"), execs().with_status(0));
-    assert!(p.npm_version_is_fetched("6.14.3"));
-    assert!(p.npm_version_is_unpacked("6.14.3"));
-    p.assert_npm_version_is_installed("6.14.3");
+    assert_that!(p.volta("install npm@8.5.5"), execs().with_status(0));
+    assert!(p.npm_version_is_fetched("8.5.5"));
+    assert!(p.npm_version_is_unpacked("8.5.5"));
+    p.assert_npm_version_is_installed("8.5.5");
 
     assert_that!(
         p.npm("--version"),
-        execs().with_status(0).with_stdout_contains("6.14.3")
+        execs().with_status(0).with_stdout_contains("8.5.5")
     );
 }
 
@@ -130,7 +130,7 @@ fn install_npm() {
 fn install_npm_concurrent() {
     let p = temp_project().build();
 
-    assert_that!(p.volta("install node@12.14.0"), execs().with_status(0));
+    assert_that!(p.volta("install node@14.5.0"), execs().with_status(0));
 
     let install = p.volta("install npm@6.14.2");
     let run = p.npm("--version");
@@ -160,7 +160,7 @@ fn install_package() {
     let p = temp_project().build();
 
     // have to install node first, because we need npm
-    assert_that!(p.volta("install node@12.11.1"), execs().with_status(0));
+    assert_that!(p.volta("install node@14.11.0"), execs().with_status(0));
 
     assert_that!(p.volta("install cowsay@1.4.0"), execs().with_status(0));
     assert!(p.shim_exists("cowsay"));
@@ -176,7 +176,7 @@ fn install_package() {
 fn install_package_concurrent() {
     let p = temp_project().build();
 
-    assert_that!(p.volta("install node@12.14.0"), execs().with_status(0));
+    assert_that!(p.volta("install node@14.14.0"), execs().with_status(0));
 
     let install = p.volta("install cowsay@1.3.0");
     let run = p.exec_shim("cowsay", "hello");
@@ -197,7 +197,7 @@ fn install_scoped_package() {
     let p = temp_project().build();
 
     // have to install node first, because we need npm
-    assert_that!(p.volta("install node@12.14.1"), execs().with_status(0));
+    assert_that!(p.volta("install node@14.15.0"), execs().with_status(0));
 
     assert_that!(p.volta("install @wdio/cli@5.12.4"), execs().with_status(0));
     assert!(p.shim_exists("wdio"));
@@ -214,7 +214,7 @@ fn install_package_tag_version() {
     let p = temp_project().build();
 
     // have to install node first, because we need npm
-    assert_that!(p.volta("install node@12.12.0"), execs().with_status(0));
+    assert_that!(p.volta("install node@14.8.0"), execs().with_status(0));
 
     assert_that!(p.volta("install elm@elm0.19.0"), execs().with_status(0));
     assert!(p.shim_exists("elm"));

@@ -40,6 +40,20 @@ impl FileBuilder {
     }
 }
 
+pub struct EnvVar {
+    name: String,
+    value: String,
+}
+
+impl EnvVar {
+    pub fn new(name: &str, value: &str) -> Self {
+        EnvVar {
+            name: name.to_string(),
+            value: value.to_string(),
+        }
+    }
+}
+
 #[must_use]
 pub struct TempProjectBuilder {
     root: TempProject,
@@ -57,6 +71,7 @@ impl TempProjectBuilder {
             root: TempProject {
                 root: root.clone(),
                 path: OsString::new(),
+                env_vars: vec![],
             },
             files: vec![],
         }
@@ -80,6 +95,12 @@ impl TempProjectBuilder {
     pub fn volta_home_file(mut self, path: &str, contents: &str) -> Self {
         let path = volta_home(self.root()).join(path);
         self.files.push(FileBuilder::new(path, contents));
+        self
+    }
+
+    /// Set an environment variable (chainable)
+    pub fn env(mut self, name: &str, value: &str) -> Self {
+        self.root.env_vars.push(EnvVar::new(name, value));
         self
     }
 
@@ -248,6 +269,7 @@ fn package_distro_file_name(name: &str, version: &str) -> String {
 pub struct TempProject {
     root: PathBuf,
     path: OsString,
+    env_vars: Vec<EnvVar>,
 }
 
 impl TempProject {
@@ -272,6 +294,11 @@ impl TempProject {
             .env("VOLTA_INSTALL_DIR", cargo_dir())
             .env_remove("VOLTA_NODE_VERSION")
             .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
+
+        // overrides for env vars
+        for env_var in &self.env_vars {
+            p.env(&env_var.name, &env_var.value);
+        }
 
         p
     }

@@ -4,13 +4,13 @@ use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
 
-// Note: Node 12.15.0 is bundled with npm 6.13.4
+// Note: Node 14.11.0 is bundled with npm 6.14.8
 const PACKAGE_JSON: &str = r#"{
     "name": "test-package",
     "volta": {
-        "node": "12.15.0",
-        "npm": "6.14.2",
-        "yarn": "1.17.1"
+        "node": "14.11.0",
+        "npm": "6.14.15",
+        "yarn": "1.22.10"
     }
 }"#;
 
@@ -19,8 +19,8 @@ fn run_node() {
     let p = temp_project().build();
 
     assert_that!(
-        p.volta("run --node 12.16.0 node --version"),
-        execs().with_status(0).with_stdout_contains("v12.16.0")
+        p.volta("run --node 14.16.0 node --version"),
+        execs().with_status(0).with_stdout_contains("v14.16.0")
     );
 }
 
@@ -29,18 +29,28 @@ fn run_npm() {
     let p = temp_project().build();
 
     assert_that!(
-        p.volta("run --node 12.14.1 --npm 6.14.4 npm --version"),
-        execs().with_status(0).with_stdout_contains("6.14.4")
+        p.volta("run --node 14.14.1 --npm 6.14.16 npm --version"),
+        execs().with_status(0).with_stdout_contains("6.14.16")
     )
 }
 
 #[test]
-fn run_yarn() {
+fn run_yarn_1() {
     let p = temp_project().build();
 
     assert_that!(
-        p.volta("run --node 12.16.1 --yarn 1.22.0 yarn --version"),
+        p.volta("run --node 14.16.1 --yarn 1.22.0 yarn --version"),
         execs().with_status(0).with_stdout_contains("1.22.0")
+    );
+}
+
+#[test]
+fn run_yarn_3() {
+    let p = temp_project().env("VOLTA_FEATURE_YARN_3", "ok").build();
+
+    assert_that!(
+        p.volta("run --node 16.14.1 --yarn 3.1.1 yarn --version"),
+        execs().with_status(0).with_stdout_contains("3.1.1")
     );
 }
 
@@ -59,7 +69,7 @@ fn run_environment() {
     let p = temp_project().build();
 
     assert_that!(
-        p.volta("run --node 12.16.0 --env VOLTA_SMOKE_1234=hello node -e console.log(process.env.VOLTA_SMOKE_1234)"),
+        p.volta("run --node 14.15.3 --env VOLTA_SMOKE_1234=hello node -e console.log(process.env.VOLTA_SMOKE_1234)"),
         execs().with_status(0).with_stdout_contains("hello")
     );
 }
