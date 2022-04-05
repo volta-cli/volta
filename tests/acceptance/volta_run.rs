@@ -1,4 +1,6 @@
-use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, NpmFixture, Yarn1Fixture};
+use crate::support::sandbox::{
+    sandbox, DistroMetadata, NodeFixture, NpmFixture, Yarn1Fixture, YarnBerryFixture,
+};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
@@ -160,6 +162,40 @@ const YARN_1_VERSION_FIXTURES: [DistroMetadata; 4] = [
     },
 ];
 
+const YARN_BERRY_VERSION_INFO: &str = r#"{
+    "name":"@yarnpkg/cli-dist",
+    "dist-tags": { "latest":"3.12.99" },
+    "versions": {
+        "2.4.159": { "version":"2.4.159", "dist": { "shasum":"", "tarball":"" }},
+        "3.2.42": { "version":"3.2.42", "dist": { "shasum":"", "tarball":"" }},
+        "3.7.71": { "version":"3.7.71", "dist": { "shasum":"", "tarball":"" }},
+        "3.12.99": { "version":"3.12.99", "dist": { "shasum":"", "tarball":"" }}
+    }
+}"#;
+
+const YARN_BERRY_VERSION_FIXTURES: [DistroMetadata; 4] = [
+    DistroMetadata {
+        version: "2.4.159",
+        compressed_size: 177,
+        uncompressed_size: Some(0x0028_0000),
+    },
+    DistroMetadata {
+        version: "3.12.99",
+        compressed_size: 178,
+        uncompressed_size: Some(0x0028_0000),
+    },
+    DistroMetadata {
+        version: "3.7.71",
+        compressed_size: 176,
+        uncompressed_size: Some(0x0028_0000),
+    },
+    DistroMetadata {
+        version: "3.2.42",
+        compressed_size: 174,
+        uncompressed_size: Some(0x0028_0000),
+    },
+];
+
 const NPM_VERSION_FIXTURES: [DistroMetadata; 3] = [
     DistroMetadata {
         version: "1.2.3",
@@ -282,7 +318,7 @@ fn force_bundled_npm() {
 }
 
 #[test]
-fn command_line_yarn() {
+fn command_line_yarn_1() {
     let s = sandbox()
         .node_available_versions(NODE_VERSION_INFO)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
@@ -300,7 +336,28 @@ fn command_line_yarn() {
 }
 
 #[test]
-fn inherited_yarn() {
+fn command_line_yarn_3() {
+    let s = sandbox()
+        .node_available_versions(NODE_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .yarn_berry_available_versions(YARN_BERRY_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
+        .distro_mocks::<YarnBerryFixture>(&YARN_BERRY_VERSION_FIXTURES)
+        .env(VOLTA_LOGLEVEL, "debug")
+        .env("VOLTA_FEATURE_YARN_3", "true")
+        .build();
+
+    assert_that!(
+        s.volta("run --node 10.99.1040 --yarn 3.7.71 yarn --version"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]Yarn: 3.7.71 from command-line configuration")
+    );
+}
+
+#[test]
+fn inherited_yarn_1() {
     let s = sandbox()
         .node_available_versions(NODE_VERSION_INFO)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
@@ -315,6 +372,28 @@ fn inherited_yarn() {
         execs()
             .with_status(ExitCode::Success as i32)
             .with_stderr_contains("[..]Yarn: 1.2.42 from project configuration")
+    );
+}
+
+#[test]
+fn inherited_yarn_3() {
+    let s = sandbox()
+        .node_available_versions(NODE_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .yarn_berry_available_versions(YARN_BERRY_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
+        .distro_mocks::<YarnBerryFixture>(&YARN_BERRY_VERSION_FIXTURES)
+        .package_json(&package_json_with_pinned_node_yarn("10.99.1040", "3.2.42"))
+        .env(VOLTA_LOGLEVEL, "debug")
+        .env("VOLTA_FEATURE_YARN_3", "true")
+        .build();
+
+    assert_that!(
+        s.volta("run --node 10.99.1040 yarn --version"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]Yarn: 3.2.42 from project configuration")
     );
 }
 
