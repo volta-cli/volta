@@ -9,7 +9,7 @@ use hyperx::header::HttpDate;
 use mockito::{self, mock, Matcher};
 use semver::Version;
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
-use volta_core::fs::symlink_file;
+use volta_core::fs::{set_executable, symlink_file};
 use volta_core::tool::{Node, Yarn, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION, NODE_DISTRO_OS};
 
 // version cache for node and yarn
@@ -78,11 +78,12 @@ impl EnvVar {
     }
 }
 
-// used to construct sandboxed package.json and platform.json
+// used to construct sandboxed files like package.json, platform.json, etc.
 #[derive(PartialEq, Clone)]
 pub struct FileBuilder {
     path: PathBuf,
     contents: String,
+    executable: bool,
 }
 
 impl FileBuilder {
@@ -90,7 +91,13 @@ impl FileBuilder {
         FileBuilder {
             path,
             contents: contents.to_string(),
+            executable: false,
         }
+    }
+
+    pub fn make_executable(mut self) -> Self {
+        self.executable = true;
+        self
     }
 
     pub fn build(&self) {
@@ -100,6 +107,9 @@ impl FileBuilder {
             .unwrap_or_else(|e| panic!("could not create file {}: {}", self.path.display(), e));
 
         ok_or_panic! { file.write_all(self.contents.as_bytes()) };
+        if self.executable {
+            ok_or_panic! { set_executable(&self.path) };
+        }
     }
 
     fn dirname(&self) -> &Path {
@@ -113,6 +123,7 @@ pub struct SandboxBuilder {
     files: Vec<FileBuilder>,
     caches: Vec<CacheBuilder>,
     path_dirs: Vec<PathBuf>,
+    has_exec_path: bool,
 }
 
 pub trait DistroFixture: From<DistroMetadata> {
@@ -253,6 +264,7 @@ impl SandboxBuilder {
             files: vec![],
             caches: vec![],
             path_dirs: vec![volta_bin_dir()],
+            has_exec_path: false,
         }
     }
 
@@ -411,6 +423,17 @@ impl SandboxBuilder {
         self
     }
 
+    /// Add an arbitrary file to the test project within the sandbox,
+    /// give it executable permissions,
+    /// and add its directory to the PATH
+    /// (chainable)
+    pub fn executable_file(mut self, path: &str, contents: &str) -> Self {
+        let file_name = self.root().join("exec").join(path);
+        self.files
+            .push(FileBuilder::new(file_name, contents).make_executable());
+        self.add_exec_dir_to_path()
+    }
+
     /// Set a package config file for the sandbox (chainable)
     pub fn package_config(mut self, name: &str, contents: &str) -> Self {
         let package_cfg_file = package_config_file(name);
@@ -449,6 +472,16 @@ impl SandboxBuilder {
     pub fn node_npm_version_file(mut self, node_version: &str, npm_version: &str) -> Self {
         let npm_file = node_npm_version_file(node_version);
         self.files.push(FileBuilder::new(npm_file, npm_version));
+        self
+    }
+
+    /// Add executable directory to the PATH (chainable)
+    pub fn add_exec_dir_to_path(mut self) -> Self {
+        if !self.has_exec_path {
+            let exec_path = self.root().join("exec");
+            self.path_dirs.push(exec_path);
+            self.has_exec_path = true;
+        }
         self
     }
 

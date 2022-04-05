@@ -36,6 +36,7 @@ pub enum ActivityKind {
     Which,
     Setup,
     Run,
+    Args,
 }
 
 impl Display for ActivityKind {
@@ -62,6 +63,7 @@ impl Display for ActivityKind {
             ActivityKind::Completions => "completions",
             ActivityKind::Which => "which",
             ActivityKind::Run => "run",
+            ActivityKind::Args => "args",
         };
         f.write_str(s)
     }
@@ -145,12 +147,20 @@ impl Session {
     }
 
     fn publish_to_event_log(self) {
-        let plugin_res = self
-            .hooks()
+        let Self {
+            project,
+            hooks,
+            mut event_log,
+            ..
+        } = self;
+        let plugin_res = project
+            .get()
+            .and_then(|p| hooks.get(p))
             .map(|hooks| hooks.events().and_then(|e| e.publish.as_ref()));
         match plugin_res {
             Ok(plugin) => {
-                self.event_log.publish(plugin);
+                event_log.add_event_args();
+                event_log.publish(plugin);
             }
             Err(e) => {
                 debug!("Unable to publish event log.\n{}", e);

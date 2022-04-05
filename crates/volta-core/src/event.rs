@@ -3,22 +3,22 @@
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::error::{ExitCode, VoltaError};
 use crate::hook::Publish;
-use crate::monitor::Monitor;
+use crate::monitor::send_events;
 use crate::session::ActivityKind;
 
 // the Event data that is serialized to JSON and sent the plugin
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Event {
     timestamp: u64,
-    name: String,
-    event: EventKind,
+    pub name: String,
+    pub event: EventKind,
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct ErrorEnv {
     argv: String,
     exec_path: String,
@@ -27,9 +27,9 @@ pub struct ErrorEnv {
     platform_version: String,
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
 #[serde(rename_all = "lowercase")]
-enum EventKind {
+pub enum EventKind {
     Start,
     End {
         exit_code: i32,
@@ -41,6 +41,9 @@ enum EventKind {
     },
     ToolEnd {
         exit_code: i32,
+    },
+    Args {
+        argv: String,
     },
 }
 
@@ -122,6 +125,18 @@ impl EventLog {
             activity_kind,
         )
     }
+    pub fn add_event_args(&mut self) {
+        let argv = env::args_os()
+            .enumerate()
+            .fold(String::new(), |mut result, (i, arg)| {
+                if i > 0 {
+                    result.push(' ');
+                }
+                result.push_str(&arg.to_string_lossy());
+                result
+            });
+        self.add_event(EventKind::Args { argv }, ActivityKind::Args)
+    }
 
     fn add_event(&mut self, event_kind: EventKind, activity_kind: ActivityKind) {
         let event = event_kind.into_event(activity_kind);
@@ -133,8 +148,7 @@ impl EventLog {
             // Note: This call to unimplemented is left in, as it's not a Fallible operation that can use ErrorKind::Unimplemented
             Some(&Publish::Url(_)) => unimplemented!(),
             Some(&Publish::Bin(ref command)) => {
-                let mut monitor = Monitor::new(command);
-                monitor.send_events(&self.events);
+                send_events(command, &self.events);
             }
             None => {}
         }
@@ -144,9 +158,10 @@ impl EventLog {
 #[cfg(test)]
 pub mod tests {
 
-    use super::EventLog;
+    use super::{EventKind, EventLog};
     use crate::error::{ErrorKind, ExitCode};
     use crate::session::ActivityKind;
+    use regex::Regex;
 
     #[test]
     fn test_adding_events() {
@@ -156,18 +171,41 @@ pub mod tests {
         event_log.add_event_start(ActivityKind::Current);
         assert_eq!(event_log.events.len(), 1);
         assert_eq!(event_log.events[0].name, "current");
+        assert_eq!(event_log.events[0].event, EventKind::Start);
 
         event_log.add_event_end(ActivityKind::Pin, ExitCode::NetworkError);
         assert_eq!(event_log.events.len(), 2);
         assert_eq!(event_log.events[1].name, "pin");
+        assert_eq!(event_log.events[1].event, EventKind::End { exit_code: 5 });
 
         event_log.add_event_tool_end(ActivityKind::Version, 12);
         assert_eq!(event_log.events.len(), 3);
         assert_eq!(event_log.events[2].name, "version");
+        assert_eq!(
+            event_log.events[2].event,
+            EventKind::ToolEnd { exit_code: 12 }
+        );
 
         let error = ErrorKind::BinaryExecError.into();
         event_log.add_event_error(ActivityKind::Install, &error);
         assert_eq!(event_log.events.len(), 4);
         assert_eq!(event_log.events[3].name, "install");
+        // not checking the error because it has too much machine-specific info
+
+        event_log.add_event_args();
+        assert_eq!(event_log.events.len(), 5);
+        assert_eq!(event_log.events[4].name, "args");
+        match event_log.events[4].event {
+            EventKind::Args { ref argv } => {
+                let re = Regex::new("volta_core").unwrap();
+                assert!(re.is_match(argv));
+            }
+            _ => {
+                panic!(
+                    "Expected EventKind::Args {{ argv }}, Got: {:?}",
+                    event_log.events[4].event
+                );
+            }
+        }
     }
 }

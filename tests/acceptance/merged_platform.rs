@@ -1,3 +1,6 @@
+use std::{thread, time};
+
+use crate::support::events_helpers::{assert_events, match_args, match_start, match_tool_end};
 use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, NpmFixture, Yarn1Fixture};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
@@ -49,6 +52,44 @@ const PLATFORM_WITH_YARN: &str = r#"{
     },
     "yarn": "1.7.71"
 }"#;
+
+cfg_if::cfg_if! {
+    if #[cfg(windows)] {
+        // copy the tempfile (path in EVENTS_FILE env var) to events.json
+        const EVENTS_EXECUTABLE: &str = r#"@echo off
+copy %EVENTS_FILE% events.json
+:: executables should clean up the temp file
+del %EVENTS_FILE%
+"#;
+        const SCRIPT_FILENAME: &str = "write-events.bat";
+        const YARN_SHIM: &str = "yarn.exe";
+    } else if #[cfg(unix)] {
+        // copy the tempfile (path in EVENTS_FILE env var) to events.json
+        const EVENTS_EXECUTABLE: &str = r#"#!/bin/bash
+/bin/cp "$EVENTS_FILE" events.json
+# executables should clean up the temp file
+/bin/rm "$EVENTS_FILE"
+"#;
+        const SCRIPT_FILENAME: &str = "write-events.sh";
+        const YARN_SHIM: &str = "yarn";
+    } else {
+        compile_error!("Unsupported platform for tests (expected 'unix' or 'windows').");
+    }
+}
+
+fn events_hooks_json() -> String {
+    format!(
+        r#"
+{{
+    "events": {{
+        "publish": {{
+            "bin": "{}"
+        }}
+    }}
+}}"#,
+        SCRIPT_FILENAME
+    )
+}
 
 cfg_if::cfg_if! {
     if #[cfg(target_os = "macos")] {
@@ -203,6 +244,9 @@ fn uses_project_yarn_if_available() {
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
         .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .env("VOLTA_LOGLEVEL", "debug")
+        .env("VOLTA_WRITE_EVENTS_FILE", "true")
+        .default_hooks(&events_hooks_json())
+        .executable_file(SCRIPT_FILENAME, EVENTS_EXECUTABLE)
         .build();
 
     assert_that!(
@@ -212,6 +256,20 @@ fn uses_project_yarn_if_available() {
             .with_stderr_does_not_contain("[..]Yarn is not available.")
             .with_stderr_does_not_contain("[..]No Yarn version found in this project.")
             .with_stderr_contains("[..]Yarn: 1.12.99 from project configuration")
+    );
+
+    thread::sleep(time::Duration::from_millis(500));
+    assert_events(
+        &s,
+        vec![
+            ("tool", match_start()),
+            ("yarn", match_start()),
+            ("tool", match_tool_end(0)),
+            (
+                "args",
+                match_args(format!("{} --version", YARN_SHIM).as_str()),
+            ),
+        ],
     );
 }
 
