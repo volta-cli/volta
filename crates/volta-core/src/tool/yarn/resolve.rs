@@ -86,13 +86,25 @@ fn fetch_yarn_index(package: &str) -> Fallible<(String, PackageIndex)> {
 }
 
 fn resolve_custom_tag(tag: String) -> Fallible<Version> {
-    // yarn2 and yarn3 are under "@yarnpkg/cli-dist" instead of "yarn"
-    let package: &str = match env::var_os("VOLTA_FEATURE_YARN_3") {
-        Some(_) => "@yarnpkg/cli-dist",
-        None => "yarn",
-    };
-    let (url, mut index) = fetch_yarn_index(package)?;
+    if env::var_os("VOLTA_FEATURE_YARN_3").is_some() {
+        // first try yarn2+, which uses "@yarnpkg/cli-dist" instead of "yarn"
+        let (url, mut index) = fetch_yarn_index("@yarnpkg/cli-dist")?;
 
+        let matches_yarn_3 = VersionReq::parse(">=3").unwrap();
+        if let Some(version) = index.tags.remove(&tag) {
+            debug!("Found yarn@{} matching tag '{}' from {}", version, tag, url);
+            if matches_yarn_3.matches(&version) {
+                return Err(ErrorKind::Yarn2NotSupported.into());
+            }
+            return Ok(version);
+        }
+        debug!(
+            "Did not find yarn matching tag '{}' from @yarnpkg/cli-dist",
+            tag
+        );
+    }
+
+    let (url, mut index) = fetch_yarn_index("yarn")?;
     match index.tags.remove(&tag) {
         Some(version) => {
             debug!("Found yarn@{} matching tag '{}' from {}", version, tag, url);
