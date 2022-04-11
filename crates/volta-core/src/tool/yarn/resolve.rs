@@ -90,10 +90,10 @@ fn resolve_custom_tag(tag: String) -> Fallible<Version> {
         // first try yarn2+, which uses "@yarnpkg/cli-dist" instead of "yarn"
         let (url, mut index) = fetch_yarn_index("@yarnpkg/cli-dist")?;
 
-        let matches_yarn_3 = VersionReq::parse(">=3").unwrap();
+        let matches_yarn_2 = VersionReq::parse("2.*").unwrap();
         if let Some(version) = index.tags.remove(&tag) {
             debug!("Found yarn@{} matching tag '{}' from {}", version, tag, url);
-            if matches_yarn_3.matches(&version) {
+            if matches_yarn_2.matches(&version) {
                 return Err(ErrorKind::Yarn2NotSupported.into());
             }
             return Ok(version);
