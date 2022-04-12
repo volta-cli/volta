@@ -3,8 +3,7 @@
 use std::env;
 
 use super::super::registry::{
-    public_registry_index, PackageDetails, PackageIndex, RawPackageMetadata,
-    NPM_ABBREVIATED_ACCEPT_HEADER,
+    fetch_public_index, public_registry_index, PackageDetails, PackageIndex,
 };
 use super::super::registry_fetch_error;
 use super::metadata::{RawYarnIndex, YarnIndex};
@@ -14,7 +13,6 @@ use crate::session::Session;
 use crate::style::progress_spinner;
 use crate::tool::Yarn;
 use crate::version::{parse_version, VersionSpec, VersionTag};
-use attohttpc::header::ACCEPT;
 use attohttpc::Response;
 use log::debug;
 use semver::{Version, VersionReq};
@@ -73,16 +71,7 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Yarn>>) -> Fall
 
 fn fetch_yarn_index(package: &str) -> Fallible<(String, PackageIndex)> {
     let url = public_registry_index(package);
-    let spinner = progress_spinner(format!("Fetching public registry: {}", url));
-    let metadata: RawPackageMetadata = attohttpc::get(&url)
-        .header(ACCEPT, NPM_ABBREVIATED_ACCEPT_HEADER)
-        .send()
-        .and_then(Response::error_for_status)
-        .and_then(Response::json)
-        .with_context(registry_fetch_error("Yarn", &url))?;
-
-    spinner.finish_and_clear();
-    Ok((url, metadata.into()))
+    fetch_public_index(url, "Yarn")
 }
 
 fn resolve_custom_tag(tag: String) -> Fallible<Version> {
@@ -90,10 +79,9 @@ fn resolve_custom_tag(tag: String) -> Fallible<Version> {
         // first try yarn2+, which uses "@yarnpkg/cli-dist" instead of "yarn"
         let (url, mut index) = fetch_yarn_index("@yarnpkg/cli-dist")?;
 
-        let matches_yarn_2 = VersionReq::parse("2.*").unwrap();
         if let Some(version) = index.tags.remove(&tag) {
             debug!("Found yarn@{} matching tag '{}' from {}", version, tag, url);
-            if matches_yarn_2.matches(&version) {
+            if version.major == 2 {
                 return Err(ErrorKind::Yarn2NotSupported.into());
             }
             return Ok(version);
@@ -137,11 +125,10 @@ fn resolve_semver_from_registry(matching: VersionReq) -> Fallible<Version> {
             .filter(|PackageDetails { version, .. }| matching.matches(version))
             .collect();
 
-        if matching_entries.len() > 0 {
-            let matches_yarn_3 = VersionReq::parse(">=3").unwrap();
+        if !matching_entries.is_empty() {
             let details_opt = matching_entries
                 .iter()
-                .find(|PackageDetails { version, .. }| matches_yarn_3.matches(version));
+                .find(|PackageDetails { version, .. }| version.major >= 3);
 
             match details_opt {
                 Some(details) => {

@@ -5,7 +5,9 @@ use std::fs::File;
 use std::path::Path;
 
 use super::super::download_tool_error;
-use super::super::registry::{find_unpack_dir, public_registry_package};
+use super::super::registry::{
+    find_unpack_dir, public_registry_package, scoped_public_registry_package,
+};
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::{create_staging_dir, create_staging_file, rename, set_executable};
 use crate::hook::ToolHooks;
@@ -16,7 +18,7 @@ use crate::version::VersionSpec;
 use archive::{Archive, Tarball};
 use fs_utils::ensure_containing_dir_exists;
 use log::debug;
-use semver::{Version, VersionReq};
+use semver::Version;
 
 pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<()> {
     let yarn_dir = volta_home()?.yarn_inventory_dir();
@@ -127,16 +129,14 @@ fn determine_remote_url(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> F
             hook.resolve(version, &distro_file_name)
         }
         _ => {
-            let matches_yarn_berry = VersionReq::parse(">=2").unwrap();
-            if env::var_os("VOLTA_FEATURE_YARN_3").is_some() && matches_yarn_berry.matches(version)
-            {
-                Ok(public_registry_package(
-                    "@yarnpkg/cli-dist",
+            if env::var_os("VOLTA_FEATURE_YARN_3").is_some() && version.major >= 2 {
+                Ok(scoped_public_registry_package(
+                    "@yarnpkg",
                     "cli-dist",
                     &version_str,
                 ))
             } else {
-                Ok(public_registry_package("yarn", "yarn", &version_str))
+                Ok(public_registry_package("yarn", &version_str))
             }
         }
     }

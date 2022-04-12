@@ -1379,9 +1379,9 @@ Please ensure you have permissions to edit your environment variables."
             ),
             ErrorKind::Yarn2NotSupported => write!(
                 f,
-                "Yarn@2 is not recommended for use, and not supported by Volta.
+                "Yarn version 2 is not recommended for use, and not supported by Volta.
 
-Please use Yarn@3 instead."
+Please use version 3 or greater instead."
             ),
             ErrorKind::YarnLatestFetchError { from_url } => write!(
                 f,

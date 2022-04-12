@@ -425,7 +425,7 @@ fn pin_yarn_2_is_error() {
         execs()
             .with_status(ExitCode::NoVersionMatch as i32)
             .with_stderr_contains(
-                "[..]Yarn@2 is not recommended for use, and not supported by Volta[..]"
+                "[..]Yarn version 2 is not recommended for use, and not supported by Volta[..]"
             )
     );
 

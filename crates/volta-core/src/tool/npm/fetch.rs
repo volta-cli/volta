@@ -129,7 +129,7 @@ fn determine_remote_url(version: &Version, hooks: Option<&ToolHooks<Npm>>) -> Fa
             let distro_file_name = Npm::archive_filename(&version_str);
             hook.resolve(version, &distro_file_name)
         }
-        _ => Ok(public_registry_package("npm", "npm", &version_str)),
+        _ => Ok(public_registry_package("npm", &version_str)),
     }
 }
 
