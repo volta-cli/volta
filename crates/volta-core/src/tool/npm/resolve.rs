@@ -36,7 +36,7 @@ fn fetch_npm_index(hooks: Option<&ToolHooks<Npm>>) -> Fallible<(String, PackageI
         _ => public_registry_index("npm"),
     };
 
-    fetch_public_index(url, "Npm")
+    fetch_public_index(url, "npm")
 }
 
 fn resolve_tag(tag: &str, hooks: Option<&ToolHooks<Npm>>) -> Fallible<Version> {
