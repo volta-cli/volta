@@ -1,5 +1,5 @@
 use crate::support::sandbox::{
-    sandbox, DistroMetadata, NodeFixture, NpmFixture, Sandbox, YarnFixture,
+    sandbox, DistroMetadata, NodeFixture, NpmFixture, Sandbox, Yarn1Fixture, YarnBerryFixture,
 };
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
@@ -116,7 +116,7 @@ cfg_if::cfg_if! {
     }
 }
 
-const YARN_VERSION_INFO: &str = r#"[
+const YARN_1_VERSION_INFO: &str = r#"[
 {"tag_name":"v1.2.42","assets":[{"name":"yarn-v1.2.42.tar.gz"}]},
 {"tag_name":"v1.3.1","assets":[{"name":"yarn-v1.3.1.msi"}]},
 {"tag_name":"v1.4.159","assets":[{"name":"yarn-v1.4.159.tar.gz"}]},
@@ -124,7 +124,7 @@ const YARN_VERSION_INFO: &str = r#"[
 {"tag_name":"v1.12.99","assets":[{"name":"yarn-v1.12.99.tar.gz"}]}
 ]"#;
 
-const YARN_VERSION_FIXTURES: [DistroMetadata; 4] = [
+const YARN_1_VERSION_FIXTURES: [DistroMetadata; 4] = [
     DistroMetadata {
         version: "1.12.99",
         compressed_size: 178,
@@ -142,6 +142,40 @@ const YARN_VERSION_FIXTURES: [DistroMetadata; 4] = [
     },
     DistroMetadata {
         version: "1.2.42",
+        compressed_size: 174,
+        uncompressed_size: Some(0x0028_0000),
+    },
+];
+
+const YARN_BERRY_VERSION_INFO: &str = r#"{
+    "name":"@yarnpkg/cli-dist",
+    "dist-tags": { "latest":"3.12.99" },
+    "versions": {
+        "2.4.159": { "version":"2.4.159", "dist": { "shasum":"", "tarball":"" }},
+        "3.2.42": { "version":"3.2.42", "dist": { "shasum":"", "tarball":"" }},
+        "3.7.71": { "version":"3.7.71", "dist": { "shasum":"", "tarball":"" }},
+        "3.12.99": { "version":"3.12.99", "dist": { "shasum":"", "tarball":"" }}
+    }
+}"#;
+
+const YARN_BERRY_VERSION_FIXTURES: [DistroMetadata; 4] = [
+    DistroMetadata {
+        version: "2.4.159",
+        compressed_size: 177,
+        uncompressed_size: Some(0x0028_0000),
+    },
+    DistroMetadata {
+        version: "3.12.99",
+        compressed_size: 178,
+        uncompressed_size: Some(0x0028_0000),
+    },
+    DistroMetadata {
+        version: "3.7.71",
+        compressed_size: 176,
+        uncompressed_size: Some(0x0028_0000),
+    },
+    DistroMetadata {
+        version: "3.2.42",
         compressed_size: 174,
         uncompressed_size: Some(0x0028_0000),
     },
@@ -266,12 +300,32 @@ fn install_npm_without_node_errors() {
 #[test]
 fn install_yarn_without_node_errors() {
     let s = sandbox()
-        .yarn_available_versions(YARN_VERSION_INFO)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .build();
 
     assert_that!(
         s.volta("install yarn@1.2.42"),
+        execs()
+            .with_status(ExitCode::ConfigurationError as i32)
+            .with_stderr_contains(
+                "[..]Cannot install Yarn because the default Node version is not set."
+            )
+    );
+}
+
+#[test]
+fn install_yarn_3_without_node_errors() {
+    let s = sandbox()
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .yarn_berry_available_versions(YARN_BERRY_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
+        .distro_mocks::<YarnBerryFixture>(&YARN_BERRY_VERSION_FIXTURES)
+        .env("VOLTA_FEATURE_YARN_3", "true")
+        .build();
+
+    assert_that!(
+        s.volta("install yarn@3.2.42"),
         execs()
             .with_status(ExitCode::ConfigurationError as i32)
             .with_stderr_contains(

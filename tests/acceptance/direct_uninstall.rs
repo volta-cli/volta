@@ -1,4 +1,4 @@
-use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, Sandbox, YarnFixture};
+use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, Sandbox, Yarn1Fixture};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
@@ -106,7 +106,7 @@ cfg_if::cfg_if! {
     }
 }
 
-const YARN_VERSION_FIXTURES: [DistroMetadata; 1] = [DistroMetadata {
+const YARN_1_VERSION_FIXTURES: [DistroMetadata; 1] = [DistroMetadata {
     version: "1.2.42",
     compressed_size: 174,
     uncompressed_size: Some(0x0028_0000),
@@ -295,7 +295,7 @@ fn yarn_remove_without_packages_skips_volta_logic() {
     let s = sandbox()
         .platform(&platform_with_node_yarn("10.99.1040", "1.2.42"))
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .env("VOLTA_LOGLEVEL", "info")
         .build();
 

@@ -1,9 +1,13 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+use super::registry_fetch_error;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::read_dir_eager;
+use crate::style::progress_spinner;
 use crate::version::{hashmap_version_serde, version_serde};
+use attohttpc::header::ACCEPT;
+use attohttpc::Response;
 use cfg_if::cfg_if;
 use semver::Version;
 use serde::Deserialize;
@@ -30,10 +34,35 @@ cfg_if! {
     }
 }
 
+pub fn fetch_public_index(url: String, name: &str) -> Fallible<(String, PackageIndex)> {
+    let spinner = progress_spinner(format!("Fetching public registry: {}", url));
+    let metadata: RawPackageMetadata = attohttpc::get(&url)
+        .header(ACCEPT, NPM_ABBREVIATED_ACCEPT_HEADER)
+        .send()
+        .and_then(Response::error_for_status)
+        .and_then(Response::json)
+        .with_context(registry_fetch_error(name, &url))?;
+
+    spinner.finish_and_clear();
+    Ok((url, metadata.into()))
+}
+
 pub fn public_registry_package(package: &str, version: &str) -> String {
     format!(
         "{}/-/{}-{}.tgz",
         public_registry_index(package),
+        package,
+        version
+    )
+}
+
+// need package and filename for namespaced tools like @yarnpkg/cli-dist, which is located at
+//   https://registry.npmjs.org/@yarnpkg/cli-dist/-/cli-dist-1.2.3.tgz
+pub fn scoped_public_registry_package(scope: &str, package: &str, version: &str) -> String {
+    format!(
+        "{}/{}/-/{}-{}.tgz",
+        public_registry_index(scope),
+        package,
         package,
         version
     )

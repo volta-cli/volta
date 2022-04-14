@@ -1,4 +1,6 @@
-use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, NpmFixture, YarnFixture};
+use crate::support::sandbox::{
+    sandbox, DistroMetadata, NodeFixture, NpmFixture, Yarn1Fixture, YarnBerryFixture,
+};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
@@ -159,7 +161,7 @@ cfg_if::cfg_if! {
     }
 }
 
-const YARN_VERSION_INFO: &str = r#"{
+const YARN_1_VERSION_INFO: &str = r#"{
     "name":"yarn",
     "dist-tags": { "latest":"1.12.99" },
     "versions": {
@@ -170,7 +172,18 @@ const YARN_VERSION_INFO: &str = r#"{
     }
 }"#;
 
-const YARN_VERSION_FIXTURES: [DistroMetadata; 4] = [
+const YARN_BERRY_VERSION_INFO: &str = r#"{
+    "name":"@yarnpkg/cli-dist",
+    "dist-tags": { "latest":"3.12.99" },
+    "versions": {
+        "2.4.159": { "version":"2.4.159", "dist": { "shasum":"", "tarball":"" }},
+        "3.2.42": { "version":"3.2.42", "dist": { "shasum":"", "tarball":"" }},
+        "3.7.71": { "version":"3.7.71", "dist": { "shasum":"", "tarball":"" }},
+        "3.12.99": { "version":"3.12.99", "dist": { "shasum":"", "tarball":"" }}
+    }
+}"#;
+
+const YARN_1_VERSION_FIXTURES: [DistroMetadata; 4] = [
     DistroMetadata {
         version: "1.12.99",
         compressed_size: 178,
@@ -188,6 +201,29 @@ const YARN_VERSION_FIXTURES: [DistroMetadata; 4] = [
     },
     DistroMetadata {
         version: "1.2.42",
+        compressed_size: 174,
+        uncompressed_size: Some(0x0028_0000),
+    },
+];
+
+const YARN_BERRY_VERSION_FIXTURES: [DistroMetadata; 4] = [
+    DistroMetadata {
+        version: "2.4.159",
+        compressed_size: 177,
+        uncompressed_size: Some(0x0028_0000),
+    },
+    DistroMetadata {
+        version: "3.12.99",
+        compressed_size: 178,
+        uncompressed_size: Some(0x0028_0000),
+    },
+    DistroMetadata {
+        version: "3.7.71",
+        compressed_size: 176,
+        uncompressed_size: Some(0x0028_0000),
+    },
+    DistroMetadata {
+        version: "3.2.42",
         compressed_size: 174,
         uncompressed_size: Some(0x0028_0000),
     },
@@ -338,8 +374,8 @@ fn pin_node_with_npm_hides_bundled_version() {
 fn pin_yarn_no_node() {
     let s = sandbox()
         .package_json(BASIC_PACKAGE_JSON)
-        .yarn_available_versions(YARN_VERSION_INFO)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .build();
 
     assert_that!(
@@ -355,11 +391,11 @@ fn pin_yarn_no_node() {
 }
 
 #[test]
-fn pin_yarn() {
+fn pin_yarn_1() {
     let s = sandbox()
         .package_json(&package_json_with_pinned_node("1.2.3"))
-        .yarn_available_versions(YARN_VERSION_INFO)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .build();
 
     assert_that!(
@@ -374,11 +410,82 @@ fn pin_yarn() {
 }
 
 #[test]
+fn pin_yarn_2_is_error() {
+    let s = sandbox()
+        .package_json(&package_json_with_pinned_node("1.2.3"))
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .yarn_berry_available_versions(YARN_BERRY_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
+        .distro_mocks::<YarnBerryFixture>(&YARN_BERRY_VERSION_FIXTURES)
+        .env("VOLTA_FEATURE_YARN_3", "true")
+        .build();
+
+    assert_that!(
+        s.volta("pin yarn@2"),
+        execs()
+            .with_status(ExitCode::NoVersionMatch as i32)
+            .with_stderr_contains(
+                "[..]Yarn version 2 is not recommended for use, and not supported by Volta[..]"
+            )
+    );
+
+    assert_eq!(
+        s.read_package_json(),
+        package_json_with_pinned_node("1.2.3"),
+    )
+}
+
+#[test]
+fn pin_yarn_3() {
+    let s = sandbox()
+        .package_json(&package_json_with_pinned_node("1.2.3"))
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .yarn_berry_available_versions(YARN_BERRY_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
+        .distro_mocks::<YarnBerryFixture>(&YARN_BERRY_VERSION_FIXTURES)
+        .env("VOLTA_FEATURE_YARN_3", "true")
+        .build();
+
+    assert_that!(
+        s.volta("pin yarn@3"),
+        execs().with_status(ExitCode::Success as i32)
+    );
+
+    assert_eq!(
+        s.read_package_json(),
+        package_json_with_pinned_node_yarn("1.2.3", "3.12.99"),
+    )
+}
+
+#[test]
+fn pin_yarn_3_fails_without_env() {
+    let s = sandbox()
+        .package_json(&package_json_with_pinned_node("1.2.3"))
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .yarn_berry_available_versions(YARN_BERRY_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
+        .distro_mocks::<YarnBerryFixture>(&YARN_BERRY_VERSION_FIXTURES)
+        .build();
+
+    assert_that!(
+        s.volta("pin yarn@3"),
+        execs()
+            .with_status(ExitCode::NoVersionMatch as i32)
+            .with_stderr_contains("[..]Could not find Yarn version matching[..]")
+    );
+
+    assert_eq!(
+        s.read_package_json(),
+        package_json_with_pinned_node("1.2.3"),
+    )
+}
+
+#[test]
 fn pin_yarn_reports_info() {
     let s = sandbox()
         .package_json(&package_json_with_pinned_node("1.2.3"))
-        .yarn_available_versions(YARN_VERSION_INFO)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .env(VOLTA_LOGLEVEL, "info")
         .build();
 
@@ -391,11 +498,11 @@ fn pin_yarn_reports_info() {
 }
 
 #[test]
-fn pin_yarn_latest() {
+fn pin_yarn_1_latest() {
     let s = sandbox()
         .package_json(&package_json_with_pinned_node("1.2.3"))
-        .yarn_available_versions(YARN_VERSION_INFO)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .build();
 
     assert_that!(
@@ -410,11 +517,33 @@ fn pin_yarn_latest() {
 }
 
 #[test]
-fn pin_yarn_no_version() {
+fn pin_yarn_3_latest() {
     let s = sandbox()
         .package_json(&package_json_with_pinned_node("1.2.3"))
-        .yarn_available_versions(YARN_VERSION_INFO)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .yarn_berry_available_versions(YARN_BERRY_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
+        .distro_mocks::<YarnBerryFixture>(&YARN_BERRY_VERSION_FIXTURES)
+        .env("VOLTA_FEATURE_YARN_3", "true")
+        .build();
+
+    assert_that!(
+        s.volta("pin yarn@latest"),
+        execs().with_status(ExitCode::Success as i32)
+    );
+
+    assert_eq!(
+        s.read_package_json(),
+        package_json_with_pinned_node_yarn("1.2.3", "3.12.99"),
+    )
+}
+
+#[test]
+fn pin_yarn_1_no_version() {
+    let s = sandbox()
+        .package_json(&package_json_with_pinned_node("1.2.3"))
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .build();
 
     assert_that!(
@@ -429,7 +558,29 @@ fn pin_yarn_no_version() {
 }
 
 #[test]
-fn pin_yarn_missing_release() {
+fn pin_yarn_3_no_version() {
+    let s = sandbox()
+        .package_json(&package_json_with_pinned_node("1.2.3"))
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .yarn_berry_available_versions(YARN_BERRY_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
+        .distro_mocks::<YarnBerryFixture>(&YARN_BERRY_VERSION_FIXTURES)
+        .env("VOLTA_FEATURE_YARN_3", "true")
+        .build();
+
+    assert_that!(
+        s.volta("pin yarn"),
+        execs().with_status(ExitCode::Success as i32)
+    );
+
+    assert_eq!(
+        s.read_package_json(),
+        package_json_with_pinned_node_yarn("1.2.3", "3.12.99"),
+    )
+}
+
+#[test]
+fn pin_yarn_1_missing_release() {
     let s = sandbox()
         .package_json(&package_json_with_pinned_node("1.2.3"))
         .mock_not_found()
@@ -449,11 +600,32 @@ fn pin_yarn_missing_release() {
 }
 
 #[test]
+fn pin_yarn_3_missing_release() {
+    let s = sandbox()
+        .package_json(&package_json_with_pinned_node("1.2.3"))
+        .mock_not_found()
+        .env("VOLTA_FEATURE_YARN_3", "true")
+        .build();
+
+    assert_that!(
+        s.volta("pin yarn@3.3.1"),
+        execs()
+            .with_status(ExitCode::NetworkError as i32)
+            .with_stderr_contains("[..]Could not download yarn@3.3.1")
+    );
+
+    assert_eq!(
+        s.read_package_json(),
+        package_json_with_pinned_node("1.2.3"),
+    )
+}
+
+#[test]
 fn pin_yarn_leaves_npm() {
     let s = sandbox()
         .package_json(&package_json_with_pinned_node_npm("1.2.3", "3.4.5"))
-        .yarn_available_versions(YARN_VERSION_INFO)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .build();
 
     assert_that!(
@@ -621,8 +793,8 @@ fn pin_node_and_yarn() {
         .package_json(BASIC_PACKAGE_JSON)
         .node_available_versions(NODE_VERSION_INFO)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .yarn_available_versions(YARN_VERSION_INFO)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .yarn_1_available_versions(YARN_1_VERSION_INFO)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .build();
 
     assert_that!(

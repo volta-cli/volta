@@ -1,7 +1,7 @@
 use std::{thread, time};
 
 use crate::support::events_helpers::{assert_events, match_args, match_start, match_tool_end};
-use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, NpmFixture, YarnFixture};
+use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, NpmFixture, Yarn1Fixture};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
@@ -149,7 +149,7 @@ const NPM_VERSION_FIXTURES: [DistroMetadata; 2] = [
     },
 ];
 
-const YARN_VERSION_FIXTURES: [DistroMetadata; 2] = [
+const YARN_1_VERSION_FIXTURES: [DistroMetadata; 2] = [
     DistroMetadata {
         version: "1.12.99",
         compressed_size: 178,
@@ -242,7 +242,7 @@ fn uses_project_yarn_if_available() {
         .platform(PLATFORM_WITH_YARN)
         .package_json(PACKAGE_JSON_WITH_YARN)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .env("VOLTA_LOGLEVEL", "debug")
         .env("VOLTA_WRITE_EVENTS_FILE", "true")
         .default_hooks(&events_hooks_json())
@@ -279,7 +279,7 @@ fn uses_default_yarn_in_project_without_yarn() {
         .platform(PLATFORM_WITH_YARN)
         .package_json(PACKAGE_JSON_NODE_ONLY)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .env("VOLTA_LOGLEVEL", "debug")
         .build();
 
@@ -298,7 +298,7 @@ fn uses_default_yarn_outside_project() {
     let s = sandbox()
         .platform(PLATFORM_WITH_YARN)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
-        .distro_mocks::<YarnFixture>(&YARN_VERSION_FIXTURES)
+        .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .env("VOLTA_LOGLEVEL", "debug")
         .build();
 

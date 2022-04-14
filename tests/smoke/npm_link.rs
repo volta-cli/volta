@@ -49,7 +49,7 @@ fn link_global_into_current_project() {
     let p = temp_project().package_json(PACKAGE_JSON).build();
 
     assert_that!(
-        p.volta("install node@12.19.1 typescript@4.1.2"),
+        p.volta("install node@14.19.0 typescript@4.1.2"),
         execs().with_status(0)
     );
 

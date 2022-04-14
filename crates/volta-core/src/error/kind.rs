@@ -402,6 +402,11 @@ pub enum ErrorKind {
     /// Thrown when the shim binary is called directly, not through a symlink
     RunShimDirectly,
 
+    /// Thrown when there was an error setting a tool to executable
+    SetToolExecutable {
+        tool: String,
+    },
+
     /// Thrown when there was an error copying an unpacked tool to the image directory
     SetupToolImageError {
         tool: String,
@@ -493,6 +498,9 @@ pub enum ErrorKind {
     /// Thrown when unable to write the user PATH environment variable
     #[cfg(windows)]
     WriteUserPathError,
+
+    /// Thrown when a user attempts to install a version of Yarn2
+    Yarn2NotSupported,
 
     /// Thrown when there is an error fetching the latest version of Yarn
     YarnLatestFetchError {
@@ -1207,6 +1215,13 @@ Please verify your internet connection.",
 
 Please use the existing shims provided by Volta (node, yarn, etc.) to run tools."
             ),
+            ErrorKind::SetToolExecutable { tool } => write!(
+                f,
+                r#"Could not set "{}" to executable
+
+{}"#,
+                tool, PERMISSIONS_CTA
+            ),
             ErrorKind::SetupToolImageError { tool, version, dir } => write!(
                 f,
                 "Could not create environment for {} v{}
@@ -1362,6 +1377,12 @@ to {}
 
 Please ensure you have permissions to edit your environment variables."
             ),
+            ErrorKind::Yarn2NotSupported => write!(
+                f,
+                "Yarn version 2 is not recommended for use, and not supported by Volta.
+
+Please use version 3 or greater instead."
+            ),
             ErrorKind::YarnLatestFetchError { from_url } => write!(
                 f,
                 "Could not fetch latest version of Yarn
@@ -1474,6 +1495,7 @@ impl ErrorKind {
             ErrorKind::RegistryFetchError { .. } => ExitCode::NetworkError,
             ErrorKind::RunShimDirectly => ExitCode::InvalidArguments,
             ErrorKind::SetupToolImageError { .. } => ExitCode::FileSystemError,
+            ErrorKind::SetToolExecutable { .. } => ExitCode::FileSystemError,
             ErrorKind::ShimCreateError { .. } => ExitCode::FileSystemError,
             ErrorKind::ShimRemoveError { .. } => ExitCode::FileSystemError,
             ErrorKind::StringifyBinConfigError => ExitCode::UnknownError,
@@ -1493,6 +1515,7 @@ impl ErrorKind {
             ErrorKind::WritePlatformError { .. } => ExitCode::FileSystemError,
             #[cfg(windows)]
             ErrorKind::WriteUserPathError => ExitCode::EnvironmentError,
+            ErrorKind::Yarn2NotSupported => ExitCode::NoVersionMatch,
             ErrorKind::YarnLatestFetchError { .. } => ExitCode::NetworkError,
             ErrorKind::YarnVersionNotFound { .. } => ExitCode::NoVersionMatch,
         }

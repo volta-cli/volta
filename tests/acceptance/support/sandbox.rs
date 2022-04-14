@@ -147,7 +147,11 @@ pub struct NpmFixture {
     pub metadata: DistroMetadata,
 }
 
-pub struct YarnFixture {
+pub struct Yarn1Fixture {
+    pub metadata: DistroMetadata,
+}
+
+pub struct YarnBerryFixture {
     pub metadata: DistroMetadata,
 }
 
@@ -163,7 +167,13 @@ impl From<DistroMetadata> for NpmFixture {
     }
 }
 
-impl From<DistroMetadata> for YarnFixture {
+impl From<DistroMetadata> for Yarn1Fixture {
+    fn from(metadata: DistroMetadata) -> Self {
+        Self { metadata }
+    }
+}
+
+impl From<DistroMetadata> for YarnBerryFixture {
     fn from(metadata: DistroMetadata) -> Self {
         Self { metadata }
     }
@@ -205,13 +215,30 @@ impl DistroFixture for NpmFixture {
     }
 }
 
-impl DistroFixture for YarnFixture {
+impl DistroFixture for Yarn1Fixture {
     fn server_path(&self) -> String {
         format!("/yarn/-/yarn-{}.tgz", self.metadata.version)
     }
 
     fn fixture_path(&self) -> String {
         format!("tests/fixtures/yarn-{}.tgz", self.metadata.version)
+    }
+
+    fn metadata(&self) -> &DistroMetadata {
+        &self.metadata
+    }
+}
+
+impl DistroFixture for YarnBerryFixture {
+    fn server_path(&self) -> String {
+        format!(
+            "/@yarnpkg/cli-dist/-/cli-dist-{}.tgz",
+            self.metadata.version
+        )
+    }
+
+    fn fixture_path(&self) -> String {
+        format!("tests/fixtures/cli-dist-{}.tgz", self.metadata.version)
     }
 
     fn metadata(&self) -> &DistroMetadata {
@@ -297,9 +324,20 @@ impl SandboxBuilder {
         self
     }
 
-    /// Setup mock to return the available yarn versions (chainable)
-    pub fn yarn_available_versions(mut self, body: &str) -> Self {
+    /// Setup mock to return the available Yarn@1 versions (chainable)
+    pub fn yarn_1_available_versions(mut self, body: &str) -> Self {
         let mock = mock("GET", "/yarn")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(body)
+            .create();
+        self.root.mocks.push(mock);
+        self
+    }
+
+    /// Setup mock to return the available Yarn@2+ versions (chainable)
+    pub fn yarn_berry_available_versions(mut self, body: &str) -> Self {
+        let mock = mock("GET", "/@yarnpkg/cli-dist")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(body)
