@@ -193,7 +193,7 @@ jobs:
       - name: Fetch MacOS artifact
         uses: actions/download-artifact@v2
         with:
-          name: macos
+          name: macos-x86_64
           path: release
       - name: Fetch MacOS (ARM) artifact
         uses: actions/download-artifact@v2
@@ -248,14 +248,14 @@ jobs:
           asset_path: ./release/volta-openssl-1_1_0.tar.gz
           asset_name: volta-${{ steps.release_info.outputs.version }}-linux-openssl-1.1.tar.gz
           asset_content_type: applictaion/gzip
-      - name: Upload MacOS artifact
+      - name: Upload MacOS x86_64 artifact
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/volta-macos.tar.gz
-          asset_name: volta-${{ steps.release_info.outputs.version }}-macos.tar.gz
+          asset_path: ./release/volta-macos-x86_64.tar.gz
+          asset_name: volta-${{ steps.release_info.outputs.version }}-macos-x86_64.tar.gz
           asset_content_type: applictaion/gzip
       - name: Upload MacOS (ARM) artifact
         uses: actions/upload-release-asset@v1
