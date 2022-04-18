@@ -1,0 +1,11 @@
+{
+  "name": "plug-n-play-js",
+  "version": "2.0.0",
+  "description": "Testing that Plug-n-Play things work",
+  "license": "To Ill",
+  "volta": {
+    "node": "6.11.1",
+    "npm": "3.10.10",
+    "yarn": "2.4.0"
+  }
+}

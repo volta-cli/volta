@@ -20,6 +20,17 @@ pub(super) fn command(exe: &OsStr, args: &[OsString], session: &mut Session) -> 
     if let Some(project) = session.project()? {
         // Check if the executable is a direct dependency
         if project.has_direct_bin(exe)? {
+            if project
+                .platform()
+                .map_or(false, |platform| platform.yarn.is_some())
+                && project.is_plug_n_play()
+            {
+                debug!("Project uses Yarn PnP, calling {} with 'yarn'", bin);
+                let platform = Platform::current(session)?;
+                let mut exe_and_args = vec![exe.to_os_string()];
+                exe_and_args.extend_from_slice(args);
+                return Ok(ToolCommand::new("yarn", exe_and_args, platform, ToolKind::Yarn).into());
+            }
             let path_to_bin =
                 project
                     .find_bin(exe)

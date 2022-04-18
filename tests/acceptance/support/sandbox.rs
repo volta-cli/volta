@@ -117,12 +117,33 @@ impl FileBuilder {
     }
 }
 
+struct ShimBuilder {
+    name: String,
+}
+
+impl ShimBuilder {
+    fn new(name: String) -> ShimBuilder {
+        ShimBuilder { name }
+    }
+
+    fn build(&self) {
+        ok_or_panic! { symlink_file(shim_exe(), shim_file(&self.name)) };
+    }
+}
+
+// used to setup executable binaries in installed packages
+pub struct PackageBinInfo {
+    pub name: String,
+    pub contents: String,
+}
+
 #[must_use]
 pub struct SandboxBuilder {
     root: Sandbox,
     files: Vec<FileBuilder>,
     caches: Vec<CacheBuilder>,
     path_dirs: Vec<PathBuf>,
+    shims: Vec<ShimBuilder>,
     has_exec_path: bool,
 }
 
@@ -264,6 +285,10 @@ impl SandboxBuilder {
             files: vec![],
             caches: vec![],
             path_dirs: vec![volta_bin_dir()],
+            shims: vec![
+                ShimBuilder::new("npm".to_string()),
+                ShimBuilder::new("yarn".to_string()),
+            ],
             has_exec_path: false,
         }
     }
@@ -451,20 +476,77 @@ impl SandboxBuilder {
 
     /// Set a shim file for the sandbox (chainable)
     pub fn shim(mut self, name: &str) -> Self {
-        let shim_file = shim_file(name);
-        self.files
-            .push(FileBuilder::new(shim_file, "contents don't matter"));
+        self.shims.push(ShimBuilder::new(name.to_string()));
         self
     }
 
     /// Set an unpackaged package for the sandbox (chainable)
-    pub fn package_image(mut self, name: &str, version: &str) -> Self {
-        let package_img_dir = package_image_dir(name, version);
+    pub fn package_image(
+        mut self,
+        name: &str,
+        version: &str,
+        bins: Option<Vec<PackageBinInfo>>,
+    ) -> Self {
+        let package_img_dir = package_image_dir(name);
         let package_json = package_img_dir.join("package.json");
         self.files.push(FileBuilder::new(
             package_json,
             &format!(r#"{{"name":"{}","version":"{}"}}"#, name, version),
         ));
+        if let Some(bin_infos) = bins {
+            for bin_info in bin_infos.iter() {
+                let bin_path = package_img_dir.join("bin").join(&bin_info.name);
+                self.files
+                    .push(FileBuilder::new(bin_path, &bin_info.contents).make_executable());
+            }
+        }
+        self
+    }
+
+    /// Write executable project binaries into node_modules/.bin/ (chainable)
+    pub fn project_bins(mut self, bins: Vec<PackageBinInfo>) -> Self {
+        let project_bin_dir = self.root().join("node_modules").join(".bin");
+        for bin_info in bins.iter() {
+            let bin_path = project_bin_dir.join(&bin_info.name);
+            self.files
+                .push(FileBuilder::new(bin_path, &bin_info.contents).make_executable());
+        }
+        self
+    }
+
+    /// Write '.pnp.cjs' file in local project to mark as Plug-n-Play (chainable)
+    pub fn project_pnp(mut self) -> Self {
+        let pnp_path = self.root().join(".pnp.cjs");
+        self.files.push(FileBuilder::new(pnp_path, "blegh"));
+        self
+    }
+
+    /// Write an executable node binary with the input contents (chainable)
+    pub fn setup_node_binary(
+        mut self,
+        node_version: &str,
+        npm_version: &str,
+        contents: &str,
+    ) -> Self {
+        let node_bin_file = node_image_dir(node_version).join("bin").join("node");
+        self.files
+            .push(FileBuilder::new(node_bin_file, contents).make_executable());
+        self.node_npm_version_file(node_version, npm_version)
+    }
+
+    /// Write an executable npm binary with the input contents (chainable)
+    pub fn setup_npm_binary(mut self, version: &str, contents: &str) -> Self {
+        let npm_bin_file = npm_image_dir(version).join("bin").join("npm");
+        self.files
+            .push(FileBuilder::new(npm_bin_file, contents).make_executable());
+        self
+    }
+
+    /// Write an executable yarn binary with the input contents (chainable)
+    pub fn setup_yarn_binary(mut self, version: &str, contents: &str) -> Self {
+        let yarn_bin_file = yarn_image_dir(version).join("bin").join("yarn");
+        self.files
+            .push(FileBuilder::new(yarn_bin_file, contents).make_executable());
         self
     }
 
@@ -472,6 +554,12 @@ impl SandboxBuilder {
     pub fn node_npm_version_file(mut self, node_version: &str, npm_version: &str) -> Self {
         let npm_file = node_npm_version_file(node_version);
         self.files.push(FileBuilder::new(npm_file, npm_version));
+        self
+    }
+
+    /// Add directory to the PATH (chainable)
+    pub fn add_dir_to_path(mut self, dir: PathBuf) -> Self {
+        self.path_dirs.push(dir);
         self
     }
 
@@ -501,10 +589,6 @@ impl SandboxBuilder {
         ok_or_panic! { fs::create_dir_all(yarn_inventory_dir()) };
         ok_or_panic! { fs::create_dir_all(volta_tmp_dir()) };
 
-        // Make sure the shims to npm and yarn exist
-        ok_or_panic! { symlink_file(shim_exe(), shim_file("npm")) };
-        ok_or_panic! { symlink_file(shim_exe(), shim_file("yarn")) };
-
         // write node and yarn caches
         for cache in self.caches.iter() {
             cache.build();
@@ -513,6 +597,11 @@ impl SandboxBuilder {
         // write files
         for file_builder in self.files {
             file_builder.build();
+        }
+
+        // write shims
+        for shim_builder in self.shims {
+            shim_builder.build();
         }
 
         // join dirs for the path (volta bin path is already first)
@@ -595,8 +684,17 @@ fn binary_config_file(name: &str) -> PathBuf {
 fn shim_file(name: &str) -> PathBuf {
     volta_bin_dir().join(format!("{}{}", name, env::consts::EXE_SUFFIX))
 }
-fn package_image_dir(name: &str, version: &str) -> PathBuf {
-    image_dir().join("packages").join(name).join(version)
+fn package_image_dir(name: &str) -> PathBuf {
+    image_dir().join("packages").join(name)
+}
+fn node_image_dir(version: &str) -> PathBuf {
+    image_dir().join("node").join(version)
+}
+fn npm_image_dir(version: &str) -> PathBuf {
+    image_dir().join("npm").join(version)
+}
+fn yarn_image_dir(version: &str) -> PathBuf {
+    image_dir().join("yarn").join(version)
 }
 fn default_platform_file() -> PathBuf {
     user_dir().join("platform.json")
@@ -673,9 +771,7 @@ impl Sandbox {
     /// Example:
     ///     assert_that(p.npm("install ember-cli"), execs());
     pub fn npm(&self, cmd: &str) -> ProcessBuilder {
-        let mut p = self.process(shim_file("npm"));
-        split_and_add_args(&mut p, cmd);
-        p
+        self.exec_shim("npm", cmd)
     }
 
     /// Create a `ProcessBuilder` to run the volta yarn shim.
@@ -683,7 +779,15 @@ impl Sandbox {
     /// Example:
     ///     assert_that(p.yarn("add ember-cli"), execs());
     pub fn yarn(&self, cmd: &str) -> ProcessBuilder {
-        let mut p = self.process(shim_file("yarn"));
+        self.exec_shim("yarn", cmd)
+    }
+
+    /// Create a `ProcessBuilder` to run an arbitrary shim.
+    /// Arguments can be separated by spaces.
+    /// Example:
+    ///     assert_that(p.exec_shim("cowsay", "foo bar"), execs());
+    pub fn exec_shim(&self, bin: &str, cmd: &str) -> ProcessBuilder {
+        let mut p = self.process(shim_file(bin));
         split_and_add_args(&mut p, cmd);
         p
     }
@@ -727,8 +831,8 @@ impl Sandbox {
     pub fn path_exists(path: &str) -> bool {
         sandbox_path(path).exists()
     }
-    pub fn package_image_exists(name: &str, version: &str) -> bool {
-        let package_img_dir = package_image_dir(name, version);
+    pub fn package_image_exists(name: &str) -> bool {
+        let package_img_dir = package_image_dir(name);
         package_img_dir.join("package.json").exists()
     }
     pub fn read_default_platform() -> String {

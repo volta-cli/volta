@@ -72,7 +72,7 @@ fn uninstall_package_basic() {
         .binary_config("cowthink", &bin_config("cowthink"))
         .shim("cowsay")
         .shim("cowthink")
-        .package_image("cowsay", "1.4.0")
+        .package_image("cowsay", "1.4.0", None)
         .env(VOLTA_LOGLEVEL, "info")
         .build();
 
@@ -91,7 +91,7 @@ fn uninstall_package_basic() {
     assert!(!Sandbox::bin_config_exists("cowthink"));
     assert!(!Sandbox::shim_exists("cowsay"));
     assert!(!Sandbox::shim_exists("cowthink"));
-    assert!(!Sandbox::package_image_exists("cowsay", "1.4.0"));
+    assert!(!Sandbox::package_image_exists("cowsay"));
 }
 
 #[test]
@@ -100,7 +100,7 @@ fn uninstall_package_no_bins() {
     // (normally installing a package with no executables should not happen)
     let s = sandbox()
         .package_config("cowsay", PKG_CONFIG_NO_BINS)
-        .package_image("cowsay", "1.4.0")
+        .package_image("cowsay", "1.4.0", None)
         .env(VOLTA_LOGLEVEL, "info")
         .build();
 
@@ -117,7 +117,7 @@ fn uninstall_package_no_bins() {
     assert!(!Sandbox::bin_config_exists("cowthink"));
     assert!(!Sandbox::shim_exists("cowsay"));
     assert!(!Sandbox::shim_exists("cowthink"));
-    assert!(!Sandbox::package_image_exists("cowsay", "1.4.0"));
+    assert!(!Sandbox::package_image_exists("cowsay"));
 }
 
 #[test]
@@ -148,7 +148,7 @@ fn uninstall_package_no_image() {
     assert!(!Sandbox::bin_config_exists("cowthink"));
     assert!(!Sandbox::shim_exists("cowsay"));
     assert!(!Sandbox::shim_exists("cowthink"));
-    assert!(!Sandbox::package_image_exists("cowsay", "1.4.0"));
+    assert!(!Sandbox::package_image_exists("cowsay"));
 }
 
 #[test]

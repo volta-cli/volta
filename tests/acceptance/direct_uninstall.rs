@@ -121,7 +121,7 @@ fn npm_uninstall_uses_volta_logic() {
         .binary_config("cowthink", &bin_config("cowthink", "cowsay"))
         .shim("cowsay")
         .shim("cowthink")
-        .package_image("cowsay", "1.4.0")
+        .package_image("cowsay", "1.4.0", None)
         .env("VOLTA_LOGLEVEL", "info")
         .build();
 
@@ -141,7 +141,7 @@ fn npm_uninstall_uses_volta_logic() {
     assert!(!Sandbox::bin_config_exists("cowthink"));
     assert!(!Sandbox::shim_exists("cowsay"));
     assert!(!Sandbox::shim_exists("cowthink"));
-    assert!(!Sandbox::package_image_exists("cowsay", "1.4.0"));
+    assert!(!Sandbox::package_image_exists("cowsay"));
 }
 
 #[test]
@@ -153,13 +153,13 @@ fn npm_uninstall_supports_multiples() {
         .binary_config("cowthink", &bin_config("cowthink", "cowsay"))
         .shim("cowsay")
         .shim("cowthink")
-        .package_image("cowsay", "1.4.0")
+        .package_image("cowsay", "1.4.0", None)
         .package_config("typescript", PKG_CONFIG_TYPESCRIPT)
         .binary_config("tsc", &bin_config("tsc", "typescript"))
         .binary_config("tsserver", &bin_config("tsserver", "typescript"))
         .shim("tsc")
         .shim("tsserver")
-        .package_image("typescript", "1.4.0")
+        .package_image("typescript", "1.4.0", None)
         .env("VOLTA_LOGLEVEL", "info")
         .build();
 
@@ -183,14 +183,14 @@ fn npm_uninstall_supports_multiples() {
     assert!(!Sandbox::bin_config_exists("cowthink"));
     assert!(!Sandbox::shim_exists("cowsay"));
     assert!(!Sandbox::shim_exists("cowthink"));
-    assert!(!Sandbox::package_image_exists("cowsay", "1.4.0"));
+    assert!(!Sandbox::package_image_exists("cowsay"));
 
     assert!(!Sandbox::package_config_exists("typescript"));
     assert!(!Sandbox::bin_config_exists("tsc"));
     assert!(!Sandbox::bin_config_exists("tsserver"));
     assert!(!Sandbox::shim_exists("tsc"));
     assert!(!Sandbox::shim_exists("tsserver"));
-    assert!(!Sandbox::package_image_exists("typescript", "1.4.0"));
+    assert!(!Sandbox::package_image_exists("typescript"));
 }
 
 #[test]
@@ -218,7 +218,7 @@ fn yarn_remove_uses_volta_logic() {
         .binary_config("cowthink", &bin_config("cowthink", "cowsay"))
         .shim("cowsay")
         .shim("cowthink")
-        .package_image("cowsay", "1.4.0")
+        .package_image("cowsay", "1.4.0", None)
         .env("VOLTA_LOGLEVEL", "info")
         .build();
 
@@ -238,7 +238,7 @@ fn yarn_remove_uses_volta_logic() {
     assert!(!Sandbox::bin_config_exists("cowthink"));
     assert!(!Sandbox::shim_exists("cowsay"));
     assert!(!Sandbox::shim_exists("cowthink"));
-    assert!(!Sandbox::package_image_exists("cowsay", "1.4.0"));
+    assert!(!Sandbox::package_image_exists("cowsay"));
 }
 
 #[test]
@@ -250,13 +250,13 @@ fn yarn_remove_supports_multiples() {
         .binary_config("cowthink", &bin_config("cowthink", "cowsay"))
         .shim("cowsay")
         .shim("cowthink")
-        .package_image("cowsay", "1.4.0")
+        .package_image("cowsay", "1.4.0", None)
         .package_config("typescript", PKG_CONFIG_TYPESCRIPT)
         .binary_config("tsc", &bin_config("tsc", "typescript"))
         .binary_config("tsserver", &bin_config("tsserver", "typescript"))
         .shim("tsc")
         .shim("tsserver")
-        .package_image("typescript", "1.4.0")
+        .package_image("typescript", "1.4.0", None)
         .env("VOLTA_LOGLEVEL", "info")
         .build();
 
@@ -280,14 +280,14 @@ fn yarn_remove_supports_multiples() {
     assert!(!Sandbox::bin_config_exists("cowthink"));
     assert!(!Sandbox::shim_exists("cowsay"));
     assert!(!Sandbox::shim_exists("cowthink"));
-    assert!(!Sandbox::package_image_exists("cowsay", "1.4.0"));
+    assert!(!Sandbox::package_image_exists("cowsay"));
 
     assert!(!Sandbox::package_config_exists("typescript"));
     assert!(!Sandbox::bin_config_exists("tsc"));
     assert!(!Sandbox::bin_config_exists("tsserver"));
     assert!(!Sandbox::shim_exists("tsc"));
     assert!(!Sandbox::shim_exists("tsserver"));
-    assert!(!Sandbox::package_image_exists("typescript", "1.4.0"));
+    assert!(!Sandbox::package_image_exists("typescript"));
 }
 
 #[test]
