@@ -5,6 +5,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
+use cfg_if::cfg_if;
 use hyperx::header::HttpDate;
 use mockito::{self, mock, Matcher};
 use semver::Version;
@@ -495,7 +496,13 @@ impl SandboxBuilder {
         ));
         if let Some(bin_infos) = bins {
             for bin_info in bin_infos.iter() {
-                let bin_path = package_img_dir.join("bin").join(&bin_info.name);
+                cfg_if! {
+                    if #[cfg(target_os = "windows")] {
+                        let bin_path = package_img_dir.join(format!("{}.cmd", &bin_info.name));
+                    } else {
+                        let bin_path = package_img_dir.join("bin").join(&bin_info.name);
+                    }
+                }
                 self.files
                     .push(FileBuilder::new(bin_path, &bin_info.contents).make_executable());
             }
@@ -507,6 +514,14 @@ impl SandboxBuilder {
     pub fn project_bins(mut self, bins: Vec<PackageBinInfo>) -> Self {
         let project_bin_dir = self.root().join("node_modules").join(".bin");
         for bin_info in bins.iter() {
+            cfg_if! {
+                if #[cfg(target_os = "windows")] {
+                    // in Windows, binaries have an extra file with an executable extension
+                    let win_bin_path = project_bin_dir.join(format!("{}.cmd", &bin_info.name));
+                    self.files.push(FileBuilder::new(win_bin_path, &bin_info.contents).make_executable());
+                }
+            }
+            // Volta on both Windows and Unix checks for the existence of the binary with no extension
             let bin_path = project_bin_dir.join(&bin_info.name);
             self.files
                 .push(FileBuilder::new(bin_path, &bin_info.contents).make_executable());
@@ -528,7 +543,14 @@ impl SandboxBuilder {
         npm_version: &str,
         contents: &str,
     ) -> Self {
-        let node_bin_file = node_image_dir(node_version).join("bin").join("node");
+        cfg_if! {
+            if #[cfg(target_os = "windows")] {
+                let node_file = "node.cmd";
+            } else {
+                let node_file = "node";
+            }
+        }
+        let node_bin_file = node_image_dir(node_version).join("bin").join(node_file);
         self.files
             .push(FileBuilder::new(node_bin_file, contents).make_executable());
         self.node_npm_version_file(node_version, npm_version)
@@ -536,7 +558,14 @@ impl SandboxBuilder {
 
     /// Write an executable npm binary with the input contents (chainable)
     pub fn setup_npm_binary(mut self, version: &str, contents: &str) -> Self {
-        let npm_bin_file = npm_image_dir(version).join("bin").join("npm");
+        cfg_if! {
+            if #[cfg(target_os = "windows")] {
+                let npm_file = "npm.cmd";
+            } else {
+                let npm_file = "npm";
+            }
+        }
+        let npm_bin_file = npm_image_dir(version).join("bin").join(npm_file);
         self.files
             .push(FileBuilder::new(npm_bin_file, contents).make_executable());
         self
@@ -544,7 +573,14 @@ impl SandboxBuilder {
 
     /// Write an executable yarn binary with the input contents (chainable)
     pub fn setup_yarn_binary(mut self, version: &str, contents: &str) -> Self {
-        let yarn_bin_file = yarn_image_dir(version).join("bin").join("yarn");
+        cfg_if! {
+            if #[cfg(target_os = "windows")] {
+                let yarn_file = "yarn.cmd";
+            } else {
+                let yarn_file = "yarn";
+            }
+        }
+        let yarn_bin_file = yarn_image_dir(version).join("bin").join(yarn_file);
         self.files
             .push(FileBuilder::new(yarn_bin_file, contents).make_executable());
         self

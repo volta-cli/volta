@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use crate::support::sandbox::{sandbox, PackageBinInfo};
+use cfg_if::cfg_if;
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
@@ -20,45 +21,92 @@ const PKG_CONFIG_BASIC: &str = r#"{
   "manager": "Npm"
 }"#;
 
-// TODO: windows, ugh
 fn node_bin(version: &str) -> String {
-    format!(
-        r#"#!/bin/sh
+    cfg_if! {
+            if #[cfg(target_os = "windows")] {
+                format!(
+                    r#"@echo off
+echo Node version {}
+echo node args: %*
+"#,
+    version
+                )
+            } else {
+                format!(
+                    r#"#!/bin/sh
 echo "Node version {}"
 echo "node args: $@"
 "#,
-        version
-    )
+    version
+                )
+            }
+        }
 }
 
 fn npm_bin(version: &str) -> String {
-    format!(
-        r#"#!/bin/sh
+    cfg_if! {
+            if #[cfg(target_os = "windows")] {
+                format!(
+                    r#"@echo off
+echo Npm version {}
+echo npm args: %*
+"#,
+    version
+                )
+            } else {
+                format!(
+                    r#"#!/bin/sh
 echo "Npm version {}"
 echo "npm args: $@"
 "#,
-        version
-    )
+    version
+                )
+            }
+        }
 }
 
 fn yarn_bin(version: &str) -> String {
-    format!(
-        r#"#!/bin/sh
+    cfg_if! {
+            if #[cfg(target_os = "windows")] {
+                format!(
+                    r#"@echo off
+echo Yarn version {}
+echo yarn args: %*
+"#,
+    version
+                )
+            } else {
+                format!(
+                    r#"#!/bin/sh
 echo "Yarn version {}"
 echo "yarn args: $@"
 "#,
-        version
-    )
+    version
+                )
+            }
+        }
 }
 
 fn cowsay_bin(name: &str, version: &str) -> String {
-    format!(
-        r#"#!/bin/sh
+    cfg_if! {
+        if #[cfg(target_os = "windows")] {
+            format!(
+                r#"@echo off
+echo {} version {}
+echo {} args: %*
+"#,
+    name, version, name
+            )
+        } else {
+            format!(
+                r#"#!/bin/sh
 echo "{} version {}"
 echo "{} args: $@"
 "#,
-        name, version, name
-    )
+    name, version, name
+            )
+        }
+    }
 }
 
 fn cowsay_bin_info(version: &str) -> Vec<PackageBinInfo> {
