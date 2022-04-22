@@ -1,3 +1,7 @@
+# Version 1.0.7
+
+- Added build for Linux distros with OpenSSL 3.0 (#1211)
+
 # Version 1.0.6
 
 - Fixed panic when `stdout` is closed (#1058)
