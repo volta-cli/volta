@@ -2,6 +2,9 @@
 
 set -e
 
+# Activate the upgraded versions of GCC and binutils
+source /opt/rh/devtoolset-2/enable
+
 echo "Building Volta"
 
 cargo build --release

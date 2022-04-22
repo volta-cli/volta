@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 # This is the bootstrap Unix installer served by `https://get.volta.sh`.
-# Its responsibility is to query the system to determine what OS (and in the
-# case of Linux, what OpenSSL version) the system has, fetch and install the
-# appropriate build of Volta, and modify the user's profile.
+# Its responsibility is to query the system to determine what OS the system
+# has, fetch and install the appropriate build of Volta, and modify the user's
+# profile.
 
 # NOTE: to use an internal company repo, change how this determines the latest version
 get_latest_release() {
@@ -120,21 +120,19 @@ upgrade_is_ok() {
   return 0
 }
 
-# returns the os name to be used in the packaged release,
-# including the openssl info if necessary
+# returns the os name to be used in the packaged release
 parse_os_info() {
   local uname_str="$1"
-  local openssl_version="$2"
+  local arch="$(uname -m)"
 
   case "$uname_str" in
     Linux)
-      parsed_version="$(parse_openssl_version "$openssl_version")"
-      exit_code="$?"
-      if [ "$exit_code" != 0 ]; then
-        return "$exit_code"
+      if [ "$arch" == "x86_64" ]; then
+        echo "linux"
+      else
+        error "Releases for non x64 architectures are not currently supported."
+        return 1
       fi
-
-      echo "linux-openssl-$parsed_version"
       ;;
     Darwin)
       if [ "$(uname -m)" == "arm64" ]; then
@@ -177,41 +175,6 @@ element_in() {
     [ "$element" == "$match" ] && return 0
   done
   return 1
-}
-
-# parse the OpenSSL version from the input text
-# for most distros, we only care about MAJOR.MINOR, with the exception of RHEL/CENTOS,
-parse_openssl_version() {
-  local version_str="$1"
-
-  # array containing the SSL libraries that are supported
-  # would be nice to use a bash 4.x associative array, but bash 3.x is the default on OSX
-  SUPPORTED_SSL_LIBS=( 'OpenSSL' )
-
-  # use regex to get the library name and version
-  # typical version string looks like 'OpenSSL 1.0.1e-fips 11 Feb 2013'
-  if [[ "$version_str" =~ ^([^\ ]*)\ ([0-9]+\.[0-9]+) ]]
-  then
-    # check that the lib is supported
-    libname="${BASH_REMATCH[1]}"
-    major_minor="${BASH_REMATCH[2]}"
-    if ! element_in "$libname" "${SUPPORTED_SSL_LIBS[@]}"
-    then
-      error "Releases for '$libname' not currently supported. Supported libraries are: ${SUPPORTED_SSL_LIBS[@]}."
-      return 1
-    fi
-
-    # for version 1.0.x, check for RHEL/CentOS style OpenSSL SONAME (.so.10)
-    if [ "$major_minor" == "1.0" ] && [ -f "/usr/lib64/libcrypto.so.10" ]; then
-      echo "rhel"
-    else
-      echo "$major_minor"
-    fi
-    return 0
-  else
-    error "Could not determine OpenSSL version for '$version_str'."
-    return 1
-  fi
 }
 
 create_tree() {
@@ -359,9 +322,8 @@ download_release() {
   local version="$1"
 
   local uname_str="$(uname -s)"
-  local openssl_version="$(openssl version)"
   local os_info
-  os_info="$(parse_os_info "$uname_str" "$openssl_version")"
+  os_info="$(parse_os_info "$uname_str")"
   if [ "$?" != 0 ]; then
     error "The current operating system ($uname_str) does not appear to be supported by Volta."
     return 1
