@@ -46,7 +46,7 @@ jobs:
         run: docker build -t volta .
         working-directory: ./ci/docker
       - name: Compile and package OpenSSL & Volta
-        run: docker run --volume ${PWD}:/root/workspace --workdir /root/workspace --rm --init --ty volta /root/workspace/ci/build-with-openssl.sh volta-openssl-3_0
+        run: docker run --volume ${PWD}:/root/workspace --workdir /root/workspace --rm --init --tty volta /root/workspace/ci/build-with-openssl.sh volta-openssl-3_0
       - name: Confirm OpenSSL Version
         run: |
           objdump -p target/release/volta
