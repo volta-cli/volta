@@ -184,6 +184,7 @@ jobs:
     needs:
       - centos
       - linux
+      - linux-ssl-3
       - macos
       - macos-aarch64
       - windows
