@@ -286,9 +286,9 @@ dependencies = [
 
 [[package]]
 name = "ci_info"
-version = "0.14.4"
+version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b631946fd12bceaf43aa998a7902c5eeabff8f23cf294a186d5a23c4d79d1f0"
+checksum = "b764ddeb477baefbe1653d644585e522d35471030e4634b2cfff3ac2baef1274"
 dependencies = [
  "envmnt",
 ]
@@ -527,9 +527,9 @@ checksum = "90b2c9496c001e8cb61827acdefad780795c42264c137744cae6f7d9e3450abd"
 
 [[package]]
 name = "envmnt"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f96dd862f12fac698dec3932dff0e6fb34bffeb5515ae5932d620cfe076571e"
+checksum = "9fbb2fcaad9e6c9e3388dfcc1b44ae5508ae864b7af36f163a8a7c1a48796eee"
 dependencies = [
  "fsio",
  "indexmap",
