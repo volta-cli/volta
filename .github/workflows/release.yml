@@ -19,7 +19,7 @@ jobs:
         run: docker build -t volta .
         working-directory: ./ci/docker
       - name: Compile and package Volta
-        run: docker run --volume ${PWD}:/root/workspace --workdir /root/workspace --rm --init --tty volta /root/workspace/ci/build-and-package.sh volta-linux
+        run: docker run --volume ${PWD}:/root/workspace --workdir /root/workspace --rm --init --tty volta /root/workspace/ci/build-linux.sh volta-linux
       - name: Upload release artifact
         uses: actions/upload-artifact@v2
         with:
@@ -39,7 +39,7 @@ jobs:
           toolchain: stable
           override: true
       - name: Compile and package Volta
-        run: ./ci/build-and-package.sh volta-macos
+        run: ./ci/build-macos-x86_64.sh volta-macos
       - name: Upload release artifact
         uses: actions/upload-artifact@v2
         with:
@@ -60,7 +60,7 @@ jobs:
           target: aarch64-apple-darwin
           override: true
       - name: Compile and package Volta
-        run: ./ci/build-for-arm.sh volta-macos-aarch64
+        run: ./ci/build-macos-arm.sh volta-macos-aarch64
       - name: Upload release artifact
         uses: actions/upload-artifact@v2
         with:
