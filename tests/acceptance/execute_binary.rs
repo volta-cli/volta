@@ -296,7 +296,6 @@ fn project_local_binary_pnp() {
         .setup_npm_binary("6.7.0", &npm_bin("6.7.0"))
         .setup_yarn_binary("1.23.483", &yarn_bin("1.23.483"))
         .setup_yarn_binary("3.12.1092", &yarn_bin("3.12.1092"))
-        .project_bins(cowsay_bin_info("1.5.0"))
         .project_pnp()
         .add_dir_to_path(PathBuf::from("/bin"))
         .build();

@@ -225,20 +225,20 @@ mod plug_n_play {
     fn project_is_not_pnp() {
         let project_path = fixture_path(&["basic"]);
         let test_project = Project::for_dir(project_path).unwrap().unwrap();
-        assert_eq!(test_project.is_plug_n_play(), false);
+        assert_eq!(test_project.is_yarn_pnp(), false);
     }
 
     #[test]
     fn project_has_pnp_js() {
         let project_path = fixture_path(&["plug-n-play", "pnp-js"]);
         let test_project = Project::for_dir(project_path).unwrap().unwrap();
-        assert_eq!(test_project.is_plug_n_play(), true);
+        assert_eq!(test_project.is_yarn_pnp(), true);
     }
 
     #[test]
     fn project_has_pnp_cjs() {
         let project_path = fixture_path(&["plug-n-play", "pnp-cjs"]);
         let test_project = Project::for_dir(project_path).unwrap().unwrap();
-        assert_eq!(test_project.is_plug_n_play(), true);
+        assert_eq!(test_project.is_yarn_pnp(), true);
     }
 }

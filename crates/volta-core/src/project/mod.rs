@@ -171,9 +171,10 @@ impl Project {
         })
     }
 
-    /// Does this project use Plug-n-Play?
-    // (Do either of the files '.pnp.js' or '.pnp.cjs' exist?)
-    pub fn is_plug_n_play(&self) -> bool {
+    /// Does this project use Yarn Plug'n'Play?
+    // (project uses Yarn, and either of the files '.pnp.js' or '.pnp.cjs' exist)
+    pub fn is_yarn_pnp(&self) -> bool {
+        self.platform().map_or(false, |platform| platform.yarn.is_some()) &&
         self.manifest_file.parent().map_or(false, |base_dir| {
             base_dir.join(".pnp.js").exists() || base_dir.join(".pnp.cjs").exists()
         })
