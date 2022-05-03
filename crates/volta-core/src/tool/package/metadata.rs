@@ -261,7 +261,12 @@ mod serde_bins {
         {
             let mut bins = Vec::new();
             while let Some((name, _)) = access.next_entry::<String, String>()? {
-                bins.push(name);
+                // Bin names that include path separators are invalid, as they would then point to
+                // other locations on the filesystem. To match the behavior of npm & Yarn, we
+                // filter those values out of the list of bins.
+                if !name.contains(&['/', '\\'][..]) {
+                    bins.push(name);
+                }
             }
             Ok(bins)
         }
