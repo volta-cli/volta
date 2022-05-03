@@ -32,19 +32,25 @@ pub(super) fn command(exe: &OsStr, args: &[OsString], session: &mut Session) -> 
                         ToolKind::ProjectLocalBinary(bin),
                     )
                     .into());
-                },
+                }
                 None => {
-                    if project.is_yarn_pnp()
-                    {
+                    if project.is_yarn_pnp() {
                         debug!("Project uses Yarn PnP, calling {} with 'yarn'", bin);
                         let platform = Platform::current(session)?;
                         let mut exe_and_args = vec![exe.to_os_string()];
                         exe_and_args.extend_from_slice(args);
-                        return Ok(ToolCommand::new("yarn", exe_and_args, platform, ToolKind::Yarn).into());
+                        return Ok(ToolCommand::new(
+                            "yarn",
+                            exe_and_args,
+                            platform,
+                            ToolKind::Yarn,
+                        )
+                        .into());
                     } else {
                         return Err(ErrorKind::ProjectLocalBinaryNotFound {
                             command: exe.to_string_lossy().to_string(),
-                        }.into());
+                        }
+                        .into());
                     }
                 }
             }
