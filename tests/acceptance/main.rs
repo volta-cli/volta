@@ -8,6 +8,7 @@ cfg_if! {
         mod corrupted_download;
         mod direct_install;
         mod direct_uninstall;
+        mod execute_binary;
         mod hooks;
         mod merged_platform;
         mod migrations;
