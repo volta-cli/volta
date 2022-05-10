@@ -6,6 +6,7 @@ use std::process::Stdio;
 
 use crate::command::create_command;
 use crate::error::{Context, ErrorKind, Fallible};
+use crate::hook::RegistryFormat;
 use crate::tool::{NODE_DISTRO_ARCH, NODE_DISTRO_OS};
 use cmdline_words_parser::parse_posix;
 use dunce::canonicalize;
@@ -89,6 +90,27 @@ impl MetadataHook {
     /// Performs resolution of the metadata URL based on the given default file name
     pub fn resolve(&self, filename: &str) -> Fallible<String> {
         match &self {
+            MetadataHook::Prefix(prefix) => Ok(format!("{}{}", prefix, filename)),
+            MetadataHook::Template(template) => Ok(template
+                .replace(ARCH_TEMPLATE, NODE_DISTRO_ARCH)
+                .replace(OS_TEMPLATE, NODE_DISTRO_OS)
+                .replace(FILENAME_TEMPLATE, filename)),
+            MetadataHook::Bin { bin, base_path } => execute_binary(bin, base_path, None),
+        }
+    }
+}
+
+/// A hook for resolving the URL for the Yarn index
+#[derive(PartialEq, Debug)]
+pub struct YarnIndexHook {
+    pub format: RegistryFormat,
+    pub metadata: MetadataHook,
+}
+
+impl YarnIndexHook {
+    /// Performs resolution of the metadata URL based on the given default file name
+    pub fn resolve(&self, filename: &str) -> Fallible<String> {
+        match &self.metadata {
             MetadataHook::Prefix(prefix) => Ok(format!("{}{}", prefix, filename)),
             MetadataHook::Template(template) => Ok(template
                 .replace(ARCH_TEMPLATE, NODE_DISTRO_ARCH)

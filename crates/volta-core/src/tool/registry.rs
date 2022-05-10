@@ -34,8 +34,9 @@ cfg_if! {
     }
 }
 
-pub fn fetch_public_index(url: String, name: &str) -> Fallible<(String, PackageIndex)> {
-    let spinner = progress_spinner(format!("Fetching public registry: {}", url));
+// fetch a registry that returns info in Npm format
+pub fn fetch_npm_registry(url: String, name: &str) -> Fallible<(String, PackageIndex)> {
+    let spinner = progress_spinner(format!("Fetching npm registry: {}", url));
     let metadata: RawPackageMetadata = attohttpc::get(&url)
         .header(ACCEPT, NPM_ABBREVIATED_ACCEPT_HEADER)
         .send()

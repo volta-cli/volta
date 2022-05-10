@@ -170,6 +170,11 @@ pub enum ErrorKind {
         version: String,
     },
 
+    /// Thrown when a format other than "npm" or "github" is given for yarn.index in the hooks
+    InvalidRegistryFormat {
+        format: String,
+    },
+
     /// Thrown when a tool name is invalid per npm's rules.
     InvalidToolName {
         name: String,
@@ -811,6 +816,14 @@ To {action} the package '{version}', please use an explicit version such as '{ve
                 write!(f, "{}\n\n{}", error, wrapped_cta)
             }
 
+            ErrorKind::InvalidRegistryFormat { format } => write!(
+                f,
+                "Unrecognized index registry format: '{}'
+
+Please specify either 'npm' or 'github' for the format.",
+format
+            ),
+
             ErrorKind::InvalidToolName { name, errors } => {
                 let indentation = "    ";
                 let wrapped = match text_width() {
@@ -1438,6 +1451,7 @@ impl ErrorKind {
             ErrorKind::InvalidHookOutput { .. } => ExitCode::ExecutionFailure,
             ErrorKind::InvalidInvocation { .. } => ExitCode::InvalidArguments,
             ErrorKind::InvalidInvocationOfBareVersion { .. } => ExitCode::InvalidArguments,
+            ErrorKind::InvalidRegistryFormat { .. } => ExitCode::ConfigurationError,
             ErrorKind::InvalidToolName { .. } => ExitCode::InvalidArguments,
             ErrorKind::LockAcquireError => ExitCode::FileSystemError,
             ErrorKind::NoBundledNpm { .. } => ExitCode::ConfigurationError,

@@ -9,7 +9,7 @@ use std::path::Path;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::layout::volta_home;
 use crate::project::Project;
-use crate::tool::{Node, Npm, Tool, Yarn};
+use crate::tool::{Node, Npm, Tool};
 use lazycell::LazyCell;
 use log::debug;
 
@@ -50,7 +50,7 @@ impl LazyHookConfig {
 pub struct HookConfig {
     node: Option<ToolHooks<Node>>,
     npm: Option<ToolHooks<Npm>>,
-    yarn: Option<ToolHooks<Yarn>>,
+    yarn: Option<YarnHooks>,
     events: Option<EventHooks>,
 }
 
@@ -66,6 +66,16 @@ pub struct ToolHooks<T: Tool> {
     phantom: PhantomData<T>,
 }
 
+/// Volta hooks for Yarn
+pub struct YarnHooks {
+    /// The hook for resolving the URL for a distro version
+    pub distro: Option<tool::DistroHook>,
+    /// The hook for resolving the URL for the latest version
+    pub latest: Option<tool::MetadataHook>,
+    /// The hook for resolving the Tool Index URL
+    pub index: Option<tool::YarnIndexHook>,
+}
+
 impl<T: Tool> ToolHooks<T> {
     /// Extends this ToolHooks with another, giving precendence to the current instance
     fn merge(self, other: Self) -> Self {
@@ -74,6 +84,17 @@ impl<T: Tool> ToolHooks<T> {
             latest: self.latest.or(other.latest),
             index: self.index.or(other.index),
             phantom: PhantomData,
+        }
+    }
+}
+
+impl YarnHooks {
+    /// Extends this YarnHooks with another, giving precendence to the current instance
+    fn merge(self, other: Self) -> Self {
+        Self {
+            distro: self.distro.or(other.distro),
+            latest: self.latest.or(other.latest),
+            index: self.index.or(other.index),
         }
     }
 }
@@ -97,7 +118,7 @@ impl HookConfig {
         self.npm.as_ref()
     }
 
-    pub fn yarn(&self) -> Option<&ToolHooks<Yarn>> {
+    pub fn yarn(&self) -> Option<&YarnHooks> {
         self.yarn.as_ref()
     }
 
@@ -199,6 +220,26 @@ impl HookConfig {
     }
 }
 
+/// Format of the registry used for Yarn (Npm or Github)
+#[derive(PartialEq, Debug)]
+pub enum RegistryFormat {
+    Npm,
+    Github,
+}
+
+impl RegistryFormat {
+    pub fn from_str(raw_format: &str) -> Fallible<RegistryFormat> {
+        match raw_format {
+            "npm" => Ok(RegistryFormat::Npm),
+            "github" => Ok(RegistryFormat::Github),
+            other => Err(ErrorKind::InvalidRegistryFormat {
+                format: String::from(other),
+            }
+            .into()),
+        }
+    }
+}
+
 /// Volta hooks related to events.
 pub struct EventHooks {
     /// The hook for publishing events, if any.
@@ -217,7 +258,7 @@ impl EventHooks {
 #[cfg(test)]
 pub mod tests {
 
-    use super::{tool, HookConfig, Publish};
+    use super::{tool, HookConfig, Publish, RegistryFormat};
     use std::path::PathBuf;
 
     fn fixture_path(fixture_dir: &str) -> PathBuf {
@@ -284,9 +325,12 @@ pub mod tests {
         );
         assert_eq!(
             yarn.index,
-            Some(tool::MetadataHook::Bin {
-                bin: "/bin/to/yarn/index".to_string(),
-                base_path: fixture_dir,
+            Some(tool::YarnIndexHook {
+                format: RegistryFormat::Github,
+                metadata: tool::MetadataHook::Bin {
+                    bin: "/bin/to/yarn/index".to_string(),
+                    base_path: fixture_dir,
+                },
             })
         );
         assert_eq!(
@@ -335,9 +379,10 @@ pub mod tests {
         );
         assert_eq!(
             yarn.index,
-            Some(tool::MetadataHook::Prefix(
-                "http://localhost/yarn/index/".to_string()
-            ))
+            Some(tool::YarnIndexHook {
+                format: RegistryFormat::Github,
+                metadata: tool::MetadataHook::Prefix("http://localhost/yarn/index/".to_string())
+            })
         );
     }
 
@@ -380,8 +425,71 @@ pub mod tests {
         );
         assert_eq!(
             yarn.index,
-            Some(tool::MetadataHook::Template(
-                "http://localhost/yarn/index/{{version}}/".to_string()
+            Some(tool::YarnIndexHook {
+                format: RegistryFormat::Github,
+                metadata: tool::MetadataHook::Template(
+                    "http://localhost/yarn/index/{{version}}/".to_string()
+                )
+            })
+        );
+    }
+
+    #[test]
+    fn test_from_str_format_npm() {
+        let fixture_dir = fixture_path("hooks");
+        let format_npm_file = fixture_dir.join("format_npm.json");
+        let hooks = HookConfig::from_file(&format_npm_file).unwrap().unwrap();
+        let yarn = hooks.yarn.unwrap();
+        let node = hooks.node.unwrap();
+        let npm = hooks.npm.unwrap();
+        assert_eq!(
+            yarn.index,
+            Some(tool::YarnIndexHook {
+                format: RegistryFormat::Npm,
+                metadata: tool::MetadataHook::Prefix("http://localhost/yarn/index/".to_string())
+            })
+        );
+        // node and npm don't have format
+        assert_eq!(
+            node.index,
+            Some(tool::MetadataHook::Prefix(
+                "http://localhost/node/index/".to_string()
+            ))
+        );
+        assert_eq!(
+            npm.index,
+            Some(tool::MetadataHook::Prefix(
+                "http://localhost/npm/index/".to_string()
+            ))
+        );
+    }
+
+    #[test]
+    fn test_from_str_format_github() {
+        let fixture_dir = fixture_path("hooks");
+        let format_github_file = fixture_dir.join("format_github.json");
+        let hooks = HookConfig::from_file(&format_github_file).unwrap().unwrap();
+        let yarn = hooks.yarn.unwrap();
+        let node = hooks.node.unwrap();
+        let npm = hooks.npm.unwrap();
+        assert_eq!(
+            yarn.index,
+            Some(tool::YarnIndexHook {
+                format: RegistryFormat::Github,
+                metadata: tool::MetadataHook::Prefix("http://localhost/yarn/index/".to_string())
+            })
+        );
+        // node and npm don't have format
+        assert_eq!(
+            node.index,
+            Some(tool::MetadataHook::Prefix(
+                "http://localhost/node/index/".to_string()
+            ))
+        );
+        assert_eq!(
+            npm.index,
+            Some(tool::MetadataHook::Prefix(
+                "http://localhost/npm/index/".to_string()
             ))
         );
     }
@@ -436,9 +544,12 @@ pub mod tests {
         );
         assert_eq!(
             yarn.index,
-            Some(tool::MetadataHook::Template(
-                "http://localhost/yarn/index/{{version}}/".to_string()
-            ))
+            Some(tool::YarnIndexHook {
+                format: RegistryFormat::Github,
+                metadata: tool::MetadataHook::Template(
+                    "http://localhost/yarn/index/{{version}}/".to_string()
+                )
+            })
         );
         assert_eq!(
             merged_hooks.events.expect("No events config found").publish,
@@ -492,9 +603,12 @@ pub mod tests {
         );
         assert_eq!(
             yarn.index,
-            Some(tool::MetadataHook::Template(
-                "http://localhost/yarn/index/{{version}}/".to_string()
-            ))
+            Some(tool::YarnIndexHook {
+                format: RegistryFormat::Github,
+                metadata: tool::MetadataHook::Template(
+                    "http://localhost/yarn/index/{{version}}/".to_string()
+                )
+            })
         );
         assert_eq!(
             merged_hooks.events.expect("No events config found").publish,

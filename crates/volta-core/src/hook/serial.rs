@@ -3,8 +3,9 @@ use std::marker::PhantomData;
 use std::path::Path;
 
 use super::tool;
+use super::RegistryFormat;
 use crate::error::{ErrorKind, Fallible, VoltaError};
-use crate::tool::{Node, Npm, Tool, Yarn};
+use crate::tool::{Node, Npm, Tool};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -12,6 +13,14 @@ pub struct RawResolveHook {
     prefix: Option<String>,
     template: Option<String>,
     bin: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct RawIndexHook {
+    prefix: Option<String>,
+    template: Option<String>,
+    bin: Option<String>,
+    format: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -75,6 +84,26 @@ impl RawResolveHook {
     }
 }
 
+impl RawIndexHook {
+    pub fn into_index_hook(self, base_dir: &Path) -> Fallible<tool::YarnIndexHook> {
+        // use user-specified format, or default to Github (legacy)
+        let format = if let Some(format_str) = self.format {
+            RegistryFormat::from_str(&format_str)?
+        } else {
+            RegistryFormat::Github
+        };
+        Ok(tool::YarnIndexHook {
+            format,
+            metadata: RawResolveHook {
+                prefix: self.prefix,
+                template: self.template,
+                bin: self.bin,
+            }
+            .into_metadata_hook(base_dir)?,
+        })
+    }
+}
+
 impl TryFrom<RawPublishHook> for super::Publish {
     type Error = VoltaError;
 
@@ -101,7 +130,7 @@ impl TryFrom<RawPublishHook> for super::Publish {
 pub struct RawHookConfig {
     pub node: Option<RawToolHooks<Node>>,
     pub npm: Option<RawToolHooks<Npm>>,
-    pub yarn: Option<RawToolHooks<Yarn>>,
+    pub yarn: Option<RawYarnHooks>,
     pub events: Option<RawEventHooks>,
 }
 
@@ -132,11 +161,19 @@ pub struct RawToolHooks<T: Tool> {
     phantom: PhantomData<T>,
 }
 
+#[derive(Serialize, Deserialize)]
+#[serde(rename = "yarn")]
+pub struct RawYarnHooks {
+    pub distro: Option<RawResolveHook>,
+    pub latest: Option<RawResolveHook>,
+    pub index: Option<RawIndexHook>,
+}
+
 impl RawHookConfig {
     pub fn into_hook_config(self, base_dir: &Path) -> Fallible<super::HookConfig> {
         let node = self.node.map(|n| n.into_tool_hooks(base_dir)).transpose()?;
         let npm = self.npm.map(|n| n.into_tool_hooks(base_dir)).transpose()?;
-        let yarn = self.yarn.map(|y| y.into_tool_hooks(base_dir)).transpose()?;
+        let yarn = self.yarn.map(|y| y.into_yarn_hooks(base_dir)).transpose()?;
         let events = self.events.map(|e| e.try_into()).transpose()?;
         Ok(super::HookConfig {
             node,
@@ -167,6 +204,29 @@ impl<T: Tool> RawToolHooks<T> {
             latest,
             index,
             phantom: PhantomData,
+        })
+    }
+}
+
+impl RawYarnHooks {
+    pub fn into_yarn_hooks(self, base_dir: &Path) -> Fallible<super::YarnHooks> {
+        let distro = self
+            .distro
+            .map(|d| d.into_distro_hook(base_dir))
+            .transpose()?;
+        let latest = self
+            .latest
+            .map(|d| d.into_metadata_hook(base_dir))
+            .transpose()?;
+        let index = self
+            .index
+            .map(|d| d.into_index_hook(base_dir))
+            .transpose()?;
+
+        Ok(super::YarnHooks {
+            distro,
+            latest,
+            index,
         })
     }
 }
