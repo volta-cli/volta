@@ -334,7 +334,7 @@ dependencies = [
  "encode_unicode",
  "libc",
  "once_cell",
- "regex 1.5.5",
+ "regex 1.5.6",
  "terminal_size",
  "unicode-width",
  "winapi 0.3.9",
@@ -731,7 +731,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49f837c62de05dc9cc71ff6486cd85de8856a330395ae338a04bfcefe5e91075"
 dependencies = [
  "num",
- "regex 1.5.5",
+ "regex 1.5.6",
 ]
 
 [[package]]
@@ -833,7 +833,7 @@ dependencies = [
  "console",
  "lazy_static",
  "number_prefix",
- "regex 1.5.5",
+ "regex 1.5.6",
 ]
 
 [[package]]
@@ -970,7 +970,7 @@ dependencies = [
  "lazy_static",
  "log",
  "rand",
- "regex 1.5.5",
+ "regex 1.5.6",
  "serde_json",
  "serde_urlencoded",
  "similar",
@@ -1390,13 +1390,13 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.5.5"
+version = "1.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a11647b6b25ff05a515cb92c365cec08801e83423a235b51e231e1808747286"
+checksum = "d83f127d94bdbcda4c8cc2e50f6f84f4b611f69c902699ca385a39c3a75f9ff1"
 dependencies = [
  "aho-corasick 0.7.18",
  "memchr",
- "regex-syntax 0.6.25",
+ "regex-syntax 0.6.26",
 ]
 
 [[package]]
@@ -1410,9 +1410,9 @@ dependencies = [
 
 [[package]]
 name = "regex-syntax"
-version = "0.6.25"
+version = "0.6.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
+checksum = "49b3de9ec5dc0a3417da371aab17d729997c15010e7fd24ff707773a33bddb64"
 
 [[package]]
 name = "remove_dir_all"
@@ -1835,7 +1835,7 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a52dcaab0c48d931f7cc8ef826fa51690a08e1ea55117ef26f89864f532383f"
 dependencies = [
- "regex 1.5.5",
+ "regex 1.5.6",
 ]
 
 [[package]]
@@ -1903,7 +1903,7 @@ version = "0.1.0"
 dependencies = [
  "lazy_static",
  "percent-encoding",
- "regex 1.5.5",
+ "regex 1.5.6",
 ]
 
 [[package]]
@@ -1993,7 +1993,7 @@ dependencies = [
  "mockito",
  "os_info",
  "readext",
- "regex 1.5.5",
+ "regex 1.5.6",
  "retry",
  "semver",
  "serde",
