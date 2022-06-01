@@ -87,10 +87,9 @@ impl RawResolveHook {
 impl RawIndexHook {
     pub fn into_index_hook(self, base_dir: &Path) -> Fallible<tool::YarnIndexHook> {
         // use user-specified format, or default to Github (legacy)
-        let format = if let Some(format_str) = self.format {
-            RegistryFormat::from_str(&format_str)?
-        } else {
-            RegistryFormat::Github
+        let format = match self.format {
+            Some(format_str) => RegistryFormat::from_str(&format_str)?,
+            None => RegistryFormat::Github,
         };
         Ok(tool::YarnIndexHook {
             format,
