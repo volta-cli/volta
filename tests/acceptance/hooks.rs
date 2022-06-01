@@ -137,6 +137,25 @@ fn yarn_hooks_json() -> String {
     )
 }
 
+fn yarn_hooks_format_json(format: &str) -> String {
+    format!(
+        r#"
+{{
+    "yarn": {{
+        "latest": {{
+            "template": "{0}/yarn-new/latest"
+        }},
+        "index": {{
+            "template": "{0}/yarn-new/index",
+            "format": "{1}"
+        }}
+    }}
+}}"#,
+        mockito::server_url(),
+        format
+    )
+}
+
 #[test]
 fn redirects_download() {
     let s = sandbox()
@@ -370,5 +389,39 @@ fn yarn_semver_with_hook_uses_old_format() {
             .with_stderr_contains("[..]Using yarn.index hook to determine yarn index URL")
             .with_stderr_contains("[..]Found yarn@3.9.2 matching requirement[..]")
             .with_stderr_contains("[..]Could not download yarn@3.9.2")
+    );
+}
+
+#[test]
+fn yarn_semver_with_hook_uses_configured_format() {
+    let s = sandbox()
+        .default_hooks(&yarn_hooks_format_json("npm"))
+        .env("VOLTA_LOGLEVEL", "debug")
+        .build();
+    let _mock = mock("GET", "/yarn-new/index")
+        .with_status(200)
+        .with_header("Content-Type", "application/json")
+        .with_body(
+            // Should be using the Npm format
+            r#"{
+    "name":"@yarnpkg/cli-dist",
+    "dist-tags": { "latest":"3.12.99" },
+    "versions": {
+        "2.4.159": { "version":"2.4.159", "dist": { "shasum":"", "tarball":"" }},
+        "3.2.42": { "version":"3.2.42", "dist": { "shasum":"", "tarball":"" }},
+        "3.7.71": { "version":"3.7.71", "dist": { "shasum":"", "tarball":"" }},
+        "3.12.99": { "version":"3.12.99", "dist": { "shasum":"", "tarball":"" }}
+    }
+}"#,
+        )
+        .create();
+
+    assert_that!(
+        s.volta("install yarn@3"),
+        execs()
+            .with_status(ExitCode::NetworkError as i32)
+            .with_stderr_contains("[..]Using yarn.index hook to determine yarn index URL")
+            .with_stderr_contains("[..]Found yarn@3.12.99 matching requirement[..]")
+            .with_stderr_contains("[..]Could not download yarn@3.12.99")
     );
 }

@@ -1,0 +1,20 @@
+{
+  "node": {
+    "index": {
+      "prefix": "http://localhost/node/index/",
+      "format": "npm"
+    }
+  },
+  "npm": {
+    "index": {
+      "prefix": "http://localhost/npm/index/",
+      "format": "npm"
+    }
+  },
+  "yarn": {
+    "index": {
+      "prefix": "http://localhost/yarn/index/",
+      "format": "npm"
+    }
+  }
+}

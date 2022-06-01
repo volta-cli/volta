@@ -10,7 +10,7 @@ use super::super::registry::{
 };
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::{create_staging_dir, create_staging_file, rename, set_executable};
-use crate::hook::ToolHooks;
+use crate::hook::YarnHooks;
 use crate::layout::volta_home;
 use crate::style::{progress_bar, tool_version};
 use crate::tool::{self, Yarn};
@@ -20,7 +20,7 @@ use fs_utils::ensure_containing_dir_exists;
 use log::debug;
 use semver::Version;
 
-pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<()> {
+pub fn fetch(version: &Version, hooks: Option<&YarnHooks>) -> Fallible<()> {
     let yarn_dir = volta_home()?.yarn_inventory_dir();
     let cache_file = yarn_dir.join(Yarn::archive_filename(&version.to_string()));
 
@@ -117,10 +117,10 @@ fn load_cached_distro(file: &Path) -> Option<Box<dyn Archive>> {
 }
 
 /// Determine the remote URL to download from, using the hooks if available
-fn determine_remote_url(version: &Version, hooks: Option<&ToolHooks<Yarn>>) -> Fallible<String> {
+fn determine_remote_url(version: &Version, hooks: Option<&YarnHooks>) -> Fallible<String> {
     let version_str = version.to_string();
     match hooks {
-        Some(&ToolHooks {
+        Some(&YarnHooks {
             distro: Some(ref hook),
             ..
         }) => {

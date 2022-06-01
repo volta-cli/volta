@@ -1,7 +1,7 @@
 //! Provides resolution of npm Version requirements into specific versions
 
 use super::super::registry::{
-    fetch_public_index, public_registry_index, PackageDetails, PackageIndex,
+    fetch_npm_registry, public_registry_index, PackageDetails, PackageIndex,
 };
 use crate::error::{ErrorKind, Fallible};
 use crate::hook::ToolHooks;
@@ -36,7 +36,7 @@ fn fetch_npm_index(hooks: Option<&ToolHooks<Npm>>) -> Fallible<(String, PackageI
         _ => public_registry_index("npm"),
     };
 
-    fetch_public_index(url, "npm")
+    fetch_npm_registry(url, "npm")
 }
 
 fn resolve_tag(tag: &str, hooks: Option<&ToolHooks<Npm>>) -> Fallible<Version> {
