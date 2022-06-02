@@ -1,3 +1,8 @@
+# Version 1.0.8
+
+- Fix for malformed `bin` entries when installing global packages (#997)
+- Dependency updates
+
 # Version 1.0.7
 
 - Added build for Linux distros with OpenSSL 3.0 (#1211)
