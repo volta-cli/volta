@@ -343,7 +343,7 @@ compile_and_package() {
 
   # call the release script to create the packaged archive file
   # '2> >(tee /dev/stderr)' copies stderr to stdout, to collect it and parse the filename
-  release_output="$( "$DIR/release.sh" "--$dev_or_release" 2> >(tee /dev/stderr) )"
+  release_output="$( "$DIR/dev/unix/release.sh" "--$dev_or_release" 2> >(tee /dev/stderr) )"
   [ "$?" != 0 ] && return 1
 
   # parse the release filename and return that
