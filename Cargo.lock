@@ -161,7 +161,7 @@ dependencies = [
  "block-padding",
  "byte-tools",
  "byteorder",
- "generic-array 0.12.0",
+ "generic-array 0.12.4",
 ]
 
 [[package]]
@@ -448,7 +448,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05f47366984d3ad862010e22c7ce81a7dbcaebbdfb37241a620f8b6596ee135c"
 dependencies = [
- "generic-array 0.12.0",
+ "generic-array 0.12.4",
 ]
 
 [[package]]
@@ -649,9 +649,9 @@ dependencies = [
 
 [[package]]
 name = "generic-array"
-version = "0.12.0"
+version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c0f28c2f5bfb5960175af447a2da7c18900693738343dc896ffbcabd9839592"
+checksum = "ffdf9f34f1447443d37393cc6c2b8313aebddcd96906caf34e54c68d8e57d7bd"
 dependencies = [
  "typenum",
 ]
