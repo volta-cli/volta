@@ -13,7 +13,7 @@ use semver::Version;
 
 /// Configuration information about an installed package
 ///
-/// Will be stored in <VOLTA_HOME>/tools/user/packages/<package>.json
+/// Will be stored in <VOLTA_HOME>/tools/user/packages/\<package>.json
 #[derive(serde::Serialize, serde::Deserialize, PartialOrd, Ord, PartialEq, Eq)]
 pub struct PackageConfig {
     /// The package name
@@ -165,6 +165,8 @@ struct RawPlatformSpec {
     node: Version,
     #[serde(with = "option_version_serde")]
     npm: Option<Version>,
+    #[serde(with = "option_version_serde")]
+    pnpm: Option<Version>,
     #[serde(with = "option_version_serde")]
     yarn: Option<Version>,
 }

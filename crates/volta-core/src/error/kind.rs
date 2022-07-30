@@ -330,6 +330,11 @@ pub enum ErrorKind {
         tool: String,
     },
 
+    /// Thrown when there is no Pnpm version matching a requested semver specifier.
+    PnpmVersionNotFound {
+        matching: String,
+    },
+
     /// Thrown when executing a project-local binary fails
     ProjectLocalBinaryExecError {
         command: String,
@@ -1096,6 +1101,13 @@ Please supply a spec in the format `<tool name>[@<version>]`.",
 {}",
                 tool, PERMISSIONS_CTA
             ),
+            ErrorKind::PnpmVersionNotFound { matching } => write!(
+                f,
+                r#"Could not find Pnpm version matching "{}" in the version registry.
+
+Please verify that the version is correct."#,
+                matching
+            ),
             ErrorKind::ProjectLocalBinaryExecError { command } => write!(
                 f,
                 "Could not execute `{}`
@@ -1299,12 +1311,14 @@ Please ensure it is installed with `{} {0}`"#,
                 package,
                 match manager {
                     PackageManager::Npm => "npm i -g",
+                    PackageManager::Pnpm => "pnpm add -g",
                     PackageManager::Yarn => "yarn global add",
                 }
             ),
             ErrorKind::UpgradePackageWrongManager { package, manager } => {
                 let (name, command) = match manager {
                     PackageManager::Npm => ("npm", "npm update -g"),
+                    PackageManager::Pnpm => ("pnpm", "pnpm update -g"),
                     PackageManager::Yarn => ("Yarn", "yarn global upgrade"),
                 };
                 write!(
@@ -1490,6 +1504,7 @@ impl ErrorKind {
             ErrorKind::ParsePackageConfigError => ExitCode::UnknownError,
             ErrorKind::ParsePlatformError => ExitCode::ConfigurationError,
             ErrorKind::PersistInventoryError { .. } => ExitCode::FileSystemError,
+            ErrorKind::PnpmVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorKind::ProjectLocalBinaryExecError { .. } => ExitCode::ExecutionFailure,
             ErrorKind::ProjectLocalBinaryNotFound { .. } => ExitCode::FileSystemError,
             ErrorKind::PublishHookBothUrlAndBin => ExitCode::ConfigurationError,

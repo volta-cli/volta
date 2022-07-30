@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::error::{ErrorKind, Fallible};
 use crate::session::Session;
-use crate::tool::{Node, Npm, Yarn};
+use crate::tool::{Node, Npm, Pnpm, Yarn};
 use semver::Version;
 
 mod image;
@@ -161,6 +161,7 @@ impl<T> Default for InheritOption<T> {
 pub struct PlatformSpec {
     pub node: Version,
     pub npm: Option<Version>,
+    pub pnpm: Option<Version>,
     pub yarn: Option<Version>,
 }
 
@@ -170,6 +171,7 @@ impl PlatformSpec {
         Platform {
             node: Sourced::with_default(self.node.clone()),
             npm: self.npm.clone().map(Sourced::with_default),
+            pnpm: self.pnpm.clone().map(Sourced::with_default),
             yarn: self.yarn.clone().map(Sourced::with_default),
         }
     }
@@ -179,6 +181,7 @@ impl PlatformSpec {
         Platform {
             node: Sourced::with_project(self.node.clone()),
             npm: self.npm.clone().map(Sourced::with_project),
+            pnpm: self.pnpm.clone().map(Sourced::with_project),
             yarn: self.yarn.clone().map(Sourced::with_project),
         }
     }
@@ -188,6 +191,7 @@ impl PlatformSpec {
         Platform {
             node: Sourced::with_binary(self.node.clone()),
             npm: self.npm.clone().map(Sourced::with_binary),
+            pnpm: self.pnpm.clone().map(Sourced::with_binary),
             yarn: self.yarn.clone().map(Sourced::with_binary),
         }
     }
@@ -198,6 +202,7 @@ impl PlatformSpec {
 pub struct CliPlatform {
     pub node: Option<Version>,
     pub npm: InheritOption<Version>,
+    pub pnpm: InheritOption<Version>,
     pub yarn: InheritOption<Version>,
 }
 
@@ -207,6 +212,7 @@ impl CliPlatform {
         Platform {
             node: self.node.map_or(base.node, Sourced::with_command_line),
             npm: self.npm.map(Sourced::with_command_line).inherit(base.npm),
+            pnpm: self.pnpm.map(Sourced::with_command_line).inherit(base.pnpm),
             yarn: self.yarn.map(Sourced::with_command_line).inherit(base.yarn),
         }
     }
@@ -220,6 +226,7 @@ impl From<CliPlatform> for Option<Platform> {
             Some(node) => Some(Platform {
                 node: Sourced::with_command_line(node),
                 npm: base.npm.map(Sourced::with_command_line).into(),
+                pnpm: base.pnpm.map(Sourced::with_command_line).into(),
                 yarn: base.yarn.map(Sourced::with_command_line).into(),
             }),
         }
@@ -231,6 +238,7 @@ impl From<CliPlatform> for Option<Platform> {
 pub struct Platform {
     pub node: Sourced<Version>,
     pub npm: Option<Sourced<Version>>,
+    pub pnpm: Option<Sourced<Version>>,
     pub yarn: Option<Sourced<Version>>,
 }
 
@@ -268,6 +276,10 @@ impl Platform {
             Npm::new(version.clone()).ensure_fetched(session)?;
         }
 
+        if let Some(Sourced { value: version, .. }) = &self.pnpm {
+            Pnpm::new(version.clone()).ensure_fetched(session)?;
+        }
+
         if let Some(Sourced { value: version, .. }) = &self.yarn {
             Yarn::new(version.clone()).ensure_fetched(session)?;
         }
@@ -275,6 +287,7 @@ impl Platform {
         Ok(Image {
             node: self.node,
             npm: self.npm,
+            pnpm: self.pnpm,
             yarn: self.yarn,
         })
     }

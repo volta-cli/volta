@@ -18,6 +18,8 @@ pub struct LegacyPackageConfig {
 pub struct LegacyPlatform {
     pub node: NodeVersion,
     #[serde(with = "option_version_serde")]
+    pub pnpm: Option<Version>,
+    #[serde(with = "option_version_serde")]
     pub yarn: Option<Version>,
 }
 
@@ -42,6 +44,7 @@ impl From<LegacyPlatform> for PlatformSpec {
         PlatformSpec {
             node: config_platform.node.runtime,
             npm: config_platform.node.npm,
+            pnpm: config_platform.pnpm,
             yarn: config_platform.yarn,
         }
     }

@@ -126,6 +126,71 @@ impl<'a> CommandArg<'a> {
         }
     }
 
+    /// Parse the given set of arguments to see if they correspond to an intercepted Pnpm command
+    pub fn for_pnpm<S>(args: &'a [S]) -> CommandArg<'a>
+    where
+        S: AsRef<OsStr>,
+    {
+        // If VOLTA_UNSAFE_GLOBAL is set, then we always skip any global parsing
+        if env::var_os(UNSAFE_GLOBAL).is_some() {
+            return CommandArg::Standard;
+        }
+
+        if args.is_empty() {
+            return CommandArg::Standard;
+        }
+
+        let args = args
+            .into_iter()
+            .map(AsRef::<OsStr>::as_ref)
+            .collect::<Vec<&OsStr>>();
+
+        let (flags, positionals): (Vec<&OsStr>, Vec<&OsStr>) =
+            args.into_iter().partition(|arg| is_flag(arg));
+
+        if positionals.len() < 2 {
+            return CommandArg::Standard;
+        }
+
+        let subcommand = positionals[0];
+        let is_global = flags.iter().any(|&f| f == "--global" || f == "-g");
+
+        match is_global {
+            false => CommandArg::Standard,
+            true => match subcommand.to_str() {
+                Some("add") => {
+                    let manager = PackageManager::Pnpm;
+                    let mut common_args = vec![subcommand];
+                    common_args.extend(flags);
+
+                    let tools = positionals[1..].to_vec();
+                    CommandArg::Global(GlobalCommand::Install(InstallArgs {
+                        manager,
+                        common_args,
+                        tools,
+                    }))
+                }
+                Some("update") => {
+                    let manager = PackageManager::Pnpm;
+                    let mut common_args = vec![subcommand];
+                    common_args.extend(flags);
+                    let tools = positionals[1..].to_vec();
+                    CommandArg::Global(GlobalCommand::Upgrade(UpgradeArgs {
+                        manager,
+                        common_args,
+                        tools,
+                    }))
+                }
+                Some("remove") => {
+                    let tools = positionals[1..].to_vec();
+                    CommandArg::Global(GlobalCommand::Uninstall(UninstallArgs { tools }))
+                }
+                Some(_) => CommandArg::Standard,
+                None => CommandArg::Standard,
+            },
+        }
+    }
+
     /// Parse the given set of arguments to see if they correspond to an intercepted Yarn command
     pub fn for_yarn<S>(args: &'a [S]) -> Self
     where

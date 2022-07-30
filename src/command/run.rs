@@ -9,7 +9,7 @@ use volta_core::error::{report_error, ExitCode, Fallible};
 use volta_core::platform::{CliPlatform, InheritOption};
 use volta_core::run::execute_tool;
 use volta_core::session::{ActivityKind, Session};
-use volta_core::tool::{node, npm, yarn};
+use volta_core::tool::{node, npm, pnpm, yarn};
 
 #[derive(Debug, StructOpt)]
 pub(crate) struct Run {
@@ -20,6 +20,10 @@ pub(crate) struct Run {
     /// Set the custom npm version
     #[structopt(long = "npm", value_name = "version", conflicts_with = "bundled_npm")]
     npm: Option<String>,
+
+    /// Set the custon pnpm version
+    #[structopt(long = "pnpm", value_name = "version")]
+    pnpm: Option<String>,
 
     /// Forces npm to be the version bundled with Node
     #[structopt(long = "bundled-npm", conflicts_with = "npm")]
@@ -92,6 +96,11 @@ impl Run {
             },
         };
 
+        let pnpm = match &self.pnpm {
+            None => InheritOption::None,
+            Some(version) => InheritOption::Some(pnpm::resolve(version.parse()?, session)?),
+        };
+
         let yarn = match (self.no_yarn, &self.yarn) {
             (true, _) => InheritOption::None,
             (false, None) => InheritOption::Inherit,
@@ -100,7 +109,12 @@ impl Run {
             }
         };
 
-        Ok(CliPlatform { node, npm, yarn })
+        Ok(CliPlatform {
+            node,
+            npm,
+            pnpm,
+            yarn,
+        })
     }
 
     /// Convert the environment variable settings passed to the command line into a map

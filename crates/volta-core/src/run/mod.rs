@@ -16,6 +16,7 @@ mod node;
 mod npm;
 mod npx;
 mod parser;
+mod pnpm;
 mod yarn;
 
 /// Environment variable set internally when a shim has been executed and the context evaluated
@@ -84,6 +85,7 @@ fn get_executor(
             Some("node") => node::command(args, session),
             Some("npm") => npm::command(args, session),
             Some("npx") => npx::command(args, session),
+            Some("pnpm") => pnpm::command(args, session),
             Some("yarn") => yarn::command(args, session),
             _ => binary::command(exe, args, session),
         }
@@ -126,6 +128,7 @@ fn debug_active_image(image: &Image) {
         "Active Image:
     Node: {}
     npm: {}
+    pnpm: {}
     Yarn: {}",
         format_tool_version(&image.node),
         image
@@ -134,6 +137,11 @@ fn debug_active_image(image: &Image) {
             .as_ref()
             .map(format_tool_version)
             .unwrap_or_else(|| "Bundled with Node".into()),
+        image
+            .pnpm
+            .as_ref()
+            .map(format_tool_version)
+            .unwrap_or_else(|| "None".into()),
         image
             .yarn
             .as_ref()

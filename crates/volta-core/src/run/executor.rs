@@ -123,6 +123,7 @@ pub enum ToolKind {
     Node,
     Npm,
     Npx,
+    Pnpm,
     Yarn,
     ProjectLocalBinary(String),
     DefaultBinary(String),
@@ -179,6 +180,7 @@ impl ToolCommand {
             ToolKind::Node => super::node::execution_context(self.platform, session)?,
             ToolKind::Npm => super::npm::execution_context(self.platform, session)?,
             ToolKind::Npx => super::npx::execution_context(self.platform, session)?,
+            ToolKind::Pnpm => super::pnpm::execution_context(self.platform, session)?,
             ToolKind::Yarn => super::yarn::execution_context(self.platform, session)?,
             ToolKind::DefaultBinary(bin) => {
                 super::binary::default_execution_context(bin, self.platform, session)?
@@ -226,6 +228,7 @@ impl PackageInstallCommand {
 
         let mut command = match manager {
             PackageManager::Npm => create_command("npm"),
+            PackageManager::Pnpm => create_command("pnpm"),
             PackageManager::Yarn => create_command("yarn"),
         };
         command.args(args);
@@ -430,6 +433,7 @@ impl PackageUpgradeCommand {
 
         let mut command = match manager {
             PackageManager::Npm => create_command("npm"),
+            PackageManager::Pnpm => create_command("pnpm"),
             PackageManager::Yarn => create_command("yarn"),
         };
         command.args(args);

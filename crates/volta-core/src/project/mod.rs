@@ -191,6 +191,7 @@ impl Project {
             self.platform = Some(PlatformSpec {
                 node: version,
                 npm: None,
+                pnpm: None,
                 yarn: None,
             });
         }
@@ -208,6 +209,22 @@ impl Project {
             Ok(())
         } else {
             Err(ErrorKind::NoPinnedNodeVersion { tool: "npm".into() }.into())
+        }
+    }
+
+    /// Pins the Pnpm version in this project's manifest file
+    pub fn pin_pnpm(&mut self, version: Option<Version>) -> Fallible<()> {
+        if let Some(platform) = self.platform.as_mut() {
+            update_manifest(&self.manifest_file, ManifestKey::Pnpm, version.as_ref())?;
+
+            platform.pnpm = version;
+
+            Ok(())
+        } else {
+            Err(ErrorKind::NoPinnedNodeVersion {
+                tool: "Pnpm".into(),
+            }
+            .into())
         }
     }
 
@@ -258,6 +275,7 @@ pub(crate) fn find_closest_root(mut dir: PathBuf) -> Option<PathBuf> {
 struct PartialPlatform {
     node: Option<Version>,
     npm: Option<Version>,
+    pnpm: Option<Version>,
     yarn: Option<Version>,
 }
 
@@ -266,6 +284,7 @@ impl PartialPlatform {
         PartialPlatform {
             node: self.node.or(other.node),
             npm: self.npm.or(other.npm),
+            pnpm: self.pnpm.or(other.pnpm),
             yarn: self.yarn.or(other.yarn),
         }
     }
@@ -280,6 +299,7 @@ impl TryFrom<PartialPlatform> for PlatformSpec {
         Ok(PlatformSpec {
             node,
             npm: partial.npm,
+            pnpm: partial.pnpm,
             yarn: partial.yarn,
         })
     }

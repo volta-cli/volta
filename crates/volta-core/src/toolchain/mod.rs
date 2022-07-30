@@ -75,6 +75,7 @@ impl Toolchain {
                 self.platform = Some(PlatformSpec {
                     node: node_version.clone(),
                     npm: None,
+                    pnpm: None,
                     yarn: None,
                 });
                 dirty = true;
@@ -98,6 +99,23 @@ impl Toolchain {
         } else if yarn.is_some() {
             return Err(ErrorKind::NoDefaultNodeVersion {
                 tool: "Yarn".into(),
+            }
+            .into());
+        }
+
+        Ok(())
+    }
+
+    /// Set the active Pnpm version in the default platform file.
+    pub fn set_active_pnpm(&mut self, pnpm: Option<Version>) -> Fallible<()> {
+        if let Some(platform) = self.platform.as_mut() {
+            if platform.pnpm != pnpm {
+                platform.pnpm = pnpm;
+                self.save()?;
+            }
+        } else if pnpm.is_some() {
+            return Err(ErrorKind::NoDefaultNodeVersion {
+                tool: "Pnpm".into(),
             }
             .into());
         }

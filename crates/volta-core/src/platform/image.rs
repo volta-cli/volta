@@ -13,6 +13,8 @@ pub struct Image {
     pub node: Sourced<Version>,
     /// The custom version of npm, if any. `None` represents using the npm that is bundled with Node
     pub npm: Option<Sourced<Version>>,
+    /// The pinned version of Pnpm, if any.
+    pub pnpm: Option<Sourced<Version>>,
     /// The pinned version of Yarn, if any.
     pub yarn: Option<Sourced<Version>>,
 }
@@ -25,6 +27,11 @@ impl Image {
         if let Some(npm) = &self.npm {
             let npm_str = npm.value.to_string();
             bins.push(home.npm_image_bin_dir(&npm_str));
+        }
+
+        if let Some(pnpm) = &self.pnpm {
+            let pnpm_str = pnpm.value.to_string();
+            bins.push(home.pnpm_image_bin_dir(&pnpm_str));
         }
 
         if let Some(yarn) = &self.yarn {
