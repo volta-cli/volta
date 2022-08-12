@@ -333,3 +333,21 @@ fn install_yarn_3_without_node_errors() {
             )
     );
 }
+
+#[test]
+fn install_node_with_shadowed_binary() {
+    let s = sandbox()
+        .node_available_versions(NODE_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .env("VOLTA_LOGLEVEL", "info")
+        .prepend_exec_dir_to_path()
+        .executable_file("node", "echo hello world")
+        .build();
+
+    assert_that!(
+        s.volta("install node"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]is shadowed by another binary of the same name at [..]")
+    );
+}

@@ -7,6 +7,7 @@ use super::{
 use crate::error::{ErrorKind, Fallible};
 use crate::inventory::node_available;
 use crate::session::Session;
+use crate::shim;
 use crate::style::{note_prefix, tool_version};
 use crate::sync::VoltaLock;
 use cfg_if::cfg_if;
@@ -206,6 +207,8 @@ impl Tool for Node {
         } else {
             info_installed(node_version); // includes node and npm version
         }
+
+        shim::check_reachable("node")?;
 
         if let Ok(Some(project)) = session.project_platform() {
             info_project_version(tool_version("node", &project.node));

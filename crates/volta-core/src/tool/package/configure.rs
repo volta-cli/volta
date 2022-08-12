@@ -37,6 +37,7 @@ pub(super) fn write_config_and_shims(
     // Generate the shims and bin configs for each bin provided by the package
     for bin_name in &manifest.bin {
         shim::create(bin_name)?;
+        shim::check_reachable(bin_name)?;
 
         BinConfig {
             name: bin_name.clone(),

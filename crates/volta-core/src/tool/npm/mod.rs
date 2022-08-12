@@ -8,6 +8,7 @@ use super::{
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::inventory::npm_available;
 use crate::session::Session;
+use crate::shim;
 use crate::style::{success_prefix, tool_version};
 use crate::sync::VoltaLock;
 use log::info;
@@ -64,6 +65,7 @@ impl Tool for Npm {
             .set_active_npm(Some(self.version.clone()))?;
 
         info_installed(self);
+        shim::check_reachable("npm")?;
 
         if let Ok(Some(project)) = session.project_platform() {
             if let Some(npm) = &project.npm {

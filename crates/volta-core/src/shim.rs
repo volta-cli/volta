@@ -9,7 +9,7 @@ use crate::error::{Context, ErrorKind, Fallible, VoltaError};
 use crate::fs::{read_dir_eager, symlink_file};
 use crate::layout::{volta_home, volta_install};
 use crate::sync::VoltaLock;
-use log::debug;
+use log::{debug, warn};
 
 pub fn regenerate_shims_for_dir(dir: &Path) -> Fallible<()> {
     // Acquire a lock on the Volta directory, if possible, to prevent concurrent changes
@@ -87,6 +87,23 @@ pub fn create(shim_name: &str) -> Fallible<ShimResult> {
             }
         }
     }
+}
+
+pub fn check_reachable(shim_name: &str) -> Fallible<()> {
+    let shim = volta_home()?.shim_file(shim_name);
+    let resolved = which::which(shim_name).map_err(|e| {
+        VoltaError::from_source(
+            e,
+            ErrorKind::ShimResolveError {
+                name: shim_name.to_string(),
+            },
+        )
+    })?;
+    if resolved != shim {
+        warn!("{} is shadowed by another binary of the same name at {}. Please ensure that {} is at the front of your PATH.", shim_name, resolved.display(), shim.display());
+    }
+
+    Ok(())
 }
 
 pub fn delete(shim_name: &str) -> Fallible<ShimResult> {

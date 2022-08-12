@@ -7,6 +7,7 @@ use super::{
 use crate::error::{ErrorKind, Fallible};
 use crate::inventory::yarn_available;
 use crate::session::Session;
+use crate::shim;
 use crate::style::tool_version;
 use crate::sync::VoltaLock;
 use semver::Version;
@@ -63,6 +64,7 @@ impl Tool for Yarn {
             .set_active_yarn(Some(self.version.clone()))?;
 
         info_installed(self);
+        shim::check_reachable("yarn")?;
 
         if let Ok(Some(project)) = session.project_platform() {
             if let Some(yarn) = &project.yarn {

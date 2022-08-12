@@ -429,6 +429,11 @@ pub enum ErrorKind {
         name: String,
     },
 
+    /// Thrown when Volta is unable to find the shimmed command.
+    ShimResolveError {
+        name: String,
+    },
+
     /// Thrown when serializnig a bin config to JSON fails
     StringifyBinConfigError,
 
@@ -1260,6 +1265,13 @@ at {}
 {}"#,
                 name, PERMISSIONS_CTA
             ),
+            ErrorKind::ShimResolveError { name } => write!(
+                f,
+                r#"Could not find shim for "{}"
+
+{}"#,
+                name, PERMISSIONS_CTA,
+            ),
             ErrorKind::StringifyBinConfigError => write!(
                 f,
                 "Could not serialize executable configuration.
@@ -1512,6 +1524,7 @@ impl ErrorKind {
             ErrorKind::SetToolExecutable { .. } => ExitCode::FileSystemError,
             ErrorKind::ShimCreateError { .. } => ExitCode::FileSystemError,
             ErrorKind::ShimRemoveError { .. } => ExitCode::FileSystemError,
+            ErrorKind::ShimResolveError { .. } => ExitCode::FileSystemError,
             ErrorKind::StringifyBinConfigError => ExitCode::UnknownError,
             ErrorKind::StringifyPackageConfigError => ExitCode::UnknownError,
             ErrorKind::StringifyPlatformError => ExitCode::UnknownError,

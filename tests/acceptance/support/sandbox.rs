@@ -460,6 +460,20 @@ impl SandboxBuilder {
         self.add_exec_dir_to_path()
     }
 
+    /// Add an arbitrary file to the test project within the sandbox,
+    /// give it executable permissions,
+    /// and add its directory to the *front* of PATH, shadowing any volta binaries.
+    pub fn prepend_exec_dir_to_path(mut self) -> Self {
+        if self.has_exec_path {
+            panic!("need to call prepend_exec_dir_to_path before anything else");
+        }
+
+        let exec_path = self.root().join("exec");
+        self.path_dirs.insert(0, exec_path);
+        self.has_exec_path = true;
+        self
+    }
+
     /// Set a package config file for the sandbox (chainable)
     pub fn package_config(mut self, name: &str, contents: &str) -> Self {
         let package_cfg_file = package_config_file(name);

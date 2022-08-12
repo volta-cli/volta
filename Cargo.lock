@@ -1955,6 +1955,7 @@ dependencies = [
  "validate-npm-package-name",
  "volta-layout",
  "walkdir",
+ "which",
  "winfolder",
  "winreg",
 ]
