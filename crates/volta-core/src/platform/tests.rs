@@ -15,201 +15,144 @@ fn test_paths() {
 }
 
 #[cfg(unix)]
-fn test_image_path() {
-    let starting_path = format!(
-        "/usr/bin:/blah:{}:/doesnt/matter/bin",
+fn build_test_path() -> String {
+    format!(
+        "{}:/usr/bin:/bin",
         volta_home().unwrap().shim_dir().to_string_lossy()
-    );
-    std::env::set_var("PATH", &starting_path);
-
-    let node_bin = volta_home().unwrap().node_image_bin_dir("1.2.3");
-    let expected_node_bin = node_bin.to_str().unwrap();
-
-    let npm_bin = volta_home().unwrap().npm_image_bin_dir("6.4.3");
-    let expected_npm_bin = npm_bin.to_str().unwrap();
-
-    let yarn_bin = volta_home().unwrap().yarn_image_bin_dir("4.5.7");
-    let expected_yarn_bin = yarn_bin.to_str().unwrap();
-
-    let v123 = Version::parse("1.2.3").unwrap();
-    let v457 = Version::parse("4.5.7").unwrap();
-    let v643 = Version::parse("6.4.3").unwrap();
-
-    let only_node = Image {
-        node: Sourced::with_default(v123.clone()),
-        npm: None,
-        yarn: None,
-    };
-
-    assert_eq!(
-        only_node.path().unwrap().into_string().unwrap(),
-        format!("{}:{}", expected_node_bin, starting_path)
-    );
-
-    let node_npm = Image {
-        node: Sourced::with_default(v123.clone()),
-        npm: Some(Sourced::with_default(v643.clone())),
-        yarn: None,
-    };
-
-    assert_eq!(
-        node_npm.path().unwrap().into_string().unwrap(),
-        format!(
-            "{}:{}:{}",
-            expected_npm_bin, expected_node_bin, starting_path
-        )
-    );
-
-    let node_yarn = Image {
-        node: Sourced::with_default(v123.clone()),
-        npm: None,
-        yarn: Some(Sourced::with_default(v457.clone())),
-    };
-
-    assert_eq!(
-        node_yarn.path().unwrap().into_string().unwrap(),
-        format!(
-            "{}:{}:{}",
-            expected_yarn_bin, expected_node_bin, starting_path
-        )
-    );
-
-    let node_npm_yarn = Image {
-        node: Sourced::with_default(v123),
-        npm: Some(Sourced::with_default(v643)),
-        yarn: Some(Sourced::with_default(v457)),
-    };
-
-    assert_eq!(
-        node_npm_yarn.path().unwrap().into_string().unwrap(),
-        format!(
-            "{}:{}:{}:{}",
-            expected_npm_bin, expected_yarn_bin, expected_node_bin, starting_path
-        )
-    );
-}
-
-#[cfg(windows)]
-fn test_image_path() {
-    let pathbufs = vec![
-        volta_home().unwrap().shim_dir().to_owned(),
-        PathBuf::from("C:\\\\somebin"),
-        volta_install().unwrap().root().to_owned(),
-        PathBuf::from("D:\\\\ProbramFlies"),
-    ];
-
-    let path_with_shims = std::env::join_paths(pathbufs.iter())
-        .unwrap()
-        .into_string()
-        .expect("Could not create path containing shim dir");
-
-    std::env::set_var("PATH", &path_with_shims);
-
-    let node_bin = volta_home().unwrap().node_image_bin_dir("1.2.3");
-    let expected_node_bin = node_bin.to_str().unwrap();
-
-    let npm_bin = volta_home().unwrap().npm_image_bin_dir("6.4.3");
-    let expected_npm_bin = npm_bin.to_str().unwrap();
-
-    let yarn_bin = volta_home().unwrap().yarn_image_bin_dir("4.5.7");
-    let expected_yarn_bin = yarn_bin.to_str().unwrap();
-
-    let v123 = Version::parse("1.2.3").unwrap();
-    let v457 = Version::parse("4.5.7").unwrap();
-    let v643 = Version::parse("6.4.3").unwrap();
-
-    let only_node = Image {
-        node: Sourced::with_default(v123.clone()),
-        npm: None,
-        pnpm: None,
-        yarn: None,
-    };
-
-    assert_eq!(
-        only_node.path().unwrap().into_string().unwrap(),
-        format!("{};{}", expected_node_bin, path_with_shims),
-    );
-
-    let node_npm = Image {
-        node: Sourced::with_default(v123.clone()),
-        npm: Some(Sourced::with_default(v643.clone())),
-        pnpm: None,
-        yarn: None,
-    };
-
-    assert_eq!(
-        node_npm.path().unwrap().into_string().unwrap(),
-        format!(
-            "{};{};{}",
-            expected_npm_bin, expected_node_bin, path_with_shims
-        )
-    );
-
-    let node_yarn = Image {
-        node: Sourced::with_default(v123.clone()),
-        npm: None,
-        pnpm: None,
-        yarn: Some(Sourced::with_default(v457.clone())),
-    };
-
-    assert_eq!(
-        node_yarn.path().unwrap().into_string().unwrap(),
-        format!(
-            "{};{};{}",
-            expected_yarn_bin, expected_node_bin, path_with_shims
-        )
-    );
-
-    let node_npm_yarn = Image {
-        node: Sourced::with_default(v123),
-        npm: Some(Sourced::with_default(v643)),
-        pnpm: None,
-        yarn: Some(Sourced::with_default(v457)),
-    };
-
-    assert_eq!(
-        node_npm_yarn.path().unwrap().into_string().unwrap(),
-        format!(
-            "{};{};{};{}",
-            expected_npm_bin, expected_yarn_bin, expected_node_bin, path_with_shims
-        )
     )
 }
 
-#[cfg(unix)]
-fn test_system_path() {
-    std::env::set_var(
-        "PATH",
-        format!(
-            "{}:/usr/bin:/bin",
-            volta_home().unwrap().shim_dir().to_string_lossy()
-        ),
-    );
-
-    let expected_path = String::from("/usr/bin:/bin");
-
-    assert_eq!(
-        System::path().unwrap().into_string().unwrap(),
-        expected_path
-    );
-}
-
 #[cfg(windows)]
-fn test_system_path() {
+fn build_test_path() -> String {
     let pathbufs = vec![
         volta_home().unwrap().shim_dir().to_owned(),
         PathBuf::from("C:\\\\somebin"),
         volta_install().unwrap().root().to_owned(),
         PathBuf::from("D:\\\\ProbramFlies"),
     ];
-
-    let path_with_shims = std::env::join_paths(pathbufs.iter())
+    std::env::join_paths(pathbufs.iter())
         .unwrap()
         .into_string()
-        .expect("Could not create path containing shim dir");
+        .expect("Could not create path containing shim dir")
+}
 
-    std::env::set_var("PATH", path_with_shims);
+fn test_image_path() {
+    #[cfg(unix)]
+    let path_delimiter = ":";
+    #[cfg(windows)]
+    let path_delimiter = ";";
+    let path = build_test_path();
+    std::env::set_var("PATH", &path);
 
+    let node_bin = volta_home().unwrap().node_image_bin_dir("1.2.3");
+    let expected_node_bin = node_bin.to_str().unwrap();
+
+    let npm_bin = volta_home().unwrap().npm_image_bin_dir("6.4.3");
+    let expected_npm_bin = npm_bin.to_str().unwrap();
+
+    let pnpm_bin = volta_home().unwrap().pnpm_image_bin_dir("7.7.1");
+    let expected_pnpm_bin = pnpm_bin.to_str().unwrap();
+
+    let yarn_bin = volta_home().unwrap().yarn_image_bin_dir("4.5.7");
+    let expected_yarn_bin = yarn_bin.to_str().unwrap();
+
+    let v123 = Version::parse("1.2.3").unwrap();
+    let v457 = Version::parse("4.5.7").unwrap();
+    let v643 = Version::parse("6.4.3").unwrap();
+    let v771 = Version::parse("7.7.1").unwrap();
+
+    let only_node = Image {
+        node: Sourced::with_default(v123.clone()),
+        npm: None,
+        pnpm: None,
+        yarn: None,
+    };
+
+    assert_eq!(
+        only_node.path().unwrap().into_string().unwrap(),
+        [expected_node_bin, &path].join(path_delimiter)
+    );
+
+    let node_npm = Image {
+        node: Sourced::with_default(v123.clone()),
+        npm: Some(Sourced::with_default(v643.clone())),
+        pnpm: None,
+        yarn: None,
+    };
+
+    assert_eq!(
+        node_npm.path().unwrap().into_string().unwrap(),
+        [expected_npm_bin, expected_node_bin, &path].join(path_delimiter)
+    );
+
+    let node_pnpm = Image {
+        node: Sourced::with_default(v123.clone()),
+        npm: None,
+        pnpm: Some(Sourced::with_default(v771.clone())),
+        yarn: None,
+    };
+
+    assert_eq!(
+        node_pnpm.path().unwrap().into_string().unwrap(),
+        [expected_pnpm_bin, expected_node_bin, &path].join(path_delimiter)
+    );
+
+    let node_yarn = Image {
+        node: Sourced::with_default(v123.clone()),
+        npm: None,
+        pnpm: None,
+        yarn: Some(Sourced::with_default(v457.clone())),
+    };
+
+    assert_eq!(
+        node_yarn.path().unwrap().into_string().unwrap(),
+        [expected_yarn_bin, expected_node_bin, &path].join(path_delimiter)
+    );
+
+    let node_npm_pnpm = Image {
+        node: Sourced::with_default(v123.clone()),
+        npm: Some(Sourced::with_default(v643.clone())),
+        pnpm: Some(Sourced::with_default(v771.clone())),
+        yarn: None,
+    };
+
+    assert_eq!(
+        node_npm_pnpm.path().unwrap().into_string().unwrap(),
+        [
+            expected_npm_bin,
+            expected_pnpm_bin,
+            expected_node_bin,
+            &path
+        ]
+        .join(path_delimiter)
+    );
+
+    let node_npm_yarn = Image {
+        node: Sourced::with_default(v123),
+        npm: Some(Sourced::with_default(v643)),
+        pnpm: None,
+        yarn: Some(Sourced::with_default(v457)),
+    };
+
+    assert_eq!(
+        node_npm_yarn.path().unwrap().into_string().unwrap(),
+        [
+            expected_npm_bin,
+            expected_yarn_bin,
+            expected_node_bin,
+            &path
+        ]
+        .join(path_delimiter)
+    );
+}
+
+fn test_system_path() {
+    let path = build_test_path();
+    std::env::set_var("PATH", path);
+
+    #[cfg(unix)]
+    let expected_path = String::from("/usr/bin:/bin");
+    #[cfg(windows)]
     let expected_path = String::from("C:\\\\somebin;D:\\\\ProbramFlies");
 
     assert_eq!(
