@@ -247,12 +247,20 @@ impl Platform {
     ///
     /// Active platform is determined by first looking at the Project Platform
     ///
-    /// - If it exists and has a Yarn version, then we use the project platform
-    /// - If it exists but doesn't have a Yarn version, then we merge the two,
-    ///   pulling Yarn from the user default platform, if available
+    /// - If there is a project platform then we use it
+    ///   - If there is no pnpm/Yarn version in the project platform, we pull
+    ///     pnpm/Yarn from the default platform if available, and merge the two
+    ///     platforms into a final one
     /// - If there is no Project platform, then we use the user Default Platform
     pub fn current(session: &mut Session) -> Fallible<Option<Self>> {
         if let Some(mut platform) = session.project_platform()?.map(PlatformSpec::as_project) {
+            if platform.pnpm.is_none() {
+                platform.pnpm = session
+                    .default_platform()?
+                    .and_then(|default_platform| default_platform.pnpm.clone())
+                    .map(Sourced::with_default);
+            }
+
             if platform.yarn.is_none() {
                 platform.yarn = session
                     .default_platform()?

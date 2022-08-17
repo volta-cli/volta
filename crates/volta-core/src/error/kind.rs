@@ -189,6 +189,9 @@ pub enum ErrorKind {
         command: String,
     },
 
+    /// Thrown when pnpm is not set at the command-line
+    NoCommandLinePnpm,
+
     /// Thrown when Yarn is not set at the command-line
     NoCommandLineYarn,
 
@@ -209,7 +212,7 @@ pub enum ErrorKind {
 
     NoLocalDataDir,
 
-    /// Thrown when a user tries to pin a Yarn or npm version before pinning a Node version.
+    /// Thrown when a user tries to pin a pnpm/Yarn or npm version before pinning a Node version.
     NoPinnedNodeVersion {
         tool: String,
     },
@@ -223,6 +226,9 @@ pub enum ErrorKind {
     /// Thrown when Yarn is not set in a project
     NoProjectYarn,
 
+    /// Thrown when pnpm is not set in a project
+    NoProjectPnpm,
+
     /// Thrown when no shell profiles could be found
     NoShellProfile {
         env_profile: String,
@@ -234,6 +240,9 @@ pub enum ErrorKind {
 
     /// Thrown when default Yarn is not set
     NoDefaultYarn,
+
+    /// Thrown when default pnpm is not set
+    NoDefaultPnpm,
 
     /// Thrown when `npm link` is called with a package that isn't available
     NpmLinkMissingPackage {
@@ -330,7 +339,7 @@ pub enum ErrorKind {
         tool: String,
     },
 
-    /// Thrown when there is no Pnpm version matching a requested semver specifier.
+    /// Thrown when there is no pnpm version matching a requested semver specifier.
     PnpmVersionNotFound {
         matching: String,
     },
@@ -861,6 +870,12 @@ format
 Please ensure you have a Node version selected with `volta {} node` (see `volta help {0}` for more info).",
                 command
             ),
+            ErrorKind::NoCommandLinePnpm => write!(
+                f,
+                "No pnpm version specified.
+
+Use `volta run --pnpm` to select a version (see `volta help run` for more info)."
+            ),
             ErrorKind::NoCommandLineYarn => write!(
                 f,
                 "No Yarn version specified.
@@ -918,6 +933,12 @@ To run any Node command, first set a default version using `volta install node`"
 
 Use `volta pin node` to select a version (see `volta help pin` for more info)."
             ),
+            ErrorKind::NoProjectPnpm => write!(
+                f,
+                "No pnpm version found in this project.
+
+Use `volta pin pnpm` to select a version (see `volta help pin` for more info)."
+            ),
             ErrorKind::NoProjectYarn => write!(
                 f,
                 "No Yarn version found in this project.
@@ -937,6 +958,12 @@ Please create one of these and try again; or you can edit your profile manually 
                 "Not in a node package.
 
 Use `volta install` to select a default version of a tool."
+            ),
+            ErrorKind::NoDefaultPnpm => write!(
+                f,
+                "pnpm is not available.
+
+Use `volta install pnpm` to select a default version (see `volta help install` for more info)."
             ),
             ErrorKind::NoDefaultYarn => write!(
                 f,
@@ -1103,7 +1130,7 @@ Please supply a spec in the format `<tool name>[@<version>]`.",
             ),
             ErrorKind::PnpmVersionNotFound { matching } => write!(
                 f,
-                r#"Could not find Pnpm version matching "{}" in the version registry.
+                r#"Could not find pnpm version matching "{}" in the version registry.
 
 Please verify that the version is correct."#,
                 matching
@@ -1469,6 +1496,7 @@ impl ErrorKind {
             ErrorKind::InvalidToolName { .. } => ExitCode::InvalidArguments,
             ErrorKind::LockAcquireError => ExitCode::FileSystemError,
             ErrorKind::NoBundledNpm { .. } => ExitCode::ConfigurationError,
+            ErrorKind::NoCommandLinePnpm => ExitCode::ConfigurationError,
             ErrorKind::NoCommandLineYarn => ExitCode::ConfigurationError,
             ErrorKind::NoDefaultNodeVersion { .. } => ExitCode::ConfigurationError,
             ErrorKind::NodeVersionNotFound { .. } => ExitCode::NoVersionMatch,
@@ -1478,9 +1506,11 @@ impl ErrorKind {
             ErrorKind::NoPinnedNodeVersion { .. } => ExitCode::ConfigurationError,
             ErrorKind::NoPlatform => ExitCode::ConfigurationError,
             ErrorKind::NoProjectNodeInManifest => ExitCode::ConfigurationError,
+            ErrorKind::NoProjectPnpm => ExitCode::ConfigurationError,
             ErrorKind::NoProjectYarn => ExitCode::ConfigurationError,
             ErrorKind::NoShellProfile { .. } => ExitCode::EnvironmentError,
             ErrorKind::NotInPackage => ExitCode::ConfigurationError,
+            ErrorKind::NoDefaultPnpm => ExitCode::ConfigurationError,
             ErrorKind::NoDefaultYarn => ExitCode::ConfigurationError,
             ErrorKind::NpmLinkMissingPackage { .. } => ExitCode::ConfigurationError,
             ErrorKind::NpmLinkWrongManager { .. } => ExitCode::ConfigurationError,
