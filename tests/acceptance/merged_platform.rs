@@ -1,7 +1,9 @@
 use std::{thread, time};
 
 use crate::support::events_helpers::{assert_events, match_args, match_start, match_tool_end};
-use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, NpmFixture, Yarn1Fixture};
+use crate::support::sandbox::{
+    sandbox, DistroMetadata, NodeFixture, NpmFixture, PnpmFixture, Yarn1Fixture,
+};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use test_support::matchers::execs;
@@ -20,6 +22,14 @@ const PACKAGE_JSON_WITH_NPM: &str = r#"{
     "volta": {
         "node": "10.99.1040",
         "npm": "4.5.6"
+    }
+}"#;
+
+const PACKAGE_JSON_WITH_PNPM: &str = r#"{
+    "name": "with-pnpm",
+    "volta": {
+        "node": "10.99.1040",
+        "pnpm": "7.7.1"
     }
 }"#;
 
@@ -45,6 +55,14 @@ const PLATFORM_WITH_NPM: &str = r#"{
     }
 }"#;
 
+const PLATFORM_WITH_PNPM: &str = r#"{
+    "node":{
+        "runtime":"9.27.6",
+        "npm":null
+    },
+    "pnpm": "7.7.1"
+}"#;
+
 const PLATFORM_WITH_YARN: &str = r#"{
     "node":{
         "runtime":"9.27.6",
@@ -62,6 +80,7 @@ copy %EVENTS_FILE% events.json
 del %EVENTS_FILE%
 "#;
         const SCRIPT_FILENAME: &str = "write-events.bat";
+        const PNPM_SHIM: &str = "pnpm.exe";
         const YARN_SHIM: &str = "yarn.exe";
     } else if #[cfg(unix)] {
         // copy the tempfile (path in EVENTS_FILE env var) to events.json
@@ -71,6 +90,7 @@ del %EVENTS_FILE%
 /bin/rm "$EVENTS_FILE"
 "#;
         const SCRIPT_FILENAME: &str = "write-events.sh";
+        const PNPM_SHIM: &str = "pnpm";
         const YARN_SHIM: &str = "yarn";
     } else {
         compile_error!("Unsupported platform for tests (expected 'unix' or 'windows').");
@@ -145,6 +165,19 @@ const NPM_VERSION_FIXTURES: [DistroMetadata; 2] = [
     DistroMetadata {
         version: "4.5.6",
         compressed_size: 239,
+        uncompressed_size: Some(0x0028_0000),
+    },
+];
+
+const PNPM_VERSION_FIXTURES: [DistroMetadata; 2] = [
+    DistroMetadata {
+        version: "6.34.0",
+        compressed_size: 500,
+        uncompressed_size: Some(0x0028_0000),
+    },
+    DistroMetadata {
+        version: "7.7.1",
+        compressed_size: 518,
         uncompressed_size: Some(0x0028_0000),
     },
 ];
@@ -336,5 +369,96 @@ fn throws_default_error_outside_project() {
         execs()
             .with_status(ExitCode::ExecutionFailure as i32)
             .with_stderr_contains("[..]Yarn is not available.")
+    );
+}
+
+#[test]
+fn uses_project_pnpm_if_available() {
+    let s = sandbox()
+        .platform(PLATFORM_WITH_PNPM)
+        .package_json(PACKAGE_JSON_WITH_PNPM)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .distro_mocks::<PnpmFixture>(&PNPM_VERSION_FIXTURES)
+        .env("VOLTA_LOGLEVEL", "debug")
+        .env("VOLTA_WRITE_EVENTS_FILE", "true")
+        .default_hooks(&events_hooks_json())
+        .executable_file(SCRIPT_FILENAME, EVENTS_EXECUTABLE)
+        .build();
+
+    assert_that!(
+        s.pnpm("--version"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_does_not_contain("[..]pnpm is not available.")
+            .with_stderr_does_not_contain("[..]No pnpm version found in this project.")
+            .with_stderr_contains("[..]pnpm: 7.7.1 from project configuration")
+    );
+
+    thread::sleep(time::Duration::from_millis(500));
+    assert_events(
+        &s,
+        vec![
+            ("tool", match_start()),
+            ("pnpm", match_start()),
+            ("tool", match_tool_end(0)),
+            (
+                "args",
+                match_args(format!("{} --version", PNPM_SHIM).as_str()),
+            ),
+        ],
+    );
+}
+
+#[test]
+fn uses_default_pnpm_in_project_without_pnpm() {
+    let s = sandbox()
+        .platform(PLATFORM_WITH_PNPM)
+        .package_json(PACKAGE_JSON_NODE_ONLY)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .distro_mocks::<PnpmFixture>(&PNPM_VERSION_FIXTURES)
+        .env("VOLTA_LOGLEVEL", "debug")
+        .build();
+
+    assert_that!(
+        s.pnpm("--version"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_does_not_contain("[..]pnpm is not available.")
+            .with_stderr_does_not_contain("[..]No pnpm version found in this project.")
+            .with_stderr_contains("[..]pnpm: 7.7.1 from default configuration")
+    );
+}
+
+#[test]
+fn uses_default_pnpm_outside_project() {
+    let s = sandbox()
+        .platform(PLATFORM_WITH_PNPM)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .distro_mocks::<PnpmFixture>(&PNPM_VERSION_FIXTURES)
+        .env("VOLTA_LOGLEVEL", "debug")
+        .build();
+
+    assert_that!(
+        s.pnpm("--version"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_does_not_contain("[..]pnpm is not available.")
+            .with_stderr_does_not_contain("[..]No pnpm version found in this project.")
+            .with_stderr_contains("[..]pnpm: 7.7.1 from default configuration")
+    );
+}
+
+#[test]
+fn uses_pnpm_throws_project_error_in_project() {
+    let s = sandbox()
+        .platform(PLATFORM_NODE_ONLY)
+        .package_json(PACKAGE_JSON_NODE_ONLY)
+        .build();
+
+    assert_that!(
+        s.pnpm("--version"),
+        execs()
+            .with_status(ExitCode::ExecutionFailure as i32)
+            .with_stderr_contains("[..]No pnpm version found in this project.")
     );
 }

@@ -1,4 +1,4 @@
-use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, Yarn1Fixture};
+use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, PnpmFixture, Yarn1Fixture};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
 use semver::Version;
@@ -21,6 +21,30 @@ const NODE_VERSION_FIXTURES: [DistroMetadata; 2] = [
     DistroMetadata {
         version: "10.99.1040",
         compressed_size: 273,
+        uncompressed_size: Some(0x0028_0000),
+    },
+];
+
+const PNPM_VERSION_INFO: &str = r#"
+{
+    "name":"pnpm",
+    "dist-tags": { "latest":"7.7.1" },
+    "versions": {
+        "0.0.1": { "version":"0.0.1", "dist": { "shasum":"", "tarball":"" }},
+        "7.7.1": { "version":"7.7.1", "dist": { "shasum":"", "tarball":"" }}
+    }
+}
+"#;
+
+const PNPM_VERSION_FIXTURES: [DistroMetadata; 2] = [
+    DistroMetadata {
+        version: "0.0.1",
+        compressed_size: 10,
+        uncompressed_size: Some(0x0028_0000),
+    },
+    DistroMetadata {
+        version: "7.7.1",
+        compressed_size: 518,
         uncompressed_size: Some(0x0028_0000),
     },
 ];
@@ -75,6 +99,41 @@ fn install_valid_node_saves_to_inventory() {
     );
 
     assert!(s.node_inventory_archive_exists(&Version::new(10, 99, 1040)));
+}
+
+#[test]
+fn install_corrupted_pnpm_leaves_inventory_unchanged() {
+    let s = sandbox()
+        .node_available_versions(NODE_VERSION_INFO)
+        .pnpm_available_versions(PNPM_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .distro_mocks::<PnpmFixture>(&PNPM_VERSION_FIXTURES)
+        .build();
+
+    assert_that!(
+        s.volta("install pnpm@0.0.1"),
+        execs().with_status(ExitCode::UnknownError as i32)
+    );
+
+    assert!(!s.pnpm_inventory_archive_exists("0.0.1"));
+}
+
+#[test]
+fn install_valid_pnpm_saves_to_inventory() {
+    let s = sandbox()
+        .platform(r#"{ "node": { "runtime": "1.2.3", "npm": null }, "yarn": null }"#)
+        .node_available_versions(NODE_VERSION_INFO)
+        .pnpm_available_versions(PNPM_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .distro_mocks::<PnpmFixture>(&PNPM_VERSION_FIXTURES)
+        .build();
+
+    assert_that!(
+        s.volta("install pnpm@7.7.1"),
+        execs().with_status(ExitCode::Success as i32)
+    );
+
+    assert!(s.pnpm_inventory_archive_exists("7.7.1"));
 }
 
 #[test]

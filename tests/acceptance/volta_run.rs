@@ -1,5 +1,5 @@
 use crate::support::sandbox::{
-    sandbox, DistroMetadata, NodeFixture, NpmFixture, Yarn1Fixture, YarnBerryFixture,
+    sandbox, DistroMetadata, NodeFixture, NpmFixture, PnpmFixture, Yarn1Fixture, YarnBerryFixture,
 };
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
@@ -29,6 +29,19 @@ fn package_json_with_pinned_node_npm(node: &str, npm: &str) -> String {
   }}
 }}"#,
         node, npm
+    )
+}
+
+fn package_json_with_pinned_node_pnpm(node_version: &str, pnpm_version: &str) -> String {
+    format!(
+        r#"{{
+  "name": "test-package",
+  "volta": {{
+    "node": "{}",
+    "pnpm": "{}"
+  }}
+}}"#,
+        node_version, pnpm_version
     )
 }
 
@@ -127,6 +140,30 @@ cfg_if::cfg_if! {
         compile_error!("Unsupported target_os for tests (expected 'macos', 'linux', or 'windows').");
     }
 }
+
+const PNPM_VERSION_INFO: &str = r#"
+{
+    "name":"pnpm",
+    "dist-tags": { "latest":"7.7.1" },
+    "versions": {
+        "6.34.0": { "version":"6.34.0", "dist": { "shasum":"", "tarball":"" }},
+        "7.7.1": { "version":"7.7.1", "dist": { "shasum":"", "tarball":"" }}
+    }
+}
+"#;
+
+const PNPM_VERSION_FIXTURES: [DistroMetadata; 2] = [
+    DistroMetadata {
+        version: "6.34.0",
+        compressed_size: 500,
+        uncompressed_size: Some(0x0028_0000),
+    },
+    DistroMetadata {
+        version: "7.7.1",
+        compressed_size: 518,
+        uncompressed_size: Some(0x0028_0000),
+    },
+];
 
 const YARN_1_VERSION_INFO: &str = r#"{
     "name":"yarn",
@@ -413,5 +450,61 @@ fn force_no_yarn() {
         execs()
             .with_status(ExitCode::ConfigurationError as i32)
             .with_stderr_contains("[..]No Yarn version found in this project.")
+    );
+}
+
+#[test]
+fn command_line_pnpm() {
+    let s = sandbox()
+        .node_available_versions(NODE_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .pnpm_available_versions(PNPM_VERSION_INFO)
+        .distro_mocks::<PnpmFixture>(&PNPM_VERSION_FIXTURES)
+        .env(VOLTA_LOGLEVEL, "debug")
+        .build();
+
+    assert_that!(
+        s.volta("run --node 10.99.1040 --pnpm 6.34.0 pnpm --version"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]pnpm: 6.34.0 from command-line configuration")
+    );
+}
+
+#[test]
+fn inherited_pnpm() {
+    let s = sandbox()
+        .node_available_versions(NODE_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .pnpm_available_versions(PNPM_VERSION_INFO)
+        .distro_mocks::<PnpmFixture>(&PNPM_VERSION_FIXTURES)
+        .package_json(&package_json_with_pinned_node_pnpm("10.99.1040", "7.7.1"))
+        .env(VOLTA_LOGLEVEL, "debug")
+        .build();
+
+    assert_that!(
+        s.volta("run --node 10.99.1040 pnpm  --version"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]pnpm: 7.7.1 from project configuration")
+    );
+}
+
+#[test]
+fn force_no_pnpm() {
+    let s = sandbox()
+        .node_available_versions(NODE_VERSION_INFO)
+        .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
+        .pnpm_available_versions(PNPM_VERSION_INFO)
+        .distro_mocks::<PnpmFixture>(&PNPM_VERSION_FIXTURES)
+        .package_json(&package_json_with_pinned_node_pnpm("10.99.1040", "7.7.1"))
+        .env(VOLTA_LOGLEVEL, "debug")
+        .build();
+
+    assert_that!(
+        s.volta("run --no-pnpm pnpm --version"),
+        execs()
+            .with_status(ExitCode::ConfigurationError as i32)
+            .with_stderr_contains("[..]No pnpm version found in this project.")
     );
 }
