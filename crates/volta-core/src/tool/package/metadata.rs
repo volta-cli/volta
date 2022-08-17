@@ -13,7 +13,7 @@ use semver::Version;
 
 /// Configuration information about an installed package
 ///
-/// Will be stored in <VOLTA_HOME>/tools/user/packages/\<package>.json
+/// Will be stored in `<VOLTA_HOME>/tools/user/packages/<package>.json`
 #[derive(serde::Serialize, serde::Deserialize, PartialOrd, Ord, PartialEq, Eq)]
 pub struct PackageConfig {
     /// The package name
@@ -165,6 +165,11 @@ struct RawPlatformSpec {
     node: Version,
     #[serde(with = "option_version_serde")]
     npm: Option<Version>,
+    // The magic:
+    // `serde(default)` to assign the pnpm field with a default value, this
+    // ensures a seamless migration is performed from the previous package
+    // platformspec which did not have a pnpm field despite the same layout.v3
+    #[serde(default)]
     #[serde(with = "option_version_serde")]
     pnpm: Option<Version>,
     #[serde(with = "option_version_serde")]

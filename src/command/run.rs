@@ -21,13 +21,17 @@ pub(crate) struct Run {
     #[structopt(long = "npm", value_name = "version", conflicts_with = "bundled_npm")]
     npm: Option<String>,
 
-    /// Set the custon pnpm version
-    #[structopt(long = "pnpm", value_name = "version")]
-    pnpm: Option<String>,
-
     /// Forces npm to be the version bundled with Node
     #[structopt(long = "bundled-npm", conflicts_with = "npm")]
     bundled_npm: bool,
+
+    /// Set the custon pnpm version
+    #[structopt(long = "pnpm", value_name = "version", conflicts_with = "no_pnpm")]
+    pnpm: Option<String>,
+
+    /// Disables pnpm
+    #[structopt(long = "no-pnpm", conflicts_with = "pnpm")]
+    no_pnpm: bool,
 
     /// Set the custom Yarn version
     #[structopt(long = "yarn", value_name = "version", conflicts_with = "no_yarn")]
@@ -96,9 +100,12 @@ impl Run {
             },
         };
 
-        let pnpm = match &self.pnpm {
-            None => InheritOption::None,
-            Some(version) => InheritOption::Some(pnpm::resolve(version.parse()?, session)?),
+        let pnpm = match (self.no_pnpm, &self.pnpm) {
+            (true, _) => InheritOption::None,
+            (false, None) => InheritOption::Inherit,
+            (false, Some(version)) => {
+                InheritOption::Some(pnpm::resolve(version.parse()?, session)?)
+            }
         };
 
         let yarn = match (self.no_yarn, &self.yarn) {

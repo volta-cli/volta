@@ -236,7 +236,7 @@ enum Subcommand {
     /// Show locally cached npm versions.
     Npm,
 
-    /// Show locally cached Pnpm versions.
+    /// Show locally cached pnpm versions.
     Pnpm,
 
     /// Show locally cached Yarn versions.
