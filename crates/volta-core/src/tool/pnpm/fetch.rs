@@ -1,4 +1,4 @@
-//! Provides fetcher for Pnpm distributions
+//! Provides fetcher for pnpm distributions
 
 use std::fs::{write, File};
 use std::path::Path;
@@ -14,10 +14,8 @@ use crate::hook::ToolHooks;
 use crate::layout::volta_home;
 use crate::style::{progress_bar, tool_version};
 use crate::tool::registry::public_registry_package;
-use crate::tool::{self, download_tool_error};
+use crate::tool::{self, download_tool_error, Pnpm};
 use crate::version::VersionSpec;
-
-use super::Pnpm;
 
 pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Pnpm>>) -> Fallible<()> {
     let pnpm_dir = volta_home()?.pnpm_inventory_dir();
@@ -51,7 +49,7 @@ pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Pnpm>>) -> Fallible<()>
         staging_file
             .persist(cache_file)
             .with_context(|| ErrorKind::PersistInventoryError {
-                tool: "Pnpm".into(),
+                tool: "pnpm".into(),
             })?;
     }
 

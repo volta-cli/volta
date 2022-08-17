@@ -13,7 +13,7 @@ pub struct Image {
     pub node: Sourced<Version>,
     /// The custom version of npm, if any. `None` represents using the npm that is bundled with Node
     pub npm: Option<Sourced<Version>>,
-    /// The pinned version of Pnpm, if any.
+    /// The pinned version of pnpm, if any.
     pub pnpm: Option<Sourced<Version>>,
     /// The pinned version of Yarn, if any.
     pub yarn: Option<Sourced<Version>>,

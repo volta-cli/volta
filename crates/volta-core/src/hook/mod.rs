@@ -9,8 +9,7 @@ use std::path::Path;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::layout::volta_home;
 use crate::project::Project;
-use crate::tool::pnpm::Pnpm;
-use crate::tool::{Node, Npm, Tool};
+use crate::tool::{Node, Npm, Pnpm, Tool};
 use lazycell::LazyCell;
 use log::debug;
 

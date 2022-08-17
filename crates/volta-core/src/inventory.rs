@@ -38,12 +38,12 @@ pub fn npm_versions() -> Fallible<BTreeSet<Version>> {
     volta_home().and_then(|home| read_versions(home.npm_image_root_dir()))
 }
 
-/// Checks if a given Pnpm version image is available on the local machine
+/// Checks if a given pnpm version image is available on the local machine
 pub fn pnpm_available(version: &Version) -> Fallible<bool> {
     volta_home().map(|home| home.pnpm_image_dir(&version.to_string()).exists())
 }
 
-/// Collects a set of all Pnpm versions fetched on the local machine
+/// Collects a set of all pnpm versions fetched on the local machine
 pub fn pnpm_versions() -> Fallible<BTreeSet<Version>> {
     volta_home().and_then(|home| read_versions(home.pnpm_image_root_dir()))
 }

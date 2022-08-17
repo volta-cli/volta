@@ -212,7 +212,7 @@ impl Project {
         }
     }
 
-    /// Pins the Pnpm version in this project's manifest file
+    /// Pins the pnpm version in this project's manifest file
     pub fn pin_pnpm(&mut self, version: Option<Version>) -> Fallible<()> {
         if let Some(platform) = self.platform.as_mut() {
             update_manifest(&self.manifest_file, ManifestKey::Pnpm, version.as_ref())?;
@@ -222,7 +222,7 @@ impl Project {
             Ok(())
         } else {
             Err(ErrorKind::NoPinnedNodeVersion {
-                tool: "Pnpm".into(),
+                tool: "pnpm".into(),
             }
             .into())
         }

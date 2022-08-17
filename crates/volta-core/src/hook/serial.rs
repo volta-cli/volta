@@ -5,8 +5,7 @@ use std::path::Path;
 use super::tool;
 use super::RegistryFormat;
 use crate::error::{ErrorKind, Fallible, VoltaError};
-use crate::tool::pnpm::Pnpm;
-use crate::tool::{Node, Npm, Tool};
+use crate::tool::{Node, Npm, Pnpm, Tool};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]

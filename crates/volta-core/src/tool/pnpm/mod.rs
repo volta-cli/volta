@@ -17,7 +17,7 @@ mod resolve;
 
 pub use resolve::resolve;
 
-/// The Tool implementation for fetching and installing Pnpm
+/// The Tool implementation for fetching and installing pnpm
 pub struct Pnpm {
     pub(super) version: Version,
 }

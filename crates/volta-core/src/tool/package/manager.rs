@@ -71,7 +71,7 @@ impl PackageManager {
         match self {
             // On Windows, npm leaves the binaries at the root of the `prefix` directory
             PackageManager::Npm => package_root,
-            // On Windows, Yarn still includes the `bin` subdirectory
+            // On Windows, pnpm/Yarn still includes the `bin` subdirectory
             PackageManager::Pnpm | PackageManager::Yarn => {
                 let mut path = package_root;
                 path.push("bin");
@@ -148,9 +148,9 @@ fn get_single_directory_name(parent_dir: &Path) -> Option<String> {
     }
 }
 
-/// Determine the package name for a Pnpm or Yarn global install
+/// Determine the package name for a pnpm or Yarn global install
 ///
-/// Pnpm/Yarn creates a `package.json` file with the globally installed package as a dependency
+/// pnpm/Yarn creates a `package.json` file with the globally installed package as a dependency
 fn get_pnpm_or_yarn_package_name(source_root: PathBuf) -> Option<String> {
     let package_file = source_root.join("package.json");
     let file = File::open(package_file).ok()?;

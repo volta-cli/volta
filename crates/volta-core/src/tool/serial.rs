@@ -135,7 +135,7 @@ impl Spec {
     ///
     /// We want to preserve the original order as much as possible, so we treat tools in
     /// the same tool category as equal. We still need to pull Node to the front of the
-    /// list, followed by Npm, Pnpm, Yarn, and then Packages last.
+    /// list, followed by Npm, pnpm, Yarn, and then Packages last.
     fn sort_comparator(left: &Spec, right: &Spec) -> Ordering {
         match (left, right) {
             (Spec::Node(_), Spec::Node(_)) => Ordering::Equal,

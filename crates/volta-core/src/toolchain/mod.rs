@@ -106,7 +106,7 @@ impl Toolchain {
         Ok(())
     }
 
-    /// Set the active Pnpm version in the default platform file.
+    /// Set the active pnpm version in the default platform file.
     pub fn set_active_pnpm(&mut self, pnpm: Option<Version>) -> Fallible<()> {
         if let Some(platform) = self.platform.as_mut() {
             if platform.pnpm != pnpm {
@@ -115,7 +115,7 @@ impl Toolchain {
             }
         } else if pnpm.is_some() {
             return Err(ErrorKind::NoDefaultNodeVersion {
-                tool: "Pnpm".into(),
+                tool: "pnpm".into(),
             }
             .into());
         }

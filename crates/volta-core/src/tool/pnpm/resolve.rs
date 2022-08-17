@@ -5,10 +5,8 @@ use crate::error::{ErrorKind, Fallible};
 use crate::hook::ToolHooks;
 use crate::session::Session;
 use crate::tool::registry::{fetch_npm_registry, public_registry_index, PackageIndex};
-use crate::tool::PackageDetails;
+use crate::tool::{PackageDetails, Pnpm};
 use crate::version::{VersionSpec, VersionTag};
-
-use super::Pnpm;
 
 pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Version> {
     let hooks = session.hooks()?.pnpm();
