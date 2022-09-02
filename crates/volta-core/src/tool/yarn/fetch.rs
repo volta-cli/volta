@@ -1,6 +1,5 @@
 //! Provides fetcher for Yarn distributions
 
-use std::env;
 use std::fs::File;
 use std::path::Path;
 
@@ -129,7 +128,7 @@ fn determine_remote_url(version: &Version, hooks: Option<&YarnHooks>) -> Fallibl
             hook.resolve(version, &distro_file_name)
         }
         _ => {
-            if env::var_os("VOLTA_FEATURE_YARN_3").is_some() && version.major >= 2 {
+            if version.major >= 2 {
                 Ok(scoped_public_registry_package(
                     "@yarnpkg",
                     "cli-dist",

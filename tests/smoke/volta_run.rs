@@ -46,7 +46,7 @@ fn run_yarn_1() {
 
 #[test]
 fn run_yarn_3() {
-    let p = temp_project().env("VOLTA_FEATURE_YARN_3", "ok").build();
+    let p = temp_project().build();
 
     assert_that!(
         p.volta("run --node 16.14.1 --yarn 3.1.1 yarn --version"),

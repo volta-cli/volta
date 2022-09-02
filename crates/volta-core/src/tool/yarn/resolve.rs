@@ -1,7 +1,5 @@
 //! Provides resolution of Yarn requirements into specific versions
 
-use std::env;
-
 use super::super::registry::{
     fetch_npm_registry, public_registry_index, PackageDetails, PackageIndex,
 };
@@ -81,10 +79,8 @@ fn fetch_yarn_index(package: &str) -> Fallible<(String, PackageIndex)> {
 }
 
 fn resolve_custom_tag(tag: String) -> Fallible<Version> {
-    if env::var_os("VOLTA_FEATURE_YARN_3").is_some() {
-        // first try yarn2+, which uses "@yarnpkg/cli-dist" instead of "yarn"
-        let (url, mut index) = fetch_yarn_index("@yarnpkg/cli-dist")?;
-
+    // first try yarn2+, which uses "@yarnpkg/cli-dist" instead of "yarn"
+    if let Ok((url, mut index)) = fetch_yarn_index("@yarnpkg/cli-dist") {
         if let Some(version) = index.tags.remove(&tag) {
             debug!("Found yarn@{} matching tag '{}' from {}", version, tag, url);
             if version.major == 2 {
@@ -92,11 +88,11 @@ fn resolve_custom_tag(tag: String) -> Fallible<Version> {
             }
             return Ok(version);
         }
-        debug!(
-            "Did not find yarn matching tag '{}' from @yarnpkg/cli-dist",
-            tag
-        );
     }
+    debug!(
+        "Did not find yarn matching tag '{}' from @yarnpkg/cli-dist",
+        tag
+    );
 
     let (url, mut index) = fetch_yarn_index("yarn")?;
     match index.tags.remove(&tag) {
@@ -122,9 +118,8 @@ fn resolve_latest_legacy(url: String) -> Fallible<Version> {
 }
 
 fn resolve_semver_from_registry(matching: VersionReq) -> Fallible<Version> {
-    if env::var_os("VOLTA_FEATURE_YARN_3").is_some() {
-        // first try yarn2+, which uses "@yarnpkg/cli-dist" instead of "yarn"
-        let (url, index) = fetch_yarn_index("@yarnpkg/cli-dist")?;
+    // first try yarn2+, which uses "@yarnpkg/cli-dist" instead of "yarn"
+    if let Ok((url, index)) = fetch_yarn_index("@yarnpkg/cli-dist") {
         let matching_entries: Vec<PackageDetails> = index
             .entries
             .into_iter()
@@ -149,11 +144,11 @@ fn resolve_semver_from_registry(matching: VersionReq) -> Fallible<Version> {
                 }
             }
         }
-        debug!(
-            "Did not find yarn matching requirement '{}' from {}",
-            matching, url
-        );
     }
+    debug!(
+        "Did not find yarn matching requirement '{}' for @yarnpkg/cli-dist",
+        matching
+    );
 
     let (url, index) = fetch_yarn_index("yarn")?;
 
