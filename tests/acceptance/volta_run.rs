@@ -345,7 +345,6 @@ fn command_line_yarn_3() {
         .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .distro_mocks::<YarnBerryFixture>(&YARN_BERRY_VERSION_FIXTURES)
         .env(VOLTA_LOGLEVEL, "debug")
-        .env("VOLTA_FEATURE_YARN_3", "true")
         .build();
 
     assert_that!(
@@ -386,7 +385,6 @@ fn inherited_yarn_3() {
         .distro_mocks::<YarnBerryFixture>(&YARN_BERRY_VERSION_FIXTURES)
         .package_json(&package_json_with_pinned_node_yarn("10.99.1040", "3.2.42"))
         .env(VOLTA_LOGLEVEL, "debug")
-        .env("VOLTA_FEATURE_YARN_3", "true")
         .build();
 
     assert_that!(

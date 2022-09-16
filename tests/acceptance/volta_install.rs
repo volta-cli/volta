@@ -321,7 +321,6 @@ fn install_yarn_3_without_node_errors() {
         .yarn_berry_available_versions(YARN_BERRY_VERSION_INFO)
         .distro_mocks::<Yarn1Fixture>(&YARN_1_VERSION_FIXTURES)
         .distro_mocks::<YarnBerryFixture>(&YARN_BERRY_VERSION_FIXTURES)
-        .env("VOLTA_FEATURE_YARN_3", "true")
         .build();
 
     assert_that!(
