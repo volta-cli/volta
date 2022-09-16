@@ -18,7 +18,7 @@ pub struct Event {
     pub event: EventKind,
 }
 
-#[derive(Deserialize, Serialize, PartialEq, Debug)]
+#[derive(Deserialize, Serialize, PartialEq, Eq, Debug)]
 pub struct ErrorEnv {
     argv: String,
     exec_path: String,
@@ -27,7 +27,7 @@ pub struct ErrorEnv {
     platform_version: String,
 }
 
-#[derive(Deserialize, Serialize, PartialEq, Debug)]
+#[derive(Deserialize, Serialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum EventKind {
     Start,

@@ -26,7 +26,7 @@ lazy_static! {
 }
 
 /// A hook for resolving the distro URL for a given tool version
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum DistroHook {
     Prefix(String),
     Template(String),
@@ -79,7 +79,7 @@ fn calculate_extension(filename: &str) -> Option<&str> {
 }
 
 /// A hook for resolving the URL for metadata about a tool
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum MetadataHook {
     Prefix(String),
     Template(String),
@@ -101,7 +101,7 @@ impl MetadataHook {
 }
 
 /// A hook for resolving the URL for the Yarn index
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct YarnIndexHook {
     pub format: RegistryFormat,
     pub metadata: MetadataHook,

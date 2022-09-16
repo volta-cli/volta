@@ -7,7 +7,7 @@ use semver::{Version, VersionReq};
 mod serial;
 
 #[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum VersionSpec {
     /// No version specified (default)
     None,
@@ -23,7 +23,7 @@ pub enum VersionSpec {
 }
 
 #[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum VersionTag {
     /// The 'latest' tag, a special case that exists for all packages
     Latest,

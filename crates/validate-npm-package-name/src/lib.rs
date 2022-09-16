@@ -69,7 +69,7 @@ lazy_static! {
     ];
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Validity {
     /// Valid for new and old packages
     Valid,

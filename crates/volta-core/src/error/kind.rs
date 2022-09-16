@@ -15,7 +15,7 @@ https://github.com/volta-cli/volta/issues with the details!";
 const PERMISSIONS_CTA: &str = "Please ensure you have correct permissions to the Volta directory.";
 
 #[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum ErrorKind {
     /// Thrown when package tries to install a binary that is already installed.
     BinaryAlreadyInstalled {
