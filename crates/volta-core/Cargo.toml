@@ -38,7 +38,7 @@ sha-1 = "0.10.0"
 hex = "0.4.3"
 chrono = "0.4.22"
 validate-npm-package-name = { path = "../validate-npm-package-name" }
-textwrap = "0.14.2"
+textwrap = "0.15.1"
 atty = "0.2"
 log = { version = "0.4", features = ["std"] }
 ctrlc = "3.2.2"
