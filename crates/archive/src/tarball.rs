@@ -112,16 +112,6 @@ impl Archive for Tarball {
 // ISIZE (Input SIZE)
 //    This contains the size of the original (uncompressed) input data modulo 2^32.
 
-/// Unpacks the `isize` field from a gzip payload as a 64-bit integer.
-fn unpack_isize(packed: [u8; 4]) -> u64 {
-    let unpacked32: u32 = (packed[0] as u32)
-        + ((packed[1] as u32) << 8)
-        + ((packed[2] as u32) << 16)
-        + ((packed[3] as u32) << 24);
-
-    unpacked32 as u64
-}
-
 /// Fetches just the `isize` field (the field that indicates the uncompressed size)
 /// of a gzip file from a URL. This makes two round-trips to the server but avoids
 /// downloading the entire gzip file. For very small files it's unlikely to be
@@ -173,13 +163,15 @@ fn accepts_byte_ranges(headers: &HeaderMap) -> bool {
 /// slower than the extra round trips.
 fn fetch_uncompressed_size(url: &str, len: u64) -> Option<u64> {
     // if there is an error, we ignore it and return None, instead of failing
-    fetch_isize(url, len).ok().map(unpack_isize)
+    fetch_isize(url, len)
+        .ok()
+        .map(|s| u32::from_le_bytes(s) as u64)
 }
 
 /// Determines the uncompressed size of the specified gzip file on disk.
 fn load_uncompressed_size(file: &mut File) -> Option<u64> {
     // if there is an error, we ignore it and return None, instead of failing
-    load_isize(file).ok().map(unpack_isize)
+    load_isize(file).ok().map(|s| u32::from_le_bytes(s) as u64)
 }
 
 #[cfg(test)]
