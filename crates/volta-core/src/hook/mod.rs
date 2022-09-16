@@ -17,7 +17,7 @@ pub(crate) mod serial;
 pub mod tool;
 
 /// A hook for publishing Volta events.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum Publish {
     /// Reports an event by sending a POST request to a URL.
     Url(String),
@@ -221,7 +221,7 @@ impl HookConfig {
 }
 
 /// Format of the registry used for Yarn (Npm or Github)
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum RegistryFormat {
     Npm,
     Github,

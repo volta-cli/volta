@@ -63,7 +63,7 @@ pub trait Tool: Display {
 
 /// Specification for a tool and its associated version.
 #[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum Spec {
     Node(VersionSpec),
     Npm(VersionSpec),

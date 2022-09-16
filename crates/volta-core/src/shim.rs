@@ -57,7 +57,7 @@ fn entry_to_shim_name((entry, metadata): (DirEntry, Metadata)) -> Option<String>
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum ShimResult {
     Created,
     AlreadyExists,

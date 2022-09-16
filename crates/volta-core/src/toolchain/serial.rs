@@ -5,7 +5,7 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct NodeVersion {
     #[serde(with = "version_serde")]
     pub runtime: Version,
@@ -13,7 +13,7 @@ pub struct NodeVersion {
     pub npm: Option<Version>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Platform {
     #[serde(default)]
     pub node: Option<NodeVersion>,
