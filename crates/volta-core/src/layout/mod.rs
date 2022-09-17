@@ -3,9 +3,9 @@ use std::path::PathBuf;
 
 use crate::error::{Context, ErrorKind, Fallible};
 use cfg_if::cfg_if;
-use double_checked_cell::DoubleCheckedCell;
 use dunce::canonicalize;
 use lazy_static::lazy_static;
+use once_cell::sync::OnceCell;
 use volta_layout::v3::{VoltaHome, VoltaInstall};
 
 cfg_if! {
@@ -19,8 +19,8 @@ cfg_if! {
 }
 
 lazy_static! {
-    static ref VOLTA_HOME: DoubleCheckedCell<VoltaHome> = DoubleCheckedCell::new();
-    static ref VOLTA_INSTALL: DoubleCheckedCell<VoltaInstall> = DoubleCheckedCell::new();
+    static ref VOLTA_HOME: OnceCell<VoltaHome> = OnceCell::new();
+    static ref VOLTA_INSTALL: OnceCell<VoltaInstall> = OnceCell::new();
 }
 
 pub fn volta_home<'a>() -> Fallible<&'a VoltaHome> {
