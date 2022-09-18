@@ -18,7 +18,7 @@ cfg_if::cfg_if! {
         mod direct_upgrade;
         mod npm_link;
         mod package_migration;
-        mod support;
+        pub mod support;
         mod volta_fetch;
         mod volta_install;
         mod volta_run;

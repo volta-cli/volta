@@ -80,7 +80,7 @@ impl EnvVar {
 }
 
 // used to construct sandboxed files like package.json, platform.json, etc.
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 pub struct FileBuilder {
     path: PathBuf,
     contents: String,
