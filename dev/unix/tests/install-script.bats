@@ -40,40 +40,21 @@ END_CARGO_TOML
   diff <(echo "$output") <(echo "$expected_output")
 }
 
+# linux
+@test "parse_os_info - linux" {
+  expected_output="linux"
+
+  run parse_os_info "Linux"
+  [ "$status" -eq 0 ]
+  diff <(echo "$output") <(echo "$expected_output")
+}
 
 # macos
 @test "parse_os_info - macos" {
   expected_output="macos"
 
-  run parse_os_info "Darwin" "this is ignored"
+  run parse_os_info "Darwin"
   [ "$status" -eq 0 ]
-  diff <(echo "$output") <(echo "$expected_output")
-}
-
-# linux - supported OpenSSL
-@test "parse_os_info - linux with supported OpenSSL" {
-  expected_output="linux-openssl-1.2"
-
-  run parse_os_info "Linux" "OpenSSL 1.2.3a whatever else"
-  [ "$status" -eq 0 ]
-  diff <(echo "$output") <(echo "$expected_output")
-}
-
-# linux - unsupported OpenSSL
-@test "parse_os_info - linux with unsupported OpenSSL" {
-  expected_output=$(echo -e "\033[1;31mError\033[0m: Releases for 'SomeSSL' not currently supported. Supported libraries are: OpenSSL.")
-
-  run parse_os_info "Linux" "SomeSSL 1.2.3a whatever else"
-  [ "$status" -eq 1 ]
-  diff <(echo "$output") <(echo "$expected_output")
-}
-
-# linux - unexpected OpenSSL version format
-@test "parse_os_info - linux with unexpected OpenSSL format" {
-  expected_output=$(echo -e "\033[1;31mError\033[0m: Could not determine OpenSSL version for 'Some SSL 1.2.4'.")
-
-  run parse_os_info "Linux" "Some SSL 1.2.4"
-  [ "$status" -eq 1 ]
   diff <(echo "$output") <(echo "$expected_output")
 }
 
@@ -81,41 +62,10 @@ END_CARGO_TOML
 @test "parse_os_info - unsupported OS" {
   expected_output=""
 
-  run parse_os_info "DOS" "doesn't matter"
+  run parse_os_info "DOS"
   [ "$status" -eq 1 ]
   diff <(echo "$output") <(echo "$expected_output")
 }
-
-
-# parsing valid OpenSSL version strings
-@test "parse_openssl_version - valid versions" {
-  expected_output="0.9"
-  run parse_openssl_version "OpenSSL 0.9.5a 1 Apr 2000"
-  [ "$status" -eq 0 ]
-  diff <(echo "$output") <(echo "$expected_output")
-
-  expected_output="1.0"
-  run parse_openssl_version "OpenSSL 1.0.1e-fips 11 Feb 2013"
-  [ "$status" -eq 0 ]
-  diff <(echo "$output") <(echo "$expected_output")
-}
-
-# unsupported OpenSSL library
-@test "parse_openssl_version - unsupported library" {
-  expected_output=$(echo -e "\033[1;31mError\033[0m: Releases for 'LibreSSL' not currently supported. Supported libraries are: OpenSSL.")
-  run parse_openssl_version "LibreSSL 2.6.5"
-  [ "$status" -eq 1 ]
-  diff <(echo "$output") <(echo "$expected_output")
-}
-
-# version string with unexpected format
-@test "parse_openssl_version - unexpected format" {
-  expected_output=$(echo -e "\033[1;31mError\033[0m: Could not determine OpenSSL version for 'Some Weird Version 1.2.3'.")
-  run parse_openssl_version "Some Weird Version 1.2.3"
-  [ "$status" -eq 1 ]
-  diff <(echo "$output") <(echo "$expected_output")
-}
-
 
 # test element_in helper function
 @test "element_in works correctly" {
