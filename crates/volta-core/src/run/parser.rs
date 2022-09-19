@@ -25,6 +25,15 @@ const NPM_UNINSTALL_ALIASES: [&str; 5] = ["un", "uninstall", "remove", "rm", "r"
 const NPM_LINK_ALIASES: [&str; 2] = ["link", "ln"];
 /// Aliases that npm supports for the `update` command
 const NPM_UPDATE_ALIASES: [&str; 4] = ["update", "udpate", "upgrade", "up"];
+/// Aliases that pnpm supports for the 'remove' command,
+/// see: https://pnpm.io/cli/remove
+const PNPM_UNINSTALL_ALIASES: [&str; 4] = ["remove", "uninstall", "rm", "un"];
+/// Aliases that pnpm supports for the 'update' command,
+/// see: https://pnpm.io/cli/update
+const PNPM_UPDATE_ALIASES: [&str; 3] = ["update", "upgrade", "up"];
+/// Aliases that pnpm supports for the 'link' command
+/// see: https://pnpm.io/cli/link
+const PNPM_LINK_ALIASES: [&str; 2] = ["link", "ln"];
 
 pub enum CommandArg<'a> {
     Global(GlobalCommand<'a>),
@@ -136,58 +145,68 @@ impl<'a> CommandArg<'a> {
             return CommandArg::Standard;
         }
 
-        if args.is_empty() {
-            return CommandArg::Standard;
-        }
-
-        let args = args
+        let (flags, positionals): (Vec<&OsStr>, Vec<&OsStr>) = args
             .into_iter()
             .map(AsRef::<OsStr>::as_ref)
-            .collect::<Vec<&OsStr>>();
+            .partition(|arg| is_flag(arg));
 
-        let (flags, positionals): (Vec<&OsStr>, Vec<&OsStr>) =
-            args.into_iter().partition(|arg| is_flag(arg));
+        // The first positional argument will always be the subcommand for pnpm
+        match positionals.split_first() {
+            None => return CommandArg::Standard,
+            Some((&subcommand, tools)) => {
+                let is_global = flags.iter().any(|&f| f == "--global" || f == "-g");
+                // Do not intercept if a custom global dir is explicitly specified
+                // See: https://pnpm.io/npmrc#global-dir
+                let prefixed = flags.iter().any(|&f| f == "--global-dir");
 
-        if positionals.len() < 2 {
-            return CommandArg::Standard;
-        }
+                // pnpm subcommands that support the `global` flag:
+                // `add`, `update`, `remove`, `link`, `list`, `outdated`,
+                // `why`, `env`, `root`, `bin`.
+                match is_global && !prefixed {
+                    false => CommandArg::Standard,
+                    true => match subcommand.to_str() {
+                        // `add`
+                        Some("add") => {
+                            let manager = PackageManager::Pnpm;
+                            let mut common_args = vec![subcommand];
+                            common_args.extend(flags);
 
-        let subcommand = positionals[0];
-        let is_global = flags.iter().any(|&f| f == "--global" || f == "-g");
-
-        match is_global {
-            false => CommandArg::Standard,
-            true => match subcommand.to_str() {
-                Some("add") => {
-                    let manager = PackageManager::Pnpm;
-                    let mut common_args = vec![subcommand];
-                    common_args.extend(flags);
-
-                    let tools = positionals[1..].to_vec();
-                    CommandArg::Global(GlobalCommand::Install(InstallArgs {
-                        manager,
-                        common_args,
-                        tools,
-                    }))
+                            CommandArg::Global(GlobalCommand::Install(InstallArgs {
+                                manager,
+                                common_args,
+                                tools: tools.to_vec(),
+                            }))
+                        }
+                        // `update`
+                        Some(cmd) if PNPM_UPDATE_ALIASES.iter().any(|&a| a == cmd) => {
+                            let manager = PackageManager::Pnpm;
+                            let mut common_args = vec![subcommand];
+                            common_args.extend(flags);
+                            CommandArg::Global(GlobalCommand::Upgrade(UpgradeArgs {
+                                manager,
+                                common_args,
+                                tools: tools.to_vec(),
+                            }))
+                        }
+                        // `remove`
+                        Some(cmd) if PNPM_UNINSTALL_ALIASES.iter().any(|&a| a == cmd) => {
+                            CommandArg::Global(GlobalCommand::Uninstall(UninstallArgs {
+                                tools: tools.to_vec(),
+                            }))
+                        }
+                        // `link`
+                        Some(cmd) if PNPM_LINK_ALIASES.iter().any(|&a| a == cmd) => {
+                            let mut common_args = vec![subcommand];
+                            common_args.extend(flags);
+                            CommandArg::Intercepted(InterceptedCommand::Link(LinkArgs {
+                                common_args,
+                                tools: tools.to_vec(),
+                            }))
+                        }
+                        _ => CommandArg::Standard,
+                    },
                 }
-                Some("update") => {
-                    let manager = PackageManager::Pnpm;
-                    let mut common_args = vec![subcommand];
-                    common_args.extend(flags);
-                    let tools = positionals[1..].to_vec();
-                    CommandArg::Global(GlobalCommand::Upgrade(UpgradeArgs {
-                        manager,
-                        common_args,
-                        tools,
-                    }))
-                }
-                Some("remove") => {
-                    let tools = positionals[1..].to_vec();
-                    CommandArg::Global(GlobalCommand::Uninstall(UninstallArgs { tools }))
-                }
-                Some(_) => CommandArg::Standard,
-                None => CommandArg::Standard,
-            },
+            }
         }
     }
 

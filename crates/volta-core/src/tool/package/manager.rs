@@ -1,3 +1,4 @@
+use std::ffi::OsStr;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -18,66 +19,64 @@ pub enum PackageManager {
 impl PackageManager {
     /// Given the `package_root`, returns the directory where the source is stored for this
     /// package manager. This will include the top-level `node_modules`, where appropriate.
-    pub fn source_dir(self, package_root: PathBuf) -> PathBuf {
-        let mut path = self.source_root(package_root);
-        path.push("node_modules");
-
-        path
+    pub fn source_dir<P: AsRef<Path>>(self, package_root: P) -> PathBuf {
+        self.source_root(package_root).join("node_modules")
     }
 
     /// Given the `package_root`, returns the root of the source directory. This directory will
     /// contain the top-level `node-modules`
     #[cfg(unix)]
-    pub fn source_root(self, package_root: PathBuf) -> PathBuf {
-        // On Unix, the source is always within a `lib` subdirectory, with both npm and Yarn
-        let mut path = package_root;
-        path.push("lib");
-
-        path
+    pub fn source_root<P: AsRef<Path>>(self, package_root: P) -> PathBuf {
+        let package_root = package_root.as_ref();
+        match self {
+            // On Unix, the source is always within a `lib` subdirectory, with both npm and Yarn
+            PackageManager::Npm | PackageManager::Yarn => package_root.join("lib"),
+            // pnpm puts the source node_modules directory in the global-dir
+            // plus a versioned subdirectory.
+            // FIXME: Here the subdirectory is hard-coded, I don't know if it's
+            // possible to retrieve it from pnpm dynamically.
+            PackageManager::Pnpm => package_root.join("5"),
+        }
     }
 
     /// Given the `package_root`, returns the root of the source directory. This directory will
     /// contain the top-level `node-modules`
     #[cfg(windows)]
-    pub fn source_root(self, package_root: PathBuf) -> PathBuf {
+    pub fn source_root<P: AsRef<Path>>(self, package_root: P) -> PathBuf {
+        let package_root = package_root.as_ref();
         match self {
-            // On Windows, npm/pnpm puts the source node_modules directory in the root of the `prefix`
-            PackageManager::Npm | PackageManager::Pnpm => package_root,
+            // On Windows, npm puts the source node_modules directory in the root of the `prefix`
+            PackageManager::Npm => package_root.to_path_buf(),
             // On Windows, we still tell yarn to use the `lib` subdirectory
-            PackageManager::Yarn => {
-                let mut path = package_root;
-                path.push("lib");
-
-                path
-            }
+            PackageManager::Yarn => package_root.join("lib"),
+            // pnpm puts the source node_modules directory in the global-dir
+            // plus a versioned subdirectory.
+            // FIXME: Here the subdirectory is hard-coded, I don't know if it's
+            // possible to retrieve it from pnpm dynamically.
+            PackageManager::Pnpm => package_root.join("5"),
         }
     }
 
     /// Given the `package_root`, returns the directory where binaries are stored for this package
     /// manager.
     #[cfg(unix)]
-    pub fn binary_dir(self, package_root: PathBuf) -> PathBuf {
+    pub fn binary_dir<P: AsRef<Path>>(self, package_root: P) -> PathBuf {
         // On Unix, the binaries are always within a `bin` subdirectory for both npm and Yarn
-        let mut path = package_root;
-        path.push("bin");
-
-        path
+        package_root.as_ref().join("bin")
     }
 
     /// Given the `package_root`, returns the directory where binaries are stored for this package
     /// manager.
     #[cfg(windows)]
-    pub fn binary_dir(self, package_root: PathBuf) -> PathBuf {
+    pub fn binary_dir<P: AsRef<Path>>(self, package_root: P) -> PathBuf {
+        let package_root = package_root.as_ref();
         match self {
             // On Windows, npm leaves the binaries at the root of the `prefix` directory
-            PackageManager::Npm => package_root,
-            // On Windows, pnpm/Yarn still includes the `bin` subdirectory
-            PackageManager::Pnpm | PackageManager::Yarn => {
-                let mut path = package_root;
-                path.push("bin");
-
-                path
-            }
+            PackageManager::Npm => package_root.to_path_buf(),
+            // On Windows, Yarn still includes the `bin` subdirectory.
+            PackageManager::Yarn => package_root.join("bin"),
+            // pnpm by default generates binaries into the `PNPM_HOME` path
+            PackageManager::Pnpm => package_root.join("bin"),
         }
     }
 
@@ -87,11 +86,44 @@ impl PackageManager {
 
         if let PackageManager::Yarn = self {
             command.env("npm_config_global_folder", self.source_root(package_root));
+        } else
+        // FIXME: Find out if there is a perfect way to intercept pnpm global
+        // installs by using environment variables or whatever.
+        // Using `--global-dir` and `--global-bin-dir` flags here is not enough,
+        // because pnpm generates _absolute path_ based symlinks, and this makes
+        // impossible to simply move installed packages from the staging directory
+        // to the final `image/packages/` destination.
+        if let PackageManager::Pnpm = self {
+            // Specify the staging directory to store global package,
+            // see: https://pnpm.io/npmrc#global-dir
+            command.arg("--global-dir").arg(&package_root);
+            // Specify the staging directory for the bin files of globally installed packages.
+            // See: https://pnpm.io/npmrc#global-bin-dir (>= 6.15.0)
+            // and https://github.com/volta-cli/rfcs/pull/46#discussion_r933296625
+            let global_bin_dir = self.binary_dir(package_root);
+            command.arg("--global-bin-dir").arg(&global_bin_dir);
+            // pnpm requires the `global-bin-dir` to be in PATH, otherwise it
+            // will not trigger global installs. One can also use the `PNPM_HOME`
+            // environment variable, which is only available in pnpm v7+, to
+            // pass the check.
+            // See: https://github.com/volta-cli/rfcs/pull/46#discussion_r861943740
+            let mut new_path = global_bin_dir;
+            let mut command_envs = command.get_envs();
+            while let Some((name, value)) = command_envs.next() {
+                if name == "PATH" {
+                    if let Some(old_path) = value {
+                        #[cfg(unix)]
+                        let path_delimiter = OsStr::new(":");
+                        #[cfg(windows)]
+                        let path_delimiter = OsStr::new(";");
+                        new_path =
+                            PathBuf::from([new_path.as_os_str(), old_path].join(path_delimiter));
+                        break;
+                    }
+                }
+            }
+            command.env("PATH", new_path);
         }
-
-        // FIXME: Find out if there is a good way to redirect pnpm global installs
-        // by using environment variables or whatever.
-        if let PackageManager::Pnpm = self {}
     }
 
     /// Determine the name of the package that was installed into the `package_root`
