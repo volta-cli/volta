@@ -46,7 +46,7 @@ impl Image {
     }
 
     /// Produces a modified version of the current `PATH` environment variable that
-    /// will find toolchain executables (Node, Yarn) in the installation directories
+    /// will find toolchain executables (Node, npm, pnpm, Yarn) in the installation directories
     /// for the given versions instead of in the Volta shim directory.
     pub fn path(&self) -> Fallible<OsString> {
         let old_path = envoy::path().unwrap_or_else(|| envoy::Var::from(""));

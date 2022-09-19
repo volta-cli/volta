@@ -212,7 +212,7 @@ pub enum ErrorKind {
 
     NoLocalDataDir,
 
-    /// Thrown when a user tries to pin a pnpm/Yarn or npm version before pinning a Node version.
+    /// Thrown when a user tries to pin a npm, pnpm, or Yarn version before pinning a Node version.
     NoPinnedNodeVersion {
         tool: String,
     },

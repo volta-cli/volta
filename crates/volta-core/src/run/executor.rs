@@ -495,7 +495,7 @@ impl From<PackageUpgradeCommand> for Executor {
     }
 }
 
-/// Executor for running an internal install (installing Node, npm, or Yarn using the `volta
+/// Executor for running an internal install (installing Node, npm, pnpm or Yarn using the `volta
 /// install` logic)
 ///
 /// Note: This is not intended to be used for Package installs. Those should go through the

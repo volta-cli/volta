@@ -22,7 +22,7 @@ mod yarn;
 /// Environment variable set internally when a shim has been executed and the context evaluated
 ///
 /// This is set when executing a shim command. If this is already, then the built-in shims (Node,
-/// npm, npx, and Yarn) will assume that the context has already been evaluated & the PATH has
+/// npm, npx, pnpm and Yarn) will assume that the context has already been evaluated & the PATH has
 /// already been modified, so they will use the pass-through behavior.
 ///
 /// Shims should only be called recursively when the environment is misconfigured, so this will

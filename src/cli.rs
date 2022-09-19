@@ -122,7 +122,7 @@ otherwise, they will be written to `stdout`.
     #[structopt(name = "setup", author = "", version = "")]
     Setup(command::Setup),
 
-    /// Run a command with custom Node, npm, and/or pnpm/Yarn versions
+    /// Run a command with custom Node, npm, pnpm, and/or Yarn versions
     #[structopt(name = "run", author = "", version = "")]
     #[structopt(raw(setting = "structopt::clap::AppSettings::AllowLeadingHyphen"))]
     #[structopt(raw(setting = "structopt::clap::AppSettings::TrailingVarArg"))]
