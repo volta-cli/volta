@@ -19,7 +19,7 @@ pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Version
 }
 
 fn resolve_tag(tag: &str, hooks: Option<&ToolHooks<Pnpm>>) -> Fallible<Version> {
-    let (url, mut index) = fetch_npm_index(hooks)?;
+    let (url, mut index) = fetch_pnpm_index(hooks)?;
 
     match index.tags.remove(tag) {
         Some(version) => {
@@ -34,7 +34,7 @@ fn resolve_tag(tag: &str, hooks: Option<&ToolHooks<Pnpm>>) -> Fallible<Version> 
 }
 
 fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Pnpm>>) -> Fallible<Version> {
-    let (url, index) = fetch_npm_index(hooks)?;
+    let (url, index) = fetch_pnpm_index(hooks)?;
 
     let details_opt = index
         .entries
@@ -56,7 +56,8 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Pnpm>>) -> Fall
     }
 }
 
-fn fetch_npm_index(hooks: Option<&ToolHooks<Pnpm>>) -> Fallible<(String, PackageIndex)> {
+/// Fetch the index of available pnpm versions from the npm registry
+fn fetch_pnpm_index(hooks: Option<&ToolHooks<Pnpm>>) -> Fallible<(String, PackageIndex)> {
     let url = match hooks {
         Some(&ToolHooks {
             index: Some(ref hook),
