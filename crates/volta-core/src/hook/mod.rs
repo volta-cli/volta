@@ -449,6 +449,7 @@ pub mod tests {
         let yarn = hooks.yarn.unwrap();
         let node = hooks.node.unwrap();
         let npm = hooks.npm.unwrap();
+        let pnpm = hooks.pnpm.unwrap();
         assert_eq!(
             yarn.index,
             Some(tool::YarnIndexHook {
@@ -469,6 +470,13 @@ pub mod tests {
                 "http://localhost/npm/index/".to_string()
             ))
         );
+        // pnpm also doesn't have format
+        assert_eq!(
+            pnpm.index,
+            Some(tool::MetadataHook::Prefix(
+                "http://localhost/pnpm/index/".to_string()
+            ))
+        );
     }
 
     #[test]
@@ -479,6 +487,7 @@ pub mod tests {
         let yarn = hooks.yarn.unwrap();
         let node = hooks.node.unwrap();
         let npm = hooks.npm.unwrap();
+        let pnpm = hooks.pnpm.unwrap();
         assert_eq!(
             yarn.index,
             Some(tool::YarnIndexHook {
@@ -497,6 +506,13 @@ pub mod tests {
             npm.index,
             Some(tool::MetadataHook::Prefix(
                 "http://localhost/npm/index/".to_string()
+            ))
+        );
+        // pnpm also doesn't have format
+        assert_eq!(
+            pnpm.index,
+            Some(tool::MetadataHook::Prefix(
+                "http://localhost/pnpm/index/".to_string()
             ))
         );
     }
