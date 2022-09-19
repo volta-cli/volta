@@ -101,11 +101,11 @@ mod tests {
 
     #[test]
     fn test_pnpm_archive_basename() {
-        assert_eq!(Pnpm::archive_basename("1.2.3"), "pnpm-v1.2.3");
+        assert_eq!(Pnpm::archive_basename("1.2.3"), "pnpm-1.2.3");
     }
 
     #[test]
     fn test_pnpm_archive_filename() {
-        assert_eq!(Pnpm::archive_filename("1.2.3"), "pnpm-v1.2.3.tar.gz");
+        assert_eq!(Pnpm::archive_filename("1.2.3"), "pnpm-1.2.3.tgz");
     }
 }
