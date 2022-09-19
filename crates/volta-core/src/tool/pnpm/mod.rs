@@ -28,11 +28,11 @@ impl Pnpm {
     }
 
     pub fn archive_basename(version: &str) -> String {
-        format!("pnpm-v{}", version)
+        format!("pnpm-{}", version)
     }
 
     pub fn archive_filename(version: &str) -> String {
-        format!("{}.tar.gz", Pnpm::archive_basename(version))
+        format!("{}.tgz", Pnpm::archive_basename(version))
     }
 
     pub(crate) fn ensure_fetched(&self, session: &mut Session) -> Fallible<()> {
