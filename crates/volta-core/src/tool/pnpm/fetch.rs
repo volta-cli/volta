@@ -80,13 +80,13 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<()> 
         })?;
 
     let bin_path = temp.path().join("package").join("bin");
-    overwrite_launcher(&bin_path, "pnpm")?;
-    overwrite_launcher(&bin_path, "pnpx")?;
+    write_launcher(&bin_path, "pnpm")?;
+    write_launcher(&bin_path, "pnpx")?;
 
     #[cfg(windows)]
     {
-        overwrite_cmd_launcher(&bin_path, "pnpm")?;
-        overwrite_cmd_launcher(&bin_path, "pnpx")?;
+        write_cmd_launcher(&bin_path, "pnpm")?;
+        write_cmd_launcher(&bin_path, "pnpx")?;
     }
 
     let dest = volta_home()?.pnpm_image_dir(&version_string);
@@ -149,7 +149,7 @@ fn fetch_remote_distro(
 }
 
 /// Create executable launchers for the pnpm and pnpx binaries
-fn overwrite_launcher(base_path: &Path, tool: &str) -> Fallible<()> {
+fn write_launcher(base_path: &Path, tool: &str) -> Fallible<()> {
     let path = base_path.join(tool);
     write(
         &path,
@@ -174,10 +174,9 @@ node "$basedir/{}.cjs" "$@"
 
 /// Create CMD executable launchers for the pnpm and pnpx binaries for Windows
 #[cfg(windows)]
-fn overwrite_cmd_launcher(base_path: &Path, tool: &str) -> Fallible<()> {
+fn write_cmd_launcher(base_path: &Path, tool: &str) -> Fallible<()> {
     write(
         base_path.join(format!("{}.cmd", tool)),
-        // Note: Adapted from the existing npm/npx cmd launcher, without unnecessary detection of Node location
         format!("@echo off\nnode \"%~dp0\\{}.cjs\" %*", tool),
     )
     .with_context(|| ErrorKind::WriteLauncherError { tool: tool.into() })
