@@ -10,6 +10,17 @@
       "bin": "/some/bin/for/node/index"
     }
   },
+  "pnpm": {
+    "distro": {
+      "bin": "/bin/to/pnpm/distro"
+    },
+    "latest": {
+      "bin": "/bin/to/pnpm/latest"
+    },
+    "index": {
+      "bin": "/bin/to/pnpm/index"
+    }
+  },
   "yarn": {
     "distro": {
       "bin": "/bin/to/yarn/distro"
