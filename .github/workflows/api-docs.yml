@@ -18,7 +18,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: 1.63
           override: true
       - name: Build docs
         uses: actions-rs/cargo@v1

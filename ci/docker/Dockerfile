@@ -12,5 +12,5 @@ RUN wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/
 RUN yum -y install devtoolset-2-gcc devtoolset-2-binutils
 
 # Install Rust toolchain
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain 1.63
 ENV PATH="/root/.cargo/bin:${PATH}"
