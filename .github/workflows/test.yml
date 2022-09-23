@@ -27,7 +27,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: 1.63
           override: true
           components: clippy
       - name: Run tests
@@ -57,7 +57,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: 1.63
           override: true
       - name: Run tests
         uses: actions-rs/cargo@v1
@@ -86,7 +86,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: 1.63
           override: true
           components: rustfmt
       - name: Run check
