@@ -1,3 +1,8 @@
+# Version 1.1.0
+
+- Added support for pinning / installing Yarn 3+ (#1305)
+- Improved portability and installer effectiveness by removing dependency on OpenSSL (#1214)
+
 # Version 1.0.8
 
 - Fix for malformed `bin` entries when installing global packages (#997)
