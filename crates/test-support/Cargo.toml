@@ -8,4 +8,4 @@ edition = "2018"
 hamcrest2 = "0.3.0"
 archive = { path = "../archive" }
 serde_json = { version = "1.0.85" }
-thiserror = "1.0.36"
+thiserror = "1.0.37"
