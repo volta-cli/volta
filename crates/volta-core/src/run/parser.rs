@@ -146,13 +146,13 @@ impl<'a> CommandArg<'a> {
         }
 
         let (flags, positionals): (Vec<&OsStr>, Vec<&OsStr>) = args
-            .into_iter()
+            .iter()
             .map(AsRef::<OsStr>::as_ref)
             .partition(|arg| is_flag(arg));
 
         // The first positional argument will always be the subcommand for pnpm
         match positionals.split_first() {
-            None => return CommandArg::Standard,
+            None => CommandArg::Standard,
             Some((&subcommand, tools)) => {
                 let is_global = flags.iter().any(|&f| f == "--global" || f == "-g");
                 // Do not intercept if a custom global dir is explicitly specified
