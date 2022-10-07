@@ -42,7 +42,7 @@ ctrlc = "3.2.2"
 walkdir = "2.3.2"
 volta-layout = { path = "../volta-layout" }
 once_cell = "1.15.0"
-dunce = "1.0.2"
+dunce = "1.0.3"
 ci_info = "0.14.6"
 hyperx = "1.4.0"
 attohttpc = { version = "0.22.0", default-features = false, features = ["json", "compress", "tls-rustls"] }
