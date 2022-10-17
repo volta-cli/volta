@@ -38,6 +38,8 @@ jobs:
           profile: minimal
           toolchain: 1.63
           override: true
+      - name: Cargo Cache
+        uses: Swatinem/rust-cache@v2
       - name: Compile and package Volta
         run: ./ci/build-macos-x86_64.sh volta-macos
       - name: Upload release artifact
@@ -59,6 +61,8 @@ jobs:
           toolchain: 1.63
           target: aarch64-apple-darwin
           override: true
+      - name: Cargo Cache
+        uses: Swatinem/rust-cache@v2
       - name: Compile and package Volta
         run: ./ci/build-macos-arm.sh volta-macos-aarch64
       - name: Upload release artifact
@@ -79,6 +83,8 @@ jobs:
           profile: minimal
           toolchain: 1.63
           override: true
+      - name: Cargo Cache
+        uses: Swatinem/rust-cache@v2
       - name: Add cargo-wix subcommand
         uses: actions-rs/cargo@v1
         with:
