@@ -30,6 +30,8 @@ jobs:
           toolchain: 1.63
           override: true
           components: clippy
+      - name: Cargo Cache
+        uses: Swatinem/rust-cache@v2
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
@@ -59,6 +61,8 @@ jobs:
           profile: minimal
           toolchain: 1.63
           override: true
+      - name: Cargo Cache
+        uses: Swatinem/rust-cache@v2
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
@@ -89,6 +93,8 @@ jobs:
           toolchain: 1.63
           override: true
           components: rustfmt
+      - name: Cargo Cache
+        uses: Swatinem/rust-cache@v2
       - name: Run check
         uses: actions-rs/cargo@v1
         with:

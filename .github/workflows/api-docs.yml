@@ -20,6 +20,8 @@ jobs:
           profile: minimal
           toolchain: 1.63
           override: true
+      - name: Cargo Cache
+        uses: Swatinem/rust-cache@v2
       - name: Build docs
         uses: actions-rs/cargo@v1
         with:
