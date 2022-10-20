@@ -205,7 +205,8 @@ pub fn check_shim_reachable(shim_name: &str) {
         Ok(resolved) => resolved,
         Err(_) => {
             info!(
-                "Cannot find command {}. Please ensure that {} is at the front of your PATH.",
+                "{} cannot find command {}. Please ensure that {} is at the front of your PATH.",
+                note_prefix(),
                 shim_name,
                 shim.display()
             );
@@ -213,6 +214,6 @@ pub fn check_shim_reachable(shim_name: &str) {
         }
     };
     if resolved != shim {
-        info!("{} is shadowed by another binary of the same name at {}. Please ensure that {} is at the front of your PATH.", shim_name, resolved.display(), shim.display());
+        info!("{} {} is shadowed by another binary of the same name at {}. Please ensure that {} is at the front of your PATH.", note_prefix(), shim_name, resolved.display(), shim.display());
     }
 }
