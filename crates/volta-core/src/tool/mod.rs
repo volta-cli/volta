@@ -1,6 +1,7 @@
 use std::fmt::{self, Display};
 
 use crate::error::{ErrorKind, Fallible};
+use crate::layout::volta_home;
 use crate::session::Session;
 use crate::style::{note_prefix, success_prefix, tool_version};
 use crate::sync::VoltaLock;
@@ -191,4 +192,27 @@ fn registry_fetch_error(
     let tool = tool.as_ref().to_string();
     let from_url = from_url.as_ref().to_string();
     || ErrorKind::RegistryFetchError { tool, from_url }
+}
+
+pub fn check_shim_reachable(shim_name: &str) {
+    let home = match volta_home() {
+        Ok(home) => home,
+        Err(_) => return,
+    };
+
+    let shim = home.shim_file(shim_name);
+    let resolved = match which::which(shim_name) {
+        Ok(resolved) => resolved,
+        Err(_) => {
+            info!(
+                "Cannot find command {}. Please ensure that {} is at the front of your PATH.",
+                shim_name,
+                shim.display()
+            );
+            return;
+        }
+    };
+    if resolved != shim {
+        info!("{} is shadowed by another binary of the same name at {}. Please ensure that {} is at the front of your PATH.", shim_name, resolved.display(), shim.display());
+    }
 }

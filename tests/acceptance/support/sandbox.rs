@@ -460,9 +460,12 @@ impl SandboxBuilder {
         self.add_exec_dir_to_path()
     }
 
-    /// Add an arbitrary file to the test project within the sandbox,
-    /// give it executable permissions,
-    /// and add its directory to the *front* of PATH, shadowing any volta binaries.
+    /// Prepend executable directory to the beginning of the PATH (chainable)
+    ///
+    /// This is useful to test binaries shadowing volta shims.
+    ///
+    /// Cannot be used in combination with `add_exec_dir_to_path`, and will panic if called twice.
+    /// No particular reason except it's likely a programming error.
     pub fn prepend_exec_dir_to_path(mut self) -> Self {
         if self.has_exec_path {
             panic!("need to call prepend_exec_dir_to_path before anything else");
