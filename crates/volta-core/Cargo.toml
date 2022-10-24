@@ -35,7 +35,7 @@ regex = "1.6.0"
 dirs = "4.0.0"
 chrono = "0.4.22"
 validate-npm-package-name = { path = "../validate-npm-package-name" }
-textwrap = "0.15.1"
+textwrap = "0.16.0"
 atty = "0.2"
 log = { version = "0.4", features = ["std"] }
 ctrlc = "3.2.2"
