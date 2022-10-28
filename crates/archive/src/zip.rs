@@ -5,12 +5,11 @@ use std::fs::{create_dir_all, File};
 use std::io::copy;
 use std::path::Path;
 
-use rustls;
-
 use crate::ArchiveError;
 use progress_read::ProgressRead;
 use verbatim::PathExt;
 use zip_rs::ZipArchive;
+use fetch::fetch;
 
 use super::Archive;
 use super::Origin;
@@ -36,14 +35,7 @@ impl Zip {
     /// Initiate fetching of a Node zip archive from the given URL, returning
     /// a `Remote` data source.
     pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, ArchiveError> {
-        let mut request = attohttpc::get(url);
-
-        for cert in rustls_native_certs::load_native_certs().expect("could not load platform certs")
-        {
-            request = request.add_root_certificate(rustls::Certificate(cert.0));
-        }
-
-        let (status, _, mut response) = request.send()?.split();
+        let (status, _, mut response) = fetch(url).send()?.split();
 
         if !status.is_success() {
             return Err(ArchiveError::HttpError(status));

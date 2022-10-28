@@ -17,7 +17,7 @@ mod fetch;
 mod metadata;
 mod resolve;
 
-pub use fetch::load_default_npm_version;
+pub use self::fetch::load_default_npm_version;
 pub use resolve::resolve;
 
 cfg_if! {

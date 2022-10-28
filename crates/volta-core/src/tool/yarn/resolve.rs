@@ -10,7 +10,8 @@ use crate::hook::{RegistryFormat, YarnHooks};
 use crate::session::Session;
 use crate::style::progress_spinner;
 use crate::version::{parse_version, VersionSpec, VersionTag};
-use attohttpc::Response;
+use fetch;
+use fetch::attohttpc::Response;
 use log::debug;
 use semver::{Version, VersionReq};
 
@@ -105,13 +106,7 @@ fn resolve_custom_tag(tag: String) -> Fallible<Version> {
 }
 
 fn resolve_latest_legacy(url: String) -> Fallible<Version> {
-    let mut request = attohttpc::get(&url);
-
-    for cert in rustls_native_certs::load_native_certs().expect("could not load platform certs") {
-        request = request.add_root_certificate(rustls::Certificate(cert.0));
-    }
-
-    let response_text = request
+    let response_text = fetch::fetch(&url)
         .send()
         .and_then(Response::error_for_status)
         .and_then(Response::text)
@@ -182,13 +177,7 @@ fn resolve_semver_from_registry(matching: VersionReq) -> Fallible<Version> {
 fn resolve_semver_legacy(matching: VersionReq, url: String) -> Fallible<Version> {
     let spinner = progress_spinner(format!("Fetching registry: {}", url));
 
-    let mut request = attohttpc::get(&url);
-
-    for cert in rustls_native_certs::load_native_certs().expect("could not load platform certs") {
-        request = request.add_root_certificate(rustls::Certificate(cert.0));
-    }
-
-    let releases: RawYarnIndex = request
+    let releases: RawYarnIndex = fetch::fetch(&url)
         .send()
         .and_then(Response::error_for_status)
         .and_then(Response::json)

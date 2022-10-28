@@ -39,14 +39,12 @@ dependencies = [
 name = "archive"
 version = "0.1.0"
 dependencies = [
- "attohttpc",
  "cfg-if 1.0.0",
+ "fetch",
  "flate2",
  "fs-utils",
  "hyperx",
  "progress-read",
- "rustls",
- "rustls-native-certs",
  "tar",
  "tee",
  "thiserror",
@@ -395,6 +393,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "779d043b6a0b90cc4c0ed7ee380a6504394cee7efd7db050e3774eee387324b2"
 dependencies = [
  "instant",
+]
+
+[[package]]
+name = "fetch"
+version = "0.1.0"
+dependencies = [
+ "attohttpc",
+ "rustls",
+ "rustls-native-certs",
 ]
 
 [[package]]
@@ -1579,7 +1586,6 @@ name = "volta-core"
 version = "0.1.0"
 dependencies = [
  "archive",
- "attohttpc",
  "atty",
  "cfg-if 1.0.0",
  "chain-map",
@@ -1592,6 +1598,7 @@ dependencies = [
  "dirs",
  "dunce",
  "envoy",
+ "fetch",
  "fs-utils",
  "fs2",
  "hyperx",
@@ -1606,8 +1613,6 @@ dependencies = [
  "readext",
  "regex",
  "retry",
- "rustls",
- "rustls-native-certs",
  "semver",
  "serde",
  "serde_json",

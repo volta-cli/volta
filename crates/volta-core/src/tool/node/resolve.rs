@@ -15,8 +15,9 @@ use crate::session::Session;
 use crate::style::progress_spinner;
 use crate::tool::Node;
 use crate::version::{VersionSpec, VersionTag};
-use attohttpc::header::HeaderMap;
-use attohttpc::Response;
+use fetch;
+use fetch::attohttpc::header::HeaderMap;
+use fetch::attohttpc::Response;
 use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
 use hyperx::header::{CacheControl, CacheDirective, Expires, HttpDate, TypedHeaders};
@@ -204,15 +205,7 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
             debug!("Node index cache was not found or was invalid");
             let spinner = progress_spinner(format!("Fetching public registry: {}", url));
 
-            let mut request = attohttpc::get(url);
-
-            for cert in
-                rustls_native_certs::load_native_certs().expect("could not load platform certs")
-            {
-                request = request.add_root_certificate(rustls::Certificate(cert.0));
-            }
-
-            let (_, headers, response) = request
+            let (_, headers, response) = fetch::fetch(url)
                 .send()
                 .and_then(Response::error_for_status)
                 .with_context(registry_fetch_error("Node", url))?

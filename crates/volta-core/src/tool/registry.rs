@@ -6,8 +6,8 @@ use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::read_dir_eager;
 use crate::style::progress_spinner;
 use crate::version::{hashmap_version_serde, version_serde};
-use attohttpc::header::ACCEPT;
-use attohttpc::Response;
+use fetch::attohttpc::header::ACCEPT;
+use fetch::attohttpc::Response;
 use cfg_if::cfg_if;
 use semver::Version;
 use serde::Deserialize;
@@ -38,13 +38,7 @@ cfg_if! {
 pub fn fetch_npm_registry(url: String, name: &str) -> Fallible<(String, PackageIndex)> {
     let spinner = progress_spinner(format!("Fetching npm registry: {}", url));
 
-    let mut request = attohttpc::get(&url);
-
-    for cert in rustls_native_certs::load_native_certs().expect("could not load platform certs") {
-        request = request.add_root_certificate(rustls::Certificate(cert.0));
-    }
-
-    let metadata: RawPackageMetadata = request
+    let metadata: RawPackageMetadata = fetch::fetch(&url)
         .header(ACCEPT, NPM_ABBREVIATED_ACCEPT_HEADER)
         .send()
         .and_then(Response::error_for_status)

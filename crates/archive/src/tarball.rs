@@ -6,7 +6,8 @@ use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
 use super::{Archive, ArchiveError, Origin};
-use attohttpc::header::HeaderMap;
+use fetch::fetch;
+use fetch::attohttpc::header::HeaderMap;
 use flate2::read::GzDecoder;
 use fs_utils::ensure_containing_dir_exists;
 use hyperx::header::{
@@ -54,14 +55,7 @@ impl Tarball {
     /// tarball that can be streamed (and that tees its data to a local
     /// file as it streams).
     pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, ArchiveError> {
-        let mut request = attohttpc::get(url);
-
-        for cert in rustls_native_certs::load_native_certs().expect("could not load platform certs")
-        {
-            request = request.add_root_certificate(rustls::Certificate(cert.0));
-        }
-
-        let (status, headers, response) = request.send()?.split();
+        let (status, headers, response) = fetch(url).send()?.split();
 
         if !status.is_success() {
             return Err(ArchiveError::HttpError(status));
@@ -126,13 +120,7 @@ impl Archive for Tarball {
 fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], ArchiveError> {
     let range_header = Range::Bytes(vec![ByteRangeSpec::FromTo(len - 4, len - 1)]);
 
-    let mut request = attohttpc::get(url);
-
-    for cert in rustls_native_certs::load_native_certs().expect("could not load platform certs") {
-        request = request.add_root_certificate(rustls::Certificate(cert.0));
-    }
-
-    let (status, headers, mut response) = request
+    let (status, headers, mut response) = fetch(url)
         .header(Range::header_name(), range_header.to_string())
         .send()?
         .split();

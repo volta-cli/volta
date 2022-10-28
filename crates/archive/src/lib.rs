@@ -3,6 +3,8 @@
 use std::fs::File;
 use std::path::Path;
 
+use fetch::attohttpc;
+
 use thiserror::Error;
 
 mod tarball;
