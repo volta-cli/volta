@@ -37,7 +37,14 @@ cfg_if! {
 // fetch a registry that returns info in Npm format
 pub fn fetch_npm_registry(url: String, name: &str) -> Fallible<(String, PackageIndex)> {
     let spinner = progress_spinner(format!("Fetching npm registry: {}", url));
-    let metadata: RawPackageMetadata = attohttpc::get(&url)
+
+    let mut request = attohttpc::get(&url);
+
+    for cert in rustls_native_certs::load_native_certs().expect("could not load platform certs") {
+        request = request.add_root_certificate(rustls::Certificate(cert.0));
+    }
+
+    let metadata: RawPackageMetadata = request
         .header(ACCEPT, NPM_ABBREVIATED_ACCEPT_HEADER)
         .send()
         .and_then(Response::error_for_status)

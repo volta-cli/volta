@@ -105,7 +105,13 @@ fn resolve_custom_tag(tag: String) -> Fallible<Version> {
 }
 
 fn resolve_latest_legacy(url: String) -> Fallible<Version> {
-    let response_text = attohttpc::get(&url)
+    let mut request = attohttpc::get(&url);
+
+    for cert in rustls_native_certs::load_native_certs().expect("could not load platform certs") {
+        request = request.add_root_certificate(rustls::Certificate(cert.0));
+    }
+
+    let response_text = request
         .send()
         .and_then(Response::error_for_status)
         .and_then(Response::text)
@@ -175,7 +181,14 @@ fn resolve_semver_from_registry(matching: VersionReq) -> Fallible<Version> {
 
 fn resolve_semver_legacy(matching: VersionReq, url: String) -> Fallible<Version> {
     let spinner = progress_spinner(format!("Fetching registry: {}", url));
-    let releases: RawYarnIndex = attohttpc::get(&url)
+
+    let mut request = attohttpc::get(&url);
+
+    for cert in rustls_native_certs::load_native_certs().expect("could not load platform certs") {
+        request = request.add_root_certificate(rustls::Certificate(cert.0));
+    }
+
+    let releases: RawYarnIndex = request
         .send()
         .and_then(Response::error_for_status)
         .and_then(Response::json)

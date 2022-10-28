@@ -204,7 +204,15 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
             debug!("Node index cache was not found or was invalid");
             let spinner = progress_spinner(format!("Fetching public registry: {}", url));
 
-            let (_, headers, response) = attohttpc::get(url)
+            let mut request = attohttpc::get(url);
+
+            for cert in
+                rustls_native_certs::load_native_certs().expect("could not load platform certs")
+            {
+                request = request.add_root_certificate(rustls::Certificate(cert.0));
+            }
+
+            let (_, headers, response) = request
                 .send()
                 .and_then(Response::error_for_status)
                 .with_context(registry_fetch_error("Node", url))?

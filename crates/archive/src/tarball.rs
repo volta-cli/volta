@@ -54,7 +54,14 @@ impl Tarball {
     /// tarball that can be streamed (and that tees its data to a local
     /// file as it streams).
     pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, ArchiveError> {
-        let (status, headers, response) = attohttpc::get(url).send()?.split();
+        let mut request = attohttpc::get(url);
+
+        for cert in rustls_native_certs::load_native_certs().expect("could not load platform certs")
+        {
+            request = request.add_root_certificate(rustls::Certificate(cert.0));
+        }
+
+        let (status, headers, response) = request.send()?.split();
 
         if !status.is_success() {
             return Err(ArchiveError::HttpError(status));
@@ -118,7 +125,14 @@ impl Archive for Tarball {
 /// more efficient than simply downloading the entire file up front.
 fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], ArchiveError> {
     let range_header = Range::Bytes(vec![ByteRangeSpec::FromTo(len - 4, len - 1)]);
-    let (status, headers, mut response) = attohttpc::get(url)
+
+    let mut request = attohttpc::get(url);
+
+    for cert in rustls_native_certs::load_native_certs().expect("could not load platform certs") {
+        request = request.add_root_certificate(rustls::Certificate(cert.0));
+    }
+
+    let (status, headers, mut response) = request
         .header(Range::header_name(), range_header.to_string())
         .send()?
         .split();
@@ -176,7 +190,6 @@ fn load_uncompressed_size(file: &mut File) -> Option<u64> {
 
 #[cfg(test)]
 pub mod tests {
-
     use crate::tarball::Tarball;
     use std::fs::File;
     use std::path::PathBuf;

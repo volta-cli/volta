@@ -39,7 +39,7 @@ dependencies = [
 name = "archive"
 version = "0.1.0"
 dependencies = [
- "attohttpc 0.23.1",
+ "attohttpc",
  "cfg-if 1.0.0",
  "flate2",
  "fs-utils",
@@ -62,23 +62,6 @@ checksum = "50f1c3703dd33532d7f0ca049168930e9099ecac238e23cf932f3a69c42f06da"
 dependencies = [
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "attohttpc"
-version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fcf00bc6d5abb29b5f97e3c61a90b6d3caa12f3faf897d4a3e3607c050a35a7"
-dependencies = [
- "flate2",
- "http",
- "log",
- "rustls",
- "serde",
- "serde_json",
- "url",
- "webpki",
- "webpki-roots",
 ]
 
 [[package]]
@@ -1596,7 +1579,7 @@ name = "volta-core"
 version = "0.1.0"
 dependencies = [
  "archive",
- "attohttpc 0.22.0",
+ "attohttpc",
  "atty",
  "cfg-if 1.0.0",
  "chain-map",
@@ -1623,6 +1606,8 @@ dependencies = [
  "readext",
  "regex",
  "retry",
+ "rustls",
+ "rustls-native-certs",
  "semver",
  "serde",
  "serde_json",
