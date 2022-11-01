@@ -66,7 +66,7 @@ See the [Contributing Guide](https://docs.volta.sh/contributing/) on our website
       </td>
       <td align="center">
         <a href="https://github.com/withastro/astro" target="_blank">
-          <img src="https://pbs.twimg.com/profile_images/1556994544935256066/_OKBOtVa_400x400.png" alt="Astro" width="100" height="100">
+          <img src="https://pbs.twimg.com/profile_images/1577718489330192387/rOehZ3d5_400x400.png" alt="Astro" width="100" height="100">
         </a>
       </td>
     </tr>
