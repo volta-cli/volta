@@ -1326,17 +1326,6 @@ dependencies = [
 
 [[package]]
 name = "textwrap"
-version = "0.14.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0066c8d12af8b5acd21e00547c3797fde4e8677254a7ee429176ccebbe93dd80"
-dependencies = [
- "smawk",
- "unicode-linebreak",
- "unicode-width",
-]
-
-[[package]]
-name = "textwrap"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "222a222a5bfe1bba4a77b45ec488a741b3cb8872e5e499451fd7d0129c9c7c3d"
@@ -1513,7 +1502,7 @@ dependencies = [
  "serde_json",
  "structopt",
  "test-support",
- "textwrap 0.14.2",
+ "textwrap 0.16.0",
  "volta-core",
  "volta-migrate",
  "which",
