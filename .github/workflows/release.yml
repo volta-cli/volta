@@ -12,19 +12,35 @@ jobs:
   linux:
     name: Build - Linux
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: linux-aarch64
+            target: aarch64-unknown-linux-gnu
+          - name: linux
+            target: x86_64-unknown-linux-gnu
     steps:
       - name: Check out code
         uses: actions/checkout@v2
-      - name: Set up docker image
-        run: docker build -t volta .
-        working-directory: ./ci/docker
-      - name: Compile and package Volta
-        run: docker run --volume ${PWD}:/root/workspace --workdir /root/workspace --rm --init --tty volta /root/workspace/ci/build-linux.sh volta-linux
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: 1.63
+          override: true
+      - name: Cargo Cache
+        uses: Swatinem/rust-cache@v2
+      - name: Install cross
+        run: cargo install cross
+      - name: Build
+        run: cross build --release --target ${{ matrix.target }}
+      - name: Create artifact
+        run: tar -czvf volta-${{ matrix.name }}.tar.gz volta volta-shim volta-migrate
+        working-directory: target/${{ matrix.target }}/release
       - name: Upload release artifact
         uses: actions/upload-artifact@v2
         with:
-          name: linux
-          path: target/release/volta-linux.tar.gz
+          name: ${{ matrix.name }}
+          path: target/${{ matrix.target }}/release/volta-${{ matrix.name }}.tar.gz
 
   macos:
     name: Build - MacOS
@@ -149,6 +165,11 @@ jobs:
         with:
           name: linux
           path: release
+      - name: Fetch Linux (ARM) artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-aarch64
+          path: release
       - name: Fetch MacOS artifact
         uses: actions/download-artifact@v2
         with:
@@ -188,6 +209,15 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./release/volta-linux.tar.gz
           asset_name: volta-${{ steps.release_info.outputs.version }}-linux.tar.gz
+          asset_content_type: application/gzip
+      - name: Upload Linux (ARM) artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/volta-linux-aarch64.tar.gz
+          asset_name: volta-${{ steps.release_info.outputs.version }}-linux-aarch64.tar.gz
           asset_content_type: application/gzip
       - name: Upload MacOS artifact
         uses: actions/upload-release-asset@v1
