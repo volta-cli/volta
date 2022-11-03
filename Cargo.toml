@@ -32,7 +32,7 @@ structopt = "0.2.14"
 cfg-if = "1.0"
 mockito = { version = "0.31.0", optional = true }
 test-support = { path = "crates/test-support" }
-textwrap = "0.14.2"
+textwrap = "0.16.0"
 which = "4.3.0"
 dirs = "4.0.0"
 volta-migrate = { path = "crates/volta-migrate" }
