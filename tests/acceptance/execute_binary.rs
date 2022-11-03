@@ -65,6 +65,28 @@ echo "npm args: $@"
         }
 }
 
+fn pnpm_bin(version: &str) -> String {
+    cfg_if! {
+            if #[cfg(target_os = "windows")] {
+                format!(
+                    r#"@echo off
+echo pnpm version {}
+echo pnpm args: %*
+"#,
+    version
+                )
+            } else {
+                format!(
+                    r#"#!/bin/sh
+echo "pnpm version {}"
+echo "pnpm args: $@"
+"#,
+    version
+                )
+            }
+        }
+}
+
 fn yarn_bin(version: &str) -> String {
     cfg_if! {
             if #[cfg(target_os = "windows")] {
@@ -179,6 +201,7 @@ fn default_binary_no_project() {
     // platform node is 11.10.1, npm is 6.7.0
     // package cowsay is 1.4.0, installed with platform node
     // default yarn is 1.23.483
+    // default pnpm is 7.7.1
     // there is no local project, so it should run the default bin
     let s = sandbox()
         .platform(PLATFORM_NODE_NPM)
@@ -191,6 +214,7 @@ fn default_binary_no_project() {
         .setup_node_binary("11.10.1", "6.7.0", &node_bin("11.10.1"))
         .setup_npm_binary("6.7.0", &npm_bin("6.7.0"))
         .setup_yarn_binary("1.23.483", &yarn_bin("1.23.483"))
+        .setup_pnpm_binary("7.7.1", &pnpm_bin("7.7.1"))
         .add_dir_to_path(PathBuf::from("/bin"))
         .build();
 
@@ -204,6 +228,7 @@ fn default_binary_no_project() {
             .with_stdout_does_not_contain("Node version")
             .with_stdout_does_not_contain("Npm version")
             .with_stdout_does_not_contain("Yarn version")
+            .with_stdout_does_not_contain("pnpm version")
     );
 }
 
@@ -212,6 +237,7 @@ fn default_binary_no_project_dep() {
     // platform node is 11.10.1, npm is 6.7.0
     // package cowsay is 1.4.0, installed with platform node
     // default yarn is 1.23.483
+    // default pnpm is 7.7.1
     // local project does not have cowsay dep, so it should run the default bin
     let s = sandbox()
         .platform(PLATFORM_NODE_NPM)
@@ -225,6 +251,7 @@ fn default_binary_no_project_dep() {
         .setup_node_binary("11.10.1", "6.7.0", &node_bin("11.10.1"))
         .setup_npm_binary("6.7.0", &npm_bin("6.7.0"))
         .setup_yarn_binary("1.23.483", &yarn_bin("1.23.483"))
+        .setup_pnpm_binary("7.7.1", &pnpm_bin("7.7.1"))
         .add_dir_to_path(PathBuf::from("/bin"))
         .build();
 
@@ -237,6 +264,7 @@ fn default_binary_no_project_dep() {
             .with_stdout_does_not_contain("Node version")
             .with_stdout_does_not_contain("Npm version")
             .with_stdout_does_not_contain("Yarn version")
+            .with_stdout_does_not_contain("pnpm version")
     );
 }
 
@@ -245,6 +273,7 @@ fn project_local_binary() {
     // platform node is 11.10.1, npm is 6.7.0
     // package cowsay is 1.4.0, installed with platform node
     // default yarn is 1.23.483
+    // default pnpm is 7.7.1
     // local project has cowsay as a dep, so it should run that binary
     let s = sandbox()
         .platform(PLATFORM_NODE_NPM)
@@ -259,6 +288,7 @@ fn project_local_binary() {
         .setup_node_binary("10.99.1040", "6.7.0", &node_bin("10.99.1040"))
         .setup_npm_binary("6.7.0", &npm_bin("6.7.0"))
         .setup_yarn_binary("1.23.483", &yarn_bin("1.23.483"))
+        .setup_pnpm_binary("7.7.1", &pnpm_bin("7.7.1"))
         .project_bins(cowsay_bin_info("1.5.0"))
         .add_dir_to_path(PathBuf::from("/bin"))
         .build();
@@ -273,6 +303,7 @@ fn project_local_binary() {
             .with_stdout_does_not_contain("Node version")
             .with_stdout_does_not_contain("Npm version")
             .with_stdout_does_not_contain("Yarn version")
+            .with_stdout_does_not_contain("pnpm version")
     );
 }
 

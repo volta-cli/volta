@@ -120,6 +120,23 @@ fn workspace_hooks_json() -> String {
     )
 }
 
+fn pnpm_hooks_json() -> String {
+    format!(
+        r#"
+{{
+    "pnpm": {{
+        "index": {{
+            "template": "{0}/pnpm/index"
+        }},
+        "distro": {{
+            "template": "{0}/pnpm/{{{{version}}}}"
+        }}
+    }}
+}}"#,
+        mockito::server_url()
+    )
+}
+
 fn yarn_hooks_json() -> String {
     format!(
         r#"
@@ -317,6 +334,74 @@ fn merges_workspace_hooks() {
             .with_status(ExitCode::NetworkError as i32)
             .with_stderr_contains("[..]Could not download node@11.11.2")
             .with_stderr_contains("[..]/hook/default/node/11.11.2")
+    );
+}
+
+#[test]
+fn pnpm_latest_with_hook_reads_index() {
+    let s = sandbox()
+        .default_hooks(&pnpm_hooks_json())
+        .env("VOLTA_LOGLEVEL", "debug")
+        .build();
+    let _mock = mock("GET", "/pnpm/index")
+        .with_status(200)
+        .with_header("Content-Type", "application/json")
+        .with_body(
+            // Npm format for pnpm
+            r#"{
+    "name":"pnpm",
+    "dist-tags": { "latest":"7.7.1" },
+    "versions": {
+        "0.0.1": { "version":"0.0.1", "dist": { "shasum":"", "tarball":"" }},
+        "6.34.0": { "version":"6.34.0", "dist": { "shasum":"", "tarball":"" }},
+        "7.7.1": { "version":"7.7.1", "dist": { "shasum":"", "tarball":"" }}
+    }
+}"#,
+        )
+        .create();
+
+    assert_that!(
+        s.volta("install pnpm@latest"),
+        execs()
+            .with_status(ExitCode::NetworkError as i32)
+            .with_stderr_contains("[..]Using pnpm.index hook to determine pnpm index URL")
+            .with_stderr_contains("[..]Found pnpm@7.7.1 matching tag 'latest'[..]")
+            .with_stderr_contains("[..]Downloading pnpm@7.7.1 from[..]/pnpm/7.7.1[..]")
+            .with_stderr_contains("[..]Could not download pnpm@7.7.1")
+    );
+}
+
+#[test]
+fn pnpm_no_version_with_hook_reads_index() {
+    let s = sandbox()
+        .default_hooks(&pnpm_hooks_json())
+        .env("VOLTA_LOGLEVEL", "debug")
+        .build();
+    let _mock = mock("GET", "/pnpm/index")
+        .with_status(200)
+        .with_header("Content-Type", "application/json")
+        .with_body(
+            // Npm format for pnpm
+            r#"{
+    "name":"pnpm",
+    "dist-tags": { "latest":"7.7.1" },
+    "versions": {
+        "0.0.1": { "version":"0.0.1", "dist": { "shasum":"", "tarball":"" }},
+        "6.34.0": { "version":"6.34.0", "dist": { "shasum":"", "tarball":"" }},
+        "7.7.1": { "version":"7.7.1", "dist": { "shasum":"", "tarball":"" }}
+    }
+}"#,
+        )
+        .create();
+
+    assert_that!(
+        s.volta("install pnpm"),
+        execs()
+            .with_status(ExitCode::NetworkError as i32)
+            .with_stderr_contains("[..]Using pnpm.index hook to determine pnpm index URL")
+            .with_stderr_contains("[..]Found pnpm@7.7.1 matching tag 'latest'[..]")
+            .with_stderr_contains("[..]Downloading pnpm@7.7.1 from[..]/pnpm/7.7.1[..]")
+            .with_stderr_contains("[..]Could not download pnpm@7.7.1")
     );
 }
 

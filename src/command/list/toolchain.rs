@@ -2,7 +2,9 @@ use super::{Filter, Node, Package, PackageManager, Source};
 use crate::command::list::PackageManagerKind;
 use semver::Version;
 use volta_core::error::Fallible;
-use volta_core::inventory::{node_versions, npm_versions, package_configs, yarn_versions};
+use volta_core::inventory::{
+    node_versions, npm_versions, package_configs, pnpm_versions, yarn_versions,
+};
 use volta_core::platform::PlatformSpec;
 use volta_core::project::Project;
 use volta_core::tool::PackageConfig;
@@ -36,6 +38,8 @@ enum Lookup {
     Runtime,
     /// Look up the npm package manager
     Npm,
+    /// Look up the pnpm package manager
+    Pnpm,
     /// Look up the Yarn package manager
     Yarn,
 }
@@ -45,6 +49,7 @@ impl Lookup {
         move |spec| match self {
             Lookup::Runtime => Some(spec.node.clone()),
             Lookup::Npm => spec.npm.clone(),
+            Lookup::Pnpm => spec.pnpm.clone(),
             Lookup::Yarn => spec.yarn.clone(),
         }
     }
@@ -133,6 +138,13 @@ impl Toolchain {
                     version,
                 })
                 .into_iter()
+                .chain(Lookup::Pnpm.active_tool(project, default_platform).map(
+                    |(source, version)| PackageManager {
+                        kind: PackageManagerKind::Pnpm,
+                        source,
+                        version,
+                    },
+                ))
                 .chain(Lookup::Yarn.active_tool(project, default_platform).map(
                     |(source, version)| PackageManager {
                         kind: PackageManagerKind::Yarn,
@@ -170,6 +182,11 @@ impl Toolchain {
                 source: Lookup::Npm.version_source(project, default_platform, version),
                 version: version.clone(),
             })
+            .chain(pnpm_versions()?.iter().map(|version| PackageManager {
+                kind: PackageManagerKind::Pnpm,
+                source: Lookup::Pnpm.version_source(project, default_platform, version),
+                version: version.clone(),
+            }))
             .chain(yarn_versions()?.iter().map(|version| PackageManager {
                 kind: PackageManagerKind::Yarn,
                 source: Lookup::Yarn.version_source(project, default_platform, version),
@@ -230,6 +247,33 @@ impl Toolchain {
 
         Ok(Toolchain::PackageManagers {
             kind: PackageManagerKind::Npm,
+            managers,
+        })
+    }
+
+    pub(super) fn pnpm(
+        project: Option<&Project>,
+        default_platform: Option<&PlatformSpec>,
+        filter: &Filter,
+    ) -> Fallible<Toolchain> {
+        let managers = pnpm_versions()?
+            .iter()
+            .filter_map(|version| {
+                let source = Lookup::Pnpm.version_source(project, default_platform, version);
+                if source.allowed_with(filter) {
+                    Some(PackageManager {
+                        kind: PackageManagerKind::Pnpm,
+                        source,
+                        version: version.clone(),
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        Ok(Toolchain::PackageManagers {
+            kind: PackageManagerKind::Pnpm,
             managers,
         })
     }

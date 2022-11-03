@@ -138,6 +138,22 @@
                     Source='wix\shim.cmd'
                     KeyPath='yes'/>
             </Component>
+            <Component Id='pnpmBinary' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='pnpmEXE'
+                    Name='pnpm.exe'
+                    DiskId='1'
+                    Source='target\release\volta-shim.exe'
+                    KeyPath='yes'/>
+            </Component>
+            <Component Id='pnpmScript' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='pnpmCMD'
+                    Name='pnpm.cmd'
+                    DiskId='1'
+                    Source='wix\shim.cmd'
+                    KeyPath='yes'/>
+            </Component>
             <Component Id='yarnBinary' Guid='*' Win64='$(var.Win64)'>
                 <File
                     Id='yarnEXE'

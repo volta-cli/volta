@@ -11,6 +11,12 @@
       "format": "github"
     }
   },
+  "pnpm": {
+    "index": {
+      "prefix": "http://localhost/pnpm/index/",
+      "format": "github"
+    }
+  },
   "yarn": {
     "index": {
       "prefix": "http://localhost/yarn/index/",

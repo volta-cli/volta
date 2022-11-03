@@ -25,6 +25,15 @@ const NPM_UNINSTALL_ALIASES: [&str; 5] = ["un", "uninstall", "remove", "rm", "r"
 const NPM_LINK_ALIASES: [&str; 2] = ["link", "ln"];
 /// Aliases that npm supports for the `update` command
 const NPM_UPDATE_ALIASES: [&str; 4] = ["update", "udpate", "upgrade", "up"];
+/// Aliases that pnpm supports for the 'remove' command,
+/// see: https://pnpm.io/cli/remove
+const PNPM_UNINSTALL_ALIASES: [&str; 4] = ["remove", "uninstall", "rm", "un"];
+/// Aliases that pnpm supports for the 'update' command,
+/// see: https://pnpm.io/cli/update
+const PNPM_UPDATE_ALIASES: [&str; 3] = ["update", "upgrade", "up"];
+/// Aliases that pnpm supports for the 'link' command
+/// see: https://pnpm.io/cli/link
+const PNPM_LINK_ALIASES: [&str; 2] = ["link", "ln"];
 
 pub enum CommandArg<'a> {
     Global(GlobalCommand<'a>),
@@ -123,6 +132,82 @@ impl<'a> CommandArg<'a> {
                 }
             }
             _ => CommandArg::Standard,
+        }
+    }
+
+    /// Parse the given set of arguments to see if they correspond to an intercepted pnpm command
+    #[allow(dead_code)]
+    pub fn for_pnpm<S>(args: &'a [S]) -> CommandArg<'a>
+    where
+        S: AsRef<OsStr>,
+    {
+        // If VOLTA_UNSAFE_GLOBAL is set, then we always skip any global parsing
+        if env::var_os(UNSAFE_GLOBAL).is_some() {
+            return CommandArg::Standard;
+        }
+
+        let (flags, positionals): (Vec<&OsStr>, Vec<&OsStr>) = args
+            .iter()
+            .map(AsRef::<OsStr>::as_ref)
+            .partition(|arg| is_flag(arg));
+
+        // The first positional argument will always be the subcommand for pnpm
+        match positionals.split_first() {
+            None => CommandArg::Standard,
+            Some((&subcommand, tools)) => {
+                let is_global = flags.iter().any(|&f| f == "--global" || f == "-g");
+                // Do not intercept if a custom global dir is explicitly specified
+                // See: https://pnpm.io/npmrc#global-dir
+                let prefixed = flags.iter().any(|&f| f == "--global-dir");
+
+                // pnpm subcommands that support the `global` flag:
+                // `add`, `update`, `remove`, `link`, `list`, `outdated`,
+                // `why`, `env`, `root`, `bin`.
+                match is_global && !prefixed {
+                    false => CommandArg::Standard,
+                    true => match subcommand.to_str() {
+                        // `add`
+                        Some("add") => {
+                            let manager = PackageManager::Pnpm;
+                            let mut common_args = vec![subcommand];
+                            common_args.extend(flags);
+
+                            CommandArg::Global(GlobalCommand::Install(InstallArgs {
+                                manager,
+                                common_args,
+                                tools: tools.to_vec(),
+                            }))
+                        }
+                        // `update`
+                        Some(cmd) if PNPM_UPDATE_ALIASES.iter().any(|&a| a == cmd) => {
+                            let manager = PackageManager::Pnpm;
+                            let mut common_args = vec![subcommand];
+                            common_args.extend(flags);
+                            CommandArg::Global(GlobalCommand::Upgrade(UpgradeArgs {
+                                manager,
+                                common_args,
+                                tools: tools.to_vec(),
+                            }))
+                        }
+                        // `remove`
+                        Some(cmd) if PNPM_UNINSTALL_ALIASES.iter().any(|&a| a == cmd) => {
+                            CommandArg::Global(GlobalCommand::Uninstall(UninstallArgs {
+                                tools: tools.to_vec(),
+                            }))
+                        }
+                        // `link`
+                        Some(cmd) if PNPM_LINK_ALIASES.iter().any(|&a| a == cmd) => {
+                            let mut common_args = vec![subcommand];
+                            common_args.extend(flags);
+                            CommandArg::Intercepted(InterceptedCommand::Link(LinkArgs {
+                                common_args,
+                                tools: tools.to_vec(),
+                            }))
+                        }
+                        _ => CommandArg::Standard,
+                    },
+                }
+            }
         }
     }
 

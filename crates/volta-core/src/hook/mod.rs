@@ -9,7 +9,7 @@ use std::path::Path;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::layout::volta_home;
 use crate::project::Project;
-use crate::tool::{Node, Npm, Tool};
+use crate::tool::{Node, Npm, Pnpm, Tool};
 use lazycell::LazyCell;
 use log::debug;
 
@@ -50,6 +50,7 @@ impl LazyHookConfig {
 pub struct HookConfig {
     node: Option<ToolHooks<Node>>,
     npm: Option<ToolHooks<Npm>>,
+    pnpm: Option<ToolHooks<Pnpm>>,
     yarn: Option<YarnHooks>,
     events: Option<EventHooks>,
 }
@@ -118,6 +119,10 @@ impl HookConfig {
         self.npm.as_ref()
     }
 
+    pub fn pnpm(&self) -> Option<&ToolHooks<Pnpm>> {
+        self.pnpm.as_ref()
+    }
+
     pub fn yarn(&self) -> Option<&YarnHooks> {
         self.yarn.as_ref()
     }
@@ -182,6 +187,7 @@ impl HookConfig {
                     Self {
                         node: None,
                         npm: None,
+                        pnpm: None,
                         yarn: None,
                         events: None,
                     }
@@ -214,6 +220,7 @@ impl HookConfig {
         Self {
             node: merge_hooks!(self, other, node),
             npm: merge_hooks!(self, other, npm),
+            pnpm: merge_hooks!(self, other, pnpm),
             yarn: merge_hooks!(self, other, yarn),
             events: merge_hooks!(self, other, events),
         }
@@ -286,6 +293,7 @@ pub mod tests {
         let bin_file = fixture_dir.join("bins.json");
         let hooks = HookConfig::from_file(&bin_file).unwrap().unwrap();
         let node = hooks.node.unwrap();
+        let pnpm = hooks.pnpm.unwrap();
         let yarn = hooks.yarn.unwrap();
 
         assert_eq!(
@@ -309,6 +317,29 @@ pub mod tests {
                 base_path: fixture_dir.clone(),
             })
         );
+        // pnpm
+        assert_eq!(
+            pnpm.distro,
+            Some(tool::DistroHook::Bin {
+                bin: "/bin/to/pnpm/distro".to_string(),
+                base_path: fixture_dir.clone(),
+            })
+        );
+        assert_eq!(
+            pnpm.latest,
+            Some(tool::MetadataHook::Bin {
+                bin: "/bin/to/pnpm/latest".to_string(),
+                base_path: fixture_dir.clone(),
+            })
+        );
+        assert_eq!(
+            pnpm.index,
+            Some(tool::MetadataHook::Bin {
+                bin: "/bin/to/pnpm/index".to_string(),
+                base_path: fixture_dir.clone(),
+            })
+        );
+        // Yarn
         assert_eq!(
             yarn.distro,
             Some(tool::DistroHook::Bin {
@@ -345,6 +376,7 @@ pub mod tests {
         let prefix_file = fixture_dir.join("prefixes.json");
         let hooks = HookConfig::from_file(&prefix_file).unwrap().unwrap();
         let node = hooks.node.unwrap();
+        let pnpm = hooks.pnpm.unwrap();
         let yarn = hooks.yarn.unwrap();
 
         assert_eq!(
@@ -365,6 +397,26 @@ pub mod tests {
                 "http://localhost/node/index/".to_string()
             ))
         );
+        // pnpm
+        assert_eq!(
+            pnpm.distro,
+            Some(tool::DistroHook::Prefix(
+                "http://localhost/pnpm/distro/".to_string()
+            ))
+        );
+        assert_eq!(
+            pnpm.latest,
+            Some(tool::MetadataHook::Prefix(
+                "http://localhost/pnpm/latest/".to_string()
+            ))
+        );
+        assert_eq!(
+            pnpm.index,
+            Some(tool::MetadataHook::Prefix(
+                "http://localhost/pnpm/index/".to_string()
+            ))
+        );
+        // Yarn
         assert_eq!(
             yarn.distro,
             Some(tool::DistroHook::Prefix(
@@ -392,6 +444,7 @@ pub mod tests {
         let template_file = fixture_dir.join("templates.json");
         let hooks = HookConfig::from_file(&template_file).unwrap().unwrap();
         let node = hooks.node.unwrap();
+        let pnpm = hooks.pnpm.unwrap();
         let yarn = hooks.yarn.unwrap();
         assert_eq!(
             node.distro,
@@ -411,6 +464,26 @@ pub mod tests {
                 "http://localhost/node/index/{{version}}/".to_string()
             ))
         );
+        // pnpm
+        assert_eq!(
+            pnpm.distro,
+            Some(tool::DistroHook::Template(
+                "http://localhost/pnpm/distro/{{version}}/".to_string()
+            ))
+        );
+        assert_eq!(
+            pnpm.latest,
+            Some(tool::MetadataHook::Template(
+                "http://localhost/pnpm/latest/{{version}}/".to_string()
+            ))
+        );
+        assert_eq!(
+            pnpm.index,
+            Some(tool::MetadataHook::Template(
+                "http://localhost/pnpm/index/{{version}}/".to_string()
+            ))
+        );
+        // Yarn
         assert_eq!(
             yarn.distro,
             Some(tool::DistroHook::Template(
@@ -442,6 +515,7 @@ pub mod tests {
         let yarn = hooks.yarn.unwrap();
         let node = hooks.node.unwrap();
         let npm = hooks.npm.unwrap();
+        let pnpm = hooks.pnpm.unwrap();
         assert_eq!(
             yarn.index,
             Some(tool::YarnIndexHook {
@@ -462,6 +536,13 @@ pub mod tests {
                 "http://localhost/npm/index/".to_string()
             ))
         );
+        // pnpm also doesn't have format
+        assert_eq!(
+            pnpm.index,
+            Some(tool::MetadataHook::Prefix(
+                "http://localhost/pnpm/index/".to_string()
+            ))
+        );
     }
 
     #[test]
@@ -472,6 +553,7 @@ pub mod tests {
         let yarn = hooks.yarn.unwrap();
         let node = hooks.node.unwrap();
         let npm = hooks.npm.unwrap();
+        let pnpm = hooks.pnpm.unwrap();
         assert_eq!(
             yarn.index,
             Some(tool::YarnIndexHook {
@@ -492,6 +574,13 @@ pub mod tests {
                 "http://localhost/npm/index/".to_string()
             ))
         );
+        // pnpm also doesn't have format
+        assert_eq!(
+            pnpm.index,
+            Some(tool::MetadataHook::Prefix(
+                "http://localhost/pnpm/index/".to_string()
+            ))
+        );
     }
 
     #[test]
@@ -507,6 +596,7 @@ pub mod tests {
             .expect("Could not find project hooks.json");
         let merged_hooks = project_hooks.merge(default_hooks);
         let node = merged_hooks.node.expect("No node config found");
+        let pnpm = merged_hooks.pnpm.expect("No pnpm config found");
         let yarn = merged_hooks.yarn.expect("No yarn config found");
 
         assert_eq!(
@@ -530,6 +620,26 @@ pub mod tests {
                 base_path: project_hooks_dir,
             })
         );
+        // pnpm
+        assert_eq!(
+            pnpm.distro,
+            Some(tool::DistroHook::Template(
+                "http://localhost/pnpm/distro/{{version}}/".to_string()
+            ))
+        );
+        assert_eq!(
+            pnpm.latest,
+            Some(tool::MetadataHook::Template(
+                "http://localhost/pnpm/latest/{{version}}/".to_string()
+            ))
+        );
+        assert_eq!(
+            pnpm.index,
+            Some(tool::MetadataHook::Template(
+                "http://localhost/pnpm/index/{{version}}/".to_string()
+            ))
+        );
+        // Yarn
         assert_eq!(
             yarn.distro,
             Some(tool::DistroHook::Template(
@@ -566,6 +676,7 @@ pub mod tests {
         let merged_hooks =
             HookConfig::from_paths(&[project_hooks_file, default_hooks_file]).unwrap();
         let node = merged_hooks.node.expect("No node config found");
+        let pnpm = merged_hooks.pnpm.expect("No pnpm config found");
         let yarn = merged_hooks.yarn.expect("No yarn config found");
 
         assert_eq!(
@@ -589,6 +700,26 @@ pub mod tests {
                 base_path: project_hooks_dir,
             })
         );
+        // pnpm
+        assert_eq!(
+            pnpm.distro,
+            Some(tool::DistroHook::Template(
+                "http://localhost/pnpm/distro/{{version}}/".to_string()
+            ))
+        );
+        assert_eq!(
+            pnpm.latest,
+            Some(tool::MetadataHook::Template(
+                "http://localhost/pnpm/latest/{{version}}/".to_string()
+            ))
+        );
+        assert_eq!(
+            pnpm.index,
+            Some(tool::MetadataHook::Template(
+                "http://localhost/pnpm/index/{{version}}/".to_string()
+            ))
+        );
+        // Yarn
         assert_eq!(
             yarn.distro,
             Some(tool::DistroHook::Template(

@@ -154,6 +154,7 @@ struct Node {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum PackageManagerKind {
     Npm,
+    Pnpm,
     Yarn,
 }
 
@@ -164,6 +165,7 @@ impl fmt::Display for PackageManagerKind {
             "{}",
             match self {
                 PackageManagerKind::Npm => "npm",
+                PackageManagerKind::Pnpm => "pnpm",
                 PackageManagerKind::Yarn => "yarn",
             }
         )
@@ -201,7 +203,8 @@ pub(crate) struct List {
     // `Option<Subcommand>` with `impl FromStr for Subcommand` for `StructOpt`
     // because StructOpt does not currently support custom parsing for enum
     // variants (as detailed in commit 5f9214ae).
-    /// The tool to lookup - `all`, `node`, `yarn`, or the name of a package or binary.
+    /// The tool to lookup - `all`, `node`, `npm`, `yarn`, `pnpm`, or the name
+    /// of a package or binary.
     #[structopt(name = "tool")]
     subcommand: Option<String>,
 
@@ -233,6 +236,9 @@ enum Subcommand {
     /// Show locally cached npm versions.
     Npm,
 
+    /// Show locally cached pnpm versions.
+    Pnpm,
+
     /// Show locally cached Yarn versions.
     Yarn,
 
@@ -246,6 +252,7 @@ impl From<&str> for Subcommand {
             "all" => Subcommand::All,
             "node" => Subcommand::Node,
             "npm" => Subcommand::Npm,
+            "pnpm" => Subcommand::Pnpm,
             "yarn" => Subcommand::Yarn,
             s => Subcommand::PackageOrTool { name: s.into() },
         }
@@ -294,6 +301,7 @@ impl Command for List {
             Some(Subcommand::All) => Toolchain::all(project, default_platform)?,
             Some(Subcommand::Node) => Toolchain::node(project, default_platform, &filter)?,
             Some(Subcommand::Npm) => Toolchain::npm(project, default_platform, &filter)?,
+            Some(Subcommand::Pnpm) => Toolchain::pnpm(project, default_platform, &filter)?,
             Some(Subcommand::Yarn) => Toolchain::yarn(project, default_platform, &filter)?,
             Some(Subcommand::PackageOrTool { name }) => {
                 Toolchain::package_or_tool(&name, project, &filter)?

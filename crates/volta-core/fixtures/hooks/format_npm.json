@@ -11,6 +11,12 @@
       "format": "npm"
     }
   },
+  "pnpm": {
+    "index": {
+      "prefix": "http://localhost/pnpm/index/",
+      "format": "npm"
+    }
+  },
   "yarn": {
     "index": {
       "prefix": "http://localhost/yarn/index/",

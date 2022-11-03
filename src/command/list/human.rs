@@ -306,6 +306,7 @@ fn format_package_manager(package_manager: &PackageManager) -> String {
 fn format_package_manager_kind(kind: PackageManagerKind) -> String {
     match kind {
         PackageManagerKind::Npm => "npm".into(),
+        PackageManagerKind::Pnpm => "pnpm".into(),
         PackageManagerKind::Yarn => "Yarn".into(),
     }
 }

@@ -10,6 +10,17 @@
       "template": "http://localhost/node/index/{{version}}/"
     }
   },
+  "pnpm": {
+    "distro": {
+      "template": "http://localhost/pnpm/distro/{{version}}/"
+    },
+    "latest": {
+      "template": "http://localhost/pnpm/latest/{{version}}/"
+    },
+    "index": {
+      "template": "http://localhost/pnpm/index/{{version}}/"
+    }
+  },
   "yarn": {
     "distro": {
       "template": "http://localhost/yarn/distro/{{version}}/"
