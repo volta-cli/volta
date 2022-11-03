@@ -7,5 +7,5 @@ edition = "2018"
 [dependencies]
 hamcrest2 = "0.3.0"
 archive = { path = "../archive" }
-serde_json = { version = "1.0.85" }
+serde_json = { version = "1.0.87" }
 thiserror = "1.0.37"
