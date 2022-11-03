@@ -2,7 +2,6 @@ use std::env;
 use std::ffi::OsString;
 
 use super::executor::{Executor, ToolCommand, ToolKind};
-use super::parser::CommandArg;
 use super::{debug_active_image, debug_no_platform, RECURSION_ENV_VAR};
 use crate::error::{ErrorKind, Fallible};
 use crate::platform::{Platform, Source, System};
@@ -25,12 +24,6 @@ pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Exec
                 .into());
             }
 
-            if let CommandArg::Global(cmd) = CommandArg::for_pnpm(args) {
-                // For globals, only intercept if the default platform exists
-                if let Some(default_platform) = session.default_platform()? {
-                    return cmd.executor(default_platform);
-                }
-            }
             Platform::current(session)?
         }
     };

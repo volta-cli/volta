@@ -136,6 +136,7 @@ impl<'a> CommandArg<'a> {
     }
 
     /// Parse the given set of arguments to see if they correspond to an intercepted pnpm command
+    #[allow(dead_code)]
     pub fn for_pnpm<S>(args: &'a [S]) -> CommandArg<'a>
     where
         S: AsRef<OsStr>,
