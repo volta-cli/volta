@@ -24,11 +24,9 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
       - name: Set up cargo
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: 1.63
-          override: true
           components: clippy
       - name: Cargo Cache
         uses: Swatinem/rust-cache@v2
@@ -56,11 +54,9 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
       - name: Set up cargo
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: 1.63
-          override: true
       - name: Cargo Cache
         uses: Swatinem/rust-cache@v2
       - name: Run tests
@@ -87,11 +83,9 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
       - name: Set up cargo
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: 1.63
-          override: true
           components: rustfmt
       - name: Cargo Cache
         uses: Swatinem/rust-cache@v2

@@ -33,11 +33,9 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
       - name: Set up cargo
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: 1.63
-          override: true
       - name: Cargo Cache
         uses: Swatinem/rust-cache@v2
       - name: Compile and package Volta
@@ -55,12 +53,10 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
       - name: Set up cargo
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: 1.63
           target: aarch64-apple-darwin
-          override: true
       - name: Cargo Cache
         uses: Swatinem/rust-cache@v2
       - name: Compile and package Volta
@@ -78,11 +74,9 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
       - name: Set up cargo
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: 1.63
-          override: true
       - name: Cargo Cache
         uses: Swatinem/rust-cache@v2
       - name: Add cargo-wix subcommand

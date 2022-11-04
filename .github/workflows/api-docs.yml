@@ -15,11 +15,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up cargo
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: 1.63
-          override: true
       - name: Cargo Cache
         uses: Swatinem/rust-cache@v2
       - name: Build docs
