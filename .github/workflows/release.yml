@@ -21,7 +21,7 @@ jobs:
       - name: Compile and package Volta
         run: docker run --volume ${PWD}:/root/workspace --workdir /root/workspace --rm --init --tty volta /root/workspace/ci/build-linux.sh volta-linux
       - name: Upload release artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: linux
           path: target/release/volta-linux.tar.gz
@@ -41,7 +41,7 @@ jobs:
       - name: Compile and package Volta
         run: ./ci/build-macos-x86_64.sh volta-macos
       - name: Upload release artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: macos
           path: target/release/volta-macos.tar.gz
@@ -62,7 +62,7 @@ jobs:
       - name: Compile and package Volta
         run: ./ci/build-macos-arm.sh volta-macos-aarch64
       - name: Upload release artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: macos-aarch64
           path: target/aarch64-apple-darwin/release/volta-macos-aarch64.tar.gz
@@ -111,12 +111,12 @@ jobs:
         run: powershell Compress-Archive volta*.exe volta-windows.zip
         working-directory: ./target/release
       - name: Upload installer
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: windows-installer
           path: target/wix/volta-windows.msi
       - name: Upload zip
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: windows-zip
           path: target/release/volta-windows.zip
