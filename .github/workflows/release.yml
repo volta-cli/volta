@@ -80,15 +80,10 @@ jobs:
       - name: Cargo Cache
         uses: Swatinem/rust-cache@v2
       - name: Add cargo-wix subcommand
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: cargo-wix
+        run: cargo install cargo-wix
       - name: Compile and package installer
-        uses: actions-rs/cargo@v1
-        with:
-          command: wix
-          args: --nocapture --package volta --output target\wix\volta-windows.msi
+        run: |
+          cargo wix --nocapture --package volta --output target\wix\volta-windows.msi
       - name: Load Certificate File
         id: certificate_file
         if: github.event_name == 'push'

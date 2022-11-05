@@ -21,10 +21,8 @@ jobs:
       - name: Cargo Cache
         uses: Swatinem/rust-cache@v2
       - name: Build docs
-        uses: actions-rs/cargo@v1
-        with:
-          command: doc
-          args: --all --features cross-platform-docs --no-deps --document-private-items
+        run: |
+          cargo doc --all --features cross-platform-docs --no-deps --document-private-items
       - name: Prepare docs for publication
         run: |
           mkdir -p publish
