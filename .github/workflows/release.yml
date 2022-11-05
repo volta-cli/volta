@@ -137,7 +137,7 @@ jobs:
         id: release_info
         env:
           TAG: ${{ github.ref }}
-        run: echo "::set-output name=version::${TAG:11}"
+        run: echo "version=${TAG:11}" >> $GITHUB_OUTPUT
       - name: Fetch Linux artifact
         uses: actions/download-artifact@v2
         with:
