@@ -103,14 +103,14 @@ impl PackageManager {
 
         if let PackageManager::Yarn = self {
             command.env("npm_config_global_folder", self.source_root(package_root));
-        } else
-        // FIXME: Find out if there is a perfect way to intercept pnpm global
-        // installs by using environment variables or whatever.
-        // Using `--global-dir` and `--global-bin-dir` flags here is not enough,
-        // because pnpm generates _absolute path_ based symlinks, and this makes
-        // impossible to simply move installed packages from the staging directory
-        // to the final `image/packages/` destination.
-        if let PackageManager::Pnpm = self {
+        } else if let PackageManager::Pnpm = self {
+            // FIXME: Find out if there is a perfect way to intercept pnpm global
+            // installs by using environment variables or whatever.
+            // Using `--global-dir` and `--global-bin-dir` flags here is not enough,
+            // because pnpm generates _absolute path_ based symlinks, and this makes
+            // impossible to simply move installed packages from the staging directory
+            // to the final `image/packages/` destination.
+
             // Specify the staging directory to store global package,
             // see: https://pnpm.io/npmrc#global-dir
             command.arg("--global-dir").arg(&package_root);
@@ -125,8 +125,7 @@ impl PackageManager {
             // pass the check.
             // See: https://github.com/volta-cli/rfcs/pull/46#discussion_r861943740
             let mut new_path = global_bin_dir;
-            let mut command_envs = command.get_envs();
-            while let Some((name, value)) = command_envs.next() {
+            for (name, value) in command.get_envs() {
                 if name == "PATH" {
                     if let Some(old_path) = value {
                         #[cfg(unix)]
