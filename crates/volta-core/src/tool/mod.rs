@@ -6,6 +6,7 @@ use crate::session::Session;
 use crate::style::{note_prefix, success_prefix, tool_version};
 use crate::sync::VoltaLock;
 use crate::version::VersionSpec;
+use cfg_if::cfg_if;
 use log::{debug, info};
 
 pub mod node;
@@ -201,19 +202,21 @@ pub fn check_shim_reachable(shim_name: &str) {
     };
 
     let shim = home.shim_file(shim_name);
+    let path_var_name = cfg_if!(if #[cfg(windows)] { "Path" } else { "PATH" });
     let resolved = match which::which(shim_name) {
         Ok(resolved) => resolved,
         Err(_) => {
             info!(
-                "{} cannot find command {}. Please ensure that {} is at the front of your PATH.",
+                "{} cannot find command {}. Please ensure that {} is available on your {}.",
                 note_prefix(),
                 shim_name,
-                shim.display()
+                home.shim_dir(),
+                path_var_name,
             );
             return;
         }
     };
     if resolved != shim {
-        info!("{} {} is shadowed by another binary of the same name at {}. Please ensure that {} is at the front of your PATH.", note_prefix(), shim_name, resolved.display(), shim.display());
+        info!("{} {} is shadowed by another binary of the same name at {}. To ensure your commands work as expected, please move {} to the start of your {}.", note_prefix(), shim_name, resolved.display(), home.shim_dir(), path_var_name);
     }
 }
