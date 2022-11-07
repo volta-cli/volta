@@ -156,6 +156,7 @@ impl DefaultBinary {
         let platform = Platform {
             node: Sourced::with_binary(bin_config.platform.node),
             npm: bin_config.platform.npm.map(Sourced::with_binary),
+            pnpm: bin_config.platform.pnpm.map(Sourced::with_binary),
             yarn: yarn.map(Sourced::with_binary),
         };
 

@@ -12,6 +12,7 @@ use log::{debug, info};
 pub mod node;
 pub mod npm;
 pub mod package;
+pub mod pnpm;
 mod registry;
 mod serial;
 pub mod yarn;
@@ -21,6 +22,7 @@ pub use node::{
 };
 pub use npm::{BundledNpm, Npm};
 pub use package::{BinConfig, Package, PackageConfig, PackageManifest};
+pub use pnpm::Pnpm;
 pub use registry::PackageDetails;
 pub use yarn::Yarn;
 
@@ -65,10 +67,11 @@ pub trait Tool: Display {
 
 /// Specification for a tool and its associated version.
 #[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum Spec {
     Node(VersionSpec),
     Npm(VersionSpec),
+    Pnpm(VersionSpec),
     Yarn(VersionSpec),
     Package(String, VersionSpec),
 }
@@ -85,6 +88,10 @@ impl Spec {
                 Some(version) => Ok(Box::new(Npm::new(version))),
                 None => Ok(Box::new(BundledNpm)),
             },
+            Spec::Pnpm(version) => {
+                let version = pnpm::resolve(version, session)?;
+                Ok(Box::new(Pnpm::new(version)))
+            }
             Spec::Yarn(version) => {
                 let version = yarn::resolve(version, session)?;
                 Ok(Box::new(Yarn::new(version)))
@@ -111,6 +118,10 @@ impl Spec {
                 feature: "Uninstalling npm".into(),
             }
             .into()),
+            Spec::Pnpm(_) => Err(ErrorKind::Unimplemented {
+                feature: "Uninstalling pnpm".into(),
+            }
+            .into()),
             Spec::Yarn(_) => Err(ErrorKind::Unimplemented {
                 feature: "Uninstalling yarn".into(),
             }
@@ -124,6 +135,7 @@ impl Spec {
         match self {
             Spec::Node(_) => "Node",
             Spec::Npm(_) => "npm",
+            Spec::Pnpm(_) => "pnpm",
             Spec::Yarn(_) => "Yarn",
             Spec::Package(name, _) => name,
         }
@@ -135,6 +147,7 @@ impl Display for Spec {
         let s = match self {
             Spec::Node(ref version) => tool_version("node", version),
             Spec::Npm(ref version) => tool_version("npm", version),
+            Spec::Pnpm(ref version) => tool_version("pnpm", version),
             Spec::Yarn(ref version) => tool_version("yarn", version),
             Spec::Package(ref name, ref version) => tool_version(name, version),
         };

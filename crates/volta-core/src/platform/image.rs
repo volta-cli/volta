@@ -13,6 +13,8 @@ pub struct Image {
     pub node: Sourced<Version>,
     /// The custom version of npm, if any. `None` represents using the npm that is bundled with Node
     pub npm: Option<Sourced<Version>>,
+    /// The pinned version of pnpm, if any.
+    pub pnpm: Option<Sourced<Version>>,
     /// The pinned version of Yarn, if any.
     pub yarn: Option<Sourced<Version>>,
 }
@@ -27,6 +29,11 @@ impl Image {
             bins.push(home.npm_image_bin_dir(&npm_str));
         }
 
+        if let Some(pnpm) = &self.pnpm {
+            let pnpm_str = pnpm.value.to_string();
+            bins.push(home.pnpm_image_bin_dir(&pnpm_str));
+        }
+
         if let Some(yarn) = &self.yarn {
             let yarn_str = yarn.value.to_string();
             bins.push(home.yarn_image_bin_dir(&yarn_str));
@@ -39,7 +46,7 @@ impl Image {
     }
 
     /// Produces a modified version of the current `PATH` environment variable that
-    /// will find toolchain executables (Node, Yarn) in the installation directories
+    /// will find toolchain executables (Node, npm, pnpm, Yarn) in the installation directories
     /// for the given versions instead of in the Volta shim directory.
     pub fn path(&self) -> Fallible<OsString> {
         let old_path = envoy::path().unwrap_or_else(|| envoy::Var::from(""));

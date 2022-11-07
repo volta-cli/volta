@@ -75,7 +75,6 @@ fn autodownload_yarn_1() {
 fn autodownload_yarn_3() {
     let p = temp_project()
         .package_json(PACKAGE_JSON_WITH_PINNED_NODE_YARN_3)
-        .env("VOLTA_FEATURE_YARN_3", "true")
         .build();
 
     assert_that!(

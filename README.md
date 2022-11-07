@@ -56,7 +56,7 @@ See the [Contributing Guide](https://docs.volta.sh/contributing/) on our website
       </td>
       <td align="center">
         <a href="https://github.com/grafana/grafana" target="_blank">
-          <img src="https://pbs.twimg.com/profile_images/1204869696132190212/HxPK_45O_400x400.jpg" alt="Grafana" width="100" height="100">
+          <img src="https://pbs.twimg.com/profile_images/1542761844179439617/QJ2x3z1e_400x400.jpg" alt="Grafana" width="100" height="100">
         </a>
       </td>
       <td align="center">
@@ -65,8 +65,8 @@ See the [Contributing Guide](https://docs.volta.sh/contributing/) on our website
         </a>
       </td>
       <td align="center">
-        <a href="https://github.com/snowpackjs/astro" target="_blank">
-          <img src="https://pbs.twimg.com/profile_images/1480942071208894466/4_4k1g6P_400x400.jpg" alt="Astro" width="100" height="100">
+        <a href="https://github.com/withastro/astro" target="_blank">
+          <img src="https://pbs.twimg.com/profile_images/1577718489330192387/rOehZ3d5_400x400.png" alt="Astro" width="100" height="100">
         </a>
       </td>
     </tr>

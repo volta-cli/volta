@@ -22,28 +22,22 @@ jobs:
       RUST_BACKTRACE: full
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up cargo
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
+          toolchain: 1.63
           components: clippy
+      - name: Cargo Cache
+        uses: Swatinem/rust-cache@v2
       - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all --features mock-network
+        run: |
+          cargo test --all --features mock-network
       - name: Lint with clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
+        run: cargo clippy
       - name: Lint tests with clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --tests --features mock-network
+        run: |
+          cargo clippy --tests --features mock-network
 
   smoke-tests:
     name: Smoke Tests
@@ -52,18 +46,16 @@ jobs:
       RUST_BACKTRACE: full
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up cargo
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
+          toolchain: 1.63
+      - name: Cargo Cache
+        uses: Swatinem/rust-cache@v2
       - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --test smoke --features smoke-tests -- --test-threads 1
+        run: |
+          cargo test --test smoke --features smoke-tests -- --test-threads 1
 
   shell-tests:
     name: Shell Script Tests
@@ -72,7 +64,7 @@ jobs:
       - name: Setup BATS
         run: sudo npm install -g bats
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Run tests
         run: bats dev/unix/tests/
 
@@ -81,16 +73,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up cargo
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
+          toolchain: 1.63
           components: rustfmt
+      - name: Cargo Cache
+        uses: Swatinem/rust-cache@v2
       - name: Run check
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all --quiet -- --check
+        run: |
+          cargo fmt --all --quiet -- --check

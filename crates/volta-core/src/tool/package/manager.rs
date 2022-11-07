@@ -1,3 +1,4 @@
+use std::ffi::OsStr;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -11,6 +12,7 @@ use crate::fs::read_dir_eager;
 )]
 pub enum PackageManager {
     Npm,
+    Pnpm,
     Yarn,
 }
 
@@ -28,9 +30,16 @@ impl PackageManager {
     /// contain the top-level `node-modules`
     #[cfg(unix)]
     pub fn source_root(self, package_root: PathBuf) -> PathBuf {
-        // On Unix, the source is always within a `lib` subdirectory, with both npm and Yarn
         let mut path = package_root;
-        path.push("lib");
+        match self {
+            // On Unix, the source is always within a `lib` subdirectory, with both npm and Yarn
+            PackageManager::Npm | PackageManager::Yarn => path.push("lib"),
+            // pnpm puts the source node_modules directory in the global-dir
+            // plus a versioned subdirectory.
+            // FIXME: Here the subdirectory is hard-coded, I don't know if it's
+            // possible to retrieve it from pnpm dynamically.
+            PackageManager::Pnpm => path.push("5"),
+        }
 
         path
     }
@@ -46,7 +55,15 @@ impl PackageManager {
             PackageManager::Yarn => {
                 let mut path = package_root;
                 path.push("lib");
-
+                path
+            }
+            // pnpm puts the source node_modules directory in the global-dir
+            // plus a versioned subdirectory.
+            // FIXME: Here the subdirectory is hard-coded, I don't know if it's
+            // possible to retrieve it from pnpm dynamically.
+            PackageManager::Pnpm => {
+                let mut path = package_root;
+                path.push("5");
                 path
             }
         }
@@ -70,11 +87,11 @@ impl PackageManager {
         match self {
             // On Windows, npm leaves the binaries at the root of the `prefix` directory
             PackageManager::Npm => package_root,
-            // On Windows, Yarn still includes the `bin` subdirectory
-            PackageManager::Yarn => {
+            // On Windows, Yarn still includes the `bin` subdirectory. pnpm by
+            // default generates binaries into the `PNPM_HOME` path
+            PackageManager::Yarn | PackageManager::Pnpm => {
                 let mut path = package_root;
                 path.push("bin");
-
                 path
             }
         }
@@ -86,6 +103,42 @@ impl PackageManager {
 
         if let PackageManager::Yarn = self {
             command.env("npm_config_global_folder", self.source_root(package_root));
+        } else if let PackageManager::Pnpm = self {
+            // FIXME: Find out if there is a perfect way to intercept pnpm global
+            // installs by using environment variables or whatever.
+            // Using `--global-dir` and `--global-bin-dir` flags here is not enough,
+            // because pnpm generates _absolute path_ based symlinks, and this makes
+            // impossible to simply move installed packages from the staging directory
+            // to the final `image/packages/` destination.
+
+            // Specify the staging directory to store global package,
+            // see: https://pnpm.io/npmrc#global-dir
+            command.arg("--global-dir").arg(&package_root);
+            // Specify the staging directory for the bin files of globally installed packages.
+            // See: https://pnpm.io/npmrc#global-bin-dir (>= 6.15.0)
+            // and https://github.com/volta-cli/rfcs/pull/46#discussion_r933296625
+            let global_bin_dir = self.binary_dir(package_root);
+            command.arg("--global-bin-dir").arg(&global_bin_dir);
+            // pnpm requires the `global-bin-dir` to be in PATH, otherwise it
+            // will not trigger global installs. One can also use the `PNPM_HOME`
+            // environment variable, which is only available in pnpm v7+, to
+            // pass the check.
+            // See: https://github.com/volta-cli/rfcs/pull/46#discussion_r861943740
+            let mut new_path = global_bin_dir;
+            for (name, value) in command.get_envs() {
+                if name == "PATH" {
+                    if let Some(old_path) = value {
+                        #[cfg(unix)]
+                        let path_delimiter = OsStr::new(":");
+                        #[cfg(windows)]
+                        let path_delimiter = OsStr::new(";");
+                        new_path =
+                            PathBuf::from([new_path.as_os_str(), old_path].join(path_delimiter));
+                        break;
+                    }
+                }
+            }
+            command.env("PATH", new_path);
         }
     }
 
@@ -95,7 +148,9 @@ impl PackageManager {
     pub(super) fn get_installed_package(self, package_root: PathBuf) -> Option<String> {
         match self {
             PackageManager::Npm => get_npm_package_name(self.source_dir(package_root)),
-            PackageManager::Yarn => get_yarn_package_name(self.source_root(package_root)),
+            PackageManager::Pnpm | PackageManager::Yarn => {
+                get_pnpm_or_yarn_package_name(self.source_root(package_root))
+            }
         }
     }
 }
@@ -141,10 +196,10 @@ fn get_single_directory_name(parent_dir: &Path) -> Option<String> {
     }
 }
 
-/// Determine the package name for a Yarn global install
+/// Determine the package name for a pnpm or Yarn global install
 ///
-/// Yarn creates a `package.json` file with the globally installed package as a dependency
-fn get_yarn_package_name(source_root: PathBuf) -> Option<String> {
+/// pnpm/Yarn creates a `package.json` file with the globally installed package as a dependency
+fn get_pnpm_or_yarn_package_name(source_root: PathBuf) -> Option<String> {
     let package_file = source_root.join("package.json");
     let file = File::open(package_file).ok()?;
     let manifest: GlobalYarnManifest = serde_json::de::from_reader(file).ok()?;

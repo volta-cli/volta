@@ -11,20 +11,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           persist-credentials: false
       - name: Set up cargo
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
+          toolchain: 1.63
+      - name: Cargo Cache
+        uses: Swatinem/rust-cache@v2
       - name: Build docs
-        uses: actions-rs/cargo@v1
-        with:
-          command: doc
-          args: --all --features cross-platform-docs --no-deps --document-private-items
+        run: |
+          cargo doc --all --features cross-platform-docs --no-deps --document-private-items
       - name: Prepare docs for publication
         run: |
           mkdir -p publish

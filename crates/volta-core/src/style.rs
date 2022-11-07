@@ -1,6 +1,7 @@
 //! The view layer of Volta, with utilities for styling command-line output.
 use std::borrow::Cow;
 use std::error::Error;
+use std::time::Duration;
 
 use archive::Origin;
 use cfg_if::cfg_if;
@@ -82,6 +83,7 @@ pub fn progress_bar(origin: Origin, details: &str, len: u64) -> ProgressBar {
                 "{{msg}}  [{{bar:{}.cyan/blue}}] {{percent:>3}}%",
                 bar_width
             ))
+            .expect("template is valid")
             .progress_chars("=> "),
     );
 
@@ -102,7 +104,7 @@ cfg_if! {
 
             spinner.set_message(message);
             spinner.set_style(style);
-            spinner.enable_steady_tick(100);
+            spinner.enable_steady_tick(Duration::from_millis(100));
 
             spinner
         }
@@ -118,7 +120,7 @@ cfg_if! {
 
             spinner.set_message(message);
             spinner.set_style(ProgressStyle::default_spinner());
-            spinner.enable_steady_tick(50);
+            spinner.enable_steady_tick(Duration::from_millis(50));
 
             spinner
         }

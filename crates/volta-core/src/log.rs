@@ -4,8 +4,7 @@ use console::style;
 use log::{Level, LevelFilter, Log, Metadata, Record, SetLoggerError};
 use std::env;
 use std::fmt::Display;
-use textwrap::word_splitters::NoHyphenation;
-use textwrap::{fill, Options};
+use textwrap::{fill, Options, WordSplitter};
 
 use crate::style::text_width;
 
@@ -127,7 +126,7 @@ where
     match text_width() {
         Some(width) => {
             let options = Options::new(width)
-                .word_splitter(NoHyphenation)
+                .word_splitter(WordSplitter::NoHyphenation)
                 .subsequent_indent(WRAP_INDENT)
                 .break_words(false);
 

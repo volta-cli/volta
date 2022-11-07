@@ -9,7 +9,7 @@ use std::path::Path;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::layout::volta_home;
 use retry::delay::Fibonacci;
-use retry::{retry, Error as RetryError, OperationResult};
+use retry::{retry, OperationResult};
 use tempfile::{tempdir_in, NamedTempFile, TempDir};
 
 /// Opens a file, creating it if it doesn't exist
@@ -190,8 +190,5 @@ where
             },
         }
     })
-    .map_err(|e| match e {
-        RetryError::Operation { error, .. } => error,
-        RetryError::Internal(message) => io::Error::new(io::ErrorKind::Other, message),
-    })
+    .map_err(|e| e.error)
 }

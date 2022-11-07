@@ -34,6 +34,7 @@ fn get_shim_list_deduped(dir: &Path) -> Fallible<HashSet<String>> {
         shims.insert("node".into());
         shims.insert("npm".into());
         shims.insert("npx".into());
+        shims.insert("pnpm".into());
         shims.insert("yarn".into());
         Ok(shims)
     }
@@ -57,7 +58,7 @@ fn entry_to_shim_name((entry, metadata): (DirEntry, Metadata)) -> Option<String>
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum ShimResult {
     Created,
     AlreadyExists,

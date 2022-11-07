@@ -10,6 +10,17 @@
       "prefix": "http://localhost/node/index/"
     }
   },
+  "pnpm": {
+    "distro": {
+      "prefix": "http://localhost/pnpm/distro/"
+    },
+    "latest": {
+      "prefix": "http://localhost/pnpm/latest/"
+    },
+    "index": {
+      "prefix": "http://localhost/pnpm/index/"
+    }
+  },
   "yarn": {
     "distro": {
       "prefix": "http://localhost/yarn/distro/"

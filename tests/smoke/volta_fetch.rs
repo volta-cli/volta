@@ -24,7 +24,7 @@ fn fetch_yarn_1() {
 
 #[test]
 fn fetch_yarn_3() {
-    let p = temp_project().env("VOLTA_FEATURE_YARN_3", "yes").build();
+    let p = temp_project().build();
 
     assert_that!(p.volta("fetch yarn@3.2.0"), execs().with_status(0));
     assert!(p.yarn_version_is_fetched("3.2.0"));
