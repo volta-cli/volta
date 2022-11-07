@@ -112,7 +112,7 @@ fn test_image_path() {
     let node_npm_pnpm = Image {
         node: Sourced::with_default(v123.clone()),
         npm: Some(Sourced::with_default(v643.clone())),
-        pnpm: Some(Sourced::with_default(v771.clone())),
+        pnpm: Some(Sourced::with_default(v771)),
         yarn: None,
     };
 
