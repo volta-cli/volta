@@ -218,27 +218,34 @@ mod project {
     }
 }
 
-mod plug_n_play {
+mod yarn_berry {
     use super::*;
 
     #[test]
-    fn project_is_not_pnp() {
+    fn project_is_not_yarn_berry() {
         let project_path = fixture_path(&["basic"]);
         let test_project = Project::for_dir(project_path).unwrap().unwrap();
-        assert!(!test_project.is_yarn_pnp());
+        assert!(!test_project.is_yarn_berry());
+    }
+
+    #[test]
+    fn project_has_yarnrc_yml() {
+        let project_path = fixture_path(&["yarn-berry", "yarnrc-yml"]);
+        let test_project = Project::for_dir(project_path).unwrap().unwrap();
+        assert!(test_project.is_yarn_berry());
     }
 
     #[test]
     fn project_has_pnp_js() {
-        let project_path = fixture_path(&["plug-n-play", "pnp-js"]);
+        let project_path = fixture_path(&["yarn-berry", "pnp-js"]);
         let test_project = Project::for_dir(project_path).unwrap().unwrap();
-        assert!(test_project.is_yarn_pnp());
+        assert!(test_project.is_yarn_berry());
     }
 
     #[test]
     fn project_has_pnp_cjs() {
-        let project_path = fixture_path(&["plug-n-play", "pnp-cjs"]);
+        let project_path = fixture_path(&["yarn-berry", "pnp-cjs"]);
         let test_project = Project::for_dir(project_path).unwrap().unwrap();
-        assert!(test_project.is_yarn_pnp());
+        assert!(test_project.is_yarn_berry());
     }
 }
