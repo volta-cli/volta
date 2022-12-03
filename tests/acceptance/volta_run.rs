@@ -459,6 +459,7 @@ fn command_line_pnpm() {
         .pnpm_available_versions(PNPM_VERSION_INFO)
         .distro_mocks::<PnpmFixture>(&PNPM_VERSION_FIXTURES)
         .env(VOLTA_LOGLEVEL, "debug")
+        .env("VOLTA_FEATURE_PNPM", "1")
         .build();
 
     assert_that!(
@@ -478,6 +479,7 @@ fn inherited_pnpm() {
         .distro_mocks::<PnpmFixture>(&PNPM_VERSION_FIXTURES)
         .package_json(&package_json_with_pinned_node_pnpm("10.99.1040", "7.7.1"))
         .env(VOLTA_LOGLEVEL, "debug")
+        .env("VOLTA_FEATURE_PNPM", "1")
         .build();
 
     assert_that!(
@@ -497,6 +499,7 @@ fn force_no_pnpm() {
         .distro_mocks::<PnpmFixture>(&PNPM_VERSION_FIXTURES)
         .package_json(&package_json_with_pinned_node_pnpm("10.99.1040", "7.7.1"))
         .env(VOLTA_LOGLEVEL, "debug")
+        .env("VOLTA_FEATURE_PNPM", "1")
         .build();
 
     assert_that!(
