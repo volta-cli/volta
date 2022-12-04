@@ -171,9 +171,9 @@ impl Project {
         })
     }
 
-    /// Does this project use Yarn Berry?
-    // (project uses Yarn berry as detected by the files 'yarnrc.yml', '.pnp.js' or '.pnp.cjs' exist)
-    pub fn is_yarn_berry(&self) -> bool {
+    /// Yarn projects that are using PnP or pnpm linker need to use yarn run.
+    // (project uses Yarn berry if 'yarnrc.yml' exists, uses PnP if '.pnp.js' or '.pnp.cjs' exist)
+    pub fn needs_yarn_run(&self) -> bool {
         self.platform()
             .map_or(false, |platform| platform.yarn.is_some())
             && self.manifest_file.parent().map_or(false, |base_dir| {

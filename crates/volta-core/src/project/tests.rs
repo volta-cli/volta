@@ -218,34 +218,34 @@ mod project {
     }
 }
 
-mod yarn_berry {
+mod needs_yarn_run {
     use super::*;
 
     #[test]
-    fn project_is_not_yarn_berry() {
+    fn project_does_not_need_yarn_run() {
         let project_path = fixture_path(&["basic"]);
         let test_project = Project::for_dir(project_path).unwrap().unwrap();
-        assert!(!test_project.is_yarn_berry());
+        assert!(!test_project.needs_yarn_run());
     }
 
     #[test]
     fn project_has_yarnrc_yml() {
-        let project_path = fixture_path(&["yarn-berry", "yarnrc-yml"]);
+        let project_path = fixture_path(&["yarn", "yarnrc-yml"]);
         let test_project = Project::for_dir(project_path).unwrap().unwrap();
-        assert!(test_project.is_yarn_berry());
+        assert!(test_project.needs_yarn_run());
     }
 
     #[test]
     fn project_has_pnp_js() {
-        let project_path = fixture_path(&["yarn-berry", "pnp-js"]);
+        let project_path = fixture_path(&["yarn", "pnp-js"]);
         let test_project = Project::for_dir(project_path).unwrap().unwrap();
-        assert!(test_project.is_yarn_berry());
+        assert!(test_project.needs_yarn_run());
     }
 
     #[test]
     fn project_has_pnp_cjs() {
-        let project_path = fixture_path(&["yarn-berry", "pnp-cjs"]);
+        let project_path = fixture_path(&["yarn", "pnp-cjs"]);
         let test_project = Project::for_dir(project_path).unwrap().unwrap();
-        assert!(test_project.is_yarn_berry());
+        assert!(test_project.needs_yarn_run());
     }
 }
