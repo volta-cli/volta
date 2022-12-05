@@ -11,5 +11,5 @@ log = { version = "0.4", features = ["std"] }
 tempfile = "3.3.0"
 semver = { git = "https://github.com/mikrostew/semver", branch = "new-parser" }
 serde_json = { version = "1.0.89", features = ["preserve_order"] }
-serde = { version = "1.0.147", features = ["derive"] }
+serde = { version = "1.0.149", features = ["derive"] }
 walkdir = "2.3.2"
