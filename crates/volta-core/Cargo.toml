@@ -38,7 +38,7 @@ validate-npm-package-name = { path = "../validate-npm-package-name" }
 textwrap = "0.16.0"
 atty = "0.2"
 log = { version = "0.4", features = ["std"] }
-ctrlc = "3.2.2"
+ctrlc = "3.2.4"
 walkdir = "2.3.2"
 volta-layout = { path = "../volta-layout" }
 once_cell = "1.16.0"
