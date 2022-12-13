@@ -47,6 +47,7 @@ dunce = "1.0.4"
 ci_info = "0.14.14"
 headers = "0.4"
 attohttpc = { version = "0.27", default-features = false, features = ["json", "compress", "tls-rustls-native-roots"] }
+hyperx = "1.4.0"
 chain-map = "0.1.0"
 indexmap = "2.2.3"
 retry = "2"
@@ -54,3 +55,4 @@ fs2 = "0.4.3"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52.0"
+junction = "1.0.0"
