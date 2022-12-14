@@ -23,7 +23,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           context: ./ci/docker
-          push: true
+          push: false
+          load: true
           tags: volta
       - name: Compile and package Volta
         run: docker run --volume ${PWD}:/root/workspace --workdir /root/workspace --rm --init --tty volta /root/workspace/ci/build-linux.sh volta-linux
