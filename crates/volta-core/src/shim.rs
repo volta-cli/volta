@@ -6,7 +6,7 @@ use std::io;
 use std::path::Path;
 
 use crate::error::{Context, ErrorKind, Fallible, VoltaError};
-use crate::fs::{read_dir_eager, symlink_file};
+use crate::fs::{copy_shim, read_dir_eager};
 use crate::layout::{volta_home, volta_install};
 use crate::sync::VoltaLock;
 use log::debug;
@@ -73,7 +73,7 @@ pub fn create(shim_name: &str) -> Fallible<ShimResult> {
     #[cfg(windows)]
     windows::create_git_bash_script(shim_name)?;
 
-    match symlink_file(executable, shim) {
+    match copy_shim(executable, shim) {
         Ok(_) => Ok(ShimResult::Created),
         Err(err) => {
             if err.kind() == io::ErrorKind::AlreadyExists {
