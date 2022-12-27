@@ -35,7 +35,10 @@ pub(super) fn command(exe: &OsStr, args: &[OsString], session: &mut Session) -> 
                 }
                 None => {
                     if project.needs_yarn_run() {
-                        debug!("Project needs to use yarn to run command, calling {} with 'yarn'", bin);
+                        debug!(
+                            "Project needs to use yarn to run command, calling {} with 'yarn'",
+                            bin
+                        );
                         let platform = Platform::current(session)?;
                         let mut exe_and_args = vec![exe.to_os_string()];
                         exe_and_args.extend_from_slice(args);
