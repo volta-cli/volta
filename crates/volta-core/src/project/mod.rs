@@ -171,13 +171,15 @@ impl Project {
         })
     }
 
-    /// Does this project use Yarn Plug'n'Play?
-    // (project uses Yarn, and either of the files '.pnp.js' or '.pnp.cjs' exist)
-    pub fn is_yarn_pnp(&self) -> bool {
+    /// Yarn projects that are using PnP or pnpm linker need to use yarn run.
+    // (project uses Yarn berry if 'yarnrc.yml' exists, uses PnP if '.pnp.js' or '.pnp.cjs' exist)
+    pub fn needs_yarn_run(&self) -> bool {
         self.platform()
             .map_or(false, |platform| platform.yarn.is_some())
             && self.manifest_file.parent().map_or(false, |base_dir| {
-                base_dir.join(".pnp.js").exists() || base_dir.join(".pnp.cjs").exists()
+                base_dir.join(".yarnrc.yml").exists()
+                    || base_dir.join(".pnp.js").exists()
+                    || base_dir.join(".pnp.cjs").exists()
             })
     }
 
