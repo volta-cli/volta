@@ -36,7 +36,7 @@ fn info_installed<T: Display + Sized>(tool: T) {
 
 #[inline]
 fn info_fetched<T: Display + Sized>(tool: T) {
-    info!("{} fetched {}", success_prefix(), tool);
+    info!("{} installed and set {} as default\r\n{} to use {} in this project run `volta pin {}`", success_prefix(), tool, note_prefix(), tool, tool);
 }
 
 #[inline]
