@@ -31,12 +31,12 @@ fn debug_already_fetched<T: Display + Sized>(tool: T) {
 
 #[inline]
 fn info_installed<T: Display + Sized>(tool: T) {
-    info!("{} installed and set {} as default\n{} to use {tool} in this project run `volta pin {tool}`", success_prefix(), tool, note_prefix());
+    info!("{} installed and set {} as default\n{} to use {tool} in this project run `volta pin {too;
 }
 
 #[inline]
 fn info_fetched<T: Display + Sized>(tool: T) {
-    info!("{} installed and set {} as default\r\n{} to use {} in this project run `volta pin {}`", success_prefix(), tool, note_prefix(), tool, tool);
+    info!("{} fetched {}", success_prefix(), tool);
 }
 
 #[inline]
