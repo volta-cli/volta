@@ -1,3 +1,9 @@
+# Version 1.1.1
+
+- Experimental support for pnpm (requires `VOLTA_FEATURE_PNPM` environment variable) (#1273)
+- Fix to correctly import native root certificates (#1375)
+- Better detection of executables provided by `yarn` (#1388, #1393)
+
 # Version 1.1.0
 
 - Added support for pinning / installing Yarn 3+ (#1305)
