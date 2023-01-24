@@ -176,10 +176,10 @@ impl Project {
     pub fn needs_yarn_run(&self) -> bool {
         self.platform()
             .map_or(false, |platform| platform.yarn.is_some())
-            && self.manifest_file.parent().map_or(false, |base_dir| {
-                base_dir.join(".yarnrc.yml").exists()
-                    || base_dir.join(".pnp.js").exists()
-                    || base_dir.join(".pnp.cjs").exists()
+            && self.workspace_roots().any(|x| {
+                x.join(".yarnrc.yml").exists()
+                    || x.join(".pnp.cjs").exists()
+                    || x.join(".pnp.js").exists()
             })
     }
 
