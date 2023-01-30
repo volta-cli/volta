@@ -7,6 +7,7 @@ use std::process::ExitStatus;
 use crate::error::{ErrorKind, Fallible};
 use crate::platform::{CliPlatform, Image, Sourced};
 use crate::session::Session;
+use crate::VOLTA_FEATURE_PNPM;
 use log::debug;
 use semver::Version;
 
@@ -85,7 +86,16 @@ fn get_executor(
             Some("node") => node::command(args, session),
             Some("npm") => npm::command(args, session),
             Some("npx") => npx::command(args, session),
-            Some("pnpm") => pnpm::command(args, session),
+            Some("pnpm") => {
+                // If the pnpm feature flag variable is set, delegate to the pnpm handler
+                // If not, use the binary handler as a fallback (prior to pnpm support, installing
+                // pnpm would be handled the same as any other global binary)
+                if env::var_os(VOLTA_FEATURE_PNPM).is_some() {
+                    pnpm::command(args, session)
+                } else {
+                    binary::command(exe, args, session)
+                }
+            }
             Some("yarn") => yarn::command(args, session),
             _ => binary::command(exe, args, session),
         }

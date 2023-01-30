@@ -1,3 +1,4 @@
+use std::env;
 use std::fmt::{self, Display};
 
 use crate::error::{ErrorKind, Fallible};
@@ -6,6 +7,7 @@ use crate::session::Session;
 use crate::style::{note_prefix, success_prefix, tool_version};
 use crate::sync::VoltaLock;
 use crate::version::VersionSpec;
+use crate::VOLTA_FEATURE_PNPM;
 use cfg_if::cfg_if;
 use log::{debug, info};
 
@@ -89,8 +91,17 @@ impl Spec {
                 None => Ok(Box::new(BundledNpm)),
             },
             Spec::Pnpm(version) => {
-                let version = pnpm::resolve(version, session)?;
-                Ok(Box::new(Pnpm::new(version)))
+                // If the pnpm feature flag is set, use the special-cased package manager logic
+                // to handle resolving (and ultimately fetching / installing) pnpm. If not, then
+                // fall back to the global package behavior, which was the case prior to pnpm
+                // support being added
+                if env::var_os(VOLTA_FEATURE_PNPM).is_some() {
+                    let version = pnpm::resolve(version, session)?;
+                    Ok(Box::new(Pnpm::new(version)))
+                } else {
+                    let package = Package::new("pnpm".to_owned(), version)?;
+                    Ok(Box::new(package))
+                }
             }
             Spec::Yarn(version) => {
                 let version = yarn::resolve(version, session)?;
@@ -118,10 +129,16 @@ impl Spec {
                 feature: "Uninstalling npm".into(),
             }
             .into()),
-            Spec::Pnpm(_) => Err(ErrorKind::Unimplemented {
-                feature: "Uninstalling pnpm".into(),
+            Spec::Pnpm(_) => {
+                if env::var_os(VOLTA_FEATURE_PNPM).is_some() {
+                    Err(ErrorKind::Unimplemented {
+                        feature: "Uninstalling pnpm".into(),
+                    }
+                    .into())
+                } else {
+                    package::uninstall("pnpm")
+                }
             }
-            .into()),
             Spec::Yarn(_) => Err(ErrorKind::Unimplemented {
                 feature: "Uninstalling yarn".into(),
             }
