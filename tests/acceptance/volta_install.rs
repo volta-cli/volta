@@ -335,6 +335,7 @@ fn install_pnpm_without_node_errors() {
     let s = sandbox()
         .pnpm_available_versions(PNPM_VERSION_INFO)
         .distro_mocks::<PnpmFixture>(&PNPM_VERSION_FIXTURES)
+        .env("VOLTA_FEATURE_PNPM", "1")
         .build();
 
     assert_that!(

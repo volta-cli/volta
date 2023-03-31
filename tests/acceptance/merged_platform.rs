@@ -381,6 +381,7 @@ fn uses_project_pnpm_if_available() {
         .distro_mocks::<PnpmFixture>(&PNPM_VERSION_FIXTURES)
         .env("VOLTA_LOGLEVEL", "debug")
         .env("VOLTA_WRITE_EVENTS_FILE", "true")
+        .env("VOLTA_FEATURE_PNPM", "1")
         .default_hooks(&events_hooks_json())
         .executable_file(SCRIPT_FILENAME, EVENTS_EXECUTABLE)
         .build();
@@ -417,6 +418,7 @@ fn uses_default_pnpm_in_project_without_pnpm() {
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
         .distro_mocks::<PnpmFixture>(&PNPM_VERSION_FIXTURES)
         .env("VOLTA_LOGLEVEL", "debug")
+        .env("VOLTA_FEATURE_PNPM", "1")
         .build();
 
     assert_that!(
@@ -436,6 +438,7 @@ fn uses_default_pnpm_outside_project() {
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
         .distro_mocks::<PnpmFixture>(&PNPM_VERSION_FIXTURES)
         .env("VOLTA_LOGLEVEL", "debug")
+        .env("VOLTA_FEATURE_PNPM", "1")
         .build();
 
     assert_that!(
@@ -453,6 +456,7 @@ fn uses_pnpm_throws_project_error_in_project() {
     let s = sandbox()
         .platform(PLATFORM_NODE_ONLY)
         .package_json(PACKAGE_JSON_NODE_ONLY)
+        .env("VOLTA_FEATURE_PNPM", "1")
         .build();
 
     assert_that!(
