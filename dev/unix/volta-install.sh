@@ -135,7 +135,8 @@ parse_os_info() {
       fi
       ;;
     Darwin)
-      if [ "$(uname -m)" == "arm64" ]; then
+      # If running via Rosetta, uname -m returns x86_64, but sysctl reports proc_translated=1
+      if [ "$(uname -m)" == "arm64" ] || [ "$(sysctl -n sysctl.proc_translated)" == "1" ]; then
         echo "macos-aarch64"
       else
         echo "macos"
