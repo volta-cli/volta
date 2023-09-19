@@ -16,11 +16,13 @@ mod v0;
 mod v1;
 mod v2;
 mod v3;
+mod v4;
 
 use v0::V0;
 use v1::V1;
 use v2::V2;
 use v3::V3;
+use v4::V4;
 
 use log::{debug, info};
 use volta_core::error::Fallible;
@@ -40,6 +42,7 @@ enum MigrationState {
     V1(Box<V1>),
     V2(Box<V2>),
     V3(Box<V3>),
+    V4(Box<V4>),
 }
 
 /// Macro to simplify the boilerplate associated with detecting a tagged state.
@@ -79,7 +82,7 @@ macro_rules! detect_tagged {
     }
 }
 
-detect_tagged!((v3, V3, V3), (v2, V2, V2), (v1, V1, V1));
+detect_tagged!((v4, V4, V4), (v3, V3, V3), (v2, V2, V2), (v1, V1, V1));
 
 impl MigrationState {
     fn current() -> Fallible<Self> {
@@ -164,7 +167,8 @@ fn detect_and_migrate() -> Fallible<()> {
             MigrationState::V0(zero) => MigrationState::V1(Box::new((*zero).try_into()?)),
             MigrationState::V1(one) => MigrationState::V2(Box::new((*one).try_into()?)),
             MigrationState::V2(two) => MigrationState::V3(Box::new((*two).try_into()?)),
-            MigrationState::V3(_) => {
+            MigrationState::V3(three) => MigrationState::V4(Box::new((*three).try_into()?)),
+            MigrationState::V4(_) => {
                 break;
             }
         };
