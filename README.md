@@ -15,6 +15,8 @@
   </a>
 </p>
 
+## This fork was created to allow install directly from the repo without relying on the volta.sh website, because my work is annoying and blocks it.
+
 **Fast:** Install and run any JS tool quickly and seamlessly! Volta is built in Rust and ships as a snappy static binary.
 
 **Reliable:** Ensure everyone in your project has the same tools—without interfering with their workflow.
@@ -23,12 +25,12 @@
 
 ## Features
 
-- Speed 🚀
-- Seamless, per-project version switching
-- Cross-platform support, including Windows and all Unix shells
-- Support for multiple package managers
-- Stable tool installation—no reinstalling on every Node upgrade!
-- Extensibility hooks for site-specific customization
+-   Speed 🚀
+-   Seamless, per-project version switching
+-   Cross-platform support, including Windows and all Unix shells
+-   Support for multiple package managers
+-   Stable tool installation—no reinstalling on every Node upgrade!
+-   Extensibility hooks for site-specific customization
 
 ## Installing Volta
 

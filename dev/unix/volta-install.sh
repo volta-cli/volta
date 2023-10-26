@@ -7,7 +7,7 @@
 
 # NOTE: to use an internal company repo, change how this determines the latest version
 get_latest_release() {
-  curl --silent "https://volta.sh/latest-version"
+  curl --silent "https://api.github.com/repos/volta-cli/volta/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/'
 }
 
 release_url() {

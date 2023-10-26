@@ -6,7 +6,7 @@
 # fetch and install the appropriate build of Volta.
 
 volta_get_latest_release() {
-  curl --silent https://volta.sh/latest-version
+  curl --silent "https://api.github.com/repos/volta-cli/volta/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/'
 }
 
 volta_eprintf() {
