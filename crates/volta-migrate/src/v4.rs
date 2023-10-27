@@ -18,7 +18,7 @@ mod config;
 
 use config::LegacyPackageConfig;
 
-/// Represents a V4 Volta layout (used by Volta v0.9.0 and above)
+/// Represents a V4 Volta layout (used by Volta v1.1.2 and above)
 ///
 /// Holds a reference to the V4 layout struct to support future migrations
 pub struct V4 {
