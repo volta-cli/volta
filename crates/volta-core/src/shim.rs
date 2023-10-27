@@ -6,7 +6,7 @@ use std::io;
 use std::path::Path;
 
 use crate::error::{Context, ErrorKind, Fallible, VoltaError};
-use crate::fs::{copy_shim, read_dir_eager};
+use crate::fs::{read_dir_eager, symlink_file};
 use crate::layout::{volta_home, volta_install};
 use crate::sync::VoltaLock;
 use log::debug;
@@ -71,10 +71,17 @@ pub fn create(shim_name: &str) -> Fallible<ShimResult> {
     let executable = volta_install()?.shim_executable();
     let shim = volta_home()?.shim_file(shim_name);
 
+    let shim_result;
     #[cfg(windows)]
-    windows::create_git_bash_script(shim_name)?;
+    {
+        windows::create_git_bash_script(shim_name)?;
+        shim_result = std::fs::copy(executable, shim);
+    }
 
-    match copy_shim(executable, shim) {
+    #[cfg(unix)]
+    shim_result = symlink_file(executable, shim);
+
+    match shim_result {
         Ok(_) => Ok(ShimResult::Created),
         Err(err) => {
             if err.kind() == io::ErrorKind::AlreadyExists {

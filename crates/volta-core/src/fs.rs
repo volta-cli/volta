@@ -118,17 +118,15 @@ pub fn create_staging_dir() -> Fallible<TempDir> {
     })
 }
 
-/// Copies the file shim
-pub fn copy_shim<S, D>(src: S, dest: D) -> io::Result<()>
-where
-    S: AsRef<Path>,
-    D: AsRef<Path>,
+/// Create a file symlink. The `dst` path will be a symbolic link pointing to the `src` path.
+pub fn symlink_file<S, D>(src: S, dest: D) -> io::Result<()>
+    where
+        S: AsRef<Path>,
+        D: AsRef<Path>,
 {
-    let result = std::fs::copy(src, dest);
-    match result {
-        Ok(_v) => Ok(()),
-        Err(e) => Err(e),
-    }
+    return std::os::windows::fs::symlink_file(src, dest);
+
+    return std::os::unix::fs::symlink(src, dest);
 }
 
 /// Create a directory symlink. The `dst` path will be a symbolic link pointing to the `src` path
