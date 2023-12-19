@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 flate2 = "1.0"
 tar = "0.4.13"
-zip_rs = { version = "0.2.6", package = "zip" }
+zip_rs = { version = "0.5", package = "zip" }
 tee = "0.1.0"
 fs-utils = { path = "../fs-utils" }
 progress-read = { path = "../progress-read" }
