@@ -34,7 +34,7 @@ mockito = { version = "0.31.1", optional = true }
 test-support = { path = "crates/test-support" }
 textwrap = "0.16.0"
 which = "4.4.0"
-dirs = "4.0.0"
+dirs = "5.0.1"
 volta-migrate = { path = "crates/volta-migrate" }
 
 [target.'cfg(windows)'.dependencies]

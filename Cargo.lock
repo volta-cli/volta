@@ -75,9 +75,9 @@ dependencies = [
 
 [[package]]
 name = "attohttpc"
-version = "0.25.0"
+version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e57d6e7a84f33ff3316e97af3180fe7f86597a6a60161c0be70c0e45f382620"
+checksum = "0f77d243921b0979fbbd728dd2d5162e68ac8252976797c24eb5b3a6af9090dc"
 dependencies = [
  "flate2",
  "http",
@@ -87,7 +87,6 @@ dependencies = [
  "serde",
  "serde_json",
  "url",
- "webpki",
 ]
 
 [[package]]
@@ -344,31 +343,11 @@ dependencies = [
 
 [[package]]
 name = "dirs"
-version = "4.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca3aa72a6f96ea37bbc5aa912f6788242832f75369bdfdadcb0e38423f100059"
-dependencies = [
- "dirs-sys 0.3.6",
-]
-
-[[package]]
-name = "dirs"
 version = "5.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "44c45a9d03d6676652bcb5e724c7e988de1acad23a711b5217ab9cbecbec2225"
 dependencies = [
- "dirs-sys 0.4.1",
-]
-
-[[package]]
-name = "dirs-sys"
-version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03d86534ed367a67548dc68113a0f5db55432fdfbb6e6f9d77704397d95d5780"
-dependencies = [
- "libc",
- "redox_users",
- "winapi",
+ "dirs-sys",
 ]
 
 [[package]]
@@ -1668,7 +1647,7 @@ version = "1.1.1"
 dependencies = [
  "cfg-if 1.0.0",
  "ci_info",
- "dirs 4.0.0",
+ "dirs",
  "envoy",
  "hamcrest2",
  "hyperx",
@@ -1702,7 +1681,7 @@ dependencies = [
  "console",
  "ctrlc",
  "detect-indent",
- "dirs 5.0.1",
+ "dirs",
  "dunce",
  "envoy",
  "fs-utils",
@@ -1841,16 +1820,6 @@ checksum = "ed055ab27f941423197eb86b2035720b1a3ce40504df082cac2ecc6ed73335a1"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "webpki"
-version = "0.22.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07ecc0cd7cac091bf682ec5efa18b1cff79d617b84181f38b3951dbe135f607f"
-dependencies = [
- "ring",
- "untrusted",
 ]
 
 [[package]]
