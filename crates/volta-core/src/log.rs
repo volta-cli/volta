@@ -1,6 +1,6 @@
 //! This module provides a custom Logger implementation for use with the `log` crate
-use atty::Stream;
 use console::style;
+use is_terminal::IsTerminal;
 use log::{Level, LevelFilter, Log, Metadata, Record, SetLoggerError};
 use std::env;
 use std::fmt::Display;
@@ -146,7 +146,7 @@ fn level_from_env() -> LevelFilter {
         .ok()
         .and_then(|level| level.to_uppercase().parse().ok())
         .unwrap_or_else(|| {
-            if atty::is(Stream::Stdout) {
+            if std::io::stdout().is_terminal() {
                 LevelFilter::Info
             } else {
                 LevelFilter::Error

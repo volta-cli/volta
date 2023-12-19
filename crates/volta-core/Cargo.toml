@@ -36,7 +36,7 @@ dirs = "5.0.0"
 chrono = "0.4.23"
 validate-npm-package-name = { path = "../validate-npm-package-name" }
 textwrap = "0.16.0"
-atty = "0.2"
+is-terminal = "0.4.7"
 log = { version = "0.4", features = ["std"] }
 ctrlc = "3.2.5"
 walkdir = "2.3.2"

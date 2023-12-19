@@ -4,6 +4,7 @@ mod toolchain;
 
 use std::{fmt, path::PathBuf, str::FromStr};
 
+use is_terminal::IsTerminal as _;
 use semver::Version;
 use structopt::StructOpt;
 
@@ -265,7 +266,7 @@ impl List {
         // have, that trumps our TTY-checking. Then, if the user has *not*
         // specified an option, we use `Human` mode for TTYs and `Plain` for
         // non-TTY contexts.
-        self.format.unwrap_or(if atty::is(atty::Stream::Stdout) {
+        self.format.unwrap_or(if std::io::stdout().is_terminal() {
             Format::Human
         } else {
             Format::Plain
