@@ -1,4 +1,4 @@
 [toolchain]
-channel = "1.63"
+channel = "1.75"
 components = ["clippy", "rustfmt"]
 profile = "minimal"

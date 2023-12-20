@@ -26,7 +26,7 @@ jobs:
       - name: Set up cargo
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.63
+          toolchain: 1.75
           components: clippy
       - name: Cargo Cache
         uses: Swatinem/rust-cache@v2
@@ -50,7 +50,7 @@ jobs:
       - name: Set up cargo
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.63
+          toolchain: 1.75
       - name: Cargo Cache
         uses: Swatinem/rust-cache@v2
       - name: Run tests
@@ -77,7 +77,7 @@ jobs:
       - name: Set up cargo
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.63
+          toolchain: 1.75
           components: rustfmt
       - name: Cargo Cache
         uses: Swatinem/rust-cache@v2

@@ -43,7 +43,7 @@ jobs:
       - name: Set up cargo
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.63
+          toolchain: 1.75
       - name: Cargo Cache
         uses: Swatinem/rust-cache@v2
       - name: Compile and package Volta
@@ -63,7 +63,7 @@ jobs:
       - name: Set up cargo
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.63
+          toolchain: 1.75
           target: aarch64-apple-darwin
       - name: Cargo Cache
         uses: Swatinem/rust-cache@v2
@@ -84,7 +84,7 @@ jobs:
       - name: Set up cargo
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.63
+          toolchain: 1.75
       - name: Cargo Cache
         uses: Swatinem/rust-cache@v2
       - name: Add cargo-wix subcommand
