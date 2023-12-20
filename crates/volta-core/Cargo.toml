@@ -39,7 +39,7 @@ textwrap = "0.16.0"
 is-terminal = "0.4.7"
 log = { version = "0.4", features = ["std"] }
 ctrlc = "3.2.5"
-walkdir = "2.3.2"
+walkdir = "2.4.0"
 volta-layout = { path = "../volta-layout" }
 once_cell = "1.17.0"
 dunce = "1.0.3"
