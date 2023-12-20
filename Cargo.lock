@@ -231,9 +231,9 @@ dependencies = [
 
 [[package]]
 name = "ci_info"
-version = "0.14.9"
+version = "0.14.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62a62f39080c8c83e899dff6abd46c4fac05c1cf8dafece96ad8238e79addbf8"
+checksum = "840dbb7bdd1f2c4d434d6b08420ef204e0bfad0ab31a07a80a1248d24cc6e38b"
 dependencies = [
  "envmnt",
 ]
@@ -1693,7 +1693,7 @@ dependencies = [
  "validate-npm-package-name",
  "volta-layout",
  "walkdir",
- "winreg 0.50.0",
+ "winreg 0.52.0",
 ]
 
 [[package]]
@@ -2050,9 +2050,9 @@ dependencies = [
 
 [[package]]
 name = "winreg"
-version = "0.50.0"
+version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "524e57b2c537c0f9b1e69f1965311ec12182b4122e45035b1508cd24d2adadb1"
+checksum = "a277a57398d4bfa075df44f501a17cfdf8542d224f0d36095a2adc7aee4ef0a5"
 dependencies = [
  "cfg-if",
  "windows-sys 0.48.0",
