@@ -1,7 +1,7 @@
 use crate::error::{Context, ErrorKind, Fallible, VoltaError};
 use crate::platform::PlatformSpec;
 use crate::version::{option_version_serde, version_serde};
-use semver::Version;
+use node_semver::Version;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
@@ -74,7 +74,7 @@ pub mod tests {
 
     use super::*;
     use crate::platform;
-    use semver::Version;
+    use node_semver::Version;
 
     // NOTE: serde_json is required with the "preserve_order" feature in Cargo.toml,
     // so these tests will serialized/deserialize in a predictable order

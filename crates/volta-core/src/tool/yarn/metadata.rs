@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use crate::version::version_serde;
-use semver::Version;
+use node_semver::Version;
 use serde::Deserialize;
 
 /// The public Yarn index.

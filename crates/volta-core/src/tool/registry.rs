@@ -9,7 +9,7 @@ use crate::version::{hashmap_version_serde, version_serde};
 use attohttpc::header::ACCEPT;
 use attohttpc::Response;
 use cfg_if::cfg_if;
-use semver::Version;
+use node_semver::Version;
 use serde::Deserialize;
 
 // Accept header needed to request the abbreviated metadata from the npm registry

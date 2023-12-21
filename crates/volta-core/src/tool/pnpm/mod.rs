@@ -1,4 +1,4 @@
-use semver::Version;
+use node_semver::Version;
 use std::fmt::{self, Display};
 
 use crate::error::{ErrorKind, Fallible};

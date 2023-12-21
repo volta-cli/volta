@@ -1,6 +1,6 @@
 //! Define the "plain" format style for list commands.
 
-use semver::Version;
+use node_semver::Version;
 
 use volta_core::style::tool_version;
 
@@ -204,7 +204,7 @@ mod tests {
     use std::path::PathBuf;
 
     use lazy_static::lazy_static;
-    use semver::Version;
+    use node_semver::Version;
 
     use crate::command::list::PackageDetails;
 

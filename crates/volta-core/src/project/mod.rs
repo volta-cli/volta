@@ -8,7 +8,7 @@ use std::iter::once;
 use std::path::{Path, PathBuf};
 
 use lazycell::LazyCell;
-use semver::Version;
+use node_semver::Version;
 
 use crate::error::{Context, ErrorKind, Fallible, VoltaError};
 use crate::layout::volta_home;

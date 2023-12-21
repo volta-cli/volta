@@ -1,4 +1,4 @@
-use semver::{Compat, ReqParseError, VersionReq};
+use node_semver::{Range, SemverError};
 
 // NOTE: using `parse_compat` here because the semver crate defaults to
 // parsing in a cargo-compatible way. This is normally fine, except for
@@ -11,43 +11,43 @@ use semver::{Compat, ReqParseError, VersionReq};
 // Because we are parsing the version requirements from the command line,
 // then serializing them to pass to `npm view`, they need to be handled in
 // a Node-compatible way (or we get the wrong version info returned).
-pub fn parse_requirements(src: &str) -> Result<VersionReq, ReqParseError> {
+pub fn parse_requirements(src: &str) -> Result<Range, SemverError> {
     let src = src.trim().trim_start_matches('v');
 
-    VersionReq::parse_compat(src, Compat::Node)
+    Range::parse(src)
 }
 
 #[cfg(test)]
 pub mod tests {
 
     use crate::version::serial::parse_requirements;
-    use semver::{Compat, VersionReq};
+    use node_semver::Range;
 
     #[test]
     fn test_parse_requirements() {
         assert_eq!(
             parse_requirements("1.2.3").unwrap(),
-            VersionReq::parse_compat("=1.2.3", Compat::Node).unwrap()
+            Range::parse("=1.2.3").unwrap()
         );
         assert_eq!(
             parse_requirements("v1.5").unwrap(),
-            VersionReq::parse_compat("=1.5", Compat::Node).unwrap()
+            Range::parse("=1.5").unwrap()
         );
         assert_eq!(
             parse_requirements("=1.2.3").unwrap(),
-            VersionReq::parse_compat("=1.2.3", Compat::Node).unwrap()
+            Range::parse("=1.2.3").unwrap()
         );
         assert_eq!(
             parse_requirements("^1.2").unwrap(),
-            VersionReq::parse_compat("^1.2", Compat::Node).unwrap()
+            Range::parse("^1.2").unwrap()
         );
         assert_eq!(
             parse_requirements(">=1.4").unwrap(),
-            VersionReq::parse_compat(">=1.4", Compat::Node).unwrap()
+            Range::parse(">=1.4").unwrap()
         );
         assert_eq!(
             parse_requirements("8.11 - 8.17 || 10.* || >= 12").unwrap(),
-            VersionReq::parse_compat("8.11 - 8.17 || 10.* || >= 12", Compat::Node).unwrap()
+            Range::parse("8.11 - 8.17 || 10.* || >= 12").unwrap()
         );
     }
 }

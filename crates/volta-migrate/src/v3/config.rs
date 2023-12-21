@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::path::Path;
 
-use semver::Version;
+use node_semver::Version;
 use volta_core::platform::PlatformSpec;
 use volta_core::version::{option_version_serde, version_serde};
 
