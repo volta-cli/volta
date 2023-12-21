@@ -15,7 +15,7 @@ use archive::{self, Archive};
 use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
 use log::debug;
-use semver::Version;
+use node_semver::Version;
 use serde::Deserialize;
 
 cfg_if! {

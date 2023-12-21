@@ -401,7 +401,7 @@ mod tests {
     use std::path::PathBuf;
 
     use lazy_static::lazy_static;
-    use semver::Version;
+    use node_semver::Version;
 
     use super::*;
 
@@ -1136,7 +1136,7 @@ See `volta help install` for details and more options.";
     mod packages {
         use super::*;
         use crate::command::list::{Package, PackageDetails};
-        use semver::Version;
+        use node_semver::Version;
 
         #[test]
         fn none() {
@@ -1262,7 +1262,7 @@ See `volta help install` for details and more options.";
     mod tools {
         use super::*;
         use crate::command::list::{Package, PackageDetails};
-        use semver::Version;
+        use node_semver::Version;
 
         #[test]
         fn none() {

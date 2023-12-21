@@ -9,7 +9,7 @@ use crate::layout::volta_home;
 use crate::platform::PlatformSpec;
 use crate::version::{option_version_serde, version_serde};
 use fs_utils::ensure_containing_dir_exists;
-use semver::Version;
+use node_semver::Version;
 
 /// Configuration information about an installed package
 ///

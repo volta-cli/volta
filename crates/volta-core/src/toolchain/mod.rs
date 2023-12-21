@@ -7,8 +7,8 @@ use crate::layout::volta_home;
 use crate::platform::PlatformSpec;
 use lazycell::LazyCell;
 use log::debug;
+use node_semver::Version;
 use readext::ReadExt;
-use semver::Version;
 
 pub mod serial;
 

@@ -8,7 +8,7 @@ use std::time::{Duration, SystemTime};
 use cfg_if::cfg_if;
 use hyperx::header::HttpDate;
 use mockito::{self, mock, Matcher};
-use semver::Version;
+use node_semver::Version;
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 use volta_core::fs::{set_executable, symlink_file};
 use volta_core::tool::{Node, Pnpm, Yarn, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION, NODE_DISTRO_OS};

@@ -7,11 +7,17 @@ use crate::error::{ErrorKind, Fallible};
 use crate::platform::{Platform, System};
 use crate::session::{ActivityKind, Session};
 use lazy_static::lazy_static;
-use semver::Version;
+use node_semver::Version;
 
 lazy_static! {
     /// The minimum required npm version that includes npx (5.2.0)
-    static ref REQUIRED_NPM_VERSION: Version = Version::new(5, 2, 0);
+    static ref REQUIRED_NPM_VERSION: Version = Version {
+        major: 5,
+        minor: 2,
+        patch: 0,
+        build: vec![],
+        pre_release: vec![]
+    };
 }
 
 /// Build a `ToolCommand` for npx

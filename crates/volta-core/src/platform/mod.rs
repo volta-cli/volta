@@ -5,7 +5,7 @@ use crate::error::{ErrorKind, Fallible};
 use crate::session::Session;
 use crate::tool::{Node, Npm, Pnpm, Yarn};
 use crate::VOLTA_FEATURE_PNPM;
-use semver::Version;
+use node_semver::Version;
 
 mod image;
 mod system;

@@ -11,7 +11,7 @@ use crate::layout::volta_home;
 use crate::tool::PackageConfig;
 use crate::version::parse_version;
 use log::debug;
-use semver::Version;
+use node_semver::Version;
 use walkdir::WalkDir;
 
 /// Checks if a given Node version image is available on the local machine

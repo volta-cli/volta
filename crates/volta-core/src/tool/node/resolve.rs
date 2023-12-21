@@ -21,7 +21,7 @@ use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
 use hyperx::header::{CacheControl, CacheDirective, Expires, HttpDate, TypedHeaders};
 use log::debug;
-use semver::{Version, VersionReq};
+use node_semver::{Range, Version};
 
 // ISSUE (#86): Move public repository URLs to config file
 cfg_if! {
@@ -109,7 +109,7 @@ fn resolve_lts(hooks: Option<&ToolHooks<Node>>) -> Fallible<Version> {
     }
 }
 
-fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Node>>) -> Fallible<Version> {
+fn resolve_semver(matching: Range, hooks: Option<&ToolHooks<Node>>) -> Fallible<Version> {
     let url = match hooks {
         Some(&ToolHooks {
             index: Some(ref hook),
@@ -120,8 +120,9 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Node>>) -> Fall
         }
         _ => public_node_version_index(),
     };
-    let version_opt =
-        match_node_version(&url, |NodeEntry { version, .. }| matching.matches(version))?;
+    let version_opt = match_node_version(&url, |NodeEntry { version, .. }| {
+        matching.satisfies(version)
+    })?;
 
     match version_opt {
         Some(version) => {

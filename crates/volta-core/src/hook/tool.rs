@@ -12,7 +12,7 @@ use cmdline_words_parser::parse_posix;
 use dunce::canonicalize;
 use lazy_static::lazy_static;
 use log::debug;
-use semver::Version;
+use node_semver::Version;
 
 const ARCH_TEMPLATE: &str = "{{arch}}";
 const OS_TEMPLATE: &str = "{{os}}";
@@ -182,14 +182,14 @@ fn execute_binary(bin: &str, base_path: &Path, extra_arg: Option<String>) -> Fal
 pub mod tests {
     use super::{calculate_extension, DistroHook, MetadataHook};
     use crate::tool::{NODE_DISTRO_ARCH, NODE_DISTRO_OS};
-    use semver::Version;
+    use node_semver::Version;
 
     #[test]
     fn test_distro_prefix_resolve() {
         let prefix = "http://localhost/node/distro/";
         let filename = "node.tar.gz";
         let hook = DistroHook::Prefix(prefix.to_string());
-        let version = Version::new(1, 0, 0);
+        let version = Version::parse("1.0.0").unwrap();
 
         assert_eq!(
             hook.resolve(&version, filename)
@@ -203,7 +203,7 @@ pub mod tests {
         let hook = DistroHook::Template(
             "http://localhost/node/{{os}}/{{arch}}/{{version}}/{{ext}}/{{filename}}".to_string(),
         );
-        let version = Version::new(1, 0, 0);
+        let version = Version::parse("1.0.0").unwrap();
 
         // tar.gz format has extra handling, to support a multi-part extension
         let expected = format!(

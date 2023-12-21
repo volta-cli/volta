@@ -5,7 +5,7 @@ mod toolchain;
 use std::{fmt, path::PathBuf, str::FromStr};
 
 use is_terminal::IsTerminal as _;
-use semver::Version;
+use node_semver::Version;
 use structopt::StructOpt;
 
 use crate::command::Command;

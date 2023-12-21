@@ -11,7 +11,7 @@ use crate::style::{note_prefix, tool_version};
 use crate::sync::VoltaLock;
 use cfg_if::cfg_if;
 use log::info;
-use semver::Version;
+use node_semver::Version;
 
 mod fetch;
 mod metadata;
@@ -259,7 +259,7 @@ mod tests {
     #[test]
     fn test_node_archive_basename() {
         assert_eq!(
-            Node::archive_basename(&Version::new(1, 2, 3)),
+            Node::archive_basename(&Version::parse("1.2.3").unwrap()),
             format!("node-v1.2.3-{}-{}", NODE_DISTRO_OS, NODE_DISTRO_ARCH)
         );
     }
@@ -267,7 +267,7 @@ mod tests {
     #[test]
     fn test_node_archive_filename() {
         assert_eq!(
-            Node::archive_filename(&Version::new(1, 2, 3)),
+            Node::archive_filename(&Version::parse("1.2.3").unwrap()),
             format!(
                 "node-v1.2.3-{}-{}.{}",
                 NODE_DISTRO_OS, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION

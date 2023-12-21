@@ -8,7 +8,7 @@ use super::PartialPlatform;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::version::parse_version;
 use dunce::canonicalize;
-use semver::Version;
+use node_semver::Version;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
