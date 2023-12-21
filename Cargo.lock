@@ -297,7 +297,8 @@ dependencies = [
 [[package]]
 name = "detect-indent"
 version = "0.1.0"
-source = "git+https://github.com/stefanpenner/detect-indent-rs?branch=master#f645bcc81bfb1f9745c4a4dec7c7f6faf3f84ec5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ae11867b75e44bacc8baf64be8abe6501c6571bbf33fed819a0a90623c82d1b"
 dependencies = [
  "lazy_static",
  "regex",
