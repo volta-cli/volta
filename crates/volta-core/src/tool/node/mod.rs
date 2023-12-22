@@ -259,18 +259,42 @@ mod tests {
     #[test]
     fn test_node_archive_basename() {
         assert_eq!(
-            Node::archive_basename(&Version::parse("1.2.3").unwrap()),
-            format!("node-v1.2.3-{}-{}", NODE_DISTRO_OS, NODE_DISTRO_ARCH)
+            Node::archive_basename(&Version::parse("16.2.3").unwrap()),
+            format!("node-v16.2.3-{}-{}", NODE_DISTRO_OS, NODE_DISTRO_ARCH)
         );
     }
 
     #[test]
     fn test_node_archive_filename() {
         assert_eq!(
+            Node::archive_filename(&Version::parse("16.2.3").unwrap()),
+            format!(
+                "node-v16.2.3-{}-{}.{}",
+                NODE_DISTRO_OS, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION
+            )
+        );
+    }
+
+    #[test]
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    fn test_fallback_node_archive_basename() {
+        assert_eq!(
+            Node::archive_basename(&Version::parse("1.2.3").unwrap()),
+            format!(
+                "node-v1.2.3-{}-{}",
+                NODE_DISTRO_OS, NODE_DISTRO_ARCH_FALLBACK
+            )
+        );
+    }
+
+    #[test]
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    fn test_fallback_node_archive_filename() {
+        assert_eq!(
             Node::archive_filename(&Version::parse("1.2.3").unwrap()),
             format!(
                 "node-v1.2.3-{}-{}.{}",
-                NODE_DISTRO_OS, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION
+                NODE_DISTRO_OS, NODE_DISTRO_ARCH_FALLBACK, NODE_DISTRO_EXTENSION
             )
         );
     }
