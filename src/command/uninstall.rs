@@ -9,7 +9,7 @@ use crate::command::Command;
 
 #[derive(StructOpt)]
 pub(crate) struct Uninstall {
-    /// The tool to uninstall, e.g. `npm`, `yarn`, or <package>
+    /// The tool to uninstall, e.g. `yarn`, or <package>
     tool: String,
 }
 
