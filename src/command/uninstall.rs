@@ -9,7 +9,7 @@ use crate::command::Command;
 
 #[derive(StructOpt)]
 pub(crate) struct Uninstall {
-    /// The tool to uninstall, e.g. <package>
+    /// The tool to uninstall, like `ember-cli-update`, `typescript`, or <package>
     tool: String,
 }
 
