@@ -135,11 +135,7 @@ parse_os_info() {
       fi
       ;;
     Darwin)
-      if [ "$(uname -m)" == "arm64" ]; then
-        echo "macos-aarch64"
-      else
-        echo "macos"
-      fi
+      echo "macos"
       ;;
     *)
       return 1
