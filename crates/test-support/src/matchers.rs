@@ -374,12 +374,15 @@ impl Execs {
 
                 let mut matches = 0;
 
-                while let Some(..) = {
+                loop {
                     if self.diff_lines(a.clone(), e.clone(), true).is_empty() {
                         matches += 1;
                     }
-                    a.next()
-                } {}
+
+                    if a.next().is_none() {
+                        break;
+                    }
+                }
 
                 if matches == number {
                     Ok(())
