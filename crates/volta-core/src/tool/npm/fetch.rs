@@ -25,7 +25,7 @@ pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Npm>>) -> Fallible<()> 
         Some(archive) => {
             debug!(
                 "Loading {} from cached archive at '{}'",
-                tool_version("npm", &version),
+                tool_version("npm", version),
                 cache_file.display()
             );
             (archive, None)

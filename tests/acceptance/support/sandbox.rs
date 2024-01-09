@@ -449,7 +449,7 @@ impl SandboxBuilder {
 
             let range_mock = mock("GET", &server_path[..])
                 .match_header("Range", Matcher::Any)
-                .with_body(&uncompressed_size_bytes)
+                .with_body(uncompressed_size_bytes)
                 .create();
             self.root.mocks.push(range_mock);
         }
@@ -457,7 +457,7 @@ impl SandboxBuilder {
         let file_mock = mock("GET", &server_path[..])
             .match_header("Range", Matcher::Missing)
             .with_header("Accept-Ranges", "bytes")
-            .with_body_from_file(&fixture_path)
+            .with_body_from_file(fixture_path)
             .create();
         self.root.mocks.push(file_mock);
 
@@ -856,7 +856,7 @@ impl Sandbox {
     /// Example:
     ///     assert_that(p.volta("use node 9.5"), execs());
     pub fn volta(&self, cmd: &str) -> ProcessBuilder {
-        let mut p = self.process(&volta_exe());
+        let mut p = self.process(volta_exe());
         split_and_add_args(&mut p, cmd);
         p
     }

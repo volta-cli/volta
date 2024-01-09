@@ -27,7 +27,7 @@ pub fn fetch(version: &Version, hooks: Option<&YarnHooks>) -> Fallible<()> {
         Some(archive) => {
             debug!(
                 "Loading {} from cached archive at '{}'",
-                tool_version("yarn", &version),
+                tool_version("yarn", version),
                 cache_file.display(),
             );
             (archive, None)
