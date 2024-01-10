@@ -48,7 +48,7 @@ fn global_root() -> PathBuf {
 
 pub fn root() -> PathBuf {
     init();
-    global_root().join(&TASK_ID.with(|my_id| format!("t{}", my_id)))
+    global_root().join(TASK_ID.with(|my_id| format!("t{}", my_id)))
 }
 
 pub fn home() -> PathBuf {
@@ -70,6 +70,8 @@ impl Remove {
     fn at(&self, path: &Path) {
         if cfg!(windows) {
             let mut p = ok_or_panic!(path.metadata()).permissions();
+            // This lint rule is not applicable: this is in a `cfg!(windows)` block.
+            #[allow(clippy::permissions_set_readonly_false)]
             p.set_readonly(false);
             ok_or_panic! { fs::set_permissions(path, p) };
         }

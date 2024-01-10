@@ -340,7 +340,7 @@ fn format_package(package: &Package) -> String {
             let binaries = wrap(format!("binary tools: {}", tools));
             let platform_detail = wrap(format!(
                 "runtime: {}\npackage manager: {}",
-                tool_version("node", &node),
+                tool_version("node", node),
                 // TODO: Should be updated when we support installing with custom package_managers,
                 // whether Yarn or non-built-in versions of npm
                 "npm@built-in"
