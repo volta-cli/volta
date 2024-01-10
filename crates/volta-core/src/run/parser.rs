@@ -146,10 +146,8 @@ impl<'a> CommandArg<'a> {
             return CommandArg::Standard;
         }
 
-        let (flags, positionals): (Vec<&OsStr>, Vec<&OsStr>) = args
-            .iter()
-            .map(AsRef::<OsStr>::as_ref)
-            .partition(|arg| is_flag(arg));
+        let (flags, positionals): (Vec<&OsStr>, Vec<&OsStr>) =
+            args.iter().map(AsRef::<OsStr>::as_ref).partition(is_flag);
 
         // The first positional argument will always be the subcommand for pnpm
         match positionals.split_first() {
@@ -525,7 +523,7 @@ mod tests {
 
         #[test]
         fn handles_global_install() {
-            match CommandArg::for_npm(&arg_list(&["install", "--global", "typescript@3"])) {
+            match CommandArg::for_npm(&arg_list(["install", "--global", "typescript@3"])) {
                 CommandArg::Global(GlobalCommand::Install(install)) => {
                     assert_eq!(install.manager, PackageManager::Npm);
                     assert_eq!(install.common_args, vec!["install", "--global"]);
@@ -537,7 +535,7 @@ mod tests {
 
         #[test]
         fn handles_local_install() {
-            match CommandArg::for_npm(&arg_list(&["install", "--save-dev", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["install", "--save-dev", "typescript"])) {
                 CommandArg::Standard => (),
                 _ => panic!("Parses local install as global"),
             };
@@ -545,7 +543,7 @@ mod tests {
 
         #[test]
         fn handles_global_uninstall() {
-            match CommandArg::for_npm(&arg_list(&["uninstall", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["uninstall", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Uninstall(uninstall)) => {
                     assert_eq!(uninstall.tools, vec!["typescript"]);
                 }
@@ -555,7 +553,7 @@ mod tests {
 
         #[test]
         fn handles_local_uninstall() {
-            match CommandArg::for_npm(&arg_list(&["uninstall", "--save-dev", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["uninstall", "--save-dev", "typescript"])) {
                 CommandArg::Standard => (),
                 _ => panic!("Parses local uninstall as global"),
             };
@@ -563,7 +561,7 @@ mod tests {
 
         #[test]
         fn handles_multiple_install() {
-            match CommandArg::for_npm(&arg_list(&[
+            match CommandArg::for_npm(&arg_list([
                 "install",
                 "--global",
                 "typescript@3",
@@ -584,7 +582,7 @@ mod tests {
 
         #[test]
         fn handles_multiple_uninstall() {
-            match CommandArg::for_npm(&arg_list(&[
+            match CommandArg::for_npm(&arg_list([
                 "uninstall",
                 "--global",
                 "typescript",
@@ -600,7 +598,7 @@ mod tests {
 
         #[test]
         fn handles_bare_link() {
-            match CommandArg::for_npm(&arg_list(&["link"])) {
+            match CommandArg::for_npm(&arg_list(["link"])) {
                 CommandArg::Intercepted(InterceptedCommand::Link(_)) => (),
                 _ => panic!("Doesn't parse bare link command ('npm link' with no packages"),
             };
@@ -608,7 +606,7 @@ mod tests {
 
         #[test]
         fn handles_multiple_link() {
-            match CommandArg::for_npm(&arg_list(&["link", "typescript", "react"])) {
+            match CommandArg::for_npm(&arg_list(["link", "typescript", "react"])) {
                 CommandArg::Intercepted(InterceptedCommand::Link(link)) => {
                     assert_eq!(link.tools, vec!["typescript", "react"]);
                 }
@@ -618,7 +616,7 @@ mod tests {
 
         #[test]
         fn handles_bare_unlink() {
-            match CommandArg::for_npm(&arg_list(&["unlink"])) {
+            match CommandArg::for_npm(&arg_list(["unlink"])) {
                 CommandArg::Intercepted(InterceptedCommand::Unlink) => (),
                 _ => panic!("Doesn't parse bare unlink command ('npm unlink' with no packages"),
             };
@@ -626,7 +624,7 @@ mod tests {
 
         #[test]
         fn handles_local_unlink() {
-            match CommandArg::for_npm(&arg_list(&["unlink", "@angular/cli"])) {
+            match CommandArg::for_npm(&arg_list(["unlink", "@angular/cli"])) {
                 CommandArg::Standard => (),
                 _ => panic!("Doesn't pass through local 'unlink' command"),
             }
@@ -634,12 +632,12 @@ mod tests {
 
         #[test]
         fn handles_global_aliases() {
-            match CommandArg::for_npm(&arg_list(&["install", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["install", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(_)) => (),
                 _ => panic!("Doesn't parse long form (--global)"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["install", "-g", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["install", "-g", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(_)) => (),
                 _ => panic!("Doesn't parse short form (-g)"),
             };
@@ -647,62 +645,62 @@ mod tests {
 
         #[test]
         fn handles_install_aliases() {
-            match CommandArg::for_npm(&arg_list(&["i", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["i", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(_)) => (),
                 _ => panic!("Doesn't parse short form (i)"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["in", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["in", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(_)) => (),
                 _ => panic!("Doesn't parse short form (in)"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["ins", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["ins", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(_)) => (),
                 _ => panic!("Doesn't parse short form (ins)"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["inst", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["inst", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(_)) => (),
                 _ => panic!("Doesn't parse short form (inst)"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["insta", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["insta", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(_)) => (),
                 _ => panic!("Doesn't parse short form (insta)"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["instal", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["instal", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(_)) => (),
                 _ => panic!("Doesn't parse short form (instal)"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["install", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["install", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(_)) => (),
                 _ => panic!("Doesn't parse exact command (install)"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["isnt", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["isnt", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(_)) => (),
                 _ => panic!("Doesn't parse short form misspelling (isnt)"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["isnta", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["isnta", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(_)) => (),
                 _ => panic!("Doesn't parse short form misspelling (isnta)"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["isntal", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["isntal", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(_)) => (),
                 _ => panic!("Doesn't parse short form misspelling (isntal)"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["isntall", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["isntall", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(_)) => (),
                 _ => panic!("Doesn't parse misspelling (isntall)"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["add", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["add", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(_)) => (),
                 _ => panic!("Doesn't parse 'add' alias"),
             };
@@ -710,32 +708,32 @@ mod tests {
 
         #[test]
         fn handles_uninstall_aliases() {
-            match CommandArg::for_npm(&arg_list(&["uninstall", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["uninstall", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Uninstall(_)) => (),
                 _ => panic!("Doesn't parse long form (uninstall)"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["unlink", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["unlink", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Uninstall(_)) => (),
                 _ => panic!("Doesn't parse 'unlink'"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["remove", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["remove", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Uninstall(_)) => (),
                 _ => panic!("Doesn't parse 'remove'"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["un", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["un", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Uninstall(_)) => (),
                 _ => panic!("Doesn't parse short form (un)"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["rm", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["rm", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Uninstall(_)) => (),
                 _ => panic!("Doesn't parse short form (rm)"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["r", "--global", "typescript"])) {
+            match CommandArg::for_npm(&arg_list(["r", "--global", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Uninstall(_)) => (),
                 _ => panic!("Doesn't parse short form (r)"),
             };
@@ -743,12 +741,12 @@ mod tests {
 
         #[test]
         fn handles_link_aliases() {
-            match CommandArg::for_npm(&arg_list(&["link"])) {
+            match CommandArg::for_npm(&arg_list(["link"])) {
                 CommandArg::Intercepted(InterceptedCommand::Link(_)) => (),
                 _ => panic!("Doesn't parse long form (link)"),
             };
 
-            match CommandArg::for_npm(&arg_list(&["ln"])) {
+            match CommandArg::for_npm(&arg_list(["ln"])) {
                 CommandArg::Intercepted(InterceptedCommand::Link(_)) => (),
                 _ => panic!("Doesn't parse short form (ln)"),
             };
@@ -756,7 +754,7 @@ mod tests {
 
         #[test]
         fn processes_flags() {
-            match CommandArg::for_npm(&arg_list(&[
+            match CommandArg::for_npm(&arg_list([
                 "--global",
                 "install",
                 "typescript",
@@ -775,7 +773,7 @@ mod tests {
                 _ => panic!("Doesn't parse install with extra flags as a global"),
             };
 
-            match CommandArg::for_npm(&arg_list(&[
+            match CommandArg::for_npm(&arg_list([
                 "uninstall",
                 "--silent",
                 "typescript",
@@ -791,42 +789,42 @@ mod tests {
 
         #[test]
         fn skips_commands_with_prefix() {
-            match CommandArg::for_npm(&arg_list(&["install", "-g", "--prefix", "~/", "ember"])) {
+            match CommandArg::for_npm(&arg_list(["install", "-g", "--prefix", "~/", "ember"])) {
                 CommandArg::Standard => {}
                 _ => panic!("Parsed command with prefix as a global"),
             }
 
-            match CommandArg::for_npm(&arg_list(&["install", "-g", "--prefix=~/", "ember"])) {
+            match CommandArg::for_npm(&arg_list(["install", "-g", "--prefix=~/", "ember"])) {
                 CommandArg::Standard => {}
                 _ => panic!("Parsed command with prefix as a global"),
             }
 
-            match CommandArg::for_npm(&arg_list(&["uninstall", "-g", "--prefix", "~/", "ember"])) {
+            match CommandArg::for_npm(&arg_list(["uninstall", "-g", "--prefix", "~/", "ember"])) {
                 CommandArg::Standard => {}
                 _ => panic!("Parsed command with prefix as a global"),
             }
 
-            match CommandArg::for_npm(&arg_list(&["uninstall", "-g", "--prefix=~/", "ember"])) {
+            match CommandArg::for_npm(&arg_list(["uninstall", "-g", "--prefix=~/", "ember"])) {
                 CommandArg::Standard => {}
                 _ => panic!("Parsed command with prefix as a global"),
             }
 
-            match CommandArg::for_npm(&arg_list(&["unlink", "-g", "--prefix", "~/", "ember"])) {
+            match CommandArg::for_npm(&arg_list(["unlink", "-g", "--prefix", "~/", "ember"])) {
                 CommandArg::Standard => {}
                 _ => panic!("Parsed command with prefix as a global"),
             }
 
-            match CommandArg::for_npm(&arg_list(&["unlink", "-g", "--prefix=~/", "ember"])) {
+            match CommandArg::for_npm(&arg_list(["unlink", "-g", "--prefix=~/", "ember"])) {
                 CommandArg::Standard => {}
                 _ => panic!("Parsed command with prefix as a global"),
             }
 
-            match CommandArg::for_npm(&arg_list(&["update", "-g", "--prefix", "~/"])) {
+            match CommandArg::for_npm(&arg_list(["update", "-g", "--prefix", "~/"])) {
                 CommandArg::Standard => {}
                 _ => panic!("Parsed command with prefix as a global"),
             }
 
-            match CommandArg::for_npm(&arg_list(&["update", "-g", "--prefix=~/"])) {
+            match CommandArg::for_npm(&arg_list(["update", "-g", "--prefix=~/"])) {
                 CommandArg::Standard => {}
                 _ => panic!("Parsed command with prefix as a global"),
             }
@@ -839,7 +837,7 @@ mod tests {
 
         #[test]
         fn handles_global_add() {
-            match CommandArg::for_yarn(&arg_list(&["global", "add", "typescript"])) {
+            match CommandArg::for_yarn(&arg_list(["global", "add", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Install(install)) => {
                     assert_eq!(install.manager, PackageManager::Yarn);
                     assert_eq!(install.common_args, vec!["global", "add"]);
@@ -851,12 +849,12 @@ mod tests {
 
         #[test]
         fn handles_local_add() {
-            match CommandArg::for_yarn(&arg_list(&["add", "typescript"])) {
+            match CommandArg::for_yarn(&arg_list(["add", "typescript"])) {
                 CommandArg::Standard => (),
                 _ => panic!("Parses local add as a global"),
             };
 
-            match CommandArg::for_yarn(&arg_list(&["add", "global"])) {
+            match CommandArg::for_yarn(&arg_list(["add", "global"])) {
                 CommandArg::Standard => (),
                 _ => panic!("Incorrectly handles bad order"),
             };
@@ -864,7 +862,7 @@ mod tests {
 
         #[test]
         fn handles_global_remove() {
-            match CommandArg::for_yarn(&arg_list(&["global", "remove", "typescript"])) {
+            match CommandArg::for_yarn(&arg_list(["global", "remove", "typescript"])) {
                 CommandArg::Global(GlobalCommand::Uninstall(uninstall)) => {
                     assert_eq!(uninstall.tools, vec!["typescript"]);
                 }
@@ -874,12 +872,12 @@ mod tests {
 
         #[test]
         fn handles_local_remove() {
-            match CommandArg::for_yarn(&arg_list(&["remove", "typescript"])) {
+            match CommandArg::for_yarn(&arg_list(["remove", "typescript"])) {
                 CommandArg::Standard => (),
                 _ => panic!("Parses local remove as a global"),
             };
 
-            match CommandArg::for_yarn(&arg_list(&["remove", "global"])) {
+            match CommandArg::for_yarn(&arg_list(["remove", "global"])) {
                 CommandArg::Standard => (),
                 _ => panic!("Incorrectly handles bad order"),
             };
@@ -887,7 +885,7 @@ mod tests {
 
         #[test]
         fn handles_multiple_add() {
-            match CommandArg::for_yarn(&arg_list(&[
+            match CommandArg::for_yarn(&arg_list([
                 "global",
                 "add",
                 "typescript",
@@ -905,7 +903,7 @@ mod tests {
 
         #[test]
         fn handles_multiple_remove() {
-            match CommandArg::for_yarn(&arg_list(&[
+            match CommandArg::for_yarn(&arg_list([
                 "global",
                 "remove",
                 "typescript",
@@ -921,7 +919,7 @@ mod tests {
 
         #[test]
         fn processes_flags() {
-            match CommandArg::for_yarn(&arg_list(&[
+            match CommandArg::for_yarn(&arg_list([
                 "global",
                 "--silent",
                 "add",
@@ -940,7 +938,7 @@ mod tests {
                 _ => panic!("Doesn't parse global add as a global"),
             };
 
-            match CommandArg::for_yarn(&arg_list(&[
+            match CommandArg::for_yarn(&arg_list([
                 "global",
                 "--silent",
                 "remove",

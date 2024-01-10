@@ -6,10 +6,11 @@ use node_semver::{Range, Version};
 
 mod serial;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum VersionSpec {
     /// No version specified (default)
+    #[default]
     None,
 
     /// SemVer Range
@@ -53,12 +54,6 @@ impl fmt::Display for VersionTag {
             VersionTag::Lts => write!(f, "lts"),
             VersionTag::Custom(s) => s.fmt(f),
         }
-    }
-}
-
-impl Default for VersionSpec {
-    fn default() -> Self {
-        VersionSpec::None
     }
 }
 

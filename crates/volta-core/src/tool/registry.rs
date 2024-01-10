@@ -132,8 +132,8 @@ impl From<RawPackageMetadata> for PackageIndex {
     fn from(serial: RawPackageMetadata) -> PackageIndex {
         let mut entries: Vec<PackageDetails> = serial
             .versions
-            .into_iter()
-            .map(|(_, version_info)| PackageDetails {
+            .into_values()
+            .map(|version_info| PackageDetails {
                 version: version_info.version,
             })
             .collect();

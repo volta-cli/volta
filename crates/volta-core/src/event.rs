@@ -146,8 +146,8 @@ impl EventLog {
     pub fn publish(&self, plugin: Option<&Publish>) {
         match plugin {
             // Note: This call to unimplemented is left in, as it's not a Fallible operation that can use ErrorKind::Unimplemented
-            Some(&Publish::Url(_)) => unimplemented!(),
-            Some(&Publish::Bin(ref command)) => {
+            Some(Publish::Url(_)) => unimplemented!(),
+            Some(Publish::Bin(command)) => {
                 send_events(command, &self.events);
             }
             None => {}

@@ -198,7 +198,7 @@ pub mod tests {
     #[test]
     fn test_in_pinned_project() {
         let project_pinned = fixture_path("basic");
-        env::set_current_dir(&project_pinned).expect("Could not set current directory");
+        env::set_current_dir(project_pinned).expect("Could not set current directory");
         let pinned_session = Session::init();
         let pinned_platform = pinned_session
             .project_platform()
@@ -206,7 +206,7 @@ pub mod tests {
         assert!(pinned_platform.is_some());
 
         let project_unpinned = fixture_path("no_toolchain");
-        env::set_current_dir(&project_unpinned).expect("Could not set current directory");
+        env::set_current_dir(project_unpinned).expect("Could not set current directory");
         let unpinned_session = Session::init();
         let unpinned_platform = unpinned_session
             .project_platform()

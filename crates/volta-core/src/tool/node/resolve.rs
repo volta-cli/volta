@@ -153,7 +153,7 @@ fn match_node_version(
 /// Reads a public index from the Node cache, if it exists and hasn't expired.
 fn read_cached_opt(url: &str) -> Fallible<Option<RawNodeIndex>> {
     let expiry_file = volta_home()?.node_index_expiry_file();
-    let expiry = read_file(&expiry_file).with_context(|| ErrorKind::ReadNodeIndexExpiryError {
+    let expiry = read_file(expiry_file).with_context(|| ErrorKind::ReadNodeIndexExpiryError {
         file: expiry_file.to_owned(),
     })?;
 
@@ -165,7 +165,7 @@ fn read_cached_opt(url: &str) -> Fallible<Option<RawNodeIndex>> {
         if current_date < expiry_date {
             let index_file = volta_home()?.node_index_file();
             let cached =
-                read_file(&index_file).with_context(|| ErrorKind::ReadNodeIndexCacheError {
+                read_file(index_file).with_context(|| ErrorKind::ReadNodeIndexCacheError {
                     file: index_file.to_owned(),
                 })?;
 
@@ -181,7 +181,7 @@ fn read_cached_opt(url: &str) -> Fallible<Option<RawNodeIndex>> {
     Ok(None)
 }
 
-/// Get the cache max-age of an HTTP reponse.
+/// Get the cache max-age of an HTTP response.
 fn max_age(headers: &HeaderMap) -> u32 {
     if let Ok(cache_control_header) = headers.decode::<CacheControl>() {
         for cache_directive in cache_control_header.iter() {
@@ -244,7 +244,7 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
                     path: index_cache_file.to_owned(),
                 }
             })?;
-            cached.persist(&index_cache_file).with_context(|| {
+            cached.persist(index_cache_file).with_context(|| {
                 ErrorKind::WriteNodeIndexCacheError {
                     file: index_cache_file.to_owned(),
                 }
@@ -265,7 +265,7 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
                     path: index_expiry_file.to_owned(),
                 }
             })?;
-            expiry.persist(&index_expiry_file).with_context(|| {
+            expiry.persist(index_expiry_file).with_context(|| {
                 ErrorKind::WriteNodeIndexExpiryError {
                     file: index_expiry_file.to_owned(),
                 }
