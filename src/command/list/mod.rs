@@ -2,9 +2,9 @@ mod human;
 mod plain;
 mod toolchain;
 
+use std::io::IsTerminal as _;
 use std::{fmt, path::PathBuf, str::FromStr};
 
-use is_terminal::IsTerminal as _;
 use node_semver::Version;
 use structopt::StructOpt;
 
