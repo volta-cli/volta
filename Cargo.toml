@@ -21,7 +21,6 @@ name = "volta-migrate"
 path = "src/volta-migrate.rs"
 
 [dependencies]
-is-terminal = "0.4.10"
 volta-core = { path = "crates/volta-core" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.109"
