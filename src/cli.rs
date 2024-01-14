@@ -8,17 +8,16 @@ use volta_core::session::Session;
 #[structopt(
     name = "Volta",
     about = "The JavaScript Launcher ⚡",
-    author = "",
     long_about = "The JavaScript Launcher ⚡
 
     To install a tool in your toolchain, use `volta install`.
     To pin your project's runtime or package manager, use `volta pin`.",
-    raw(global_setting = "structopt::clap::AppSettings::ColoredHelp"),
-    raw(global_setting = "structopt::clap::AppSettings::ColorAuto"),
-    raw(global_setting = "structopt::clap::AppSettings::DeriveDisplayOrder"),
-    raw(global_setting = "structopt::clap::AppSettings::DisableVersion"),
-    raw(global_setting = "structopt::clap::AppSettings::DontCollapseArgsInUsage"),
-    raw(global_setting = "structopt::clap::AppSettings::VersionlessSubcommands")
+    global_setting = structopt::clap::AppSettings::ColoredHelp,
+    global_setting = structopt::clap::AppSettings::ColorAuto,
+    global_setting = structopt::clap::AppSettings::DeriveDisplayOrder,
+    global_setting = structopt::clap::AppSettings::DisableVersion,
+    global_setting = structopt::clap::AppSettings::DontCollapseArgsInUsage,
+    global_setting = structopt::clap::AppSettings::VersionlessSubcommands
 )]
 pub(crate) struct Volta {
     #[structopt(subcommand)]
@@ -32,7 +31,7 @@ pub(crate) struct Volta {
         help = "Prevents unnecessary output",
         global = true,
         conflicts_with = "verbose",
-        raw(aliases = r#"&["silent"]"#)
+        aliases = &["silent"]
     )]
     pub(crate) quiet: bool,
 
@@ -65,31 +64,29 @@ impl Volta {
 #[derive(StructOpt)]
 pub(crate) enum Subcommand {
     /// Fetches a tool to the local machine
-    #[structopt(name = "fetch", author = "", version = "")]
+    #[structopt(name = "fetch")]
     Fetch(command::Fetch),
 
     /// Installs a tool in your toolchain
-    #[structopt(name = "install", author = "", version = "")]
+    #[structopt(name = "install")]
     Install(command::Install),
 
     /// Uninstalls a tool from your toolchain
-    #[structopt(name = "uninstall", author = "", version = "")]
+    #[structopt(name = "uninstall")]
     Uninstall(command::Uninstall),
 
     /// Pins your project's runtime or package manager
-    #[structopt(name = "pin", author = "", version = "")]
+    #[structopt(name = "pin")]
     Pin(command::Pin),
 
     /// Displays the current toolchain
-    #[structopt(name = "list", alias = "ls", author = "", version = "")]
+    #[structopt(name = "list", alias = "ls")]
     List(command::List),
 
     /// Generates Volta completions
     #[structopt(
         name = "completions",
-        author = "",
-        version = "",
-        raw(setting = "structopt::clap::AppSettings::ArgRequiredElseHelp"),
+        setting = structopt::clap::AppSettings::ArgRequiredElseHelp,
         long_about = "Generates Volta completions
 
 By default, completions will be generated for the value of your current shell,
@@ -103,29 +100,26 @@ otherwise, they will be written to `stdout`.
     Completions(command::Completions),
 
     /// Locates the actual binary that will be called by Volta
-    #[structopt(name = "which", author = "", version = "")]
+    #[structopt(name = "which")]
     Which(command::Which),
 
     #[structopt(
         name = "use",
-        author = "",
-        version = "",
-        template = "{usage}",
-        raw(
-            usage = "crate::command::r#use::USAGE",
-            setting = "structopt::clap::AppSettings::Hidden"
-        )
+        long_about = crate::command::r#use::USAGE,
+        setting = structopt::clap::AppSettings::Hidden,
     )]
     Use(command::Use),
 
     /// Enables Volta for the current user / shell
-    #[structopt(name = "setup", author = "", version = "")]
+    #[structopt(name = "setup")]
     Setup(command::Setup),
 
     /// Run a command with custom Node, npm, pnpm, and/or Yarn versions
-    #[structopt(name = "run", author = "", version = "")]
-    #[structopt(raw(setting = "structopt::clap::AppSettings::AllowLeadingHyphen"))]
-    #[structopt(raw(setting = "structopt::clap::AppSettings::TrailingVarArg"))]
+    #[structopt(
+        name = "run",
+        setting = structopt::clap::AppSettings::AllowLeadingHyphen,
+        setting = structopt::clap::AppSettings::TrailingVarArg,
+    )]
     Run(command::Run),
 }
 

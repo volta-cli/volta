@@ -42,7 +42,7 @@ pub(crate) struct Run {
     no_yarn: bool,
 
     /// Set an environment variable (can be used multiple times)
-    #[structopt(long = "env", value_name = "NAME=value", raw(number_of_values = "1"))]
+    #[structopt(long = "env", value_name = "NAME=value", number_of_values = 1)]
     envs: Vec<String>,
 
     #[structopt(parse(from_os_str))]

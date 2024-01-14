@@ -17,7 +17,7 @@ pub(crate) struct Completions {
     #[structopt(
         takes_value = true,
         index = 1,
-        raw(possible_values = "&Shell::variants()"),
+        possible_values = &Shell::variants(),
         case_insensitive = true
     )]
     shell: Shell,
