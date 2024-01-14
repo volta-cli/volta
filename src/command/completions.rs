@@ -15,7 +15,7 @@ use crate::command::Command;
 #[derive(Debug, clap::Args)]
 pub(crate) struct Completions {
     /// Shell to generate completions for
-    #[clap(takes_value = true, index = 1, ignore_case = true)]
+    #[clap(index = 1, ignore_case = true, required = true)]
     shell: Shell,
 
     /// File to write generated completions to

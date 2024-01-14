@@ -13,7 +13,6 @@ use volta_core::session::Session;
     To install a tool in your toolchain, use `volta install`.
     To pin your project's runtime or package manager, use `volta pin`.",
     color = clap::ColorChoice::Auto,
-    global_setting = clap::AppSettings::DeriveDisplayOrder,
     disable_version_flag = true,
     dont_collapse_args_in_usage = true,
 )]

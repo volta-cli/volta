@@ -17,7 +17,7 @@ pub(crate) struct Run {
     node: Option<String>,
 
     /// Set the custom npm version
-    #[clap(long = "npm", value_name = "version", conflicts_with = "bundled-npm")]
+    #[clap(long = "npm", value_name = "version", conflicts_with = "bundled_npm")]
     npm: Option<String>,
 
     /// Forces npm to be the version bundled with Node
@@ -25,7 +25,7 @@ pub(crate) struct Run {
     bundled_npm: bool,
 
     /// Set the custon pnpm version
-    #[clap(long = "pnpm", value_name = "version", conflicts_with = "no-pnpm")]
+    #[clap(long = "pnpm", value_name = "version", conflicts_with = "no_pnpm")]
     pnpm: Option<String>,
 
     /// Disables pnpm
@@ -33,7 +33,7 @@ pub(crate) struct Run {
     no_pnpm: bool,
 
     /// Set the custom Yarn version
-    #[clap(long = "yarn", value_name = "version", conflicts_with = "no-yarn")]
+    #[clap(long = "yarn", value_name = "version", conflicts_with = "no_yarn")]
     yarn: Option<String>,
 
     /// Disables Yarn
