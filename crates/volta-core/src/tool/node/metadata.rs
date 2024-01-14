@@ -1,7 +1,10 @@
 use std::collections::HashSet;
 
 use super::NODE_DISTRO_IDENTIFIER;
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[cfg(any(
+    all(target_os = "macos", target_arch = "aarch64"),
+    all(target_os = "windows", target_arch = "aarch64")
+))]
 use super::NODE_DISTRO_IDENTIFIER_FALLBACK;
 use crate::version::{option_version_serde, version_serde};
 use node_semver::Version;
@@ -39,7 +42,10 @@ impl From<RawNodeIndex> for NodeIndex {
             .0
             .into_iter()
             .filter_map(|entry| {
-                #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+                #[cfg(not(any(
+                    all(target_os = "macos", target_arch = "aarch64"),
+                    all(target_os = "windows", target_arch = "aarch64")
+                )))]
                 if entry.npm.is_some() && entry.files.contains(NODE_DISTRO_IDENTIFIER) {
                     Some(NodeEntry {
                         version: entry.version,
@@ -49,7 +55,10 @@ impl From<RawNodeIndex> for NodeIndex {
                     None
                 }
 
-                #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+                #[cfg(any(
+                    all(target_os = "macos", target_arch = "aarch64"),
+                    all(target_os = "windows", target_arch = "aarch64")
+                ))]
                 if entry.npm.is_some()
                     && (entry.files.contains(NODE_DISTRO_IDENTIFIER)
                         || entry.files.contains(NODE_DISTRO_IDENTIFIER_FALLBACK))
