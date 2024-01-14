@@ -12,11 +12,10 @@ use volta_core::session::Session;
 
     To install a tool in your toolchain, use `volta install`.
     To pin your project's runtime or package manager, use `volta pin`.",
-    global_setting = clap::AppSettings::ColoredHelp,
-    global_setting = clap::AppSettings::ColorAuto,
+    color = clap::ColorChoice::Auto,
     global_setting = clap::AppSettings::DeriveDisplayOrder,
-    global_setting = clap::AppSettings::DisableVersion,
-    global_setting = clap::AppSettings::DontCollapseArgsInUsage,
+    disable_version_flag = true,
+    dont_collapse_args_in_usage = true,
 )]
 pub(crate) struct Volta {
     #[clap(subcommand)]
@@ -55,7 +54,7 @@ impl Volta {
         } else if let Some(command) = self.command {
             command.run(session)
         } else {
-            Volta::from_iter(["volta", "help"].iter()).run(session)
+            Volta::parse_from(["volta", "help"].iter()).run(session)
         }
     }
 }
@@ -85,7 +84,7 @@ pub(crate) enum Subcommand {
     /// Generates Volta completions
     #[clap(
         name = "completions",
-        setting = clap::AppSettings::ArgRequiredElseHelp,
+        arg_required_else_help = true,
         long_about = "Generates Volta completions
 
 By default, completions will be generated for the value of your current shell,
@@ -105,7 +104,7 @@ otherwise, they will be written to `stdout`.
     #[clap(
         name = "use",
         long_about = crate::command::r#use::USAGE,
-        setting = clap::AppSettings::Hidden,
+        hide = true,
     )]
     Use(command::Use),
 
@@ -114,11 +113,7 @@ otherwise, they will be written to `stdout`.
     Setup(command::Setup),
 
     /// Run a command with custom Node, npm, pnpm, and/or Yarn versions
-    #[clap(
-        name = "run",
-        setting = clap::AppSettings::AllowLeadingHyphen,
-        setting = clap::AppSettings::TrailingVarArg,
-    )]
+    #[clap(name = "run", allow_hyphen_values = true, trailing_var_arg = true)]
     Run(command::Run),
 }
 

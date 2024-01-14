@@ -211,7 +211,7 @@ pub(crate) struct List {
     /// Specify the output format.
     ///
     /// Defaults to `human` for TTYs, `plain` otherwise.
-    #[clap(long = "format", possible_values = &["human", "plain"])]
+    #[clap(long = "format", value_parser = ["human", "plain"])]
     format: Option<Format>,
 
     /// Show the currently-active tool(s).

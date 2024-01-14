@@ -13,7 +13,6 @@ use crate::command::Command;
 #[derive(clap::Args)]
 pub(crate) struct Which {
     /// The binary to find, e.g. `node` or `npm`
-    #[clap(parse(from_os_str))]
     binary: OsString,
 }
 

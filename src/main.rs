@@ -13,7 +13,7 @@ use common::{ensure_layout, Error};
 
 /// The entry point for the `volta` CLI.
 pub fn main() {
-    let volta = cli::Volta::from_args();
+    let volta = cli::Volta::parse();
     let verbosity = match (&volta.verbose, &volta.quiet) {
         (false, false) => LogVerbosity::Default,
         (true, false) => LogVerbosity::Verbose,

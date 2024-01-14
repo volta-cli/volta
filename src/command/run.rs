@@ -44,11 +44,9 @@ pub(crate) struct Run {
     #[clap(long = "env", value_name = "NAME=value", number_of_values = 1)]
     envs: Vec<String>,
 
-    #[clap(parse(from_os_str))]
     /// The command to run
     command: OsString,
 
-    #[clap(parse(from_os_str))]
     /// Arguments to pass to the command
     args: Vec<OsString>,
 }
