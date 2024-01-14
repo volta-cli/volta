@@ -13,41 +13,42 @@ use volta_core::tool::{node, npm, pnpm, yarn};
 #[derive(Debug, clap::Args)]
 pub(crate) struct Run {
     /// Set the custom Node version
-    #[clap(long = "node", value_name = "version")]
+    #[arg(long = "node", value_name = "version")]
     node: Option<String>,
 
     /// Set the custom npm version
-    #[clap(long = "npm", value_name = "version", conflicts_with = "bundled_npm")]
+    #[arg(long = "npm", value_name = "version", conflicts_with = "bundled_npm")]
     npm: Option<String>,
 
     /// Forces npm to be the version bundled with Node
-    #[clap(long = "bundled-npm", conflicts_with = "npm")]
+    #[arg(long = "bundled-npm", conflicts_with = "npm")]
     bundled_npm: bool,
 
     /// Set the custon pnpm version
-    #[clap(long = "pnpm", value_name = "version", conflicts_with = "no_pnpm")]
+    #[arg(long = "pnpm", value_name = "version", conflicts_with = "no_pnpm")]
     pnpm: Option<String>,
 
     /// Disables pnpm
-    #[clap(long = "no-pnpm", conflicts_with = "pnpm")]
+    #[arg(long = "no-pnpm", conflicts_with = "pnpm")]
     no_pnpm: bool,
 
     /// Set the custom Yarn version
-    #[clap(long = "yarn", value_name = "version", conflicts_with = "no_yarn")]
+    #[arg(long = "yarn", value_name = "version", conflicts_with = "no_yarn")]
     yarn: Option<String>,
 
     /// Disables Yarn
-    #[clap(long = "no-yarn", conflicts_with = "yarn")]
+    #[arg(long = "no-yarn", conflicts_with = "yarn")]
     no_yarn: bool,
 
     /// Set an environment variable (can be used multiple times)
-    #[clap(long = "env", value_name = "NAME=value", number_of_values = 1)]
+    #[arg(long = "env", value_name = "NAME=value", num_args = 1)]
     envs: Vec<String>,
 
     /// The command to run
     command: OsString,
 
     /// Arguments to pass to the command
+    #[arg(allow_hyphen_values = true, trailing_var_arg = true)]
     args: Vec<OsString>,
 }
 

@@ -7,7 +7,7 @@ use crate::command::Command;
 #[derive(clap::Args)]
 pub(crate) struct Pin {
     /// Tools to pin, like `node@lts` or `yarn@^1.14`.
-    #[clap(name = "tool[@version]", required = true)]
+    #[arg(value_name = "tool[@version]", required = true)]
     tools: Vec<String>,
 }
 

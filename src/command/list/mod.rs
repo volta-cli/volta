@@ -205,23 +205,23 @@ pub(crate) struct List {
     // variants (as detailed in commit 5f9214ae).
     /// The tool to lookup - `all`, `node`, `npm`, `yarn`, `pnpm`, or the name
     /// of a package or binary.
-    #[clap(name = "tool")]
+    #[arg(value_name = "tool")]
     subcommand: Option<String>,
 
     /// Specify the output format.
     ///
     /// Defaults to `human` for TTYs, `plain` otherwise.
-    #[clap(long = "format", value_parser = ["human", "plain"])]
+    #[arg(long = "format", value_parser = ["human", "plain"])]
     format: Option<Format>,
 
     /// Show the currently-active tool(s).
     ///
     /// Equivalent to `volta list` when not specifying a specific tool.
-    #[clap(long = "current", short = 'c', conflicts_with = "default")]
+    #[arg(long = "current", short = 'c', conflicts_with = "default")]
     current: bool,
 
     /// Show your default tool(s).
-    #[clap(long = "default", short = 'd', conflicts_with = "current")]
+    #[arg(long = "default", short = 'd', conflicts_with = "current")]
     default: bool,
 }
 

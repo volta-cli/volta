@@ -7,7 +7,7 @@ use crate::command::Command;
 #[derive(clap::Args)]
 pub(crate) struct Install {
     /// Tools to install, like `node`, `yarn@latest` or `your-package@^14.4.3`.
-    #[clap(name = "tool[@version]", required = true)]
+    #[arg(value_name = "tool[@version]", required = true)]
     tools: Vec<String>,
 }
 

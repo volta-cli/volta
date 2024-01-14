@@ -15,15 +15,15 @@ use crate::command::Command;
 #[derive(Debug, clap::Args)]
 pub(crate) struct Completions {
     /// Shell to generate completions for
-    #[clap(index = 1, ignore_case = true, required = true)]
+    #[arg(index = 1, ignore_case = true, required = true)]
     shell: Shell,
 
     /// File to write generated completions to
-    #[clap(short = 'o', long = "output")]
+    #[arg(short = 'o', long = "output")]
     out_file: Option<PathBuf>,
 
     /// Write over an existing file, if any.
-    #[clap(short = 'f', long = "force")]
+    #[arg(short = 'f', long = "force")]
     force: bool,
 }
 
