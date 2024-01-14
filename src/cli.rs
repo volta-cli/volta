@@ -1,32 +1,31 @@
-use structopt::StructOpt;
+use clap::Parser;
 
 use crate::command::{self, Command};
 use volta_core::error::{ExitCode, Fallible};
 use volta_core::session::Session;
 
-#[derive(StructOpt)]
-#[structopt(
+#[derive(Parser)]
+#[clap(
     name = "Volta",
     about = "The JavaScript Launcher ⚡",
     long_about = "The JavaScript Launcher ⚡
 
     To install a tool in your toolchain, use `volta install`.
     To pin your project's runtime or package manager, use `volta pin`.",
-    global_setting = structopt::clap::AppSettings::ColoredHelp,
-    global_setting = structopt::clap::AppSettings::ColorAuto,
-    global_setting = structopt::clap::AppSettings::DeriveDisplayOrder,
-    global_setting = structopt::clap::AppSettings::DisableVersion,
-    global_setting = structopt::clap::AppSettings::DontCollapseArgsInUsage,
-    global_setting = structopt::clap::AppSettings::VersionlessSubcommands
+    global_setting = clap::AppSettings::ColoredHelp,
+    global_setting = clap::AppSettings::ColorAuto,
+    global_setting = clap::AppSettings::DeriveDisplayOrder,
+    global_setting = clap::AppSettings::DisableVersion,
+    global_setting = clap::AppSettings::DontCollapseArgsInUsage,
 )]
 pub(crate) struct Volta {
-    #[structopt(subcommand)]
+    #[clap(subcommand)]
     pub(crate) command: Option<Subcommand>,
 
-    #[structopt(long = "verbose", help = "Enables verbose diagnostics", global = true)]
+    #[clap(long = "verbose", help = "Enables verbose diagnostics", global = true)]
     pub(crate) verbose: bool,
 
-    #[structopt(
+    #[clap(
         long = "quiet",
         help = "Prevents unnecessary output",
         global = true,
@@ -35,8 +34,8 @@ pub(crate) struct Volta {
     )]
     pub(crate) quiet: bool,
 
-    #[structopt(
-        short = "v",
+    #[clap(
+        short = 'v',
         long = "version",
         help = "Prints the current version of Volta"
     )]
@@ -61,32 +60,32 @@ impl Volta {
     }
 }
 
-#[derive(StructOpt)]
+#[derive(clap::Subcommand)]
 pub(crate) enum Subcommand {
     /// Fetches a tool to the local machine
-    #[structopt(name = "fetch")]
+    #[clap(name = "fetch")]
     Fetch(command::Fetch),
 
     /// Installs a tool in your toolchain
-    #[structopt(name = "install")]
+    #[clap(name = "install")]
     Install(command::Install),
 
     /// Uninstalls a tool from your toolchain
-    #[structopt(name = "uninstall")]
+    #[clap(name = "uninstall")]
     Uninstall(command::Uninstall),
 
     /// Pins your project's runtime or package manager
-    #[structopt(name = "pin")]
+    #[clap(name = "pin")]
     Pin(command::Pin),
 
     /// Displays the current toolchain
-    #[structopt(name = "list", alias = "ls")]
+    #[clap(name = "list", alias = "ls")]
     List(command::List),
 
     /// Generates Volta completions
-    #[structopt(
+    #[clap(
         name = "completions",
-        setting = structopt::clap::AppSettings::ArgRequiredElseHelp,
+        setting = clap::AppSettings::ArgRequiredElseHelp,
         long_about = "Generates Volta completions
 
 By default, completions will be generated for the value of your current shell,
@@ -100,25 +99,25 @@ otherwise, they will be written to `stdout`.
     Completions(command::Completions),
 
     /// Locates the actual binary that will be called by Volta
-    #[structopt(name = "which")]
+    #[clap(name = "which")]
     Which(command::Which),
 
-    #[structopt(
+    #[clap(
         name = "use",
         long_about = crate::command::r#use::USAGE,
-        setting = structopt::clap::AppSettings::Hidden,
+        setting = clap::AppSettings::Hidden,
     )]
     Use(command::Use),
 
     /// Enables Volta for the current user / shell
-    #[structopt(name = "setup")]
+    #[clap(name = "setup")]
     Setup(command::Setup),
 
     /// Run a command with custom Node, npm, pnpm, and/or Yarn versions
-    #[structopt(
+    #[clap(
         name = "run",
-        setting = structopt::clap::AppSettings::AllowLeadingHyphen,
-        setting = structopt::clap::AppSettings::TrailingVarArg,
+        setting = clap::AppSettings::AllowLeadingHyphen,
+        setting = clap::AppSettings::TrailingVarArg,
     )]
     Run(command::Run),
 }

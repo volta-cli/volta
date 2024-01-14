@@ -2,7 +2,7 @@
 mod command;
 mod cli;
 
-use structopt::StructOpt;
+use clap::Parser;
 
 use volta_core::error::report_error;
 use volta_core::log::{LogContext, LogVerbosity, Logger};

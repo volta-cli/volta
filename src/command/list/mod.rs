@@ -6,7 +6,6 @@ use std::io::IsTerminal as _;
 use std::{fmt, path::PathBuf, str::FromStr};
 
 use node_semver::Version;
-use structopt::StructOpt;
 
 use crate::command::Command;
 use toolchain::Toolchain;
@@ -198,7 +197,7 @@ enum Filter {
     None,
 }
 
-#[derive(StructOpt)]
+#[derive(clap::Args)]
 pub(crate) struct List {
     // Note: we implement the subcommand as an `Option<String>` instead of an
     // `Option<Subcommand>` with `impl FromStr for Subcommand` for `StructOpt`
@@ -206,23 +205,23 @@ pub(crate) struct List {
     // variants (as detailed in commit 5f9214ae).
     /// The tool to lookup - `all`, `node`, `npm`, `yarn`, `pnpm`, or the name
     /// of a package or binary.
-    #[structopt(name = "tool")]
+    #[clap(name = "tool")]
     subcommand: Option<String>,
 
     /// Specify the output format.
     ///
     /// Defaults to `human` for TTYs, `plain` otherwise.
-    #[structopt(long = "format", possible_values = &["human", "plain"])]
+    #[clap(long = "format", possible_values = &["human", "plain"])]
     format: Option<Format>,
 
     /// Show the currently-active tool(s).
     ///
     /// Equivalent to `volta list` when not specifying a specific tool.
-    #[structopt(long = "current", short = "c", conflicts_with = "default")]
+    #[clap(long = "current", short = 'c', conflicts_with = "default")]
     current: bool,
 
     /// Show your default tool(s).
-    #[structopt(long = "default", short = "d", conflicts_with = "current")]
+    #[clap(long = "default", short = 'd', conflicts_with = "current")]
     default: bool,
 }
 

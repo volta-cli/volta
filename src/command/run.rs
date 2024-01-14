@@ -4,52 +4,51 @@ use std::ffi::OsString;
 use crate::command::Command;
 use crate::common::{Error, IntoResult};
 use log::warn;
-use structopt::StructOpt;
 use volta_core::error::{report_error, ExitCode, Fallible};
 use volta_core::platform::{CliPlatform, InheritOption};
 use volta_core::run::execute_tool;
 use volta_core::session::{ActivityKind, Session};
 use volta_core::tool::{node, npm, pnpm, yarn};
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, clap::Args)]
 pub(crate) struct Run {
     /// Set the custom Node version
-    #[structopt(long = "node", value_name = "version")]
+    #[clap(long = "node", value_name = "version")]
     node: Option<String>,
 
     /// Set the custom npm version
-    #[structopt(long = "npm", value_name = "version", conflicts_with = "bundled_npm")]
+    #[clap(long = "npm", value_name = "version", conflicts_with = "bundled-npm")]
     npm: Option<String>,
 
     /// Forces npm to be the version bundled with Node
-    #[structopt(long = "bundled-npm", conflicts_with = "npm")]
+    #[clap(long = "bundled-npm", conflicts_with = "npm")]
     bundled_npm: bool,
 
     /// Set the custon pnpm version
-    #[structopt(long = "pnpm", value_name = "version", conflicts_with = "no_pnpm")]
+    #[clap(long = "pnpm", value_name = "version", conflicts_with = "no-pnpm")]
     pnpm: Option<String>,
 
     /// Disables pnpm
-    #[structopt(long = "no-pnpm", conflicts_with = "pnpm")]
+    #[clap(long = "no-pnpm", conflicts_with = "pnpm")]
     no_pnpm: bool,
 
     /// Set the custom Yarn version
-    #[structopt(long = "yarn", value_name = "version", conflicts_with = "no_yarn")]
+    #[clap(long = "yarn", value_name = "version", conflicts_with = "no-yarn")]
     yarn: Option<String>,
 
     /// Disables Yarn
-    #[structopt(long = "no-yarn", conflicts_with = "yarn")]
+    #[clap(long = "no-yarn", conflicts_with = "yarn")]
     no_yarn: bool,
 
     /// Set an environment variable (can be used multiple times)
-    #[structopt(long = "env", value_name = "NAME=value", number_of_values = 1)]
+    #[clap(long = "env", value_name = "NAME=value", number_of_values = 1)]
     envs: Vec<String>,
 
-    #[structopt(parse(from_os_str))]
+    #[clap(parse(from_os_str))]
     /// The command to run
     command: OsString,
 
-    #[structopt(parse(from_os_str))]
+    #[clap(parse(from_os_str))]
     /// Arguments to pass to the command
     args: Vec<OsString>,
 }
