@@ -199,14 +199,10 @@ enum Filter {
 
 #[derive(clap::Args)]
 pub(crate) struct List {
-    // Note: we implement the subcommand as an `Option<String>` instead of an
-    // `Option<Subcommand>` with `impl FromStr for Subcommand` for `StructOpt`
-    // because StructOpt does not currently support custom parsing for enum
-    // variants (as detailed in commit 5f9214ae).
     /// The tool to lookup - `all`, `node`, `npm`, `yarn`, `pnpm`, or the name
     /// of a package or binary.
-    #[arg(value_name = "tool")]
-    subcommand: Option<String>,
+    #[arg(value_name = "tool", value_parser = parse_subcommand)]
+    subcommand: Option<Subcommand>,
 
     /// Specify the output format.
     ///
@@ -226,6 +222,7 @@ pub(crate) struct List {
 }
 
 /// Which tool should we look up?
+#[derive(Clone)]
 enum Subcommand {
     /// Show every item in the toolchain.
     All,
@@ -246,17 +243,15 @@ enum Subcommand {
     PackageOrTool { name: String },
 }
 
-impl From<&str> for Subcommand {
-    fn from(s: &str) -> Self {
-        match s {
-            "all" => Subcommand::All,
-            "node" => Subcommand::Node,
-            "npm" => Subcommand::Npm,
-            "pnpm" => Subcommand::Pnpm,
-            "yarn" => Subcommand::Yarn,
-            s => Subcommand::PackageOrTool { name: s.into() },
-        }
-    }
+fn parse_subcommand(s: &str) -> Result<Subcommand, std::convert::Infallible> {
+    Ok(match s {
+        "all" => Subcommand::All,
+        "node" => Subcommand::Node,
+        "npm" => Subcommand::Npm,
+        "pnpm" => Subcommand::Pnpm,
+        "yarn" => Subcommand::Yarn,
+        s => Subcommand::PackageOrTool { name: s.into() },
+    })
 }
 
 impl List {
@@ -270,10 +265,6 @@ impl List {
         } else {
             Format::Plain
         })
-    }
-
-    fn subcommand(&self) -> Option<Subcommand> {
-        self.subcommand.as_ref().map(|s| s.as_str().into())
     }
 }
 
@@ -295,7 +286,7 @@ impl Command for List {
             _ => Filter::None,
         };
 
-        let toolchain = match self.subcommand() {
+        let toolchain = match self.subcommand {
             // For no subcommand, show the user's current toolchain
             None => Toolchain::active(project, default_platform)?,
             Some(Subcommand::All) => Toolchain::all(project, default_platform)?,
