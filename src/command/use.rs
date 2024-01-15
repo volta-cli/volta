@@ -19,7 +19,7 @@ const ADVICE: &str = "
 #[derive(clap::Args)]
 pub(crate) struct Use {
     #[allow(dead_code)]
-    anything: Vec<String>, // Prevent StructOpt argument errors when invoking e.g. `volta use node`
+    anything: Vec<String>, // Prevent Clap argument errors when invoking e.g. `volta use node`
 }
 
 impl Command for Use {

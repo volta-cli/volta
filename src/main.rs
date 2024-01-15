@@ -18,9 +18,9 @@ pub fn main() {
         (false, false) => LogVerbosity::Default,
         (true, false) => LogVerbosity::Verbose,
         (false, true) => LogVerbosity::Quiet,
-        (true, true) => unreachable!(
-            "StructOpt should prevent the user from providing both --verbose and --quiet"
-        ),
+        (true, true) => {
+            unreachable!("Clap should prevent the user from providing both --verbose and --quiet")
+        }
     };
     Logger::init(LogContext::Volta, verbosity).expect("Only a single logger should be initialized");
 
