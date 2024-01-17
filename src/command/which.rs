@@ -1,7 +1,6 @@
 use std::env;
 use std::ffi::OsString;
 
-use structopt::StructOpt;
 use which::which_in;
 
 use volta_core::error::{Context, ErrorKind, ExitCode, Fallible};
@@ -11,10 +10,9 @@ use volta_core::session::{ActivityKind, Session};
 
 use crate::command::Command;
 
-#[derive(StructOpt)]
+#[derive(clap::Args)]
 pub(crate) struct Which {
     /// The binary to find, e.g. `node` or `npm`
-    #[structopt(parse(from_os_str))]
     binary: OsString,
 }
 

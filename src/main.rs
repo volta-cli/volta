@@ -2,7 +2,7 @@
 mod command;
 mod cli;
 
-use structopt::StructOpt;
+use clap::Parser;
 
 use volta_core::error::report_error;
 use volta_core::log::{LogContext, LogVerbosity, Logger};
@@ -13,14 +13,14 @@ use common::{ensure_layout, Error};
 
 /// The entry point for the `volta` CLI.
 pub fn main() {
-    let volta = cli::Volta::from_args();
+    let volta = cli::Volta::parse();
     let verbosity = match (&volta.verbose, &volta.quiet) {
         (false, false) => LogVerbosity::Default,
         (true, false) => LogVerbosity::Verbose,
         (false, true) => LogVerbosity::Quiet,
-        (true, true) => unreachable!(
-            "StructOpt should prevent the user from providing both --verbose and --quiet"
-        ),
+        (true, true) => {
+            unreachable!("Clap should prevent the user from providing both --verbose and --quiet")
+        }
     };
     Logger::init(LogContext::Volta, verbosity).expect("Only a single logger should be initialized");
 

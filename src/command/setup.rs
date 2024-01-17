@@ -1,5 +1,4 @@
 use log::info;
-use structopt::StructOpt;
 use volta_core::error::{ExitCode, Fallible};
 use volta_core::layout::volta_home;
 use volta_core::session::{ActivityKind, Session};
@@ -8,7 +7,7 @@ use volta_core::style::success_prefix;
 
 use crate::command::Command;
 
-#[derive(StructOpt)]
+#[derive(clap::Args)]
 pub(crate) struct Setup {}
 
 impl Command for Setup {
