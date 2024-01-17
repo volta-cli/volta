@@ -674,7 +674,7 @@ pub mod tests {
         let default_hooks_file = fixture_path("hooks/templates.json");
 
         let merged_hooks =
-            HookConfig::from_paths(&[project_hooks_file, default_hooks_file]).unwrap();
+            HookConfig::from_paths([project_hooks_file, default_hooks_file]).unwrap();
         let node = merged_hooks.node.expect("No node config found");
         let pnpm = merged_hooks.pnpm.expect("No pnpm config found");
         let yarn = merged_hooks.yarn.expect("No yarn config found");

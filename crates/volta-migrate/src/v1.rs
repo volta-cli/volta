@@ -88,10 +88,10 @@ impl TryFrom<V0> for V1 {
             debug!("Removing old Volta binaries");
 
             let old_volta_bin = new_home.root().join("volta");
-            remove_file_if_exists(&old_volta_bin)?;
+            remove_file_if_exists(old_volta_bin)?;
 
             let old_shim_bin = new_home.root().join("shim");
-            remove_file_if_exists(&old_shim_bin)?;
+            remove_file_if_exists(old_shim_bin)?;
         }
 
         V1::complete_migration(new_home)

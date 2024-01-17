@@ -15,9 +15,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up cargo
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.63
+        uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Cargo Cache
         uses: Swatinem/rust-cache@v2
       - name: Build docs

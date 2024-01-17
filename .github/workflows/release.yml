@@ -41,9 +41,8 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
       - name: Set up cargo
-        uses: dtolnay/rust-toolchain@master
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: 1.63
           targets: aarch64-apple-darwin,x86_64-apple-darwin
       - name: Cargo Cache
         uses: Swatinem/rust-cache@v2
@@ -62,9 +61,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
       - name: Set up cargo
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.63
+        uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Cargo Cache
         uses: Swatinem/rust-cache@v2
       - name: Add cargo-wix subcommand
@@ -72,24 +69,6 @@ jobs:
       - name: Compile and package installer
         run: |
           cargo wix --nocapture --package volta --output target\wix\volta-windows.msi
-      - name: Load Certificate File
-        id: certificate_file
-        if: github.event_name == 'push'
-        uses: timheuer/base64-to-file@v1
-        with:
-          fileName: "volta-certificate.pfx"
-          encodedString: ${{ secrets.INSTALLER_CERTIFICATE }}
-      - name: Sign Installer
-        if: github.event_name == 'push'
-        env:
-          CERTIFICATE_FILE: ${{ steps.certificate_file.outputs.filePath }}
-          CERTIFICATE_PASSWORD: ${{ secrets.INSTALLER_CERTIFICATE_PASSWORD }}
-        run: |
-          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x86\signtool.exe" sign /fd sha256 /f "$env:CERTIFICATE_FILE" /p "$env:CERTIFICATE_PASSWORD" /tr http://ts.ssl.com /td sha256 /d "Volta: Start Your Engines" /du "https://volta.sh" "target\wix\volta-windows.msi"
-      - name: Verify Signature
-        if: github.event_name == 'push'
-        run: |
-          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x86\signtool.exe" verify /pa "target\wix\volta-windows.msi"
       - name: Create zip of binaries
         run: powershell Compress-Archive volta*.exe volta-windows.zip
         working-directory: ./target/release

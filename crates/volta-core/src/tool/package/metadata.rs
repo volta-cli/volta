@@ -197,7 +197,7 @@ impl PackageManifest {
     pub fn for_dir(package: &str, package_root: &Path) -> Fallible<Self> {
         let package_file = package_root.join("package.json");
         let file =
-            File::open(&package_file).with_context(|| ErrorKind::PackageManifestReadError {
+            File::open(package_file).with_context(|| ErrorKind::PackageManifestReadError {
                 package: package.into(),
             })?;
 

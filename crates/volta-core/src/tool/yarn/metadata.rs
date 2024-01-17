@@ -32,7 +32,7 @@ impl RawYarnEntry {
         let release_filename = &format!("yarn-v{}.tar.gz", self.tag_name)[..];
         self.assets
             .iter()
-            .any(|&RawYarnAsset { ref name }| name == release_filename)
+            .any(|raw_asset| raw_asset.name == release_filename)
     }
 }
 
