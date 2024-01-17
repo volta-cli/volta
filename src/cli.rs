@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{builder::styling, ColorChoice, Parser};
 
 use crate::command::{self, Command};
 use volta_core::error::{ExitCode, Fallible};
@@ -12,8 +12,9 @@ use volta_core::session::Session;
 
     To install a tool in your toolchain, use `volta install`.
     To pin your project's runtime or package manager, use `volta pin`.",
-    color = clap::ColorChoice::Auto,
+    color = ColorChoice::Auto,
     disable_version_flag = true,
+    styles = styles()
 )]
 pub(crate) struct Volta {
     #[command(subcommand)]
@@ -130,4 +131,20 @@ impl Subcommand {
             Subcommand::Run(run) => run.run(session),
         }
     }
+}
+
+fn styles() -> styling::Styles {
+    styling::Styles::plain()
+        .header(
+            styling::AnsiColor::Yellow.on_default()
+                | styling::Effects::BOLD
+                | styling::Effects::ITALIC,
+        )
+        .usage(
+            styling::AnsiColor::Yellow.on_default()
+                | styling::Effects::BOLD
+                | styling::Effects::ITALIC,
+        )
+        .literal(styling::AnsiColor::Green.on_default() | styling::Effects::BOLD)
+        .placeholder(styling::AnsiColor::BrightBlue.on_default())
 }
