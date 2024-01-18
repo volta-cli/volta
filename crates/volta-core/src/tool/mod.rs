@@ -229,6 +229,14 @@ fn registry_fetch_error(
     || ErrorKind::RegistryFetchError { tool, from_url }
 }
 
+cfg_if!(
+    if #[cfg(windows)] {
+        const PATH_VAR_NAME: &str = "Path";
+    } else {
+        const PATH_VAR_NAME: &str = "PATH";
+    }
+);
+
 pub fn check_shim_reachable(shim_name: &str) {
     let home = match volta_home() {
         Ok(home) => home,
@@ -236,7 +244,6 @@ pub fn check_shim_reachable(shim_name: &str) {
     };
 
     let shim = home.shim_file(shim_name);
-    let path_var_name = cfg_if!(if #[cfg(windows)] { "Path" } else { "PATH" });
     let resolved = match which::which(shim_name) {
         Ok(resolved) => resolved,
         Err(_) => {
@@ -244,13 +251,13 @@ pub fn check_shim_reachable(shim_name: &str) {
                 "{} cannot find command {}. Please ensure that {} is available on your {}.",
                 note_prefix(),
                 shim_name,
-                home.shim_dir(),
-                path_var_name,
+                home.shim_dir().display(),
+                PATH_VAR_NAME,
             );
             return;
         }
     };
     if resolved != shim {
-        info!("{} {} is shadowed by another binary of the same name at {}. To ensure your commands work as expected, please move {} to the start of your {}.", note_prefix(), shim_name, resolved.display(), home.shim_dir(), path_var_name);
+        info!("{} {} is shadowed by another binary of the same name at {}. To ensure your commands work as expected, please move {} to the start of your {}.", note_prefix(), shim_name, resolved.display(), home.shim_dir().display(), PATH_VAR_NAME);
     }
 }
