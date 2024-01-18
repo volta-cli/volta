@@ -51,7 +51,7 @@ See the [Contributing Guide](https://docs.volta.sh/contributing/) on our website
     <tr>
       <td align="center">
         <a href="https://github.com/microsoft/TypeScript" target="_blank">
-          <img src="https://pbs.twimg.com/profile_images/1290672565690695681/0G4bie6b_400x400.jpg" alt="TypeScript" width="100" height="100">
+          <img src="https://raw.githubusercontent.com/microsoft/TypeScript-Website/v2/packages/typescriptlang-org/static/branding/ts-logo-512.svg" alt="TypeScript" width="100" height="100">
         </a>
       </td>
       <td align="center">

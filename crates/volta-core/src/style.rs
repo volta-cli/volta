@@ -7,6 +7,7 @@ use archive::Origin;
 use cfg_if::cfg_if;
 use console::{style, StyledObject};
 use indicatif::{ProgressBar, ProgressStyle};
+use terminal_size::{terminal_size, Width};
 
 pub const MAX_WIDTH: usize = 100;
 const MAX_PROGRESS_WIDTH: usize = 40;
@@ -49,7 +50,7 @@ where
 
 /// Get the width of the terminal, limited to a maximum of MAX_WIDTH
 pub fn text_width() -> Option<usize> {
-    term_size::dimensions().map(|(w, _)| w.min(MAX_WIDTH))
+    terminal_size().map(|(Width(w), _)| (w as usize).min(MAX_WIDTH))
 }
 
 /// Constructs a command-line progress bar based on the specified Origin enum

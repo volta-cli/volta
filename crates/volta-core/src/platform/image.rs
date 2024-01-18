@@ -5,7 +5,7 @@ use super::{build_path_error, Sourced};
 use crate::error::{Context, Fallible};
 use crate::layout::volta_home;
 use crate::tool::load_default_npm_version;
-use semver::Version;
+use node_semver::Version;
 
 /// A platform image.
 pub struct Image {

@@ -374,12 +374,15 @@ impl Execs {
 
                 let mut matches = 0;
 
-                while let Some(..) = {
+                loop {
                     if self.diff_lines(a.clone(), e.clone(), true).is_empty() {
                         matches += 1;
                     }
-                    a.next()
-                } {}
+
+                    if a.next().is_none() {
+                        break;
+                    }
+                }
 
                 if matches == number {
                     Ok(())
@@ -553,10 +556,10 @@ fn lines_match_works() {
 fn find_mismatch<'a>(expected: &'a Value, actual: &'a Value) -> Option<(&'a Value, &'a Value)> {
     use serde_json::Value::*;
     match (expected, actual) {
-        (&Number(ref l), &Number(ref r)) if l == r => None,
-        (&Bool(l), &Bool(r)) if l == r => None,
-        (&String(ref l), &String(ref r)) if lines_match(l, r) => None,
-        (&Array(ref l), &Array(ref r)) => {
+        (Number(l), Number(r)) if l == r => None,
+        (Bool(l), Bool(r)) if l == r => None,
+        (String(l), String(r)) if lines_match(l, r) => None,
+        (Array(l), Array(r)) => {
             if l.len() != r.len() {
                 return Some((expected, actual));
             }
@@ -582,7 +585,7 @@ fn find_mismatch<'a>(expected: &'a Value, actual: &'a Value) -> Option<(&'a Valu
                 None
             }
         }
-        (&Object(ref l), &Object(ref r)) => {
+        (Object(l), Object(r)) => {
             let same_keys = l.len() == r.len() && l.keys().all(|k| r.contains_key(k));
             if !same_keys {
                 return Some((expected, actual));
@@ -590,12 +593,11 @@ fn find_mismatch<'a>(expected: &'a Value, actual: &'a Value) -> Option<(&'a Valu
 
             l.values()
                 .zip(r.values())
-                .filter_map(|(l, r)| find_mismatch(l, r))
-                .next()
+                .find_map(|(l, r)| find_mismatch(l, r))
         }
-        (&Null, &Null) => None,
+        (Null, Null) => None,
         // magic string literal "{...}" acts as wildcard for any sub-JSON
-        (&String(ref l), _) if l == "{...}" => None,
+        (String(l), _) if l == "{...}" => None,
         _ => Some((expected, actual)),
     }
 }

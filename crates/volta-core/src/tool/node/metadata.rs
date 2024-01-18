@@ -4,7 +4,7 @@ use super::NODE_DISTRO_IDENTIFIER;
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 use super::NODE_DISTRO_IDENTIFIER_FALLBACK;
 use crate::version::{option_version_serde, version_serde};
-use semver::Version;
+use node_semver::Version;
 use serde::{Deserialize, Deserializer};
 
 /// The index of the public Node server.

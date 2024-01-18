@@ -21,7 +21,7 @@ use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
 use hyperx::header::{CacheControl, CacheDirective, Expires, HttpDate, TypedHeaders};
 use log::debug;
-use semver::{Version, VersionReq};
+use node_semver::{Range, Version};
 
 // ISSUE (#86): Move public repository URLs to config file
 cfg_if! {
@@ -109,7 +109,7 @@ fn resolve_lts(hooks: Option<&ToolHooks<Node>>) -> Fallible<Version> {
     }
 }
 
-fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Node>>) -> Fallible<Version> {
+fn resolve_semver(matching: Range, hooks: Option<&ToolHooks<Node>>) -> Fallible<Version> {
     let url = match hooks {
         Some(&ToolHooks {
             index: Some(ref hook),
@@ -120,8 +120,9 @@ fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Node>>) -> Fall
         }
         _ => public_node_version_index(),
     };
-    let version_opt =
-        match_node_version(&url, |NodeEntry { version, .. }| matching.matches(version))?;
+    let version_opt = match_node_version(&url, |NodeEntry { version, .. }| {
+        matching.satisfies(version)
+    })?;
 
     match version_opt {
         Some(version) => {
@@ -152,7 +153,7 @@ fn match_node_version(
 /// Reads a public index from the Node cache, if it exists and hasn't expired.
 fn read_cached_opt(url: &str) -> Fallible<Option<RawNodeIndex>> {
     let expiry_file = volta_home()?.node_index_expiry_file();
-    let expiry = read_file(&expiry_file).with_context(|| ErrorKind::ReadNodeIndexExpiryError {
+    let expiry = read_file(expiry_file).with_context(|| ErrorKind::ReadNodeIndexExpiryError {
         file: expiry_file.to_owned(),
     })?;
 
@@ -164,7 +165,7 @@ fn read_cached_opt(url: &str) -> Fallible<Option<RawNodeIndex>> {
         if current_date < expiry_date {
             let index_file = volta_home()?.node_index_file();
             let cached =
-                read_file(&index_file).with_context(|| ErrorKind::ReadNodeIndexCacheError {
+                read_file(index_file).with_context(|| ErrorKind::ReadNodeIndexCacheError {
                     file: index_file.to_owned(),
                 })?;
 
@@ -180,7 +181,7 @@ fn read_cached_opt(url: &str) -> Fallible<Option<RawNodeIndex>> {
     Ok(None)
 }
 
-/// Get the cache max-age of an HTTP reponse.
+/// Get the cache max-age of an HTTP response.
 fn max_age(headers: &HeaderMap) -> u32 {
     if let Ok(cache_control_header) = headers.decode::<CacheControl>() {
         for cache_directive in cache_control_header.iter() {
@@ -243,7 +244,7 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
                     path: index_cache_file.to_owned(),
                 }
             })?;
-            cached.persist(&index_cache_file).with_context(|| {
+            cached.persist(index_cache_file).with_context(|| {
                 ErrorKind::WriteNodeIndexCacheError {
                     file: index_cache_file.to_owned(),
                 }
@@ -264,7 +265,7 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
                     path: index_expiry_file.to_owned(),
                 }
             })?;
-            expiry.persist(&index_expiry_file).with_context(|| {
+            expiry.persist(index_expiry_file).with_context(|| {
                 ErrorKind::WriteNodeIndexExpiryError {
                     file: index_expiry_file.to_owned(),
                 }

@@ -7,8 +7,8 @@ use crate::layout::volta_home;
 use crate::platform::PlatformSpec;
 use lazycell::LazyCell;
 use log::debug;
+use node_semver::Version;
 use readext::ReadExt;
-use semver::Version;
 
 pub mod serial;
 
@@ -142,9 +142,9 @@ impl Toolchain {
         let result = match &self.platform {
             Some(platform) => {
                 let src = serial::Platform::of(platform).into_json()?;
-                write(&path, src)
+                write(path, src)
             }
-            None => write(&path, "{}"),
+            None => write(path, "{}"),
         };
         result.with_context(|| ErrorKind::WritePlatformError {
             file: path.to_owned(),

@@ -18,7 +18,7 @@ pub(super) fn run_global_install(
     platform_image: &Image,
 ) -> Fallible<()> {
     let mut command = create_command("npm");
-    command.args(&[
+    command.args([
         "install",
         "--global",
         "--loglevel=warn",

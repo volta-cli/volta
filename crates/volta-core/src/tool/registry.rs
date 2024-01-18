@@ -9,7 +9,7 @@ use crate::version::{hashmap_version_serde, version_serde};
 use attohttpc::header::ACCEPT;
 use attohttpc::Response;
 use cfg_if::cfg_if;
-use semver::Version;
+use node_semver::Version;
 use serde::Deserialize;
 
 // Accept header needed to request the abbreviated metadata from the npm registry
@@ -132,8 +132,8 @@ impl From<RawPackageMetadata> for PackageIndex {
     fn from(serial: RawPackageMetadata) -> PackageIndex {
         let mut entries: Vec<PackageDetails> = serial
             .versions
-            .into_iter()
-            .map(|(_, version_info)| PackageDetails {
+            .into_values()
+            .map(|version_info| PackageDetails {
                 version: version_info.version,
             })
             .collect();

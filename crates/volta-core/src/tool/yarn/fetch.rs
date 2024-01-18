@@ -17,7 +17,7 @@ use crate::version::VersionSpec;
 use archive::{Archive, Tarball};
 use fs_utils::ensure_containing_dir_exists;
 use log::debug;
-use semver::Version;
+use node_semver::Version;
 
 pub fn fetch(version: &Version, hooks: Option<&YarnHooks>) -> Fallible<()> {
     let yarn_dir = volta_home()?.yarn_inventory_dir();
@@ -27,7 +27,7 @@ pub fn fetch(version: &Version, hooks: Option<&YarnHooks>) -> Fallible<()> {
         Some(archive) => {
             debug!(
                 "Loading {} from cached archive at '{}'",
-                tool_version("yarn", &version),
+                tool_version("yarn", version),
                 cache_file.display(),
             );
             (archive, None)

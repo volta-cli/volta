@@ -1,6 +1,6 @@
 //! Define the "plain" format style for list commands.
 
-use semver::Version;
+use node_semver::Version;
 
 use volta_core::style::tool_version;
 
@@ -114,7 +114,7 @@ fn display_node(source: &Source, version: &Version) -> String {
 fn display_package_manager(package_manager: &PackageManager) -> String {
     format!(
         "package-manager {}{}",
-        tool_version(&package_manager.kind, &package_manager.version),
+        tool_version(package_manager.kind, &package_manager.version),
         package_manager.source
     )
 }
@@ -144,7 +144,7 @@ fn display_package(package: &Package) -> String {
                 "package {} /{}/ {} {}{}",
                 tool_version(&details.name, &details.version),
                 tools,
-                tool_version("node", &node),
+                tool_version("node", node),
                 // Should be updated when we support installing with custom package_managers,
                 // whether Yarn or non-built-in versions of npm
                 "npm@built-in",
@@ -159,7 +159,7 @@ fn display_package(package: &Package) -> String {
 
             format!(
                 "package {} /{}/ {} {}{}",
-                tool_version(&name, "project"),
+                tool_version(name, "project"),
                 tools,
                 "node@project",
                 "npm@project",
@@ -179,7 +179,7 @@ fn display_tool(name: &str, host: &Package) -> Option<String> {
             "tool {} / {} / {} {}{}",
             name,
             tool_version(&details.name, &details.version),
-            tool_version("node", &node),
+            tool_version("node", node),
             "npm@built-in",
             package_source(host)
         )),
@@ -188,7 +188,7 @@ fn display_tool(name: &str, host: &Package) -> Option<String> {
         } => Some(format!(
             "tool {} / {} / {} {}{}",
             name,
-            tool_version(&host_name, "project"),
+            tool_version(host_name, "project"),
             "node@project",
             "npm@project",
             package_source(host)
@@ -204,7 +204,7 @@ mod tests {
     use std::path::PathBuf;
 
     use lazy_static::lazy_static;
-    use semver::Version;
+    use node_semver::Version;
 
     use crate::command::list::PackageDetails;
 

@@ -3,7 +3,8 @@
 set -e
 
 # Activate the upgraded versions of GCC and binutils
-source /opt/rh/devtoolset-2/enable
+# See https://linux.web.cern.ch/centos7/docs/softwarecollections/#inst
+source /opt/rh/devtoolset-8/enable
 
 echo "Building Volta"
 

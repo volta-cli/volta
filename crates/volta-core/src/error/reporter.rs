@@ -52,7 +52,7 @@ fn write_error_log(
     let file_name = Local::now()
         .format("volta-error-%Y-%m-%d_%H_%M_%S%.3f.log")
         .to_string();
-    let log_file_path = volta_home()?.log_dir().join(&file_name);
+    let log_file_path = volta_home()?.log_dir().join(file_name);
 
     ensure_containing_dir_exists(&log_file_path)?;
     let mut log_file = File::create(&log_file_path)?;

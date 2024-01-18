@@ -11,7 +11,7 @@ use crate::session::Session;
 use crate::style::{success_prefix, tool_version};
 use crate::sync::VoltaLock;
 use log::info;
-use semver::Version;
+use node_semver::Version;
 
 mod fetch;
 mod resolve;

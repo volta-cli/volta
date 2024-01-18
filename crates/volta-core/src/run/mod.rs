@@ -9,7 +9,7 @@ use crate::platform::{CliPlatform, Image, Sourced};
 use crate::session::Session;
 use crate::VOLTA_FEATURE_PNPM;
 use log::debug;
-use semver::Version;
+use node_semver::Version;
 
 pub mod binary;
 mod executor;

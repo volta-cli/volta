@@ -2,7 +2,7 @@ use super::*;
 use crate::layout::volta_home;
 #[cfg(windows)]
 use crate::layout::volta_install;
-use semver::Version;
+use node_semver::Version;
 #[cfg(windows)]
 use std::path::PathBuf;
 
@@ -215,7 +215,7 @@ mod inherit_option {
 
 mod cli_platform {
     use lazy_static::lazy_static;
-    use semver::Version;
+    use node_semver::Version;
 
     lazy_static! {
         static ref NODE_VERSION: Version = Version::from((12, 14, 1));

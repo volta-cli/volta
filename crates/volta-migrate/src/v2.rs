@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use super::empty::Empty;
 use super::v1::V1;
 use log::debug;
-use semver::Version;
+use node_semver::Version;
 use tempfile::tempdir_in;
 use volta_core::error::{Context, ErrorKind, Fallible, VoltaError};
 use volta_core::fs::{read_dir_eager, remove_dir_if_exists, remove_file_if_exists, rename};

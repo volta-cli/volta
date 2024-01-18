@@ -9,7 +9,7 @@ use crate::inventory::yarn_available;
 use crate::session::Session;
 use crate::style::tool_version;
 use crate::sync::VoltaLock;
-use semver::Version;
+use node_semver::Version;
 
 mod fetch;
 mod metadata;

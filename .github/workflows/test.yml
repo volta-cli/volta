@@ -24,12 +24,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
       - name: Set up cargo
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.63
-          components: clippy
-      - name: Cargo Cache
-        uses: Swatinem/rust-cache@v2
+        uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Run tests
         run: |
           cargo test --all --features mock-network
@@ -48,11 +43,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
       - name: Set up cargo
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.63
-      - name: Cargo Cache
-        uses: Swatinem/rust-cache@v2
+        uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Run tests
         run: |
           cargo test --test smoke --features smoke-tests -- --test-threads 1
@@ -75,12 +66,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
       - name: Set up cargo
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.63
-          components: rustfmt
-      - name: Cargo Cache
-        uses: Swatinem/rust-cache@v2
+        uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Run check
         run: |
           cargo fmt --all --quiet -- --check

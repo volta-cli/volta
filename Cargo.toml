@@ -21,29 +21,29 @@ name = "volta-migrate"
 path = "src/volta-migrate.rs"
 
 [dependencies]
-atty = "0.2"
 volta-core = { path = "crates/volta-core" }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0.91"
+serde_json = "1.0.111"
 lazy_static = "1.3.0"
 log = { version = "0.4", features = ["std"] }
-semver = { git = "https://github.com/mikrostew/semver", branch = "new-parser" }
-structopt = "0.2.14"
+node-semver = "2"
+clap = { version = "4.4.18", features = ["color", "derive", "wrap_help"] }
+clap_complete = "4.4.7"
 cfg-if = "1.0"
 mockito = { version = "0.31.1", optional = true }
 test-support = { path = "crates/test-support" }
 textwrap = "0.16.0"
-which = "4.4.0"
-dirs = "4.0.0"
+which = "6.0.0"
+dirs = "5.0.1"
 volta-migrate = { path = "crates/volta-migrate" }
 
 [target.'cfg(windows)'.dependencies]
-winreg = "0.10.1"
+winreg = "0.52.0"
 
 [dev-dependencies]
 hamcrest2 = "0.3.0"
 envoy = "0.1.3"
-ci_info = "0.14.9"
+ci_info = "0.14.14"
 hyperx = "1.4.0"
 
 [workspace]

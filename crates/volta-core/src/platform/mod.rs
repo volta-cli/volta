@@ -5,7 +5,7 @@ use crate::error::{ErrorKind, Fallible};
 use crate::session::Session;
 use crate::tool::{Node, Npm, Pnpm, Yarn};
 use crate::VOLTA_FEATURE_PNPM;
-use semver::Version;
+use node_semver::Version;
 
 mod image;
 mod system;
@@ -115,10 +115,11 @@ where
 
 /// Represents 3 possible states: Having a value, not having a value, and inheriting a value
 #[cfg_attr(test, derive(Eq, PartialEq, Debug))]
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub enum InheritOption<T> {
     Some(T),
     None,
+    #[default]
     Inherit,
 }
 
@@ -148,12 +149,6 @@ impl<T> InheritOption<T> {
 impl<T> From<InheritOption<T>> for Option<T> {
     fn from(base: InheritOption<T>) -> Option<T> {
         base.inherit(None)
-    }
-}
-
-impl<T> Default for InheritOption<T> {
-    fn default() -> Self {
-        InheritOption::Inherit
     }
 }
 

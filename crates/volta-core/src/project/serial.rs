@@ -8,7 +8,7 @@ use super::PartialPlatform;
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::version::parse_version;
 use dunce::canonicalize;
-use semver::Version;
+use node_semver::Version;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
@@ -27,10 +27,7 @@ impl Manifest {
     pub fn from_file(file: &Path) -> Fallible<Self> {
         let raw = RawManifest::from_file(file)?;
 
-        let dependency_maps = raw
-            .dependencies
-            .into_iter()
-            .chain(raw.dev_dependencies.into_iter());
+        let dependency_maps = raw.dependencies.into_iter().chain(raw.dev_dependencies);
 
         let (platform, extends) = match raw.volta {
             Some(toolchain) => {
@@ -88,7 +85,7 @@ pub(super) fn update_manifest(
     key: ManifestKey,
     value: Option<&Version>,
 ) -> Fallible<()> {
-    let contents = read_to_string(&file).with_context(|| ErrorKind::PackageReadError {
+    let contents = read_to_string(file).with_context(|| ErrorKind::PackageReadError {
         file: file.to_owned(),
     })?;
 
@@ -121,7 +118,7 @@ pub(super) fn update_manifest(
     }
 
     let indent = detect_indent::detect_indent(&contents);
-    let mut output = File::create(&file).with_context(|| ErrorKind::PackageWriteError {
+    let mut output = File::create(file).with_context(|| ErrorKind::PackageWriteError {
         file: file.to_owned(),
     })?;
     let formatter = serde_json::ser::PrettyFormatter::with_indent(indent.indent().as_bytes());

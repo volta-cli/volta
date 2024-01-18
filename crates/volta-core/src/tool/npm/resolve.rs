@@ -9,7 +9,7 @@ use crate::session::Session;
 use crate::tool::Npm;
 use crate::version::{VersionSpec, VersionTag};
 use log::debug;
-use semver::{Version, VersionReq};
+use node_semver::{Range, Version};
 
 pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Option<Version>> {
     let hooks = session.hooks()?.npm();
@@ -54,13 +54,13 @@ fn resolve_tag(tag: &str, hooks: Option<&ToolHooks<Npm>>) -> Fallible<Version> {
     }
 }
 
-fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Npm>>) -> Fallible<Version> {
+fn resolve_semver(matching: Range, hooks: Option<&ToolHooks<Npm>>) -> Fallible<Version> {
     let (url, index) = fetch_npm_index(hooks)?;
 
     let details_opt = index
         .entries
         .into_iter()
-        .find(|PackageDetails { version, .. }| matching.matches(version));
+        .find(|PackageDetails { version, .. }| matching.satisfies(version));
 
     match details_opt {
         Some(details) => {

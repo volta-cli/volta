@@ -1,5 +1,5 @@
 use log::debug;
-use semver::{Version, VersionReq};
+use node_semver::{Range, Version};
 
 use crate::error::{ErrorKind, Fallible};
 use crate::hook::ToolHooks;
@@ -33,13 +33,13 @@ fn resolve_tag(tag: &str, hooks: Option<&ToolHooks<Pnpm>>) -> Fallible<Version> 
     }
 }
 
-fn resolve_semver(matching: VersionReq, hooks: Option<&ToolHooks<Pnpm>>) -> Fallible<Version> {
+fn resolve_semver(matching: Range, hooks: Option<&ToolHooks<Pnpm>>) -> Fallible<Version> {
     let (url, index) = fetch_pnpm_index(hooks)?;
 
     let details_opt = index
         .entries
         .into_iter()
-        .find(|PackageDetails { version, .. }| matching.matches(version));
+        .find(|PackageDetails { version, .. }| matching.satisfies(version));
 
     match details_opt {
         Some(details) => {

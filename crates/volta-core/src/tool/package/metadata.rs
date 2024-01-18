@@ -9,7 +9,7 @@ use crate::layout::volta_home;
 use crate::platform::PlatformSpec;
 use crate::version::{option_version_serde, version_serde};
 use fs_utils::ensure_containing_dir_exists;
-use semver::Version;
+use node_semver::Version;
 
 /// Configuration information about an installed package
 ///
@@ -197,7 +197,7 @@ impl PackageManifest {
     pub fn for_dir(package: &str, package_root: &Path) -> Fallible<Self> {
         let package_file = package_root.join("package.json");
         let file =
-            File::open(&package_file).with_context(|| ErrorKind::PackageManifestReadError {
+            File::open(package_file).with_context(|| ErrorKind::PackageManifestReadError {
                 package: package.into(),
             })?;
 

@@ -340,7 +340,7 @@ fn format_package(package: &Package) -> String {
             let binaries = wrap(format!("binary tools: {}", tools));
             let platform_detail = wrap(format!(
                 "runtime: {}\npackage manager: {}",
-                tool_version("node", &node),
+                tool_version("node", node),
                 // TODO: Should be updated when we support installing with custom package_managers,
                 // whether Yarn or non-built-in versions of npm
                 "npm@built-in"
@@ -401,7 +401,7 @@ mod tests {
     use std::path::PathBuf;
 
     use lazy_static::lazy_static;
-    use semver::Version;
+    use node_semver::Version;
 
     use super::*;
 
@@ -1136,7 +1136,7 @@ See `volta help install` for details and more options.";
     mod packages {
         use super::*;
         use crate::command::list::{Package, PackageDetails};
-        use semver::Version;
+        use node_semver::Version;
 
         #[test]
         fn none() {
@@ -1262,7 +1262,7 @@ See `volta help install` for details and more options.";
     mod tools {
         use super::*;
         use crate::command::list::{Package, PackageDetails};
-        use semver::Version;
+        use node_semver::Version;
 
         #[test]
         fn none() {

@@ -15,7 +15,7 @@ use archive::{self, Archive};
 use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
 use log::debug;
-use semver::Version;
+use node_semver::Version;
 use serde::Deserialize;
 
 cfg_if! {
@@ -56,7 +56,7 @@ pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Node>>) -> Fallible<Nod
         Some(archive) => {
             debug!(
                 "Loading {} from cached archive at '{}'",
-                tool_version("node", &version),
+                tool_version("node", version),
                 cache_file.display()
             );
             (archive, None)
@@ -94,7 +94,7 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<Node
 
     let progress = progress_bar(
         archive.origin(),
-        &tool_version("node", &version),
+        &tool_version("node", version),
         archive
             .uncompressed_size()
             .unwrap_or_else(|| archive.compressed_size()),

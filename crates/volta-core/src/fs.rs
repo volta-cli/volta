@@ -105,7 +105,7 @@ where
 /// Creates a NamedTempFile in the Volta tmp directory
 pub fn create_staging_file() -> Fallible<NamedTempFile> {
     let tmp_dir = volta_home()?.tmp_dir();
-    NamedTempFile::new_in(&tmp_dir).with_context(|| ErrorKind::CreateTempFileError {
+    NamedTempFile::new_in(tmp_dir).with_context(|| ErrorKind::CreateTempFileError {
         in_dir: tmp_dir.to_owned(),
     })
 }
@@ -113,7 +113,7 @@ pub fn create_staging_file() -> Fallible<NamedTempFile> {
 /// Creates a staging directory in the Volta tmp directory
 pub fn create_staging_dir() -> Fallible<TempDir> {
     let tmp_root = volta_home()?.tmp_dir();
-    tempdir_in(&tmp_root).with_context(|| ErrorKind::CreateTempDirError {
+    tempdir_in(tmp_root).with_context(|| ErrorKind::CreateTempDirError {
         in_dir: tmp_root.to_owned(),
     })
 }

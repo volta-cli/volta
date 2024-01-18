@@ -1,6 +1,6 @@
 use super::{Filter, Node, Package, PackageManager, Source};
 use crate::command::list::PackageManagerKind;
-use semver::Version;
+use node_semver::Version;
 use volta_core::error::Fallible;
 use volta_core::inventory::{
     node_versions, npm_versions, package_configs, pnpm_versions, yarn_versions,

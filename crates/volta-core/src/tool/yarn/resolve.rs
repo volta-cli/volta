@@ -12,7 +12,7 @@ use crate::style::progress_spinner;
 use crate::version::{parse_version, VersionSpec, VersionTag};
 use attohttpc::Response;
 use log::debug;
-use semver::{Version, VersionReq};
+use node_semver::{Range, Version};
 
 pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Version> {
     let hooks = session.hooks()?.yarn();
@@ -52,7 +52,7 @@ fn resolve_tag(tag: VersionTag, hooks: Option<&YarnHooks>) -> Fallible<Version> 
     }
 }
 
-fn resolve_semver(matching: VersionReq, hooks: Option<&YarnHooks>) -> Fallible<Version> {
+fn resolve_semver(matching: Range, hooks: Option<&YarnHooks>) -> Fallible<Version> {
     // For semver, the triage is less complicated: The previous behavior _always_ used
     // the 'index' hook, so we can check for that to decide which behavior to use.
     //
@@ -117,13 +117,13 @@ fn resolve_latest_legacy(url: String) -> Fallible<Version> {
     parse_version(response_text)
 }
 
-fn resolve_semver_from_registry(matching: VersionReq) -> Fallible<Version> {
+fn resolve_semver_from_registry(matching: Range) -> Fallible<Version> {
     // first try yarn2+, which uses "@yarnpkg/cli-dist" instead of "yarn"
     if let Ok((url, index)) = fetch_yarn_index("@yarnpkg/cli-dist") {
         let matching_entries: Vec<PackageDetails> = index
             .entries
             .into_iter()
-            .filter(|PackageDetails { version, .. }| matching.matches(version))
+            .filter(|PackageDetails { version, .. }| matching.satisfies(version))
             .collect();
 
         if !matching_entries.is_empty() {
@@ -155,7 +155,7 @@ fn resolve_semver_from_registry(matching: VersionReq) -> Fallible<Version> {
     let details_opt = index
         .entries
         .into_iter()
-        .find(|PackageDetails { version, .. }| matching.matches(version));
+        .find(|PackageDetails { version, .. }| matching.satisfies(version));
 
     match details_opt {
         Some(details) => {
@@ -173,7 +173,7 @@ fn resolve_semver_from_registry(matching: VersionReq) -> Fallible<Version> {
     }
 }
 
-fn resolve_semver_legacy(matching: VersionReq, url: String) -> Fallible<Version> {
+fn resolve_semver_legacy(matching: Range, url: String) -> Fallible<Version> {
     let spinner = progress_spinner(format!("Fetching registry: {}", url));
     let releases: RawYarnIndex = attohttpc::get(&url)
         .send()
@@ -183,7 +183,7 @@ fn resolve_semver_legacy(matching: VersionReq, url: String) -> Fallible<Version>
     let index = YarnIndex::from(releases);
     let releases = index.entries;
     spinner.finish_and_clear();
-    let version_opt = releases.into_iter().rev().find(|v| matching.matches(v));
+    let version_opt = releases.into_iter().rev().find(|v| matching.satisfies(v));
 
     match version_opt {
         Some(version) => {
@@ -200,13 +200,13 @@ fn resolve_semver_legacy(matching: VersionReq, url: String) -> Fallible<Version>
     }
 }
 
-fn resolve_semver_npm(matching: VersionReq, url: String) -> Fallible<Version> {
+fn resolve_semver_npm(matching: Range, url: String) -> Fallible<Version> {
     let (url, index) = fetch_npm_registry(url, "Yarn")?;
 
     let details_opt = index
         .entries
         .into_iter()
-        .find(|PackageDetails { version, .. }| matching.matches(version));
+        .find(|PackageDetails { version, .. }| matching.satisfies(version));
 
     match details_opt {
         Some(details) => {

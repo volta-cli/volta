@@ -1,5 +1,3 @@
-use structopt::StructOpt;
-
 use crate::command::Command;
 use volta_core::error::{ErrorKind, ExitCode, Fallible};
 use volta_core::session::{ActivityKind, Session};
@@ -18,10 +16,10 @@ const ADVICE: &str = "
     To pin your project's runtime or package manager, use `volta pin`.
 ";
 
-#[derive(StructOpt)]
+#[derive(clap::Args)]
 pub(crate) struct Use {
     #[allow(dead_code)]
-    anything: Vec<String>, // Prevent StructOpt argument errors when invoking e.g. `volta use node`
+    anything: Vec<String>, // Prevent Clap argument errors when invoking e.g. `volta use node`
 }
 
 impl Command for Use {

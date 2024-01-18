@@ -2,18 +2,19 @@ use std::fmt;
 use std::str::FromStr;
 
 use crate::error::{Context, ErrorKind, Fallible, VoltaError};
-use semver::{Version, VersionReq};
+use node_semver::{Range, Version};
 
 mod serial;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum VersionSpec {
     /// No version specified (default)
+    #[default]
     None,
 
-    /// Semver Range
-    Semver(VersionReq),
+    /// SemVer Range
+    Semver(Range),
 
     /// Exact Version
     Exact(Version),
@@ -56,12 +57,6 @@ impl fmt::Display for VersionTag {
     }
 }
 
-impl Default for VersionSpec {
-    fn default() -> Self {
-        VersionSpec::None
-    }
-}
-
 impl FromStr for VersionSpec {
     type Err = VoltaError;
 
@@ -90,7 +85,7 @@ impl FromStr for VersionTag {
     }
 }
 
-pub fn parse_requirements(s: impl AsRef<str>) -> Fallible<VersionReq> {
+pub fn parse_requirements(s: impl AsRef<str>) -> Fallible<Range> {
     let s = s.as_ref();
     serial::parse_requirements(s)
         .with_context(|| ErrorKind::VersionParseError { version: s.into() })
@@ -114,7 +109,7 @@ fn trim_version(s: &str) -> &str {
 // custom serialization and de-serialization for Version
 // because Version doesn't work with serde out of the box
 pub mod version_serde {
-    use semver::Version;
+    use node_semver::Version;
     use serde::de::{Error, Visitor};
     use serde::{self, Deserializer, Serializer};
     use std::fmt;
@@ -155,7 +150,7 @@ pub mod version_serde {
 // custom serialization and de-serialization for Option<Version>
 // because Version doesn't work with serde out of the box
 pub mod option_version_serde {
-    use semver::Version;
+    use node_semver::Version;
     use serde::de::Error;
     use serde::{self, Deserialize, Deserializer, Serializer};
 
@@ -187,7 +182,7 @@ pub mod option_version_serde {
 // because Version doesn't work with serde out of the box
 pub mod hashmap_version_serde {
     use super::version_serde;
-    use semver::Version;
+    use node_semver::Version;
     use serde::{self, Deserialize, Deserializer};
     use std::collections::HashMap;
 
