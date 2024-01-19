@@ -2,7 +2,6 @@
 
 use std::fs::File;
 use std::io::Write;
-use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 
 use super::super::registry_fetch_error;
@@ -19,7 +18,7 @@ use attohttpc::header::HeaderMap;
 use attohttpc::Response;
 use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
-use hyperx::header::{CacheControl, CacheDirective, Expires, HttpDate, TypedHeaders};
+use headers::{CacheControl, Expires, Header, HeaderMapExt};
 use log::debug;
 use node_semver::{Range, Version};
 
@@ -157,10 +156,16 @@ fn read_cached_opt(url: &str) -> Fallible<Option<RawNodeIndex>> {
         file: expiry_file.to_owned(),
     })?;
 
-    if let Some(date) = expiry {
-        let expiry_date =
-            HttpDate::from_str(&date).with_context(|| ErrorKind::ParseNodeIndexExpiryError)?;
-        let current_date = HttpDate::from(SystemTime::now());
+    if let Some(date) = &expiry {
+        let expiry_date = Expires::decode(
+            &mut [date
+                .parse()
+                .with_context(|| ErrorKind::ParseNodeIndexExpiryError)?]
+            .iter(),
+        )
+        .with_context(|| ErrorKind::ParseNodeIndexExpiryError)?;
+
+        let current_date = Expires::from(SystemTime::now());
 
         if current_date < expiry_date {
             let index_file = volta_home()?.node_index_file();
@@ -182,12 +187,10 @@ fn read_cached_opt(url: &str) -> Fallible<Option<RawNodeIndex>> {
 }
 
 /// Get the cache max-age of an HTTP response.
-fn max_age(headers: &HeaderMap) -> u32 {
-    if let Ok(cache_control_header) = headers.decode::<CacheControl>() {
-        for cache_directive in cache_control_header.iter() {
-            if let CacheDirective::MaxAge(max_age) = cache_directive {
-                return *max_age;
-            }
+fn max_age(headers: &HeaderMap) -> u64 {
+    if let Some(cache_control_header) = headers.typed_get::<CacheControl>() {
+        if let Some(max_age) = cache_control_header.max_age() {
+            return max_age.as_secs();
         }
     }
 
@@ -211,11 +214,11 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
                 .with_context(registry_fetch_error("Node", url))?
                 .split();
 
-            let expires = if let Ok(expires_header) = headers.decode::<Expires>() {
-                expires_header.to_string()
+            let expires = if let Some(expires_header) = headers.typed_get::<Expires>() {
+                expires_header
             } else {
-                let expiry_date = SystemTime::now() + Duration::from_secs(max_age(&headers).into());
-                HttpDate::from(expiry_date).to_string()
+                let expiry_date = SystemTime::now() + Duration::from_secs(max_age(&headers));
+                Expires::from(expiry_date)
             };
 
             let response_text = response
@@ -253,7 +256,11 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
             let expiry = create_staging_file()?;
             let mut expiry_file: &File = expiry.as_file();
 
-            write!(expiry_file, "{}", expires).with_context(|| {
+            let mut header_values = Vec::with_capacity(1);
+            expires.encode(&mut header_values);
+            let encoded_expires = header_values.first().unwrap().to_str().unwrap();
+
+            write!(expiry_file, "{}", encoded_expires).with_context(|| {
                 ErrorKind::WriteNodeIndexExpiryError {
                     file: expiry.path().to_path_buf(),
                 }

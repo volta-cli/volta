@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
 use cfg_if::cfg_if;
-use hyperx::header::HttpDate;
+use headers::{Expires, Header};
 use mockito::{self, mock, Matcher};
 use node_semver::Version;
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
@@ -44,11 +44,16 @@ impl CacheBuilder {
 
         // write expiry file
         let one_day = Duration::from_secs(24 * 60 * 60);
-        let expiry_date = HttpDate::from(if self.expired {
+        let expiry_date = Expires::from(if self.expired {
             SystemTime::now() - one_day
         } else {
             SystemTime::now() + one_day
         });
+
+        let mut header_values = Vec::with_capacity(1);
+        expiry_date.encode(&mut header_values);
+        let encoded_expiry_date = header_values.first().unwrap();
+
         let mut expiry_file = File::create(&self.expiry_path).unwrap_or_else(|e| {
             panic!(
                 "could not create cache expiry file {}: {}",
@@ -56,7 +61,7 @@ impl CacheBuilder {
                 e
             )
         });
-        ok_or_panic! { expiry_file.write_all(expiry_date.to_string().as_bytes()) };
+        ok_or_panic! { expiry_file.write_all(encoded_expiry_date.as_bytes()) };
     }
 
     fn dirname(&self) -> &Path {
