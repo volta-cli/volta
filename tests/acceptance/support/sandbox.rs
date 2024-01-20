@@ -52,6 +52,8 @@ impl CacheBuilder {
 
         let mut header_values = Vec::with_capacity(1);
         expiry_date.encode(&mut header_values);
+        // Since we just `.encode()`d into `header_values, it is guaranteed to
+        // have a `.first()`.
         let encoded_expiry_date = header_values.first().unwrap();
 
         let mut expiry_file = File::create(&self.expiry_path).unwrap_or_else(|e| {

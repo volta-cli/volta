@@ -258,6 +258,7 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
 
             let mut header_values = Vec::with_capacity(1);
             expires.encode(&mut header_values);
+            // Since we just `.encode()`d into `header_values
             let encoded_expires = header_values.first().unwrap().to_str().unwrap();
 
             write!(expiry_file, "{}", encoded_expires).with_context(|| {

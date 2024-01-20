@@ -115,9 +115,11 @@ impl Archive for Tarball {
 /// more efficient than simply downloading the entire file up front.
 fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], ArchiveError> {
     let mut header_values = Vec::with_capacity(1);
-    Range::bytes(len - 4..=len - 1)
+    Range::bytes(len - 4..len)
         .unwrap()
         .encode(&mut header_values);
+    // We just pushed a header in with the `.encode` above, so there will always
+    // be a value at `.first()`.
     let range_header = header_values.first().unwrap();
 
     let (status, headers, mut response) = attohttpc::get(url)
