@@ -65,6 +65,8 @@ pub trait Tool: Display {
     fn install(self: Box<Self>, session: &mut Session) -> Fallible<()>;
     /// Pin a tool in the local project so that it is usable within the project
     fn pin(self: Box<Self>, session: &mut Session) -> Fallible<()>;
+    /// Uninstall a tool
+    fn uninstall(self: Box<Self>, session: &mut Session) -> Fallible<()>;
 }
 
 /// Specification for a tool and its associated version.
