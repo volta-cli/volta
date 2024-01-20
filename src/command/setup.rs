@@ -122,9 +122,13 @@ mod os {
             Path::new(&zdotdir_env)
         };
 
+        let zshenv = zdotdir.join(".zshenv");
+
         let zshrc = zdotdir.join(".zshrc");
 
-        if shell.contains("zsh") || zshrc.exists() {
+        if shell.contains("zsh") || zshenv.exists() {
+            profiles.push(zshenv);
+        } else if zshrc.exists() {
             profiles.push(zshrc);
         }
     }

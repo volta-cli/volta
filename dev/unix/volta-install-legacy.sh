@@ -135,7 +135,7 @@ detect_profile() {
       esac
       ;;
     zsh)
-      echo "$HOME/.zshrc"
+      echo_fexists "$HOME/.zshenv" || echo_fexists "$HOME/.zshrc"
       ;;
     fish)
       echo "$HOME/.config/fish/config.fish"
