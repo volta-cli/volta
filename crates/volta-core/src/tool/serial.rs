@@ -3,16 +3,14 @@ use std::cmp::Ordering;
 use super::Spec;
 use crate::error::{ErrorKind, Fallible};
 use crate::version::{VersionSpec, VersionTag};
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use validate_npm_package_name::{validate, Validity};
 
-lazy_static! {
-    static ref TOOL_SPEC_PATTERN: Regex =
-        Regex::new("^(?P<name>(?:@([^/]+?)[/])?([^/]+?))(@(?P<version>.+))?$")
-            .expect("regex is valid");
-    static ref HAS_VERSION: Regex = Regex::new(r"^[^\s]+@").expect("regex is valid");
-}
+static TOOL_SPEC_PATTERN: Lazy<Regex> = Lazy::new(|| {
+    Regex::new("^(?P<name>(?:@([^/]+?)[/])?([^/]+?))(@(?P<version>.+))?$").expect("regex is valid")
+});
+static HAS_VERSION: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^\s]+@").expect("regex is valid"));
 
 /// Methods for parsing a Spec out of string values
 impl Spec {

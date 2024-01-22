@@ -203,18 +203,16 @@ fn display_tool(name: &str, host: &Package) -> Option<String> {
 mod tests {
     use std::path::PathBuf;
 
-    use lazy_static::lazy_static;
     use node_semver::Version;
+    use once_cell::sync::Lazy;
 
     use crate::command::list::PackageDetails;
 
-    lazy_static! {
-        static ref NODE_VERSION: Version = Version::from((12, 4, 0));
-        static ref TYPESCRIPT_VERSION: Version = Version::from((3, 4, 1));
-        static ref NPM_VERSION: Version = Version::from((6, 13, 4));
-        static ref YARN_VERSION: Version = Version::from((1, 16, 0));
-        static ref PROJECT_PATH: PathBuf = PathBuf::from("/a/b/c");
-    }
+    static NODE_VERSION: Lazy<Version> = Lazy::new(|| Version::from((12, 4, 0)));
+    static TYPESCRIPT_VERSION: Lazy<Version> = Lazy::new(|| Version::from((3, 4, 1)));
+    static NPM_VERSION: Lazy<Version> = Lazy::new(|| Version::from((6, 13, 4)));
+    static YARN_VERSION: Lazy<Version> = Lazy::new(|| Version::from((1, 16, 0)));
+    static PROJECT_PATH: Lazy<PathBuf> = Lazy::new(|| PathBuf::from("/a/b/c"));
 
     mod node {
         use super::super::*;

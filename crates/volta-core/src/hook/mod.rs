@@ -10,8 +10,8 @@ use crate::error::{Context, ErrorKind, Fallible};
 use crate::layout::volta_home;
 use crate::project::Project;
 use crate::tool::{Node, Npm, Pnpm, Tool};
-use lazycell::LazyCell;
 use log::debug;
+use once_cell::unsync::OnceCell;
 
 pub(crate) mod serial;
 pub mod tool;
@@ -28,21 +28,21 @@ pub enum Publish {
 
 /// Lazily loaded Volta hook configuration
 pub struct LazyHookConfig {
-    settings: LazyCell<HookConfig>,
+    settings: OnceCell<HookConfig>,
 }
 
 impl LazyHookConfig {
     /// Constructs a new `LazyHookConfig`
     pub fn init() -> LazyHookConfig {
         LazyHookConfig {
-            settings: LazyCell::new(),
+            settings: OnceCell::new(),
         }
     }
 
     /// Forces the loading of the hook configuration from both project-local and user-default hooks
     pub fn get(&self, project: Option<&Project>) -> Fallible<&HookConfig> {
         self.settings
-            .try_borrow_with(|| HookConfig::current(project))
+            .get_or_try_init(|| HookConfig::current(project))
     }
 }
 

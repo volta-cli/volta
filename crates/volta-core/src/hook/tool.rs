@@ -10,9 +10,9 @@ use crate::hook::RegistryFormat;
 use crate::tool::{NODE_DISTRO_ARCH, NODE_DISTRO_OS};
 use cmdline_words_parser::parse_posix;
 use dunce::canonicalize;
-use lazy_static::lazy_static;
 use log::debug;
 use node_semver::Version;
+use once_cell::sync::Lazy;
 
 const ARCH_TEMPLATE: &str = "{{arch}}";
 const OS_TEMPLATE: &str = "{{os}}";
@@ -20,10 +20,8 @@ const VERSION_TEMPLATE: &str = "{{version}}";
 const EXTENSION_TEMPLATE: &str = "{{ext}}";
 const FILENAME_TEMPLATE: &str = "{{filename}}";
 
-lazy_static! {
-    static ref REL_PATH: String = format!(".{}", std::path::MAIN_SEPARATOR);
-    static ref REL_PATH_PARENT: String = format!("..{}", std::path::MAIN_SEPARATOR);
-}
+static REL_PATH: Lazy<String> = Lazy::new(|| format!(".{}", std::path::MAIN_SEPARATOR));
+static REL_PATH_PARENT: Lazy<String> = Lazy::new(|| format!("..{}", std::path::MAIN_SEPARATOR));
 
 /// A hook for resolving the distro URL for a given tool version
 #[derive(PartialEq, Eq, Debug)]
