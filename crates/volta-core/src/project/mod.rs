@@ -7,8 +7,8 @@ use std::ffi::OsStr;
 use std::iter::once;
 use std::path::{Path, PathBuf};
 
-use lazycell::LazyCell;
 use node_semver::Version;
+use once_cell::unsync::OnceCell;
 
 use crate::error::{Context, ErrorKind, Fallible, VoltaError};
 use crate::layout::volta_home;
@@ -25,24 +25,24 @@ use serial::{update_manifest, Manifest, ManifestKey};
 
 /// A lazily loaded Project
 pub struct LazyProject {
-    project: LazyCell<Option<Project>>,
+    project: OnceCell<Option<Project>>,
 }
 
 impl LazyProject {
     pub fn init() -> Self {
         LazyProject {
-            project: LazyCell::new(),
+            project: OnceCell::new(),
         }
     }
 
     pub fn get(&self) -> Fallible<Option<&Project>> {
-        let project = self.project.try_borrow_with(Project::for_current_dir)?;
+        let project = self.project.get_or_try_init(Project::for_current_dir)?;
         Ok(project.as_ref())
     }
 
     pub fn get_mut(&mut self) -> Fallible<Option<&mut Project>> {
-        let project = self.project.try_borrow_mut_with(Project::for_current_dir)?;
-        Ok(project.as_mut())
+        let _ = self.project.get_or_try_init(Project::for_current_dir)?;
+        Ok(self.project.get_mut().unwrap().as_mut())
     }
 }
 

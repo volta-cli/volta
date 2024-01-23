@@ -1,7 +1,7 @@
 //! A Rust implementation of the validation rules from the core JS package
 //! [`validate-npm-package-name`](https://github.com/npm/validate-npm-package-name/).
 
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use percent_encoding::{utf8_percent_encode, AsciiSet, NON_ALPHANUMERIC};
 use regex::Regex;
 
@@ -18,56 +18,54 @@ static ENCODE_URI_SET: &AsciiSet = &NON_ALPHANUMERIC
     .remove(b'(')
     .remove(b')');
 
-lazy_static! {
-    static ref SCOPED_PACKAGE: Regex =
-        Regex::new(r"^(?:@([^/]+?)[/])?([^/]+?)$").expect("regex is valid");
-    static ref SPECIAL_CHARS: Regex = Regex::new(r"[~'!()*]").expect("regex is valid");
-    static ref BLACKLIST: Vec<&'static str> = vec!["node_modules", "favicon.ico"];
+static SCOPED_PACKAGE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^(?:@([^/]+?)[/])?([^/]+?)$").expect("regex is valid"));
+static SPECIAL_CHARS: Lazy<Regex> = Lazy::new(|| Regex::new(r"[~'!()*]").expect("regex is valid"));
+const BLACKLIST: [&str; 2] = ["node_modules", "favicon.ico"];
 
-    // Borrowed from https://github.com/juliangruber/builtins
-    static ref BUILTINS: Vec<&'static str> = vec![
-        "assert",
-        "buffer",
-        "child_process",
-        "cluster",
-        "console",
-        "constants",
-        "crypto",
-        "dgram",
-        "dns",
-        "domain",
-        "events",
-        "fs",
-        "http",
-        "https",
-        "module",
-        "net",
-        "os",
-        "path",
-        "punycode",
-        "querystring",
-        "readline",
-        "repl",
-        "stream",
-        "string_decoder",
-        "sys",
-        "timers",
-        "tls",
-        "tty",
-        "url",
-        "util",
-        "vm",
-        "zlib",
-        "freelist",
-        // excluded only in some versions
-        "freelist",
-        "v8",
-        "process",
-        "async_hooks",
-        "http2",
-        "perf_hooks",
-    ];
-}
+// Borrowed from https://github.com/juliangruber/builtins
+const BUILTINS: [&str; 39] = [
+    "assert",
+    "buffer",
+    "child_process",
+    "cluster",
+    "console",
+    "constants",
+    "crypto",
+    "dgram",
+    "dns",
+    "domain",
+    "events",
+    "fs",
+    "http",
+    "https",
+    "module",
+    "net",
+    "os",
+    "path",
+    "punycode",
+    "querystring",
+    "readline",
+    "repl",
+    "stream",
+    "string_decoder",
+    "sys",
+    "timers",
+    "tls",
+    "tty",
+    "url",
+    "util",
+    "vm",
+    "zlib",
+    "freelist",
+    // excluded only in some versions
+    "freelist",
+    "v8",
+    "process",
+    "async_hooks",
+    "http2",
+    "perf_hooks",
+];
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Validity {
