@@ -16,7 +16,11 @@ use crate::session::{ActivityKind, Session};
 ///
 /// If the command is _not_ a global add / remove or we don't have a default platform, then
 /// we will allow Yarn to execute the command as usual.
-pub(super) fn command(args: &[OsString], session: &mut Session, yarn_executable: &str) -> Fallible<Executor> {
+pub(super) fn command(
+    args: &[OsString],
+    session: &mut Session,
+    yarn_executable: &str,
+) -> Fallible<Executor> {
     session.add_event_start(ActivityKind::Yarn);
     // Don't re-evaluate the context or global install interception if this is a recursive call
     let platform = match env::var_os(RECURSION_ENV_VAR) {
@@ -32,7 +36,7 @@ pub(super) fn command(args: &[OsString], session: &mut Session, yarn_executable:
             Platform::current(session)?
         }
     };
-    
+
     Ok(ToolCommand::new(yarn_executable, args, platform, ToolKind::Yarn).into())
 }
 
