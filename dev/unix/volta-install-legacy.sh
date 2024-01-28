@@ -74,7 +74,7 @@ create_symlinks() {
   local install_dir="$1"
 
   info 'Creating' "symlinks and shims"
-  local main_shims=( node npm npx yarn )
+  local main_shims=( node npm npx yarn yarnpkg )
   local shim_exec="$install_dir/shim"
   local main_exec="$install_dir/volta"
 
