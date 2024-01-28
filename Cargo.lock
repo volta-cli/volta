@@ -1584,7 +1584,7 @@ checksum = "078775d0255232fb988e6fccf26ddc9d1ac274299aaedcedce21c6f72cc533ce"
 
 [[package]]
 name = "volta"
-version = "1.1.2"
+version = "1.1.1"
 dependencies = [
  "cfg-if",
  "ci_info",
