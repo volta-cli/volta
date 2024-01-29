@@ -44,6 +44,6 @@ winreg = "0.52.0"
 hamcrest2 = "0.3.0"
 envoy = "0.1.3"
 ci_info = "0.14.14"
-headers = "0.3"
+headers = "0.4"
 
 [workspace]
