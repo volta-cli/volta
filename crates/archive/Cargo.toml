@@ -16,6 +16,6 @@ fs-utils = { path = "../fs-utils" }
 progress-read = { path = "../progress-read" }
 verbatim = "0.1"
 cfg-if = "1.0"
-headers = "0.3"
+headers = "0.4"
 thiserror = "1.0.16"
-attohttpc = { version = "0.26", default-features = false, features = ["json", "compress", "tls-rustls-native-roots"] }
+attohttpc = { version = "0.27", default-features = false, features = ["json", "compress", "tls-rustls-native-roots"] }
