@@ -48,7 +48,7 @@ ci_info = "0.14.14"
 headers = "0.4"
 attohttpc = { version = "0.27", default-features = false, features = ["json", "compress", "tls-rustls-native-roots"] }
 chain-map = "0.1.0"
-indexmap = "2.2.1"
+indexmap = "2.2.2"
 retry = "2"
 fs2 = "0.4.3"
 
