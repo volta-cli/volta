@@ -1458,7 +1458,6 @@ dependencies = [
 name = "test-support"
 version = "0.1.0"
 dependencies = [
- "archive",
  "hamcrest2",
  "serde_json",
  "thiserror",
