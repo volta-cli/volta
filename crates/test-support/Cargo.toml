@@ -6,6 +6,5 @@ edition = "2018"
 
 [dependencies]
 hamcrest2 = "0.3.0"
-archive = { path = "../archive" }
 serde_json = { version = "1.0.113" }
 thiserror = "1.0.56"
