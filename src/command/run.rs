@@ -13,31 +13,31 @@ use volta_core::tool::{node, npm, pnpm, yarn};
 #[derive(Debug, clap::Args)]
 pub(crate) struct Run {
     /// Set the custom Node version
-    #[arg(long = "node", value_name = "version")]
+    #[arg(long, value_name = "version")]
     node: Option<String>,
 
     /// Set the custom npm version
-    #[arg(long = "npm", value_name = "version", conflicts_with = "bundled_npm")]
+    #[arg(long, value_name = "version", conflicts_with = "bundled_npm")]
     npm: Option<String>,
 
     /// Forces npm to be the version bundled with Node
-    #[arg(long = "bundled-npm", conflicts_with = "npm")]
+    #[arg(long, conflicts_with = "npm")]
     bundled_npm: bool,
 
     /// Set the custon pnpm version
-    #[arg(long = "pnpm", value_name = "version", conflicts_with = "no_pnpm")]
+    #[arg(long, value_name = "version", conflicts_with = "no_pnpm")]
     pnpm: Option<String>,
 
     /// Disables pnpm
-    #[arg(long = "no-pnpm", conflicts_with = "pnpm")]
+    #[arg(long, conflicts_with = "pnpm")]
     no_pnpm: bool,
 
     /// Set the custom Yarn version
-    #[arg(long = "yarn", value_name = "version", conflicts_with = "no_yarn")]
+    #[arg(long, value_name = "version", conflicts_with = "no_yarn")]
     yarn: Option<String>,
 
     /// Disables Yarn
-    #[arg(long = "no-yarn", conflicts_with = "yarn")]
+    #[arg(long, conflicts_with = "yarn")]
     no_yarn: bool,
 
     /// Set an environment variable (can be used multiple times)
