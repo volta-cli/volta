@@ -3,10 +3,10 @@ use clap::{builder::styling, ColorChoice, Parser};
 use crate::command::{self, Command};
 use volta_core::error::{ExitCode, Fallible};
 use volta_core::session::Session;
+use volta_core::style::{text_width, MAX_WIDTH};
 
 #[derive(Parser)]
 #[command(
-    name = "Volta",
     about = "The JavaScript Launcher ⚡",
     long_about = "The JavaScript Launcher ⚡
 
@@ -14,29 +14,28 @@ use volta_core::session::Session;
     To pin your project's runtime or package manager, use `volta pin`.",
     color = ColorChoice::Auto,
     disable_version_flag = true,
-    styles = styles()
+    styles = styles(),
+    term_width = text_width().unwrap_or(MAX_WIDTH),
 )]
 pub(crate) struct Volta {
     #[command(subcommand)]
     pub(crate) command: Option<Subcommand>,
 
-    #[arg(long = "verbose", help = "Enables verbose diagnostics", global = true)]
+    /// Enables verbose diagnostics
+    #[arg(long, global = true)]
     pub(crate) verbose: bool,
 
+    /// Prevents unnecessary output
     #[arg(
-        long = "quiet",
-        help = "Prevents unnecessary output",
+        long,
         global = true,
         conflicts_with = "verbose",
         aliases = &["silent"]
     )]
     pub(crate) quiet: bool,
 
-    #[arg(
-        short = 'v',
-        long = "version",
-        help = "Prints the current version of Volta"
-    )]
+    /// Prints the current version of Volta
+    #[arg(short, long)]
     pub(crate) version: bool,
 }
 
@@ -61,58 +60,42 @@ impl Volta {
 #[derive(clap::Subcommand)]
 pub(crate) enum Subcommand {
     /// Fetches a tool to the local machine
-    #[command(name = "fetch")]
     Fetch(command::Fetch),
 
     /// Installs a tool in your toolchain
-    #[command(name = "install")]
     Install(command::Install),
 
     /// Uninstalls a tool from your toolchain
-    #[command(name = "uninstall")]
     Uninstall(command::Uninstall),
 
     /// Pins your project's runtime or package manager
-    #[command(name = "pin")]
     Pin(command::Pin),
 
     /// Displays the current toolchain
-    #[command(name = "list", alias = "ls")]
+    #[command(alias = "ls")]
     List(command::List),
 
     /// Generates Volta completions
-    #[command(
-        name = "completions",
-        arg_required_else_help = true,
-        long_about = "Generates Volta completions
-
-By default, completions will be generated for the value of your current shell,
-shell, i.e. the value of `SHELL`. If you set the `<shell>` option, completions
-will be generated for that shell instead.
-
-If you specify a directory, the completions will be written to a file there;
-otherwise, they will be written to `stdout`.
-    "
-    )]
+    ///
+    /// By default, completions will be generated for the value of your current shell,
+    /// shell, i.e. the value of `SHELL`. If you set the `<shell>` option, completions
+    /// will be generated for that shell instead.
+    ///
+    /// If you specify a directory, the completions will be written to a file there;
+    /// otherwise, they will be written to `stdout`.
+    #[command(arg_required_else_help = true)]
     Completions(command::Completions),
 
     /// Locates the actual binary that will be called by Volta
-    #[command(name = "which")]
     Which(command::Which),
 
-    #[command(
-        name = "use",
-        long_about = crate::command::r#use::USAGE,
-        hide = true,
-    )]
+    #[command(long_about = crate::command::r#use::USAGE, hide = true)]
     Use(command::Use),
 
     /// Enables Volta for the current user / shell
-    #[command(name = "setup")]
     Setup(command::Setup),
 
     /// Run a command with custom Node, npm, pnpm, and/or Yarn versions
-    #[command(name = "run")]
     Run(command::Run),
 }
 
