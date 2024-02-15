@@ -15,22 +15,10 @@ use volta_core::project::Project;
 use volta_core::session::{ActivityKind, Session};
 use volta_core::tool::PackageConfig;
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(clap::ValueEnum, Copy, Clone)]
 enum Format {
     Human,
     Plain,
-}
-
-impl FromStr for Format {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "human" => Ok(Format::Human),
-            "plain" => Ok(Format::Plain),
-            _ => Err("No".into()),
-        }
-    }
 }
 
 /// The source of a given item, from the perspective of a user.
@@ -207,7 +195,7 @@ pub(crate) struct List {
     /// Specify the output format.
     ///
     /// Defaults to `human` for TTYs, `plain` otherwise.
-    #[arg(long, value_parser = ["human", "plain"])]
+    #[arg(long)]
     format: Option<Format>,
 
     /// Show the currently-active tool(s).
