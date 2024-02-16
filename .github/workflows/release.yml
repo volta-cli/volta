@@ -48,7 +48,7 @@ jobs:
         run: cross build --release --target aarch64-unknown-linux-gnu
       - name: Package Volta
         run: |
-          cd target/aarch64-unknown-linux-gnu && tar -zcvf "volta-linux-arm.tar.gz" volta volta-shim volta-migrate
+          cd target/aarch64-unknown-linux-gnu && ls -la && cd release && tar -zcvf "volta-linux-arm.tar.gz" volta volta-shim volta-migrate
       - name: Upload release artifact
         uses: actions/upload-artifact@v3
         with:
