@@ -40,13 +40,15 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v3
-      - name: Install cargo cross
-        run: cargo install cross --git https://github.com/cross-rs/cross
+      - name: Install cargo binstall
+        uses: cargo-bins/cargo-binstall@main
+      - name: Use binstall to install cross-rs
+        run: cargo binstall cross
       - name: Compile Volta
         run: cross build --release --target aarch64-unknown-linux-gnu
       - name: Package Volta
         run: |
-          cd target && ls -la && cd release && ls -la && tar -zcvf "volta-linux-arm.tar.gz" volta volta-shim volta-migrate
+          cd target/aarch64-unknown-linux-gnu && tar -zcvf "volta-linux-arm.tar.gz" volta volta-shim volta-migrate
       - name: Upload release artifact
         uses: actions/upload-artifact@v3
         with:
