@@ -14,6 +14,3 @@ RUN yum install -y devtoolset-8
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
-
-ENV CROSS_CONTAINER_IN_CONTAINER=true
-RUN cargo install cross --git https://github.com/cross-rs/cross
