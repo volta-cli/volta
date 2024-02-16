@@ -34,6 +34,31 @@ jobs:
           name: linux
           path: target/release/volta-linux.tar.gz
 
+  linux-arm:
+    name: Build - Linux ARM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+      - name: Set up docker buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Build docker image
+        uses: docker/build-push-action@v3
+        with:
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          context: ./ci/docker
+          push: false
+          load: true
+          tags: volta
+      - name: Compile and package Volta
+        run: docker run --volume /var/run/docker.sock:/var/run/docker.sock --volume ${PWD}:/root/workspace --workdir /root/workspace --rm --init --tty volta /root/workspace/ci/build-linux-arm.sh volta-linux-arm
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-arm
+          path: target/release/volta-linux-arm.tar.gz
+
   macos:
     name: Build - MacOS
     runs-on: macos-latest
