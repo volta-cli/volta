@@ -34,6 +34,27 @@ jobs:
           name: linux
           path: target/release/volta-linux.tar.gz
 
+  linux-arm:
+    name: Build - Linux ARM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+      - name: Install cross-rs
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+      - name: Compile Volta
+        run: cross build --release --target aarch64-unknown-linux-gnu
+      - name: Package Volta
+        run: |
+          cd target/aarch64-unknown-linux-gnu/release && tar -zcvf "volta-linux-arm.tar.gz" volta volta-shim volta-migrate
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-arm
+          path: target/aarch64-unknown-linux-gnu/release/volta-linux-arm.tar.gz
+
   macos:
     name: Build - MacOS
     runs-on: macos-latest
@@ -100,6 +121,11 @@ jobs:
         with:
           name: linux
           path: release
+      - name: Fetch Linux ARM artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-arm
+          path: release
       - name: Fetch MacOS artifact
         uses: actions/download-artifact@v2
         with:
@@ -134,6 +160,15 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./release/volta-linux.tar.gz
           asset_name: volta-${{ steps.release_info.outputs.version }}-linux.tar.gz
+          asset_content_type: application/gzip
+      - name: Upload Linux ARM artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/volta-linux-arm.tar.gz
+          asset_name: volta-${{ steps.release_info.outputs.version }}-linux-arm.tar.gz
           asset_content_type: application/gzip
       - name: Upload MacOS artifact
         uses: actions/upload-release-asset@v1
