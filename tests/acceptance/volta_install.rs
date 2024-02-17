@@ -398,6 +398,6 @@ fn install_node_with_shadowed_binary() {
         s.volta("install node"),
         execs()
             .with_status(ExitCode::Success as i32)
-            .with_stderr_contains("[..]is shadowed by another binary of the same name at [..]")
+            .with_stdout_contains("[..]is shadowed by another binary of the same name at [..]")
     );
 }
