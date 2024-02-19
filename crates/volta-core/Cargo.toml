@@ -37,7 +37,7 @@ dirs = "5.0.1"
 # not need.
 chrono = { version = "0.4.34", default-features = false, features = ["alloc", "std", "clock"] }
 validate-npm-package-name = { path = "../validate-npm-package-name" }
-textwrap = "0.16.0"
+textwrap = "0.16.1"
 log = { version = "0.4", features = ["std"] }
 ctrlc = "3.4.2"
 walkdir = "2.4.0"
