@@ -92,6 +92,7 @@ volta_create_binaries() {
   ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/npm
   ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/npx
   ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/yarn
+  ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/yarnpkg
 
   chmod 755 "${INSTALL_DIR}/"/volta "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}"/shim
 }
