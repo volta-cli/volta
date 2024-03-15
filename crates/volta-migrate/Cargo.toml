@@ -12,4 +12,4 @@ tempfile = "3.10.0"
 node-semver = "2"
 serde_json = { version = "1.0.114", features = ["preserve_order"] }
 serde = { version = "1.0.197", features = ["derive"] }
-walkdir = "2.4.0"
+walkdir = "2.5.0"
