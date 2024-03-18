@@ -155,7 +155,7 @@ fn load_isize(file: &mut File) -> Result<[u8; 4], ArchiveError> {
 fn accepts_byte_ranges(headers: &HeaderMap) -> bool {
     headers
         .typed_get::<AcceptRanges>()
-        .map_or(false, |v| v == AcceptRanges::bytes())
+        .is_some_and(|v| v == AcceptRanges::bytes())
 }
 
 /// Determines the uncompressed size of a gzip file hosted at the specified

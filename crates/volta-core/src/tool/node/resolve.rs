@@ -214,12 +214,10 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
                 .with_context(registry_fetch_error("Node", url))?
                 .split();
 
-            let expires = if let Some(expires_header) = headers.typed_get::<Expires>() {
-                expires_header
-            } else {
+            let expires = headers.typed_get::<Expires>().unwrap_or_else(|| {
                 let expiry_date = SystemTime::now() + Duration::from_secs(max_age(&headers));
                 Expires::from(expiry_date)
-            };
+            });
 
             let response_text = response
                 .text()
