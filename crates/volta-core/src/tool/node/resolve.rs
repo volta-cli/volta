@@ -157,15 +157,10 @@ fn read_cached_opt(url: &str) -> Fallible<Option<RawNodeIndex>> {
     })?;
 
     if let Some(date) = &expiry {
-        let expiry_date = Expires::decode(
-            &mut [date
-                .parse()
-                .with_context(|| ErrorKind::ParseNodeIndexExpiryError)?]
-            .iter(),
-        )
-        .with_context(|| ErrorKind::ParseNodeIndexExpiryError)?;
+        let expiry_date = httpdate::parse_http_date(date)
+            .with_context(|| ErrorKind::ParseNodeIndexExpiryError)?;
 
-        let current_date = Expires::from(SystemTime::now());
+        let current_date = SystemTime::now();
 
         if current_date < expiry_date {
             let index_file = volta_home()?.node_index_file();
