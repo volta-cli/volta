@@ -31,7 +31,7 @@ fn content_length(headers: &HeaderMap) -> Result<u64, ArchiveError> {
     headers
         .typed_get::<ContentLength>()
         .map(|v| v.0)
-        .ok_or_else(|| ArchiveError::MissingHeaderError(String::from("Content-Length")))
+        .ok_or_else(|| ArchiveError::MissingHeaderError(ContentLength::name()))
 }
 
 impl Tarball {
