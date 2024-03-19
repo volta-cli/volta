@@ -2,11 +2,13 @@ use std::env;
 use std::fmt::{self, Display};
 
 use crate::error::{ErrorKind, Fallible};
+use crate::layout::volta_home;
 use crate::session::Session;
 use crate::style::{note_prefix, success_prefix, tool_version};
 use crate::sync::VoltaLock;
 use crate::version::VersionSpec;
 use crate::VOLTA_FEATURE_PNPM;
+use cfg_if::cfg_if;
 use log::{debug, info};
 
 pub mod node;
@@ -225,4 +227,37 @@ fn registry_fetch_error(
     let tool = tool.as_ref().to_string();
     let from_url = from_url.as_ref().to_string();
     || ErrorKind::RegistryFetchError { tool, from_url }
+}
+
+cfg_if!(
+    if #[cfg(windows)] {
+        const PATH_VAR_NAME: &str = "Path";
+    } else {
+        const PATH_VAR_NAME: &str = "PATH";
+    }
+);
+
+pub fn check_shim_reachable(shim_name: &str) {
+    let home = match volta_home() {
+        Ok(home) => home,
+        Err(_) => return,
+    };
+
+    let shim = home.shim_file(shim_name);
+    let resolved = match which::which(shim_name) {
+        Ok(resolved) => resolved,
+        Err(_) => {
+            info!(
+                "{} cannot find command {}. Please ensure that {} is available on your {}.",
+                note_prefix(),
+                shim_name,
+                home.shim_dir().display(),
+                PATH_VAR_NAME,
+            );
+            return;
+        }
+    };
+    if resolved != shim {
+        info!("{} {} is shadowed by another binary of the same name at {}. To ensure your commands work as expected, please move {} to the start of your {}.", note_prefix(), shim_name, resolved.display(), home.shim_dir().display(), PATH_VAR_NAME);
+    }
 }
