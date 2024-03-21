@@ -156,34 +156,28 @@ fn read_cached_opt(url: &str) -> Fallible<Option<RawNodeIndex>> {
         file: expiry_file.to_owned(),
     })?;
 
-    if let Some(date) = &expiry {
-        let expiry_date = Expires::decode(
-            &mut [date
-                .parse()
-                .with_context(|| ErrorKind::ParseNodeIndexExpiryError)?]
-            .iter(),
-        )
-        .with_context(|| ErrorKind::ParseNodeIndexExpiryError)?;
+    if !expiry
+        .map(|date| httpdate::parse_http_date(&date))
+        .transpose()
+        .with_context(|| ErrorKind::ParseNodeIndexExpiryError)?
+        .is_some_and(|expiry_date| SystemTime::now() < expiry_date)
+    {
+        return Ok(None);
+    };
 
-        let current_date = Expires::from(SystemTime::now());
+    let index_file = volta_home()?.node_index_file();
+    let cached = read_file(index_file).with_context(|| ErrorKind::ReadNodeIndexCacheError {
+        file: index_file.to_owned(),
+    })?;
 
-        if current_date < expiry_date {
-            let index_file = volta_home()?.node_index_file();
-            let cached =
-                read_file(index_file).with_context(|| ErrorKind::ReadNodeIndexCacheError {
-                    file: index_file.to_owned(),
-                })?;
+    let Some(json) = cached
+        .as_ref()
+        .and_then(|content| content.strip_prefix(url))
+    else {
+        return Ok(None);
+    };
 
-            if let Some(content) = cached {
-                if let Some(json) = content.strip_prefix(url) {
-                    return serde_json::de::from_str(json)
-                        .with_context(|| ErrorKind::ParseNodeIndexCacheError);
-                }
-            }
-        }
-    }
-
-    Ok(None)
+    serde_json::de::from_str(json).with_context(|| ErrorKind::ParseNodeIndexCacheError)
 }
 
 /// Get the cache max-age of an HTTP response.
@@ -214,12 +208,10 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
                 .with_context(registry_fetch_error("Node", url))?
                 .split();
 
-            let expires = if let Some(expires_header) = headers.typed_get::<Expires>() {
-                expires_header
-            } else {
+            let expires = headers.typed_get::<Expires>().unwrap_or_else(|| {
                 let expiry_date = SystemTime::now() + Duration::from_secs(max_age(&headers));
                 Expires::from(expiry_date)
-            };
+            });
 
             let response_text = response
                 .text()

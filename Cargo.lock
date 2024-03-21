@@ -1620,6 +1620,7 @@ dependencies = [
  "fs-utils",
  "fs2",
  "headers",
+ "httpdate",
  "indexmap 2.2.3",
  "indicatif",
  "log",
