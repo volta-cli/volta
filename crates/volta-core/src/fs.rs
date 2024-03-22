@@ -118,17 +118,6 @@ pub fn create_staging_dir() -> Fallible<TempDir> {
     })
 }
 
-/// Create a file symlink. The `dst` path will be a symbolic link pointing to the `src` path.
-pub fn symlink_file<S, D>(src: S, dest: D) -> io::Result<()>
-    where
-        S: AsRef<Path>,
-        D: AsRef<Path>,
-{
-    return std::os::windows::fs::symlink_file(src, dest);
-
-    return std::os::unix::fs::symlink(src, dest);
-}
-
 /// Create a directory symlink. The `dst` path will be a symbolic link pointing to the `src` path
 pub fn symlink_dir<S, D>(src: S, dest: D) -> io::Result<()>
 where

@@ -6,7 +6,7 @@ use std::io;
 use std::path::Path;
 
 use crate::error::{Context, ErrorKind, Fallible, VoltaError};
-use crate::fs::{read_dir_eager, symlink_file};
+use crate::fs::read_dir_eager;
 use crate::layout::{volta_home, volta_install};
 use crate::sync::VoltaLock;
 use log::debug;
@@ -79,7 +79,9 @@ pub fn create(shim_name: &str) -> Fallible<ShimResult> {
     }
 
     #[cfg(unix)]
-    shim_result = symlink_file(executable, shim);
+    {
+        shim_result = std::os::unix::fs::symlink(executable, shim);
+    }
 
     match shim_result {
         Ok(_) => Ok(ShimResult::Created),
