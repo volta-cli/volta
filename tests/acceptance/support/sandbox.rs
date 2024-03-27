@@ -10,7 +10,7 @@ use headers::{Expires, Header};
 use mockito::{self, mock, Matcher};
 use node_semver::Version;
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
-use volta_core::fs::{set_executable, symlink_file};
+use volta_core::fs::set_executable;
 use volta_core::tool::{Node, Pnpm, Yarn, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION, NODE_DISTRO_OS};
 
 // version cache for node and yarn
@@ -135,7 +135,9 @@ impl ShimBuilder {
     }
 
     fn build(&self) {
-        ok_or_panic! { symlink_file(shim_exe(), shim_file(&self.name)) };
+        ok_or_panic! {
+            std::os::unix::fs::symlink(shim_exe(), shim_file(&self.name))
+        }
     }
 }
 
