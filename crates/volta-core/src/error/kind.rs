@@ -40,12 +40,12 @@ pub enum ErrorKind {
         command: String,
     },
 
-    /// Thrown when a user tries to `volta fetch` something other than node/yarn/npm.
+    /// Thrown when a user tries to `volta fetch` something other than node/yarn/npm/pnpm.
     CannotFetchPackage {
         package: String,
     },
 
-    /// Thrown when a user tries to `volta pin` something other than node/yarn/npm.
+    /// Thrown when a user tries to `volta pin` something other than node/yarn/npm/pnpm.
     CannotPinPackage {
         package: String,
     },
@@ -1146,7 +1146,7 @@ Please ensure you have correct permissions to access the file.",
                 f,
                 "Could not locate executable `{}` in your project.
 
-Please ensure that all project dependencies are installed with `npm install` or `yarn install`",
+Please ensure that all project dependencies are installed with `npm install`, `pnpm install` or `yarn install`",
                 command
             ),
             ErrorKind::PublishHookBothUrlAndBin => write!(
