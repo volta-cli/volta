@@ -164,7 +164,9 @@ fn detect_and_migrate() -> Fallible<()> {
             MigrationState::V0(zero) => MigrationState::V1(Box::new((*zero).try_into()?)),
             MigrationState::V1(one) => MigrationState::V2(Box::new((*one).try_into()?)),
             MigrationState::V2(two) => MigrationState::V3(Box::new((*two).try_into()?)),
-            MigrationState::V3(_) => { break; }
+            MigrationState::V3(_) => {
+                break;
+            }
         };
     }
 

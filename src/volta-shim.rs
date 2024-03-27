@@ -5,7 +5,7 @@ pub fn main() -> ExitCode {
     match result {
         Ok(exit_status) => match exit_status.code() {
             None => ExitCode::FAILURE,
-            Some(code) => ExitCode::from(code as u8)
+            Some(code) => ExitCode::from(code as u8),
         },
         Err(_) => ExitCode::FAILURE,
     }
