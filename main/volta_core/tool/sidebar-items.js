@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["FetchStatus","Spec"],"fn":["check_fetched","debug_already_fetched","download_tool_error","info_fetched","info_installed","info_pinned","info_project_version","registry_fetch_error"],"mod":["node","npm","package","pnpm","registry","serial","yarn"],"struct":["PackageDetails"],"trait":["Tool"]};
