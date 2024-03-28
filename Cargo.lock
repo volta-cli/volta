@@ -258,9 +258,9 @@ checksum = "bc076b92c3d763b90697600bf9833c204b517ff911f64dcfb58221b0663d3ee9"
 
 [[package]]
 name = "chrono"
-version = "0.4.34"
+version = "0.4.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bc015644b92d5890fab7489e49d21f879d5c990186827d42ec511919404f38b"
+checksum = "8a0d04d43504c61aa6c7531f1871dd0d418d91130162063b789da00fd7057a5e"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
