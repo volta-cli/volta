@@ -95,7 +95,7 @@ dependencies = [
 name = "archive"
 version = "0.1.0"
 dependencies = [
- "attohttpc 0.27.0",
+ "attohttpc",
  "cfg-if",
  "flate2",
  "fs-utils",
@@ -116,22 +116,6 @@ checksum = "50f1c3703dd33532d7f0ca049168930e9099ecac238e23cf932f3a69c42f06da"
 dependencies = [
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "attohttpc"
-version = "0.27.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "184f5e6cce583a9db6b6f8d772a42cfce5b78e7c3ef26118cec3ce4c8c14969b"
-dependencies = [
- "flate2",
- "http",
- "log",
- "rustls",
- "rustls-native-certs",
- "serde",
- "serde_json",
- "url",
 ]
 
 [[package]]
@@ -268,9 +252,9 @@ checksum = "bc076b92c3d763b90697600bf9833c204b517ff911f64dcfb58221b0663d3ee9"
 
 [[package]]
 name = "chrono"
-version = "0.4.34"
+version = "0.4.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bc015644b92d5890fab7489e49d21f879d5c990186827d42ec511919404f38b"
+checksum = "8a0d04d43504c61aa6c7531f1871dd0d418d91130162063b789da00fd7057a5e"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
@@ -1621,7 +1605,7 @@ name = "volta-core"
 version = "0.1.0"
 dependencies = [
  "archive",
- "attohttpc 0.28.0",
+ "attohttpc",
  "cfg-if",
  "chain-map",
  "chrono",
