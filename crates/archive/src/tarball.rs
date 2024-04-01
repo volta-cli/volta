@@ -9,7 +9,7 @@ use super::{Archive, ArchiveError, Origin};
 use attohttpc::header::HeaderMap;
 use flate2::read::GzDecoder;
 use fs_utils::ensure_containing_dir_exists;
-use headers::{AcceptRanges, ContentLength, Header, HeaderMapExt, Range};
+use headers::{AcceptRanges, ContentLength, HeaderMapExt, Range};
 use progress_read::ProgressRead;
 use tee::TeeReader;
 
@@ -114,18 +114,13 @@ impl Archive for Tarball {
 /// downloading the entire gzip file. For very small files it's unlikely to be
 /// more efficient than simply downloading the entire file up front.
 fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], ArchiveError> {
-    let mut header_values = Vec::with_capacity(1);
-    Range::bytes(len - 4..len)
-        .unwrap()
-        .encode(&mut header_values);
-    // We just pushed a header in with the `.encode` above, so there will always
-    // be a value at `.first()`.
-    let range_header = header_values.first().unwrap();
-
-    let (status, headers, mut response) = attohttpc::get(url)
-        .header(Range::name(), range_header)
-        .send()?
-        .split();
+    let (status, headers, mut response) = {
+        let mut request = attohttpc::get(url);
+        request
+            .headers_mut()
+            .typed_insert(Range::bytes(len - 4..len).unwrap());
+        request.send()?.split()
+    };
 
     if !status.is_success() {
         return Err(ArchiveError::HttpError(status));
