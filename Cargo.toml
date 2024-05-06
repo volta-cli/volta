@@ -17,6 +17,10 @@ name = "volta-shim"
 path = "src/volta-shim.rs"
 
 [[bin]]
+name = "volta-runner"
+path = "src/volta-runner.rs"
+
+[[bin]]
 name = "volta-migrate"
 path = "src/volta-migrate.rs"
 
