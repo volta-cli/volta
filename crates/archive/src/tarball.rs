@@ -31,7 +31,7 @@ fn content_length(headers: &HeaderMap) -> Result<u64, ArchiveError> {
     headers
         .typed_get::<ContentLength>()
         .map(|v| v.0)
-        .ok_or_else(|| ArchiveError::MissingHeaderError(String::from("Content-Length")))
+        .ok_or_else(|| ArchiveError::MissingHeaderError(ContentLength::name()))
 }
 
 impl Tarball {
@@ -155,7 +155,7 @@ fn load_isize(file: &mut File) -> Result<[u8; 4], ArchiveError> {
 fn accepts_byte_ranges(headers: &HeaderMap) -> bool {
     headers
         .typed_get::<AcceptRanges>()
-        .map_or(false, |v| v == AcceptRanges::bytes())
+        .is_some_and(|v| v == AcceptRanges::bytes())
 }
 
 /// Determines the uncompressed size of a gzip file hosted at the specified
