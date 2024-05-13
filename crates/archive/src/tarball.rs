@@ -9,7 +9,7 @@ use super::{Archive, ArchiveError, Origin};
 use attohttpc::header::HeaderMap;
 use flate2::read::GzDecoder;
 use fs_utils::ensure_containing_dir_exists;
-use headers::{AcceptRanges, ContentLength, HeaderMapExt, Range};
+use headers::{AcceptRanges, ContentLength, Header, HeaderMapExt, Range};
 use progress_read::ProgressRead;
 use tee::TeeReader;
 
