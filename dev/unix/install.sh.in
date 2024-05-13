@@ -92,6 +92,7 @@ volta_create_binaries() {
   ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/npm
   ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/npx
   ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/yarn
+  ln -s "${INSTALL_DIR}"/shim "${INSTALL_DIR}"/bin/yarnpkg
 
   chmod 755 "${INSTALL_DIR}/"/volta "${INSTALL_DIR}/bin"/* "${INSTALL_DIR}"/shim
 }
@@ -132,7 +133,7 @@ volta_detect_profile() {
       esac
       ;;
     zsh)
-      echo "$HOME/.zshrc"
+      echo_fexists "$HOME/.zshenv" || echo_fexists "$HOME/.zshrc"
       ;;
     fish)
       echo "$HOME/.config/fish/config.fish"

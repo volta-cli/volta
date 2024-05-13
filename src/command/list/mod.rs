@@ -6,7 +6,6 @@ use std::io::IsTerminal as _;
 use std::{fmt, path::PathBuf, str::FromStr};
 
 use node_semver::Version;
-use structopt::StructOpt;
 
 use crate::command::Command;
 use toolchain::Toolchain;
@@ -16,22 +15,10 @@ use volta_core::project::Project;
 use volta_core::session::{ActivityKind, Session};
 use volta_core::tool::PackageConfig;
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(clap::ValueEnum, Copy, Clone)]
 enum Format {
     Human,
     Plain,
-}
-
-impl FromStr for Format {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "human" => Ok(Format::Human),
-            "plain" => Ok(Format::Plain),
-            _ => Err("No".into()),
-        }
-    }
 }
 
 /// The source of a given item, from the perspective of a user.
@@ -198,35 +185,32 @@ enum Filter {
     None,
 }
 
-#[derive(StructOpt)]
+#[derive(clap::Args)]
 pub(crate) struct List {
-    // Note: we implement the subcommand as an `Option<String>` instead of an
-    // `Option<Subcommand>` with `impl FromStr for Subcommand` for `StructOpt`
-    // because StructOpt does not currently support custom parsing for enum
-    // variants (as detailed in commit 5f9214ae).
     /// The tool to lookup - `all`, `node`, `npm`, `yarn`, `pnpm`, or the name
     /// of a package or binary.
-    #[structopt(name = "tool")]
-    subcommand: Option<String>,
+    #[arg(value_name = "tool")]
+    subcommand: Option<Subcommand>,
 
     /// Specify the output format.
     ///
     /// Defaults to `human` for TTYs, `plain` otherwise.
-    #[structopt(long = "format", raw(possible_values = r#"&["human", "plain"]"#))]
+    #[arg(long)]
     format: Option<Format>,
 
     /// Show the currently-active tool(s).
     ///
     /// Equivalent to `volta list` when not specifying a specific tool.
-    #[structopt(long = "current", short = "c", conflicts_with = "default")]
+    #[arg(short, long, conflicts_with = "default")]
     current: bool,
 
     /// Show your default tool(s).
-    #[structopt(long = "default", short = "d", conflicts_with = "current")]
+    #[arg(short, long, conflicts_with = "current")]
     default: bool,
 }
 
 /// Which tool should we look up?
+#[derive(Clone)]
 enum Subcommand {
     /// Show every item in the toolchain.
     All,
@@ -247,16 +231,18 @@ enum Subcommand {
     PackageOrTool { name: String },
 }
 
-impl From<&str> for Subcommand {
-    fn from(s: &str) -> Self {
-        match s {
+impl FromStr for Subcommand {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
             "all" => Subcommand::All,
             "node" => Subcommand::Node,
             "npm" => Subcommand::Npm,
             "pnpm" => Subcommand::Pnpm,
             "yarn" => Subcommand::Yarn,
             s => Subcommand::PackageOrTool { name: s.into() },
-        }
+        })
     }
 }
 
@@ -271,10 +257,6 @@ impl List {
         } else {
             Format::Plain
         })
-    }
-
-    fn subcommand(&self) -> Option<Subcommand> {
-        self.subcommand.as_ref().map(|s| s.as_str().into())
     }
 }
 
@@ -296,7 +278,7 @@ impl Command for List {
             _ => Filter::None,
         };
 
-        let toolchain = match self.subcommand() {
+        let toolchain = match self.subcommand {
             // For no subcommand, show the user's current toolchain
             None => Toolchain::active(project, default_platform)?,
             Some(Subcommand::All) => Toolchain::all(project, default_platform)?,

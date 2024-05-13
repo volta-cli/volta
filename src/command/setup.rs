@@ -1,5 +1,4 @@
 use log::info;
-use structopt::StructOpt;
 use volta_core::error::{ExitCode, Fallible};
 use volta_core::layout::volta_home;
 use volta_core::session::{ActivityKind, Session};
@@ -8,7 +7,7 @@ use volta_core::style::success_prefix;
 
 use crate::command::Command;
 
-#[derive(StructOpt)]
+#[derive(clap::Args)]
 pub(crate) struct Setup {}
 
 impl Command for Setup {
@@ -123,9 +122,13 @@ mod os {
             Path::new(&zdotdir_env)
         };
 
+        let zshenv = zdotdir.join(".zshenv");
+
         let zshrc = zdotdir.join(".zshrc");
 
-        if shell.contains("zsh") || zshrc.exists() {
+        if shell.contains("zsh") || zshenv.exists() {
+            profiles.push(zshenv);
+        } else if zshrc.exists() {
             profiles.push(zshrc);
         }
     }

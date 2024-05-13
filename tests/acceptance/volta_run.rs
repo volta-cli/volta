@@ -370,6 +370,12 @@ fn command_line_yarn_1() {
             .with_status(ExitCode::Success as i32)
             .with_stderr_contains("[..]Yarn: 1.7.71 from command-line configuration")
     );
+    assert_that!(
+        s.volta("run --node 10.99.1040 --yarn 1.7.71 yarnpkg --version"),
+        execs()
+            .with_status(ExitCode::Success as i32)
+            .with_stderr_contains("[..]Yarn: 1.7.71 from command-line configuration")
+    );
 }
 
 #[test]

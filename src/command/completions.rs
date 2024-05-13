@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 
+use clap::CommandFactory;
+use clap_complete::Shell;
 use log::info;
-use structopt::{clap::Shell, StructOpt};
 
 use volta_core::{
     error::{Context, ErrorKind, ExitCode, Fallible},
@@ -11,23 +12,18 @@ use volta_core::{
 
 use crate::command::Command;
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, clap::Args)]
 pub(crate) struct Completions {
     /// Shell to generate completions for
-    #[structopt(
-        takes_value = true,
-        index = 1,
-        raw(possible_values = "&Shell::variants()"),
-        case_insensitive = true
-    )]
+    #[arg(index = 1, ignore_case = true, required = true)]
     shell: Shell,
 
     /// File to write generated completions to
-    #[structopt(short = "o", long = "output")]
+    #[arg(short, long = "output")]
     out_file: Option<PathBuf>,
 
     /// Write over an existing file, if any.
-    #[structopt(short = "f", long = "force")]
+    #[arg(short, long)]
     force: bool,
 }
 
@@ -35,7 +31,8 @@ impl Command for Completions {
     fn run(self, session: &mut Session) -> Fallible<ExitCode> {
         session.add_event_start(ActivityKind::Completions);
 
-        let mut app = crate::cli::Volta::clap();
+        let mut app = crate::cli::Volta::command();
+        let app_name = app.get_name().to_owned();
         match self.out_file {
             Some(path) => {
                 if path.is_file() && !self.force {
@@ -65,7 +62,7 @@ impl Command for Completions {
                     }
                 })?;
 
-                app.gen_completions_to("volta", self.shell, &mut file);
+                clap_complete::generate(self.shell, &mut app, app_name, &mut file);
 
                 info!(
                     "{} installed completions to {}",
@@ -73,7 +70,7 @@ impl Command for Completions {
                     path.display()
                 );
             }
-            None => app.gen_completions_to("volta", self.shell, &mut std::io::stdout()),
+            None => clap_complete::generate(self.shell, &mut app, app_name, &mut std::io::stdout()),
         };
 
         session.add_event_end(ActivityKind::Completions, ExitCode::Success);

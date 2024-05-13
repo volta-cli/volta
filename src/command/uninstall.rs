@@ -1,5 +1,3 @@
-use structopt::StructOpt;
-
 use volta_core::error::{ExitCode, Fallible};
 use volta_core::session::{ActivityKind, Session};
 use volta_core::tool;
@@ -7,7 +5,7 @@ use volta_core::version::VersionSpec;
 
 use crate::command::Command;
 
-#[derive(StructOpt)]
+#[derive(clap::Args)]
 pub(crate) struct Uninstall {
     /// The tool to uninstall, like `ember-cli-update`, `typescript`, or <package>
     tool: String,

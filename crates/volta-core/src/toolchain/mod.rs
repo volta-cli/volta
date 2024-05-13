@@ -5,34 +5,35 @@ use crate::error::{Context, ErrorKind, Fallible};
 use crate::fs::touch;
 use crate::layout::volta_home;
 use crate::platform::PlatformSpec;
-use lazycell::LazyCell;
 use log::debug;
 use node_semver::Version;
+use once_cell::unsync::OnceCell;
 use readext::ReadExt;
 
 pub mod serial;
 
 /// Lazily loaded toolchain
 pub struct LazyToolchain {
-    toolchain: LazyCell<Toolchain>,
+    toolchain: OnceCell<Toolchain>,
 }
 
 impl LazyToolchain {
     /// Creates a new `LazyToolchain`
     pub fn init() -> Self {
         LazyToolchain {
-            toolchain: LazyCell::new(),
+            toolchain: OnceCell::new(),
         }
     }
 
     /// Forces loading of the toolchain and returns an immutable reference to it
     pub fn get(&self) -> Fallible<&Toolchain> {
-        self.toolchain.try_borrow_with(Toolchain::current)
+        self.toolchain.get_or_try_init(Toolchain::current)
     }
 
     /// Forces loading of the toolchain and returns a mutable reference to it
     pub fn get_mut(&mut self) -> Fallible<&mut Toolchain> {
-        self.toolchain.try_borrow_mut_with(Toolchain::current)
+        let _ = self.toolchain.get_or_try_init(Toolchain::current)?;
+        Ok(self.toolchain.get_mut().unwrap())
     }
 }
 

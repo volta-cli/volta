@@ -9,9 +9,7 @@ use super::{Archive, ArchiveError, Origin};
 use attohttpc::header::HeaderMap;
 use flate2::read::GzDecoder;
 use fs_utils::ensure_containing_dir_exists;
-use hyperx::header::{
-    AcceptRanges, ByteRangeSpec, ContentLength, Header, Range, RangeUnit, TypedHeaders,
-};
+use headers::{AcceptRanges, ContentLength, Header, HeaderMapExt, Range};
 use progress_read::ProgressRead;
 use tee::TeeReader;
 
@@ -31,10 +29,9 @@ pub struct Tarball {
 /// the HTTP `"Content-Length"` header.
 fn content_length(headers: &HeaderMap) -> Result<u64, ArchiveError> {
     headers
-        .decode::<ContentLength>()
-        .ok()
+        .typed_get::<ContentLength>()
         .map(|v| v.0)
-        .ok_or_else(|| ArchiveError::MissingHeaderError(String::from("Content-Length")))
+        .ok_or_else(|| ArchiveError::MissingHeaderError(ContentLength::name()))
 }
 
 impl Tarball {
@@ -117,11 +114,13 @@ impl Archive for Tarball {
 /// downloading the entire gzip file. For very small files it's unlikely to be
 /// more efficient than simply downloading the entire file up front.
 fn fetch_isize(url: &str, len: u64) -> Result<[u8; 4], ArchiveError> {
-    let range_header = Range::Bytes(vec![ByteRangeSpec::FromTo(len - 4, len - 1)]);
-    let (status, headers, mut response) = attohttpc::get(url)
-        .header(Range::header_name(), range_header.to_string())
-        .send()?
-        .split();
+    let (status, headers, mut response) = {
+        let mut request = attohttpc::get(url);
+        request
+            .headers_mut()
+            .typed_insert(Range::bytes(len - 4..len).unwrap());
+        request.send()?.split()
+    };
 
     if !status.is_success() {
         return Err(ArchiveError::HttpError(status));
@@ -150,10 +149,8 @@ fn load_isize(file: &mut File) -> Result<[u8; 4], ArchiveError> {
 
 fn accepts_byte_ranges(headers: &HeaderMap) -> bool {
     headers
-        .decode::<AcceptRanges>()
-        .ok()
-        .map(|v| v.iter().any(|unit| *unit == RangeUnit::Bytes))
-        .unwrap_or(false)
+        .typed_get::<AcceptRanges>()
+        .is_some_and(|v| v == AcceptRanges::bytes())
 }
 
 /// Determines the uncompressed size of a gzip file hosted at the specified

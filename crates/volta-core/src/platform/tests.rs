@@ -214,14 +214,12 @@ mod inherit_option {
 }
 
 mod cli_platform {
-    use lazy_static::lazy_static;
     use node_semver::Version;
+    use once_cell::unsync::Lazy;
 
-    lazy_static! {
-        static ref NODE_VERSION: Version = Version::from((12, 14, 1));
-        static ref NPM_VERSION: Version = Version::from((6, 13, 2));
-        static ref YARN_VERSION: Version = Version::from((1, 17, 0));
-    }
+    const NODE_VERSION: Lazy<Version> = Lazy::new(|| Version::from((12, 14, 1)));
+    const NPM_VERSION: Lazy<Version> = Lazy::new(|| Version::from((6, 13, 2)));
+    const YARN_VERSION: Lazy<Version> = Lazy::new(|| Version::from((1, 17, 0)));
 
     mod merge {
         use super::super::super::*;

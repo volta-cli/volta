@@ -129,17 +129,15 @@ parse_os_info() {
     Linux)
       if [ "$arch" == "x86_64" ]; then
         echo "linux"
+      elif [ "$arch" == "aarch64" ]; then
+        echo "linux-arm"
       else
-        error "Releases for non x64 architectures are not currently supported."
+        error "Releases for architectures other than x64 and arm are not currently supported."
         return 1
       fi
       ;;
     Darwin)
-      if [ "$(uname -m)" == "arm64" ]; then
-        echo "macos-aarch64"
-      else
-        echo "macos"
-      fi
+      echo "macos"
       ;;
     *)
       return 1

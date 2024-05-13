@@ -948,7 +948,7 @@ Use `volta pin yarn` to select a version (see `volta help pin` for more info)."
             ErrorKind::NoShellProfile { env_profile, bin_dir } => write!(
                 f,
                 "Could not locate user profile.
-Tried $PROFILE ({}), ~/.bashrc, ~/.bash_profile, ~/.zshrc, ~/.profile, and ~/.config/fish/config.fish
+Tried $PROFILE ({}), ~/.bashrc, ~/.bash_profile, ~/.zshenv ~/.zshrc, ~/.profile, and ~/.config/fish/config.fish
 
 Please create one of these and try again; or you can edit your profile manually to add '{}' to your PATH",
                 env_profile, bin_dir.display()

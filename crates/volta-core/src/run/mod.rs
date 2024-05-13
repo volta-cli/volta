@@ -96,7 +96,7 @@ fn get_executor(
                     binary::command(exe, args, session)
                 }
             }
-            Some("yarn") => yarn::command(args, session),
+            Some("yarn") | Some("yarnpkg") => yarn::command(args, session),
             _ => binary::command(exe, args, session),
         }
     }

@@ -34,6 +34,27 @@ jobs:
           name: linux
           path: target/release/volta-linux.tar.gz
 
+  linux-arm:
+    name: Build - Linux ARM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+      - name: Install cross-rs
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+      - name: Compile Volta
+        run: cross build --release --target aarch64-unknown-linux-gnu
+      - name: Package Volta
+        run: |
+          cd target/aarch64-unknown-linux-gnu/release && tar -zcvf "volta-linux-arm.tar.gz" volta volta-shim volta-migrate
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-arm
+          path: target/aarch64-unknown-linux-gnu/release/volta-linux-arm.tar.gz
+
   macos:
     name: Build - MacOS
     runs-on: macos-latest
@@ -42,35 +63,15 @@ jobs:
         uses: actions/checkout@v3
       - name: Set up cargo
         uses: actions-rust-lang/setup-rust-toolchain@v1
-      - name: Cargo Cache
-        uses: Swatinem/rust-cache@v2
+        with:
+          target: aarch64-apple-darwin,x86_64-apple-darwin
       - name: Compile and package Volta
-        run: ./ci/build-macos-x86_64.sh volta-macos
+        run: ./ci/build-macos.sh volta-macos
       - name: Upload release artifact
         uses: actions/upload-artifact@v3
         with:
           name: macos
-          path: target/release/volta-macos.tar.gz
-
-  macos-aarch64:
-    name: Build - MacOS (ARM)
-    runs-on: macos-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-      - name: Set up cargo
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          target: aarch64-apple-darwin
-      - name: Cargo Cache
-        uses: Swatinem/rust-cache@v2
-      - name: Compile and package Volta
-        run: ./ci/build-macos-arm.sh volta-macos-aarch64
-      - name: Upload release artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: macos-aarch64
-          path: target/aarch64-apple-darwin/release/volta-macos-aarch64.tar.gz
+          path: target/universal-apple-darwin/release/volta-macos.tar.gz
 
   windows:
     name: Build - Windows
@@ -80,31 +81,11 @@ jobs:
         uses: actions/checkout@v3
       - name: Set up cargo
         uses: actions-rust-lang/setup-rust-toolchain@v1
-      - name: Cargo Cache
-        uses: Swatinem/rust-cache@v2
       - name: Add cargo-wix subcommand
         run: cargo install cargo-wix
       - name: Compile and package installer
         run: |
           cargo wix --nocapture --package volta --output target\wix\volta-windows.msi
-      - name: Load Certificate File
-        id: certificate_file
-        if: github.event_name == 'push'
-        uses: timheuer/base64-to-file@v1
-        with:
-          fileName: "volta-certificate.pfx"
-          encodedString: ${{ secrets.INSTALLER_CERTIFICATE }}
-      - name: Sign Installer
-        if: github.event_name == 'push'
-        env:
-          CERTIFICATE_FILE: ${{ steps.certificate_file.outputs.filePath }}
-          CERTIFICATE_PASSWORD: ${{ secrets.INSTALLER_CERTIFICATE_PASSWORD }}
-        run: |
-          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x86\signtool.exe" sign /fd sha256 /f "$env:CERTIFICATE_FILE" /p "$env:CERTIFICATE_PASSWORD" /tr http://ts.ssl.com /td sha256 /d "Volta: Start Your Engines" /du "https://volta.sh" "target\wix\volta-windows.msi"
-      - name: Verify Signature
-        if: github.event_name == 'push'
-        run: |
-          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x86\signtool.exe" verify /pa "target\wix\volta-windows.msi"
       - name: Create zip of binaries
         run: powershell Compress-Archive volta*.exe volta-windows.zip
         working-directory: ./target/release
@@ -125,7 +106,6 @@ jobs:
     needs:
       - linux
       - macos
-      - macos-aarch64
       - windows
     if: github.event_name == 'push'
     steps:
@@ -141,15 +121,15 @@ jobs:
         with:
           name: linux
           path: release
+      - name: Fetch Linux ARM artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-arm
+          path: release
       - name: Fetch MacOS artifact
         uses: actions/download-artifact@v2
         with:
           name: macos
-          path: release
-      - name: Fetch MacOS (ARM) artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: macos-aarch64
           path: release
       - name: Fetch Windows installer
         uses: actions/download-artifact@v2
@@ -181,6 +161,15 @@ jobs:
           asset_path: ./release/volta-linux.tar.gz
           asset_name: volta-${{ steps.release_info.outputs.version }}-linux.tar.gz
           asset_content_type: application/gzip
+      - name: Upload Linux ARM artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/volta-linux-arm.tar.gz
+          asset_name: volta-${{ steps.release_info.outputs.version }}-linux-arm.tar.gz
+          asset_content_type: application/gzip
       - name: Upload MacOS artifact
         uses: actions/upload-release-asset@v1
         env:
@@ -189,15 +178,6 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./release/volta-macos.tar.gz
           asset_name: volta-${{ steps.release_info.outputs.version }}-macos.tar.gz
-          asset_content_type: application/gzip
-      - name: Upload MacOS (ARM) artifact
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/volta-macos-aarch64.tar.gz
-          asset_name: volta-${{ steps.release_info.outputs.version }}-macos-aarch64.tar.gz
           asset_content_type: application/gzip
       - name: Upload Windows installer
         uses: actions/upload-release-asset@v1
