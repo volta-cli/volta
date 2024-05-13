@@ -1,14 +1,12 @@
+use node_semver::Version;
 use std::env;
 use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
-use envoy;
-use serde_json;
-
 use volta_core::fs::symlink_file;
-use volta_core::tool::{NODE_DISTRO_ARCH, NODE_DISTRO_OS};
+use volta_core::tool::Node;
 
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 
@@ -251,10 +249,8 @@ fn default_platform_file(root: PathBuf) -> PathBuf {
     default_toolchain_dir(root).join("platform.json")
 }
 pub fn node_distro_file_name(version: &str) -> String {
-    format!(
-        "node-v{}-{}-{}.tar.gz",
-        version, NODE_DISTRO_OS, NODE_DISTRO_ARCH
-    )
+    let version = Version::parse(version).unwrap();
+    Node::archive_filename(&version)
 }
 fn npm_distro_file_name(version: &str) -> String {
     package_distro_file_name("npm", version)
