@@ -138,7 +138,7 @@ where
     D: AsRef<Path>,
 {
     #[cfg(windows)]
-    return std::os::windows::fs::symlink_dir(src, dest);
+    return junction::create(src, dest);
 
     #[cfg(unix)]
     return std::os::unix::fs::symlink(src, dest);
