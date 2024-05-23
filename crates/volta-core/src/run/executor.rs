@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
 #[cfg(unix)]
 use std::os::unix::process::ExitStatusExt;
 #[cfg(windows)]
@@ -113,9 +113,7 @@ impl From<Vec<Executor>> for Executor {
 /// Tracks the Platform as well as what kind of tool is being executed, to allow individual tools
 /// to customize the behavior before execution.
 pub struct ToolCommand {
-    exe: OsString,
-    args: Vec<OsString>,
-    envs: HashMap<OsString, OsString>,
+    command: Command,
     platform: Option<Platform>,
     kind: ToolKind,
 }
@@ -139,13 +137,11 @@ impl ToolCommand {
         A: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
-        let exe = exe.as_ref().into();
-        let args = args.into_iter().map(|s| s.as_ref().into()).collect();
+        let mut command = create_command(exe);
+        command.args(args);
 
         Self {
-            exe,
-            args,
-            envs: HashMap::new(),
+            command,
             platform,
             kind,
         }
@@ -158,9 +154,7 @@ impl ToolCommand {
         K: AsRef<OsStr>,
         V: AsRef<OsStr>,
     {
-        for (key, value) in envs {
-            self.env(key, value);
-        }
+        self.command.envs(envs);
     }
 
     /// Adds or updates a single environment variable that the command will use
@@ -169,7 +163,7 @@ impl ToolCommand {
         K: AsRef<OsStr>,
         V: AsRef<OsStr>,
     {
-        self.envs.insert(key.as_ref().into(), value.as_ref().into());
+        self.command.env(key, value);
     }
 
     /// Updates the Platform for the command to include values from the command-line
@@ -197,39 +191,42 @@ impl ToolCommand {
             ToolKind::Bypass(command) => (System::path()?, ErrorKind::BypassError { command }),
         };
 
-        let exe = {
+        let mut cmd = {
             #[cfg(not(windows))]
             {
-                self.exe
+                self.command
             }
+
             // On Windows, we need to explicitly use an absolute path to the executable,
             // otherwise the executable will not be located properly, even if we've set the PATH.
             // see: https://github.com/rust-lang/rust/issues/37519
             #[cfg(windows)]
             {
-                let name = self.exe.clone();
+                let args = self.command.get_args().collect::<Vec<_>>();
+                //          cmd /c <name> [...other]
+                // args_idx     0  1      2..
+                let name = args.get(1).expect("should have the name");
                 let mut abs_paths =
-                    which::which_in_global(&name, Some(&path)).with_context(|| {
+                    which::which_in_global(name, Some(&path)).with_context(|| {
                         ErrorKind::BinaryNotFound {
                             name: name.to_string_lossy().to_string(),
                         }
                     })?;
                 if let Some(abs_exe) = abs_paths.next() {
-                    abs_exe.into_os_string()
+                    let mut new_command = create_command(abs_exe);
+                    new_command.args(&args[2..]);
+                    new_command
                 } else {
                     return Err(on_failure.into());
                 }
             }
         };
 
-        let mut command = create_command(exe);
-        command.args(&self.args);
-        command.envs(&self.envs);
-        command.env(RECURSION_ENV_VAR, "1");
-        command.env("PATH", path);
+        cmd.env(RECURSION_ENV_VAR, "1");
+        cmd.env("PATH", path);
 
         pass_control_to_shim();
-        command.status().with_context(|| on_failure)
+        cmd.status().with_context(|| on_failure)
     }
 }
 
