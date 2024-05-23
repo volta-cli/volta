@@ -207,12 +207,17 @@ impl ToolCommand {
             // see: https://github.com/rust-lang/rust/issues/37519
             #[cfg(windows)]
             {
-                let mut abs_paths = which::which_in_global(self.exe.clone(), Some(&path))
-                    .with_context(|| ErrorKind::BinaryExecError)?;
+                let name = self.exe.clone();
+                let mut abs_paths =
+                    which::which_in_global(&name, Some(&path)).with_context(|| {
+                        ErrorKind::BinaryNotFound {
+                            name: name.to_string_lossy().to_string(),
+                        }
+                    })?;
                 if let Some(abs_exe) = abs_paths.next() {
                     abs_exe.into_os_string()
                 } else {
-                    return Err(ErrorKind::BinaryExecError.into());
+                    return Err(on_failure.into());
                 }
             }
         };
