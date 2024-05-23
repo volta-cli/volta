@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 #[cfg(unix)]
 use std::os::unix::process::ExitStatusExt;
 #[cfg(windows)]
@@ -113,7 +113,9 @@ impl From<Vec<Executor>> for Executor {
 /// Tracks the Platform as well as what kind of tool is being executed, to allow individual tools
 /// to customize the behavior before execution.
 pub struct ToolCommand {
-    command: Command,
+    exe: OsString,
+    args: Vec<OsString>,
+    envs: HashMap<OsString, OsString>,
     platform: Option<Platform>,
     kind: ToolKind,
 }
@@ -137,11 +139,13 @@ impl ToolCommand {
         A: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
-        let mut command = create_command(exe);
-        command.args(args);
+        let exe = exe.as_ref().into();
+        let args = args.into_iter().map(|s| s.as_ref().into()).collect();
 
         Self {
-            command,
+            exe,
+            args,
+            envs: HashMap::new(),
             platform,
             kind,
         }
@@ -154,7 +158,9 @@ impl ToolCommand {
         K: AsRef<OsStr>,
         V: AsRef<OsStr>,
     {
-        self.command.envs(envs);
+        for (key, value) in envs {
+            self.env(key, value);
+        }
     }
 
     /// Adds or updates a single environment variable that the command will use
@@ -163,7 +169,7 @@ impl ToolCommand {
         K: AsRef<OsStr>,
         V: AsRef<OsStr>,
     {
-        self.command.env(key, value);
+        self.envs.insert(key.as_ref().into(), value.as_ref().into());
     }
 
     /// Updates the Platform for the command to include values from the command-line
@@ -191,11 +197,28 @@ impl ToolCommand {
             ToolKind::Bypass(command) => (System::path()?, ErrorKind::BypassError { command }),
         };
 
-        self.command.env(RECURSION_ENV_VAR, "1");
-        self.command.env("PATH", path);
+        // On Windows, we need to explicitly use an absolute path to the executable,
+        // otherwise the executable will not be located properly, even if we've set the PATH.
+        // see: https://github.com/rust-lang/rust/issues/37519
+        #[cfg(windows)]
+        {
+            let mut abs_paths = which::which_in_global(self.exe.clone(), Some(&path))
+                .with_context(|| ErrorKind::BinaryExecError)?;
+            if let Some(abs_exe) = abs_paths.next() {
+                self.exe = abs_exe.into();
+            } else {
+                return Err(ErrorKind::BinaryExecError.into());
+            }
+        }
+
+        let mut command = create_command(&self.exe);
+        command.args(&self.args);
+        command.envs(&self.envs);
+        command.env(RECURSION_ENV_VAR, "1");
+        command.env("PATH", path);
 
         pass_control_to_shim();
-        self.command.status().with_context(|| on_failure)
+        command.status().with_context(|| on_failure)
     }
 }
 
