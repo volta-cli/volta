@@ -181,7 +181,7 @@ impl ToolCommand {
     }
 
     /// Runs the command, returning the `ExitStatus` if it successfully launches
-    pub fn execute(mut self, session: &mut Session) -> Fallible<ExitStatus> {
+    pub fn execute(self, session: &mut Session) -> Fallible<ExitStatus> {
         let (path, on_failure) = match self.kind {
             ToolKind::Node => super::node::execution_context(self.platform, session)?,
             ToolKind::Npm => super::npm::execution_context(self.platform, session)?,
@@ -197,21 +197,22 @@ impl ToolCommand {
             ToolKind::Bypass(command) => (System::path()?, ErrorKind::BypassError { command }),
         };
 
+        let mut exe = self.exe;
         // On Windows, we need to explicitly use an absolute path to the executable,
         // otherwise the executable will not be located properly, even if we've set the PATH.
         // see: https://github.com/rust-lang/rust/issues/37519
         #[cfg(windows)]
         {
-            let mut abs_paths = which::which_in_global(self.exe.clone(), Some(&path))
+            let mut abs_paths = which::which_in_global(exe.clone(), Some(&path))
                 .with_context(|| ErrorKind::BinaryExecError)?;
             if let Some(abs_exe) = abs_paths.next() {
-                self.exe = abs_exe.into();
+                exe = abs_exe.into();
             } else {
                 return Err(ErrorKind::BinaryExecError.into());
             }
         }
 
-        let mut command = create_command(&self.exe);
+        let mut command = create_command(exe);
         command.args(&self.args);
         command.envs(&self.envs);
         command.env(RECURSION_ENV_VAR, "1");
