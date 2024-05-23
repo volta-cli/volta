@@ -197,20 +197,25 @@ impl ToolCommand {
             ToolKind::Bypass(command) => (System::path()?, ErrorKind::BypassError { command }),
         };
 
-        let mut exe = self.exe;
-        // On Windows, we need to explicitly use an absolute path to the executable,
-        // otherwise the executable will not be located properly, even if we've set the PATH.
-        // see: https://github.com/rust-lang/rust/issues/37519
-        #[cfg(windows)]
-        {
-            let mut abs_paths = which::which_in_global(exe.clone(), Some(&path))
-                .with_context(|| ErrorKind::BinaryExecError)?;
-            if let Some(abs_exe) = abs_paths.next() {
-                exe = abs_exe.into();
-            } else {
-                return Err(ErrorKind::BinaryExecError.into());
+        let exe = {
+            #[cfg(not(windows))]
+            {
+                self.exe
             }
-        }
+            // On Windows, we need to explicitly use an absolute path to the executable,
+            // otherwise the executable will not be located properly, even if we've set the PATH.
+            // see: https://github.com/rust-lang/rust/issues/37519
+            #[cfg(windows)]
+            {
+                let mut abs_paths = which::which_in_global(self.exe.clone(), Some(&path))
+                    .with_context(|| ErrorKind::BinaryExecError)?;
+                if let Some(abs_exe) = abs_paths.next() {
+                    abs_exe.into_os_string()
+                } else {
+                    return Err(ErrorKind::BinaryExecError.into());
+                }
+            }
+        };
 
         let mut command = create_command(exe);
         command.args(&self.args);
