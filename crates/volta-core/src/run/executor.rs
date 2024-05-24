@@ -6,7 +6,7 @@ use std::os::unix::process::ExitStatusExt;
 use std::os::windows::process::ExitStatusExt;
 use std::process::{Command, ExitStatus};
 
-use super::RECURSION_ENV_VAR;
+use super::{RECURSION_ENV_VAR, RECURSION_LIMIT};
 use crate::command::{create_command, rebuild_command};
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::layout::volta_home;
@@ -191,11 +191,20 @@ impl ToolCommand {
             ToolKind::Bypass(command) => (System::path()?, ErrorKind::BypassError { command }),
         };
 
+        // Recursive call limit
+        let mut recursion = std::env::var(RECURSION_ENV_VAR)
+            .map(|var| var.parse::<u8>().unwrap_or(1u8))
+            .unwrap_or(1u8);
+        if recursion > RECURSION_LIMIT {
+            return Err(ErrorKind::RecursionLimit.into());
+        }
+        recursion += 1;
+
         rebuild_command(self.command, path)
-            .and_then(|mut cmd| {
-                cmd.env(RECURSION_ENV_VAR, "1");
+            .and_then(|mut command| {
+                command.env(RECURSION_ENV_VAR, recursion.to_string());
                 pass_control_to_shim();
-                cmd.status().with_context(|| ErrorKind::BinaryExecError)
+                command.status().with_context(|| ErrorKind::BinaryExecError)
             })
             .with_context(|| on_failure)
     }
