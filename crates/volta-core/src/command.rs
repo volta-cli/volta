@@ -2,6 +2,7 @@ use std::ffi::OsStr;
 use std::process::Command;
 
 use cfg_if::cfg_if;
+use log::debug;
 
 use crate::error::Fallible;
 
@@ -40,6 +41,8 @@ cfg_if! {
 /// This function will try to find the executable in the given path and rebuild
 /// the command with the absolute path to the executable.
 pub fn rebuild_command<S: AsRef<OsStr>>(command: Command, path: S) -> Fallible<Command> {
+    debug!("PATH: {}", path.as_ref().to_string_lossy());
+
     #[cfg(not(windows))]
     {
         let mut command = command;
