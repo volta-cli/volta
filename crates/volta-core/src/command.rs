@@ -3,7 +3,7 @@ use std::process::Command;
 
 use cfg_if::cfg_if;
 
-use crate::error::{ErrorKind, Fallible};
+use crate::error::Fallible;
 
 cfg_if! {
     if #[cfg(windows)] {
@@ -71,7 +71,7 @@ pub fn rebuild_command<S: AsRef<OsStr>>(command: Command, path: S) -> Fallible<C
             }
         }
 
-        Err(ErrorKind::BinaryNotFound {
+        Err(crate::error::ErrorKind::BinaryNotFound {
             name: name.to_string_lossy().to_string(),
         }
         .into())
