@@ -408,6 +408,9 @@ pub enum ErrorKind {
         file: PathBuf,
     },
 
+    /// Throw when recursion limit is reached
+    RecursionLimit,
+
     /// Thrown when unable to read the user Path environment variable from the registry
     #[cfg(windows)]
     ReadUserPathError,
@@ -1246,6 +1249,10 @@ from {}
                 file.display(),
                 PERMISSIONS_CTA
             ),
+            ErrorKind::RecursionLimit => write!(
+                f,
+                "Recursive call limit reached."
+            ),
             #[cfg(windows)]
             ErrorKind::ReadUserPathError => write!(
                 f,
@@ -1549,6 +1556,7 @@ impl ErrorKind {
             ErrorKind::ReadNpmManifestError => ExitCode::UnknownError,
             ErrorKind::ReadPackageConfigError { .. } => ExitCode::FileSystemError,
             ErrorKind::ReadPlatformError { .. } => ExitCode::FileSystemError,
+            ErrorKind::RecursionLimit => ExitCode::ExecutionFailure,
             #[cfg(windows)]
             ErrorKind::ReadUserPathError => ExitCode::EnvironmentError,
             ErrorKind::RegistryFetchError { .. } => ExitCode::NetworkError,
