@@ -5,12 +5,14 @@ use super::{
     info_project_version, FetchStatus, Tool,
 };
 use crate::error::{ErrorKind, Fallible};
+use crate::fs::remove_dir_if_exists;
 use crate::inventory::node_available;
+use crate::layout::volta_home;
 use crate::session::Session;
-use crate::style::{note_prefix, tool_version};
+use crate::style::{note_prefix, success_prefix, tool_version};
 use crate::sync::VoltaLock;
 use cfg_if::cfg_if;
-use log::info;
+use log::{info, warn};
 use node_semver::Version;
 
 mod fetch;
@@ -279,6 +281,21 @@ impl Tool for Node {
         } else {
             Err(ErrorKind::NotInPackage.into())
         }
+    }
+    fn uninstall(self: Box<Self>, _session: &mut Session) -> Fallible<()> {
+        let home = volta_home()?;
+        // Acquire a lock on the Volta directory, if possible, to prevent concurrent changes
+        let _lock: Result<VoltaLock, crate::error::VoltaError> = VoltaLock::acquire();
+
+        let node_dir = home.node_image_root_dir().join(self.version.to_string());
+        if node_dir.exists() {
+            remove_dir_if_exists(&node_dir)?;
+            info!("{} 'node@{}' uninstalled", success_prefix(), self.version);
+        } else {
+            warn!("No version 'node@{}' found to uninstall", self.version);
+        }
+
+        Ok(())
     }
 }
 

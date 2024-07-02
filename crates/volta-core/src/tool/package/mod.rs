@@ -108,6 +108,10 @@ impl Tool for Package {
     fn pin(self: Box<Self>, _session: &mut Session) -> Fallible<()> {
         Err(ErrorKind::CannotPinPackage { package: self.name }.into())
     }
+
+    fn uninstall(self: Box<Self>, _session: &mut Session) -> Fallible<()> {
+        uninstall(&self.name)
+    }
 }
 
 impl Display for Package {
