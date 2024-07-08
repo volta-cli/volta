@@ -28,6 +28,14 @@ pub(crate) struct Volta {
     pub(crate) verbose: bool,
 
     #[structopt(
+        long = "very-verbose",
+        help = "Enables maximally verbose diagnostics. Requires `--verbose`",
+        global = true,
+        requires = "verbose"
+    )]
+    pub(crate) very_verbose: bool,
+
+    #[structopt(
         long = "quiet",
         help = "Prevents unnecessary output",
         global = true,

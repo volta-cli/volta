@@ -31,10 +31,12 @@ pub enum LogContext {
 }
 
 /// Represents the level of verbosity that was requested by the user
+#[derive(Debug, Copy, Clone)]
 pub enum LogVerbosity {
     Quiet,
     Default,
     Verbose,
+    VeryVerbose,
 }
 
 pub struct Logger {
@@ -52,9 +54,10 @@ impl Log for Logger {
             match record.level() {
                 Level::Error => self.log_error(record.args()),
                 Level::Warn => self.log_warning(record.args()),
-                Level::Debug => eprintln!("[verbose] {}", record.args()),
                 // all info-level messages go to stdout
-                _ => println!("{}", record.args()),
+                Level::Info => println!("{}", record.args()),
+                Level::Debug => eprintln!("[verbose] {}", record.args()),
+                Level::Trace => eprintln!("[very verbose] {}", record.args()),
             }
         }
     }
@@ -78,6 +81,7 @@ impl Logger {
             LogVerbosity::Quiet => LevelFilter::Error,
             LogVerbosity::Default => level_from_env(),
             LogVerbosity::Verbose => LevelFilter::Debug,
+            LogVerbosity::VeryVerbose => LevelFilter::max(),
         };
 
         Logger { context, level }

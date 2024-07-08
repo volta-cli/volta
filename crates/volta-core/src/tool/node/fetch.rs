@@ -14,7 +14,7 @@ use crate::version::{parse_version, VersionSpec};
 use archive::{self, Archive};
 use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
-use log::debug;
+use log::{debug, trace};
 use semver::Version;
 use serde::Deserialize;
 
@@ -99,6 +99,7 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<Node
             .uncompressed_size()
             .unwrap_or_else(|| archive.compressed_size()),
     );
+    trace!("created a progress bar");
     let version_string = version.to_string();
 
     archive
@@ -110,15 +111,23 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<Node
             version: version_string.clone(),
         })?;
 
+    trace!("finished unpacking archive into {}", temp.path().display());
+
     // Save the npm version number in the npm version file for this distro
     let npm_package_json = temp.path().join(npm_manifest_path(version));
     let npm = Manifest::version(&npm_package_json)?;
     save_default_npm_version(version, &npm)?;
+    trace!(
+        "saved npm@{npm} to package.json at {}",
+        npm_package_json.display()
+    );
 
     let dest = volta_home()?.node_image_dir(&version_string);
+    trace!("making sure destination {} exists", dest.display());
     ensure_containing_dir_exists(&dest)
         .with_context(|| ErrorKind::ContainingDirError { path: dest.clone() })?;
 
+    trace!("moving to {}...", dest.display());
     rename(temp.path().join(Node::archive_basename(version)), &dest).with_context(|| {
         ErrorKind::SetupToolImageError {
             tool: "Node".into(),

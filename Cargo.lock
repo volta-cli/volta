@@ -55,6 +55,7 @@ dependencies = [
  "flate2",
  "fs-utils",
  "hyperx",
+ "log",
  "progress-read",
  "tar",
  "tee",

@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 flate2 = "1.0"
+log = { version = "0.4", features = ["std"] }
 tar = "0.4.13"
 zip_rs = { version = "0.2.6", package = "zip" }
 tee = "0.1.0"

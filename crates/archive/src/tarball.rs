@@ -12,6 +12,7 @@ use fs_utils::ensure_containing_dir_exists;
 use hyperx::header::{
     AcceptRanges, ByteRangeSpec, ContentLength, Header, Range, RangeUnit, TypedHeaders,
 };
+use log::trace;
 use progress_read::ProgressRead;
 use tee::TeeReader;
 
@@ -54,6 +55,7 @@ impl Tarball {
     /// tarball that can be streamed (and that tees its data to a local
     /// file as it streams).
     pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, ArchiveError> {
+        trace!("fetching tarball from {url}");
         let (status, headers, response) = attohttpc::get(url).send()?.split();
 
         if !status.is_success() {
@@ -61,15 +63,19 @@ impl Tarball {
         }
 
         let compressed_size = content_length(&headers)?;
+        trace!("detected compressed size of {compressed_size} for tarball");
         let uncompressed_size = if accepts_byte_ranges(&headers) {
             fetch_uncompressed_size(url, compressed_size)
         } else {
+            trace!("could not detect uncompressed size");
             None
         };
 
         ensure_containing_dir_exists(&cache_file)?;
         let file = File::create(cache_file)?;
+        trace!("created cache file at {}", cache_file.display());
         let data = Box::new(TeeReader::new(response, file));
+        trace!("created read<--->write ");
 
         Ok(Box::new(Tarball {
             uncompressed_size,
@@ -92,8 +98,11 @@ impl Archive for Tarball {
         dest: &Path,
         progress: &mut dyn FnMut(&(), usize),
     ) -> Result<(), ArchiveError> {
+        trace!("unpacking archive (tarball) into {}", dest.display());
         let decoded = GzDecoder::new(self.data);
+        trace!("created streaming decoder for data");
         let mut tarball = tar::Archive::new(ProgressRead::new(decoded, (), progress));
+        trace!("created streaming tarball archive with progress and decoder");
         tarball.unpack(dest)?;
         Ok(())
     }
