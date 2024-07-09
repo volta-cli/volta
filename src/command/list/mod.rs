@@ -15,22 +15,10 @@ use volta_core::project::Project;
 use volta_core::session::{ActivityKind, Session};
 use volta_core::tool::PackageConfig;
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(clap::ValueEnum, Copy, Clone)]
 enum Format {
     Human,
     Plain,
-}
-
-impl FromStr for Format {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "human" => Ok(Format::Human),
-            "plain" => Ok(Format::Plain),
-            _ => Err("No".into()),
-        }
-    }
 }
 
 /// The source of a given item, from the perspective of a user.
@@ -201,23 +189,23 @@ enum Filter {
 pub(crate) struct List {
     /// The tool to lookup - `all`, `node`, `npm`, `yarn`, `pnpm`, or the name
     /// of a package or binary.
-    #[arg(value_name = "tool", value_parser = parse_subcommand)]
+    #[arg(value_name = "tool")]
     subcommand: Option<Subcommand>,
 
     /// Specify the output format.
     ///
     /// Defaults to `human` for TTYs, `plain` otherwise.
-    #[arg(long = "format", value_parser = ["human", "plain"])]
+    #[arg(long)]
     format: Option<Format>,
 
     /// Show the currently-active tool(s).
     ///
     /// Equivalent to `volta list` when not specifying a specific tool.
-    #[arg(long = "current", short = 'c', conflicts_with = "default")]
+    #[arg(short, long, conflicts_with = "default")]
     current: bool,
 
     /// Show your default tool(s).
-    #[arg(long = "default", short = 'd', conflicts_with = "current")]
+    #[arg(short, long, conflicts_with = "current")]
     default: bool,
 }
 
@@ -243,15 +231,19 @@ enum Subcommand {
     PackageOrTool { name: String },
 }
 
-fn parse_subcommand(s: &str) -> Result<Subcommand, std::convert::Infallible> {
-    Ok(match s {
-        "all" => Subcommand::All,
-        "node" => Subcommand::Node,
-        "npm" => Subcommand::Npm,
-        "pnpm" => Subcommand::Pnpm,
-        "yarn" => Subcommand::Yarn,
-        s => Subcommand::PackageOrTool { name: s.into() },
-    })
+impl FromStr for Subcommand {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "all" => Subcommand::All,
+            "node" => Subcommand::Node,
+            "npm" => Subcommand::Npm,
+            "pnpm" => Subcommand::Pnpm,
+            "yarn" => Subcommand::Yarn,
+            s => Subcommand::PackageOrTool { name: s.into() },
+        })
+    }
 }
 
 impl List {

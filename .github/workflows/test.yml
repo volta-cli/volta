@@ -22,7 +22,7 @@ jobs:
       RUST_BACKTRACE: full
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up cargo
         uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Run tests
@@ -41,7 +41,7 @@ jobs:
       RUST_BACKTRACE: full
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up cargo
         uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Run tests
@@ -55,7 +55,7 @@ jobs:
       - name: Setup BATS
         run: sudo npm install -g bats
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Run tests
         run: bats dev/unix/tests/
 
@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up cargo
         uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Run check

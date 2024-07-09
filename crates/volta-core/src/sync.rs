@@ -30,12 +30,10 @@ use crate::error::{Context, ErrorKind, Fallible};
 use crate::layout::volta_home;
 use crate::style::progress_spinner;
 use fs2::FileExt;
-use lazy_static::lazy_static;
 use log::debug;
+use once_cell::sync::Lazy;
 
-lazy_static! {
-    static ref LOCK_STATE: Mutex<Option<LockState>> = Mutex::new(None);
-}
+static LOCK_STATE: Lazy<Mutex<Option<LockState>>> = Lazy::new(|| Mutex::new(None));
 
 /// The current state of locks for this process.
 ///

@@ -19,11 +19,11 @@ pub(crate) struct Completions {
     shell: Shell,
 
     /// File to write generated completions to
-    #[arg(short = 'o', long = "output")]
+    #[arg(short, long = "output")]
     out_file: Option<PathBuf>,
 
     /// Write over an existing file, if any.
-    #[arg(short = 'f', long = "force")]
+    #[arg(short, long)]
     force: bool,
 }
 

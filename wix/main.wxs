@@ -170,6 +170,22 @@
                     Source='wix\shim.cmd'
                     KeyPath='yes'/>
             </Component>
+            <Component Id='yarnPkgBinary' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='yarnpgkEXE'
+                    Name='yarnpkg.exe'
+                    DiskId='1'
+                    Source='target\release\volta-shim.exe'
+                    KeyPath='yes'/>
+            </Component>
+            <Component Id='yarnPkgScript' Guid='*' Win64='$(var.Win64)'>
+                <File
+                    Id='yarnpkgCMD'
+                    Name='yarnpkg.cmd'
+                    DiskId='1'
+                    Source='wix\shim.cmd'
+                    KeyPath='yes'/>
+            </Component>
         </ComponentGroup>
 
         <Feature Id='MainProgram'>
