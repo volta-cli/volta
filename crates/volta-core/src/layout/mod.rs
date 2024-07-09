@@ -5,7 +5,7 @@ use crate::error::{Context, ErrorKind, Fallible};
 use cfg_if::cfg_if;
 use dunce::canonicalize;
 use once_cell::sync::OnceCell;
-use volta_layout::v3::{VoltaHome, VoltaInstall};
+use volta_layout::v4::{VoltaHome, VoltaInstall};
 
 cfg_if! {
     if #[cfg(unix)] {
