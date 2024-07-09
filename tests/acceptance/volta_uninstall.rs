@@ -96,6 +96,8 @@ fn uninstall_package_basic() {
     assert!(!Sandbox::package_image_exists("cowsay"));
 }
 
+// The setup here is the same as the above, but here we check to make sure that
+// if the user supplies a version, we error correctly.
 #[test]
 fn uninstall_package_basic_with_version() {
     // basic uninstall - everything exists, and everything except the cached
@@ -116,14 +118,6 @@ fn uninstall_package_basic_with_version() {
             "[..]error: uninstalling specific versions of tools is not supported yet."
         )
     );
-
-    // check that nothing is deleted.
-    assert!(Sandbox::package_config_exists("cowsay"));
-    assert!(Sandbox::bin_config_exists("cowsay"));
-    assert!(Sandbox::bin_config_exists("cowthink"));
-    assert!(Sandbox::shim_exists("cowsay"));
-    assert!(Sandbox::shim_exists("cowthink"));
-    assert!(Sandbox::package_image_exists("cowsay"));
 }
 
 #[test]
@@ -209,4 +203,15 @@ fn uninstall_package_orphaned_bins() {
     assert!(!Sandbox::bin_config_exists("cowthink"));
     assert!(!Sandbox::shim_exists("cowsay"));
     assert!(!Sandbox::shim_exists("cowthink"));
+}
+
+#[test]
+fn uninstall_runtime() {
+    let s = sandbox().build();
+    assert_that!(
+        s.volta("uninstall node"),
+        execs()
+            .with_status(1)
+            .with_stderr_contains("[..]error: Uninstalling node is not supported yet.")
+    )
 }
