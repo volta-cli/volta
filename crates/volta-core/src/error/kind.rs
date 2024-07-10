@@ -446,10 +446,10 @@ pub enum ErrorKind {
         name: String,
     },
 
-    /// Thrown when serializnig a bin config to JSON fails
+    /// Thrown when serializing a bin config to JSON fails
     StringifyBinConfigError,
 
-    /// Thrown when serializnig a package config to JSON fails
+    /// Thrown when serializing a package config to JSON fails
     StringifyPackageConfigError,
 
     /// Thrown when serializing the platform to JSON fails
