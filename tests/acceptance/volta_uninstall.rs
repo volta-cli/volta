@@ -1,3 +1,5 @@
+//! Tests for `volta uninstall`.
+
 use crate::support::sandbox::{sandbox, Sandbox};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
@@ -94,6 +96,30 @@ fn uninstall_package_basic() {
     assert!(!Sandbox::package_image_exists("cowsay"));
 }
 
+// The setup here is the same as the above, but here we check to make sure that
+// if the user supplies a version, we error correctly.
+#[test]
+fn uninstall_package_basic_with_version() {
+    // basic uninstall - everything exists, and everything except the cached
+    // inventory files should be deleted
+    let s = sandbox()
+        .package_config("cowsay", PKG_CONFIG_BASIC)
+        .binary_config("cowsay", &bin_config("cowsay"))
+        .binary_config("cowthink", &bin_config("cowthink"))
+        .shim("cowsay")
+        .shim("cowthink")
+        .package_image("cowsay", "1.4.0", None)
+        .env(VOLTA_LOGLEVEL, "info")
+        .build();
+
+    assert_that!(
+        s.volta("uninstall cowsay@1.4.0"),
+        execs().with_status(1).with_stderr_contains(
+            "[..]error: uninstalling specific versions of tools is not supported yet."
+        )
+    );
+}
+
 #[test]
 fn uninstall_package_no_bins() {
     // the package doesn't contain any executables, it should uninstall without error
@@ -177,4 +203,15 @@ fn uninstall_package_orphaned_bins() {
     assert!(!Sandbox::bin_config_exists("cowthink"));
     assert!(!Sandbox::shim_exists("cowsay"));
     assert!(!Sandbox::shim_exists("cowthink"));
+}
+
+#[test]
+fn uninstall_runtime() {
+    let s = sandbox().build();
+    assert_that!(
+        s.volta("uninstall node"),
+        execs()
+            .with_status(1)
+            .with_stderr_contains("[..]error: Uninstalling node is not supported yet.")
+    )
 }

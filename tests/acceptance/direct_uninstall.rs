@@ -1,3 +1,7 @@
+//! Tests for `npm uninstall`, `npm uninstall --global`, `yarn remove`, and
+//! `yarn global remove`, which we support as alternatives to `volta uninstall`
+//! and which should use its logic.
+
 use crate::support::sandbox::{sandbox, DistroMetadata, NodeFixture, Sandbox, Yarn1Fixture};
 use hamcrest2::assert_that;
 use hamcrest2::prelude::*;
