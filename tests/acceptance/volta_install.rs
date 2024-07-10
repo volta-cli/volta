@@ -386,12 +386,17 @@ fn install_yarn_3_without_node_errors() {
 
 #[test]
 fn install_node_with_shadowed_binary() {
+    #[cfg(windows)]
+    const SCRIPT_FILENAME: &str = "node.bat";
+    #[cfg(not(windows))]
+    const SCRIPT_FILENAME: &str = "node";
+
     let s = sandbox()
         .node_available_versions(NODE_VERSION_INFO)
         .distro_mocks::<NodeFixture>(&NODE_VERSION_FIXTURES)
         .env("VOLTA_LOGLEVEL", "info")
         .prepend_exec_dir_to_path()
-        .executable_file("node", "echo hello world")
+        .executable_file(SCRIPT_FILENAME, "echo hello world")
         .build();
 
     assert_that!(
