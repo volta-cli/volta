@@ -1,8 +1,8 @@
 use std::fmt::{self, Display};
 
 use super::{
-    check_fetched, debug_already_fetched, info_fetched, info_installed, info_pinned,
-    info_project_version, FetchStatus, Tool,
+    check_fetched, check_shim_reachable, debug_already_fetched, info_fetched, info_installed,
+    info_pinned, info_project_version, FetchStatus, Tool,
 };
 use crate::error::{ErrorKind, Fallible};
 use crate::inventory::node_available;
@@ -242,6 +242,8 @@ impl Tool for Node {
         } else {
             info_installed(node_version); // includes node and npm version
         }
+
+        check_shim_reachable("node");
 
         if let Ok(Some(project)) = session.project_platform() {
             info_project_version(tool_version("node", &project.node));

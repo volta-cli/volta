@@ -6,6 +6,7 @@ use crate::error::{ErrorKind, Fallible};
 use crate::layout::volta_home;
 use crate::platform::{Image, PlatformSpec};
 use crate::shim;
+use crate::tool::check_shim_reachable;
 
 /// Read the manifest for the package being installed
 pub(super) fn parse_manifest(
@@ -38,6 +39,7 @@ pub(super) fn write_config_and_shims(
     // Generate the shims and bin configs for each bin provided by the package
     for bin_name in &manifest.bin {
         shim::create(bin_name)?;
+        check_shim_reachable(bin_name);
 
         BinConfig {
             name: bin_name.clone(),

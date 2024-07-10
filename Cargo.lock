@@ -1566,7 +1566,7 @@ dependencies = [
  "textwrap",
  "volta-core",
  "volta-migrate",
- "which",
+ "which 6.0.1",
  "winreg",
 ]
 
@@ -1610,6 +1610,7 @@ dependencies = [
  "validate-npm-package-name",
  "volta-layout",
  "walkdir",
+ "which 4.4.2",
  "winreg",
 ]
 
@@ -1712,6 +1713,18 @@ name = "wasm-bindgen-shared"
 version = "0.2.82"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6598dd0bd3c7d51095ff6531a5b23e02acdc81804e30d8f07afb77b7215a140a"
+
+[[package]]
+name = "which"
+version = "4.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87ba24419a2078cd2b0f2ede2691b6c66d8e47836da3b6db8265ebad47afbfc7"
+dependencies = [
+ "either",
+ "home",
+ "once_cell",
+ "rustix",
+]
 
 [[package]]
 name = "which"
