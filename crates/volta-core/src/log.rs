@@ -15,7 +15,13 @@ const SHIM_WARNING_PREFIX: &str = "Volta warning:";
 const MIGRATION_ERROR_PREFIX: &str = "Volta update error:";
 const MIGRATION_WARNING_PREFIX: &str = "Volta update warning:";
 const VOLTA_LOGLEVEL: &str = "VOLTA_LOGLEVEL";
-const ALLOWED_PREFIX: &str = "volta";
+const ALLOWED_PREFIXES: [&str; 5] = [
+    "volta",
+    "archive",
+    "fs-utils",
+    "progress-read",
+    "validate-npm-package-name",
+];
 const WRAP_INDENT: &str = "    ";
 
 /// Represents the context from which the logger was created
@@ -48,7 +54,13 @@ impl Log for Logger {
     }
 
     fn log(&self, record: &Record) {
-        if self.enabled(record.metadata()) && record.target().starts_with(ALLOWED_PREFIX) {
+        let level_allowed = self.enabled(record.metadata());
+
+        let is_valid_target = ALLOWED_PREFIXES
+            .iter()
+            .any(|prefix| record.target().starts_with(prefix));
+
+        if level_allowed && is_valid_target {
             match record.level() {
                 Level::Error => self.log_error(record.args()),
                 Level::Warn => self.log_warning(record.args()),
