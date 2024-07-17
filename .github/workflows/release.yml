@@ -117,27 +117,27 @@ jobs:
           TAG: ${{ github.ref }}
         run: echo "version=${TAG:11}" >> $GITHUB_OUTPUT
       - name: Fetch Linux artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: linux
           path: release
       - name: Fetch Linux ARM artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: linux-arm
           path: release
       - name: Fetch MacOS artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: macos
           path: release
       - name: Fetch Windows installer
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: windows-installer
           path: release
       - name: Fetch Windows zip
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: windows-zip
           path: release
