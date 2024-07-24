@@ -25,6 +25,10 @@ pub(crate) struct Volta {
     #[arg(long, global = true)]
     pub(crate) verbose: bool,
 
+    /// Enables trace-level diagnostics.
+    #[arg(long, global = true, requires = "verbose")]
+    pub(crate) very_verbose: bool,
+
     /// Prevents unnecessary output
     #[arg(
         long,

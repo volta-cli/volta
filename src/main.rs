@@ -16,13 +16,20 @@ pub fn main() {
     let volta = cli::Volta::parse();
     let verbosity = match (&volta.verbose, &volta.quiet) {
         (false, false) => LogVerbosity::Default,
-        (true, false) => LogVerbosity::Verbose,
+        (true, false) => {
+            if volta.very_verbose {
+                LogVerbosity::VeryVerbose
+            } else {
+                LogVerbosity::Verbose
+            }
+        }
         (false, true) => LogVerbosity::Quiet,
         (true, true) => {
             unreachable!("Clap should prevent the user from providing both --verbose and --quiet")
         }
     };
     Logger::init(LogContext::Volta, verbosity).expect("Only a single logger should be initialized");
+    log::trace!("log level: {verbosity:?}");
 
     let mut session = Session::init();
     session.add_event_start(ActivityKind::Volta);

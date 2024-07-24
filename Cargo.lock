@@ -89,6 +89,7 @@ dependencies = [
  "flate2",
  "fs-utils",
  "headers",
+ "log",
  "progress-read",
  "tar",
  "tee",
