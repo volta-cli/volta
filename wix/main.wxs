@@ -21,11 +21,9 @@
   destination for 32-bit versus 64-bit installers. Removal of these lines will
   cause installation errors.
 -->
-<?if $(var.Platform) = x64 ?>
-    <?define Win64 = "yes" ?>
+<?if $(sys.BUILDARCH) = x64 or $(sys.BUILDARCH) = arm64 ?>
     <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
 <?else ?>
-  <?define Win64 = "no" ?>
   <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
 <?endif ?>
 
@@ -44,12 +42,11 @@
             Keywords='Installer'
             Description='The JavaScript Launcher'
             Manufacturer='The Volta Maintainers'
-            InstallerVersion='450'
+            InstallerVersion='500'
             Languages='1033'
             Compressed='yes'
             InstallScope='perMachine'
-            SummaryCodepage='1252'
-            Platform='$(var.Platform)'/>
+            SummaryCodepage='1252'/>
 
         <MajorUpgrade
             Schedule='afterInstallInitialize'
@@ -62,16 +59,18 @@
                 <Directory Id='INSTALLDIR' Name='Volta'>
                 </Directory>
             </Directory>
+            <?if $(sys.BUILDARCH) = x64 ?>
             <Merge Id='VCRedist' SourceFile='wix\Microsoft_VC140_CRT_x64.msm' DiskId='1' Language='0'/>
+            <?endif ?>
         </Directory>
 
         <ComponentGroup Id='Binaries' Directory='INSTALLDIR'>
-            <Component Id='voltaBinary' Guid='*' Win64='$(var.Win64)'>
+            <Component Id='voltaBinary' Guid='*'>
                 <File
                     Id='voltaEXE'
                     Name='volta.exe'
                     DiskId='1'
-                    Source='target\release\volta.exe'
+                    Source='$(var.CargoTargetBinDir)\volta.exe'
                     KeyPath='yes'/>
                 <Environment
                     Id='INSTALLPATH'
@@ -82,39 +81,39 @@
                     Action='set'
                     System='yes' />
             </Component>
-            <Component Id='shimBinary' Guid='*' Win64='$(var.Win64)'>
+            <Component Id='shimBinary' Guid='*'>
                 <File
                     Id='voltashimEXE'
                     Name='volta-shim.exe'
                     DiskId='1'
-                    Source='target\release\volta-shim.exe'
+                    Source='$(var.CargoTargetBinDir)\volta-shim.exe'
                     KeyPath='yes'/>
             </Component>
-            <Component Id='migrateBinary' Guid='*' Win64='$(var.Win64)'>
+            <Component Id='migrateBinary' Guid='*'>
                 <File
                     Id='voltamigrateEXE'
                     Name='volta-migrate.exe'
                     DiskId='1'
-                    Source='target\release\volta-migrate.exe'
+                    Source='$(var.CargoTargetBinDir)\volta-migrate.exe'
                     KeyPath='yes'/>
             </Component>
-            <Component Id='nodeBinary' Guid='*' Win64='$(var.Win64)'>
+            <Component Id='nodeBinary' Guid='*'>
                 <File
                     Id='nodeEXE'
                     Name='node.exe'
                     DiskId='1'
-                    Source='target\release\volta-shim.exe'
+                    Source='$(var.CargoTargetBinDir)\volta-shim.exe'
                     KeyPath='yes'/>
             </Component>
-            <Component Id='npmBinary' Guid='*' Win64='$(var.Win64)'>
+            <Component Id='npmBinary' Guid='*'>
                 <File
                     Id='npmEXE'
                     Name='npm.exe'
                     DiskId='1'
-                    Source='target\release\volta-shim.exe'
+                    Source='$(var.CargoTargetBinDir)\volta-shim.exe'
                     KeyPath='yes'/>
             </Component>
-            <Component Id='npmScript' Guid='*' Win64='$(var.Win64)'>
+            <Component Id='npmScript' Guid='*'>
                 <File
                     Id='npmCMD'
                     Name='npm.cmd'
@@ -122,15 +121,15 @@
                     Source='wix\shim.cmd'
                     KeyPath='yes'/>
             </Component>
-            <Component Id='npxBinary' Guid='*' Win64='$(var.Win64)'>
+            <Component Id='npxBinary' Guid='*'>
                 <File
                     Id='npxEXE'
                     Name='npx.exe'
                     DiskId='1'
-                    Source='target\release\volta-shim.exe'
+                    Source='$(var.CargoTargetBinDir)\volta-shim.exe'
                     KeyPath='yes'/>
             </Component>
-            <Component Id='npxScript' Guid='*' Win64='$(var.Win64)'>
+            <Component Id='npxScript' Guid='*'>
                 <File
                     Id='npxCMD'
                     Name='npx.cmd'
@@ -138,15 +137,15 @@
                     Source='wix\shim.cmd'
                     KeyPath='yes'/>
             </Component>
-            <Component Id='pnpmBinary' Guid='*' Win64='$(var.Win64)'>
+            <Component Id='pnpmBinary' Guid='*'>
                 <File
                     Id='pnpmEXE'
                     Name='pnpm.exe'
                     DiskId='1'
-                    Source='target\release\volta-shim.exe'
+                    Source='$(var.CargoTargetBinDir)\volta-shim.exe'
                     KeyPath='yes'/>
             </Component>
-            <Component Id='pnpmScript' Guid='*' Win64='$(var.Win64)'>
+            <Component Id='pnpmScript' Guid='*'>
                 <File
                     Id='pnpmCMD'
                     Name='pnpm.cmd'
@@ -154,15 +153,15 @@
                     Source='wix\shim.cmd'
                     KeyPath='yes'/>
             </Component>
-            <Component Id='yarnBinary' Guid='*' Win64='$(var.Win64)'>
+            <Component Id='yarnBinary' Guid='*'>
                 <File
                     Id='yarnEXE'
                     Name='yarn.exe'
                     DiskId='1'
-                    Source='target\release\volta-shim.exe'
+                    Source='$(var.CargoTargetBinDir)\volta-shim.exe'
                     KeyPath='yes'/>
             </Component>
-            <Component Id='yarnScript' Guid='*' Win64='$(var.Win64)'>
+            <Component Id='yarnScript' Guid='*'>
                 <File
                     Id='yarnCMD'
                     Name='yarn.cmd'
@@ -170,15 +169,15 @@
                     Source='wix\shim.cmd'
                     KeyPath='yes'/>
             </Component>
-            <Component Id='yarnPkgBinary' Guid='*' Win64='$(var.Win64)'>
+            <Component Id='yarnPkgBinary' Guid='*'>
                 <File
                     Id='yarnpgkEXE'
                     Name='yarnpkg.exe'
                     DiskId='1'
-                    Source='target\release\volta-shim.exe'
+                    Source='$(var.CargoTargetBinDir)\volta-shim.exe'
                     KeyPath='yes'/>
             </Component>
-            <Component Id='yarnPkgScript' Guid='*' Win64='$(var.Win64)'>
+            <Component Id='yarnPkgScript' Guid='*'>
                 <File
                     Id='yarnpkgCMD'
                     Name='yarnpkg.cmd'
@@ -192,9 +191,11 @@
             <ComponentGroupRef Id='Binaries'/>
         </Feature>
 
+        <?if $(sys.BUILDARCH) = x64 ?>
         <Feature Id='VCRedistributable' Title='Visual C++ Runtime' AllowAdvertise='no' Display='hidden' Level='1'>
             <MergeRef Id='VCRedist'/>
         </Feature>
+        <?endif ?>
 
         <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
 
