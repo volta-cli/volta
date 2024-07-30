@@ -17,7 +17,7 @@ terminal_size = "0.3.0"
 indicatif = "0.17.8"
 console = ">=0.11.3, <1.0.0"
 readext = "0.1.0"
-serde_json = { version = "1.0.120", features = ["preserve_order"] }
+serde_json = { version = "1.0.121", features = ["preserve_order"] }
 serde = { version = "1.0.204", features = ["derive"] }
 archive = { path = "../archive" }
 node-semver = "2"
