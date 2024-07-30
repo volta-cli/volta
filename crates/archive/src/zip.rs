@@ -60,9 +60,6 @@ impl Archive for Zip {
     fn compressed_size(&self) -> u64 {
         self.compressed_size
     }
-    fn uncompressed_size(&self) -> Option<u64> {
-        None
-    }
     fn unpack(
         self: Box<Self>,
         dest: &Path,
