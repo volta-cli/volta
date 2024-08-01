@@ -57,8 +57,18 @@ pub fn command_on_path<S: AsRef<OsStr>>(command: Command, path: S) -> Fallible<C
     // args_idx     0  1      2..
     let name = args.get(1).expect("A command always has a name");
 
-    if let Ok(mut paths) = which::which_in_global(name, Some(&path)) {
-        if let Some(exe) = paths.next() {
+    let mut paths = which::which_in_global(name, Some(&path)).map_err(|_| {
+        crate::error::ErrorKind::BinaryNotFound {
+            name: name.to_string_lossy().to_string(),
+        }
+    })?;
+
+    paths.next().map_or(
+        Err(crate::error::ErrorKind::BinaryNotFound {
+            name: name.to_string_lossy().to_string(),
+        }
+        .into()),
+        |exe| {
             let mut new_command = create_command(exe);
             let envs = command
                 .get_envs()
@@ -70,12 +80,7 @@ pub fn command_on_path<S: AsRef<OsStr>>(command: Command, path: S) -> Fallible<C
             new_command.envs(envs);
             new_command.env("PATH", path.as_ref());
 
-            return Ok(new_command);
-        }
-    }
-
-    Err(crate::error::ErrorKind::BinaryNotFound {
-        name: name.to_string_lossy().to_string(),
-    }
-    .into())
+            Ok(new_command)
+        },
+    )
 }
