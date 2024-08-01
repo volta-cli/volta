@@ -34,7 +34,7 @@ cfg_if! {
 
 /// Rebuild command against given PATH
 #[cfg(unix)]
-fn command_on_path<S: AsRef<OsStr>>(command: Command, path: S) -> Fallible<Command> {
+pub fn command_on_path<S: AsRef<OsStr>>(command: Command, path: S) -> Fallible<Command> {
     debug!("PATH: {}", path.as_ref().to_string_lossy());
     let mut command = command;
     command.env("PATH", path.as_ref());
