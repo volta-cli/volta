@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use super::manager::PackageManager;
-use crate::command::{create_command, command_on_path};
+use crate::command::{command_on_path, create_command};
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::platform::Image;
 use crate::style::progress_spinner;
