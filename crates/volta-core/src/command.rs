@@ -55,7 +55,7 @@ pub fn rebuild_command<S: AsRef<OsStr>>(command: Command, path: S) -> Fallible<C
         let args = command.get_args().collect::<Vec<_>>();
         //          cmd /c <name> [...other]
         // args_idx     0  1      2..
-        let name = args.get(1).expect("should have the name");
+        let name = args.get(1).expect("A command always has a name");
 
         if let Ok(mut paths) = which::which_in_global(name, Some(&path)) {
             if let Some(exe) = paths.next() {
