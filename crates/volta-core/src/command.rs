@@ -62,8 +62,7 @@ pub fn rebuild_command<S: AsRef<OsStr>>(command: Command, path: S) -> Fallible<C
                 let mut new_command = create_command(exe);
                 let envs = command
                     .get_envs()
-                    .filter(|(_, v)| v.is_some())
-                    .map(|(k, v)| (k, v.unwrap()))
+                    .filter_map(|(k, maybe_v)| Some(k).zip(maybe_v))
                     .collect::<Vec<_>>();
 
                 // The args will be the command name and any additional args.
