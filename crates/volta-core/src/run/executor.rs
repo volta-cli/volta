@@ -191,18 +191,20 @@ impl ToolCommand {
             ToolKind::Bypass(command) => (System::path()?, ErrorKind::BypassError { command }),
         };
 
-        // Recursive call limit
-        let mut recursion = std::env::var(RECURSION_ENV_VAR)
-            .map(|var| var.parse::<u8>().unwrap_or(1u8))
-            .unwrap_or(1u8);
+        // Do recursive call limit check
+        let recursion = match std::env::var(RECURSION_ENV_VAR) {
+            Err(_) => 1u8,
+            Ok(var) => var
+                .parse::<u8>()
+                .with_context(|| ErrorKind::ParseRecursionEnvError)?,
+        };
         if recursion > RECURSION_LIMIT {
             return Err(ErrorKind::RecursionLimit.into());
         }
-        recursion += 1;
 
         rebuild_command(self.command, path)
             .and_then(|mut command| {
-                command.env(RECURSION_ENV_VAR, recursion.to_string());
+                command.env(RECURSION_ENV_VAR, (recursion + 1).to_string());
                 pass_control_to_shim();
                 command.status().with_context(|| ErrorKind::BinaryExecError)
             })

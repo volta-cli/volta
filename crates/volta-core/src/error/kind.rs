@@ -329,6 +329,9 @@ pub enum ErrorKind {
     /// Thrown when unable to parse the platform.json file
     ParsePlatformError,
 
+    /// Thrown when unable to parse the RECURSION_ENV_VAR value
+    ParseRecursionEnvError,
+
     /// Thrown when unable to parse a tool spec (`<tool>[@<version>]`)
     ParseToolSpecError {
         tool_spec: String,
@@ -1117,6 +1120,10 @@ Please ensure the version of Node is correct."
 {}",
                 REPORT_BUG_CTA
             ),
+            ErrorKind::ParseRecursionEnvError => write!(
+                f,
+                "Could not parse RECURSION_ENV_VAR value."
+            ),
             ErrorKind::ParseToolSpecError { tool_spec } => write!(
                 f,
                 "Could not parse tool spec `{}`
@@ -1540,6 +1547,7 @@ impl ErrorKind {
             ErrorKind::ParseNpmManifestError => ExitCode::UnknownError,
             ErrorKind::ParsePackageConfigError => ExitCode::UnknownError,
             ErrorKind::ParsePlatformError => ExitCode::ConfigurationError,
+            ErrorKind::ParseRecursionEnvError => ExitCode::UnknownError,
             ErrorKind::PersistInventoryError { .. } => ExitCode::FileSystemError,
             ErrorKind::PnpmVersionNotFound { .. } => ExitCode::NoVersionMatch,
             ErrorKind::ProjectLocalBinaryExecError { .. } => ExitCode::ExecutionFailure,
