@@ -66,6 +66,7 @@ pub fn rebuild_command<S: AsRef<OsStr>>(command: Command, path: S) -> Fallible<C
                     .map(|(k, v)| (k, v.unwrap()))
                     .collect::<Vec<_>>();
 
+                // The args will be the command name and any additional args.
                 new_command.args(&args[2..]);
                 new_command.envs(envs);
                 new_command.env("PATH", path.as_ref());
