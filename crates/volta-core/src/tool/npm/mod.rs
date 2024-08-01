@@ -2,8 +2,8 @@ use std::fmt::{self, Display};
 
 use super::node::load_default_npm_version;
 use super::{
-    check_fetched, debug_already_fetched, info_fetched, info_installed, info_pinned,
-    info_project_version, FetchStatus, Tool,
+    check_fetched, check_shim_reachable, debug_already_fetched, info_fetched, info_installed,
+    info_pinned, info_project_version, FetchStatus, Tool,
 };
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::inventory::npm_available;
@@ -64,6 +64,7 @@ impl Tool for Npm {
             .set_active_npm(Some(self.version.clone()))?;
 
         info_installed(self);
+        check_shim_reachable("npm");
 
         if let Ok(Some(project)) = session.project_platform() {
             if let Some(npm) = &project.npm {

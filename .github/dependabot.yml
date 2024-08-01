@@ -1,61 +1,9 @@
 version: 2
 updates:
-  - directory: /
+  - package-ecosystem: "cargo"
     open-pull-requests-limit: 5
-    package-ecosystem: "cargo"
     schedule:
       interval: "daily"
-
-  - directory: /crates/archive
-    open-pull-requests-limit: 3
-    package-ecosystem: "cargo"
-    schedule:
-      interval: "daily"
-
-  - directory: /crates/fs-utils
-    open-pull-requests-limit: 3
-    package-ecosystem: "cargo"
-    schedule:
-      interval: "daily"
-
-  - directory: /crates/progress-read
-    open-pull-requests-limit: 3
-    package-ecosystem: "cargo"
-    schedule:
-      interval: "daily"
-
-  - directory: /crates/test-support
-    open-pull-requests-limit: 3
-    package-ecosystem: "cargo"
-    schedule:
-      interval: "daily"
-
-  - directory: /crates/validate-npm-package-name
-    open-pull-requests-limit: 3
-    package-ecosystem: "cargo"
-    schedule:
-      interval: "daily"
-
-  - directory: /crates/volta-core
-    open-pull-requests-limit: 3
-    package-ecosystem: "cargo"
-    schedule:
-      interval: "daily"
-
-  - directory: /crates/volta-layout
-    open-pull-requests-limit: 3
-    package-ecosystem: "cargo"
-    schedule:
-      interval: "daily"
-
-  - directory: /crates/volta-layout-macro
-    open-pull-requests-limit: 3
-    package-ecosystem: "cargo"
-    schedule:
-      interval: "daily"
-
-  - directory: /crates/volta-migrate
-    open-pull-requests-limit: 3
-    package-ecosystem: "cargo"
-    schedule:
-      interval: "daily"
+    directories:
+      - "/"
+      - "/crates/*"

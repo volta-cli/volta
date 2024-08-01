@@ -500,6 +500,23 @@ impl SandboxBuilder {
         self.add_exec_dir_to_path()
     }
 
+    /// Prepend executable directory to the beginning of the PATH (chainable)
+    ///
+    /// This is useful to test binaries shadowing volta shims.
+    ///
+    /// Cannot be used in combination with `add_exec_dir_to_path`, and will panic if called twice.
+    /// No particular reason except it's likely a programming error.
+    pub fn prepend_exec_dir_to_path(mut self) -> Self {
+        if self.has_exec_path {
+            panic!("need to call prepend_exec_dir_to_path before anything else");
+        }
+
+        let exec_path = self.root().join("exec");
+        self.path_dirs.insert(0, exec_path);
+        self.has_exec_path = true;
+        self
+    }
+
     /// Set a package config file for the sandbox (chainable)
     pub fn package_config(mut self, name: &str, contents: &str) -> Self {
         let package_cfg_file = package_config_file(name);

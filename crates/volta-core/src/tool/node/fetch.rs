@@ -95,9 +95,7 @@ fn unpack_archive(archive: Box<dyn Archive>, version: &Version) -> Fallible<Node
     let progress = progress_bar(
         archive.origin(),
         &tool_version("node", version),
-        archive
-            .uncompressed_size()
-            .unwrap_or_else(|| archive.compressed_size()),
+        archive.compressed_size(),
     );
     let version_string = version.to_string();
 

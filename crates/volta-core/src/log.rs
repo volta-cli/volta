@@ -1,6 +1,6 @@
 //! This module provides a custom Logger implementation for use with the `log` crate
 use console::style;
-use log::{Level, LevelFilter, Log, Metadata, Record, SetLoggerError};
+use log::{trace, Level, LevelFilter, Log, Metadata, Record, SetLoggerError};
 use std::env;
 use std::fmt::Display;
 use std::io::IsTerminal;
@@ -15,7 +15,13 @@ const SHIM_WARNING_PREFIX: &str = "Volta warning:";
 const MIGRATION_ERROR_PREFIX: &str = "Volta update error:";
 const MIGRATION_WARNING_PREFIX: &str = "Volta update warning:";
 const VOLTA_LOGLEVEL: &str = "VOLTA_LOGLEVEL";
-const ALLOWED_PREFIX: &str = "volta";
+const ALLOWED_PREFIXES: [&str; 5] = [
+    "volta",
+    "archive",
+    "fs-utils",
+    "progress-read",
+    "validate-npm-package-name",
+];
 const WRAP_INDENT: &str = "    ";
 
 /// Represents the context from which the logger was created
@@ -31,10 +37,12 @@ pub enum LogContext {
 }
 
 /// Represents the level of verbosity that was requested by the user
+#[derive(Debug, Copy, Clone)]
 pub enum LogVerbosity {
     Quiet,
     Default,
     Verbose,
+    VeryVerbose,
 }
 
 pub struct Logger {
@@ -48,13 +56,21 @@ impl Log for Logger {
     }
 
     fn log(&self, record: &Record) {
-        if self.enabled(record.metadata()) && record.target().starts_with(ALLOWED_PREFIX) {
+        let level_allowed = self.enabled(record.metadata());
+
+        let is_valid_target = ALLOWED_PREFIXES
+            .iter()
+            .any(|prefix| record.target().starts_with(prefix));
+
+        if level_allowed && is_valid_target {
             match record.level() {
                 Level::Error => self.log_error(record.args()),
                 Level::Warn => self.log_warning(record.args()),
-                Level::Debug => eprintln!("[verbose] {}", record.args()),
                 // all info-level messages go to stdout
-                _ => println!("{}", record.args()),
+                Level::Info => println!("{}", record.args()),
+                // all debug- and trace-level messages go to stderr
+                Level::Debug => eprintln!("[verbose] {}", record.args()),
+                Level::Trace => eprintln!("[trace] {}", record.args()),
             }
         }
     }
@@ -78,6 +94,7 @@ impl Logger {
             LogVerbosity::Quiet => LevelFilter::Error,
             LogVerbosity::Default => level_from_env(),
             LogVerbosity::Verbose => LevelFilter::Debug,
+            LogVerbosity::VeryVerbose => LevelFilter::Trace,
         };
 
         Logger { context, level }
@@ -147,6 +164,7 @@ fn level_from_env() -> LevelFilter {
         .and_then(|level| level.to_uppercase().parse().ok())
         .unwrap_or_else(|| {
             if std::io::stdout().is_terminal() {
+                trace!("using fallback log level (info)");
                 LevelFilter::Info
             } else {
                 LevelFilter::Error

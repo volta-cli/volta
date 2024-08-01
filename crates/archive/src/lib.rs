@@ -42,7 +42,6 @@ pub enum Origin {
 
 pub trait Archive {
     fn compressed_size(&self) -> u64;
-    fn uncompressed_size(&self) -> Option<u64>;
 
     /// Unpacks the zip archive to the specified destination folder.
     fn unpack(
