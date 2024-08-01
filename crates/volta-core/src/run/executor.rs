@@ -7,7 +7,7 @@ use std::os::windows::process::ExitStatusExt;
 use std::process::{Command, ExitStatus};
 
 use super::{RECURSION_ENV_VAR, RECURSION_LIMIT};
-use crate::command::{create_command, rebuild_command};
+use crate::command::{command_on_path, create_command};
 use crate::error::{Context, ErrorKind, Fallible};
 use crate::layout::volta_home;
 use crate::platform::{CliPlatform, Platform, System};
@@ -202,7 +202,7 @@ impl ToolCommand {
             return Err(ErrorKind::RecursionLimit.into());
         }
 
-        rebuild_command(self.command, path)
+        command_on_path(self.command, path)
             .and_then(|mut command| {
                 command.env(RECURSION_ENV_VAR, (recursion + 1).to_string());
                 pass_control_to_shim();
@@ -292,7 +292,7 @@ impl PackageInstallCommand {
         let image = self.platform.checkout(session)?;
         let path = image.path()?;
 
-        let mut command = rebuild_command(self.command, path)?;
+        let mut command = command_on_path(self.command, path)?;
 
         command.env(RECURSION_ENV_VAR, "1");
         self.installer.setup_command(&mut command);
@@ -369,7 +369,7 @@ impl PackageLinkCommand {
         let image = self.platform.checkout(session)?;
         let path = image.path()?;
 
-        let mut command = rebuild_command(self.command, path)?;
+        let mut command = command_on_path(self.command, path)?;
 
         command.env(RECURSION_ENV_VAR, "1");
         let package_root = volta_home()?.package_image_dir(&self.tool);
@@ -484,7 +484,7 @@ impl PackageUpgradeCommand {
         let image = self.platform.checkout(session)?;
         let path = image.path()?;
 
-        let mut command = rebuild_command(self.command, path)?;
+        let mut command = command_on_path(self.command, path)?;
 
         command.env(RECURSION_ENV_VAR, "1");
         self.upgrader.setup_command(&mut command);
