@@ -408,7 +408,7 @@ pub enum ErrorKind {
         file: PathBuf,
     },
 
-    /// Throw when recursion limit is reached
+    /// Thrown when recursion limit is reached
     RecursionLimit,
 
     /// Thrown when unable to read the user Path environment variable from the registry
