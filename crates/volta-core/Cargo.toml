@@ -43,7 +43,7 @@ ctrlc = "3.4.4"
 walkdir = "2.5.0"
 volta-layout = { path = "../volta-layout" }
 once_cell = "1.19.0"
-dunce = "1.0.4"
+dunce = "1.0.5"
 ci_info = "0.14.14"
 httpdate = "1"
 headers = "0.4"
