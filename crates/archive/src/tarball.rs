@@ -24,8 +24,8 @@ pub struct Tarball {
 /// the HTTP `"Content-Length"` header.
 fn content_length(headers: &HeaderMap) -> Result<u64, ArchiveError> {
     headers
-        .typed_get::<ContentLength>()
-        .map(|v| v.0)
+        .typed_get()
+        .map(|ContentLength(v)| v)
         .ok_or_else(|| ArchiveError::MissingHeaderError(ContentLength::name()))
 }
 

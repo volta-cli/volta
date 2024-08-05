@@ -181,15 +181,12 @@ fn read_cached_opt(url: &str) -> Fallible<Option<RawNodeIndex>> {
 }
 
 /// Get the cache max-age of an HTTP response.
-fn max_age(headers: &HeaderMap) -> u64 {
-    if let Some(cache_control_header) = headers.typed_get::<CacheControl>() {
-        if let Some(max_age) = cache_control_header.max_age() {
-            return max_age.as_secs();
-        }
-    }
-
-    // Default to four hours.
-    4 * 60 * 60
+fn max_age(headers: &HeaderMap) -> Duration {
+    const FOUR_HOURS: Duration = Duration::from_secs(4 * 60 * 60);
+    headers
+        .typed_get::<CacheControl>()
+        .and_then(|cache_control| cache_control.max_age())
+        .unwrap_or(FOUR_HOURS)
 }
 
 fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
@@ -209,7 +206,7 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
                 .split();
 
             let expires = headers.typed_get::<Expires>().unwrap_or_else(|| {
-                let expiry_date = SystemTime::now() + Duration::from_secs(max_age(&headers));
+                let expiry_date = SystemTime::now() + max_age(&headers);
                 Expires::from(expiry_date)
             });
 
