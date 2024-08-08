@@ -11,5 +11,5 @@ log = { version = "0.4", features = ["std"] }
 tempfile = "3.11.0"
 node-semver = "2"
 serde_json = { version = "1.0.122", features = ["preserve_order"] }
-serde = { version = "1.0.204", features = ["derive"] }
+serde = { version = "1.0.205", features = ["derive"] }
 walkdir = "2.5.0"
