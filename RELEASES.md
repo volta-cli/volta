@@ -8,7 +8,7 @@
 - Volta will now use a universal binary on Mac, rather than separate Intel- & ARM-specific builds (#1635)
 - Switched to installing profile scripts into `.zshenv` by default, rather than `.zshrc` (#1657)
 - Added a default shim for the `yarnpkg` command, which is an alias of `yarn` (#1670)
-- Added a new `--very-verbose` flag to enable even more logging (#1815)
+- Added a new `--very-verbose` flag to enable even more logging (note: we haven't yet implemented much additional logging) (#1815)
 - Simplified the fetching process to remove an extra network request and resolve hangs (#1812)
 - Several dependency upgrades and clean-up refactors from @tottoto
 
