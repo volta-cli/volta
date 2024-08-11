@@ -1,6 +1,6 @@
 # Version 2.0.0
 
-- 🚨 (BREAKING) 🚨 We upgraded the version of Rust used to build Volta, which drops support for older versions of glibc & Linux kernel. See [the Rust announcement](https://blog.rust-lang.org/2022/08/01/Increasing-glibc-kernel-requirements.html) for details about the supported versions. Notably, this means that we no longer support CentOS 6 (#1611)
+- 🚨 (BREAKING) 🚨 We upgraded the version of Rust used to build Volta, which drops support for older versions of glibc & Linux kernel. See [the Rust announcement from August 2022](https://blog.rust-lang.org/2022/08/01/Increasing-glibc-kernel-requirements.html) for details about the supported versions. Notably, this means that we no longer support CentOS 6 (#1611)
 - 🚨 (BREAKING) 🚨 Due to costs and changes in the code signing process, we have dropped the code signing for the Windows installer. We now recommend using `winget` to install Volta on Windows (#1650)
 - 🎉 (NEW) 🎉 We now ship a pre-built binary for ARM Linux & ARM Windows (#1696, #1801)
 - Volta no longer requires Developer Mode to be enabled on Windows (#1755)
