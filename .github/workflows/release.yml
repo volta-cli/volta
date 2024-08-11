@@ -134,6 +134,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - linux
+      - linux-arm
       - macos
       - windows
       - windows-arm
