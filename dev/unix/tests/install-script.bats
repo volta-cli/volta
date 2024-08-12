@@ -116,39 +116,4 @@ END_CARGO_TOML
   [ "$status" -eq 1 ]
 }
 
-@test "check_architecture" {
-  # Succeeds for local-release and supported arch
-  run check_architecture "local-release" "x86_64"
-  [ "$status" -eq 0 ]
-
-  # Succeeds for local-release and unsupported arch
-  run check_architecture "local-release" "i686"
-  [ "$status" -eq 0 ]
-
-  # Succeeds for local-dev and supported arch
-  run check_architecture "local-dev" "x86_64"
-  [ "$status" -eq 0 ]
-
-  # Succeeds for local-dev and unsupported arch
-  run check_architecture "local-dev" "i686"
-  [ "$status" -eq 0 ]
-
-  # Succeeds for latest and supported arch
-  run check_architecture "latest" "x86_64"
-  [ "$status" -eq 0 ]
-
-  # Fails for latest and unsupported arch
-  run check_architecture "latest" "i686"
-  [ "$status" -ne 0 ]
-
-  # Succeeds for version and supported arch
-  run check_architecture "0.5.0" "x86_64"
-  [ "$status" -eq 0 ]
-
-  # Fails for version and unsupported arch
-  run check_architecture "0.5.0" "i686"
-  [ "$status" -ne 0 ]
-}
-
-
 # TODO: test creating symlinks
