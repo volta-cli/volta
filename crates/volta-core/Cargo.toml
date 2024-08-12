@@ -29,7 +29,7 @@ os_info = "3.8.2"
 detect-indent = "0.1"
 envoy = "0.1.3"
 mockito = { version = "0.31.1", optional = true }
-regex = "1.7.3"
+regex = "1.10.6"
 dirs = "5.0.1"
 # We manually configure the feature list here because 0.4.16 includes the
 # `oldtime` feature by default to avoid a breaking change. Additionally, using
