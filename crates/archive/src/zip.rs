@@ -1,21 +1,23 @@
 //! Provides types and functions for fetching and unpacking a Node installation
 //! zip file in Windows operating systems.
 
-use std::fs::{create_dir_all, File};
-use std::io::copy;
+use std::fs::File;
+use std::io::Read;
 use std::path::Path;
 
-use crate::ArchiveError;
+use super::{content_length, ArchiveError};
+use fs_utils::ensure_containing_dir_exists;
 use progress_read::ProgressRead;
+use tee::TeeReader;
 use verbatim::PathExt;
-use zip_rs::ZipArchive;
+use zip_rs::unstable::stream::ZipStreamReader;
 
 use super::Archive;
 use super::Origin;
 
 pub struct Zip {
     compressed_size: u64,
-    data: File,
+    data: Box<dyn Read>,
     origin: Origin,
 }
 
@@ -26,7 +28,7 @@ impl Zip {
 
         Ok(Box::new(Zip {
             compressed_size,
-            data: source,
+            data: Box::new(source),
             origin: Origin::Local,
         }))
     }
@@ -34,23 +36,21 @@ impl Zip {
     /// Initiate fetching of a Node zip archive from the given URL, returning
     /// a `Remote` data source.
     pub fn fetch(url: &str, cache_file: &Path) -> Result<Box<dyn Archive>, ArchiveError> {
-        let (status, _, mut response) = attohttpc::get(url).send()?.split();
+        let (status, headers, response) = attohttpc::get(url).send()?.split();
 
         if !status.is_success() {
             return Err(ArchiveError::HttpError(status));
         }
 
-        {
-            let mut file = File::create(cache_file)?;
-            copy(&mut response, &mut file)?;
-        }
+        let compressed_size = content_length(&headers)?;
 
-        let file = File::open(cache_file)?;
-        let compressed_size = file.metadata()?.len();
+        ensure_containing_dir_exists(&cache_file)?;
+        let file = File::create(cache_file)?;
+        let data = Box::new(TeeReader::new(response, file));
 
         Ok(Box::new(Zip {
             compressed_size,
-            data: file,
+            data,
             origin: Origin::Remote,
         }))
     }
@@ -67,33 +67,8 @@ impl Archive for Zip {
     ) -> Result<(), ArchiveError> {
         // Use a verbatim path to avoid the legacy Windows 260 byte path limit.
         let dest: &Path = &dest.to_verbatim();
-
-        let mut zip = ZipArchive::new(ProgressRead::new(self.data, (), progress))?;
-        for i in 0..zip.len() {
-            let mut entry = zip.by_index(i)?;
-
-            let (is_dir, subpath) = {
-                let name = entry.name();
-
-                // Verbatim paths aren't normalized so we have to use correct r"\" separators.
-                (
-                    name.ends_with('/'),
-                    Path::new(&name.replace('/', r"\")).to_path_buf(),
-                )
-            };
-
-            if is_dir {
-                create_dir_all(dest.join(subpath))?;
-            } else {
-                let mut file = {
-                    if let Some(basedir) = subpath.parent() {
-                        create_dir_all(dest.join(basedir))?;
-                    }
-                    File::create(dest.join(subpath))?
-                };
-                copy(&mut entry, &mut file)?;
-            }
-        }
+        let zip = ZipStreamReader::new(ProgressRead::new(self.data, (), progress));
+        zip.extract(dest)?;
         Ok(())
     }
     fn origin(&self) -> Origin {
