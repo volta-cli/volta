@@ -39,7 +39,7 @@ chrono = { version = "0.4.38", default-features = false, features = ["alloc", "s
 validate-npm-package-name = { path = "../validate-npm-package-name" }
 textwrap = "0.16.1"
 log = { version = "0.4", features = ["std"] }
-ctrlc = "3.4.4"
+ctrlc = "3.4.5"
 walkdir = "2.5.0"
 volta-layout = { path = "../volta-layout" }
 once_cell = "1.19.0"
