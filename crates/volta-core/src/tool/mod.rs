@@ -1,5 +1,6 @@
 use std::env;
 use std::fmt::{self, Display};
+use std::path::PathBuf;
 
 use crate::error::{ErrorKind, Fallible};
 use crate::layout::volta_home;
@@ -232,27 +233,62 @@ cfg_if!(
     }
 );
 
+/// Check if a newly-installed shim is first on the PATH. If it isn't, we want to inform the user
+/// that they'll want to move it to the start of PATH to make sure things work as expected.
 pub fn check_shim_reachable(shim_name: &str) {
-    let home = match volta_home() {
-        Ok(home) => home,
-        Err(_) => return,
+    let Some(expected_dir) = find_expected_shim_dir(shim_name) else {
+        return;
     };
 
-    let shim = home.shim_file(shim_name);
-    let resolved = match which::which(shim_name) {
-        Ok(resolved) => resolved,
-        Err(_) => {
-            info!(
-                "{} cannot find command {}. Please ensure that {} is available on your {}.",
-                note_prefix(),
-                shim_name,
-                home.shim_dir().display(),
-                PATH_VAR_NAME,
-            );
-            return;
-        }
+    let Ok(resolved) = which::which(shim_name) else {
+        info!(
+            "{} cannot find command {}. Please ensure that {} is available on your {}.",
+            note_prefix(),
+            shim_name,
+            expected_dir.display(),
+            PATH_VAR_NAME,
+        );
+        return;
     };
-    if resolved != shim {
-        info!("{} {} is shadowed by another binary of the same name at {}. To ensure your commands work as expected, please move {} to the start of your {}.", note_prefix(), shim_name, resolved.display(), home.shim_dir().display(), PATH_VAR_NAME);
+
+    if !resolved.starts_with(&expected_dir) {
+        info!(
+            "{} {} is shadowed by another binary of the same name at {}. To ensure your commands work as expected, please move {} to the start of your {}.",
+            note_prefix(),
+            shim_name,
+            resolved.display(),
+            expected_dir.display(),
+            PATH_VAR_NAME
+        );
+    }
+}
+
+/// Locate the base directory for the relevant shim in the Volta directories.
+///
+/// On Unix, all of the shims, including the default ones, are installed in `VoltaHome::shim_dir`
+#[cfg(unix)]
+fn find_expected_shim_dir(_shim_name: &str) -> Option<PathBuf> {
+    volta_home().ok().map(|home| home.shim_dir().to_owned())
+}
+
+/// Locate the base directory for the relevant shim in the Volta directories.
+///
+/// On Windows, the default shims (node, npm, yarn, etc.) are installed in `Program Files`
+/// alongside the Volta binaries. To determine where we should be checking, we first look for the
+/// relevant shim inside of `VoltaHome::shim_dir`. If it's there, we use that directory. If it
+/// isn't, we assume it must be a default shim and return `VoltaInstall::root`, which is where
+/// Volta itself is installed.
+#[cfg(windows)]
+fn find_expected_shim_dir(shim_name: &str) -> Option<PathBuf> {
+    use crate::layout::volta_install;
+
+    let home = volta_home().ok()?;
+
+    if home.shim_file(shim_name).exists() {
+        Some(home.shim_dir().to_owned())
+    } else {
+        volta_install()
+            .ok()
+            .map(|install| install.root().to_owned())
     }
 }
