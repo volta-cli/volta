@@ -8,8 +8,8 @@ use crate::style::tool_version;
 use crate::sync::VoltaLock;
 
 use super::{
-    check_fetched, debug_already_fetched, info_fetched, info_installed, info_pinned,
-    info_project_version, FetchStatus, Tool,
+    check_fetched, check_shim_reachable, debug_already_fetched, info_fetched, info_installed,
+    info_pinned, info_project_version, FetchStatus, Tool,
 };
 
 mod fetch;
@@ -63,11 +63,12 @@ impl Tool for Pnpm {
             .toolchain_mut()?
             .set_active_pnpm(Some(self.version.clone()))?;
 
-        info_installed(self);
+        info_installed(&self);
+        check_shim_reachable("pnpm");
 
         if let Ok(Some(project)) = session.project_platform() {
             if let Some(pnpm) = &project.pnpm {
-                info_project_version(tool_version("pnpm", pnpm));
+                info_project_version(tool_version("pnpm", pnpm), &self);
             }
         }
         Ok(())
