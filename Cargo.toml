@@ -20,6 +20,10 @@ path = "src/volta-shim.rs"
 name = "volta-migrate"
 path = "src/volta-migrate.rs"
 
+[profile.release]
+lto = "fat"
+codegen-units = 1
+
 [dependencies]
 volta-core = { path = "crates/volta-core" }
 serde = { version = "1.0", features = ["derive"] }
