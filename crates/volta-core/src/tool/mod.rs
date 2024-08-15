@@ -28,36 +28,31 @@ pub use pnpm::Pnpm;
 pub use registry::PackageDetails;
 pub use yarn::Yarn;
 
-#[inline]
-fn debug_already_fetched<T: Display + Sized>(tool: T) {
+fn debug_already_fetched<T: Display>(tool: T) {
     debug!("{} has already been fetched, skipping download", tool);
 }
 
-#[inline]
-fn info_installed<T: Display + Sized>(tool: T) {
+fn info_installed<T: Display>(tool: T) {
     info!("{} installed and set {tool} as default", success_prefix());
+}
+
+fn info_fetched<T: Display>(tool: T) {
+    info!("{} fetched {tool}", success_prefix());
+}
+
+fn info_pinned<T: Display>(tool: T) {
+    info!("{} pinned {tool} in package.json", success_prefix());
+}
+
+fn info_project_version<P, D>(project_version: P, default_version: D)
+where
+    P: Display,
+    D: Display,
+{
     info!(
-        "{} to use {tool} in this project run `volta pin {tool}`",
-        success_prefix()
-    );
-}
-
-#[inline]
-fn info_fetched<T: Display + Sized>(tool: T) {
-    info!("{} fetched {}", success_prefix(), tool);
-}
-
-#[inline]
-fn info_pinned<T: Display + Sized>(tool: T) {
-    info!("{} pinned {} in package.json", success_prefix(), tool);
-}
-
-#[inline]
-fn info_project_version<T: Display + Sized>(tool: T) {
-    info!(
-        "{} you are using {} in the current project",
-        note_prefix(),
-        tool
+        r#"{} you are using {project_version} in the current project; to
+         instead use {default_version}, run `volta pin {default_version}`"#,
+        note_prefix()
     );
 }
 
