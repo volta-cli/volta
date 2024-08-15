@@ -10,6 +10,6 @@ volta-layout = { path = "../volta-layout" }
 log = { version = "0.4", features = ["std"] }
 tempfile = "3.12.0"
 node-semver = "2"
-serde_json = { version = "1.0.124", features = ["preserve_order"] }
+serde_json = { version = "1.0.125", features = ["preserve_order"] }
 serde = { version = "1.0.207", features = ["derive"] }
 walkdir = "2.5.0"
