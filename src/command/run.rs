@@ -44,12 +44,14 @@ pub(crate) struct Run {
     #[arg(long = "env", value_name = "NAME=value", num_args = 1)]
     envs: Vec<String>,
 
-    /// The command to run
-    command: OsString,
-
-    /// Arguments to pass to the command
-    #[arg(allow_hyphen_values = true, trailing_var_arg = true)]
-    args: Vec<OsString>,
+    /// The command to run, along with any arguments
+    #[arg(
+        allow_hyphen_values = true,
+        trailing_var_arg = true,
+        value_name = "COMMAND",
+        required = true
+    )]
+    command_and_args: Vec<OsString>,
 }
 
 impl Command for Run {
@@ -59,7 +61,13 @@ impl Command for Run {
         let envs = self.parse_envs();
         let platform = self.parse_platform(session)?;
 
-        match execute_tool(&self.command, &self.args, &envs, platform, session).into_result() {
+        // Safety: At least one value is required for `command_and_args`, so there must be at
+        // least one value in the list. If no value is provided, Clap will show a "required
+        // argument missing" message and this function won't be called.
+        let command = &self.command_and_args[0];
+        let args = &self.command_and_args[1..];
+
+        match execute_tool(command, args, &envs, platform, session).into_result() {
             Ok(()) => {
                 session.add_event_end(ActivityKind::Run, ExitCode::Success);
                 Ok(ExitCode::Success)
