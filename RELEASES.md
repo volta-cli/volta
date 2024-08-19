@@ -1,3 +1,11 @@
+# Version 2.0.1
+
+- Improved accuracy of Node download progress bar on Windows (#1833)
+- You should no longer run into errors about needing the VC++ Runtime on Windows (#1844)
+- The data provided when installing a new Node version is now more relevant and accurate (#1846, #1848)
+- Increased performance to make Volta even more responsive in typical use (#1849)
+- `volta run` will now correctly handle flags in more situations (#1857)
+
 # Version 2.0.0
 
 - 🚨 (BREAKING) 🚨 We upgraded the version of Rust used to build Volta, which drops support for older versions of glibc & Linux kernel. See [the Rust announcement from August 2022](https://blog.rust-lang.org/2022/08/01/Increasing-glibc-kernel-requirements.html) for details about the supported versions. Notably, this means that we no longer support CentOS 6 (#1611)
