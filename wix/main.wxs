@@ -59,9 +59,6 @@
                 <Directory Id='INSTALLDIR' Name='Volta'>
                 </Directory>
             </Directory>
-            <?if $(sys.BUILDARCH) = x64 ?>
-            <Merge Id='VCRedist' SourceFile='wix\Microsoft_VC140_CRT_x64.msm' DiskId='1' Language='0'/>
-            <?endif ?>
         </Directory>
 
         <ComponentGroup Id='Binaries' Directory='INSTALLDIR'>
@@ -190,12 +187,6 @@
         <Feature Id='MainProgram'>
             <ComponentGroupRef Id='Binaries'/>
         </Feature>
-
-        <?if $(sys.BUILDARCH) = x64 ?>
-        <Feature Id='VCRedistributable' Title='Visual C++ Runtime' AllowAdvertise='no' Display='hidden' Level='1'>
-            <MergeRef Id='VCRedist'/>
-        </Feature>
-        <?endif ?>
 
         <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
 

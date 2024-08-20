@@ -229,7 +229,7 @@ impl Tool for Node {
         // Instead we should check if the bundled version is higher than the default and inform the user
         // Note: The previous line ensures that there will be a default platform
         if let Some(default_npm) = &default_toolchain.platform().unwrap().npm {
-            info_installed(self); // includes node version
+            info_installed(&self); // includes node version
 
             if node_version.npm > *default_npm {
                 info!("{} this version of Node includes {}, which is higher than your default version ({}).
@@ -246,7 +246,7 @@ impl Tool for Node {
         check_shim_reachable("node");
 
         if let Ok(Some(project)) = session.project_platform() {
-            info_project_version(tool_version("node", &project.node));
+            info_project_version(tool_version("node", &project.node), &self);
         }
 
         Ok(())

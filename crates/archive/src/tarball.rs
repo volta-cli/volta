@@ -5,11 +5,9 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-use super::{Archive, ArchiveError, Origin};
-use attohttpc::header::HeaderMap;
+use super::{content_length, Archive, ArchiveError, Origin};
 use flate2::read::GzDecoder;
 use fs_utils::ensure_containing_dir_exists;
-use headers::{ContentLength, Header, HeaderMapExt};
 use progress_read::ProgressRead;
 use tee::TeeReader;
 
@@ -18,15 +16,6 @@ pub struct Tarball {
     compressed_size: u64,
     data: Box<dyn Read>,
     origin: Origin,
-}
-
-/// Determines the length of an HTTP response's content in bytes, using
-/// the HTTP `"Content-Length"` header.
-fn content_length(headers: &HeaderMap) -> Result<u64, ArchiveError> {
-    headers
-        .typed_get::<ContentLength>()
-        .map(|v| v.0)
-        .ok_or_else(|| ArchiveError::MissingHeaderError(ContentLength::name()))
 }
 
 impl Tarball {

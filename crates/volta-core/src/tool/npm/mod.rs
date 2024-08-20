@@ -63,12 +63,12 @@ impl Tool for Npm {
             .toolchain_mut()?
             .set_active_npm(Some(self.version.clone()))?;
 
-        info_installed(self);
+        info_installed(&self);
         check_shim_reachable("npm");
 
         if let Ok(Some(project)) = session.project_platform() {
             if let Some(npm) = &project.npm {
-                info_project_version(tool_version("npm", npm));
+                info_project_version(tool_version("npm", npm), &self);
             }
         }
         Ok(())
