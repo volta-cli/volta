@@ -36,12 +36,12 @@ impl LazyProject {
     }
 
     pub fn get(&self) -> Fallible<Option<&Project>> {
-        let project = self.project.get_or_try_init(Project::from_current_dir)?;
+        let project = self.project.get_or_try_init(Project::for_current_dir)?;
         Ok(project.as_ref())
     }
 
     pub fn get_mut(&mut self) -> Fallible<Option<&mut Project>> {
-        let _ = self.project.get_or_try_init(Project::from_current_dir)?;
+        let _ = self.project.get_or_try_init(Project::for_current_dir)?;
         Ok(self.project.get_mut().unwrap().as_mut())
     }
 }
@@ -57,15 +57,15 @@ pub struct Project {
 
 impl Project {
     /// Creates an optional Project instance from the current directory
-    fn from_current_dir() -> Fallible<Option<Self>> {
+    fn for_current_dir() -> Fallible<Option<Self>> {
         let current_dir = env::current_dir().with_context(|| ErrorKind::CurrentDirError)?;
-        Self::from_dir(current_dir)
+        Self::for_dir(current_dir)
     }
 
     /// Creates an optional Project instance from the specified directory
     ///
     /// Will search ancestors to find a `package.json` and use that as the root of the project
-    fn from_dir(base_dir: PathBuf) -> Fallible<Option<Self>> {
+    fn for_dir(base_dir: PathBuf) -> Fallible<Option<Self>> {
         match find_closest_root(base_dir) {
             Some(mut project) => {
                 project.push("package.json");

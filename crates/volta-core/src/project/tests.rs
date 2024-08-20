@@ -48,7 +48,7 @@ mod project {
     #[test]
     fn manifest_file() {
         let project_path = fixture_path(&["basic"]);
-        let test_project = Project::from_dir(project_path).unwrap().unwrap();
+        let test_project = Project::for_dir(project_path).unwrap().unwrap();
 
         let expected = fixture_path(&["basic", "package.json"]);
         assert_eq!(test_project.manifest_file(), &expected);
@@ -58,7 +58,7 @@ mod project {
     fn workspace_roots() {
         let project_path = fixture_path(&["nested", "subproject", "inner_project"]);
         let expected_base = project_path.clone();
-        let test_project = Project::from_dir(project_path).unwrap().unwrap();
+        let test_project = Project::for_dir(project_path).unwrap().unwrap();
 
         let expected = vec![
             &*expected_base,
@@ -72,7 +72,7 @@ mod project {
     #[test]
     fn platform_simple() {
         let project_path = fixture_path(&["basic"]);
-        let test_project = Project::from_dir(project_path).unwrap().unwrap();
+        let test_project = Project::for_dir(project_path).unwrap().unwrap();
         let platform = test_project.platform().unwrap();
 
         assert_eq!(platform.node, "6.11.1".parse().unwrap());
@@ -83,7 +83,7 @@ mod project {
     #[test]
     fn platform_workspace() {
         let project_path = fixture_path(&["nested", "subproject", "inner_project"]);
-        let test_project = Project::from_dir(project_path).unwrap().unwrap();
+        let test_project = Project::for_dir(project_path).unwrap().unwrap();
         let platform = test_project.platform().unwrap();
 
         // From the top level `nested/package.json`
@@ -97,7 +97,7 @@ mod project {
     #[test]
     fn direct_dependencies_single() {
         let project_path = fixture_path(&["basic"]);
-        let test_project = Project::from_dir(project_path).unwrap().unwrap();
+        let test_project = Project::for_dir(project_path).unwrap().unwrap();
 
         // eslint, rsvp, bin-1, and bin-2 are direct dependencies
         assert!(test_project.has_direct_dependency("eslint"));
@@ -112,7 +112,7 @@ mod project {
     #[test]
     fn direct_dependencies_workspace() {
         let project_path = fixture_path(&["nested", "subproject", "inner_project"]);
-        let test_project = Project::from_dir(project_path).unwrap().unwrap();
+        let test_project = Project::for_dir(project_path).unwrap().unwrap();
 
         // express and typescript are direct dependencies of the innermost project
         assert!(test_project.has_direct_dependency("express"));
@@ -131,7 +131,7 @@ mod project {
     #[test]
     fn find_bin_single() {
         let project_path = fixture_path(&["basic"]);
-        let test_project = Project::from_dir(project_path).unwrap().unwrap();
+        let test_project = Project::for_dir(project_path).unwrap().unwrap();
 
         assert_eq!(
             test_project.find_bin("rsvp"),
@@ -145,7 +145,7 @@ mod project {
     fn find_bin_workspace() {
         // eslint, rsvp, tsc
         let project_path = fixture_path(&["nested", "subproject", "inner_project"]);
-        let test_project = Project::from_dir(project_path).unwrap().unwrap();
+        let test_project = Project::for_dir(project_path).unwrap().unwrap();
 
         // eslint is a binary in the root workspace
         assert_eq!(
@@ -185,7 +185,7 @@ mod project {
     fn detects_workspace_cycles() {
         // cycle-1 has a cycle with the original package.json
         let cycle_path = fixture_path(&["cycle-1"]);
-        let project_error = Project::from_dir(cycle_path).unwrap_err();
+        let project_error = Project::for_dir(cycle_path).unwrap_err();
 
         match project_error.kind() {
             ErrorKind::ExtensionCycleError { paths, duplicate } => {
@@ -201,7 +201,7 @@ mod project {
 
         // cycle-2 has a cycle with 2 separate extensions, not including the original package.json
         let cycle_path = fixture_path(&["cycle-2"]);
-        let project_error = Project::from_dir(cycle_path).unwrap_err();
+        let project_error = Project::for_dir(cycle_path).unwrap_err();
 
         match project_error.kind() {
             ErrorKind::ExtensionCycleError { paths, duplicate } => {
@@ -224,28 +224,28 @@ mod needs_yarn_run {
     #[test]
     fn project_does_not_need_yarn_run() {
         let project_path = fixture_path(&["basic"]);
-        let test_project = Project::from_dir(project_path).unwrap().unwrap();
+        let test_project = Project::for_dir(project_path).unwrap().unwrap();
         assert!(!test_project.needs_yarn_run());
     }
 
     #[test]
     fn project_has_yarnrc_yml() {
         let project_path = fixture_path(&["yarn", "yarnrc-yml"]);
-        let test_project = Project::from_dir(project_path).unwrap().unwrap();
+        let test_project = Project::for_dir(project_path).unwrap().unwrap();
         assert!(test_project.needs_yarn_run());
     }
 
     #[test]
     fn project_has_pnp_js() {
         let project_path = fixture_path(&["yarn", "pnp-js"]);
-        let test_project = Project::from_dir(project_path).unwrap().unwrap();
+        let test_project = Project::for_dir(project_path).unwrap().unwrap();
         assert!(test_project.needs_yarn_run());
     }
 
     #[test]
     fn project_has_pnp_cjs() {
         let project_path = fixture_path(&["yarn", "pnp-cjs"]);
-        let test_project = Project::from_dir(project_path).unwrap().unwrap();
+        let test_project = Project::for_dir(project_path).unwrap().unwrap();
         assert!(test_project.needs_yarn_run());
     }
 }
