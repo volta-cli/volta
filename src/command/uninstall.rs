@@ -1,6 +1,6 @@
-use volta_core::error::{ErrorKind, ExitCode, Fallible};
+use volta_core::error::{ExitCode, Fallible};
 use volta_core::session::{ActivityKind, Session};
-use volta_core::tool::{self, Spec};
+use volta_core::tool::Spec;
 
 use crate::command::Command;
 
