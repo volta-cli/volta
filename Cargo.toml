@@ -35,7 +35,7 @@ clap = { version = "4.5.16", features = ["color", "derive", "wrap_help"] }
 clap_complete = "4.5.20"
 mockito = { version = "0.31.1", optional = true }
 textwrap = "0.16.1"
-which = "6.0.2"
+which = "6.0.3"
 dirs = "5.0.1"
 volta-migrate = { path = "crates/volta-migrate" }
 

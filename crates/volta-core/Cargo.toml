@@ -52,7 +52,7 @@ chain-map = "0.1.0"
 indexmap = "2.4.0"
 retry = "2"
 fs2 = "0.4.3"
-which = "6.0.2"
+which = "6.0.3"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52.0"
