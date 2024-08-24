@@ -2,7 +2,7 @@
 name = "volta-migrate"
 version = "0.1.0"
 authors = ["Charles Pierce <cpierce.grad@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 volta-core = { path = "../volta-core" }

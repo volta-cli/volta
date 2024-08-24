@@ -8,7 +8,6 @@
 //! need to be aware that they may be partially applied (if something fails in the process) and should be
 //! able to re-start gracefully from an interrupted migration
 
-use std::convert::TryInto;
 use std::path::Path;
 
 mod empty;

@@ -1,4 +1,3 @@
-use std::convert::TryFrom;
 #[cfg(unix)]
 use std::fs::remove_file;
 use std::fs::File;
