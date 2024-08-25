@@ -2,7 +2,7 @@
 name = "test-support"
 version = "0.1.0"
 authors = ["David Herman <david.herman@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 hamcrest2 = "0.3.0"
