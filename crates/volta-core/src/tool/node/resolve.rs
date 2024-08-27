@@ -18,7 +18,7 @@ use attohttpc::header::HeaderMap;
 use attohttpc::Response;
 use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
-use headers::{CacheControl, Expires, Header, HeaderMapExt};
+use headers::{CacheControl, Expires, HeaderMapExt};
 use log::debug;
 use node_semver::{Range, Version};
 
@@ -205,10 +205,10 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
                 .with_context(registry_fetch_error("Node", url))?
                 .split();
 
-            let expires = headers.typed_get::<Expires>().unwrap_or_else(|| {
-                let expiry_date = SystemTime::now() + max_age(&headers);
-                Expires::from(expiry_date)
-            });
+            let expires = headers
+                .typed_get::<Expires>()
+                .map(SystemTime::from)
+                .unwrap_or_else(|| SystemTime::now() + max_age(&headers));
 
             let response_text = response
                 .text()
@@ -245,12 +245,7 @@ fn resolve_node_versions(url: &str) -> Fallible<RawNodeIndex> {
             let expiry = create_staging_file()?;
             let mut expiry_file: &File = expiry.as_file();
 
-            let mut header_values = Vec::with_capacity(1);
-            expires.encode(&mut header_values);
-            // Since we just `.encode()`d into `header_values
-            let encoded_expires = header_values.first().unwrap().to_str().unwrap();
-
-            write!(expiry_file, "{}", encoded_expires).with_context(|| {
+            write!(expiry_file, "{}", httpdate::fmt_http_date(expires)).with_context(|| {
                 ErrorKind::WriteNodeIndexExpiryError {
                     file: expiry.path().to_path_buf(),
                 }
