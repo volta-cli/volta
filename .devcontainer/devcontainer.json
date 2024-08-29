@@ -1,0 +1,8 @@
+{
+  "name": "volta",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    "ghcr.io/devcontainers/features/rust:1": {},
+    "ghcr.io/lee-orr/rusty-dev-containers/rust_windows_msvc:0": {}
+  }
+}
