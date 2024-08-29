@@ -2,6 +2,7 @@
 
 use std::fs::{read_to_string, write, File};
 use std::path::{Path, PathBuf};
+use std::env;
 
 use super::NodeVersion;
 use crate::error::{Context, ErrorKind, Fallible};
@@ -28,8 +29,12 @@ cfg_if! {
             mockito::SERVER_URL.to_string()
         }
     } else {
+        // NODE_MIRROR=https://mirrors.aliyun.com/nodejs-release
         fn public_node_server_root() -> String {
-            "https://nodejs.org/dist".to_string()
+            match env::var_os("ENV_NODE_MIRROR") {
+                Some(val) => format!("{}", val.to_string_lossy()),
+                None => "https://mirrors.aliyun.com/nodejs-release".to_string()
+            }
         }
     }
 }

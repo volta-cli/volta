@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::env;
 
 use super::registry_fetch_error;
 use crate::error::{Context, ErrorKind, Fallible};
@@ -29,7 +30,12 @@ cfg_if! {
         }
     } else {
         pub fn public_registry_index(package: &str) -> String {
-            format!("https://registry.npmjs.org/{}", package)
+            // http://npmmirror.com
+            match env::var_os("ENV_NPM_MIRROR") {
+                Some(val) =>  format!("{}/{}", val.to_string_lossy(), package),
+                None => format!("https://registry.npmmirror.com/{}", package)
+                // None => format!("https://registry.npmjs.org/{}", package)
+            }
         }
     }
 }

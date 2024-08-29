@@ -3,6 +3,7 @@
 use std::fs::File;
 use std::io::Write;
 use std::time::{Duration, SystemTime};
+use std::env;
 
 use super::super::registry_fetch_error;
 use super::metadata::{NodeEntry, NodeIndex, RawNodeIndex};
@@ -34,9 +35,14 @@ cfg_if! {
             format!("{}/node-dist/index.json", SERVER_URL)
         }
     } else {
+        // NODE_MIRROR=https://mirrors.aliyun.com/nodejs-release
         /// Returns the URL of the index of available Node versions on the public Node server.
         fn public_node_version_index() -> String {
-            "https://nodejs.org/dist/index.json".to_string()
+            // "https://mirrors.aliyun.com/nodejs-release/index.json".to_string()
+            match env::var_os("ENV_NODE_MIRROR") {
+                Some(val) =>  format!("{}/index.json", val.to_string_lossy()),
+                None => "https://mirrors.aliyun.com/nodejs-release/index.json".to_string()
+            }
         }
     }
 }
