@@ -117,38 +117,6 @@ impl Spec {
         }
     }
 
-    /// Uninstall a tool, removing it from the local inventory
-    ///
-    /// This is implemented on Spec, instead of Resolved, because there is currently no need to
-    /// resolve the specific version before uninstalling a tool.
-    pub fn uninstall(self) -> Fallible<()> {
-        match self {
-            Spec::Node(_) => Err(ErrorKind::Unimplemented {
-                feature: "Uninstalling node".into(),
-            }
-            .into()),
-            Spec::Npm(_) => Err(ErrorKind::Unimplemented {
-                feature: "Uninstalling npm".into(),
-            }
-            .into()),
-            Spec::Pnpm(_) => {
-                if env::var_os(VOLTA_FEATURE_PNPM).is_some() {
-                    Err(ErrorKind::Unimplemented {
-                        feature: "Uninstalling pnpm".into(),
-                    }
-                    .into())
-                } else {
-                    package::uninstall("pnpm")
-                }
-            }
-            Spec::Yarn(_) => Err(ErrorKind::Unimplemented {
-                feature: "Uninstalling yarn".into(),
-            }
-            .into()),
-            Spec::Package(name, _) => package::uninstall(&name),
-        }
-    }
-
     /// The name of the tool, without the version, used for messaging
     pub fn name(&self) -> &str {
         match self {
