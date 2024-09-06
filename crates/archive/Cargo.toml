@@ -2,15 +2,16 @@
 name = "archive"
 version = "0.1.0"
 authors = ["David Herman <david.herman@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 flate2 = "1.0"
 tar = "0.4.13"
 # Set features manually to drop usage of `time` crate: we do not rely on that
-# set of capabilities, and it has a vulnerability. NOTE: this should be updated
-# to include the `aes-crypto` and `zstd` features when upgrading to v0.6+.
-zip_rs = { version = "0.5", package = "zip", default-features = false, features = ["deflate", "bzip2"] }
+# set of capabilities, and it has a vulnerability. We also don't need to use
+# every single compression algorithm feature since we are only downloading
+# Node as a zip file
+zip_rs = { version = "=2.1.6", package = "zip", default-features = false, features = ["deflate", "bzip2"] }
 tee = "0.1.0"
 fs-utils = { path = "../fs-utils" }
 progress-read = { path = "../progress-read" }

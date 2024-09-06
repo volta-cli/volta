@@ -70,3 +70,14 @@ jobs:
       - name: Run check
         run: |
           cargo fmt --all --quiet -- --check
+
+  validate-installer-checksum:
+    name: Validate installer checksum
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Run check
+        run: |
+          cd dev/unix
+          sha256sum --check SHASUMS256.txt

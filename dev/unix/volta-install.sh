@@ -345,28 +345,6 @@ install_from_file() {
   tar -xf "$archive" -C "$install_dir"/bin
 }
 
-check_architecture() {
-  local version="$1"
-  local arch="$2"
-
-  if [[ "$version" != "local"* ]]; then
-    case "$arch" in
-      x86_64)
-        return 0
-        ;;
-      arm64)
-        if [ "$(uname -s)" = "Darwin" ]; then
-          return 0
-        fi
-        ;;
-    esac
-
-    error "Sorry! Volta currently only provides pre-built binaries for x86_64 architectures."
-    return 1
-  fi
-}
-
-
 # return if sourced (for testing the functions above)
 return 0 2>/dev/null
 
@@ -413,7 +391,5 @@ do
       ;;
   esac
 done
-
-check_architecture "$version_to_install" "$(uname -m)" || exit 1
 
 install_version "$version_to_install" "$install_dir" "$should_run_setup"

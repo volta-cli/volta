@@ -3,7 +3,6 @@ use crate::platform::PlatformSpec;
 use crate::version::{option_version_serde, version_serde};
 use node_semver::Version;
 use serde::{Deserialize, Serialize};
-use std::convert::TryFrom;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct NodeVersion {

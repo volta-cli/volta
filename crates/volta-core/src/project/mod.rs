@@ -1,7 +1,6 @@
 //! Provides the `Project` type, which represents a Node project tree in
 //! the filesystem.
 
-use std::convert::{TryFrom, TryInto};
 use std::env;
 use std::ffi::OsStr;
 use std::iter::once;

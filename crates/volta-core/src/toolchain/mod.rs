@@ -1,4 +1,3 @@
-use std::convert::TryFrom;
 use std::fs::write;
 
 use crate::error::{Context, ErrorKind, Fallible};

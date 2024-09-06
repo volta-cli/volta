@@ -3,6 +3,8 @@
 use std::fs::File;
 use std::path::Path;
 
+use attohttpc::header::HeaderMap;
+use headers::{ContentLength, Header, HeaderMapExt};
 use thiserror::Error;
 
 mod tarball;
@@ -91,4 +93,13 @@ cfg_if::cfg_if! {
     } else {
         compile_error!("Unsupported OS (expected 'unix' or 'windows').");
     }
+}
+
+/// Determines the length of an HTTP response's content in bytes, using
+/// the HTTP `"Content-Length"` header.
+fn content_length(headers: &HeaderMap) -> Result<u64, ArchiveError> {
+    headers
+        .typed_get()
+        .map(|ContentLength(v)| v)
+        .ok_or_else(|| ArchiveError::MissingHeaderError(ContentLength::name()))
 }

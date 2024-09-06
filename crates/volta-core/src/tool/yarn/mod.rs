@@ -62,12 +62,12 @@ impl Tool for Yarn {
             .toolchain_mut()?
             .set_active_yarn(Some(self.version.clone()))?;
 
-        info_installed(self);
+        info_installed(&self);
         check_shim_reachable("yarn");
 
         if let Ok(Some(project)) = session.project_platform() {
             if let Some(yarn) = &project.yarn {
-                info_project_version(tool_version("yarn", yarn));
+                info_project_version(tool_version("yarn", yarn), &self);
             }
         }
         Ok(())
