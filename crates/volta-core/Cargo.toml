@@ -13,7 +13,7 @@ mock-network = ["mockito"]
 cross-platform-docs = []
 
 [dependencies]
-terminal_size = "0.3.0"
+terminal_size = "0.4.0"
 indicatif = "0.17.8"
 console = ">=0.11.3, <1.0.0"
 readext = "0.1.0"
