@@ -55,18 +55,8 @@ See the [Contributing Guide](https://docs.volta.sh/contributing/) on our website
         </a>
       </td>
       <td align="center">
-        <a href="https://github.com/grafana/grafana" target="_blank">
-          <img src="https://avatars.githubusercontent.com/u/7195757?s=100" alt="Grafana" width="100" height="100">
-        </a>
-      </td>
-      <td align="center">
         <a href="https://github.com/getsentry/sentry-javascript" target="_blank">
           <img src="https://avatars.githubusercontent.com/u/1396951?s=100" alt="Sentry" width="100" height="100">
-        </a>
-      </td>
-      <td align="center">
-        <a href="https://github.com/withastro/astro" target="_blank">
-          <img src="https://avatars.githubusercontent.com/u/44914786?s=100" alt="Astro" width="100" height="100">
         </a>
       </td>
     </tr>
