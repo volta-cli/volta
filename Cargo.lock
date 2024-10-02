@@ -273,7 +273,7 @@ dependencies = [
  "anstyle",
  "clap_lex",
  "strsim",
- "terminal_size",
+ "terminal_size 0.3.0",
 ]
 
 [[package]]
@@ -1477,6 +1477,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "terminal_size"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f599bd7ca042cfdf8f4512b277c02ba102247820f9d9d4a9f521f496751a6ef"
+dependencies = [
+ "rustix",
+ "windows-sys 0.59.0",
+]
+
+[[package]]
 name = "test-support"
 version = "0.1.0"
 dependencies = [
@@ -1663,7 +1673,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
- "terminal_size",
+ "terminal_size 0.4.0",
  "textwrap",
  "validate-npm-package-name",
  "volta-layout",
