@@ -530,6 +530,11 @@ pub enum ErrorKind {
     YarnVersionNotFound {
         matching: String,
     },
+
+    /// Thrown when reading a `.node_version` file fails.
+    NodeVersionSpecReadError {
+        file: PathBuf,
+    },
 }
 
 impl fmt::Display for ErrorKind {

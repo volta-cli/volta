@@ -20,7 +20,7 @@ mod serial;
 #[cfg(test)]
 mod tests;
 
-use serial::{update_manifest, Manifest, ManifestKey};
+use serial::{update_manifest, Manifest, ManifestKey, NodeVersionSpec};
 
 /// A lazily loaded Project
 pub struct LazyProject {
@@ -66,16 +66,21 @@ impl Project {
     /// Will search ancestors to find a `package.json` and use that as the root of the project
     fn for_dir(base_dir: PathBuf) -> Fallible<Option<Self>> {
         match find_closest_root(base_dir) {
-            Some(mut project) => {
-                project.push("package.json");
-                Self::from_file(project).map(Some)
+            Some(mut root) => {
+                let node_version = NodeVersionSpec::from_file(&root.join(".node_version"))?;
+
+                root.push("package.json");
+                Self::from_manifest_file(root, node_version).map(Some)
             }
             None => Ok(None),
         }
     }
 
     /// Creates a Project instance from the given package manifest file (`package.json`)
-    fn from_file(manifest_file: PathBuf) -> Fallible<Self> {
+    fn from_manifest_file(
+        manifest_file: PathBuf,
+        node_version_spec: Option<NodeVersionSpec>, // TODO: merge with manifest?
+    ) -> Fallible<Self> {
         let manifest = Manifest::from_file(&manifest_file)?;
         let mut dependencies: ChainMap<String, String> = manifest.dependency_maps.collect();
         let mut workspace_manifests = IndexSet::new();

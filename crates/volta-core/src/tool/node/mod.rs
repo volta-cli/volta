@@ -255,7 +255,10 @@ impl Tool for Node {
         if session.project()?.is_some() {
             let node_version = self.ensure_fetched(session)?;
 
-            // Note: We know this will succeed, since we checked above
+            // Note: We know this will succeed, since we checked above. We don't
+            // just use `if let Some(project) = session.project_mut()` because
+            // that results in an attempt to borrow session twice when we call
+            // `ensure_fetched` above.
             let project = session.project_mut()?.unwrap();
             project.pin_node(self.version.clone())?;
 

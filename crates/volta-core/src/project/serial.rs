@@ -1,11 +1,11 @@
 use std::collections::HashMap;
-use std::fmt;
 use std::fs::{read_to_string, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::{fmt, io};
 
 use super::PartialPlatform;
-use crate::error::{Context, ErrorKind, Fallible};
+use crate::error::{Context, ErrorKind, Fallible, VoltaError};
 use crate::version::parse_version;
 use dunce::canonicalize;
 use node_semver::Version;
@@ -138,6 +138,11 @@ pub(super) fn update_manifest(
     Ok(())
 }
 
+/// Representation of a `package.json` file as it appears on disk.
+///
+/// This may or may not have literally *any* of the keys we care about. It is
+/// only used for reading the `package.json` from disk, never for further
+/// manipulation. See `Manifest` for the version we work with directly.
 #[derive(Deserialize)]
 struct RawManifest {
     dependencies: Option<HashMap<String, String>>,
@@ -190,5 +195,25 @@ impl ToolchainSpec {
         };
 
         Ok((platform, self.extends))
+    }
+}
+
+/// A Node version specifier in a `.node_version` file. Per the spec, we only
+/// support versions with an optional leading `v` and then a full, i.e. at least
+/// three-place, version (`1.2.3`, not `1` or `1.2`).
+#[cfg_attr(test, derive(Debug))]
+pub(super) struct NodeVersionSpec(Version);
+
+impl NodeVersionSpec {
+    pub(super) fn from_file(path: &Path) -> Fallible<Option<NodeVersionSpec>> {
+        match read_to_string(path) {
+            Ok(s) => parse_version(s).map(NodeVersionSpec).map(Some),
+            Err(e) => match e.kind() {
+                io::ErrorKind::NotFound => Ok(None),
+                _ => Err(e).with_context(|| ErrorKind::NodeVersionSpecReadError {
+                    file: path.to_owned(),
+                }),
+            },
+        }
     }
 }
