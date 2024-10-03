@@ -49,7 +49,7 @@ httpdate = "1"
 headers = "0.4"
 attohttpc = { version = "0.28", default-features = false, features = ["json", "compress", "tls-rustls-native-roots"] }
 chain-map = "0.1.0"
-indexmap = "2.5.0"
+indexmap = "2.6.0"
 retry = "2"
 fs2 = "0.4.3"
 which = "6.0.3"
