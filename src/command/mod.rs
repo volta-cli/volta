@@ -2,6 +2,7 @@ pub(crate) mod completions;
 pub(crate) mod fetch;
 pub(crate) mod install;
 pub(crate) mod list;
+pub(crate) mod man_pages;
 pub(crate) mod pin;
 pub(crate) mod run;
 pub(crate) mod setup;
