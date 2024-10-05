@@ -530,6 +530,11 @@ pub enum ErrorKind {
     YarnVersionNotFound {
         matching: String,
     },
+
+    /// Thrown when there is an error writing the man pages to a file
+    ManPagesOutFileError {
+        path: PathBuf,
+    },
 }
 
 impl fmt::Display for ErrorKind {
@@ -1452,6 +1457,14 @@ Please verify your internet connection.",
 Please verify that the version is correct."#,
                 matching
             ),
+            ErrorKind::ManPagesOutFileError { path } => write!(
+                f,
+                "Could not write man pages to {}
+
+{}",
+                path.display(),
+                PERMISSIONS_CTA
+            ),
         }
     }
 }
@@ -1577,6 +1590,7 @@ impl ErrorKind {
             ErrorKind::Yarn2NotSupported => ExitCode::NoVersionMatch,
             ErrorKind::YarnLatestFetchError { .. } => ExitCode::NetworkError,
             ErrorKind::YarnVersionNotFound { .. } => ExitCode::NoVersionMatch,
+            ErrorKind::ManPagesOutFileError { .. } => ExitCode::FileSystemError,
         }
     }
 }
