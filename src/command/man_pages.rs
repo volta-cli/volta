@@ -28,7 +28,7 @@ impl Command for ManPages {
         session.add_event_start(ActivityKind::ManPages);
 
         let app = crate::cli::Volta::command();
-        let man = Man::new(app.clone());
+        let man = Man::new(app);
 
         match self.out_file {
             Some(path) => {
