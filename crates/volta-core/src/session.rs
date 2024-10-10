@@ -38,6 +38,7 @@ pub enum ActivityKind {
     Setup,
     Run,
     Args,
+    ManPages,
 }
 
 impl Display for ActivityKind {
@@ -66,6 +67,7 @@ impl Display for ActivityKind {
             ActivityKind::Which => "which",
             ActivityKind::Run => "run",
             ActivityKind::Args => "args",
+            ActivityKind::ManPages => "man-pages",
         };
         f.write_str(s)
     }
