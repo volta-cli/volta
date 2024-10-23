@@ -32,7 +32,7 @@ once_cell = "1.19.0"
 log = { version = "0.4", features = ["std"] }
 node-semver = "2"
 clap = { version = "4.5.19", features = ["color", "derive", "wrap_help"] }
-clap_complete = "4.5.32"
+clap_complete = "4.5.33"
 mockito = { version = "0.31.1", optional = true }
 textwrap = "0.16.1"
 which = "6.0.3"
