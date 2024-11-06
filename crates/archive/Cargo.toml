@@ -18,6 +18,6 @@ progress-read = { path = "../progress-read" }
 verbatim = "0.1"
 cfg-if = "1.0"
 headers = "0.4"
-thiserror = "1.0.16"
+thiserror = "2.0.0"
 attohttpc = { version = "0.28", default-features = false, features = ["json", "compress", "tls-rustls-native-roots"] }
 log = { version = "0.4", features = ["std"] }
