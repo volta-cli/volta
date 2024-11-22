@@ -1,7 +1,10 @@
 [package]
 name = "volta"
 version = "2.0.1"
-authors = ["David Herman <david.herman@gmail.com>", "Charles Pierce <cpierce.grad@gmail.com>"]
+authors = [
+    "David Herman <david.herman@gmail.com>",
+    "Charles Pierce <cpierce.grad@gmail.com>",
+]
 license = "BSD-2-Clause"
 repository = "https://github.com/volta-cli/volta"
 edition = "2021"
@@ -38,6 +41,7 @@ textwrap = "0.16.1"
 which = "7.0.0"
 dirs = "5.0.1"
 volta-migrate = { path = "crates/volta-migrate" }
+clap_mangen = "0.2.23"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52.0"

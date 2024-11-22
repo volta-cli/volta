@@ -191,6 +191,22 @@ create_tree() {
   fi
 }
 
+generate_man_page() {
+  local install_dir="$1"
+  local man_dir="$install_dir/share/man/man1"
+  
+  info 'Generating' "man page"
+  
+  mkdir -p "$man_dir"
+  
+  if ! "$install_dir/bin/volta" man > "$man_dir/volta.1" 2>/dev/null; then
+    warning "Failed to generate man page. Man pages may not be available."
+    return 1
+  fi
+  
+  info 'Generated' "man page at $man_dir/volta.1"
+}
+
 install_version() {
   local version_to_install="$1"
   local install_dir="$2"
@@ -223,6 +239,7 @@ install_version() {
 
   if [ "$?" == 0 ]
   then
+      generate_man_page "$install_dir"
       if [ "$should_run_setup" == "true" ]; then
         info 'Finished' "installation. Updating user profile settings."
         "$install_dir"/bin/volta setup
