@@ -1,7 +1,6 @@
 use std::fmt;
 use std::process::Output;
 use std::str;
-use std::usize;
 
 use crate::process::ProcessBuilder;
 
