@@ -7,4 +7,4 @@ edition = "2021"
 [dependencies]
 hamcrest2 = "0.3.0"
 serde_json = { version = "1.0.134" }
-thiserror = "2.0.8"
+thiserror = "2.0.9"
