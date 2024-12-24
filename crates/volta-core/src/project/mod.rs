@@ -174,7 +174,7 @@ impl Project {
     // (project uses Yarn berry if 'yarnrc.yml' exists, uses PnP if '.pnp.js' or '.pnp.cjs' exist)
     pub fn needs_yarn_run(&self) -> bool {
         self.platform()
-            .map_or(false, |platform| platform.yarn.is_some())
+            .is_some_and(|platform| platform.yarn.is_some())
             && self.workspace_roots().any(|x| {
                 x.join(".yarnrc.yml").exists()
                     || x.join(".pnp.cjs").exists()
@@ -251,11 +251,11 @@ fn is_node_root(dir: &Path) -> bool {
 }
 
 fn is_node_modules(dir: &Path) -> bool {
-    dir.file_name().map_or(false, |tail| tail == "node_modules")
+    dir.file_name().is_some_and(|tail| tail == "node_modules")
 }
 
 fn is_dependency(dir: &Path) -> bool {
-    dir.parent().map_or(false, is_node_modules)
+    dir.parent().is_some_and(is_node_modules)
 }
 
 fn is_project_root(dir: &Path) -> bool {
