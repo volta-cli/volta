@@ -89,7 +89,7 @@ impl<T> Sourced<T> {
     }
 }
 
-impl<'a, T> Sourced<&'a T>
+impl<T> Sourced<&T>
 where
     T: Clone,
 {

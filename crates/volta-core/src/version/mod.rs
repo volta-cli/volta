@@ -116,7 +116,7 @@ pub mod version_serde {
 
     struct VersionVisitor;
 
-    impl<'de> Visitor<'de> for VersionVisitor {
+    impl Visitor<'_> for VersionVisitor {
         type Value = Version;
 
         fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
