@@ -5,7 +5,7 @@ use std::str;
 use crate::process::ProcessBuilder;
 
 use hamcrest2::core::{MatchResult, Matcher};
-use serde_json::{self, Value};
+use serde_json::Value;
 
 #[derive(Clone)]
 pub struct Execs {
