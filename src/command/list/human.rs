@@ -403,11 +403,11 @@ mod tests {
 
     use super::*;
 
-    static NODE_12: Lazy<Version> = Lazy::new(|| Version::from((12, 2, 0)));
-    static NODE_11: Lazy<Version> = Lazy::new(|| Version::from((11, 9, 0)));
-    static NODE_10: Lazy<Version> = Lazy::new(|| Version::from((10, 15, 3)));
-    static YARN_VERSION: Lazy<Version> = Lazy::new(|| Version::from((1, 16, 0)));
-    static NPM_VERSION: Lazy<Version> = Lazy::new(|| Version::from((6, 13, 1)));
+    const NODE_12: Version = Version::new(12, 2, 0);
+    const NODE_11: Version = Version::new(11, 9, 0);
+    const NODE_10: Version = Version::new(10, 15, 3);
+    const YARN_VERSION: Version = Version::new(1, 16, 0);
+    const NPM_VERSION: Version = Version::new(6, 13, 1);
     static PROJECT_PATH: Lazy<PathBuf> = Lazy::new(|| PathBuf::from("~/path/to/project.json"));
 
     mod active {

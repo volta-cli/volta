@@ -208,10 +208,10 @@ mod tests {
 
     use crate::command::list::PackageDetails;
 
-    static NODE_VERSION: Lazy<Version> = Lazy::new(|| Version::from((12, 4, 0)));
-    static TYPESCRIPT_VERSION: Lazy<Version> = Lazy::new(|| Version::from((3, 4, 1)));
-    static NPM_VERSION: Lazy<Version> = Lazy::new(|| Version::from((6, 13, 4)));
-    static YARN_VERSION: Lazy<Version> = Lazy::new(|| Version::from((1, 16, 0)));
+    const NODE_VERSION: Version = Version::new(12, 4, 0);
+    const TYPESCRIPT_VERSION: Version = Version::new(3, 4, 1);
+    const NPM_VERSION: Version = Version::new(6, 13, 4);
+    const YARN_VERSION: Version = Version::new(1, 16, 0);
     static PROJECT_PATH: Lazy<PathBuf> = Lazy::new(|| PathBuf::from("/a/b/c"));
 
     mod node {
