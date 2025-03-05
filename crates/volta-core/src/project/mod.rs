@@ -111,7 +111,10 @@ impl Project {
 
         let platform = match platform.map(TryInto::try_into).transpose()? {
             Some(platform) => Some(platform),
-            None => Self::platform_from_node_version(&manifest_file),
+            None => match Self::platform_from_node_version(&manifest_file)? {
+                Some(platform) => Some(platform),
+                None => None,
+            },
         };
 
         Ok(Project {
@@ -123,24 +126,41 @@ impl Project {
     }
 
     /// Returns a Node.js version from .node_version_file
-    fn platform_from_node_version(manifest_file: &Path) -> Option<PlatformSpec> {
+    fn platform_from_node_version(
+        manifest_file: &Path,
+    ) -> Result<Option<PlatformSpec>, VoltaError> {
         // project path without package.json
-        let project_path = manifest_file.parent()?;
+        let project_path = match manifest_file.parent() {
+            Some(path) => path,
+            None => return Ok(None),
+        };
         let version_file_path = project_path.join(".node-version");
-        let version_content = std::fs::read_to_string(version_file_path).ok()?;
+
+        if !version_file_path.exists() {
+            return Ok(None);
+        }
+
+        let version_content = std::fs::read_to_string(&version_file_path).map_err(|_| {
+            ErrorKind::DotNodeVersionMalformed {
+                file: version_file_path.clone(),
+            }
+        })?;
         let version = version_content
             .trim()
             .strip_prefix('v')
             .unwrap_or(version_content.trim());
 
         match Version::parse(version) {
-            Ok(node) => Some(PlatformSpec {
+            Ok(node) => Ok(Some(PlatformSpec {
                 node,
                 yarn: None,
                 npm: None,
                 pnpm: None,
-            }),
-            Err(_) => None,
+            })),
+            Err(_) => Err(ErrorKind::DotNodeVersionMalformed {
+                file: version_file_path.clone(),
+            }
+            .into()),
         }
     }
 
