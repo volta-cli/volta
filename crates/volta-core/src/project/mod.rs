@@ -122,11 +122,11 @@ impl Project {
         })
     }
 
-    /// Returns a Node.js version from .node_version_file
+    /// Returns a Node.js version from .node-version file
     fn platform_from_node_version(
         manifest_file: &Path,
     ) -> Result<Option<PlatformSpec>, VoltaError> {
-        // project path without package.json
+        // Project path (without package.json)
         let project_path = match manifest_file.parent() {
             Some(path) => path,
             None => return Ok(None),
