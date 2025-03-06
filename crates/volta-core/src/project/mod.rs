@@ -111,10 +111,7 @@ impl Project {
 
         let platform = match platform.map(TryInto::try_into).transpose()? {
             Some(platform) => Some(platform),
-            None => match Self::platform_from_node_version(&manifest_file)? {
-                Some(platform) => Some(platform),
-                None => None,
-            },
+            None => Self::platform_from_node_version(&manifest_file)?,
         };
 
         Ok(Project {
