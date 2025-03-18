@@ -34,7 +34,7 @@ node-semver = "2"
 clap = { version = "4.5.24", features = ["color", "derive", "wrap_help"] }
 clap_complete = "4.5.46"
 mockito = { version = "0.31.1", optional = true }
-textwrap = "0.16.1"
+textwrap = "0.16.2"
 which = "7.0.1"
 dirs = "6.0.0"
 volta-migrate = { path = "crates/volta-migrate" }
