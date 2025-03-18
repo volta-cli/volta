@@ -36,7 +36,7 @@ clap_complete = "4.5.46"
 mockito = { version = "0.31.1", optional = true }
 textwrap = "0.16.1"
 which = "7.0.1"
-dirs = "5.0.1"
+dirs = "6.0.0"
 volta-migrate = { path = "crates/volta-migrate" }
 
 [target.'cfg(windows)'.dependencies]
