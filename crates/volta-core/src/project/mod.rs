@@ -109,7 +109,10 @@ impl Project {
             extends = manifest.extends;
         }
 
-        let platform = platform.map(TryInto::try_into).transpose()?;
+        let platform = match platform.map(TryInto::try_into).transpose()? {
+            Some(platform) => Some(platform),
+            None => Self::platform_from_node_version(&manifest_file)?,
+        };
 
         Ok(Project {
             manifest_file,
@@ -117,6 +120,45 @@ impl Project {
             dependencies,
             platform,
         })
+    }
+
+    /// Returns a Node.js version from .node-version file
+    fn platform_from_node_version(
+        manifest_file: &Path,
+    ) -> Result<Option<PlatformSpec>, VoltaError> {
+        // Project path (without package.json)
+        let project_path = match manifest_file.parent() {
+            Some(path) => path,
+            None => return Ok(None),
+        };
+        let version_file_path = project_path.join(".node-version");
+
+        if !version_file_path.exists() {
+            return Ok(None);
+        }
+
+        let version_content = std::fs::read_to_string(&version_file_path).map_err(|_| {
+            ErrorKind::DotNodeVersionMalformed {
+                file: version_file_path.clone(),
+            }
+        })?;
+        let version = version_content
+            .trim()
+            .strip_prefix('v')
+            .unwrap_or(version_content.trim());
+
+        match Version::parse(version) {
+            Ok(node) => Ok(Some(PlatformSpec {
+                node,
+                yarn: None,
+                npm: None,
+                pnpm: None,
+            })),
+            Err(_) => Err(ErrorKind::DotNodeVersionMalformed {
+                file: version_file_path.clone(),
+            }
+            .into()),
+        }
     }
 
     /// Returns a reference to the manifest file for the current project

@@ -81,6 +81,78 @@ mod project {
     }
 
     #[test]
+    fn platform_dot_node_version() {
+        let project_path = fixture_path(&["dot-node-version", "only-dot-node-version"]);
+        let test_project = Project::for_dir(project_path).unwrap().unwrap();
+        let platform = test_project.platform().unwrap();
+
+        assert_eq!(platform.node, "6.11.0".parse().unwrap());
+    }
+
+    #[test]
+    fn platform_dot_node_version_and_package_json() {
+        let project_path = fixture_path(&["dot-node-version", "has-both"]);
+        let test_project = Project::for_dir(project_path).unwrap().unwrap();
+        let platform = test_project.platform().unwrap();
+
+        assert_eq!(platform.node, "6.11.1".parse().unwrap());
+    }
+
+    #[test]
+    fn platform_dot_node_version_with_v() {
+        let project_path = fixture_path(&["dot-node-version", "only-dot-node-version-with-v"]);
+        let test_project = Project::for_dir(project_path).unwrap().unwrap();
+        let platform = test_project.platform().unwrap();
+
+        assert_eq!(platform.node, "6.11.0".parse().unwrap());
+    }
+
+    #[test]
+    fn platform_dot_node_version_no_node() {
+        let project_path = fixture_path(&["dot-node-version", "has-none"]);
+        let test_project = Project::for_dir(project_path).unwrap().unwrap();
+        let platform = test_project.platform();
+
+        assert!(platform.is_none());
+    }
+
+    #[test]
+    fn platform_dot_node_version_malformed() {
+        let project_path = fixture_path(&["dot-node-version", "malformed-dot-node-version"]);
+        let project_error = Project::for_dir(project_path).unwrap_err();
+
+        match project_error.kind() {
+            ErrorKind::DotNodeVersionMalformed { file } => {
+                let expected_path = fixture_path(&[
+                    "dot-node-version",
+                    "malformed-dot-node-version",
+                    ".node-version",
+                ]);
+                assert_eq!(&expected_path, file);
+            }
+            kind => panic!("Wrong error kind: {:?}", kind),
+        }
+    }
+
+    #[test]
+    fn platform_dot_node_version_empty() {
+        let project_path = fixture_path(&["dot-node-version", "empty-dot-node-version"]);
+        let project_error = Project::for_dir(project_path).unwrap_err();
+
+        match project_error.kind() {
+            ErrorKind::DotNodeVersionMalformed { file } => {
+                let expected_path = fixture_path(&[
+                    "dot-node-version",
+                    "empty-dot-node-version",
+                    ".node-version",
+                ]);
+                assert_eq!(&expected_path, file);
+            }
+            kind => panic!("Wrong error kind: {:?}", kind),
+        }
+    }
+
+    #[test]
     fn platform_workspace() {
         let project_path = fixture_path(&["nested", "subproject", "inner_project"]);
         let test_project = Project::for_dir(project_path).unwrap().unwrap();

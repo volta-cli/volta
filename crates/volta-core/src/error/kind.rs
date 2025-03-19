@@ -106,6 +106,10 @@ pub enum ErrorKind {
         advice: String,
     },
 
+    DotNodeVersionMalformed {
+        file: PathBuf,
+    },
+
     DownloadToolNetworkError {
         tool: tool::Spec,
         from_url: String,
@@ -679,7 +683,10 @@ at {}
             ),
             ErrorKind::DeprecatedCommandError { command, advice } => {
                 write!(f, "The subcommand `{}` is deprecated.\n{}", command, advice)
-            }
+            },
+            ErrorKind::DotNodeVersionMalformed { file } => {
+                write!(f, "The .node-version file at {} is malformed", file.display())
+            },
             ErrorKind::DownloadToolNetworkError { tool, from_url } => write!(
                 f,
                 "Could not download {}
@@ -1479,6 +1486,7 @@ impl ErrorKind {
             ErrorKind::DeleteDirectoryError { .. } => ExitCode::FileSystemError,
             ErrorKind::DeleteFileError { .. } => ExitCode::FileSystemError,
             ErrorKind::DeprecatedCommandError { .. } => ExitCode::InvalidArguments,
+            ErrorKind::DotNodeVersionMalformed { .. } => ExitCode::ConfigurationError,
             ErrorKind::DownloadToolNetworkError { .. } => ExitCode::NetworkError,
             ErrorKind::ExecuteHookError { .. } => ExitCode::ExecutionFailure,
             ErrorKind::ExtensionCycleError { .. } => ExitCode::ConfigurationError,
