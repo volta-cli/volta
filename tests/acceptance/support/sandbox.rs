@@ -7,9 +7,9 @@ use std::time::{Duration, SystemTime};
 
 use cfg_if::cfg_if;
 use headers::{Expires, Header};
-use mockito::{self, mock, Matcher};
+use mockito::{mock, Matcher};
 use node_semver::Version;
-use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
+use test_support::{ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 use volta_core::fs::{set_executable, symlink_file};
 use volta_core::tool::{Node, Pnpm, Yarn};
 
