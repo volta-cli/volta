@@ -11,7 +11,7 @@ tar = "0.4.13"
 # set of capabilities, and it has a vulnerability. We also don't need to use
 # every single compression algorithm feature since we are only downloading
 # Node as a zip file
-zip_rs = { version = "=2.1.6", package = "zip", default-features = false, features = ["deflate", "bzip2"] }
+zip_rs = { version = "=2.5.0", package = "zip", default-features = false, features = ["deflate", "bzip2"] }
 tee = "0.1.0"
 fs-utils = { path = "../fs-utils" }
 progress-read = { path = "../progress-read" }
