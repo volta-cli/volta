@@ -24,7 +24,7 @@ pub(crate) struct Run {
     #[arg(long, conflicts_with = "npm")]
     bundled_npm: bool,
 
-    /// Set the custon pnpm version
+    /// Set the custom pnpm version
     #[arg(long, value_name = "version", conflicts_with = "no_pnpm")]
     pnpm: Option<String>,
 
