@@ -183,7 +183,7 @@ If you run into problems running Volta, create {} and run `volta setup` again.",
         reader
             .lines()
             .filter(|line_result| match line_result {
-                Ok(line) if !line.contains("VOLTA") => true,
+                Ok(line) if !line.contains("VOLTA_HOME") => true,
                 Ok(_) => false,
                 Err(_) => true,
             })
