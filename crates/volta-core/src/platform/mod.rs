@@ -4,7 +4,7 @@ use std::fmt;
 use crate::error::{ErrorKind, Fallible};
 use crate::session::Session;
 use crate::tool::{Node, Npm, Pnpm, Yarn};
-use crate::VOLTA_FEATURE_PNPM;
+use crate::{is_yarn_enabled, VOLTA_FEATURE_PNPM};
 use node_semver::Version;
 
 mod image;
@@ -290,8 +290,10 @@ impl Platform {
             }
         }
 
-        if let Some(Sourced { value: version, .. }) = &self.yarn {
-            Yarn::new(version.clone()).ensure_fetched(session)?;
+        if is_yarn_enabled() {
+            if let Some(Sourced { value: version, .. }) = &self.yarn {
+                Yarn::new(version.clone()).ensure_fetched(session)?;
+            }
         }
 
         Ok(Image {

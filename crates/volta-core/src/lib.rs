@@ -1,5 +1,7 @@
 //! The main implementation crate for the core of Volta.
 
+use std::{env, ffi::OsString};
+
 mod command;
 pub mod error;
 pub mod event;
@@ -22,3 +24,8 @@ pub mod toolchain;
 pub mod version;
 
 const VOLTA_FEATURE_PNPM: &str = "VOLTA_FEATURE_PNPM";
+const VOLTA_FEATURE_YARN: &str = "VOLTA_FEATURE_YARN";
+
+pub fn is_yarn_enabled() -> bool {
+    env::var_os(VOLTA_FEATURE_YARN) != Some(OsString::from("0"))
+}

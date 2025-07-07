@@ -8,7 +8,7 @@ use crate::session::Session;
 use crate::style::{note_prefix, success_prefix, tool_version};
 use crate::sync::VoltaLock;
 use crate::version::VersionSpec;
-use crate::VOLTA_FEATURE_PNPM;
+use crate::{is_yarn_enabled, VOLTA_FEATURE_PNPM};
 use cfg_if::cfg_if;
 use log::{debug, info};
 
@@ -104,8 +104,13 @@ impl Spec {
                 }
             }
             Spec::Yarn(version) => {
-                let version = yarn::resolve(version, session)?;
-                Ok(Box::new(Yarn::new(version)))
+                if is_yarn_enabled() {
+                    let version = yarn::resolve(version, session)?;
+                    Ok(Box::new(Yarn::new(version)))
+                } else {
+                    let package = Package::new("yarn".to_owned(), version)?;
+                    Ok(Box::new(package))
+                }
             }
             // When using global package install, we allow the package manager to perform the version resolution
             Spec::Package(name, version) => {
