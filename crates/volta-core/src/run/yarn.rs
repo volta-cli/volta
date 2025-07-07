@@ -19,18 +19,20 @@ use crate::session::{ActivityKind, Session};
 pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Executor> {
     session.add_event_start(ActivityKind::Yarn);
     // Don't re-evaluate the context or global install interception if this is a recursive call
-    let platform = match env::var_os(RECURSION_ENV_VAR) {
-        Some(_) => None,
-        None => {
-            if let CommandArg::Global(cmd) = CommandArg::for_yarn(args) {
-                // For globals, only intercept if the default platform exists
-                if let Some(default_platform) = session.default_platform()? {
-                    return cmd.executor(default_platform);
-                }
-            }
 
-            Platform::current(session)?
+    let platform = if env::var_os(RECURSION_ENV_VAR).is_some() {
+        None
+    } else if env::var_os("VOLTA_SKIP_YARN") {
+        None
+    } else {
+        if let CommandArg::Global(cmd) = CommandArg::for_yarn(args) {
+            // For globals, only intercept if the default platform exists
+            if let Some(default_platform) = session.default_platform()? {
+                return cmd.executor(default_platform);
+            }
         }
+
+        Platform::current(session)?
     };
 
     Ok(ToolCommand::new("yarn", args, platform, ToolKind::Yarn).into())
