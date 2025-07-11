@@ -47,7 +47,7 @@ dunce = "1.0.5"
 ci_info = "0.14.14"
 httpdate = "1"
 headers = "0.4"
-attohttpc = { version = "0.28", default-features = false, features = ["json", "compress", "tls-rustls-native-roots"] }
+attohttpc = { version = "0.30", default-features = false, features = ["json", "compress", "tls-rustls-native-roots"] }
 chain-map = "0.1.0"
 indexmap = "2.7.0"
 retry = "2"
