@@ -8,8 +8,8 @@ edition = "2021"
 volta-core = { path = "../volta-core" }
 volta-layout = { path = "../volta-layout" }
 log = { version = "0.4", features = ["std"] }
-tempfile = "3.12.0"
+tempfile = "3.14.0"
 node-semver = "2"
-serde_json = { version = "1.0.127", features = ["preserve_order"] }
-serde = { version = "1.0.209", features = ["derive"] }
+serde_json = { version = "1.0.135", features = ["preserve_order"] }
+serde = { version = "1.0.217", features = ["derive"] }
 walkdir = "2.5.0"

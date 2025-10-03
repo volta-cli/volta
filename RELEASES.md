@@ -1,3 +1,8 @@
+# Version 2.0.2
+
+- Dependency updates
+- Improvements to header handling for HTTP requests (#1822, #1877)
+
 # Version 2.0.1
 
 - Improved accuracy of Node download progress bar on Windows (#1833)

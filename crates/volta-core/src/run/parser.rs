@@ -274,7 +274,7 @@ pub enum GlobalCommand<'a> {
     Upgrade(UpgradeArgs<'a>),
 }
 
-impl<'a> GlobalCommand<'a> {
+impl GlobalCommand<'_> {
     pub fn executor(self, platform: &PlatformSpec) -> Fallible<Executor> {
         match self {
             GlobalCommand::Install(cmd) => cmd.executor(platform),
@@ -294,7 +294,7 @@ pub struct InstallArgs<'a> {
     tools: Vec<&'a OsStr>,
 }
 
-impl<'a> InstallArgs<'a> {
+impl InstallArgs<'_> {
     /// Convert these global install arguments into an executor for the command
     ///
     /// If there are multiple packages specified to install, then they will be broken out into
@@ -329,7 +329,7 @@ pub struct UninstallArgs<'a> {
     tools: Vec<&'a OsStr>,
 }
 
-impl<'a> UninstallArgs<'a> {
+impl UninstallArgs<'_> {
     /// Convert the tools into an executor for the uninstall command
     ///
     /// Since the packages are sandboxed, each needs to be uninstalled separately
@@ -355,7 +355,7 @@ pub struct UpgradeArgs<'a> {
     tools: Vec<&'a OsStr>,
 }
 
-impl<'a> UpgradeArgs<'a> {
+impl UpgradeArgs<'_> {
     /// Convert these global upgrade arguments into an executor for the command
     ///
     /// If there are multiple packages specified to upgrade, then they will be broken out into
@@ -428,7 +428,7 @@ pub struct LinkArgs<'a> {
     tools: Vec<&'a OsStr>,
 }
 
-impl<'a> LinkArgs<'a> {
+impl LinkArgs<'_> {
     pub fn executor(self, platform: Platform, project_name: Option<String>) -> Fallible<Executor> {
         if self.tools.is_empty() {
             // If no tools are specified, then this is a bare link command, linking the current

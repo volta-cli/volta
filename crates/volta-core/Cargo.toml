@@ -13,29 +13,29 @@ mock-network = ["mockito"]
 cross-platform-docs = []
 
 [dependencies]
-terminal_size = "0.3.0"
-indicatif = "0.17.8"
+terminal_size = "0.4.1"
+indicatif = "0.17.9"
 console = ">=0.11.3, <1.0.0"
 readext = "0.1.0"
-serde_json = { version = "1.0.127", features = ["preserve_order"] }
-serde = { version = "1.0.209", features = ["derive"] }
+serde_json = { version = "1.0.135", features = ["preserve_order"] }
+serde = { version = "1.0.217", features = ["derive"] }
 archive = { path = "../archive" }
 node-semver = "2"
 cmdline_words_parser = "0.2.1"
 fs-utils = { path = "../fs-utils" }
 cfg-if = "1.0"
-tempfile = "3.12.0"
-os_info = "3.8.2"
+tempfile = "3.14.0"
+os_info = "3.9.2"
 detect-indent = "0.1"
 envoy = "0.1.3"
 mockito = { version = "0.31.1", optional = true }
-regex = "1.10.6"
-dirs = "5.0.1"
+regex = "1.11.1"
+dirs = "6.0.0"
 # We manually configure the feature list here because 0.4.16 includes the
 # `oldtime` feature by default to avoid a breaking change. Additionally, using
 # the feature list explicitly lets us drop the `wasmbind` feature, which we do
 # not need.
-chrono = { version = "0.4.38", default-features = false, features = ["alloc", "std", "clock"] }
+chrono = { version = "0.4.39", default-features = false, features = ["alloc", "std", "clock"] }
 validate-npm-package-name = { path = "../validate-npm-package-name" }
 textwrap = "0.16.1"
 log = { version = "0.4", features = ["std"] }
@@ -49,11 +49,11 @@ httpdate = "1"
 headers = "0.4"
 attohttpc = { version = "0.28", default-features = false, features = ["json", "compress", "tls-rustls-native-roots"] }
 chain-map = "0.1.0"
-indexmap = "2.4.0"
+indexmap = "2.7.0"
 retry = "2"
 fs2 = "0.4.3"
-which = "6.0.3"
+which = "7.0.1"
 
 [target.'cfg(windows)'.dependencies]
-winreg = "0.52.0"
-junction = "1.1.0"
+winreg = "0.55.0"
+junction = "1.2.0"

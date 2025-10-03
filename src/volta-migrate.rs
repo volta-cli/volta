@@ -10,7 +10,7 @@ pub fn main() {
     // In order to migrate the existing Volta directory while avoiding unconditional changes to the user's system,
     // the Homebrew formula runs volta-migrate with `--no-create` flag in the post-install phase.
     let no_create = matches!(std::env::args_os().nth(1), Some(flag) if flag == "--no-create");
-    if no_create && !volta_home().map_or(false, |home| home.root().exists()) {
+    if no_create && volta_home().map_or(true, |home| !home.root().exists()) {
         ExitCode::Success.exit();
     }
 
