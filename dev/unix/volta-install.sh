@@ -5,6 +5,8 @@
 # has, fetch and install the appropriate build of Volta, and modify the user's
 # profile.
 
+readonly Volta_PUBLIC_KEY="RWTf5is8+3rdT2AIPYiQqEkdqqbIJGnRZzoq6ztC6mQaoTDIxfiSSozL"
+
 # NOTE: to use an internal company repo, change how this determines the latest version
 get_latest_release() {
   curl --silent "https://volta.sh/latest-version"
@@ -22,8 +24,20 @@ download_release_from_repo() {
   local filename="volta-$version-$os_info.tar.gz"
   local download_file="$tmpdir/$filename"
   local archive_url="$(release_url)/download/v$version/$filename"
+  local signature_url="${archive_url}.minisig"
+  local signature_file="${download_file}.minisig"
 
-  curl --progress-bar --show-error --location --fail "$archive_url" --output "$download_file" --write-out "$download_file"
+  curl --progress-bar --show-error --location --fail "$archive_url" --output "$download_file" --write-out "$download_file" || return 1
+
+  #download the signature file
+  info 'Fetching' "Signature file"
+  if ! curl --silent --show-error --location --fail "$signature_url" --output "$signature_file"; then
+    error "Could not download signature file from $signature_url"
+    eprintf "Signature verification cannot proceed without the signature file."
+    return 1
+  fi
+
+  echo "$download_file"
 }
 
 usage() {
@@ -68,6 +82,85 @@ eprintf() {
 
 bold() {
   command printf '\033[1m%s\033[0m' "$1"
+}
+
+# check if Minisign is available
+check_minisign() {
+  if command -v minisign >/dev/null 2>&1; then
+    return 0  
+  fi
+
+  warning "minisign not found. Attempting to install"
+
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    #macOS
+    if command -v brew >/dev/null 2>&1; then
+      brew install minisign
+    else 
+      error "Homebrew not found. Please install minsign manually"
+      eprintf " Visit: https://jedisct1.github.io/minisign/"
+      return 1
+    fi
+  elif [[ "$OSTYPE" == "linux"* ]]; then
+    #Linux
+    if command -v apt >/dev/null 2>&1; then
+      sudo apt update && sudo apt install -y minisign
+    elif command -v dnf >/dev/null 2>&1; then
+      sudo dnf install -y minisign
+    elif command -v yum >/dev/null 2>&1; then
+      sudo yum install -y minisign
+    else 
+      error "Unsupported package manager. Please install minisign manually."
+      eprintf " Visit: https://jedisct1.github.io/minisign/"
+      return 1
+    fi
+  else 
+    error "Unsupported OS ($OSTYPE). Please install minisign manually."
+    eprintf " Visit: https://jedisct1.github.io/minisign/"
+    return 1
+  fi
+
+  #Verify Installation succeeded
+  if ! command -v minisign >/dev/null 2>&1; then
+    error "Failed to install minisign. Please install it manually."
+    return 1
+  fi
+
+  info "Minisign successfully Installed"
+  return 0
+
+}
+
+#Verify the signature of a download release
+verify_release_signature() {
+  local archive_file="$1"
+  local signature_file="${archive_file}.minisig"
+
+  info 'Verifying' "release signature"
+
+  #check if signature file exists
+  if [ ! -f "$signature_file" ]; then
+    error "Signature file not found: $signature_file"
+    eprintf "Cannot verify the release without a signature file."
+    return 1
+  fi
+
+  #verify using minisign
+  if minisign -Vm "$archive_file" -P "$Volta_PUBLIC_KEY" 2>/dev/null; then
+    info 'Verified' "release signature successfully"
+    return 0
+  else 
+    error "Signature verification failed for $(basename "$archive_file")"
+    eprintf ""
+    eprintf "This could mean:"
+    eprintf " . The file was corrupted during download"
+    eprintf " . The file has been tampered with"
+    eprintf " . You are using an outdated installer script"
+    eprintf ""
+    eprintf "Please try again or report this issue at:"
+    eprintf " https://github.com/volta-cli/volta/issues"
+    return 1
+  fi
 }
 
 # check for issue with VOLTA_HOME
@@ -259,6 +352,28 @@ install_release() {
   info 'Checking' "for existing Volta installation"
   if upgrade_is_ok "$version" "$install_dir" "$is_dev_install"
   then
+    #Only verify signatures for versions that have them
+    ##Supposing signatures start from v2.0.3 (can be adjusted)
+    local should_verify=false
+
+    #parse version number
+    local version_number="${version#v}" 
+
+    #check if version >= 2.0.3
+    if printf '%s\n2.0.3\n' "$version_number" | sort -V -C 2>/dev/null; then
+      should_verify=true
+    fi
+    if [ "$should_verify" = true ]; then
+
+      #ensure mnisign is available
+      if ! check_minisign;  then 
+        return 1
+      fi
+    else 
+      warning "Version $version predates signature verification"
+      info 'Skipping' "signature verification for older releases."
+    fi
+
     download_archive="$(download_release "$version"; exit "$?")"
     exit_status="$?"
     if [ "$exit_status" != 0 ]
@@ -266,7 +381,14 @@ install_release() {
       error "Could not download Volta version '$version'. See $(release_url) for a list of available releases"
       return "$exit_status"
     fi
-
+    if [ "$should_verify" = true]; then
+      #verify signature before installing
+      if ! verify_release_signature "$download_archive"; then 
+        #remove the download file if verification fails
+        rm -f "$download_archive" "${download_archive}.minisig"
+        return 1
+      fi
+    fi
     install_from_file "$download_archive" "$install_dir"
   else
     # existing legacy install, or upgrade problem
