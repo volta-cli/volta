@@ -15,6 +15,12 @@
   </a>
 </p>
 
+> [!IMPORTANT]
+> **Volta is unmaintained.** We recommend migrating to [`mise`](https://mise.jdx.dev/). See [issue #2080](https://github.com/volta-cli/volta/issues/2080).
+
+---
+
+
 **Fast:** Install and run any JS tool quickly and seamlessly! Volta is built in Rust and ships as a snappy static binary.
 
 **Reliable:** Ensure everyone in your project has the same tools—without interfering with their workflow.
