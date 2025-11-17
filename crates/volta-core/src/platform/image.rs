@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use super::{build_path_error, Sourced};
 use crate::error::{Context, Fallible};
+use crate::is_yarn_enabled;
 use crate::layout::volta_home;
 use crate::tool::load_default_npm_version;
 use node_semver::Version;
@@ -34,9 +35,11 @@ impl Image {
             bins.push(home.pnpm_image_bin_dir(&pnpm_str));
         }
 
-        if let Some(yarn) = &self.yarn {
-            let yarn_str = yarn.value.to_string();
-            bins.push(home.yarn_image_bin_dir(&yarn_str));
+        if is_yarn_enabled() {
+            if let Some(yarn) = &self.yarn {
+                let yarn_str = yarn.value.to_string();
+                bins.push(home.yarn_image_bin_dir(&yarn_str));
+            }
         }
 
         // Add Node path to the bins last, so that any custom version of npm will be earlier in the PATH

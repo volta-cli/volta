@@ -7,7 +7,7 @@ use std::process::ExitStatus;
 use crate::error::{ErrorKind, Fallible};
 use crate::platform::{CliPlatform, Image, Sourced};
 use crate::session::Session;
-use crate::VOLTA_FEATURE_PNPM;
+use crate::{is_yarn_enabled, VOLTA_FEATURE_PNPM};
 use log::debug;
 use node_semver::Version;
 
@@ -86,6 +86,7 @@ fn get_executor(
             Some("node") => node::command(args, session),
             Some("npm") => npm::command(args, session),
             Some("npx") => npx::command(args, session),
+
             Some("pnpm") => {
                 // If the pnpm feature flag variable is set, delegate to the pnpm handler
                 // If not, use the binary handler as a fallback (prior to pnpm support, installing
@@ -96,7 +97,17 @@ fn get_executor(
                     binary::command(exe, args, session)
                 }
             }
-            Some("yarn") | Some("yarnpkg") => yarn::command(args, session),
+
+            Some("yarn") | Some("yarnpkg") => {
+                println!("is_yarn_enabled: {:?}", is_yarn_enabled());
+                if is_yarn_enabled() {
+                    yarn::command(args, session)
+                } else {
+                    println!("using binary");
+                    binary::command(exe, args, session)
+                }
+            }
+
             _ => binary::command(exe, args, session),
         }
     }
