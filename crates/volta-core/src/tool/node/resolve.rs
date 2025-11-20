@@ -33,10 +33,17 @@ cfg_if! {
         fn public_node_version_index() -> String {
             format!("{}/node-dist/index.json", SERVER_URL)
         }
+        fn public_node_nightly_index() -> String {
+            format!("{}/node-nightly/index.json", SERVER_URL)
+        }
     } else {
         /// Returns the URL of the index of available Node versions on the public Node server.
         fn public_node_version_index() -> String {
             "https://nodejs.org/dist/index.json".to_string()
+        }
+        /// Returns the URL of the index of available nightly Node versions on the public Node server.
+        fn public_node_nightly_index() -> String {
+            "https://nodejs.org/download/nightly/index.json".to_string()
         }
     }
 }
@@ -48,7 +55,8 @@ pub fn resolve(matching: VersionSpec, session: &mut Session) -> Fallible<Version
         VersionSpec::Exact(version) => Ok(version),
         VersionSpec::None | VersionSpec::Tag(VersionTag::Lts) => resolve_lts(hooks),
         VersionSpec::Tag(VersionTag::Latest) => resolve_latest(hooks),
-        // Node doesn't have "tagged" versions (apart from 'latest' and 'lts'), so custom tags will always be an error
+        // Node doesn't have "tagged" versions (apart from 'latest', 'lts', and 'nightly'), so other custom tags are an error
+        VersionSpec::Tag(VersionTag::Custom(tag)) if tag == "nightly" => resolve_nightly(hooks),
         VersionSpec::Tag(VersionTag::Custom(tag)) => {
             Err(ErrorKind::NodeVersionNotFound { matching: tag }.into())
         }
@@ -78,6 +86,42 @@ fn resolve_latest(hooks: Option<&ToolHooks<Node>>) -> Fallible<Version> {
         }
         None => Err(ErrorKind::NodeVersionNotFound {
             matching: "latest".into(),
+        }
+        .into()),
+    }
+}
+
+fn resolve_nightly(hooks: Option<&ToolHooks<Node>>) -> Fallible<Version> {
+    let url = match hooks {
+        Some(&ToolHooks {
+            latest: Some(ref hook),
+            ..
+        }) => {
+            debug!("Using node.latest hook to determine node nightly index URL");
+            hook.resolve("nightly/index.json")?
+        }
+        Some(&ToolHooks {
+            index: Some(ref hook),
+            ..
+        }) => {
+            debug!("Using node.index hook to determine node nightly index URL");
+            hook.resolve("nightly/index.json")?
+        }
+        _ => public_node_nightly_index(),
+    };
+
+    let version_opt = match_node_version(&url, |_| true)?;
+
+    match version_opt {
+        Some(version) => {
+            debug!(
+                "Found latest nightly node version ({}) from {}",
+                version, url
+            );
+            Ok(version)
+        }
+        None => Err(ErrorKind::NodeVersionNotFound {
+            matching: "nightly".into(),
         }
         .into()),
     }

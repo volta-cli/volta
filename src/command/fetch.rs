@@ -6,7 +6,7 @@ use crate::command::Command;
 
 #[derive(clap::Args)]
 pub(crate) struct Fetch {
-    /// Tools to fetch, like `node`, `yarn@latest` or `your-package@^14.4.3`.
+    /// Tools to fetch, like `node@nightly`, `yarn@latest` or `your-package@^14.4.3`.
     #[arg(value_name = "tool[@version]", required = true)]
     tools: Vec<String>,
 }

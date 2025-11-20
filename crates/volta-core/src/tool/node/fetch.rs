@@ -15,7 +15,7 @@ use archive::{self, Archive};
 use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
 use log::debug;
-use node_semver::Version;
+use node_semver::{Identifier, Version};
 use serde::Deserialize;
 
 cfg_if! {
@@ -23,13 +23,23 @@ cfg_if! {
         // TODO: We need to reconsider our mocking strategy in light of mockito deprecating the
         // SERVER_URL constant: Since our acceptance tests run the binary in a separate process,
         // we can't use `mockito::server_url()`, which relies on shared memory.
-        fn public_node_server_root() -> String {
+        fn public_node_server_root(version: &Version) -> String {
             #[allow(deprecated)]
-            mockito::SERVER_URL.to_string()
+            let base = mockito::SERVER_URL.to_string();
+
+            if is_nightly_version(version) {
+                format!("{}/download/nightly", base)
+            } else {
+                base
+            }
         }
     } else {
-        fn public_node_server_root() -> String {
-            "https://nodejs.org/dist".to_string()
+        fn public_node_server_root(version: &Version) -> String {
+            if is_nightly_version(version) {
+                "https://nodejs.org/download/nightly".to_string()
+            } else {
+                "https://nodejs.org/dist".to_string()
+            }
         }
     }
 }
@@ -45,6 +55,13 @@ fn npm_manifest_path(version: &Version) -> PathBuf {
     manifest.push("package.json");
 
     manifest
+}
+
+fn is_nightly_version(version: &Version) -> bool {
+    matches!(
+        version.pre_release.first(),
+        Some(Identifier::AlphaNumeric(pre)) if pre.starts_with("nightly")
+    )
 }
 
 pub fn fetch(version: &Version, hooks: Option<&ToolHooks<Node>>) -> Fallible<NodeVersion> {
@@ -162,7 +179,7 @@ fn determine_remote_url(version: &Version, hooks: Option<&ToolHooks<Node>>) -> F
         }
         _ => Ok(format!(
             "{}/v{}/{}",
-            public_node_server_root(),
+            public_node_server_root(version),
             version,
             distro_file_name
         )),
@@ -216,4 +233,33 @@ fn save_default_npm_version(node: &Version, npm: &Version) -> Fallible<()> {
             file: npm_version_file_path,
         }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn nightly_versions_use_nightly_root() {
+        let version = Version::parse("22.0.0-nightly20240101abcd").unwrap();
+
+        let url = determine_remote_url(&version, None).expect("should build nightly URL");
+
+        assert!(
+            url.contains("/download/nightly/v22.0.0-nightly20240101abcd/"),
+            "expected nightly download URL, got {url}"
+        );
+    }
+
+    #[test]
+    fn stable_versions_use_release_root() {
+        let version = Version::parse("22.0.0").unwrap();
+
+        let url = determine_remote_url(&version, None).expect("should build release URL");
+
+        assert!(
+            url.contains("/dist/v22.0.0/") || url.contains("/v22.0.0/"),
+            "expected release download URL, got {url}"
+        );
+    }
 }
