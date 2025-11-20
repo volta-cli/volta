@@ -155,15 +155,16 @@ impl Spec {
 
 /// Determine if a given string is "version-like".
 ///
-/// This means it is either 'latest', 'lts', a Version, or a Version Range.
+/// This means it is either 'latest', 'lts', 'nightly', a Version, or a Version Range.
 fn is_version_like(value: &str) -> bool {
-    matches!(
-        value.parse(),
+    match value.parse::<VersionSpec>() {
         Ok(VersionSpec::Exact(_))
-            | Ok(VersionSpec::Semver(_))
-            | Ok(VersionSpec::Tag(VersionTag::Latest))
-            | Ok(VersionSpec::Tag(VersionTag::Lts))
-    )
+        | Ok(VersionSpec::Semver(_))
+        | Ok(VersionSpec::Tag(VersionTag::Latest))
+        | Ok(VersionSpec::Tag(VersionTag::Lts)) => true,
+        Ok(VersionSpec::Tag(VersionTag::Custom(tag))) if tag == "nightly" => true,
+        _ => false,
+    }
 }
 
 #[cfg(test)]
@@ -180,6 +181,7 @@ mod tests {
         const MINOR: &str = "3.0";
         const PATCH: &str = "3.0.0";
         const BETA: &str = "beta";
+        const NIGHTLY: &str = "nightly";
 
         /// Convenience macro for generating the <tool>@<version> string.
         macro_rules! versioned_tool {
@@ -223,6 +225,11 @@ mod tests {
             assert_eq!(
                 Spec::try_from_str(&versioned_tool!(tool, LTS)).expect("succeeds"),
                 Spec::Node(VersionSpec::Tag(VersionTag::Lts))
+            );
+
+            assert_eq!(
+                Spec::try_from_str(&versioned_tool!(tool, NIGHTLY)).expect("succeeds"),
+                Spec::Node(VersionSpec::Tag(VersionTag::Custom(NIGHTLY.into())))
             );
         }
 
@@ -411,6 +418,25 @@ mod tests {
                     version: version.into()
                 },
                 "`volta <action> tool number` results in the correct error"
+            );
+        }
+
+        #[test]
+        fn special_cases_tool_space_nightly() {
+            let name = "node";
+            let version = "nightly";
+            let args: Vec<String> = vec![name.into(), version.into()];
+
+            let err = Spec::from_strings(&args, PIN).unwrap_err();
+
+            assert_eq!(
+                err.kind(),
+                &ErrorKind::InvalidInvocation {
+                    action: PIN.into(),
+                    name: name.into(),
+                    version: version.into()
+                },
+                "`volta <action> node nightly` results in the correct error"
             );
         }
 
