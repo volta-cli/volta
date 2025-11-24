@@ -221,15 +221,17 @@ install_version() {
       ;;
   esac
 
-  if [ "$?" == 0 ]
-  then
-      if [ "$should_run_setup" == "true" ]; then
-        info 'Finished' "installation. Updating user profile settings."
-        "$install_dir"/bin/volta setup
-      else
-        "$install_dir"/bin/volta --version &>/dev/null # creates the default shims
-        info 'Finished' "installation. No changes were made to user profile settings."
-      fi
+  local install_status="$?"
+  if [ "$install_status" -ne 0 ]; then
+    return "$install_status"
+  fi
+
+  if [ "$should_run_setup" == "true" ]; then
+    info 'Finished' "installation. Updating user profile settings."
+    "$install_dir"/bin/volta setup
+  else
+    "$install_dir"/bin/volta --version &>/dev/null # creates the default shims
+    info 'Finished' "installation. No changes were made to user profile settings."
   fi
 }
 
