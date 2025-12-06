@@ -1,0 +1,9 @@
+{
+  "name": "dot-node-version",
+  "version": "0.0.1",
+  "description": "Testing .node-version file",
+  "license": "To Kill",
+  "volta": {
+    "node": "6.11.1"
+  }
+}
