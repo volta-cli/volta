@@ -7,15 +7,8 @@ use crate::error::{ErrorKind, Fallible};
 use crate::platform::{Platform, System};
 use crate::session::{ActivityKind, Session};
 use node_semver::Version;
-use once_cell::sync::Lazy;
 
-static REQUIRED_NPM_VERSION: Lazy<Version> = Lazy::new(|| Version {
-    major: 5,
-    minor: 2,
-    patch: 0,
-    build: vec![],
-    pre_release: vec![],
-});
+const REQUIRED_NPM_VERSION: Version = Version::new(5, 2, 0);
 
 /// Build a `ToolCommand` for npx
 pub(super) fn command(args: &[OsString], session: &mut Session) -> Fallible<Executor> {
@@ -41,7 +34,7 @@ pub(super) fn execution_context(
             // If the npm version is lower than the minimum required, we can show a helpful error
             // message instead of a 'command not found' error.
             let active_npm = image.resolve_npm()?;
-            if active_npm.value < *REQUIRED_NPM_VERSION {
+            if active_npm.value < REQUIRED_NPM_VERSION {
                 return Err(ErrorKind::NpxNotAvailable {
                     version: active_npm.value.to_string(),
                 }
