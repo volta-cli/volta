@@ -111,7 +111,7 @@ fn trim_version(s: &str) -> &str {
 pub mod version_serde {
     use node_semver::Version;
     use serde::de::{Error, Visitor};
-    use serde::{self, Deserializer, Serializer};
+    use serde::{Deserializer, Serializer};
     use std::fmt;
 
     struct VersionVisitor;
@@ -152,7 +152,7 @@ pub mod version_serde {
 pub mod option_version_serde {
     use node_semver::Version;
     use serde::de::Error;
-    use serde::{self, Deserialize, Deserializer, Serializer};
+    use serde::{Deserialize, Deserializer, Serializer};
 
     pub fn serialize<S>(version: &Option<Version>, s: S) -> Result<S::Ok, S::Error>
     where
@@ -183,7 +183,7 @@ pub mod option_version_serde {
 pub mod hashmap_version_serde {
     use super::version_serde;
     use node_semver::Version;
-    use serde::{self, Deserialize, Deserializer};
+    use serde::{Deserialize, Deserializer};
     use std::collections::HashMap;
 
     #[derive(Deserialize)]

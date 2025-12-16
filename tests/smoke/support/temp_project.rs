@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use volta_core::fs::symlink_file;
 use volta_core::tool::Node;
 
-use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
+use test_support::{ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 
 #[derive(PartialEq, Clone)]
 pub struct FileBuilder {

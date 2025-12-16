@@ -11,7 +11,7 @@ use crate::layout::volta_home;
 use crate::style::{progress_bar, tool_version};
 use crate::tool::{self, download_tool_error, Node};
 use crate::version::{parse_version, VersionSpec};
-use archive::{self, Archive};
+use archive::Archive;
 use cfg_if::cfg_if;
 use fs_utils::ensure_containing_dir_exists;
 use log::debug;
