@@ -1356,13 +1356,37 @@ To upgrade it, please use the command `{} {0}`"#,
                     package, name, command
                 )
             }
-            ErrorKind::VersionParseError { version } => write!(
-                f,
-                r#"Could not parse version "{}"
+            ErrorKind::VersionParseError { version } => {
+                // Check if the version looks like a partial version (just major or major.minor)
+                let parts: Vec<&str> = version.split('.').collect();
+                let is_partial = parts.len() < 3 && parts.iter().all(|p| p.chars().all(|c| c.is_ascii_digit()));
 
-Please verify the intended version."#,
-                version
-            ),
+                if is_partial {
+                    // Build the suggested full version by appending missing parts
+                    let suggested = match parts.len() {
+                        1 => format!("{}.0.0", version),
+                        2 => format!("{}.0", version),
+                        _ => version.clone(),
+                    };
+                    write!(
+                        f,
+                        r#"Could not parse version "{version}"
+
+Volta requires a full semantic version (major.minor.patch format).
+Partial versions like "{version}" are not supported.
+
+Please specify the complete version, for example: "{suggested}""#
+                    )
+                } else {
+                    write!(
+                        f,
+                        r#"Could not parse version "{version}"
+
+Volta requires a valid semantic version in major.minor.patch format (e.g., "18.0.0").
+Please verify the version string is correctly formatted."#
+                    )
+                }
+            }
             ErrorKind::WriteBinConfigError { file } => write!(
                 f,
                 "Could not write executable configuration
@@ -1578,5 +1602,47 @@ impl ErrorKind {
             ErrorKind::YarnLatestFetchError { .. } => ExitCode::NetworkError,
             ErrorKind::YarnVersionNotFound { .. } => ExitCode::NoVersionMatch,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ErrorKind;
+
+    #[test]
+    fn version_parse_error_partial_major_version() {
+        let error = ErrorKind::VersionParseError {
+            version: "18".into(),
+        };
+        let message = format!("{}", error);
+        assert!(message.contains("Could not parse version \"18\""));
+        assert!(message.contains("Volta requires a full semantic version"));
+        assert!(message.contains("Partial versions like \"18\" are not supported"));
+        assert!(message.contains("\"18.0.0\""));
+    }
+
+    #[test]
+    fn version_parse_error_partial_minor_version() {
+        let error = ErrorKind::VersionParseError {
+            version: "18.0".into(),
+        };
+        let message = format!("{}", error);
+        assert!(message.contains("Could not parse version \"18.0\""));
+        assert!(message.contains("Volta requires a full semantic version"));
+        assert!(message.contains("Partial versions like \"18.0\" are not supported"));
+        assert!(message.contains("\"18.0.0\""));
+    }
+
+    #[test]
+    fn version_parse_error_invalid_version() {
+        let error = ErrorKind::VersionParseError {
+            version: "invalid-version".into(),
+        };
+        let message = format!("{}", error);
+        assert!(message.contains("Could not parse version \"invalid-version\""));
+        assert!(
+            message.contains("Volta requires a valid semantic version in major.minor.patch format")
+        );
+        assert!(!message.contains("Partial versions"));
     }
 }
