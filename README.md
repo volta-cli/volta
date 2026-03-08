@@ -42,9 +42,19 @@
 
 Read the [Getting Started Guide](https://docs.volta.sh/guide/getting-started) on our website for detailed instructions on how to install Volta.
 
+```
+curl https://get.volta.sh | bash
+```
+
 ## Using Volta
 
 Read the [Understanding Volta Guide](https://docs.volta.sh/guide/understanding) on our website for detailed instructions on how to use Volta.
+
+```
+volta install node@22
+volta install npm
+volta install yarn
+```
 
 ## Contributing to Volta
 
