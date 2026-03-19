@@ -93,8 +93,31 @@ pub fn parse_requirements(s: impl AsRef<str>) -> Fallible<Range> {
 
 pub fn parse_version(s: impl AsRef<str>) -> Fallible<Version> {
     let s = s.as_ref();
-    s.parse()
-        .with_context(|| ErrorKind::VersionParseError { version: s.into() })
+    s.parse().with_context(|| {
+        // Detect partial versions like "18" or "18.4" and provide a more helpful error
+        if is_partial_version(s) {
+            ErrorKind::VersionParseErrorPartial {
+                version: s.into(),
+            }
+        } else {
+            ErrorKind::VersionParseError {
+                version: s.into(),
+            }
+        }
+    })
+}
+
+/// Check if a string looks like a partial (incomplete) semver version.
+/// A partial version has only a major version (e.g. "18") or major.minor (e.g. "18.4")
+/// but not a full major.minor.patch form.
+fn is_partial_version(s: &str) -> bool {
+    let s = s.trim().trim_start_matches('v');
+    let parts: Vec<&str> = s.split('.').collect();
+    match parts.len() {
+        1 => parts[0].parse::<u64>().is_ok(),
+        2 => parts[0].parse::<u64>().is_ok() && parts[1].parse::<u64>().is_ok(),
+        _ => false,
+    }
 }
 
 // remove the leading 'v' from the version string, if present
@@ -195,5 +218,50 @@ pub mod hashmap_version_serde {
     {
         let m = HashMap::<String, Wrapper>::deserialize(deserializer)?;
         Ok(m.into_iter().map(|(k, Wrapper(v))| (k, v)).collect())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_partial_version() {
+        // Major-only versions
+        assert!(is_partial_version("18"));
+        assert!(is_partial_version("0"));
+        assert!(is_partial_version("v18"));
+
+        // Major.minor versions
+        assert!(is_partial_version("18.4"));
+        assert!(is_partial_version("v18.4"));
+
+        // Full semver versions are NOT partial
+        assert!(!is_partial_version("18.4.0"));
+        assert!(!is_partial_version("v18.4.0"));
+
+        // Non-numeric strings are NOT partial
+        assert!(!is_partial_version("latest"));
+        assert!(!is_partial_version("lts"));
+        assert!(!is_partial_version("abc"));
+        assert!(!is_partial_version("18.abc"));
+    }
+
+    #[test]
+    fn test_version_spec_from_str() {
+        // Full versions should parse as Exact
+        let spec: VersionSpec = "18.4.0".parse().unwrap();
+        assert!(matches!(spec, VersionSpec::Exact(_)));
+
+        // Partial versions should parse as Semver (via parse_requirements fallback)
+        let spec: VersionSpec = "18".parse().unwrap();
+        assert!(matches!(spec, VersionSpec::Semver(_)));
+
+        let spec: VersionSpec = "18.4".parse().unwrap();
+        assert!(matches!(spec, VersionSpec::Semver(_)));
+
+        // Tags should parse as Tag
+        let spec: VersionSpec = "latest".parse().unwrap();
+        assert!(matches!(spec, VersionSpec::Tag(VersionTag::Latest)));
     }
 }

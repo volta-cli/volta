@@ -479,6 +479,11 @@ pub enum ErrorKind {
         version: String,
     },
 
+    /// Thrown when a version string appears to be a partial (incomplete) semver version
+    VersionParseErrorPartial {
+        version: String,
+    },
+
     /// Thrown when there was an error writing a bin config file
     WriteBinConfigError {
         file: PathBuf,
@@ -1363,6 +1368,15 @@ To upgrade it, please use the command `{} {0}`"#,
 Please verify the intended version."#,
                 version
             ),
+            ErrorKind::VersionParseErrorPartial { version } => write!(
+                f,
+                r#"Could not parse version "{}"
+
+Volta requires a fully-qualified semver version (e.g. "18.0.0" instead of "18").
+
+To install using a partial version, use `volta install node@{}` or `volta pin node@{}` on the command line, which supports semver ranges."#,
+                version, version, version
+            ),
             ErrorKind::WriteBinConfigError { file } => write!(
                 f,
                 "Could not write executable configuration
@@ -1565,6 +1579,7 @@ impl ErrorKind {
             ErrorKind::UpgradePackageNotFound { .. } => ExitCode::ConfigurationError,
             ErrorKind::UpgradePackageWrongManager { .. } => ExitCode::ConfigurationError,
             ErrorKind::VersionParseError { .. } => ExitCode::NoVersionMatch,
+            ErrorKind::VersionParseErrorPartial { .. } => ExitCode::NoVersionMatch,
             ErrorKind::WriteBinConfigError { .. } => ExitCode::FileSystemError,
             ErrorKind::WriteDefaultNpmError { .. } => ExitCode::FileSystemError,
             ErrorKind::WriteLauncherError { .. } => ExitCode::FileSystemError,
