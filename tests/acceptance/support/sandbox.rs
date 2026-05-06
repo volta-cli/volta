@@ -857,6 +857,7 @@ impl Sandbox {
             .env("PATH", &self.path)
             .env("VOLTA_POSTSCRIPT", volta_postscript())
             .env_remove("VOLTA_SHELL")
+            .env_remove("_VOLTA_TOOL_RECURSION")
             .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
 
         // overrides for env vars
