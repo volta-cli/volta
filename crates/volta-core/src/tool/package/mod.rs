@@ -1,5 +1,9 @@
 use std::fmt::{self, Display};
+#[cfg(unix)]
+use std::fs;
 use std::fs::create_dir_all;
+#[cfg(unix)]
+use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -299,9 +303,90 @@ where
     rename(staging_dir, &package_dir).with_context(|| ErrorKind::SetupToolImageError {
         tool: package_name.into(),
         version: package_version.to_string(),
-        dir: package_dir,
+        dir: package_dir.clone(),
     })?;
 
+    repair_moved_bin_symlinks(staging_dir, &package_dir, package_name, package_version)?;
+
+    Ok(())
+}
+
+#[cfg(unix)]
+fn repair_moved_bin_symlinks<V>(
+    staging_dir: &Path,
+    package_dir: &Path,
+    package_name: &str,
+    package_version: V,
+) -> Fallible<()>
+where
+    V: Display,
+{
+    let bin_dir = package_dir.join("bin");
+    let entries = match fs::read_dir(&bin_dir) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => {
+            return Err(error).with_context(|| ErrorKind::ReadDirError {
+                dir: bin_dir.clone(),
+            })
+        }
+    };
+
+    for entry in entries {
+        let entry = entry.with_context(|| ErrorKind::ReadDirError {
+            dir: bin_dir.clone(),
+        })?;
+        let metadata =
+            fs::symlink_metadata(entry.path()).with_context(|| ErrorKind::ReadDirError {
+                dir: bin_dir.clone(),
+            })?;
+
+        if !metadata.file_type().is_symlink() {
+            continue;
+        }
+
+        let target =
+            fs::read_link(entry.path()).with_context(|| ErrorKind::SetupToolImageError {
+                tool: package_name.into(),
+                version: package_version.to_string(),
+                dir: package_dir.to_owned(),
+            })?;
+
+        if let Ok(relative_target) = target.strip_prefix(staging_dir) {
+            let repaired_target = package_dir.join(relative_target);
+            if !repaired_target.exists() {
+                return Err(ErrorKind::SetupToolImageError {
+                    tool: package_name.into(),
+                    version: package_version.to_string(),
+                    dir: package_dir.to_owned(),
+                }
+                .into());
+            }
+
+            crate::fs::remove_file_if_exists(entry.path())?;
+            crate::fs::symlink_file(repaired_target, entry.path()).with_context(|| {
+                ErrorKind::SetupToolImageError {
+                    tool: package_name.into(),
+                    version: package_version.to_string(),
+                    dir: package_dir.to_owned(),
+                }
+            })?;
+        }
+    }
+
+    Ok(())
+}
+
+#[cfg(windows)]
+fn repair_moved_bin_symlinks<V>(
+    _staging_dir: &Path,
+    _package_dir: &Path,
+    _package_name: &str,
+    _package_version: V,
+) -> Fallible<()>
+where
+    V: Display,
+{
     Ok(())
 }
 
@@ -322,4 +407,136 @@ fn link_package_to_shared_dir(package_name: &str, manager: PackageManager) -> Fa
     symlink_dir(source, target).with_context(|| ErrorKind::CreateSharedLinkError {
         name: package_name.into(),
     })
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::repair_moved_bin_symlinks;
+    use crate::fs::symlink_file;
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn repairs_bin_symlink_that_points_into_staging_dir() {
+        let temp = tempdir().expect("create temp dir");
+        let staging_dir = temp
+            .path()
+            .join("tmp")
+            .join("image")
+            .join("packages")
+            .join("staging");
+        let package_dir = temp
+            .path()
+            .join("tools")
+            .join("image")
+            .join("packages")
+            .join("volta-test");
+        let staging_target = staging_dir.join("lib/node_modules/volta-test/bin/native");
+        let final_target = package_dir.join("lib/node_modules/volta-test/bin/native");
+        let bin_link = package_dir.join("bin").join("volta-test");
+
+        fs::create_dir_all(staging_target.parent().unwrap()).expect("create staging target dir");
+        fs::create_dir_all(final_target.parent().unwrap()).expect("create final target dir");
+        fs::create_dir_all(bin_link.parent().unwrap()).expect("create package bin dir");
+        fs::write(&staging_target, "#!/usr/bin/env node\n").expect("write staging target");
+        fs::write(&final_target, "#!/usr/bin/env node\n").expect("write final target");
+        symlink_file(&staging_target, &bin_link).expect("create staging symlink");
+
+        repair_moved_bin_symlinks(&staging_dir, &package_dir, "volta-test", "1.0.0")
+            .expect("repair moved symlink");
+
+        assert_eq!(
+            fs::read_link(&bin_link).expect("read repaired link"),
+            final_target
+        );
+    }
+
+    #[test]
+    fn leaves_non_symlink_bin_entries_unchanged() {
+        let temp = tempdir().expect("create temp dir");
+        let staging_dir = temp
+            .path()
+            .join("tmp")
+            .join("image")
+            .join("packages")
+            .join("staging");
+        let package_dir = temp
+            .path()
+            .join("tools")
+            .join("image")
+            .join("packages")
+            .join("volta-test");
+        let bin_file = package_dir.join("bin").join("volta-test");
+
+        fs::create_dir_all(bin_file.parent().unwrap()).expect("create package bin dir");
+        fs::write(&bin_file, "#!/usr/bin/env node\n").expect("write bin file");
+
+        repair_moved_bin_symlinks(&staging_dir, &package_dir, "volta-test", "1.0.0")
+            .expect("repair moved symlink");
+
+        assert_eq!(
+            fs::read_to_string(&bin_file).expect("read bin file"),
+            "#!/usr/bin/env node\n"
+        );
+    }
+
+    #[test]
+    fn leaves_symlink_targets_outside_staging_dir_unchanged() {
+        let temp = tempdir().expect("create temp dir");
+        let staging_dir = temp
+            .path()
+            .join("tmp")
+            .join("image")
+            .join("packages")
+            .join("staging");
+        let package_dir = temp
+            .path()
+            .join("tools")
+            .join("image")
+            .join("packages")
+            .join("volta-test");
+        let external_target = temp.path().join("external").join("native");
+        let bin_link = package_dir.join("bin").join("volta-test");
+
+        fs::create_dir_all(external_target.parent().unwrap()).expect("create external target dir");
+        fs::create_dir_all(bin_link.parent().unwrap()).expect("create package bin dir");
+        fs::write(&external_target, "#!/usr/bin/env node\n").expect("write external target");
+        symlink_file(&external_target, &bin_link).expect("create external symlink");
+
+        repair_moved_bin_symlinks(&staging_dir, &package_dir, "volta-test", "1.0.0")
+            .expect("repair moved symlink");
+
+        assert_eq!(
+            fs::read_link(&bin_link).expect("read unchanged link"),
+            external_target
+        );
+    }
+
+    #[test]
+    fn errors_when_repaired_symlink_target_does_not_exist() {
+        let temp = tempdir().expect("create temp dir");
+        let staging_dir = temp
+            .path()
+            .join("tmp")
+            .join("image")
+            .join("packages")
+            .join("staging");
+        let package_dir = temp
+            .path()
+            .join("tools")
+            .join("image")
+            .join("packages")
+            .join("volta-test");
+        let staging_target = staging_dir.join("lib/node_modules/volta-test/bin/native");
+        let bin_link = package_dir.join("bin").join("volta-test");
+
+        fs::create_dir_all(staging_target.parent().unwrap()).expect("create staging target dir");
+        fs::create_dir_all(bin_link.parent().unwrap()).expect("create package bin dir");
+        fs::write(&staging_target, "#!/usr/bin/env node\n").expect("write staging target");
+        symlink_file(&staging_target, &bin_link).expect("create staging symlink");
+
+        let result = repair_moved_bin_symlinks(&staging_dir, &package_dir, "volta-test", "1.0.0");
+
+        assert!(result.is_err());
+    }
 }
