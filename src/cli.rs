@@ -101,6 +101,9 @@ pub(crate) enum Subcommand {
 
     /// Run a command with custom Node, npm, pnpm, and/or Yarn versions
     Run(command::Run),
+
+    /// Man pages
+    Man(command::ManPages),
 }
 
 impl Subcommand {
@@ -116,6 +119,7 @@ impl Subcommand {
             Subcommand::Use(r#use) => r#use.run(session),
             Subcommand::Setup(setup) => setup.run(session),
             Subcommand::Run(run) => run.run(session),
+            Subcommand::Man(man) => man.run(session),
         }
     }
 }
